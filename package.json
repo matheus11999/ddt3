@@ -21,7 +21,8 @@
     "test:economy:integration": "tsx tests/economy.integration.ts",
     "test:rewards:browser": "node scripts/smoke-rewards.mjs",
     "test:shop:browser": "node scripts/smoke-shop.mjs",
-    "test:power:integration": "tsx tests/power.integration.ts"
+    "test:power:integration": "tsx tests/power.integration.ts",
+    "verify:cosmetics": "node scripts/verify-cosmetics.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

@@ -24,6 +24,10 @@ O usuário ampliou o checkpoint de rostos para cenários, roupas, inventário, f
 - Nível máximo 70 confirmado. Badges em relevo:1–10 cinza completo,11–20 verde,21–30 azul,31–40 bronze,41–50 prata; dourado 51–70 ativo. Novas bases em `level-badge-backdrops.png`. Aura cresce de 30 a 70, com camadas extras no 40, 50, 60 e 70 na cor da faixa, independente do fortalecimento da arma. HUD/mochila/carta usam40/42/46px; carta mobile36px. Personagem da carta reduzido para204px desktop/180px mobile;45 casos de badge até o 70 e24 cartas em quatro resoluções validados.
 - Ataque, Defesa, Dano, Armadura, Agilidade, Vida e Vigor usam totais compartilhados. Dano e Armadura participam da fórmula autoritativa; veja `combat-stats.md`. Os coeficientes são balanceamento próprio, sem alegação de reproduzir a fórmula proprietária de DDTank.
 
+## Encaixe de cosméticos
+
+- Fase 1 do rig v1 (`docs/cosmetics-fit.md`): âncoras, zonas de tamanho por classe e `npm run verify:cosmetics` em modo relatório. Nenhuma mudança visual. Relatório inicial: 8 de 17 peças fora da zona, 49 de 54 combinações chapéu × cabelo com franja sobre os olhos ou óculos encobertos, Executivo e Dançarina com tronco mais estreito. Fases 2–5 aguardam autorização.
+
 ## Inventário, ferreiro e arena
 
 - Mochila e ferreiro usam a mesma moldura pintada com borda real de nove fatias e espaço interno reservado. Cabeçalho/moldura ficam fixos; conteúdo rola dentro. Encaixe inspecionado em 1536/1280/1024/390px e altura mínima 480px.
