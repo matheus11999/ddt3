@@ -42,7 +42,7 @@ export function Scene({angle,onArena,onForge}:{angle:number;onArena:()=>void;onF
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded);
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);}
-     for(const i of applied.indices){const p=shot.projectiles[i];residues!.add({id:`${shot.id}:${i}`,x:p.impact.x,y:p.impact.y,radius:p.impact.radius,effect:p.effect,level});if(elapsed-p.delay-p.points.length*1000/60<700)audio.play('impact',p.effect,level,p.powered);}
+     for(const i of applied.indices){const p=shot.projectiles[i];if(p.fragment)continue;residues!.add({id:`${shot.id}:${i}`,x:p.impact.x,y:p.impact.y,radius:p.impact.radius,effect:p.effect,level});if(elapsed-p.delay-p.points.length*1000/60<700)audio.play('impact',p.effect,level,p.powered);}
     }
     const active=b.players.find(f=>f.id===b.turnId);let focusX=active?.x??W/2,focusY=(active?.y??H/2)-140;
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<p.points.length*1000/60);const point=p?.points[Math.floor((elapsed-p.delay)*60/1000)];if(point){focusX=point[0];focusY=point[1]+70;}}
@@ -60,7 +60,7 @@ export function Scene({angle,onArena,onForge}:{angle:number;onArena:()=>void;onF
      if(Math.abs(slope)>.43&&!walking)pose='prone';
      if(falling)pose='fall';
      if(shot&&hold){
-      const launch=shot.projectiles.filter(p=>elapsed>=p.delay&&elapsed-p.delay<350).at(-1);
+      const launch=shot.projectiles.filter(p=>!p.fragment&&elapsed>=p.delay&&elapsed-p.delay<350).at(-1);
       if(f.id===shot.shooterId&&launch){pose='fire';poseTime=elapsed-launch.delay;}
       const hit=shot.hits.filter(h=>h.id===f.id&&exploded.has(h.projectileIndex??0)).at(-1);
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=elapsed-p.delay-p.points.length*1000/60;if(age>=0&&age<500){pose='hit';poseTime=age;}}
@@ -73,7 +73,7 @@ export function Scene({angle,onArena,onForge}:{angle:number;onArena:()=>void;onF
     }
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{const age=elapsed-p.delay;if(age<0)return;const index=Math.floor(age*60/1000);
-      if(shooter&&(i===0||shot.projectiles[i-1].delay!==p.delay)){const origin=p.points[0];drawMuzzle(c,origin?origin[0]-27*shooter.facing:shooter.x,origin?origin[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered);}
+      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){const origin=p.points[0];drawMuzzle(c,origin?origin[0]-27*shooter.facing:shooter.x,origin?origin[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered);}
       if(index<p.points.length)drawProjectile(c,p,index,level,t);else drawImpact(c,p,age-p.points.length*1000/60,level,p.impact.material);
      });
      for(const hit of shot.hits){const p=shot.projectiles[hit.projectileIndex??0],age=elapsed-p.delay-p.points.length*1000/60;if(age>=0&&age<900){c.save();c.globalAlpha=Math.min(1,(900-age)/350);label('−'+hit.damage,hit.x,hit.y-age/25,'#fff0b7',25);c.restore();}}

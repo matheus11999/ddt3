@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {WEAPONS} from '../shared/catalog';
-import {crater,createTerrain,ground,packTerrain,solid,terrainMaterial,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
+import {MATERIALS} from '../shared/maps';
+import {crater,createTerrain,ground,packTerrain,shatter,shatterAngles,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
  const sky=createTerrain('sky'),valley=createTerrain('valley');
@@ -142,4 +143,24 @@ test('dynamite uses its own physical footprint and destruction budget',()=>{
  assert.ok(dynamite.crater<brasa.crater&&dynamite.crater<crystal.crater);
  assert.ok(dynamite.damage<brasa.damage,'smaller crater does not exceed the dragon damage budget');
  assert.notEqual(dynamite.blast,dynamite.crater,'blast and terrain destruction have independent radii');
+});
+
+test('the brick breaker shatters into a deterministic fan and demolishes hard material',()=>{
+ const brick=WEAPONS.find(w=>w.id==='brick')!;
+ assert.equal(brick.effect,'brick');assert.ok(brick.fragments);
+ assert.deepEqual([0,8,9,10,11,12].map(level=>weaponFragmentCount(brick,level)),[2,2,3,4,4,5]);
+ assert.equal(weaponFragmentCount(brick,12,true),7);assert.equal(weaponFragmentCount(WEAPONS[0],12,true),0);
+ const right=shatterAngles(5,1),left=shatterAngles(5,-1);
+ assert.equal(right[0],32);assert.equal(right[4],148);assert.deepEqual(left,right.map(a=>180-a));
+ const terrain=createTerrain('garden'),x=700,surface=ground(terrain,x);
+ const first=shatter(terrain,{x,y:surface-10},4,1,brick.fragments!,0),again=shatter(createTerrain('garden'),{x,y:surface-10},4,1,brick.fragments!,0);
+ assert.deepEqual(first,again);assert.equal(first.length,4);
+ for(const piece of first){assert.ok(piece.points.length>3,'a shard flies before landing');assert.ok(Math.abs(piece.x-x)<260,'shards stay near the main impact');}
+ // Stone resists a plain crater; demolition removes part of that resistance only.
+ let hard:{map:'garden'|'park'|'celestial';x:number;y:number}|undefined;
+ for(const map of ['garden','park','celestial'] as const){const template=terrainTemplate(map);for(let i=0;i<template.solid.length&&!hard;i++){const region=template.definition[template.regions[i]];if(region?.destructible&&MATERIALS[region.material].resistance>1)hard={map,x:(i%WORLD.cols)*3+1,y:Math.floor(i/WORLD.cols)*3+1};}}
+ assert.ok(hard,'some map has destructible hard material');
+ const plain=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map),demolished=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map,brick.demolition);
+ assert.ok(demolished>plain,'brick demolition opens more stone than the same radius without it');
+ const earth=createTerrain('garden');assert.equal(crater(earth.slice(),x,surface,30,'garden',.6),crater(earth.slice(),x,surface,30,'garden'),'soft ground is unchanged');
 });

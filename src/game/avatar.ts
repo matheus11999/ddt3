@@ -106,8 +106,8 @@ function drawCombatWeapon(c:CanvasRenderingContext2D,eq:Equipment,time:number,an
  const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(!w.complete||!w.naturalWidth)return;
  // The server's projectile starts at x + 27*facing, y - 40. Anchor the painted muzzle there.
  c.save();c.translate(27*160/112-recoil*5,-40*160/112);c.rotate(-(angle-30)*Math.PI/180-recoil*.06);
- if(level>=9||charging){c.shadowColor=eq.weapon==='ember'?'#ffb45a':eq.weapon==='volt'?'#69dfff':eq.weapon==='dynamite'?'#ffb52c':'#d4a0ff';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
- if(eq.weapon==='dynamite')c.drawImage(w,-40,-10,68,68);else c.drawImage(w,-67.2,-29.5,82,82);c.restore();
+ if(level>=9||charging){c.shadowColor=eq.weapon==='ember'?'#ffb45a':eq.weapon==='volt'?'#69dfff':eq.weapon==='dynamite'?'#ffb52c':eq.weapon==='brick'?'#ff7a3d':'#d4a0ff';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
+ if(eq.weapon==='dynamite'||eq.weapon==='brick')c.drawImage(w,-40,-10,68,68);else c.drawImage(w,-67.2,-29.5,82,82);c.restore();
 }
 
 /** A layered 2D cutout rig. Every item shares the head/chest/hand transforms in all poses. */
@@ -148,7 +148,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;
    c.translate(mix(31-stride*2.8*walk-recoil*7,7,lie),mix(-35-Math.abs(stride)*1.6*walk-(aiming?5:0),-125,lie));c.rotate(Math.sin(time/600)*.02+stride*.065*walk+angle-recoil*.17-lie*Math.PI/2);
    if(pose==='charge'){c.save();c.globalAlpha*=.18+clamp(context.power??50,0,100)/250;c.shadowColor='#ffe5a0';c.shadowBlur=12;ellipse(c,11,-9,15+Math.sin(time/80)*2,15,'#fbe3a6');c.restore();}
-   if(level>=9){const color=eq.weapon==='ember'?'#ffb45a':eq.weapon==='volt'?'#69dfff':eq.weapon==='dynamite'?'#ffb52c':'#d4a0ff';c.shadowColor=color;c.shadowBlur=level>=12?17:level>=10?7:3;c.save();c.globalAlpha*=.25+Math.sin(time/400)*.05;ellipse(c,5,-5,level>=12?29:20,level>=12?29:20,color);c.restore();if(level>=12)for(let i=0;i<5;i++){const a=time/700+i*1.26;ellipse(c,5+Math.cos(a)*30,-5+Math.sin(a)*25,1.5,1.5,'#fff4bf');}}
+   if(level>=9){const color=eq.weapon==='ember'?'#ffb45a':eq.weapon==='volt'?'#69dfff':eq.weapon==='dynamite'?'#ffb52c':eq.weapon==='brick'?'#ff7a3d':'#d4a0ff';c.shadowColor=color;c.shadowBlur=level>=12?17:level>=10?7:3;c.save();c.globalAlpha*=.25+Math.sin(time/400)*.05;ellipse(c,5,-5,level>=12?29:20,level>=12?29:20,color);c.restore();if(level>=12)for(let i=0;i<5;i++){const a=time/700+i*1.26;ellipse(c,5+Math.cos(a)*30,-5+Math.sin(a)*25,1.5,1.5,'#fff4bf');}}
    c.drawImage(w,-35,-46,82,82);c.restore();
   }}c.restore();c.restore();
  };

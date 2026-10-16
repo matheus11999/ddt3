@@ -161,3 +161,16 @@ test('terrain marks are not exposed before impact and survive later snapshots',a
  assert.equal(immediate.terrainMarks!.length,0);assert.ok(f.match.pendingMarks!.length);
  f.game.tick(Math.max(...f.match.pendingMarks!.map(mark=>mark.at))+1);assert.ok(f.match.state.terrainMarks!.length);
 });
+
+test('a brick shot sends authoritative shards after the main impact without muzzle residue marks',async()=>{
+ const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
+ player.equipment={...player.equipment,weapon:'brick',upgrade:10};
+ await f.game.command(player.id,{type:'fire',angle:60,power:45});
+ const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
+ const main=shot.projectiles.filter(p=>!p.fragment),shards=shot.projectiles.filter(p=>p.fragment);
+ assert.equal(main.length,1);assert.equal(shards.length,4);
+ const landed=main[0].delay+main[0].points.length*1000/60;
+ for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.equal(shard.impact.demolition,.6);assert.ok(shard.delay+shard.points.length*1000/60<=shot.duration);}
+ assert.ok(shot.hits.every(h=>h.projectileIndex!==undefined&&h.projectileIndex<shot.projectiles.length));
+ assert.equal(f.match.pendingMarks?.length,1,'only the main impact leaves a residue mark');
+});
