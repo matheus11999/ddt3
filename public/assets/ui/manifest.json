@@ -1,0 +1,36 @@
+{
+  "style": "Original painted fantasy interface: vivid sapphire stone, ruby wood, emerald glints and polished gold; quiet dark inset surfaces preserve text and item contrast.",
+  "generator": "image_gen",
+  "assets": [
+    {
+      "file": "fantasy-panel.png",
+      "width": 1536,
+      "height": 1024,
+      "usage": "Reusable menu panel and frame; no embedded labels or controls.",
+      "prompt": "Create an original production game UI panel background texture for a whimsical high-fantasy 2D chibi browser artillery game. Wide landscape 3:2 image. Rich vivid jewel colors, confident clean illustrated painterly craft, crisp premium mobile/PC fantasy RPG game finish. NO TEXT, no letters, no icons, no controls, no characters. The composition is a simple usable rectangle: broad quiet deep royal sapphire and midnight petrol blue stone center occupying 82 percent of the image, subtle hand-painted stone slabs and carved swirling leaf flourishes ONLY close to the edges, strong warm polished gold beveled frame occupying 5 percent of image width on all four edges, shaped rounded corners, small faceted glowing ruby-red gem inset in each corner. Tiny emerald reflections on the gold, saturated gold highlights and warm orange bouncing light. Dark ruby stained wooden outermost rim. Center needs to remain flat, low-contrast and uncluttered so actual HTML game buttons and items can be placed over it. Ornamental detail is concentrated in the perimeter, functional restrained border, absolutely no central crest. Straight orthographic flat 2D texture, no perspective, rectangle fills whole image. No cream parchment, pastel, washed-out colors, bloom, generic UI mockup, scene/background outside frame, illegible AI text, metallic photorealism. Save the finished image asset for use as a web game panel texture."
+    },
+    {
+      "file": "forge-workshop.png",
+      "width": 1862,
+      "height": 845,
+      "usage": "Workshop under weapon and forge effects, replacing the vector scenery. Image remains decorative and cannot alter strengthening outcomes.",
+      "prompt": "Original hand-painted 2D fantasy game blacksmith interior backdrop, very wide cinematic 2.2:1 horizontal layout, for a colorful chibi browser artillery RPG. Professional polished vivid stylized fantasy game environment art, confident outlines and dimensional brushwork, vivid royal cobalt blue stone arches, glowing molten orange forge fire, polished gold/brass fittings, vivid emerald enchanted crystals, warm mahogany beams. Composition must be UI-usable: huge richly illustrated arched orange-glowing furnace at far LEFT quarter; heavy detailed iron anvil with gold rim sits in LOWER CENTER at 53 percent horizontal, its upper striking surface at 72 percent image height; center upper area above anvil must be clean dark sapphire stone with open empty space for an equipped weapon icon and game text; far RIGHT quarter holds ornate weapon racks and a few fantasy forging tools. Depth, foreground workbench and coal, enchanted sparks at furnace, vivid saturated colors, rich fantasy atmosphere. No human or creature, no weapon floating above anvil, no interface, no buttons, no lettering, no numbers, no border. Original illustration not based on any existing game's copyrighted art. No pale pastel, no washed-out cream scene, no realistic photograph, no generic clipart, no flat vector minimalism. This is a background art asset, not a full interface mockup."
+    },
+    {
+      "file": "power-emblem.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "usage": "Shared painted PowerIcon; visible in the inventory character power and shared player summaries.",
+      "prompt": "Create a single original game UI POWER emblem icon, on a transparent RGBA background. Square composition. A strong compact sculpted golden shield surrounding a brilliant cyan crystal core and a small upward ruby-red flame, with gold flame wings closely attached to the shield. Vivid fantasy adventure RPG, hand-painted 3D volume, deep clean outlines, controlled sharp highlights, rich saturated gold/cyan/ruby, no pastel or washed colors. Icon silhouette must be instantly readable at 24–48 pixels. Central shield and crystal should be thick, simple, bold, balanced and almost fill the square with 7% transparent padding. ONE isolated emblem only, no background panel, no floor, no ring, no pedestal, no text, no letters, no numbers, no watermark, no tiny floating sparks or debris. No swords. Transparent exterior, crisp alpha edge, no black or white background."
+    },
+    {
+      "file": "composition-stones.png",
+      "width": 1254,
+      "height": 1254,
+      "alpha": true,
+      "usage": "2x2 original mineral atlas for the functional composition service; the tier and quantity are live UI text.",
+      "prompt": "Create an original fantasy game ITEM ICON ATLAS, transparent RGBA canvas, square image divided into an exact 2 by 2 equal grid. Four isolated mineral stones, each perfectly centered within its own equal quadrant, completely contained with generous 16% empty transparent padding around each stone. No panel backgrounds, no borders, no text, no numbers, no labels. TOP LEFT: ATTACK mineral, bold ruby-red jagged crystal with a small golden flame embedded in the red stone, compact chunky silhouette. TOP RIGHT: DEFENSE mineral, royal sapphire-blue polished stone with a silver shield-shaped natural crystalline front facet. BOTTOM LEFT: AGILITY mineral, emerald-green crystal shard with flowing golden winglike mineral ridges. BOTTOM RIGHT: ARMOR mineral, rich violet-purple crystal ore partially enclosed in two thick golden-metal plates, solid protective silhouette. Keep all four icons similar visual weight and size, approximately 70% of each quadrant width/height. Hand-painted high quality fantasy RPG inventory illustrations, sculpted 3D volume, defined dark contours, vivid saturated pigments, strong controlled highlights, crisp readability at 32–64 px. Original designs, no copied game assets. No pastel, no white haze, no background or floor shadow outside the item. No floating sparkles. Transparent outside each isolated mineral. Strict layout: attack top-left, defense top-right, agility bottom-left, armor bottom-right."
+    }
+  ]
+}

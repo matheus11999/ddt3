@@ -147,3 +147,147 @@
 @keyframes forge-working{0%,100%{transform:translateY(-3px);filter:drop-shadow(0 0 18px #ffe1a099)}50%{transform:translateY(-7px);filter:drop-shadow(0 0 27px #ffe1a0dd)}}
 @keyframes forge-result{from{transform:scale(.7);opacity:1}to{transform:scale(1.35);opacity:0}}
 @media(prefers-reduced-motion:reduce){.forge-window *,.forge-window *:before,.forge-window *:after{animation:none!important;transition:none!important}}
+
+/* Painted workshop, sapphire workbench and copper controls. */
+.forge-window .forge-tabs{background:#102543ee;border-color:#d2a34e66;padding:0 17px;gap:5px}
+.forge-window .forge-tabs>button{color:#c4daf0}.forge-window .forge-tabs>button.active{color:#ffe391;background:linear-gradient(#8c3346,#43223e);border-color:#d9a454;box-shadow:inset 0 1px #eebc6755}
+.forge-window .forge-tabs>span{color:#f2c86e}
+.forge-window .forge-workbench{background:linear-gradient(#142b4a,#102544);border-color:#daa85466}
+.forge-window .forge-workshop{background:#112748}
+.forge-window .forge-workshop:before{display:none}.forge-window .forge-workshop:after{background:linear-gradient(transparent,#102544);height:35px}
+.forge-window .forge-painted-workshop{object-fit:cover;object-position:center}
+.forge-painted-firelight{position:absolute;left:5%;top:35%;width:27%;height:48%;background:radial-gradient(ellipse,#ffb41125,transparent 70%);mix-blend-mode:screen;pointer-events:none;animation:forge-fire-glow 1.7s ease-in-out infinite alternate}
+.forge-window .forge-hero-label{left:195px;right:90px;top:11px;color:#ffe6a6;text-shadow:0 2px #0e1c39,0 0 10px #0a1631}
+.forge-window .forge-weapon-target{left:258px;top:57px;width:165px;height:146px;background:radial-gradient(ellipse,#102a4733,#102a4700);box-shadow:none;border-color:#f3c56f55}
+.forge-window .forge-weapon-target>span:not(.forge-rune-ring){color:#e0eafa;text-shadow:0 2px #061a31}.forge-window .forge-weapon-target>svg{color:#ffdb74;opacity:.8}
+.forge-window .forge-stock{background:linear-gradient(120deg,#21466fed,#102c4ff5);box-shadow:inset 5px 0 15px #051a3433;padding:18px 19px 15px}
+.forge-window .forge-stock .forge-section-heading h2{color:#ffe1a1;text-shadow:none}.forge-window .forge-stock .forge-section-heading h2 svg{color:#ffcf63}
+.forge-window .forge-section-heading>span,.forge-window .forge-stock .forge-section-heading>span{color:#bdd1e7}
+.forge-window .forge-materials{border-color:#8a9abb55;background:#0a213dbb}
+.forge-window .forge-section-heading h2{color:#ffe0a0}.forge-window .forge-section-heading h2 svg{color:#ffc54f}
+.forge-window .forge-stock-hint{color:#bbd3ed}
+.forge-window .forge-stone-cell{background:linear-gradient(90deg,#24456a,#152f51);border-color:#7496b85e;box-shadow:inset 0 1px #a3c9e22b,0 2px #0b1d37;gap:12px}
+.forge-window .forge-material-name strong{color:#e8f3ff}.forge-window .forge-material-name>span{color:#a9c7e7}
+.forge-window .forge-add-stone{background:linear-gradient(#edb449,#b96d24);border-color:#ffe195;color:#fff2c0;box-shadow:inset 0 1px #fff1b4,0 3px #69371d;width:34px;height:32px}
+.forge-window .forge-action{background:linear-gradient(#183253,#102541);border-color:#8b9cba44}
+.forge-window .forge-chance-title>span{color:#c8dcf3}.forge-window .forge-chance-title>strong{color:#ffd466}
+.forge-window .forge-chance-track{background:#071d36;border-color:#839ac0}.forge-window .forge-chance-track>i{background:linear-gradient(90deg,#0874b8,#12bca2,#68d75d,#e9c447)}
+.forge-window .forge-next-level{color:#b7d2ed}.forge-window .forge-next-level strong{color:#ffe081}
+.forge-window .forge-empty-label,.forge-window .forge-feedback{color:#bad3ec}
+.forge-window .forge-tooltip{background:linear-gradient(#18395bfa,#0c213dfc);border-color:#d6aa58;color:#d3e6fa;box-shadow:0 7px 25px #020b21bb}
+.forge-window .forge-tooltip>strong{color:#ffe5a2}.forge-window .forge-tooltip>small{color:#adcae8;border-color:#9aafc344}
+.forge-window .forge-remove-weapon{background:#9e2943;border-color:#f6be5b;color:#ffebac}
+.forge-window .forge-level-path{left:235px;right:115px;bottom:10px;color:#f2d18e;padding:5px 8px;border-radius:8px;background:#0a1c38c9}
+.forge-window .forge-level-path i{background:#071a31;border-color:#7997ba}.forge-window .forge-level-path i.complete{background:linear-gradient(#ffdd69,#dd982b);border-color:#ffe496}
+.forge-window .forge-progress-caption{left:248px;width:185px;bottom:38px;color:#ffe37b}
+@media(prefers-reduced-motion:reduce){.forge-painted-firelight{animation:none}}
+.forge-window .item-card.forge-weapon-target[data-rarity][data-card-variant]{border:0;border-radius:50%;background:radial-gradient(ellipse,var(--card-glow),transparent 68%);box-shadow:none}
+.forge-window .item-card.forge-weapon-target[data-rarity][data-card-variant]:before,.forge-window .item-card.forge-weapon-target>.item-card-ornament,.forge-window .item-card.forge-weapon-target>.item-card-gloss{display:none}
+.forge-window .item-card.forge-weapon-target[data-card-empty]{background:#112c4933;border:1px dashed #e5bd6b77;opacity:1}
+@media(max-width:700px){
+ .compact-modal-layer .forge-window .forge-tabs{height:44px;padding:0 7px;gap:2px}.compact-modal-layer .forge-window .forge-tabs>button{min-width:80px;padding:0 8px;font-size:10px;gap:5px}.compact-modal-layer .forge-window .forge-tabs>span{display:none}
+ .compact-modal-layer .forge-window .forge-body{grid-template-columns:1fr;height:auto}
+ .compact-modal-layer .forge-window .forge-workbench{border-right:0;border-bottom:1px solid #d9ac5266}
+ .compact-modal-layer .forge-window .forge-workshop{height:auto;aspect-ratio:650 / 330}
+ .compact-modal-layer .forge-window .forge-hero-label{left:30%;right:10%;top:4px;min-height:25px;gap:4px}.compact-modal-layer .forge-window .forge-hero-label>span{font-size:11px}.compact-modal-layer .forge-window .forge-hero-label>.upgrade-badge{width:53px;height:auto}
+ .compact-modal-layer .forge-window .item-card.forge-weapon-target{left:40%;top:22%;width:27%;height:50%}
+ .compact-modal-layer .forge-window .forge-weapon-target>span:not(.forge-rune-ring){font-size:7px;margin-top:3px}.compact-modal-layer .forge-window .forge-weapon-target>svg{width:28px;height:28px}
+ .compact-modal-layer .forge-window .forge-level-path{left:36%;right:9%;bottom:5px;padding:3px 4px;font-size:7px;gap:4px}.compact-modal-layer .forge-window .forge-level-path>div{gap:2px}.compact-modal-layer .forge-window .forge-level-path i{height:4px}
+ .compact-modal-layer .forge-window .forge-materials{height:108px;margin:0 9px;padding:11px 9px}
+ .compact-modal-layer .forge-window .forge-sockets{gap:9px;margin-top:12px}.compact-modal-layer .forge-window .forge-socket{width:47px;height:49px}
+ .compact-modal-layer .forge-window .forge-section-heading h2{font-size:10px;gap:5px}.compact-modal-layer .forge-window .forge-section-heading>span{font-size:8px}
+ .compact-modal-layer .forge-window .forge-action{padding:14px 15px 8px}.compact-modal-layer .forge-window .forge-submit.button{min-width:160px;font-size:12px;border-radius:10px}
+ .compact-modal-layer .forge-window .forge-next-level{gap:7px;padding-left:0}.compact-modal-layer .forge-window .forge-next-level>span{font-size:18px}.compact-modal-layer .forge-window .forge-next-level>strong{font-size:23px}
+ .compact-modal-layer .forge-window .forge-stock{padding:17px 13px 18px}.compact-modal-layer .forge-window .forge-stock-item{height:84px}
+ .compact-modal-layer .forge-window .forge-stones-heading{margin-top:20px}.compact-modal-layer .forge-window .forge-material-name strong{font-size:11px}.compact-modal-layer .forge-window .forge-add-stone{width:40px;height:40px}
+ .compact-modal-layer .forge-window .forge-tooltip{width:200px}.compact-modal-layer .forge-window .forge-stone-cell .forge-tooltip{left:0;top:auto;bottom:calc(100% + 10px)}
+ .compact-modal-layer .forge-window .forge-strengthening{height:220px}.compact-modal-layer .forge-window .forge-energy-paths{width:100%;height:auto}.compact-modal-layer .forge-window .forge-striking-hammer{left:56%;top:28px;width:50px;height:64px}.compact-modal-layer .forge-window .forge-strike-sparks{left:52%;top:80px}
+ .compact-modal-layer .forge-window .forge-progress-caption{left:30%;width:45%;bottom:23px;font-size:9px}
+ .compact-modal-layer .forge-window .forge-outcome{left:12%;right:12%;top:25px;min-height:110px}.compact-modal-layer .forge-window .forge-outcome>strong{font-size:35px}.compact-modal-layer .forge-window .forge-outcome-level{font-size:9px;margin-top:8px}
+}
+.forge-window .forge-body{grid-template-columns:620px 1fr;height:585px}
+.forge-window .forge-weapon-target{left:245px}
+.forge-window .forge-sockets{gap:22px}
+@media(max-width:700px){.compact-modal-layer .forge-window .forge-body{grid-template-columns:1fr;height:auto}.compact-modal-layer .forge-window .forge-sockets{gap:8px}.compact-modal-layer .forge-window .forge-stock{padding:17px 11px 18px}.compact-modal-layer .forge-window .forge-stock-item{height:80px}}
+
+.forge-window .forge-feedback.is-guidance{color:#ffe095;font-weight:700}.forge-window .forge-feedback.is-error{color:#ff9dad}
+.forge-window .forge-material-pulse{position:absolute;inset:-3px;border:2px solid #ffdc81;border-radius:inherit;pointer-events:none;z-index:8;animation:forge-material-added .45s ease-out both}
+.forge-window .forge-add-stone:focus-visible,.forge-window .forge-remove-weapon:focus-visible,.forge-window .forge-socket:focus-visible{outline:3px solid #ffdf82;outline-offset:3px}
+.forge-window .forge-stock-item[aria-pressed=true]{box-shadow:inset 0 0 0 2px #ffe18a,0 0 15px #efa93a44}
+.forge-window .forge-submit[aria-busy=true]{cursor:progress;filter:none;opacity:.9}
+.forge-window .forge-submit:disabled:not([aria-busy=true]){box-shadow:inset 0 1px #fff4bc33,0 2px #382827}
+@keyframes forge-material-added{0%{opacity:1;box-shadow:0 0 0 0 #ffd35f77}100%{opacity:0;box-shadow:0 0 0 8px #ffd35f00}}
+@media(prefers-reduced-motion:reduce){.forge-window .forge-material-pulse{animation:none}}
+
+/* Two real services share the same inset workshop and inventory. */
+.inventory-modal-layer .forge-workshop-shell .forge-layout{display:grid;grid-template-columns:88px minmax(0,1fr);grid-template-rows:minmax(598px,auto);min-height:0;flex:1;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#688db3 #0b223e;border:1px solid #6a91b344;border-top:0;scroll-padding:12px}
+.forge-workshop-shell .forge-services{display:flex;flex-direction:column;gap:9px;padding:12px 7px;background:linear-gradient(90deg,#0b1c35,#153454);border-right:1px solid #bb8c4e66}
+.forge-workshop-shell .forge-services>button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:82px;padding:10px 3px;border:1px solid #597d9f;border-radius:11px;color:#c8dff3;background:linear-gradient(#264969,#122b48);box-shadow:inset 0 1px #b2daf92b,0 3px #08172b;font-size:10px;font-weight:800}
+.forge-workshop-shell .forge-services>button.active{color:#ffe7a0;border-color:#efbf63;background:linear-gradient(#8e364d,#48213d);box-shadow:inset 0 1px #ffd58b88,0 3px #2c142b,0 0 12px #dc9d2722}
+.forge-workshop-shell .forge-service-mark{margin:auto auto 14px;color:#8aa8c34d}
+.inventory-modal-layer .forge-workshop-shell .forge-body{height:auto;display:grid;grid-template-columns:minmax(0,56%) minmax(0,44%);min-width:0}
+.forge-workshop-shell .forge-workbench{min-width:0;overflow:hidden}
+.forge-workshop-shell .forge-workshop{height:266px}
+.forge-workshop-shell .forge-hero-label{left:25%;right:7%;top:12px;min-height:30px;gap:6px}.forge-workshop-shell .forge-hero-label>span{font-size:14px}.forge-workshop-shell .forge-hero-label>.upgrade-badge{width:64px}
+.forge-workshop-shell .forge-weapon-target{left:calc(55% - 78px);top:57px;width:156px;height:148px}
+.forge-workshop-shell .forge-weapon-target>.item-art{max-width:100%;max-height:100%}
+.forge-workshop-shell .forge-level-path{left:31%;right:13%;bottom:12px;gap:7px}
+.forge-workshop-shell .forge-progress-caption{left:30%;width:50%;bottom:36px}
+.forge-workshop-shell .forge-outcome{left:10%;right:10%;top:43px;min-height:155px}.forge-workshop-shell .forge-outcome>strong{font-size:44px}
+.forge-workshop-shell .forge-materials{height:111px;margin:0 15px;padding:11px 12px}
+.forge-workshop-shell .forge-sockets{gap:14px;justify-content:center;margin-top:12px}.forge-workshop-shell .forge-socket{width:48px;height:48px}
+.forge-workshop-shell .forge-action{padding:14px 20px 15px}
+.forge-workshop-shell .forge-action-bottom{gap:12px;margin-top:13px}.forge-workshop-shell .forge-submit.button{min-width:175px;padding:11px 16px;font-size:13px}
+.forge-workshop-shell .forge-next-level{padding-left:0;gap:10px}.forge-workshop-shell .forge-next-level>span{font-size:22px}.forge-workshop-shell .forge-next-level>strong{font-size:27px}
+.forge-workshop-shell .forge-feedback{font-size:10px;line-height:1.5;min-height:28px;margin-top:9px;text-align:center}
+.forge-workshop-shell .forge-stock{padding:16px 16px 18px}
+.forge-workshop-shell .forge-wallet{display:flex;align-items:center;gap:4px;color:#ffdb78!important;font-weight:800}
+.forge-workshop-shell .forge-weapon-stock{gap:10px;margin-top:12px}.forge-workshop-shell .forge-stock-item{height:84px}
+.forge-workshop-shell .forge-stones-heading{margin-top:20px;margin-bottom:12px}
+.forge-workshop-shell .forge-stone-cell{padding:6px 9px;gap:8px;min-height:65px}.forge-workshop-shell .forge-stock-stone{width:51px;height:51px}
+.forge-workshop-shell .forge-material-name strong{font-size:11px}.forge-workshop-shell .forge-material-name>span{font-size:9px}
+.forge-workshop-shell .forge-add-stone{width:31px;height:33px}.forge-workshop-shell .forge-stone-stock{gap:9px}
+.forge-workshop-shell .composition-equipment-stock{grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:65px;gap:9px;max-height:146px;overflow:auto;padding:3px 4px 5px;scrollbar-width:thin;scroll-padding:5px}
+.forge-workshop-shell .composition-equipment-stock .forge-stock-item{height:65px}
+.forge-workshop-shell .composition-equipment-stock .forge-tooltip{display:none}
+.forge-workshop-shell .composition-materials{height:117px}
+.forge-workshop-shell .composition-selection{display:flex;align-items:center;gap:14px;margin-top:10px;min-height:59px}
+.forge-workshop-shell .composition-selected-stone{width:60px;height:60px;flex:none}
+.forge-workshop-shell .composition-selection>div{display:flex;flex-direction:column;gap:3px;min-width:0;color:#bbd4eb;font-size:11px}
+.forge-workshop-shell .composition-selection strong{font-size:12px;color:#ffe09b}
+.forge-workshop-shell .composition-preview{display:flex;align-items:center;gap:8px;color:#d3e7f8;font-weight:800}.forge-workshop-shell .composition-preview b{color:#7df5bc;font-size:16px}
+.forge-workshop-shell .composition-cost{display:flex;align-items:center;gap:6px;color:#ffd776}.forge-workshop-shell .composition-cost>strong{font-size:21px}.forge-workshop-shell .composition-cost>span{font-size:10px}.forge-workshop-shell .composition-cost.insufficient{color:#ff9ba8}
+.forge-workshop-shell .composition-current{display:grid;grid-template-columns:1fr 1fr;gap:5px 12px;margin-top:6px;padding:7px 8px;border:1px solid #6087aa66;border-radius:9px;background:#0a213c77}
+.forge-workshop-shell .composition-current>span{display:flex;align-items:center;gap:5px;color:#bdd4e9;font-size:10px}.forge-workshop-shell .composition-current small{font-size:9px;font-weight:400}.forge-workshop-shell .composition-current b{margin-left:auto;color:#80e4bb}
+.forge-workshop-shell .composition-minerals{display:flex;flex-direction:column;gap:9px}
+.forge-workshop-shell .composition-mineral-row{display:grid;grid-template-columns:92px minmax(0,1fr);gap:7px;align-items:center;padding:6px 8px;border:1px solid #668bae66;border-radius:10px;background:linear-gradient(90deg,#24456a,#142d4b)}
+.forge-workshop-shell .composition-mineral-row h3{display:flex;align-items:center;gap:3px;font-size:10px;color:#daebfa;font-weight:700;white-space:nowrap}
+.forge-workshop-shell .composition-mineral-row>div{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.forge-workshop-shell .composition-stock-stone{position:relative;height:53px;min-width:0}
+.forge-workshop-shell .composition-stock-stone>small{position:absolute;left:4px;top:2px;color:#ffe6a0;font-size:9px;font-weight:900;z-index:3;text-shadow:0 1px #061529}
+.forge-workshop-shell .composition-stock-stone>b{position:absolute;bottom:2px;right:4px;color:#ecf8ff;font-size:10px;z-index:3;text-shadow:0 1px #061529}
+.forge-workshop-shell .composition-icon{position:relative;z-index:1;filter:drop-shadow(0 2px 2px #06132b88)}
+@media(max-width:1000px) and (min-width:701px){.inventory-modal-layer .forge-workshop-shell .forge-layout{grid-template-columns:73px minmax(0,1fr)}.forge-workshop-shell .forge-services{padding-inline:5px}.forge-workshop-shell .forge-services>button{font-size:9px}.forge-workshop-shell .forge-stock{padding:14px 10px}.forge-workshop-shell .forge-action{padding-inline:13px}.forge-workshop-shell .forge-submit.button{min-width:150px;font-size:12px;padding-inline:10px}.forge-workshop-shell .forge-materials{margin-inline:9px;padding-inline:9px}.forge-workshop-shell .forge-sockets{gap:8px}.forge-workshop-shell .composition-mineral-row{grid-template-columns:75px minmax(0,1fr);padding-inline:5px;gap:4px}.forge-workshop-shell .composition-mineral-row h3{font-size:9px;gap:0}.forge-workshop-shell .composition-mineral-row>div{gap:4px}.forge-workshop-shell .forge-material-name strong{font-size:10px}}
+@media(max-width:700px){
+ .inventory-modal-layer .forge-workshop-shell .forge-layout{display:block;overflow:auto}
+ .forge-workshop-shell .forge-services{position:sticky;top:0;z-index:9;display:flex;flex-direction:row;gap:7px;padding:7px 8px;background:#102947f5;border-right:0;border-bottom:1px solid #d2a75766;box-shadow:0 3px 9px #06162c66}
+ .forge-workshop-shell .forge-services>button{flex:1;flex-direction:row;min-height:39px;padding:6px;gap:6px;font-size:10px}.forge-workshop-shell .forge-services>button>svg{width:17px;height:17px}.forge-workshop-shell .forge-service-mark{display:none}
+ .inventory-modal-layer .forge-workshop-shell .forge-body{display:block;min-height:0;height:auto}
+ .forge-workshop-shell .forge-workshop{height:190px;aspect-ratio:auto}
+ .forge-workshop-shell .forge-hero-label{left:17%;right:5%;top:9px;min-height:24px;gap:4px}.forge-workshop-shell .forge-hero-label>span{font-size:11px}.forge-workshop-shell .forge-hero-label>.upgrade-badge{width:52px}
+ .forge-workshop-shell .item-card.forge-weapon-target{left:calc(55% - 57px);top:41px;width:114px;height:109px}
+ .forge-workshop-shell .forge-level-path{left:27%;right:10%;bottom:9px}.forge-workshop-shell .forge-progress-caption{left:25%;width:55%;bottom:32px}
+ .forge-workshop-shell .forge-materials{margin:0 10px;height:111px;padding:10px}.forge-workshop-shell .forge-sockets{gap:7px;margin-top:12px}.forge-workshop-shell .forge-socket{width:44px;height:46px}
+ .forge-workshop-shell .forge-section-heading h2{font-size:10px}.forge-workshop-shell .forge-section-heading>span{font-size:8px}
+ .forge-workshop-shell .forge-action{padding:13px 14px 12px}.forge-workshop-shell .forge-action-bottom{gap:9px}.forge-workshop-shell .forge-submit.button{min-width:156px;padding:11px 12px;font-size:12px}
+ .forge-workshop-shell .forge-stock{padding:17px 12px}.forge-workshop-shell .forge-stock-item{height:77px}.forge-workshop-shell .forge-material-name strong{font-size:11px}.forge-workshop-shell .forge-add-stone{width:36px;height:36px}
+ .forge-workshop-shell .composition-equipment-stock{max-height:146px;grid-template-columns:repeat(4,minmax(0,1fr));grid-auto-rows:63px;gap:8px}.forge-workshop-shell .composition-equipment-stock .forge-stock-item{height:63px}
+ .forge-workshop-shell .composition-mineral-row{grid-template-columns:86px minmax(0,1fr);padding:6px;gap:6px}.forge-workshop-shell .composition-mineral-row>div{gap:6px}.forge-workshop-shell .composition-mineral-row h3{font-size:10px}.forge-workshop-shell .composition-stock-stone{height:51px}
+ .forge-workshop-shell .forge-outcome{left:8%;right:8%;top:35px;min-height:130px}.forge-workshop-shell .forge-outcome>strong{font-size:34px}
+}
+/* The workshop receives the remaining height; action/results keep their natural size. */
+.inventory-modal-layer .forge-workshop-shell .forge-workbench{display:grid;grid-template-rows:minmax(210px,1fr) auto auto;overflow:visible;min-height:0}
+.inventory-modal-layer .forge-workshop-shell .forge-workshop{height:auto;min-height:210px}
+.inventory-modal-layer .forge-workshop-shell .forge-action{padding-bottom:18px}
+@media(max-width:700px){.inventory-modal-layer .forge-workshop-shell .forge-workbench{display:block}.inventory-modal-layer .forge-workshop-shell .forge-workshop{height:190px;min-height:190px}}
+.inventory-modal-layer .forge-workshop-shell .forge-workshop{width:100%;aspect-ratio:auto}

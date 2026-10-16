@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
-import {DEFAULT_EQUIPMENT} from '../shared/catalog';
+import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
 import {normalizeProfile,Store} from '../server/store';
 
 async function database(roll=999){
@@ -14,6 +14,7 @@ async function database(roll=999){
    if(sql==='BEGIN')snapshot=structuredClone(state.profile);
    if(sql.startsWith('SELECT'))return {rows:[{profile:structuredClone(state.profile),name:state.profile.name}],rowCount:1};
    if(sql.startsWith('UPDATE')){if(state.failWrite)throw Error('Database write failed');state.profile=structuredClone(values![1] as typeof state.profile);}
+   if(sql.startsWith('INSERT INTO matches'))return {rows:[{id:'match'}],rowCount:1};
    if(sql==='ROLLBACK')state.profile=structuredClone(snapshot);
    return {rows:[],rowCount:0};
   },release(){state.releases++;}
@@ -74,11 +75,101 @@ test('equipment persistence derives upgrade from the locked profile and validate
 
 test('customization saves simultaneous facial, head and clothing layers with dyes atomically',async()=>{
  const {store,state}=await database();const before=structuredClone(state.profile);
- const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-round',face:'face-taunt',hair:'hair-wavy',outfit:'outfit-royal',dyes:{hat:'coral' as const,hair:'gold' as const,outfit:'violet' as const}};
+ const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-round',face:'face-taunt',hair:'hair-wavy',outfit:'outfit-executive',dyes:{hat:'coral' as const,hair:'gold' as const,outfit:'violet' as const}};
  const saved=await store.saveEquipment(before.id,equipment);
  assert.deepEqual(saved.equipment,equipment);assert.deepEqual(saved.stones,before.stones);assert.deepEqual(saved.upgrades,before.upgrades);
  assert.equal(saved.equipment.wristband,before.equipment.wristband);assert.equal(saved.equipment.bracelet,before.equipment.bracelet);
  state.profile.inventory=state.profile.inventory.filter(id=>id!=='hair-silver');const locked=structuredClone(state.profile);
  await assert.rejects(store.saveEquipment(before.id,{...equipment,hair:'hair-silver',glasses:'glasses-pilot'}),/mochila/);
  assert.deepEqual(state.profile,locked);assert.equal(state.queries.at(-1),'ROLLBACK');
+});
+
+test('retired outfit IDs are rejected even when supplied by a stale customization client',async()=>{
+ const {store,state}=await database(),before=structuredClone(state.profile);
+ for(const outfit of ['outfit-ranger','outfit-azure','outfit-royal'])await assert.rejects(store.saveEquipment(before.id,{...before.equipment,outfit}),/mochila/);
+ assert.deepEqual(state.profile,before);
+});
+
+test('match rewards advance a player beyond the former level fifty cap',async()=>{
+ const {store,state}=await database();state.profile.level=50;state.profile.xp=14990;
+ await store.finishMatch(randomUUID(),[state.profile.id],[state.profile.id]);
+ assert.equal(state.profile.level,51);assert.equal(state.profile.xp,15110);
+});
+
+test('match rewards reach level seventy and subsequent wins never create level seventy-one',async()=>{
+ const {store,state}=await database();state.profile.level=69;state.profile.xp=20690;
+ await store.finishMatch(randomUUID(),[state.profile.id],[state.profile.id]);
+ assert.equal(state.profile.level,70);assert.equal(state.profile.xp,20810);
+ for(let i=0;i<4;i++)await store.finishMatch(randomUUID(),[state.profile.id],[state.profile.id]);
+ assert.equal(state.profile.level,70);assert.equal(state.profile.matches,5);assert.equal(state.profile.wins,5);
+});
+
+test('composition persists one tier per attribute and participates in equipped combat totals',async()=>{
+ const {store,state}=await database(0),before=structuredClone(state.profile),base=attributes(before.equipment);
+ const first=await store.compose(before.id,'ember','attack-1');
+ assert.equal(first.result.success,true);assert.equal(first.result.value,10);assert.equal(first.profile.gold,460);
+ assert.equal(first.profile.compositionStones['attack-1'],before.compositionStones['attack-1']-1);
+ assert.equal(attributes(first.profile.equipment).attack,base.attack+10);
+ const second=await store.compose(before.id,'ember','attack-2');
+ assert.equal(second.result.previous,10);assert.equal(second.result.value,20);
+ assert.equal(attributes(second.profile.equipment).attack,base.attack+20);
+ const equipped=await store.saveEquipment(before.id,{...second.profile.equipment,weapon:'volt',compositions:{volt:{attack:999}}});
+ assert.equal(attributes(equipped.equipment).attack,attributes({...DEFAULT_EQUIPMENT,weapon:'volt'}).attack);
+ assert.deepEqual(equipped.compositions,{ember:{attack:20}});
+ const restored=await store.saveEquipment(before.id,{...equipped.equipment,weapon:'ember'});
+ assert.equal(attributes(restored.equipment).attack,base.attack+20);
+});
+
+test('failed composition consumes one stone and its shown cost while preserving previous bonuses',async()=>{
+ const {store,state}=await database(999);state.profile.compositions={ember:{attack:10}};
+ const before=structuredClone(state.profile),outcome=await store.compose(before.id,'ember','attack-2');
+ assert.equal(outcome.result.success,false);assert.equal(outcome.result.chance,60);assert.equal(outcome.result.value,10);
+ assert.equal(outcome.profile.gold,before.gold-100);assert.equal(outcome.profile.compositionStones['attack-2'],before.compositionStones['attack-2']-1);
+ assert.deepEqual(outcome.profile.compositions,before.compositions);assert.deepEqual(outcome.profile.stones,before.stones);
+ assert.deepEqual(outcome.profile.upgrades,before.upgrades);assert.match(state.queries[1],/FOR UPDATE$/);
+});
+
+test('composition rejects incompatible equipment, downgrades, absent materials and insufficient gold atomically',async()=>{
+ const {store,state}=await database(0);state.profile.compositions={ember:{attack:20}};state.profile.compositionStones['defense-1']=0;state.profile.gold=30;
+ state.profile.inventory=state.profile.inventory.filter(id=>id!=='crystal');const before=structuredClone(state.profile);
+ for(const [item,stone] of [['face-brave','attack-1'],['hat-none','attack-1'],['crystal','attack-1'],['ember','attack-1'],['ember','attack-2'],['ember','defense-1'],['ember','agility-1'],['ember','constructor']])await assert.rejects(store.compose(before.id,item,stone));
+ assert.deepEqual(state.profile,before);assert.equal(state.queries.some(sql=>sql.startsWith('UPDATE')),false);
+});
+
+test('composition rollback restores both currency and mineral on database failure',async()=>{
+ const {store,state}=await database(0);state.failWrite=true;const before=structuredClone(state.profile);
+ await assert.rejects(store.compose(before.id,'outfit-surfer','armor-1'),/Database write failed/);
+ assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,1);
+});
+
+test('shop purchase atomically deducts the server price and grants all selected items without equipping',async()=>{
+ const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>!['volt','face-smile'].includes(id));state.profile.gold=1000;
+ const before=structuredClone(state.profile),outcome=await store.buy(before.id,['volt','face-smile']);
+ assert.equal(outcome.result.spent,480);assert.equal(outcome.profile.gold,520);
+ assert.ok(outcome.profile.inventory.includes('volt')&&outcome.profile.inventory.includes('face-smile'));
+ assert.deepEqual(outcome.profile.equipment,before.equipment);assert.match(state.queries[1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'COMMIT');
+ await assert.rejects(store.buy(before.id,['volt']),/já possui/);assert.equal(state.profile.gold,520);
+});
+test('shop rejects duplicate, unavailable, owned or unaffordable carts without partial purchases',async()=>{
+ const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>id!=='volt');state.profile.gold=10;
+ const before=structuredClone(state.profile);
+ for(const ids of [[],['volt','volt'],['not-a-real-item'],['volt','ember'],['volt']])await assert.rejects(store.buy(before.id,ids));
+ assert.deepEqual(state.profile,before);assert.ok(!state.queries.some(q=>q.startsWith('UPDATE')));
+});
+test('shop database failures roll back the entire basket and balance',async()=>{
+ const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>id!=='volt');state.failWrite=true;
+ const before=structuredClone(state.profile);await assert.rejects(store.buy(before.id,['volt']),/Database write failed/);
+ assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,1);
+});
+test('card rewards are included in the same atomic match payout and progression',async()=>{
+ const {store,state}=await database();state.profile.xp=14990;state.profile.level=50;const id=state.profile.id;
+ await store.finishMatch(randomUUID(),[id],[id],{[id]:{kind:'xp',amount:100}});
+ assert.equal(state.profile.xp,15210);assert.equal(state.profile.level,51);assert.equal(state.profile.gold,580);
+ await store.finishMatch(randomUUID(),[],[id],{[id]:{kind:'coins',amount:150}});assert.equal(state.profile.gold,755);assert.equal(state.profile.matches,2);
+});
+
+test('card payout database errors roll back the base reward, bonus and level together',async()=>{
+ const {store,state}=await database();state.failWrite=true;const before=structuredClone(state.profile),id=before.id;
+ await assert.rejects(store.finishMatch(randomUUID(),[id],[id],{[id]:{kind:'coins',amount:100}}),/Database write failed/);
+ assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,1);
 });

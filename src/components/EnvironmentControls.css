@@ -1,0 +1,96 @@
+/* Map previews use the same painted layers as the battlefield. */
+.map-artwork{position:relative;isolation:isolate;overflow:hidden;width:100%;height:100%;pointer-events:none}
+.map-artwork img{position:absolute;display:block;max-width:none;user-select:none}
+.scenario-thumbnail.room-thumbnail{overflow:hidden;background:none;border:2px solid #bd8d42}
+.scenario-thumbnail>.map-artwork{position:absolute;inset:0}
+.scenario-thumbnail>span{z-index:1;padding:2px 8px;border-radius:7px;background:#172346e8;color:#fff4cf;text-shadow:0 1px #09142b}
+.environment-create-panel.create-panel{width:850px;padding:24px;border:2px solid #daa34a;background:linear-gradient(140deg,#183f66,#192b49 60%,#352139);box-shadow:inset 0 1px #8bbcc755,0 14px 50px #07101dbb}
+.environment-create-panel .field-caption{font-size:12px;color:#f2daab;margin-bottom:9px}
+.environment-create-panel label{color:#f2daab}
+.environment-create-panel input{background:#0c2037;color:#fff5dd;border-color:#a78b58}
+.environment-create-panel .choice-row button{background:linear-gradient(#31537a,#1b3452);border-color:#6885a3;color:#e9f4ff}
+.environment-create-panel .choice-row button.chosen{border-color:#f8ca55;background:linear-gradient(#815535,#4f3b37);box-shadow:inset 0 0 0 1px #f4c25c55}
+.scenario-choices.map-choices{gap:12px;align-items:stretch}
+.scenario-choices.map-choices>.scenario-choice{position:relative;flex:1;min-width:0;height:auto;min-height:242px;padding:0;display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;overflow:hidden;border:2px solid #71849b;border-radius:13px;background:#102c48;color:#fff5d8;text-align:left;text-shadow:none;box-shadow:0 4px #07182a}
+.scenario-choices.map-choices>.scenario-choice.chosen{border-color:#ffd15b;box-shadow:0 0 0 2px #b57935,0 5px #07182a}
+.scenario-choice>.map-artwork{height:122px;flex:none;border-bottom:1px solid #ad925a}
+.scenario-choice-copy{display:flex;flex-direction:column;align-items:flex-start;padding:12px;gap:7px}
+.scenario-choice-copy strong{font-size:15px;line-height:1.25;color:#fff1c1}
+.scenario-choice-copy small{font-size:11px;line-height:1.45;color:#c8dcf0;font-weight:600}
+.map-behavior{display:inline-flex;padding:3px 7px;border:1px solid #cda556;border-radius:5px;background:#3f3141;color:#ffe3a5;font-size:10px;font-weight:900;letter-spacing:.1px}
+.garden .map-behavior{background:#105c48;border-color:#50c790;color:#c7ffe1}
+.park .map-behavior{background:#71345d;border-color:#e77cbd;color:#ffdbef}
+.celestial .map-behavior{background:#234e89;border-color:#84adfa;color:#d8e8ff}
+.map-selected-check{position:absolute;right:9px;top:9px;width:27px;height:27px;padding:4px;border:1px solid #fff0ad;border-radius:50%;background:#996221;color:#fff5d1;box-shadow:0 2px 5px #142139}
+.room-scenery{position:absolute;inset:0;overflow:hidden;border-radius:20px;pointer-events:none;opacity:.28}
+.room-scenery:after{content:'';position:absolute;inset:0;background:linear-gradient(#101a3be0,#161c3855 50%,#1b163ee8)}
+.map-room-stage>.room-heading,.map-room-stage>.team-layout,.map-room-stage>.room-bottom{position:relative}
+.map-room-stage .room-map-identity.selected-map{width:355px;height:80px;display:flex;gap:12px;align-items:center;overflow:hidden;padding:0 12px 0 0;background:#152a48e8;border:1px solid #d0a04c}
+.room-map-identity>.map-artwork{width:104px;height:100%;flex:none}
+.room-map-identity>div:last-child{min-width:0}
+.room-map-identity.selected-map strong{font-size:14px;color:#ffebae;text-shadow:none;margin:4px 0}
+.room-map-identity.selected-map span{color:#c8d7ea;font-size:8px}
+.room-map-identity.selected-map small{font-size:10px;color:#f4d39d}
+/* The camera panel is outside the transformed world and never captures combat keys. */
+.environment-controls{position:absolute;top:204px;left:22px;z-index:3;width:242px;padding:13px;border:2px solid #cb9949;border-radius:15px;background:linear-gradient(135deg,#163e62ee,#172c49f5 60%,#35203af0);box-shadow:inset 0 1px #9ad2ec33,0 4px #101d34,0 8px 22px #09162d55;color:#f7e7c4}
+.environment-controls[hidden]{display:none!important}
+.environment-controls-content{display:flex;flex-direction:column;gap:10px}
+.environment-caption small{display:block;font-size:8px;color:#b8cde6;letter-spacing:1px}
+.environment-caption strong{display:block;margin-top:4px;font-size:14px;color:#ffe9ab}
+.environment-zoom{display:flex;align-items:center;gap:6px}
+.environment-zoom button{display:grid;place-items:center;min-height:36px;min-width:36px;border:1px solid #9aafc8;border-radius:9px;background:linear-gradient(#37648c,#233a62);box-shadow:inset 0 1px #b8e3fd44,0 2px #0b1730;color:#f7e4b3}
+.environment-zoom output{flex:1;text-align:center;font-variant-numeric:tabular-nums;font-size:13px;font-weight:900;color:#e8f4ff}
+.environment-pan,.environment-sound{display:flex;align-items:center;gap:8px;min-height:35px;font-size:11px;text-align:left;padding:7px 8px;border:1px solid #577397;border-radius:8px;color:#dae9fa;background:#10274388}
+.environment-pan.active{background:#806023;border-color:#f4cf60;color:#fff2b7}
+.environment-sound b{margin-left:auto;font-size:9px;color:#f5ce76}
+.environment-quality{display:flex;align-items:center;gap:7px;font-size:10px;color:#c5d9ee}
+.environment-quality>span{flex:1}
+.environment-quality select{width:110px;min-height:32px;padding:5px;border:1px solid #8b9db6;border-radius:7px;color:#f5ebd3;background:#142e4f;font-size:11px}
+.environment-controls button:focus-visible,.environment-controls select:focus-visible,.scenario-choice:focus-visible{outline:3px solid #fff4a8;outline-offset:3px}
+.compact-modal-layer{position:fixed;inset:0;z-index:35}
+@media(max-width:700px){
+ .compact-modal-layer .environment-arena{width:calc(100vw - 20px);max-height:calc(100dvh - 24px);overflow:auto;border-radius:18px}
+ .compact-modal-layer .window-header{height:70px;padding:12px 16px}
+ .compact-modal-layer .window-header h1{font-size:22px}
+ .compact-modal-layer .arena-banner{height:auto;min-height:118px;padding:14px;gap:10px;flex-wrap:wrap}
+ .compact-modal-layer .arena-emblem{display:none}
+ .compact-modal-layer .arena-banner h2{font-size:17px;margin-top:5px}
+ .compact-modal-layer .arena-banner .button{margin-left:0;min-height:42px}
+ .compact-modal-layer .arena-content{padding:12px}
+ .compact-modal-layer .arena-toolbar{flex-direction:column;align-items:stretch;gap:10px}
+ .compact-modal-layer .tabs{display:flex;justify-content:space-between}
+ .compact-modal-layer .tabs button{padding:10px 6px;font-size:11px}
+ .compact-modal-layer .room-list{grid-template-columns:1fr;min-height:180px;max-height:300px}
+ .compact-modal-layer .room-card{gap:10px;padding:9px}
+ .compact-modal-layer .room-thumbnail{width:76px;height:75px}
+ .compact-modal-layer .room-info h3{font-size:14px}
+ .compact-modal-layer .arena-footer{gap:10px}
+ .compact-modal-layer .arena-footer>span{font-size:9px;max-width:135px}
+ .compact-modal-layer .environment-create-backdrop{position:fixed;inset:0;padding:12px;z-index:1}
+ .compact-modal-layer .environment-create-panel{width:100%;max-height:calc(100dvh - 24px);padding:18px;overflow:auto;scrollbar-width:thin}
+ .compact-modal-layer .environment-create-panel h2{font-size:22px;margin-bottom:15px}
+ .compact-modal-layer .choice-row{gap:8px;margin-bottom:15px}
+ .compact-modal-layer .choice-row button{padding:10px;font-size:11px;min-height:44px}
+ .compact-modal-layer .choice-row button>b{font-size:13px}
+ .compact-modal-layer .scenario-choices{flex-direction:column;gap:10px}
+ .compact-modal-layer .scenario-choices>.scenario-choice{flex-direction:row;min-height:115px}
+ .compact-modal-layer .scenario-choice>.map-artwork{height:auto;min-height:115px;width:94px;border:0;border-right:1px solid #ad925a}
+ .compact-modal-layer .scenario-choice-copy{padding:10px;gap:5px}
+ .compact-modal-layer .scenario-choice-copy strong{font-size:13px}
+ .compact-modal-layer .scenario-choice-copy small{font-size:10px;line-height:1.4}
+ .compact-modal-layer .map-selected-check{right:auto;left:6px;top:6px;width:24px;height:24px}
+ .compact-modal-layer .create-footer{margin-top:16px}
+ .environment-controls.compact{position:fixed;left:12px;bottom:max(12px,env(safe-area-inset-bottom));top:auto;width:auto;max-width:calc(100vw - 24px);z-index:20;padding:0;border-radius:12px}
+ .environment-controls.compact.expanded{width:300px}
+ .environment-controls.compact .environment-toggle{display:flex;align-items:center;gap:8px;padding:12px;min-height:44px;font-size:12px;color:#ffedbb}
+ .environment-controls.compact .environment-toggle>svg:last-child{margin-left:auto}
+ .environment-controls.compact .environment-controls-content{padding:0 12px 12px}
+ .environment-controls.compact .environment-zoom button{min-height:44px;min-width:44px}
+ .environment-controls.compact .environment-pan,.environment-controls.compact .environment-sound{min-height:44px;font-size:12px}
+ .environment-controls.compact .environment-quality select{min-height:40px;font-size:12px}
+}
+.environment-controls:not(.compact){top:172px}
+.map-render-thumbnail{display:block;width:100%;height:100%;object-fit:cover;object-position:center;pointer-events:none}
+.environment-advanced{display:flex;align-items:center;gap:6px;width:100%;min-height:27px;padding:2px 3px;font-size:10px;color:#bfd8f0}
+.environment-advanced>svg:last-child{margin-left:auto;transition:transform .15s}
+.environment-advanced[aria-expanded="true"]>svg:last-child{transform:rotate(180deg)}

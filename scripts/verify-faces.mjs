@@ -14,7 +14,7 @@ try{
   const {drawAvatar}=await import('/src/game/avatar.ts');
   const {DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts');
   const faces=ITEMS.filter(item=>item.slot==='face'),ids=faces.map(item=>item.id);
-  await Promise.all(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/hat-cap.png',...ids.map(id=>`/assets/faces/${id}.png`)].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
+  await Promise.all(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/hat-cap.png','/assets/hair-covered-atlas.png','/assets/headwear-worn-atlas.png',...ids.map(id=>`/assets/faces/${id}.png`)].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   const images=ids.map(id=>getFacePortrait(id).getContext('2d').getImageData(0,0,1254,1254).data);
   let alphaMismatch=0;const differences=[];
   for(let n=1;n<images.length;n++){let different=0;for(let p=0;p<images[0].length;p+=4){if(images[0][p+3]!==images[n][p+3])alphaMismatch++;if(Math.abs(images[0][p]-images[n][p])+Math.abs(images[0][p+1]-images[n][p+1])+Math.abs(images[0][p+2]-images[n][p+2])>60)different++;}differences.push(different);}

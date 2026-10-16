@@ -1,14 +1,51 @@
 {
-  "name": "brasa-arena", "version": "0.1.0", "private": true, "type": "module",
+  "name": "brasa-arena",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
   "scripts": {
-    "dev": "vite --host 127.0.0.1", "dev:server": "tsx watch server/index.ts",
-    "build": "tsc --noEmit && vite build", "start": "tsx server/index.ts",
-    "test": "tsx --test tests/*.test.ts", "test:integration": "tsx tests/integration.ts",
-    "test:load": "tsx tests/load.ts", "check": "tsc --noEmit"
+    "dev": "vite --host 127.0.0.1",
+    "dev:server": "tsx watch server/index.ts",
+    "build": "tsc --noEmit && vite build",
+    "start": "tsx server/index.ts",
+    "test": "tsx --test tests/*.test.ts",
+    "test:integration": "tsx tests/integration.ts",
+    "test:load": "tsx tests/load.ts",
+    "check": "tsc --noEmit",
+    "test:maps:integration": "tsx tests/maps.integration.ts",
+    "test:maps:browser": "node scripts/smoke-maps.mjs",
+    "test:outfits": "node scripts/verify-outfits.mjs",
+    "test:battle:browser": "node scripts/smoke-battle-controls.mjs",
+    "test:rooms:integration": "tsx tests/rooms.integration.ts",
+    "test:rooms:browser": "node scripts/smoke-rooms.mjs",
+    "test:economy:integration": "tsx tests/economy.integration.ts",
+    "test:rewards:browser": "node scripts/smoke-rewards.mjs",
+    "test:shop:browser": "node scripts/smoke-shop.mjs",
+    "test:power:integration": "tsx tests/power.integration.ts"
   },
   "dependencies": {
-    "@fastify/cookie": "^11.0.2", "@fastify/helmet": "^13.0.2", "@fastify/rate-limit": "^10.3.0",
-    "fastify": "^5.6.1", "ioredis": "^5.8.1", "pg": "^8.16.3", "react": "^19.2.0", "react-dom": "^19.2.0", "ws": "^8.18.3", "zod": "^4.1.12", "lucide-react": "^0.468.0"
+    "@fastify/cookie": "^11.0.2",
+    "@fastify/helmet": "^13.0.2",
+    "@fastify/rate-limit": "^10.3.0",
+    "fastify": "^5.6.1",
+    "ioredis": "^5.8.1",
+    "pg": "^8.16.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "ws": "^8.18.3",
+    "zod": "^4.1.12",
+    "lucide-react": "^0.468.0"
   },
-  "devDependencies": { "@types/node": "^24.0.0", "@types/pg": "^8.15.5", "@types/react": "^19.2.0", "@types/react-dom": "^19.2.0", "@types/ws": "^8.18.1", "@vitejs/plugin-react": "^5.0.4", "typescript": "^5.9.3", "vite": "^7.1.9", "tsx": "^4.20.6", "@playwright/test": "^1.56.0" }
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/pg": "^8.15.5",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/ws": "^8.18.1",
+    "@vitejs/plugin-react": "^5.0.4",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.9",
+    "tsx": "^4.20.6",
+    "@playwright/test": "^1.56.0"
+  }
 }

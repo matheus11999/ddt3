@@ -1,0 +1,158 @@
+/* Brasa's painted sapphire, ruby and gold interface. Functional icons stay crisp and restrained. */
+:root{--gold:#ffcd42;--muted:#b6cde5;--line:#d6a84566;--panel:#112e53;--cream:#fff1c0;--teal:#2ad4bc;color:#e9f3ff}
+.app-shell{background:radial-gradient(ellipse at center,#17365c,#070d1e)}
+.game-frame{background:#205ea4}
+.modal-backdrop{background:#070f29b8;backdrop-filter:blur(7px)}
+.game-window,.game-window.inventory-window,.game-window.forge-window{padding:20px;border:2px solid #bb7b24;border-radius:20px;background:#08264f url('/assets/ui/fantasy-panel.png') center/100% 100%;box-shadow:0 0 0 2px #371c1a,0 18px 70px #03091ac2;color:#e5effb}
+.game-window:before{display:none}
+.game-window>.window-header,.game-window.inventory-window>.window-header,.game-window.forge-window>.window-header{height:66px;padding:10px 17px;margin:0;border:0;border-bottom:1px solid #e2b44e77;border-radius:8px 8px 0 0;background:linear-gradient(100deg,#6f1e35e8,#321d46e8 65%,#143c66bb);box-shadow:inset 0 1px #f9bd5655}
+.game-window>.window-header h1,.game-window.inventory-window>.window-header h1{font-size:25px;color:#ffe49a;text-shadow:0 2px #461b25;letter-spacing:.2px}
+.game-window>.window-header span{color:#d5def0}
+.close-button{width:34px;height:34px;border:1px solid #f6bc59;border-radius:10px;background:linear-gradient(#a52a40,#67243c);color:#ffe8b4;box-shadow:inset 0 1px #ffca8766,0 3px #351425}
+.button{min-height:40px;gap:8px;border-radius:10px;padding:9px 17px;font-size:13px;letter-spacing:.1px}
+.button.gold,.forge-window .forge-submit.button.gold{background:linear-gradient(#ffe16b,#f5ad24 53%,#d77914);border:1px solid #fff0a5;color:#5b2715;text-shadow:0 1px #fff49a;box-shadow:inset 0 1px #ffffc4,inset 0 -2px #aa541c55,0 3px #68331d,0 5px 10px #020c2344}
+.button.light{background:linear-gradient(#306ca0,#214b7b 58%,#193656);border:1px solid #7ab8e6;color:#edf6ff;box-shadow:inset 0 1px #b3e0ff55,0 3px #0b1e38}
+.button.quiet{background:linear-gradient(#273d60,#1b2d4a);border:1px solid #7c96b6;color:#daeaff;box-shadow:inset 0 1px #a2b9d32b,0 2px #0b1931}
+.button:disabled{opacity:.48;filter:saturate(.55)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid #fff2a3;outline-offset:3px}
+.round-button{width:38px;height:38px;border:2px solid #e5aa3e;background:linear-gradient(#345885,#182d51);box-shadow:inset 0 1px #c7e4ff55,0 3px #182037;color:#ffe4a1}
+input,select{border-color:#6688ac;background:#0e2648;color:#e6f2ff;border-radius:8px}
+input::placeholder{color:#9fb8d5}
+.tabs{border-color:#7290b44d}
+.tabs button{color:#b5cbe3}
+.tabs button.active{color:#ffdc74;background:linear-gradient(#784426bb,#253c5d44);border-bottom-color:#ffd75b}
+kbd{color:#e8f1ff;border-color:#8299ba88;background:#0c1e3be0}
+/* Main navigation uses stronger silhouettes, distinct actions and readable icon wells. */
+.portrait{border-color:#ffc651;background:radial-gradient(#227ab9,#163c70 66%,#0b183b);box-shadow:0 0 0 2px #682e21,inset 0 0 0 3px #ac681e,inset 0 0 16px #021434}
+.profile-lines{background:linear-gradient(90deg,#112c50f5,#102a4be8 88%,#102a4b99);border-color:#e3aa4399;border-radius:0 13px 13px 0}
+.profile-name strong{color:#fff0c3}.profile-name small{color:#ffc952}.profile-power{color:#ffd467}
+.resource-bar.health i{background:linear-gradient(#ff7770,#e43851 55%,#a81941)}
+.resource-bar.stamina i{background:linear-gradient(#69e7ff,#238edb 55%,#1857a8)}
+.resource-bar{border-color:#f0bf60;background:#0a1734}
+.world-location h1{color:#fff0b7;text-shadow:0 2px #112547,0 0 12px #112547}
+.world-location span{color:#ffdc7d}.world-location{padding:8px 20px;background:linear-gradient(90deg,transparent,#102945b3 20%,#102945b3 80%,transparent);border-radius:14px}
+.currency{background:linear-gradient(#233f65ed,#122949ed);border:1px solid #d9a846;color:#ffe18b;border-radius:12px}
+.arena-sign,.armory-sign{background:linear-gradient(#b13543,#731d37 65%,#3b1935);border-color:#ffd164;box-shadow:inset 0 2px #ffb46c88,inset 0 0 0 3px #6f2134,0 5px #391a2b,0 9px 18px #17243c77}
+.arena-sign strong,.armory-sign{color:#ffe794}.arena-sign small{color:#ffd397}.arena-sign .sign-icon{background:linear-gradient(#f8bc32,#a65620);color:#64263a;border-color:#ffe795}
+.quest-panel,.minimap{background:linear-gradient(#193c62ed,#10294bed);border-color:#dfab48;color:#e4edff;box-shadow:inset 0 1px #8fbce644,0 4px #101e36,0 6px 18px #06142944}
+.quest-panel header,.minimap header{background:#11294be6;border-color:#b88b4277;color:#ffdd86}
+.quest-panel button,.quest-panel button small{color:#d1e4fb}.quest-panel button small{color:#a5c3e3}
+.quest-check{background:#0f2342;border-color:#d6a34e;color:#ffdd80}.quest-check.done{background:#0b785b;color:#baffdc;border-color:#58e5a0}
+.quest-progress{background:#091b35}.quest-progress i{background:linear-gradient(90deg,#159b83,#5bebac)}
+.chat-shell{background:#102441d9;border-color:#c89b4d99;box-shadow:inset 0 1px #7fa9cc33,0 3px 14px #07172b55}
+.chat-tabs{background:#10233fe8;border-color:#d8a65466}.chat-tabs button{color:#acc8e8}.chat-tabs button.active{background:#284c76;color:#ffe394;border-color:#edbd56}
+.chat-messages{color:#e4efff}.chat-messages strong{color:#ffcb63}.chat-messages .system-message{color:#77e3cc}
+.chat-input{background:#0b1c36}.chat-input input{color:#e6f2ff}.chat-input input::placeholder{color:#9ab6d7}.chat-input button{color:#ffd36c}
+.bottom-dock{background:linear-gradient(#294b73,#172c51 60%,#101c39);border:2px solid #dca145;border-radius:19px;box-shadow:inset 0 2px #a3c2db55,inset 0 0 0 4px #122442,0 6px #09142b,0 12px 23px #07172a88;gap:5px;padding:8px 17px}
+.bottom-dock button{border-radius:12px;min-width:85px;padding:7px 10px;color:#deeeff}
+.bottom-dock button>svg{color:#ffd163;filter:drop-shadow(0 2px #3f2938)}
+.bottom-dock button:hover:not(:disabled),.bottom-dock button.active{background:linear-gradient(#9b3a4b,#542740);box-shadow:inset 0 0 0 1px #e8ad53;color:#ffe6a0}
+.dock-crest{color:#ffe387;background:linear-gradient(#a42a3c,#59203b);border-color:#e9b74f}.dock-divider{background:linear-gradient(transparent,#a68140aa,transparent)}
+.xp-bottom{background:#081834}.xp-bottom>div{background:linear-gradient(90deg,#9146e9,#2bafe7,#63e1bd)}
+/* Room creation and lobby cards share their actual map illustrations. */
+.environment-arena .arena-banner{background:linear-gradient(105deg,#7d2440,#44264c 65%,#183e64);border-color:#d4a54c;padding:16px 22px}
+.environment-arena .arena-banner h2{color:#ffe49c}.environment-arena .arena-banner small{color:#eac8d5}.arena-emblem{color:#ffcf66;border-color:#efb647;background:#1a284b80}
+.environment-arena .arena-content{background:#102c51e8;padding:14px 20px 18px}
+.environment-arena .arena-toolbar .search{background:#09203e;border:1px solid #6d91b4;color:#b7d4ee}
+.environment-arena .arena-toolbar .search input{color:#e5efff;background:none}
+.environment-arena .room-card{background:linear-gradient(115deg,#244875,#162f52);border:1px solid #6789ac;box-shadow:inset 0 1px #a7d8ff33,0 3px #091a33;border-radius:12px}
+.environment-arena .room-info h3{color:#f9e8b7}.environment-arena .room-info>span,.environment-arena .room-info>div{color:#b7d0ee}.environment-arena .room-card>svg{color:#ffd76e}
+.environment-arena .room-info small{color:#ffe6ae}.environment-arena .arena-footer,.environment-arena .empty-arena p{color:#b7cdea}.environment-arena .empty-arena h3{color:#ffe6a5}.environment-arena .empty-arena>svg{color:#e8b34f}
+.environment-arena .environment-create-panel{background:#112b50 url('/assets/ui/fantasy-panel.png') center/100% 100%;padding:29px}
+.environment-arena .environment-create-panel h2{color:#ffe49e}
+.room-stage.map-room-stage{border:2px solid #e8af47;background:#11294b;box-shadow:inset 0 0 0 4px #192b45,0 0 0 3px #512f27,0 14px 45px #070f2788}
+.map-room-stage .room-heading{border-color:#e4b75c77}.map-room-stage .player-seat{background:radial-gradient(ellipse at center,#3165a644,#101c3655);border-radius:15px}.map-room-stage .player-seat.empty-seat{background:#15274599;border-color:#a8b2c64d}
+.map-room-stage .ready-state{background:#112443;color:#acc8e5;border:1px solid #6682a0}.map-room-stage .ready-state.ready{background:#086c58;color:#cbffe6;border-color:#60d5a5}
+/* Battle information stays on opaque enough surfaces for vivid scenery behind it. */
+.battle-console{border:2px solid #e9b34b;background:linear-gradient(#263f69f5,#172847f7 62%,#12203df8);box-shadow:inset 0 2px #b4d3ee55,inset 0 0 0 4px #0b1b38,0 6px #080f27,0 10px 24px #06152f88;border-radius:16px;gap:20px}
+.weapon-display strong{color:#ffe09b}.weapon-display small,.power-label,.angle-control small{color:#b5d4f3}.angle-control{color:#ffda72}
+.boost-bar{background:linear-gradient(#213c63f2,#102443f5);border:2px solid #dba34a;border-radius:13px;box-shadow:inset 0 1px #9cd6ff44,0 4px #0b1631}
+.boost{border-color:#9bb0c8;background:linear-gradient(#3d5e8d,#243a62);box-shadow:inset 0 1px #c7e6ff55,0 3px #101a36;color:#ffdf80;border-radius:10px}
+.boost.selected{background:linear-gradient(#eead35,#ae5823);border-color:#fff0ab;color:#fff4bf;box-shadow:inset 0 1px #fff1bd,0 0 14px #ffbd3333}.boost span{color:#e1eafa}
+.fighter-hud{background:linear-gradient(#193f70ed,#122847f5);border:1px solid #83b6ed;border-radius:12px;box-shadow:inset 0 1px #d0efff33,0 3px #0d1c38;min-height:57px}
+.fighter-hud.coral{background:linear-gradient(#7c2e4aed,#3f203bf5);border-color:#ef9c9b}.fighter-hud strong{color:#fff1c4}.fighter-hud>span{color:#f0f8ff}
+.fighter-hud .mini-health{background:#091a31;border-color:#7db69f77}.fighter-hud .mini-health i{background:linear-gradient(#77f1b0,#18a882)}.fighter-hud.coral .mini-health i{background:linear-gradient(#ff9f78,#ec4b5e)}
+.turn-clock{background:linear-gradient(#672d4b,#20254c);border-color:#f5bf51;box-shadow:inset 0 0 0 4px #281c3c,0 5px #11182d}.turn-clock.your-turn{background:linear-gradient(#197d7a,#134d5e);box-shadow:inset 0 0 0 4px #123849,0 0 20px #29e8ba44}.turn-clock b{color:#ffe9a1}.turn-clock small{color:#d1e7f5}
+.wind-pill{background:#142e52ed;border-color:#8cb2d4;color:#dcefff;border-radius:10px}.turn-label{background:#112b50df;border-color:#b2c6dd88;color:#fff1bc;text-shadow:0 1px #122043}
+.fire-button{background:linear-gradient(#ffe773,#f8ab25 55%,#d86c1b);color:#5b251c;border-color:#fff0a2;box-shadow:inset 0 0 0 3px #e79a28,0 4px #7b3323,0 7px 11px #07162b66;border-radius:13px}
+.walk-controls>div>button{background:linear-gradient(#315781,#213c63);border-color:#a2bcda;color:#ffdf91;border-radius:8px;min-width:34px;min-height:33px}.skip-button{color:#c1daee}
+.power-track{background:#081b39;border-color:#aabdce}.power-track>i{background:linear-gradient(90deg,#14c3bb,#67d662,#efcf31,#f77d31)}.vigor-bar{background:#081b38}.vigor-bar>i{background:linear-gradient(#48d8f8,#1c7dc6)}
+.confirm-panel,.result-panel{background:#142d51 url('/assets/ui/fantasy-panel.png') center/100% 100%;border:2px solid #dca54b;border-radius:19px;padding:36px;box-shadow:0 15px 65px #030a1d99}.confirm-panel p,.result-panel>p{color:#c0d8ef}.confirm-panel h2,.result-panel>h1{color:#ffe293}
+.settings-window .setting-row>span,.settings-note,.help-intro p,.control-list p,.help-note{color:#d2e5f8}.settings-note,.help-note{background:#0c2445b3;border:1px solid #6b89aa55}.settings-window input{background:#0c2445;color:#e8f2ff;border-color:#6e91b4}.toggle.on{background:#118c70;border-color:#73e7ad}.toggle.on>i{background:#dcffdc}
+.toast{background:linear-gradient(#8e2d49,#422340);border:1px solid #ffce67;border-radius:11px;color:#ffebbc}.connection-notice{background:#5c253ff2;border-color:#f2bc54;color:#fff0c6}
+@media(max-width:700px){.compact-modal-layer .game-window{padding:10px}.compact-modal-layer .environment-create-panel{padding:22px}.compact-modal-layer .window-header{padding:10px 12px}.compact-modal-layer .arena-content{padding:12px}.compact-modal-layer .arena-banner{padding:13px}.compact-modal-layer .close-button{width:36px;height:36px}}
+.environment-arena .environment-create-panel label{color:#d2e7fc}
+.environment-arena .environment-create-panel input{background:#0c2448ed;color:#edf5ff;border:1px solid #91add0;box-shadow:inset 0 2px #06152b77}
+.environment-arena .environment-create-panel .choice-row button{color:#e9f4ff;background:linear-gradient(#31567d,#1d3558);border-color:#85a6c7}
+.environment-arena .environment-create-panel .choice-row button.chosen{color:#ffedbd;background:linear-gradient(#98602c,#633d2e);border-color:#ffd36b;box-shadow:inset 0 1px #ffe29366}
+.environment-arena .environment-create-panel .choice-row button.chosen svg{color:#ffe69e}
+.environment-arena .environment-create-panel h2{padding:6px 10px;border-radius:7px;background:linear-gradient(90deg,#6f2446e6,transparent);text-shadow:0 2px #15213b}
+@media(max-width:700px){.compact-modal-layer .environment-create-panel{border:20px solid transparent;border-image:url('/assets/ui/fantasy-panel.png') 100 fill /20px /0 stretch;padding:10px;background:#112c50;border-radius:0}.compact-modal-layer .environment-create-panel h2{margin-bottom:12px;padding:6px}.compact-modal-layer .create-footer{gap:8px}.compact-modal-layer .create-footer .button{padding:9px 13px}}
+@media(max-width:700px){
+ .compact-modal-layer{position:fixed;inset:0;z-index:40}
+ .compact-modal-layer>.modal-backdrop{padding:10px;align-items:center}
+ .compact-modal-layer .game-window,.compact-modal-layer .game-window.inventory-window,.compact-modal-layer .game-window.forge-window{width:100%;max-height:calc(100dvh - 20px);padding:10px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;border-radius:16px;background-size:auto 100%;background-position:center}
+ .compact-modal-layer .game-window>.window-header,.compact-modal-layer .game-window.inventory-window>.window-header,.compact-modal-layer .game-window.forge-window>.window-header{height:60px;padding:10px 12px;position:sticky;top:-10px;z-index:25;background:linear-gradient(100deg,#69233d,#242548 75%,#143858);box-shadow:0 3px 12px #081b3977}
+ .compact-modal-layer .game-window>.window-header h1{font-size:22px}.compact-modal-layer .close-button{min-width:38px;min-height:38px}
+ .compact-modal-layer .help-window .help-intro{margin:16px 12px;gap:12px}.compact-modal-layer .help-intro>svg{width:30px}.compact-modal-layer .help-intro p{font-size:12px;line-height:1.5}
+ .compact-modal-layer .control-list{grid-template-columns:90px 1fr;gap:12px;margin:0 12px}.compact-modal-layer .control-list p{font-size:11px}.compact-modal-layer .control-list kbd{font-size:9px;padding:3px 5px}
+ .compact-modal-layer .help-note{margin:18px 12px;font-size:11px;padding:12px}.compact-modal-layer .settings-window form{padding:18px 12px}.compact-modal-layer .setting-row{padding:18px 12px}
+ .compact-modal-layer .settings-note{margin:0 12px 18px}
+}
+/* The artwork's perimeter is a real border: content cannot paint over its gems or carvings. */
+.game-window,.game-window.inventory-window,.game-window.forge-window{border:36px solid transparent;border-image:url('/assets/ui/fantasy-panel.png') 160 fill /36px /0 stretch;padding:0;border-radius:0;background:#102b4d;box-shadow:0 18px 65px #03091ab8}
+.game-window.inventory-window,.game-window.forge-window{border-width:40px;border-image-width:40px}
+.game-window>.window-header,.game-window.inventory-window>.window-header,.game-window.forge-window>.window-header{border-radius:0;background:linear-gradient(100deg,#68203b,#2c2448 65%,#173b60);box-shadow:inset 0 1px #eda94055}
+.environment-arena .environment-create-backdrop{position:fixed;inset:0;padding:22px;z-index:1}
+.environment-arena .environment-create-panel{width:900px;border:36px solid transparent;border-image:url('/assets/ui/fantasy-panel.png') 160 fill /36px /0 stretch;padding:16px;border-radius:0;background:#102a4b;box-shadow:0 14px 45px #030c21b3}
+.environment-arena .environment-create-panel h2{margin-bottom:15px;background:linear-gradient(90deg,#6f2446,transparent)}
+.environment-arena .environment-create-panel input{background:#0c2448;color:#edf5ff}
+@media(max-width:700px){
+ .compact-modal-layer .game-window,.compact-modal-layer .game-window.inventory-window,.compact-modal-layer .game-window.forge-window{border:19px solid transparent;border-image:url('/assets/ui/fantasy-panel.png') 160 fill /19px /0 stretch;padding:0;border-radius:0;background:#102b4d;max-height:calc(100dvh - 20px)}
+ .compact-modal-layer .game-window>.window-header,.compact-modal-layer .game-window.inventory-window>.window-header,.compact-modal-layer .game-window.forge-window>.window-header{top:0;height:58px;padding:9px 10px}
+ .compact-modal-layer .environment-arena{width:100%}
+ .compact-modal-layer .environment-create-backdrop{padding:10px}
+ .compact-modal-layer .environment-create-panel{width:100%;max-height:calc(100dvh - 20px);border:20px solid transparent;border-image:url('/assets/ui/fantasy-panel.png') 160 fill /20px /0 stretch;padding:12px;background:#102b4d;border-radius:0}
+}
+.environment-arena.creating-room{overflow:visible}
+.environment-arena .environment-create-backdrop{z-index:50}
+@media(max-width:700px){.compact-modal-layer .game-window{animation:none}.compact-modal-layer .game-window.environment-arena.creating-room{overflow:visible}}
+
+/* Shared tactile controls: gold commits, sapphire navigates, ruby dismisses. */
+.game-window button:not(:disabled){transition:filter .14s,box-shadow .14s,transform .09s,border-color .14s}
+.game-window button:not(:disabled):hover{filter:brightness(1.12)}
+.game-window button:not(:disabled):active{transform:translateY(2px);filter:brightness(.96)}
+.game-window button:focus-visible,.game-window select:focus-visible,.game-window input:focus-visible{outline:3px solid #ffe18b;outline-offset:3px}
+.game-window button:disabled{cursor:default;filter:saturate(.45);opacity:.48}
+.game-window .button[aria-busy=true]{opacity:.85;cursor:progress;filter:none}
+.game-window .button.gold.save-confirmed{background:linear-gradient(#70dcac,#1c956c);border-color:#adf6ce;color:#052e31;box-shadow:inset 0 1px #d3ffe7,0 3px #0b4e49;opacity:1;filter:none}
+.button-spinner{animation:button-spin .8s linear infinite}
+@keyframes button-spin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){.game-window button{transition:none!important}.button-spinner{animation:none}}
+
+/* Inventory owns a viewport shell: the painted border never scrolls with its contents. */
+.inventory-modal-layer{position:fixed;inset:0;z-index:40}
+.inventory-modal-layer>.modal-backdrop{padding:12px;align-items:center;justify-content:center}
+.inventory-modal-layer .game-window.inventory-window{display:flex;flex-direction:column;width:min(1140px,100%);height:min(758px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);padding:6px;overflow:hidden;border-width:40px;border-image-width:40px;background:#071c35;animation:none}
+.inventory-modal-layer .game-window.inventory-window>.window-header{height:66px;min-height:66px;flex:none;position:relative;top:auto;padding:12px 20px;border:1px solid #aa824955;box-shadow:inset 0 1px #f3c86a33}
+.inventory-modal-layer .game-window.inventory-window .inventory-body{flex:1;min-height:0;max-height:600px;height:auto;display:grid;grid-template-columns:minmax(310px,39%) minmax(0,1fr);grid-template-rows:minmax(598px,auto);overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#688db3 #0b223e;border:1px solid #6a91b344;border-top:0;scroll-padding-block:14px 64px}
+.inventory-modal-layer .game-window.inventory-window .equipment-pane{padding:12px 15px 16px}
+.inventory-modal-layer .game-window.inventory-window .bag-pane{padding:14px 16px 16px}
+.inventory-modal-layer .game-window.inventory-window .bag-footer{position:sticky;bottom:0;z-index:6;background:#10294ff5;box-shadow:0 -5px 12px #06132b33;margin:0;padding:8px 0 0}
+@media(max-width:1000px) and (min-width:701px){.inventory-modal-layer .game-window.inventory-window{border-width:30px;border-image-width:30px}.inventory-modal-layer .game-window.inventory-window .inventory-body{grid-template-columns:320px minmax(0,1fr)}.inventory-modal-layer .game-window.inventory-window .bag-pane{padding-inline:12px}.inventory-modal-layer .game-window.inventory-window .bag-pane .tabs button{padding-inline:10px}.inventory-modal-layer .game-window.inventory-window .bag-pane .bag-grid{gap:8px}}
+@media(max-width:700px){
+ .inventory-modal-layer>.modal-backdrop{padding:10px}
+ .inventory-modal-layer .game-window.inventory-window{width:100%;height:calc(100dvh - 20px);max-height:calc(100dvh - 20px);border-width:19px;border-image-width:19px;padding:4px;overflow:hidden}
+ .inventory-modal-layer .game-window.inventory-window>.window-header{height:56px;min-height:56px;padding:8px 9px}
+ .inventory-modal-layer .game-window.inventory-window .inventory-body{display:block;max-height:none;overflow:auto;scroll-padding-block:14px 68px}
+ .inventory-modal-layer .game-window.inventory-window .equipment-pane{padding:12px 13px 17px}
+ .inventory-modal-layer .game-window.inventory-window .bag-pane{padding:16px 10px 12px}
+ .inventory-modal-layer .game-window.inventory-window .bag-footer{bottom:0;padding:8px 0;background:#10294ff7}
+ .inventory-modal-layer .game-window.inventory-window .bag-footer .button{padding-inline:7px}.inventory-modal-layer .game-window.inventory-window .bag-footer>div{gap:5px}
+ .inventory-modal-layer .game-window.inventory-window .equipment-slots .equipment-slot{width:43px;height:43px}
+}
+/* The forge uses the same viewport shell, inset, and fixed painted frame as the bag. */
+.inventory-modal-layer .game-window.forge-workshop-shell{display:flex;flex-direction:column;width:min(1160px,100%);height:min(758px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);padding:6px;overflow:hidden;border-width:40px;border-image-width:40px;background:#071c35;animation:none}
+.inventory-modal-layer .game-window.forge-workshop-shell>.window-header{height:66px;min-height:66px;flex:none;position:relative;top:auto;padding:12px 20px;border:1px solid #aa824955;box-shadow:inset 0 1px #f3c86a33}
+@media(max-width:1000px) and (min-width:701px){.inventory-modal-layer .game-window.forge-workshop-shell{border-width:30px;border-image-width:30px}}
+@media(max-width:700px){.inventory-modal-layer .game-window.forge-workshop-shell{width:100%;height:calc(100dvh - 20px);max-height:calc(100dvh - 20px);border-width:19px;border-image-width:19px;padding:4px;overflow:hidden}.inventory-modal-layer .game-window.forge-workshop-shell>.window-header{height:56px;min-height:56px;padding:8px 9px}}

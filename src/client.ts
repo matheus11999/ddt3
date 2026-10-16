@@ -1,8 +1,8 @@
 import {useSyncExternalStore} from 'react';
-import type {Battle,ChatLine,Command,LobbyPlayer,Profile,Room,ServerEvent,Shot,ForgeResult} from '../shared/protocol';
-export interface State {status:'connecting'|'online'|'offline'|'replaced';profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;channel:number;latency:number;offset:number;shot:Shot|null;error:string|null;forgeResult:ForgeResult|null;}
+import type {Battle,ChatLine,Command,LobbyPlayer,Profile,Room,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult} from '../shared/protocol';
+export interface State {status:'connecting'|'online'|'offline'|'replaced';profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
- state:State={status:'connecting',profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,channel:1,latency:0,offset:0,shot:null,error:null,forgeResult:null};
+ state:State={status:'connecting',profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,forgeResult:null,compositionResult:null,shopResult:null};
  private listeners=new Set<()=>void>();private ws:WebSocket|null=null;private started=false;private retry=0;private reconnectTimer=0;private pingTimer=0;
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>this.listeners.delete(fn);};
  snapshot=()=>this.state;
@@ -17,14 +17,16 @@ class Client {
   ws.onerror=()=>ws.close();
  }
  private receive(e:ServerEvent){switch(e.type){
-  case 'welcome':this.update({profile:e.profile,players:e.players,rooms:e.rooms,room:e.room,battle:e.battle,channel:e.channel,offset:e.serverTime-Date.now(),shot:null});break;
+  case 'welcome':this.update({profile:e.profile,players:e.players,rooms:e.rooms,room:e.room,battle:e.battle,channel:e.channel,offset:e.serverTime-Date.now(),shot:null,shotReceivedAt:0,shotBaseline:{}});break;
   case 'profile':this.update({profile:e.profile});break;
+  case 'shop-result':this.update({shopResult:e.result});break;
   case 'forge-result':this.update({forgeResult:e.result});break;
+  case 'composition-result':this.update({compositionResult:e.result});break;
   case 'lobby':this.update({players:e.players,online:e.online});break;
   case 'rooms':this.update({rooms:e.rooms});break;
   case 'room':this.update({room:e.room});break;
-  case 'battle':this.update({shot:!e.battle||e.battle.id!==this.state.battle?.id?null:this.state.shot,battle:e.battle?{...e.battle,terrain:e.battle.terrain??(this.state.battle?.id===e.battle.id?this.state.battle.terrain:undefined)}:null});break;
-  case 'shot':this.update({shot:e.shot});break;
+  case 'battle':this.update({shot:!e.battle||!!e.battle.powerCutIn||e.battle.id!==this.state.battle?.id||(e.battle.terrain!==undefined&&e.battle.phase!=='resolving')?null:this.state.shot,battle:e.battle?{...e.battle,terrain:e.battle.terrain??(this.state.battle?.id===e.battle.id?this.state.battle.terrain:undefined)}:null});break;
+  case 'shot':this.update({shot:e.shot,shotReceivedAt:performance.now(),shotBaseline:Object.fromEntries((this.state.battle?.players??[]).map(p=>[p.id,{x:p.x,y:p.y,hp:p.hp}]))});break;
   case 'chat':this.update({chat:[...this.state.chat.slice(-79),e.message]});break;
   case 'error':this.update({error:e.message});break;
   case 'pong':this.update({latency:Date.now()-e.time,offset:e.serverTime-(e.time+Date.now())/2});break;

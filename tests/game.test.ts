@@ -9,11 +9,14 @@ import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 
 class MemoryStore implements ProfileStore {
+ async buy():Promise<never>{throw Error('unused');}
+ async compose():Promise<never>{throw Error('unused');}
  profiles=new Map<string,Profile>();forgeCalls=0;
  async getProfile(id:string){return structuredClone(this.profiles.get(id)??null);}
  async saveEquipment(id:string,equipment:Equipment){const p=this.profiles.get(id)!;p.equipment={...equipment,upgrade:p.upgrades[equipment.weapon]};p.equippedOnce=true;return structuredClone(p);}
  async rename(id:string,name:string){this.profiles.get(id)!.name=name;}
- async finishMatch(){}
+ finishCalls:unknown[][]=[];failFinish=false;
+ async finishMatch(...args:unknown[]){if(this.failFinish)throw Error('retry');this.finishCalls.push(structuredClone(args));}
  async forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>{
   this.forgeCalls++;const p=this.profiles.get(id)!;p.upgrades[item]++;p.equipment.upgrade=p.upgrades[p.equipment.weapon];
   for(const [tier,count] of Object.entries(stones))p.stones[tier]-=count;
@@ -112,4 +115,49 @@ test('battle equipment and host-only room actions cannot be changed by another p
  const f=await battleFixture(),before=structuredClone(f.match.state.players.find(p=>p.id===f.b.id)!.equipment);
  await f.game.command(f.b.id,{type:'equip',item:'hat-mage'});await f.game.command(f.b.id,{type:'start'});await f.game.command(f.b.id,{type:'bot'});
  assert.deepEqual(f.match.state.players.find(p=>p.id===f.b.id)!.equipment,before);assert.equal(errors(f.events.get(f.b.id)!).length,3);
+});
+
+async function finishedFixture(){
+ const f=await battleFixture();f.match.state.players.find(p=>p.id===f.b.id)!.hp=0;
+ await f.game.command(f.match.state.turnId,{type:'pass'});assert.equal(f.match.state.phase,'finished');return f;
+}
+const flush=()=>new Promise(resolve=>setImmediate(resolve));
+test('reward picks are exclusive, immutable and secret until the shared deadline, including reconnect',async()=>{
+ const f=await finishedFixture();
+ await Promise.all([f.game.command(f.a.id,{type:'reward-pick',card:2}),f.game.command(f.b.id,{type:'reward-pick',card:2})]);
+ assert.equal(f.match.state.rewards!.cards[2].playerId,f.a.id);assert.match(errors(f.events.get(f.b.id)!).at(-1)!.message,/já foi escolhida/);
+ await f.game.command(f.a.id,{type:'reward-pick',card:3});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/já está reservada/);
+ await f.game.command(f.b.id,{type:'reward-pick',card:4});
+ assert.ok(f.match.state.rewards!.cards.every(card=>!card.prize));
+ f.game.disconnect(f.a.id);f.game.connect(f.a,event=>f.events.get(f.a.id)!.push(structuredClone(event)));
+ const welcome=f.events.get(f.a.id)!.at(-1)!; // lobby notifications may follow; locate welcome explicitly.
+ const reconnect=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'welcome'}>=>e.type==='welcome').at(-1)!;
+ assert.ok(reconnect.battle!.rewards!.cards.every(card=>!card.prize));assert.equal(reconnect.battle!.rewards!.cards[2].playerId,f.a.id);
+ assert.equal(f.store.finishCalls.length,0);
+ await f.game.command(f.a.id,{type:'rematch'});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/revelação/);
+ f.game.tick(f.match.state.rewards!.deadline+1);await flush();
+ const rewards=f.match.state.rewards!;assert.equal(rewards.phase,'revealed');assert.equal(rewards.saved,true);
+ assert.ok(rewards.cards[2].prize);assert.ok(rewards.cards[4].prize);assert.equal(rewards.cards.filter(c=>c.prize).length,2);
+ assert.equal(f.store.finishCalls.length,1);f.game.tick(Date.now()+60000);await flush();assert.equal(f.store.finishCalls.length,1);
+ await f.game.command(f.a.id,{type:'rematch'});assert.equal(f.game.matches.size,0);
+});
+test('unselected players receive distinct automatic cards and abandoned rooms still settle once',async()=>{
+ const f=await finishedFixture();await f.game.command(f.a.id,{type:'leave'});await f.game.command(f.b.id,{type:'leave'});
+ assert.equal(f.game.rooms.size,0);assert.equal(f.game.matches.size,1);
+ f.game.tick(f.match.state.rewards!.deadline+1);await flush();
+ const cards=f.match.state.rewards!.cards.filter(c=>c.playerId);assert.equal(cards.length,2);assert.ok(cards.every(c=>c.automatic&&c.prize));assert.equal(new Set(cards.map(c=>c.playerId)).size,2);
+ assert.equal(f.store.finishCalls.length,1);f.game.tick(Date.now()+60000);assert.equal(f.game.matches.size,0);
+});
+test('late and foreign reward picks are rejected; failed saves retry without unlocking a rematch',async()=>{
+ const f=await finishedFixture(),original=f.match.state.rewards!.deadline;f.match.state.rewards!.deadline=Date.now()-1;
+ await f.game.command(f.a.id,{type:'reward-pick',card:0});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/terminou/);
+ f.match.state.rewards!.deadline=original;f.store.failFinish=true;f.game.tick(original+1);await flush();
+ assert.equal(f.match.state.rewards!.saved,false);await f.game.command(f.a.id,{type:'rematch'});assert.ok(f.game.matches.has(f.roomId));
+ f.store.failFinish=false;f.game.tick(Date.now()+60000);await flush();assert.equal(f.match.state.rewards!.saved,true);assert.equal(f.store.finishCalls.length,1);
+});
+test('terrain marks are not exposed before impact and survive later snapshots',async()=>{
+ const f=await battleFixture();await f.game.command(f.match.state.turnId,{type:'fire',angle:45,power:30});
+ const immediate=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!.battle!;
+ assert.equal(immediate.terrainMarks!.length,0);assert.ok(f.match.pendingMarks!.length);
+ f.game.tick(Math.max(...f.match.pendingMarks!.map(mark=>mark.at))+1);assert.ok(f.match.state.terrainMarks!.length);
 });

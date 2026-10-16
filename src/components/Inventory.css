@@ -11,7 +11,6 @@
 .game-window.inventory-window .dressing-room{height:306px;min-height:306px;margin-top:8px;position:relative;display:flex;align-items:flex-start;justify-content:center}
 .game-window.inventory-window .dressing-room>canvas{position:relative;z-index:1;margin-top:-4px;pointer-events:none}
 .game-window.inventory-window .avatar-halo{top:42%;width:230px;height:230px;border-color:#c3945826;background:radial-gradient(#fff2cc,#e9cb8c2a 55%,transparent 72%)}
-.game-window.inventory-window .avatar-platform{width:190px;height:30px;bottom:36px;background:radial-gradient(ellipse,#c3a27630,#9a7e5544 48%,#d3ae6b 49%,#dac08f55 54%,transparent 56%)}
 .game-window.inventory-window .equipment-slots{z-index:2;gap:10px}
 .game-window.inventory-window .dressing-room .equipment-slots{position:absolute;top:0;display:flex;flex-direction:column}
 .game-window.inventory-window .dressing-room .equipment-slots.left{left:0}
@@ -32,7 +31,7 @@
 .game-window.inventory-window .stat-grid>span{font-size:10px;gap:6px;color:#927553}
 .game-window.inventory-window .stat-grid b{font-size:11px;color:#73573c}
 .game-window.inventory-window .stat-grid svg{color:#af8b62}
-.game-window.inventory-window .bag-pane{width:auto;min-width:0;display:grid;grid-template-rows:39px 34px minmax(0,1fr) 26px 65px 44px;gap:10px;padding:16px 23px 19px}
+.game-window.inventory-window .bag-pane{width:auto;min-width:0;display:grid;grid-template-rows:39px 34px minmax(0,1fr) 26px 44px;gap:10px;padding:16px 23px 19px}
 .game-window.inventory-window .bag-pane .tabs{min-height:0;gap:5px;border-bottom:1px solid #c1a07a77}
 .game-window.inventory-window .bag-pane .tabs button{padding:8px 18px 10px;font-size:12px;line-height:18px;border-radius:10px 10px 0 0;color:#9b7957}
 .game-window.inventory-window .bag-pane .tabs button.active{background:linear-gradient(#dfb98a66,#d99f6f44);color:#7c4c35;border-bottom:3px solid #c48556}
@@ -82,3 +81,122 @@
 .game-window.inventory-window .cosmetic-tooltip-note{border-block:1px solid #c3b08b44;padding:9px 0;margin:7px 0;font-size:10px;color:#d6c5a9}
 .game-window.inventory-window .item-tooltip footer{color:#e5bc88;font-size:9px}
 @media(prefers-reduced-motion:reduce){.game-window.inventory-window *{transition:none!important;animation:none!important}}
+
+/* Saturated fantasy inventory: quiet inset wells keep the actual item artwork readable. */
+.game-window.inventory-window .equipment-pane{background:radial-gradient(ellipse at 50% 36%,#267bbd88,#15365dcc 56%,#0d2446ee);border-right:1px solid #dba54f77;padding:15px 20px}
+.game-window.inventory-window .character-name h2{color:#ffe4a2}
+.game-window.inventory-window .character-name .draft-status{color:#bbd5ee}
+.game-window.inventory-window .character-name .draft-status.dirty{color:#ffc05c}
+.game-window.inventory-window .level-gem{background:linear-gradient(#a83c4d,#68203f);color:#ffdf88;border-color:#eeb94c;box-shadow:inset 0 1px #ffb48655,0 3px #39162e}
+.game-window.inventory-window .avatar-halo{border-color:#77c9ff44;background:radial-gradient(#77e0ee66,#1762a144 55%,transparent 72%)}
+.game-window.inventory-window .equipment-slots .equipment-slot>.equipment-slot-label{color:#d0e1f2;font-size:8px;bottom:-12px}
+.game-window.inventory-window .preview-poses{background:#0b2548ec;border:1px solid #a0b6cf;box-shadow:inset 0 1px #accbdf44,0 3px #091a33;gap:5px;padding:5px 8px;border-radius:11px}
+.game-window.inventory-window .preview-poses button{width:28px;height:26px;color:#b6d1ec;border-radius:7px}
+.game-window.inventory-window .preview-poses button.active{background:linear-gradient(#e5a337,#aa5826);border-color:#ffe28d;color:#fff3c2;box-shadow:0 2px #5e321f}
+.game-window.inventory-window .combat-power{border-color:#e5b65c66;background:linear-gradient(90deg,#7c284e66,#162c4b99);color:#c5dbf1}
+.game-window.inventory-window .combat-power strong{color:#ffd56b}.game-window.inventory-window .combat-power svg{color:#ffca5b}
+.game-window.inventory-window .stat-grid>span{color:#bfd4e9}.game-window.inventory-window .stat-grid b{color:#f4e6bf}.game-window.inventory-window .stat-grid svg{color:#62cce9}
+.game-window.inventory-window .bag-pane{background:linear-gradient(120deg,#183c63ee,#10294cee);padding:16px 20px 18px;gap:10px}
+.game-window.inventory-window .bag-pane .tabs{border-color:#849cb866;gap:4px}
+.game-window.inventory-window .bag-pane .tabs button{color:#b5d1ec;padding:8px 16px 10px;border-radius:9px 9px 0 0}
+.game-window.inventory-window .bag-pane .tabs button.active{background:linear-gradient(#a3454d,#59314b);color:#ffe69a;border-bottom:3px solid #ffc953;box-shadow:inset 0 1px #e7ac7355}
+.game-window.inventory-window .capacity{color:#a4c2e2}
+.game-window.inventory-window .inventory-filters>select,.game-window.inventory-window .inventory-filters>label{background:#0b2341;border-color:#6589af;color:#d4e7fb;box-shadow:inset 0 2px #071931}
+.game-window.inventory-window .inventory-filters input{color:#d9eafa}.game-window.inventory-window .inventory-filters input::placeholder{color:#9ab5d4}
+.game-window.inventory-window .item-slot>.equipped-mark{background:#0f9772;color:#ddffed;border-color:#69e5ae}
+.game-window.inventory-window .item-slot>.equipped-mark.draft{background:#d78422;color:#fff3ba;border-color:#ffe38d}
+.game-window.inventory-window .inventory-no-items,.game-window.inventory-window .inventory-pagination{color:#bad1ea}
+.game-window.inventory-window .inventory-pagination>span{color:#ffd176}
+.game-window.inventory-window .inventory-pagination button{background:linear-gradient(#375c87,#203d65);border-color:#8daec9;color:#ffdf93;box-shadow:0 2px #0a1833;border-radius:7px;width:29px;height:26px}
+.game-window.inventory-window .bag-customize{border:1px solid #8fa9c170;background:linear-gradient(100deg,#203f64,#102b4b);border-radius:11px;padding:9px 12px}
+.game-window.inventory-window .customize-selected{color:#ffe1a0}.game-window.inventory-window .customize-selected button{color:#ffb9a0}
+.game-window.inventory-window .customize-colors{color:#bcd4ed}.game-window.inventory-window .preview-guidance{color:#bdd2e9}
+.game-window.inventory-window .dye-swatch{border-color:#dfeaff;box-shadow:0 0 0 1px #4d7099,inset 0 1px 3px #fff7d666,0 2px #081d36}
+.game-window.inventory-window .dye-swatch[aria-pressed="true"]{outline-color:#ffd15d}
+.game-window.inventory-window .bag-footer{border-color:#9e814e66;padding-top:8px}.game-window.inventory-window .bag-footer>span{color:#ffd367}
+.game-window.inventory-window .bag-footer .button{min-height:35px;padding:7px 14px;border-radius:9px;font-size:11px;gap:6px}
+.game-window.inventory-window .bag-footer .button.quiet{background:linear-gradient(#36567b,#223a60);border-color:#87a8c7;color:#dbeeff;box-shadow:inset 0 1px #bddcff44,0 3px #101b36}
+.game-window.inventory-window .bag-footer .button.gold{background:linear-gradient(#ffe069,#f2a72c 52%,#cf751e);border-color:#ffeb9b;color:#592819;box-shadow:inset 0 1px #fff3b2,0 3px #72371f}
+.game-window.inventory-window .item-tooltip{background:#102744;color:#d2e6fb;border-width:2px;box-shadow:0 9px 28px #020b1c99}
+.game-window.inventory-window .item-tooltip p,.game-window.inventory-window .item-tooltip dt{color:#bed1e7}.game-window.inventory-window .item-tooltip dd{color:#ffe098}
+.game-window.inventory-window .cosmetic-tooltip-note{color:#bcd5ef;border-color:#7f9fba44}.game-window.inventory-window .item-tooltip footer{color:#ffd079}
+@media(max-width:700px){
+ .compact-modal-layer .game-window.inventory-window .inventory-body{grid-template-columns:1fr;height:auto}
+ .compact-modal-layer .game-window.inventory-window .equipment-pane{border-right:0;border-bottom:1px solid #dba54f77;padding:12px 16px 15px}
+ .compact-modal-layer .game-window.inventory-window .character-name h2{max-width:240px;font-size:16px}
+ .compact-modal-layer .game-window.inventory-window .dressing-room{height:275px;min-height:275px;margin-top:10px}
+ .compact-modal-layer .game-window.inventory-window .dressing-room>canvas{width:245px;height:245px;margin-top:5px}
+ .compact-modal-layer .game-window.inventory-window .equipment-slots .equipment-slot{width:45px;height:45px}
+ .compact-modal-layer .game-window.inventory-window .equipment-slots{gap:15px}
+ .compact-modal-layer .game-window.inventory-window .equipment-slots.lower{height:58px;min-height:58px;margin-top:8px}
+ .compact-modal-layer .game-window.inventory-window .stat-grid{padding:12px 5px 3px;gap:10px 22px}
+ .compact-modal-layer .game-window.inventory-window .bag-pane{grid-template-rows:40px 40px auto 32px 53px;padding:16px 12px 12px;gap:11px}
+ .compact-modal-layer .game-window.inventory-window .bag-pane .tabs{gap:0}
+ .compact-modal-layer .game-window.inventory-window .bag-pane .tabs button{font-size:11px;padding:10px 10px}.compact-modal-layer .game-window.inventory-window .capacity{font-size:8px}
+ .compact-modal-layer .game-window.inventory-window .inventory-filters{gap:8px}.compact-modal-layer .game-window.inventory-window .inventory-filters>select{width:145px;height:38px;font-size:10px;padding:0 5px}
+ .compact-modal-layer .game-window.inventory-window .inventory-filters>label{padding:0 7px}.compact-modal-layer .game-window.inventory-window .inventory-filters input{font-size:11px}
+ .compact-modal-layer .game-window.inventory-window .bag-pane .bag-grid{grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:repeat(6,65px);gap:9px}
+ .compact-modal-layer .game-window.inventory-window .bag-footer{position:sticky;bottom:-12px;z-index:6;background:#10294ff5;margin:0 -4px;padding:9px 4px;gap:5px;box-shadow:0 -4px 12px #06132b44}
+ .compact-modal-layer .game-window.inventory-window .bag-footer>span{font-size:10px;gap:3px}.compact-modal-layer .game-window.inventory-window .bag-footer>div{gap:6px}
+ .compact-modal-layer .game-window.inventory-window .bag-footer .button{padding:8px 9px;min-height:38px;font-size:10px;gap:4px}
+ .compact-modal-layer .game-window.inventory-window .bag-footer .forge-link{padding:8px}
+ .compact-modal-layer .game-window.inventory-window .dye-swatches{gap:7px}.compact-modal-layer .game-window.inventory-window .dye-swatch{width:25px;height:25px}
+ .compact-modal-layer .game-window.inventory-window .item-tooltip{max-width:calc(100% - 24px);font-size:11px}
+}
+.game-window.inventory-window .inventory-body{grid-template-columns:410px 1fr;height:600px}
+.game-window.inventory-window .equipment-pane{padding:12px 17px}
+.game-window.inventory-window .bag-pane{grid-template-rows:39px 34px minmax(0,1fr) 26px 44px;padding:14px 18px 16px;gap:9px}
+.game-window.inventory-window .dressing-room{height:285px;min-height:285px}
+.game-window.inventory-window .dressing-room>canvas{width:268px;height:268px}
+.game-window.inventory-window .equipment-slots.lower{margin-top:7px;height:58px;min-height:58px}
+.game-window.inventory-window .stat-grid{padding:13px 7px 7px}
+@media(max-width:700px){
+ .compact-modal-layer .game-window.inventory-window .inventory-body{grid-template-columns:1fr;height:auto}
+ .compact-modal-layer .game-window.inventory-window .equipment-pane{padding:12px 13px 15px}
+ .compact-modal-layer .game-window.inventory-window .bag-pane{grid-template-rows:40px 40px auto 32px 53px;padding:16px 10px 12px;gap:11px}
+ .compact-modal-layer .game-window.inventory-window .bag-pane .tabs button{padding:10px 9px}
+ .compact-modal-layer .game-window.inventory-window .inventory-filters>select{width:140px}
+}
+.game-window.inventory-window .bag-pane,.game-window.inventory-window .equipment-pane{min-height:0}
+.game-window.inventory-window .dressing-room>canvas{max-width:255px;max-height:255px}
+@media(max-width:700px){.compact-modal-layer .game-window.inventory-window .dressing-room>canvas{max-width:240px;max-height:240px}}
+@media(max-width:700px){.compact-modal-layer .game-window.inventory-window .equipment-slots .equipment-slot>.equipment-slot-label{width:60px}}
+
+/* Item details live only in the anchored tooltip; appearance controls belong to the avatar. */
+.game-window.inventory-window .dressing-room{height:264px;min-height:264px}
+.game-window.inventory-window .dressing-room>canvas{max-width:240px;max-height:240px}
+.game-window.inventory-window .appearance-actions{display:flex;align-items:center;justify-content:center;gap:10px;min-height:32px;flex:none;margin:2px 0 0;color:#bcd6f1}
+.game-window.inventory-window .appearance-actions>.dye-swatches{gap:9px}
+.game-window.inventory-window .appearance-hint{font-size:10px;color:#a8c5df}
+.game-window.inventory-window .appearance-remove{display:grid;place-items:center;width:29px;height:29px;padding:0;border:1px solid #c07387;border-radius:8px;background:linear-gradient(#7c304b,#4f203e);color:#ffd7cf;box-shadow:inset 0 1px #fbb5ab33,0 2px #1a1831}
+.game-window.inventory-window .stat-grid{gap:8px 20px;padding:10px 7px 0;margin-top:2px}
+.game-window.inventory-window .stat-grid>span{min-height:15px}
+.game-window.inventory-window .stat-grid>.stat-wide{grid-column:1/-1;max-width:50%;padding-right:10px}
+.game-window.inventory-window .item-preview-pulse{position:absolute;inset:-3px;border:2px solid #ffde72;border-radius:inherit;pointer-events:none;z-index:8;animation:item-preview-pulse .65s ease-out both}
+.inventory-tooltip.item-tooltip{--tip-accent:#aebfd7;position:fixed;z-index:1000;width:288px;max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow:hidden;pointer-events:none;margin:0;padding:13px;border:2px solid var(--tip-accent);border-radius:13px;background:linear-gradient(135deg,#18385cfa,#0a1c35fc);color:#d9eaff;box-shadow:inset 0 1px #bbd9f133,0 8px 30px #010817bb;text-shadow:0 1px #071529;font-family:inherit;font-size:11px;line-height:1.45}
+.inventory-tooltip[data-rarity=uncommon]{--tip-accent:#5ad48b}.inventory-tooltip[data-rarity=rare]{--tip-accent:#58aefa}.inventory-tooltip[data-rarity=epic]{--tip-accent:#c080f4}.inventory-tooltip[data-rarity=legendary]{--tip-accent:#f5ca61}
+.inventory-tooltip.item-tooltip header{display:flex;align-items:center;gap:10px;padding:0 0 10px;border-bottom:1px solid color-mix(in srgb,var(--tip-accent) 45%,transparent)}
+.inventory-tooltip header>.item-card{width:54px;height:54px;min-width:54px;flex:none;display:grid;place-items:center}
+.inventory-tooltip header>div:not(.item-card){min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}
+.inventory-tooltip header small{font-size:10px;color:var(--tip-accent);font-weight:700}
+.inventory-tooltip .tooltip-name{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
+.inventory-tooltip .tooltip-name>strong{font-size:13px;line-height:1.3;color:#fff0c3}
+.inventory-tooltip .tooltip-name>.upgrade-badge{height:auto;max-width:64px;margin:0}
+.inventory-tooltip.item-tooltip p{color:#c7daee;font-size:11px;line-height:1.5;margin:10px 0}
+.inventory-tooltip.item-tooltip dl{display:grid;grid-template-columns:1fr auto;gap:5px 15px;margin:9px 0;padding:8px 0;border-block:1px solid #6c91b44d}
+.inventory-tooltip.item-tooltip dt{color:#bfd7ee;font-size:11px}.inventory-tooltip.item-tooltip dd{display:flex;align-items:center;justify-content:flex-end;gap:9px;color:#ffe095;margin:0;font-weight:800;font-size:11px;font-variant-numeric:tabular-nums}
+.inventory-tooltip .tooltip-delta{min-width:28px;font-size:10px;text-align:right}.inventory-tooltip .tooltip-delta.positive{color:#6bf2b0}.inventory-tooltip .tooltip-delta.negative{color:#ff9aaf}
+.inventory-tooltip .tooltip-comparison{color:#a8c6e2;font-size:10px;margin:7px 0;line-height:1.4}
+.inventory-tooltip .cosmetic-tooltip-note{color:#a9c5df;font-size:10px;padding:8px 0;border-block:1px solid #6c91b44d;margin:8px 0}
+.inventory-tooltip.item-tooltip footer{color:#ffdb7d;font-size:10px;margin:9px 0 0;padding:0;border:0;background:none}
+@keyframes item-preview-pulse{0%{opacity:1;box-shadow:0 0 0 0 #ffcd5f88}100%{opacity:0;box-shadow:0 0 0 10px #ffcd5f00}}
+@media(max-width:700px){.compact-modal-layer .game-window.inventory-window .dressing-room{height:268px;min-height:268px}.compact-modal-layer .game-window.inventory-window .appearance-actions{min-height:37px;margin-top:5px}.compact-modal-layer .game-window.inventory-window .stat-grid{padding:12px 5px 3px;gap:10px 20px}.inventory-tooltip.item-tooltip{width:280px;padding:12px}.game-window.inventory-window .appearance-remove{width:34px;height:34px}}
+@media(prefers-reduced-motion:reduce){.item-preview-pulse{animation:none!important}.inventory-tooltip{transition:none!important}}
+
+@media(max-width:700px){.compact-modal-layer .game-window.inventory-window{scroll-padding:75px 0 72px}.compact-modal-layer .game-window.inventory-window .bag-grid .item-slot{scroll-margin-block:75px}}
+
+.game-window.inventory-window .character-name{height:48px;gap:11px}.game-window.inventory-window .character-name>.level-badge{flex:none}
+
+.game-window.inventory-window .avatar-halo{width:165px;height:245px;top:43%;border:0;background:radial-gradient(ellipse,#4ad8f23b,transparent 69%);box-shadow:none}.game-window.inventory-window .avatar-halo:after{display:none}
+
+.inventory-tooltip .tooltip-composed{font-size:10px;color:#9eecc8;padding:5px 7px;border:1px solid #42b99b55;border-radius:6px;background:#073c3944}

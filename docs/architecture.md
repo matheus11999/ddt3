@@ -25,9 +25,9 @@ O ciclo do servidor roda a cada 50 ms. O lobby agrupa até 60 conexões por cana
 
 ## Batalha
 
-Salas comportam 1×1 ou 2×2. O líder inicia quando as vagas estão preenchidas e os demais jogadores estão prontos. Bots usam uma busca balística limitada; partidas com bots dão o primeiro turno ao jogador humano. Nas demais partidas, a agilidade define a ordem inicial. Os turnos seguintes percorrem os combatentes vivos e duram 30 segundos; esta versão usa alternância simples.
+Salas comportam 1×1 até 4×4, com quatro posições fixas por equipe. `openSlots` preserva índices mesmo com lacunas. O líder pode fechar pares de vagas sem ocupantes humanos (bots são removidos) e expulsar outros jogadores durante a espera. Expulsão retorna o jogador à praça, sem fechar sua conexão; capacidade e demais posições são preservadas. O líder inicia quando as vagas estão preenchidas e os demais jogadores estão prontos. Bots usam uma busca balística limitada; partidas com bots dão o primeiro turno ao jogador humano. Nas demais partidas, a agilidade define a ordem inicial. Os turnos seguintes percorrem os combatentes vivos e duram 30 segundos; esta versão usa alternância simples.
 
-O terreno ocupa uma grade 512×288 de células de 3 pixels. O servidor integra trajetórias a 120 Hz, transmite pontos amostrados a 60 Hz, calcula colisões, remove material conforme raio, resistência e regiões destrutíveis e reposiciona combatentes no chão restante. A reconexão inclui um retrato completo da batalha e do terreno compactado. A sessão permanece na partida por até 30 segundos após desconectar, enquanto o processo continuar ativo.
+O terreno ocupa uma grade 512×288 de células de 3 pixels. O servidor integra trajetórias a 120 Hz, transmite pontos amostrados a 60 Hz, calcula colisão contínua por disco (raios físicos6/3/9px para Brasa/Tempestade/Cristal), remove material conforme raio, resistência e regiões destrutíveis e reposiciona combatentes no chão restante. A reconexão inclui um retrato completo da batalha e do terreno compactado. A sessão permanece na partida por até 30 segundos após desconectar, enquanto o processo continuar ativo.
 
 | Ferramenta | Vigor | Efeito implementado |
 | --- | ---: | --- |
@@ -43,7 +43,7 @@ Os custos e as reduções dos disparos seguem a referência pública [VNG — gu
 
 ## Inventário e fortalecimento
 
-O perfil contém `inventory`, `equipment`, `upgrades` por ID de arma e `stones` por nível de material. `equipment.upgrade` espelha a arma equipada. A mochila mantém uma prévia local até Salvar. O comando `customize` valida todos os oito slots e a posse numa transação; o upgrade vem do estado persistido. Rosto é uma peça completa, e a mesma função de avatar atende à prévia, ao lobby e à batalha. O acabamento das roupas/cabelos restantes é pendente; veja `implementation-status.md`.
+O perfil contém `compositions` e `compositionStones` (ver [Composição](composition.md)), `inventory`, `equipment`, `upgrades` por ID de arma e `stones` por nível de material. `equipment.upgrade` espelha a arma equipada. A mochila mantém uma prévia local até Salvar. O comando `customize` valida todos os oito slots e a posse numa transação; o upgrade vem do estado persistido. Rosto é uma peça completa, e a mesma função de avatar atende à prévia, ao lobby e à batalha. O acabamento das roupas/cabelos restantes é pendente; veja `implementation-status.md`.
 
 O ferreiro exige estar fora de salas e a até 180 pixels de `{x:310,y:610}`. Apenas armas próprias podem subir de +0 até +12. Cada tentativa recebe entre 1 e 20 pedras, de níveis I a V. A chance é calculada pelo mesmo helper usado na interface e recalculada no servidor com o nível e estoque atuais; o cliente não envia uma chance aceita como verdadeira.
 
@@ -59,15 +59,15 @@ A chance usa a soma das potências selecionadas e a exigência crescente em `UPG
 
 `Store.forge()` abre uma transação, bloqueia o perfil com `SELECT ... FOR UPDATE`, valida quantidades, sorteia com `crypto.randomInt`, consome todas as pedras selecionadas e persiste o resultado. Sucesso soma um nível; falha mantém o nível. Não há custo de ouro nem downgrade. `saveEquipment()` também bloqueia o perfil e lê o nível persistido, evitando perda de atualização entre troca de arma e fortalecimento concorrente.
 
-Cada nível adiciona 8 de ataque à arma e 3,5% de seu dano-base, com arredondamento do dano. O raio de cratera permanece específico de cada arma. A arte preserva a identidade do equipamento:
+Cada nível adiciona 8 de ataque à arma e 3,5% de seu dano-base, com arredondamento do dano. O raio de cratera permanece específico de cada arma. A arte preserva a identidade do equipamento. A aura do personagem só aparece por opção explícita no inventário, perfil e cartas da arena; não aparece no lobby ou no combate.
 
 | Nível | Arte da arma | Aura do personagem |
 | --- | --- | --- |
 | +0–4 | Base: `weapon-ID-base.png` | Sem aura |
-| +5–8 | Base | Símbolo ciano |
-| +9 | Evoluída: `weapon-ID-evolved.png` | Símbolo violeta ampliado |
-| +10–11 | Desperta: `weapon-ID-awakened.png` | Símbolo violeta |
-| +12 | Completa: `weapon-ID.png` | Símbolo dourado/laranja com camadas adicionais |
+| +5–8 | Base | Aura de luz ciano |
+| +9 | Evoluída: `weapon-ID-evolved.png` | Aura violeta ampliada |
+| +10–11 | Desperta: `weapon-ID-awakened.png` | Aura violeta |
+| +12 | Completa: `weapon-ID.png` | Aura dourada com camadas luminosas |
 
 Os cartões reutilizam `ItemCard` na mochila, ferreiro e demais telas de equipamentos. Pedras I–V são sempre comuns. A moldura depende da raridade, e a cor da pedra segue seu material:
 
@@ -78,6 +78,8 @@ Os cartões reutilizam `ItemCard` na mochila, ferreiro e demais telas de equipam
 | Raro | `rare` | Azul `#68b8e5` |
 | Épico | `epic` | Roxo `#bd8fe2` |
 | Lendário | `legendary` | Dourado `#f5cb68` |
+
+Atributos e dano são definidos em [combat-stats.md](combat-stats.md). O nível máximo é50, com300EXP por nível; experiência extra não cria nível51. A barra de força mantém o último valor efetivamente exibido e dispara esse valor ao soltar Espaço/toque; blur, perda de visibilidade ou abertura de painel cancelam a carga.
 
 ## Persistência, segurança e operação
 
@@ -90,3 +92,7 @@ Redis mantém os limites HTTP e um contador de presença com expiração. Ele n�
 Há limites configurados de 200 salas e 1.000 conexões por processo, sem garantia de capacidade nessa quantidade. O ensaio local executado com 24 conexões, 288 pings e movimentação mediu p95 de 3,13 ms pelo Vite `5177` conectado ao backend Docker. Esse resultado cobre lobby e validação, sem representar latência externa, partidas simultâneas em escala ou capacidade de produção. `npm run test:load` publica os parâmetros e as medições de cada execução em JSON.
 
 A implantação padrão serve apenas o computador local. Publicação externa ainda exige domínio, TLS, segredos adequados, cópias de segurança, observabilidade e testes de carga compatíveis com a meta real. Convidados não têm recuperação de conta, e o protótipo ainda não oferece reposição econômica de pedras, comércio ou guildas.
+
+## Evolução visual do nível
+
+Badges usam números inclinados em relevo e ornamentos pintados de apoio. Níveis 1–10 são simples; 11–20 e 21–29 recebem detalhes crescentes. A aura começa em 30–39, ganha outra camada e luz dourada em 40–49 e atinge o efeito mais elaborado em 50. Não confundir esses níveis com os estágios +5/+9/+12 da arma, responsáveis pelo anel luminoso do avatar. `prefers-reduced-motion` congela rotação/pulso sem ocultar a identidade de cada estágio.

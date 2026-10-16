@@ -1,0 +1,14 @@
+.power-cut-in{position:absolute;inset:0;z-index:31;display:flex;align-items:center;justify-content:center;pointer-events:none;isolation:isolate;overflow:hidden;background:radial-gradient(ellipse at 46% 47%,#07325c22,#020b1c88);animation:power-cinematic-in .22s ease-out both}
+.power-cut-in::before{content:"";position:absolute;inset:28% -15%;background:linear-gradient(170deg,transparent 3%,#15c8ef33 4%,#06243ef2 9%,#0a294ce6 73%,#ffbc3444 74%,transparent 79%);transform:rotate(-7deg);z-index:-1}
+.power-cut-in-streaks{position:absolute;width:150%;height:40%;background:repeating-linear-gradient(174deg,transparent 0 27px,#7bf5ff33 28px 29px,transparent 30px 51px);transform:rotate(-7deg);animation:power-streaks .6s linear infinite;z-index:-1}
+.power-cut-in-character{width:310px;height:310px;filter:drop-shadow(0 0 14px #69e6ff88) drop-shadow(0 10px 7px #020b1d);animation:power-hero-enter .4s cubic-bezier(.15,.9,.3,1) both}
+.power-cut-in-title{margin-left:-24px;transform:rotate(-6deg);min-width:260px;animation:power-title-enter .35s .12s both;display:flex;align-items:flex-start;flex-direction:column}
+.power-cut-in-title>span{font:900 20px 'Nunito',sans-serif;color:#effaff;text-shadow:0 2px 3px #00132c;margin-left:8px}
+.power-cut-in-title>.battle-3d-text{font-size:100px;--face-top:#fffbe0;--face-middle:#ffda42;--face-bottom:#f07b18;filter:drop-shadow(0 0 22px #ffb32255)}
+.power-cut-in-title>strong{font:900 12px 'Nunito',sans-serif;letter-spacing:6px;color:#9ff4ff;margin:9px 0 0 18px;text-shadow:0 2px 3px #00132c}
+@keyframes power-cinematic-in{from{opacity:0}to{opacity:1}}
+@keyframes power-hero-enter{from{transform:translateX(-120px) scale(.78);opacity:0}to{transform:none;opacity:1}}
+@keyframes power-title-enter{from{transform:translateX(100px) rotate(-6deg);opacity:0}to{transform:rotate(-6deg);opacity:1}}
+@keyframes power-streaks{to{background-position:150px 0}}
+@media(max-width:700px){.power-cut-in-character{width:220px;height:220px;transform:scale(.72);transform-origin:right center;margin-left:-75px}.power-cut-in-title{min-width:180px;margin-left:-24px}.power-cut-in-title>.battle-3d-text{font-size:62px}.power-cut-in-title>span{font-size:15px}.power-cut-in-title>strong{font-size:9px;letter-spacing:3px}}
+@media(prefers-reduced-motion:reduce){.power-cut-in,.power-cut-in-character,.power-cut-in-title,.power-cut-in-streaks{animation:none}}

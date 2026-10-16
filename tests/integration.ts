@@ -77,10 +77,19 @@ async function verifyDatabaseForge(){
   const seeded=await failureStore.pool.query("UPDATE players SET profile=jsonb_set(profile,'{stones,1}','1') WHERE id=$1 AND name=$2 RETURNING id",[ownedId,ownedName]);assert.equal(seeded.rowCount,1);
   const attempts=await Promise.allSettled([failureStore.forge(ownedId,'ember',{'1':1}),failureStore.forge(ownedId,'ember',{'1':1})]);
   assert.equal(attempts.filter(r=>r.status==='fulfilled').length,1);assert.equal(attempts.filter(r=>r.status==='rejected').length,1);
+  await failureStore.buy(ownedId,['volt']);
   const current=await failureStore.getProfile(ownedId);assert.equal(current.stones['1'],0);assert.equal(current.upgrades.ember,1);
   await Promise.all([successStore.saveEquipment(ownedId,{...current.equipment,weapon:'volt',upgrade:12}),successStore.forge(ownedId,'volt',{'2':1})]);
   const final=await failureStore.getProfile(ownedId);assert.equal(final.equipment.weapon,'volt');assert.equal(final.equipment.upgrade,1);assert.equal(final.upgrades.volt,1);
-  console.log(JSON.stringify({success:true,failureConsumes:true,successConsumes:true,concurrentSpendProtected:true,equipmentUpgradeRaceProtected:true}));
+  const composed=await successStore.compose(ownedId,'volt','attack-1');
+  assert.equal(composed.result.success,true);assert.equal(composed.profile.compositions.volt.attack,10);assert.equal(composed.profile.gold,100);
+  const failedComposition=await failureStore.compose(ownedId,'volt','attack-2');
+  assert.equal(failedComposition.result.success,false);assert.equal(failedComposition.profile.compositions.volt.attack,10);assert.equal(failedComposition.profile.gold,0);
+  await failureStore.pool.query("UPDATE players SET profile=jsonb_set(jsonb_set(profile,'{compositionStones,attack-2}','1'),'{gold}','100') WHERE id=$1 AND name=$2",[ownedId,ownedName]);
+  const compositionAttempts=await Promise.allSettled([failureStore.compose(ownedId,'volt','attack-2'),failureStore.compose(ownedId,'volt','attack-2')]);
+  assert.equal(compositionAttempts.filter(r=>r.status==='fulfilled').length,1);assert.equal(compositionAttempts.filter(r=>r.status==='rejected').length,1);
+  const afterComposition=await failureStore.getProfile(ownedId);assert.equal(afterComposition.gold,0);assert.equal(afterComposition.compositionStones['attack-2'],0);assert.equal(afterComposition.equipment.compositions.volt.attack,10);
+  console.log(JSON.stringify({success:true,failureConsumes:true,successConsumes:true,concurrentSpendProtected:true,equipmentUpgradeRaceProtected:true,compositionPersists:true,concurrentCompositionSpendProtected:true}));
  } finally {
   if(ownedId&&ownedName)await failureStore.pool.query('DELETE FROM players WHERE id=$1 AND name=$2',[ownedId,ownedName]);
   await failureStore.pool.end();await successStore.pool.end();
@@ -100,8 +109,9 @@ async function run(){
   clients.push(...sessions.map(session=>new TestClient(session)));await Promise.all(clients.map(client=>client.wait('welcome')));
   let [a,b]=clients;
   await a.request({type:'rename',name:`TEST-A-${a.profile.id.slice(0,8)}`},'profile');await b.request({type:'rename',name:`TEST-B-${b.profile.id.slice(0,8)}`},'profile');
-  for(const item of ['hat-cap','face-smile','outfit-azure'])await a.request({type:'equip',item},'profile');
-  assert.equal(a.profile.equipment.hat,'hat-cap');assert.equal(a.profile.equipment.face,'face-smile');checks.push('equipment and starter cosmetics');
+  await a.request({type:'shop-buy',items:['hat-cap','face-smile','face-taunt']},'shop-result');await b.request({type:'shop-buy',items:['face-serene','face-fierce']},'shop-result');
+  for(const item of ['hat-cap','face-smile','outfit-surfer'])await a.request({type:'equip',item},'profile');
+  assert.equal(a.profile.equipment.hat,'hat-cap');assert.equal(a.profile.equipment.face,'face-smile');checks.push('purchased equipment and starter cosmetics');
   assert.match((await a.request({type:'forge',item:'ember',stones:{'1':1}},'error')).message,/Aproxime-se/);
   const invalidSelections:Record<string,number>[]=[{'1':-1},{'1':21},{'6':1}];
   for(const stones of invalidSelections)assert.equal((await a.request({type:'forge',item:'ember',stones},'error')).message,'Comando inválido.');
@@ -111,17 +121,23 @@ async function run(){
   await a.wait('lobby',event=>event.players.some(p=>p.id===a.profile.id&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)<140),movement,10000);
   const stonesBefore=a.profile.stones['2'];const forged=await a.request({type:'forge',item:'ember',stones:{'2':1}},'forge-result');
   assert.equal(forged.result.success,true);assert.equal(forged.result.chance,100);assert.equal(a.profile.stones['2'],stonesBefore-1);assert.equal(a.profile.equipment.upgrade,1);checks.push('network forge consumption and upgrade');
+  const goldBefore=a.profile.gold,compositionBefore=a.profile.compositionStones['attack-1'];
+  const composed=await a.request({type:'compose',item:'ember',stone:'attack-1'},'composition-result');
+  assert.equal(composed.result.success,true);assert.equal(composed.result.chance,100);assert.equal(a.profile.gold,goldBefore-40);assert.equal(a.profile.compositionStones['attack-1'],compositionBefore-1);assert.equal(a.profile.equipment.compositions?.ember.attack,10);
+  assert.match((await a.request({type:'compose',item:'ember',stone:'attack-1'},'error')).message,/igual ou melhor/);checks.push('network composition applies once and publishes authoritative cost and bonus');
   const saved=await fetch(`${BASE_URL}/api/session`,{headers:{Cookie:a.session.cookie}});const persisted=(await saved.json() as {profile:Profile}).profile;
-  assert.equal(persisted.equipment.upgrade,1);assert.equal(persisted.equipment.hat,'hat-cap');assert.equal(persisted.stones['2'],stonesBefore-1);checks.push('HTTP profile persistence');
+  assert.equal(persisted.compositions.ember.attack,10);assert.equal(persisted.equipment.upgrade,1);assert.equal(persisted.equipment.hat,'hat-cap');assert.equal(persisted.stones['2'],stonesBefore-1);checks.push('HTTP profile persistence');
   for(const face of ['face-brave','face-smile','face-serene','face-fierce','face-taunt']){
-   const observerMark=b.sequence;await a.request({type:'equip',item:face},'profile');
-   await b.wait('lobby',event=>event.players.some(player=>player.id===a.profile.id&&player.equipment.face===face),observerMark);
-   const response=await fetch(BASE_URL+'/api/session',{headers:{Cookie:a.session.cookie}});const profile=(await response.json() as {profile:Profile}).profile;assert.equal(profile.equipment.face,face);
+   const owner=['face-serene','face-fierce'].includes(face)?b:a,observer=owner===a?b:a;
+   const observerMark=observer.sequence;await owner.request({type:'equip',item:face},'profile');
+   await observer.wait('lobby',event=>event.players.some(player=>player.id===owner.profile.id&&player.equipment.face===face),observerMark);
+   const response=await fetch(BASE_URL+'/api/session',{headers:{Cookie:owner.session.cookie}});const profile=(await response.json() as {profile:Profile}).profile;assert.equal(profile.equipment.face,face);
   }
   checks.push('five faces persist and broadcast to a second real WebSocket client');
   const room=await a.request({type:'create',name:'TEST Integration',mode:'1v1',map:'sky'},'room',event=>!!event.room);
   const roomId=room.room!.id;await b.request({type:'join',roomId},'room',event=>event.room?.id===roomId);
   assert.match((await a.request({type:'forge',item:'ember',stones:{'1':1}},'error')).message,/ferreiro da praça/);
+  assert.match((await a.request({type:'compose',item:'ember',stone:'attack-2'},'error')).message,/ferreiro da praça/);
   await b.request({type:'ready'},'room',event=>event.room?.players.some(p=>p.id===b.profile.id&&p.ready)??false);
   const startMark=b.sequence;const started=await a.request({type:'start'},'battle',event=>!!event.battle);const battle=started.battle!;
   await b.wait('battle',event=>event.battle?.id===battle.id,startMark);assert.ok(battle.terrain);assert.equal(battle.players.find(player=>player.id===a.profile.id)!.equipment.face,'face-taunt');checks.push('two-player room create join ready start with saved face');

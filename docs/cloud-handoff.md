@@ -1,5 +1,7 @@
 # Continuidade na cloud
 
+Para sair da cloud e continuar no computador local, seguir [local-handoff.md](local-handoff.md), que registra o checkpoint mais recente, os comandos e as limitações de transporte de dados.
+
 ## O que acompanha o repositório
 
 Código-fonte completo, lockfile npm, infraestrutura Docker, PNGs originais, fontes locais com licenças, prompts de arte, regras e testes. A cloud não precisa acessar pastas `C:\Users\...` ou `D:\APPS\...` da máquina original. Caminhos históricos citados em logs de geração não são dependências de execução.
@@ -73,6 +75,12 @@ npx playwright install --with-deps chromium
 BASE_URL=http://127.0.0.1:5177 node scripts/verify-faces.mjs
 BASE_URL=http://127.0.0.1:5177 node scripts/smoke-browser.mjs
 BASE_URL=http://127.0.0.1:5177 node scripts/inspect-maps.mjs
+BASE_URL=http://127.0.0.1:5177 npm run test:rooms:integration
+BASE_URL=http://127.0.0.1:5177 npm run test:battle:browser
+BASE_URL=http://127.0.0.1:5177 npm run test:maps:integration
+BASE_URL=http://127.0.0.1:5177 npm run test:maps:browser
+BASE_URL=http://127.0.0.1:5177 npm run test:outfits
+BASE_URL=http://127.0.0.1:5177 node scripts/smoke-outfits.mjs
 ```
 
 `verify-faces` e `inspect-maps` importam módulos TypeScript servidos pelo Vite; não apontar esses harnesses para Nginx de produção. `smoke-browser` exige backend e pode rodar em `8097`. `npm run test:integration` também requer backend e usa `docker compose exec` na parte transacional; sem Docker, adaptar essa parte a um banco de testes dedicado antes de anunciar aprovação. Ele cria convidados `TEST-*`; não usar banco de produção para QA.
@@ -83,7 +91,13 @@ Capturas e relatórios ficam em `test-results/`, ignorado. A prancha facial apro
 
 Utilizar a ferramenta de geração/edição de imagem disponível no ambiente quando produzir pinturas novas. Os PNGs atuais estão versionados, então executar o jogo não depende dela. Se geração de imagem estiver indisponível, continuar código/testes independentes e registrar a pendência; não substituir arte final por SVG genérico silenciosamente.
 
-Preservar o compositor universal de rostos e seu teste. Não ativar corpos modulares antes de completar cabelos/roupas/chapéus e revisar combinações. O estado exato está em `implementation-status.md`.
+Preservar o compositor universal de rostos e seu teste. Surfista, Executivo, Piloto Relâmpago e Dançarina Rubi carregam por registro individual; roupas antigas foram removidas. O flag geral de camadas modulares permanece desativado intencionalmente. Chapéus vestidos e variantes de cabelo coberto estão integrados pelos registros específicos. Cada conjunto tem uma pose base própria. O estado exato está em `implementation-status.md`.
+
+## Ambiente desta sessão cloud
+
+Node24, Docker/Compose e Chromium do sistema foram executados em Linux. O setup salvo usa auxiliares em `/workspace/ddt3-cloud`, fora do repositório, para encaminhar a CA do proxy ao build e respeitar os usuários de execução node/nginx. Nenhuma verificação TLS foi desativada. `use-system-chromium.mjs` seleciona `/usr/bin/chromium` pelo `executablePath` do Playwright quando o download do navegador empacotado é bloqueado. Exemplo neste ambiente: `node --import /workspace/ddt3-cloud/use-system-chromium.mjs scripts/smoke-browser.mjs`.
+
+Scripts de instalação/inicialização foram salvos no rascunho da configuração. Salvar o rascunho não publica o ambiente; revisar/salvar nas configurações e publicar continua sendo uma ação separada. Não assumir restauração em tarefa nova sem verificá-la.
 
 ## Git
 
