@@ -1,0 +1,42 @@
+{
+  "face-brave": {
+    "sourceRect": [
+      380,
+      222,
+      521,
+      505
+    ]
+  },
+  "face-smile": {
+    "sourceRect": [
+      380,
+      222,
+      520,
+      504
+    ]
+  },
+  "face-taunt": {
+    "sourceRect": [
+      380,
+      220,
+      522,
+      507
+    ]
+  },
+  "face-serene": {
+    "sourceRect": [
+      381,
+      222,
+      520,
+      504
+    ]
+  },
+  "face-fierce": {
+    "sourceRect": [
+      379,
+      220,
+      523,
+      507
+    ]
+  }
+}

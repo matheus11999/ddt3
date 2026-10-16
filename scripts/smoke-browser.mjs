@@ -1,0 +1,66 @@
+import {chromium,expect} from '@playwright/test';
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+
+const base=process.env.BASE_URL??'http://127.0.0.1:5177';
+await mkdir('test-results',{recursive:true});
+const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
+const context=await browser.newContext({viewport:{width:1536,height:864}});
+// The embedded browser can wrap this API with an asynchronous return value.
+// React effects must never accidentally return that value as their cleanup.
+await context.addInitScript(()=>{HTMLElement.prototype.scrollIntoView=function(){return Promise.resolve();};});
+const page=await context.newPage(),errors=[],commands=[];
+page.on('pageerror',e=>errors.push(e.message));
+page.on('websocket',ws=>ws.on('framesent',frame=>{try{commands.push(JSON.parse(String(frame.payload)));}catch{}}));
+const profile=async()=>{const response=await context.request.post(base+'/api/session',{headers:{Origin:base}});assert.equal(response.status(),200);return (await response.json()).profile;};
+try{
+ await page.goto(base,{waitUntil:'networkidle'});
+ await expect(page.locator('.bottom-dock')).toBeVisible();
+ const initial=await profile();
+ await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
+ const bag=page.getByRole('dialog',{name:'Mochila'});
+ await expect(bag.locator('[data-slot]')).toHaveCount(8);
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('hat');
+ await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).click();
+ await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
+ assert.deepEqual((await profile()).equipment,initial.equipment,'preview must remain local');
+ await bag.getByRole('button',{name:'Restaurar',exact:true}).click();
+ await expect(bag.getByRole('button',{name:'Salvar personalização'})).toBeDisabled();
+ await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).dragTo(bag.locator('[data-slot="hat"]'));
+ await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('glasses');
+ await bag.getByRole('button',{name:'Óculos de Estudo',exact:true}).dblclick();
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('face');
+ await bag.getByRole('button',{name:'Sorriso Provocador',exact:true}).click();
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('wristband');
+ await bag.getByRole('button',{name:'Pulseira Trançada',exact:true}).click();
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('bracelet');
+ await bag.getByRole('button',{name:'Bracelete Solar',exact:true}).click();
+ assert.equal(commands.filter(c=>c.type==='customize').length,0);
+ await bag.getByRole('button',{name:'Salvar personalização'}).click();
+ await expect(bag.getByText('Visual salvo',{exact:true})).toBeVisible();
+ const saved=await profile();
+ assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-round');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.dyes.hat,'coral');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
+ assert.equal(commands.filter(c=>c.type==='customize').length,1);
+ await bag.getByRole('combobox',{name:'Categoria'}).selectOption('all');
+ await bag.getByRole('button',{name:'Caminhar',exact:true}).click();
+ await page.screenshot({path:'test-results/inventory-walk.png'});
+ await bag.getByRole('button',{name:'Deitar',exact:true}).click();
+ await page.waitForTimeout(350);await page.screenshot({path:'test-results/inventory-prone.png'});
+ await bag.getByRole('button',{name:'Fechar',exact:true}).click();
+ await page.reload({waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
+ assert.deepEqual((await profile()).equipment,saved.equipment,'reload must preserve customization');
+ await page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();
+ await page.getByRole('button',{name:'Treinar com bot',exact:true}).click();
+ await expect(page.locator('.battle-console')).toBeVisible({timeout:15000});
+ await page.getByRole('slider',{name:'Força do disparo'}).fill('35');
+ await page.getByRole('button',{name:/Disparo adicional, 110 vigor/}).click();
+ await page.getByRole('button',{name:'DISPARAR',exact:true}).click();
+ await expect(page.locator('.turn-clock')).toContainText('DISPARO');
+ await page.screenshot({path:'test-results/battle.png'});
+ await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();
+ await page.getByRole('button',{name:'Sair',exact:true}).click();
+ await expect(page.locator('.bottom-dock')).toBeVisible();
+ assert.deepEqual(errors,[]);
+ console.log(JSON.stringify({ok:true,base,checks:['async scroll API cleanup regression','8 current slots','local preview','restore','drag equipment','simultaneous glasses and hat','server saved dyes and jewelry','single atomic save','walking and prone previews','reload persistence','practice and extra projectile','return to lobby'],testPlayerId:saved.id},null,2));
+}finally{await browser.close();}

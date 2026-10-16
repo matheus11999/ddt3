@@ -1,0 +1,115 @@
+import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
+import {test} from 'node:test';
+import {CATALOG,DEFAULT_EQUIPMENT,SLOTS,SMITH_POSITION} from '../shared/catalog';
+import type {Equipment} from '../shared/catalog';
+import type {Profile,ServerEvent} from '../shared/protocol';
+import {Game} from '../server/game';
+import {normalizeProfile} from '../server/store';
+import type {ForgeOutcome,ProfileStore} from '../server/store';
+
+class MemoryStore implements ProfileStore {
+ profiles=new Map<string,Profile>();forgeCalls=0;
+ async getProfile(id:string){return structuredClone(this.profiles.get(id)??null);}
+ async saveEquipment(id:string,equipment:Equipment){const p=this.profiles.get(id)!;p.equipment={...equipment,upgrade:p.upgrades[equipment.weapon]};p.equippedOnce=true;return structuredClone(p);}
+ async rename(id:string,name:string){this.profiles.get(id)!.name=name;}
+ async finishMatch(){}
+ async forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>{
+  this.forgeCalls++;const p=this.profiles.get(id)!;p.upgrades[item]++;p.equipment.upgrade=p.upgrades[p.equipment.weapon];
+  for(const [tier,count] of Object.entries(stones))p.stones[tier]-=count;
+  return {profile:structuredClone(p),result:{item,success:true,level:p.upgrades[item],chance:75,consumed:stones}};
+ }
+}
+
+function fixture(){
+ const store=new MemoryStore(),game=new Game(store),events=new Map<string,ServerEvent[]>();
+ const players=['Ária','Bento'].map(name=>normalizeProfile({id:randomUUID(),name,gold:500}));
+ for(const p of players){store.profiles.set(p.id,structuredClone(p));events.set(p.id,[]);game.connect(p,event=>events.get(p.id)!.push(structuredClone(event)));}
+ return {game,store,events,players,a:players[0],b:players[1]};
+}
+
+async function battleFixture(){
+ const f=fixture();await f.game.command(f.a.id,{type:'create',name:'Duelo',mode:'1v1',map:'sky'});
+ const roomId=f.game.peers.get(f.a.id)!.roomId!;await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
+ return {...f,roomId,match:f.game.matches.get(roomId)!};
+}
+
+function errors(events:ServerEvent[]){return events.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error');}
+
+test('customization broadcasts all layers to other players and remains locked during battle',async()=>{
+ const f=fixture();const items=Object.fromEntries(SLOTS.map(slot=>[slot,f.a.equipment[slot]])) as Record<keyof typeof import('../shared/catalog').SLOT_NAMES,string>;
+ items.hat='hat-cap';items.glasses='glasses-round';items.hair='hair-wavy';items.face='face-taunt';
+ await f.game.command(f.a.id,{type:'customize',selection:{items,dyes:{hat:'coral'}}});
+ const other=f.events.get(f.b.id)!.filter((e):e is Extract<ServerEvent,{type:'lobby'}>=>e.type==='lobby').at(-1)!;
+ assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.glasses,'glasses-round');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.face,'face-taunt');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.dyes?.hat,'coral');
+ await f.game.command(f.a.id,{type:'create',name:'Visual',mode:'1v1',map:'sky'});const roomId=f.game.peers.get(f.a.id)!.roomId!;
+ await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
+ const fighter=f.game.matches.get(roomId)!.state.players.find(p=>p.id===f.a.id)!;assert.equal(fighter.equipment.hair,'hair-wavy');
+ await f.game.command(f.a.id,{type:'customize',selection:{items:{...items,hat:'hat-none'}}});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/entre as batalhas/);assert.equal(fighter.equipment.hat,'hat-cap');
+});
+
+test('a player cannot fire, walk, boost or pass during the opponent turn',async()=>{
+ const f=await battleFixture(),before=structuredClone(f.match.state),other=before.turnId===f.a.id?f.b:f.a;
+ await f.game.command(other.id,{type:'boost',boost:'damage50'});
+ await f.game.command(other.id,{type:'walk',direction:-1});
+ await f.game.command(other.id,{type:'fire',angle:45,power:60});
+ await f.game.command(other.id,{type:'pass'});
+ assert.deepEqual(f.match.state,before);assert.equal(errors(f.events.get(other.id)!).length,4);
+ assert.ok(errors(f.events.get(other.id)!).every(e=>e.message==='Aguarde a sua vez.'));
+});
+
+test('boosts consume vigor, prevent duplicate/mutually exclusive tools and reject overspending',async()=>{
+ const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,stamina=player.stamina;
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.stamina,stamina-110);
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});await f.game.command(player.id,{type:'boost',boost:'extra2'});
+ assert.equal(player.stamina,stamina-110);assert.deepEqual(player.boosts,['extra1']);
+ await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-220);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','trident']);
+ assert.equal(errors(f.events.get(player.id)!).length,3);
+});
+
+test('+2 and trident produce nine authoritative projectiles and lock further input while resolving',async()=>{
+ const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
+ await f.game.command(player.id,{type:'boost',boost:'extra2'});await f.game.command(player.id,{type:'boost',boost:'trident'});await f.game.command(player.id,{type:'fire',angle:45,power:35});
+ const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
+ assert.equal(shot.projectiles.length,9);assert.equal(f.match.state.phase,'resolving');
+ assert.equal(shot.projectiles[0].delay,0);assert.ok(shot.projectiles[3].delay>0);assert.ok(shot.projectiles[6].delay>shot.projectiles[3].delay);
+ await f.game.command(player.id,{type:'fire',angle:45,power:35});assert.equal(f.events.get(player.id)!.filter(e=>e.type==='shot').length,1);
+ assert.equal(errors(f.events.get(player.id)!).at(-1)!.message,'Aguarde o próximo turno.');
+});
+
+test('turn changes restore vigor and clear previously used tools',async()=>{
+ const f=await battleFixture(),first=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
+ await f.game.command(first.id,{type:'boost',boost:'damage50'});await f.game.command(first.id,{type:'pass'});
+ const second=f.match.state.turnId;assert.notEqual(second,first.id);await f.game.command(second,{type:'pass'});
+ assert.equal(f.match.state.turnId,first.id);assert.equal(first.stamina,first.maxStamina);assert.deepEqual(first.boosts,[]);
+});
+
+test('forge checks actual server position and lobby presence before accessing materials',async()=>{
+ const f=fixture(),p=f.game.peers.get(f.a.id)!;
+ await f.game.command(f.a.id,{type:'move',...SMITH_POSITION});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
+ assert.equal(f.store.forgeCalls,0);assert.equal(errors(f.events.get(f.a.id)!).at(-1)!.message,'Aproxime-se do ferreiro.');
+ p.x=SMITH_POSITION.x;p.y=SMITH_POSITION.y;
+ await f.game.command(f.a.id,{type:'create',name:'Duelo',mode:'1v1',map:'sky'});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
+ assert.equal(f.store.forgeCalls,0);
+ await f.game.command(f.a.id,{type:'leave'});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
+ assert.equal(f.store.forgeCalls,1);assert.equal(p.profile.equipment.upgrade,1);
+ assert.ok(f.events.get(f.a.id)!.some(e=>e.type==='forge-result'&&e.result.level===1));
+ const lobby=f.events.get(f.b.id)!.filter((e):e is Extract<ServerEvent,{type:'lobby'}>=>e.type==='lobby').at(-1)!;
+ assert.equal(lobby.players.find(other=>other.id===f.a.id)!.equipment.upgrade,1);
+});
+
+test('equipping cosmetics broadcasts appearance and changing weapon restores that weapon upgrade',async()=>{
+ const f=fixture();f.store.profiles.get(f.a.id)!.upgrades.volt=10;
+ await f.game.command(f.a.id,{type:'equip',item:'volt'});await f.game.command(f.a.id,{type:'equip',item:'hat-cap'});
+ const p=f.game.peers.get(f.a.id)!.profile;assert.equal(p.equipment.upgrade,10);assert.equal(p.equipment.hat,'hat-cap');assert.equal(CATALOG[p.equipment.hat].slot,'hat');
+ const lastLobby=f.events.get(f.b.id)!.filter((e):e is Extract<ServerEvent,{type:'lobby'}>=>e.type==='lobby').at(-1)!;
+ assert.equal(lastLobby.players.find(other=>other.id===f.a.id)!.equipment.hat,'hat-cap');
+ await f.game.command(f.a.id,{type:'equip',item:DEFAULT_EQUIPMENT.weapon});assert.equal(f.game.peers.get(f.a.id)!.profile.equipment.upgrade,0);
+});
+
+test('battle equipment and host-only room actions cannot be changed by another player',async()=>{
+ const f=await battleFixture(),before=structuredClone(f.match.state.players.find(p=>p.id===f.b.id)!.equipment);
+ await f.game.command(f.b.id,{type:'equip',item:'hat-mage'});await f.game.command(f.b.id,{type:'start'});await f.game.command(f.b.id,{type:'bot'});
+ assert.deepEqual(f.match.state.players.find(p=>p.id===f.b.id)!.equipment,before);assert.equal(errors(f.events.get(f.b.id)!).length,3);
+});
