@@ -1,0 +1,93 @@
+/* Informações de outro jogador (mesmo lado esquerdo da mochila, só leitura) e janela de denúncia
+   (mesmo acabamento de madeira da confirmação de exclusão). */
+[data-player-menu] { cursor: context-menu; }
+.artillery-hud [data-player-menu] { pointer-events: auto; }
+
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.player-info-window[class] {
+  width: min(640px, 100%);
+  height: min(860px, calc(100dvh - 32px));
+}
+.bag-window .bag-layout.inventory-body.player-info-body {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+.player-info-loading {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 8px;
+  border: 2px solid #f2b56b;
+  border-radius: 14px;
+  background: linear-gradient(#fff8e8, var(--bag-cream-mid));
+  color: var(--bag-ink);
+  font-weight: 800;
+}
+.player-info-report {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #f4bf75;
+  border-radius: 10px;
+  background: linear-gradient(#ff9a7a, #e2462a 60%, #c2301a);
+  box-shadow: inset 0 1px #ffd2c2, inset 0 -2px #8e1d0b, 0 2px #3b1405;
+  color: #fff;
+  cursor: pointer;
+}
+.player-info-report:hover { filter: brightness(1.08); }
+.bag-window .player-info-winrate i { background: linear-gradient(#ffe08a, #f2a91f); }
+
+.player-report-layer { position: fixed; z-index: 10040; border-radius: 0; }
+.player-report { width: min(440px, 100%); }
+.player-report-body {
+  display: grid;
+  gap: 9px;
+  min-height: 0;
+  margin: 7px 6px 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border-radius: 10px;
+  background: linear-gradient(#fff8e8, var(--wood-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--wood-edge);
+}
+.player-report-body p { margin: 0; font-size: 13px; font-weight: 700; color: var(--wood-ink-soft); }
+.player-report-target { font-size: 15px !important; color: var(--wood-ink) !important; }
+.player-report-body fieldset { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; }
+.player-report-body legend, .player-report-details { font-size: 12px; font-weight: 900; color: #9a4a12; }
+.player-report-body legend { margin-bottom: 4px; padding: 0; }
+.player-report-body fieldset label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: 9px;
+  background: #fffdf6;
+  box-shadow: inset 0 0 0 1px #e6c48f;
+  color: var(--wood-ink);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.player-report-body fieldset label.on { background: linear-gradient(#ffe7b8, #ffd27e); box-shadow: inset 0 0 0 2px #e2902f; }
+.player-report-body fieldset input { accent-color: #c2301a; }
+.player-report-details { display: grid; gap: 4px; }
+.player-report-details textarea {
+  resize: none;
+  padding: 8px 10px;
+  border: 1px solid #e6c48f;
+  border-radius: 9px;
+  background: #fffdf6;
+  color: var(--wood-ink);
+  font: 700 14px 'Nunito', 'Trebuchet MS', sans-serif;
+}
+.player-report-details textarea:focus { outline: 2px solid #f2a91f; }
+.player-report-details small { justify-self: end; font-size: 10px; color: var(--wood-ink-soft); }
+.player-report-note { font-size: 12px !important; }
+.player-report-error { color: #b42a12 !important; }
+.color-studio.player-report > footer { display: grid; grid-template-columns: 1fr 1.4fr; gap: 10px; padding: 10px 12px 12px; }
+.color-studio.player-report > footer:has(> :only-child) { grid-template-columns: 1fr; }
+.color-studio.player-report > footer > button { min-height: 44px; font-size: 15px; }
+.player-report-body.done { justify-items: center; padding: 22px 16px; text-align: center; color: #b42a12; }
+.player-report-body.done b { font-size: 20px; font-weight: 900; color: var(--wood-ink); }

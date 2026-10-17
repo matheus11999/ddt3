@@ -308,3 +308,10 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - A cor é guardada por cópia e decidida no servidor. A tintura gratuita antiga saiu, e as cores dela migraram.
 - Cada cabelo, chapéu, óculos e roupa tem uma região de cor. Chapéus e roupas mudam só a parte principal; o validador mede a cobertura e desenha `colors.png`.
 - Testes: `tests/colors.test.ts` e `npm run test:colors:browser`. Detalhes em `docs/color-tickets.md`.
+
+## Informações do jogador e denúncias (17/10/2026)
+
+- Botão direito em outro jogador (chat, praça, pódio, lista de online, sala PvP, retratos da batalha) abre Ver informações e Denunciar.
+- Ver informações: janela no layout da mochila, só leitura, com tooltip dos itens, Poder e atributos.
+- Denunciar: motivo pronto e texto opcional; a denúncia leva o chat do denunciado dos últimos 30 minutos. Limite de 5 por hora e 1 por alvo a cada 30 minutos.
+- Painel `/admin/denuncias` com filtro por status, detalhe com o chat, anotação e resolver/descartar. Detalhes em `docs/player-reports.md`.

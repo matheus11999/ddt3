@@ -1,11 +1,12 @@
 import {useCallback,useEffect,useState} from 'react';
-import {BarChart3,Boxes,Castle,Flame,LogOut,Map as MapIcon,ShieldCheck,ShoppingBag,Users,CalendarDays,Lock} from 'lucide-react';
+import {BarChart3,Boxes,Castle,Flag,Flame,LogOut,Map as MapIcon,ShieldCheck,ShoppingBag,Users,CalendarDays,Lock} from 'lucide-react';
 import {api,ApiError,whenSignedOut} from './api';
 import {Dashboard} from './Dashboard';
 import {MapList} from './MapList';
 import {MapEditor} from './MapEditor';
 import {LobbyEditor} from './LobbyEditor';
 import {AssetLibrary} from './AssetLibrary';
+import {Reports} from './Reports';
 import {LOBBY_MAP_ID} from '../../shared/mapAdmin';
 
 /** Tiny router over location.pathname: /admin, /admin/mapas, /admin/mapas/<id>, /admin/assets. */
@@ -47,7 +48,8 @@ const SOON=[{icon:Users,label:'Jogadores'},{icon:ShoppingBag,label:'Loja'},{icon
 function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
  const path=useRoute(),editing=path.match(/^\/admin\/mapas\/([a-z0-9-]+)$/)?.[1];
  const link=useCallback((to:string)=>(e:React.MouseEvent)=>{e.preventDefault();navigate(to);},[]);
- const section=path.startsWith('/admin/mapas')?'maps':path.startsWith('/admin/assets')?'assets':'home';
+ const section=path.startsWith('/admin/mapas')?'maps':path.startsWith('/admin/assets')?'assets':path.startsWith('/admin/denuncias')?'reports':'home';
+ const report=Number(path.match(/^\/admin\/denuncias\/(\d+)$/)?.[1])||undefined;
  if(editing)return editing===LOBBY_MAP_ID?<LobbyEditor key={editing} onBack={()=>navigate('/admin/mapas')}/>:<MapEditor key={editing} id={editing} onBack={()=>navigate('/admin/mapas')}/>;
  return <div className="adm-shell">
   <aside className="adm-side">
@@ -56,6 +58,7 @@ function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
     <a href="/admin" onClick={link('/admin')} className={section==='home'?'active':''}><BarChart3 size={18}/>Visão geral</a>
     <a href="/admin/mapas" onClick={link('/admin/mapas')} className={section==='maps'?'active':''}><MapIcon size={18}/>Mapas</a>
     <a href="/admin/assets" onClick={link('/admin/assets')} className={section==='assets'?'active':''}><Boxes size={18}/>Assets</a>
+    <a href="/admin/denuncias" onClick={link('/admin/denuncias')} className={section==='reports'?'active':''}><Flag size={18}/>Denúncias</a>
     <span className="adm-nav-title">Em breve</span>
     {SOON.map(({icon:Icon,label})=><span key={label} className="adm-nav-soon"><Icon size={18}/>{label}</span>)}
    </nav>
@@ -64,6 +67,6 @@ function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
     <button className="adm-btn ghost small" onClick={onLogout}><LogOut size={15}/>Sair</button>
    </div>
   </aside>
-  <main className="adm-main">{section==='maps'?<MapList/>:section==='assets'?<AssetLibrary/>:<Dashboard/>}</main>
+  <main className="adm-main">{section==='maps'?<MapList/>:section==='assets'?<AssetLibrary/>:section==='reports'?<Reports id={report}/>:<Dashboard/>}</main>
  </div>;
 }

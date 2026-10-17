@@ -9,6 +9,9 @@ import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared
 import type {LobbyLayoutOverride} from '../shared/lobby';
 import {LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
 import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMaps} from '../shared/mapAdmin';
+import type {ReportStore} from './reports';
+import {REPORT_STATUSES,reportUpdateSchema} from '../shared/reports';
+import type {ReportStatus} from '../shared/reports';
 
 /**
  * Admin panel API (/api/admin/*) and the published maps the game reads (/api/maps).
@@ -21,7 +24,7 @@ const BUILT_IN_NAMES:Record<string,string>={[LOBBY_MAP_ID]:'Praça Celeste'};
 /** Station spots of the plaza as shipped (src/game/lobbyWorld.ts); only the forge moves a server rule (SMITH_POSITION). */
 const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 
-export interface AdminContext {store:AdminStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;}
+export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;}
 
 const png=(base64:string)=>{const buffer=Buffer.from(base64,'base64');if(buffer.length<24||buffer.readUInt32BE(0)!==0x89504e47)throw new Error('Imagem inválida.');return {buffer,width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20)};};
 const ipOf=(req:FastifyRequest)=>req.ip??'unknown';
@@ -103,7 +106,26 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  app.get('/api/admin/me',async(req,reply)=>{reply.header('Cache-Control','no-store');const name=await user(req);return {username:name,enabled:!!adminAccount()};});
 
  // ── Statistics ──
- app.get('/api/admin/stats',async(req,reply)=>{if(!await guard(req,reply))return;return {live:ctx.live(),...await store.stats(),audit:await store.recentAudit(12)};});
+ app.get('/api/admin/stats',async(req,reply)=>{if(!await guard(req,reply))return;return {live:ctx.live(),...await store.stats(),audit:await store.recentAudit(12),openReports:await ctx.reports?.openCount()??0};});
+
+ // ── Player reports (sent from the game with the reported player's last 30 minutes of chat) ──
+ app.get('/api/admin/reports',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!ctx.reports)return reply.code(503).send({error:'Denúncias indisponíveis.'});
+  const status=String((req.query as Record<string,unknown>)?.status??'open');
+  return ctx.reports.list((REPORT_STATUSES as readonly string[]).includes(status)?status as ReportStatus:'all');
+ });
+ app.get<{Params:{id:string}}>('/api/admin/reports/:id',async(req,reply)=>{
+  if(!await guard(req,reply))return;const id=Number(req.params.id);
+  const report=ctx.reports&&Number.isSafeInteger(id)?await ctx.reports.get(id):null;
+  return report?{report}:reply.code(404).send({error:'Denúncia não encontrada.'});
+ });
+ app.post<{Params:{id:string}}>('/api/admin/reports/:id',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const id=Number(req.params.id);
+  const parsed=reportUpdateSchema.safeParse(req.body);if(!parsed.success||!Number.isSafeInteger(id))return reply.code(400).send({error:'Dados inválidos.'});
+  if(!ctx.reports||!await ctx.reports.setStatus(id,parsed.data.status,name,parsed.data.note))return reply.code(404).send({error:'Denúncia não encontrada.'});
+  await store.audit(name,ipOf(req),'report-status',{id,status:parsed.data.status});
+  return {report:await ctx.reports.get(id)};
+ });
 
  // ── Maps ──
  const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id);

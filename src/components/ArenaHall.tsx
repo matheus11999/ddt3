@@ -6,6 +6,7 @@ import {arenaMatchTime,arenaRooms} from '../arenaHall';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
 import {LevelNumber} from './LevelNumber';
+import {playerMenuProps} from './PlayerActions';
 import './ArenaTheme.css';
 import './ArenaHall.css';
 
@@ -57,7 +58,7 @@ export function Arena({onClose}:{onClose:()=>void}){
     <h2 className="hall-side-title wood-ribbon"><Users size={15} aria-hidden="true"/>Jogadores online<b>{onlineTotal}</b></h2>
     <div className="hall-online-list wood-cream" role="table" aria-label="Lista de jogadores online">
      <div className="hall-online-row hall-online-headrow" role="row"><span role="columnheader">Nível</span><span role="columnheader">Nome</span><span role="columnheader">Gênero</span></div>
-     {onlinePlayers.map(player=><div key={player.id} role="row" className={`hall-online-row ${player.id===profile?.id?'is-me':''}`}><span role="cell" className="hall-online-level" data-tier={Math.min(6,Math.floor((player.level-1)/10)+1)}>{player.level}</span><span role="cell" className="hall-online-name" title={player.name}>{player.name}</span><span role="cell" className={`hall-online-gender is-${player.gender}`} aria-label={player.gender==='female'?'Feminino':'Masculino'}>{player.gender==="female"?"♀":"♂"}</span></div>)}
+     {onlinePlayers.map(player=><div key={player.id} role="row" className={`hall-online-row ${player.id===profile?.id?'is-me':''}`} {...playerMenuProps({id:player.id,name:player.name,context:'hall'})}><span role="cell" className="hall-online-level" data-tier={Math.min(6,Math.floor((player.level-1)/10)+1)}>{player.level}</span><span role="cell" className="hall-online-name" title={player.name}>{player.name}</span><span role="cell" className={`hall-online-gender is-${player.gender}`} aria-label={player.gender==='female'?'Feminino':'Masculino'}>{player.gender==="female"?"♀":"♂"}</span></div>)}
     </div>
    </section>
   </aside></div>

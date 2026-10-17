@@ -45,6 +45,10 @@ No editor, a aba **Peças** tem a mesma busca, começa em "Este mapa" e pode mos
 
 Desenha a praça com o próprio `LobbyWorld` do jogo. Move as estações (barracas, pódios, portal da arena, ferreiro) e muda a altura delas; move e redimensiona as pegadas no chão que os jogadores contornam (com "levar a pegada junto" ligado, a pegada acompanha a estação); move a entrada dos jogadores e os limites da área de caminhada. O ponto de usar o ferreiro anda junto com a barraca do ferreiro.
 
+## Denúncias
+
+Lista e detalhe das denúncias enviadas pelos jogadores, com o chat do denunciado dos 30 minutos anteriores. Ver `docs/player-reports.md`.
+
 ## Onde está o código
 
 - Servidor: `server/admin.ts` (rotas e aplicação dos mapas publicados), `server/adminAuth.ts` (senha, limite de tentativas), `server/adminStore.ts` (tabelas `admin_sessions`, `admin_audit`, `game_maps`, `game_map_revisions` e as estatísticas).

@@ -4,7 +4,7 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
+import {attributes,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
 import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
@@ -18,10 +18,13 @@ import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
 import {createFall,fallPosition,fallVelocity} from '../shared/fall';
+import {REPORT_CHAT_WINDOW_MS} from '../shared/reports';
+import type {PlayerInfo,ReportChatLine} from '../shared/reports';
+import type {ReportSink} from './reports';
 export interface Peer {profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
-const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100;
+const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
 interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];}
 
@@ -31,6 +34,10 @@ export class Game {
  private nextRoomNumber=1;private roomMatches=new Map<string,string>();private queueIds=new Set<string>();private profileChanges=new Set<string>();
  private lastTick=Date.now();private lobbyTick=0;private roomsDirty=false;private arenaPopulation=0;
  private ranking:RankingEntry[]=[];private rankingAt=0;private rankingLoading:Promise<void>|null=null;
+ /** Where reports go (the admin panel's store); without it reports are refused. */
+ reports?:ReportSink;
+ /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
+ private chatLog=new Map<string,ReportChatLine[]>();private chatLogPrunedAt=0;private playerInfoAt=new Map<string,number>();
  private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
  constructor(private store:ProfileStore,private report:(e:unknown)=>void=console.error,private criticalRoll:()=>number=()=>randomInt(1_000_000)/1_000_000){}
  connect(profile:Profile,send:Peer['send']){
@@ -107,7 +114,7 @@ export class Game {
    else if(!this.invitationAvailable(pending))this.finishInvitation(pending,'unavailable');
   }
   for(const [key,at] of this.invitePairAt)if(now-at>=ROOM_INVITE_PAIR_MS)this.invitePairAt.delete(key);
-  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
+  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt,this.playerInfoAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
  }
  private invitePlayer(p:Peer,playerId:string){
   this.pruneInvitations();const room=this.invitationRoom(p),now=Date.now(),id=p.profile.id,target=this.peers.get(playerId);
@@ -129,6 +136,19 @@ export class Game {
   if(!accept){this.finishInvitation(pending,'declined');return;}
   // No await between revalidation and joining: two invitations cannot claim one seat.
   this.join(p,pending.invite.roomId);this.finishInvitation(pending,'accepted');
+ }
+ private logChat(id:string,line:ReportChatLine){const lines=this.recentChat(id,line.at);lines.push(line);if(lines.length>CHAT_LOG_LIMIT)lines.splice(0,lines.length-CHAT_LOG_LIMIT);this.chatLog.set(id,lines);}
+ /** The player's chat lines of the last 30 minutes, oldest first; older lines are dropped for good. */
+ recentChat(id:string,now=Date.now()):ReportChatLine[]{
+  const lines=(this.chatLog.get(id)??[]).filter(line=>now-line.at<=REPORT_CHAT_WINDOW_MS);
+  if(lines.length)this.chatLog.set(id,lines);else this.chatLog.delete(id);return lines;
+ }
+ /** Read-only view of what a player wears (online or not), for the player info window. */
+ private async playerInfo(playerId:string):Promise<PlayerInfo|null>{
+  const peer=this.peers.get(playerId),profile=peer?.profile??await this.store.getProfile(playerId);if(!profile)return null;
+  const worn=[...new Set(SLOTS.map(slot=>equippedCopy(profile.equipment,slot)))];
+  const pick=<T,>(source:Record<string,T>)=>Object.fromEntries(worn.filter(key=>Object.hasOwn(source,key)).map(key=>[key,source[key]]));
+  return {id:profile.id,name:profile.name,level:profile.level,gender:profile.gender,wins:profile.wins,matches:profile.matches,online:!!peer?.connected,equipment:structuredClone(profile.equipment),upgrades:pick(profile.upgrades),compositions:pick(profile.compositions),itemColors:pick(profile.itemColors)};
  }
  async command(id:string,c:Command){
   const p=this.peers.get(id);if(!p||!p.connected)return;
@@ -299,9 +319,21 @@ export class Game {
      const r=this.room(p),m=this.matchForRoom(r.id);if(r.hostId!==id)throw Error('Aguarde o líder da sala.');if(!m&&r.status==='waiting'){this.broadcastRoom(r);break;}if(!m||m.state.phase!=='finished')throw Error('A batalha ainda está acontecendo.');if(!m.state.rewards?.saved||Date.now()<(m.state.rewards.revealedAt??Infinity)+REWARD_RETURN_MS)throw Error('Aguarde a revelação e o recebimento das recompensas.');this.returnParties(m);break;
     }
     case 'chat':{
-     const msg={id:randomUUID(),name:p.profile.name,text:c.text,channel:c.channel,time:Date.now()};
-     if(c.channel==='room'){const r=this.room(p),m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
-     else for(const peer of this.peers.values())if(peer.channel===p.channel)this.emit(peer,{type:'chat',message:msg});break;
+     const msg={id:randomUUID(),playerId:id,name:p.profile.name,text:c.text,channel:c.channel,time:Date.now()};
+     if(c.channel==='room'){const r=this.room(p);this.logChat(id,{at:msg.time,channel:'room',text:c.text,room:r.number});const m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
+     else{this.logChat(id,{at:msg.time,channel:'world',text:c.text});for(const peer of this.peers.values())if(peer.channel===p.channel)this.emit(peer,{type:'chat',message:msg});}break;
+    }
+    case 'player-info':{
+     const now=Date.now();if(now-(this.playerInfoAt.get(id)??-Infinity)<PLAYER_INFO_MS)return;this.playerInfoAt.set(id,now);
+     const info=await this.playerInfo(c.playerId);if(!info)throw Error('Jogador não encontrado.');
+     this.emit(p,{type:'player-info',info});return;
+    }
+    case 'report':{
+     if(c.playerId===id)throw Error('Você não pode denunciar a si mesmo.');
+     if(!this.reports)throw Error('Denúncias indisponíveis no momento.');
+     const target=this.peers.get(c.playerId)?.profile??await this.store.getProfile(c.playerId);if(!target)throw Error('Jogador não encontrado.');
+     await this.reports.submit({reporterId:id,reporterName:p.profile.name,targetId:target.id,targetName:target.name,targetLevel:target.level,reason:c.reason,details:c.details??'',context:c.context??'',chat:this.recentChat(target.id)});
+     this.emit(p,{type:'report-result',playerId:target.id,name:target.name});return;
     }
    }
    this.pruneInvitations();if(this.roomsDirty)this.broadcastRooms();
@@ -554,6 +586,7 @@ export class Game {
  }
  tick(now=Date.now()){
   this.pruneInvitations(now);
+  if(now-this.chatLogPrunedAt>=60000){this.chatLogPrunedAt=now;for(const id of [...this.chatLog.keys()])this.recentChat(id,now);}
   if(now-this.rankingAt>=60000)void this.refreshRanking();
   const dt=Math.min(.15,(now-this.lastTick)/1000);this.lastTick=now;
   const channels=new Set<number>();

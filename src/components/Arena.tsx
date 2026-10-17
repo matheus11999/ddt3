@@ -6,6 +6,7 @@ import type {Seat} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
+import {playerMenuProps} from './PlayerActions';
 import {AbilityPreparation} from './AbilitySlots';
 import {LevelBadge} from './LevelBadge';
 import {VipBadge} from './VipBadge';
@@ -20,7 +21,7 @@ export {Arena} from './ArenaHall';
 
 function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
- return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
+ return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} {...playerMenuProps(seat&&!seat.bot?{id:seat.id,name:seat.name,context:'room'}:null)} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
   {seat?<><header className="pr-card-name wood-ribbon"><strong title={seat.name}>{seat.name}</strong>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
    <div className="pr-card-stage">
     {owner&&<span className="pr-host-tag" aria-label="Líder da sala"><Crown size={12} aria-hidden="true"/>Líder da sala</span>}

@@ -8,6 +8,7 @@ import {Store} from './store';
 import {Game} from './game';
 import {AdminStore} from './adminStore';
 import {registerAdmin} from './admin';
+import {ReportStore} from './reports';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
 const app=Fastify({logger:true,bodyLimit:4096,trustProxy:process.env.BEHIND_PROXY==='true'?(_address:string,hop:number)=>hop===0:false});
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8097,http://127.0.0.1:8097,http://localhost:5177,http://127.0.0.1:5177').split(','));
@@ -28,7 +29,8 @@ const game=new Game(store,e=>app.log.error(e));await game.refreshRanking();
 const connections=new Map<string,WebSocket>();
 // Admin panel (/admin) and the maps it publishes; clients reload the map list when told.
 const adminStore=new AdminStore(store.pool);await adminStore.init();
-await registerAdmin(app,{store:adminStore,live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),
+const reports=new ReportStore(store.pool);await reports.init();game.reports=reports;
+await registerAdmin(app,{store:adminStore,reports,live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),
  onMapsChanged:()=>{const event=JSON.stringify({type:'maps'});for(const ws of connections.values())if(ws.readyState===WebSocket.OPEN)ws.send(event);}});
 const wss=new WebSocketServer({noServer:true,maxPayload:2048,perMessageDeflate:false});
 const upgradeLimit=new Map<string,{time:number,count:number}>();
