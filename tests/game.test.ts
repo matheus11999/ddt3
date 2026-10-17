@@ -242,7 +242,7 @@ test('turning in place is free, works on the opponent turn and never moves anyon
  await f.game.command(idle.id,{type:'face',direction});
  assert.equal(idle.facing,direction);assert.equal(idle.stamina,0);assert.equal(idle.x,spot.x);assert.equal(idle.y,spot.y);
  assert.deepEqual({angle:active.aimAngle,slope:active.aimSlope,facing:active.facing,x:active.x},activeAim);
- const seen=f.events.get(active.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!;assert.equal(seen.battle.players.find(p=>p.id===idle.id)!.facing,direction);
+ const seen=f.events.get(active.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!;assert.equal(seen.battle!.players.find(p=>p.id===idle.id)!.facing,direction);
  assert.equal(errors(f.events.get(idle.id)!).length,0);
 });
 
