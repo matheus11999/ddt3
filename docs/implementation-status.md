@@ -292,3 +292,4 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 ## Colisão no lobby (17/10/2026)
 
 - Antes o jogador atravessava barracas, pódios e o portal da Arena. Agora cada estrutura tem uma base no chão (elipse em `LOBBY_OBSTACLES`, `shared/lobby.ts`, medida da parte de baixo da arte). O servidor anda o jogador com `lobbyStep`: ao encostar numa base, ele contorna pela frente, ou por trás quando o destino fica atrás. Clique sobre uma estrutura sem ação leva o jogador até a borda dela (`lobbyFree`). Teste: `tests/lobby-collision.test.ts`. Prévia: `docs/previews/lobby-collision.gif`.
+- Lobby (17/10/2026, noite): sem o aviso "Clique na rua para caminhar"; caminhada de 110 para 132 px/s (`LOBBY_WALK_SPEED`). A passada mantém o tamanho e o ritmo das pernas sobe junto, com o pé apoiado sem escorregar.

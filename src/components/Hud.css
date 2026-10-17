@@ -34,7 +34,6 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-quest-list>button>span{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:linear-gradient(#ffe07a,#e48d12);color:#6b2c05;font-weight:900}
 .lobby-quest-list>button>span.done{background:linear-gradient(#8fe08a,#2f9a4a);color:#fff}
 .lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
-.game-frame>.walk-hint{bottom:124px}
 html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(calc(.82 / var(--game-scale)));transform-origin:bottom right;height:auto}
 
 /* Lobby chat floats over the plaza like the classic lobby: no panel, outlined
