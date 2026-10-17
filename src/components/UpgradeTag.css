@@ -1,11 +1,12 @@
-.upgrade-tag { display: block; overflow: visible; filter: drop-shadow(0 1px 1px #0008); pointer-events: none; }
-.upgrade-tag-5, .upgrade-tag-9 { filter: drop-shadow(0 1px 1px #0008) drop-shadow(0 0 3px #ffffff55); }
-.upgrade-tag-10 { filter: drop-shadow(0 1px 1px #0008) drop-shadow(0 0 4px #6cc4ff99); }
-.upgrade-tag-11 { filter: drop-shadow(0 1px 1px #0008) drop-shadow(0 0 5px #ff6a3aaa); }
-.upgrade-tag-11 .upgrade-tag-flame { transform-origin: 50% 90%; animation: upgrade-tag-flicker 1.2s ease-in-out infinite alternate; }
-.upgrade-tag-12 { filter: drop-shadow(0 1px 1px #0008) drop-shadow(0 0 6px #ffd24acc); }
-.upgrade-tag-12 .upgrade-tag-rays { transform-origin: 36px 24px; transform-box: view-box; animation: upgrade-tag-spin 9s linear infinite; }
-.upgrade-tag-12 .upgrade-tag-flame { transform-origin: 50% 90%; animation: upgrade-tag-flicker 1s ease-in-out infinite alternate; }
-@keyframes upgrade-tag-spin { to { transform: rotate(360deg); } }
-@keyframes upgrade-tag-flicker { from { transform: scaleY(.9); opacity: .75; } to { transform: scaleY(1.08); opacity: 1; } }
+.upgrade-tag { display: block; overflow: visible; filter: drop-shadow(0 1px 1px #000a); pointer-events: none; }
+.upgrade-tag-5 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 3px #6dff8a66); }
+.upgrade-tag-9 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 4px #6cc4ff88); }
+.upgrade-tag-10, .upgrade-tag-11 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 4px #ffd24a99); }
+.upgrade-tag-12 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 6px #ffd24acc); }
+.upgrade-tag-12 .upgrade-tag-halo { transform-origin: 60px 38px; transform-box: view-box; animation: upgrade-tag-pulse 1.8s ease-in-out infinite alternate; }
+.upgrade-tag-12 .upgrade-tag-sparkles path { transform-box: fill-box; transform-origin: center; animation: upgrade-tag-twinkle 1.4s ease-in-out infinite alternate; }
+.upgrade-tag-12 .upgrade-tag-sparkles path:nth-child(2) { animation-delay: .5s; }
+.upgrade-tag-12 .upgrade-tag-sparkles path:nth-child(3) { animation-delay: .9s; }
+@keyframes upgrade-tag-pulse { from { opacity: .55; transform: scale(.94); } to { opacity: 1; transform: scale(1.04); } }
+@keyframes upgrade-tag-twinkle { from { opacity: .2; transform: scale(.5); } to { opacity: 1; transform: scale(1.1); } }
 @media (prefers-reduced-motion: reduce) { .upgrade-tag * { animation: none !important; } }

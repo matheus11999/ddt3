@@ -24,9 +24,9 @@ import './Backpack.css';
 
 const PAGE_SIZE=42;
 const ITEM_DRAG='application/x-brasa-item';
-const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face'];
-const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet'];
-const LOWER_SLOTS:Slot[]=['ring','necklace','weapon','bubble','ring2'];
+const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face','ring'];
+const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
+const LOWER_SLOTS:Slot[]=['necklace','weapon','bubble'];
 const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair,ring:CircleDot,ring2:CircleDot,necklace:Medal,bubble:MessageCircle};
 const BAG_TABS:{id:string;name:string;Icon:LucideIcon}[]=[{id:'all',name:'Tudo',Icon:LayoutGrid},{id:'style',name:'Visuais',Icon:Shirt},{id:'weapons',name:'Armas',Icon:Swords},{id:'stones',name:'Pedras',Icon:Gem}];
 type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
@@ -181,7 +181,6 @@ function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;
   setPosition({x:Math.max(edge,Math.min(innerWidth-bounds.width-edge,x)),y:Math.max(edge,Math.min(innerHeight-bounds.height-edge,y))});
  },[id,anchor,equipped,level]);
  const compatible=!item||canEquipItem(item,gender),classed=!!item&&CLASSED_SLOTS.includes(item.slot);
- const fallback=item&&target?unequipForGender(gender)[target]:undefined,removable=!!fallback&&fallback!==id;
  const delta=(value:number)=>compatible&&!equipped&&value!==0?<span className={`bag-tip-delta ${value>0?'up':'down'}`}>{value>0?'▲':'▼'}{Math.abs(value)}</span>:null;
  const composed=Object.entries(compositions?.[id]??{});
  return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
@@ -192,7 +191,7 @@ function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;
     <small>{item?SLOT_NAMES[item.slot]:'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
     {item&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
    </div>
-   {weapon&&<UpgradeTag level={level} size={58} className="bag-tip-upgrade"/>}
+   {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
   </header>
   {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
   {item?<>
@@ -201,7 +200,7 @@ function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;
    {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
-   <footer className={`bag-tip-foot ${!compatible?'blocked':equipped?'equipped':''}`}>{!compatible?'Incompatível com este personagem':equipped?(tip.anchor.dataset.slot&&removable?'Equipado · duplo clique para retirar':'✓ Equipado'):tip.mode==='touch'?'Toque para equipar':'Clique para equipar'}</footer>
+   {(!compatible||!equipped)&&<footer className={`bag-tip-foot ${!compatible?'blocked':''}`}>{!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar'}</footer>}
   </>:<>
    <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
    <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>
