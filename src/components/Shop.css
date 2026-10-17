@@ -210,7 +210,9 @@
 .shop-window .shop-count { flex: none; padding: 5px 12px; border-radius: 999px; background: #5b2a0e; color: var(--wood-gold); font-size: 12px; font-weight: 800; }
 .shop-window .shop-toolbar input { flex: 1; min-width: 0; padding: 0; border: 0; outline: 0; background: none; box-shadow: none; font-size: 13px; font-weight: 800; color: var(--wood-ink); }
 .shop-window .shop-toolbar input::placeholder { color: #b48a5e; }
-.shop-window .shop-toolbar label:focus-within { box-shadow: inset 0 -2px #e0bb83, 0 0 0 2px #fff1c4; }
+.shop-window .shop-toolbar label:focus-within { border-color: #ffd28a; box-shadow: inset 0 -2px #e0bb83, 0 0 0 2px #f39a2c66, 0 0 10px #ffb45a55; }
+/* A busca destaca a pílula inteira; o próprio campo não ganha contorno. */
+.shop-window .shop-toolbar label input:is(:focus, :focus-visible) { outline: none; box-shadow: none; border: 0; }
 
 .shop-window .shop-shelf {
   display: grid;
@@ -312,7 +314,8 @@
   transition: filter .15s, transform .15s;
 }
 .shop-window .shop-try {
-  padding: 0 10px;
+  width: 36px;
+  padding: 0;
   border: 1px solid #fff3d6;
   background: linear-gradient(#fffaf0, #f3d9a9);
   box-shadow: inset 0 1px #fff, inset 0 -2px #d4a565, 0 1px #8a4318aa;
@@ -422,43 +425,102 @@
   place-items: center;
   padding: 12px;
   border-radius: 14px;
-  background: #2a0f03a6;
+  background: radial-gradient(ellipse at 50% 50%, #2a0f0366, #1a0802c4);
+  animation: shop-fade .16s ease-out;
 }
 .shop-window .shop-confirm {
+  --glow: #ffcf7a;
   display: grid;
-  gap: 12px;
-  width: min(380px, 100%);
-  padding: 0 0 14px;
+  width: min(400px, 100%);
+  max-height: 100%;
   overflow: hidden;
   border: 2px solid var(--wood-rim);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--wood-grain), linear-gradient(160deg, var(--wood-light), var(--wood) 45%, var(--wood-dark));
-  box-shadow: inset 0 1px #ffd9a8, 0 0 0 3px #4a210a, 0 18px 50px #1a0c04c0;
+  box-shadow: inset 0 1px #ffd9a8, inset 0 -3px #4d220a99, 0 0 0 3px #4a210a, 0 0 0 4px #f6c07a55, 0 22px 60px #1a0c04d0;
+  animation: shop-pop .22s cubic-bezier(.2, 1.4, .4, 1);
 }
-.shop-window .shop-confirm > header { padding: 11px 16px; background: var(--wood-grain), linear-gradient(var(--wood-bar), var(--wood-bar-deep)); box-shadow: inset 0 -2px #2c110440; }
-.shop-window .shop-confirm > header strong { font: 700 19px/1.1 'Cinzel', Georgia, serif; color: var(--wood-gold); text-shadow: 0 2px #2c1004; }
-.shop-window .shop-confirm-item {
+.shop-window .shop-confirm[data-tier="normal"] { --glow: #8fd0ff; }
+.shop-window .shop-confirm[data-tier="epic"] { --glow: #d79bff; }
+.shop-window .shop-confirm[data-tier="legendary"] { --glow: #ffd85a; }
+.shop-window .shop-confirm > header {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin: 0 14px;
-  padding: 10px;
-  border: 1px solid #fff7e4;
-  border-radius: 12px;
-  background: linear-gradient(#fff8e8, var(--wood-cream-mid));
-  box-shadow: inset 0 0 0 2px var(--wood-edge);
+  justify-content: center;
+  min-height: 50px;
+  margin: 6px 6px 0;
+  padding: 0 52px;
+  border: 1px solid #f0b06855;
+  border-bottom-color: #3b1806;
+  border-radius: 13px 13px 8px 8px;
+  background: var(--wood-grain), linear-gradient(var(--wood-bar), var(--wood-bar-deep));
+  box-shadow: inset 0 1px #ffc78a55, inset 0 -2px #2c110440;
 }
-.shop-window .shop-confirm-item > .item-card { width: 72px; height: 72px; flex: none; }
-.shop-window .shop-confirm-item > div { display: grid; gap: 3px; min-width: 0; }
-.shop-window .shop-confirm-item b { font-size: 17px; font-weight: 900; color: var(--wood-ink); }
-.shop-window .shop-confirm-item small { font-size: 12px; font-weight: 800; color: var(--wood-ink-soft); }
-.shop-window .shop-confirm-cost { display: grid; grid-template-columns: auto auto; justify-content: space-between; align-items: center; gap: 6px 12px; margin: 0 18px; color: #ffe9c4; font-size: 13px; font-weight: 800; }
-.shop-window .shop-confirm-cost strong { display: inline-flex; align-items: center; justify-self: end; gap: 5px; font-size: 18px; font-weight: 900; color: #fff; text-shadow: 0 1px #3b1806; }
-.shop-window .shop-confirm > footer { display: flex; justify-content: flex-end; gap: 8px; margin: 2px 14px 0; }
-html.mobile-landscape .shop-window .shop-confirm { gap: 8px; padding-bottom: 10px; }
-html.mobile-landscape .shop-window .shop-confirm > header { padding: 7px 12px; }
-html.mobile-landscape .shop-window .shop-confirm-item { padding: 6px; }
-html.mobile-landscape .shop-window .shop-confirm-item > .item-card { width: 52px; height: 52px; }
+.shop-window .shop-confirm > header strong { font: 700 20px/1.1 'Cinzel', Georgia, serif; color: var(--wood-gold); text-shadow: 0 2px #2c1004, 0 0 12px #ffae4a55; white-space: nowrap; }
+.shop-window .shop-confirm > header .wood-close { position: absolute; right: 7px; top: 50%; width: 34px; height: 34px; border-radius: 10px; translate: 0 -50%; }
+.shop-window .shop-confirm-body {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-height: 0;
+  margin: 7px 6px 0;
+  padding: 12px 14px 14px;
+  overflow: auto;
+  border: 1px solid #fff7e4;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 26%, #fffdf6, transparent 60%), linear-gradient(#fff8e8, var(--wood-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--wood-edge), inset 0 3px 10px #c47a3233;
+}
+/* Vitrine do item: raios suaves na cor da classe atrás do card. */
+.shop-window .shop-confirm-showcase { position: relative; display: grid; place-items: center; width: 150px; height: 120px; }
+.shop-window .shop-confirm-showcase > i {
+  position: absolute;
+  inset: -14px 0;
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--glow) 70%, #fff) 0 18%, transparent 58%),
+    repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--glow) 55%, transparent) 0 7deg, transparent 7deg 22deg);
+  mask: radial-gradient(circle, #000 30%, transparent 68%);
+  opacity: .85;
+  animation: wood-sigil-spin 26s linear infinite;
+}
+.shop-window .shop-confirm-showcase > .item-card[data-card-variant] { position: relative; width: 96px; height: 96px; padding: 4px; border-radius: 16px; }
+.shop-window .shop-confirm-name { max-width: 100%; overflow: hidden; font-size: 21px; font-weight: 900; line-height: 1.15; color: var(--wood-ink); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+.shop-window .shop-confirm-kind { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--wood-ink-soft); }
+.shop-window .shop-confirm-kind em { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; background: #5b2a0e; color: #fff; font-style: normal; }
+.shop-window .shop-confirm-kind em i { font-style: normal; letter-spacing: 1px; color: #ffd34a; text-shadow: 0 0 4px #ffb92a; }
+.shop-window .shop-confirm-kind em u { text-decoration: none; color: #ffffff40; text-shadow: none; }
+.shop-window .shop-confirm-cost { display: grid; gap: 0; width: 100%; margin: 10px 0 0; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e9b877, inset 0 -2px #ecd2a0; }
+.shop-window .shop-confirm-cost > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 12px; }
+.shop-window .shop-confirm-cost > div + div { border-top: 1px dashed #e3bf8b; }
+.shop-window .shop-confirm-cost dt { font-size: 13px; font-weight: 800; color: var(--wood-ink-soft); }
+.shop-window .shop-confirm-cost dd { display: inline-flex; align-items: center; gap: 5px; margin: 0; font-size: 18px; font-weight: 900; color: var(--wood-ink); font-variant-numeric: tabular-nums; }
+.shop-window .shop-confirm-cost > div:first-child dd { color: #b4510f; }
+.shop-window .shop-confirm-cost > .after { background: linear-gradient(#fff3d6, #ffe2a6); }
+.shop-window .shop-confirm-cost > .after dt { color: #8a3f0b; }
+.shop-window .shop-confirm > footer { display: grid; grid-template-columns: 1fr 1.4fr; gap: 8px; padding: 10px 12px 12px; }
+.shop-window .shop-confirm > footer > button { min-height: 44px; font-size: 15px; }
+@keyframes shop-fade { from { opacity: 0; } }
+@keyframes shop-pop { from { opacity: 0; transform: scale(.88) translateY(8px); } }
+html.mobile-landscape .shop-window .shop-confirm { width: min(520px, 100%); }
+html.mobile-landscape .shop-window .shop-confirm > header { min-height: 38px; }
+html.mobile-landscape .shop-window .shop-confirm > header strong { font-size: 16px; }
+html.mobile-landscape .shop-window .shop-confirm > header .wood-close { width: 28px; height: 28px; }
+/* Paisagem baixa: vitrine à esquerda, valores à direita. */
+html.mobile-landscape .shop-window .shop-confirm-body { grid-template-columns: auto minmax(0, 1fr); grid-template-rows: auto auto 1fr; column-gap: 12px; justify-items: start; padding: 8px 10px; }
+html.mobile-landscape .shop-window .shop-confirm-showcase { grid-row: 1 / 4; width: 110px; height: 100px; }
+html.mobile-landscape .shop-window .shop-confirm-showcase > .item-card[data-card-variant] { width: 76px; height: 76px; }
+html.mobile-landscape .shop-window .shop-confirm-name { font-size: 16px; }
+html.mobile-landscape .shop-window .shop-confirm-kind { justify-content: flex-start; font-size: 10px; }
+html.mobile-landscape .shop-window .shop-confirm-cost { margin-top: 4px; }
+html.mobile-landscape .shop-window .shop-confirm-cost > div { padding: 3px 10px; }
+html.mobile-landscape .shop-window .shop-confirm-cost dt { font-size: 11px; }
+html.mobile-landscape .shop-window .shop-confirm-cost dd { font-size: 14px; }
+html.mobile-landscape .shop-window .shop-confirm > footer { padding: 7px 8px 8px; }
+html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height: 34px; font-size: 13px; }
+@media (prefers-reduced-motion: reduce) {
+  .shop-window :is(.shop-confirm-layer, .shop-confirm, .shop-confirm-showcase > i) { animation: none; }
+}
 
 /* ---------- Cards por classe (mesmo selo de canto da mochila) ---------- */
 .shop-window .shop-offer > .item-card[data-tier="legendary"] { animation-duration: 3.2s; }
@@ -470,7 +532,6 @@ html.mobile-landscape .shop-window .shop-confirm-item > .item-card { width: 52px
   .shop-window .shop-offer > .item-card .item-art { width: 54px !important; height: 54px !important; }
   .shop-window .shop-offer-info h2 { font-size: 14px; }
   .shop-window .shop-try { width: 32px; padding: 0; }
-  .shop-window .shop-try span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 }
 @media (max-height: 800px) {
   .shop-window .shop-grid { grid-template-rows: repeat(5, minmax(76px, 1fr)); gap: 6px; padding: 8px; }
@@ -532,7 +593,6 @@ html.mobile-landscape .shop-window :is(.shop-try, .shop-buy, .shop-owned) svg { 
 html.mobile-landscape .shop-window .shop-try { width: 28px; padding: 0; }
 html.mobile-landscape .shop-window :is(.shop-buy, .shop-owned) { padding: 0 7px; gap: 3px; }
 html.mobile-landscape .shop-window .shop-count { display: none; }
-html.mobile-landscape .shop-window .shop-try span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 html.mobile-landscape .shop-window .shop-tabs { gap: 3px; padding-top: 4px; }
 html.mobile-landscape .shop-window .shop-tabs button { position: relative; flex: 1 1 0; padding: 3px 0; }
 html.mobile-landscape .shop-window .shop-tabs button svg { width: 15px; height: 15px; }

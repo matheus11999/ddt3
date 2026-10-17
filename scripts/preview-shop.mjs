@@ -13,7 +13,7 @@ for(const {name,viewport,mobile} of sizes){
  await enterGame(page,base);
  await page.locator('.bottom-dock').getByRole('button',{name:'Loja',exact:true}).click();
  const shop=page.getByRole('dialog',{name:'Loja da Brasa'});await shop.waitFor();await page.waitForTimeout(1200);
- await page.screenshot({path:`${output}/catalog-${name}.png`});
+ await shop.getByRole('textbox',{name:'Buscar na loja'}).click();await page.screenshot({path:`${output}/catalog-${name}.png`});
  await shop.getByRole('button',{name:'Armas',exact:true}).click();
  await shop.getByRole('button',{name:'Experimentar Tempestade',exact:true}).click();
  if(!mobile){await shop.getByRole('button',{name:'Ver informações de Tempestade',exact:true}).hover();await page.waitForTimeout(500);}

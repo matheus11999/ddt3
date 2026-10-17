@@ -10,7 +10,7 @@ import {audio} from '../game/audio';
 import {Avatar} from './Avatar';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
-import {ItemCard,ItemCardFrame,rarityLabel} from './ItemCard';
+import {ItemCard,ItemCardFrame,itemTier,rarityLabel} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {LevelBadge} from './LevelBadge';
 import {Modal} from './Modal';
@@ -24,6 +24,7 @@ import './Shop.css';
    direto no card, com confirmação, sem carrinho. */
 const CATEGORIES=[{id:'all',label:'Destaques',Icon:ShoppingBag},{id:'weapon',label:'Armas',Icon:Swords},{id:'outfit',label:'Roupas',Icon:Shirt},{id:'costume',label:'Fantasias',Icon:Sparkles},{id:'face',label:'Rostos',Icon:Smile},{id:'style',label:'Complementos',Icon:Glasses}] as const;
 const PAGE_SIZE=10;
+const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 type Category=typeof CATEGORIES[number]['id'];
 const money=(value:number)=>value.toLocaleString('pt-BR');
 const searchable=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
@@ -109,7 +110,7 @@ export function Shop({onClose}:{onClose:()=>void}){
        <div className="shop-offer-buy">
         <span className={`shop-price ${short&&!has?'short':''}`}><RewardIcon size={20}/>{money(price)}</span>
         <div className="shop-offer-actions">
-         <button className="shop-try" aria-pressed={trying===id} aria-label={`Experimentar ${item.name}`} title="Prévia" onClick={()=>experiment(id)}><Eye size={15}/><span>Prévia</span></button>
+         <button className="shop-try" aria-pressed={trying===id} aria-label={`Experimentar ${item.name}`} title="Prévia" onClick={()=>experiment(id)}><Eye size={17}/></button>
          {has?<span className="shop-owned"><Check size={14}/>Na mochila</span>:<button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${item.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={15}/><span>Comprar</span></button>}
         </div>
        </div>
@@ -123,17 +124,22 @@ export function Shop({onClose}:{onClose:()=>void}){
      <div className="shop-pager"><button aria-label="Página anterior" disabled={currentPage===0} onClick={()=>{setPage(currentPage-1);setTip(null);}}><ChevronLeft size={16}/></button><span>{currentPage+1} / {pages}</span><button aria-label="Próxima página" disabled={currentPage===pages-1} onClick={()=>{setPage(currentPage+1);setTip(null);}}><ChevronRight size={16}/></button></div>
     </div>
    </section>
-   {pick&&<div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
-    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra">
-     <header><strong>Confirmar compra</strong></header>
-     <div className="shop-confirm-item">
-      <ItemCardFrame rarity={pick.rarity} variant="detail"><ItemIcon id={pick.id} upgrade={0} size={64}/></ItemCardFrame>
-      <div><b>{pick.name}</b><small>{SLOT_NAMES[pick.slot]} · {rarityLabel(pick.rarity)}{pick.slot==='weapon'?' · +0':''}</small></div>
+   {pick&&(()=>{const price=SHOP_OFFER_BY_ID[pick.id].price,tier=itemTier(pick.rarity);return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
+    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier={tier}>
+     <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" disabled={pending} onClick={()=>setConfirming(null)}><X size={18}/></button></header>
+     <div className="shop-confirm-body">
+      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame rarity={pick.rarity} variant="detail"><ItemIcon id={pick.id} upgrade={0} size={84}/></ItemCardFrame></div>
+      <b className="shop-confirm-name">{pick.name}</b>
+      <span className="shop-confirm-kind">{SLOT_NAMES[pick.slot]}{pick.slot==='weapon'?' · +0':''}<em>{rarityLabel(pick.rarity)}<i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<u>{'★'.repeat(4-TIER_STARS[tier])}</u></i></em></span>
+      <dl className="shop-confirm-cost">
+       <div><dt>Preço</dt><dd><RewardIcon size={22}/>{money(price)}</dd></div>
+       <div><dt>Seu saldo</dt><dd><RewardIcon size={22}/>{money(p.gold)}</dd></div>
+       <div className="after"><dt>Depois da compra</dt><dd><RewardIcon size={22}/>{money(p.gold-price)}</dd></div>
+      </dl>
      </div>
-     <div className="shop-confirm-cost"><span>Preço</span><strong><RewardIcon size={22}/>{money(SHOP_OFFER_BY_ID[pick.id].price)}</strong><span>Saldo depois</span><strong><RewardIcon size={22}/>{money(p.gold-SHOP_OFFER_BY_ID[pick.id].price)}</strong></div>
-     <footer><button className="wood-quiet" disabled={pending} onClick={()=>setConfirming(null)}>Cancelar</button><button ref={confirmButton} className="wood-button" disabled={locked&&!pending} aria-busy={pending} onClick={buy}>{pending?<LoaderCircle size={17} className="button-spinner"/>:<ShoppingBag size={17}/>}{pending?'Comprando…':'Confirmar'}</button></footer>
+     <footer><button className="wood-quiet" disabled={pending} onClick={()=>setConfirming(null)}>Cancelar</button><button ref={confirmButton} className="wood-button" disabled={locked&&!pending} aria-busy={pending} onClick={buy}>{pending?<LoaderCircle size={18} className="button-spinner"/>:<ShoppingBag size={18}/>}{pending?'Comprando…':'Confirmar'}</button></footer>
     </section>
-   </div>}
+   </div>;})()}
   </div>
   {tip&&createPortal(<InventoryTooltip tip={tip} gender={p.gender} equipment={draft} upgrades={{}} compositions={p.compositions} hideGender action={`Permanente · ${money(SHOP_OFFER_BY_ID[tip.id]?.price??0)} Moedas Brasa${CATALOG[tip.id]?.slot==='weapon'?' · +0':''}`}/>,document.body)}
  </Modal>;
