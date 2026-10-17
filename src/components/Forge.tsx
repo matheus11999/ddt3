@@ -33,29 +33,38 @@ function StrengtheningEffect(){
  </div>;
 }
 
-/** Letreiro de resultado no estilo do jogo: Lilita One em arco, contorno grosso e faixa por trás. */
+/** Letreiro de resultado com volume: camadas extrudadas, contorno grosso, bisel claro e brilho no topo (Lilita One, como o HUD). */
 function OutcomeBanner({success}:{success:boolean}){
- const id=success?'win':'fail',word=success?'SUCESSO!':'FALHOU';
- const [light,mid,deep]=success?['#fff8c4','#ffd23a','#ff8414']:['#ffffff','#c3cbd6','#6b7686'];
- const [ribbon,ribbonDeep]=success?['#e8402a','#9c1f12']:['#4b5563','#252b34'];
- return <svg className="smith-outcome-banner" viewBox="0 0 420 170" role="img" aria-label={word}>
+ const id=success?'win':'fail',word=success?'SUCESSO!':'FALHOU',size=success?80:76,depth=11;
+ const [light,mid,deep]=success?['#fffbd0','#ffd42e','#ff7a0a']:['#ffffff','#cfd6e0','#7d8999'];
+ const [side,sideDeep]=success?['#d4560a','#7a2604']:['#5d6878','#262c36'];
+ const [ribbon,ribbonDeep]=success?['#ef4a2e','#a3210f']:['#56606e','#2a3039'];
+ const font={fontFamily:"'Lilita One','Nunito',sans-serif",fontSize:size,textAnchor:'middle' as const,letterSpacing:2};
+ const word_=(props:Record<string,unknown>,key?:string|number,dy=0)=><text key={key} {...font} transform={dy?`translate(0 ${dy})`:undefined}><textPath href={`#${id}-arc`} startOffset="50%" strokeLinejoin="round" {...props}>{word}</textPath></text>;
+ return <svg className="smith-outcome-banner" viewBox="0 0 420 190" role="img" aria-label={word}>
   <defs>
-   <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1"><stop offset=".08" stopColor={light}/><stop offset=".5" stopColor={mid}/><stop offset="1" stopColor={deep}/></linearGradient>
-   <linearGradient id={`${id}-ribbon`} x1="0" y1="0" x2="0" y2="1"><stop stopColor={ribbon}/><stop offset="1" stopColor={ribbonDeep}/></linearGradient>
-   <path id={`${id}-arc`} d={success?'M30 112 Q210 40 390 112':'M40 96 Q210 86 380 96'}/>
+   <linearGradient id={`${id}-face`} x1="0" y1="0" x2="0" y2="1"><stop offset=".05" stopColor={light}/><stop offset=".48" stopColor={mid}/><stop offset="1" stopColor={deep}/></linearGradient>
+   <linearGradient id={`${id}-side`} x1="0" y1="0" x2="0" y2="1"><stop stopColor={side}/><stop offset="1" stopColor={sideDeep}/></linearGradient>
+   <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="0" y2="1"><stop offset=".08" stopColor="#fff" stopOpacity=".95"/><stop offset=".42" stopColor="#fff" stopOpacity=".35"/><stop offset=".43" stopColor="#fff" stopOpacity="0"/></linearGradient>
+   <linearGradient id={`${id}-ribbon`} x1="0" y1="0" x2="0" y2="1"><stop stopColor={ribbon}/><stop offset=".55" stopColor={ribbon}/><stop offset="1" stopColor={ribbonDeep}/></linearGradient>
+   <path id={`${id}-arc`} d={success?'M28 108 Q210 34 392 108':'M38 94 Q210 82 382 94'}/>
   </defs>
   <g className="smith-outcome-ribbon">
-   <path d="M24 118 2 136l30 4-10 22 52-22Z" fill={ribbonDeep}/><path d="M396 118l22 18-30 4 10 22-52-22Z" fill={ribbonDeep}/>
-   <path d="M48 108Q210 66 372 108l-8 40Q210 108 56 148Z" fill={`url(#${id}-ribbon)`} stroke="#2a0f05" strokeWidth="4" strokeLinejoin="round"/>
-   <path d="M60 116Q210 80 360 116" fill="none" stroke="#ffffff55" strokeWidth="3" strokeLinecap="round"/>
+   <path d="M30 122 4 142l34 4-12 26 58-25Z" fill={ribbonDeep} stroke="#2a0f05" strokeWidth="4" strokeLinejoin="round"/>
+   <path d="M390 122l26 20-34 4 12 26-58-25Z" fill={ribbonDeep} stroke="#2a0f05" strokeWidth="4" strokeLinejoin="round"/>
+   <path d="M50 120Q210 78 370 120l-8 44Q210 122 58 164Z" fill="#2a0f05" transform="translate(0 6)"/>
+   <path d="M50 116Q210 74 370 116l-8 44Q210 118 58 160Z" fill={`url(#${id}-ribbon)`} stroke="#2a0f05" strokeWidth="4" strokeLinejoin="round"/>
+   <path d="M60 124Q210 86 360 124" fill="none" stroke="#ffffff66" strokeWidth="4" strokeLinecap="round"/>
+   <path d="M64 150Q210 112 356 150" fill="none" stroke="#00000033" strokeWidth="3" strokeLinecap="round"/>
   </g>
-  <text className="smith-outcome-word" fontFamily="'Lilita One','Nunito',sans-serif" fontSize={success?78:74} textAnchor="middle" letterSpacing="2">
-   <textPath href={`#${id}-arc`} startOffset="50%" fill="none" stroke="#2a0f05" strokeWidth="16" strokeLinejoin="round">{word}</textPath>
-  </text>
-  <text fontFamily="'Lilita One','Nunito',sans-serif" fontSize={success?78:74} textAnchor="middle" letterSpacing="2">
-   <textPath href={`#${id}-arc`} startOffset="50%" fill={`url(#${id}-fill)`} stroke="#fff" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round">{word}</textPath>
-  </text>
-  {success&&<g fill="#fffbe0">{[[48,58,1],[372,52,.8],[300,22,.6],[118,24,.7]].map(([x,y,k],i)=><path key={i} className="smith-outcome-twinkle" style={{animationDelay:`${i*.18}s`}} transform={`translate(${x} ${y}) scale(${k})`} d="M0-14 4-4 14 0 4 4 0 14-4 4-14 0-4-4Z"/>)}</g>}
+  <g className="smith-outcome-word">
+   {word_({fill:'#2a0f05',stroke:'#2a0f05',strokeWidth:18},'shadow',depth+3)}
+   {Array.from({length:depth},(_,i)=>word_({fill:`url(#${id}-side)`,stroke:`url(#${id}-side)`,strokeWidth:12},i,depth-i))}
+   {word_({fill:'none',stroke:'#2a0f05',strokeWidth:12},'outline')}
+   {word_({fill:`url(#${id}-face)`,stroke:light,strokeWidth:2.5,paintOrder:'stroke'},'face')}
+   {word_({fill:`url(#${id}-gloss)`},'gloss')}
+  </g>
+  {success&&<g fill="#fffbe0">{[[44,54,1.1],[378,46,.9],[306,18,.65],[112,20,.75]].map(([x,y,k],i)=><path key={i} className="smith-outcome-twinkle" style={{animationDelay:`${i*.18}s`}} transform={`translate(${x} ${y}) scale(${k})`} d="M0-14 4-4 14 0 4 4 0 14-4 4-14 0-4-4Z"/>)}</g>}
  </svg>;
 }
 
