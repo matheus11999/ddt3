@@ -208,3 +208,9 @@ html.mobile-landscape .artillery-hud .active-portrait{transform:scale(.72);trans
 html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75);transform-origin:top right;right:calc(50% + 72px)}
 html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transform-origin:top right}
 @media(prefers-reduced-motion:reduce){.artillery-hud .active-portrait-sigil{animation:none}}
+
+/* Fallen fighter: no console, tools or abilities; a quiet note says they can watch until the end. */
+.artillery-hud.fighter-fallen .battle-console,.artillery-hud.fighter-fallen .boost-bar,.artillery-hud.fighter-fallen .battle-ability-tray{display:none}
+.artillery-hud .fallen-banner{position:absolute;left:50%;bottom:28px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 26px 12px;border:1px solid #c9b48a66;border-radius:14px;background:linear-gradient(#1a2233e6,#0e1522f0);box-shadow:0 6px 18px #0008;transform:translateX(-50%);pointer-events:none;z-index:2;text-align:center}
+.artillery-hud .fallen-banner strong{font:900 22px "Cinzel","Nunito",serif;letter-spacing:.08em;color:#f3e2b4;text-shadow:0 2px 0 #3b2a14,0 0 10px #000a}
+.artillery-hud .fallen-banner span{font:800 13px "Nunito",sans-serif;color:#e8dcc0;letter-spacing:.02em}

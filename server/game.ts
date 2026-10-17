@@ -259,12 +259,12 @@ export class Game {
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
      if(!m||m.state.phase!=='finished'||!rewards||rewards.phase!=='picking'||Date.now()>=rewards.deadline)throw Error('A escolha de cartas terminou.');
      if(Date.now()<(rewards.opensAt??0))throw Error('Aguarde a abertura das cartas.');
-     if(!m.state.players.some(f=>f.id===id&&!f.bot))throw Error('Você não participou desta batalha.');
+     if(!m.state.players.some(f=>f.id===id&&!f.bot&&!f.left))throw Error('Você não participou desta batalha.');
      if(rewards.cards.some(card=>card.playerId===id))throw Error('Sua carta já está reservada.');
      const card=rewards.cards[c.card];if(!card||!Number.isInteger(c.card))throw Error('Carta inválida.');
      if(card.playerId)throw Error('Esta carta já foi escolhida.');
      // Claim synchronously, before any await: competing commands cannot claim the same slot.
-     card.playerId=id;if(m.state.players.filter(player=>!player.bot).every(player=>rewards.cards.some(card=>card.playerId===player.id)))this.revealRewards(m);else this.broadcastBattle(m);break;
+     card.playerId=id;if(m.state.players.filter(player=>!player.bot&&!player.left).every(player=>rewards.cards.some(card=>card.playerId===player.id)))this.revealRewards(m);else this.broadcastBattle(m);break;
     }
     case 'rematch':{
      const r=this.room(p),m=this.matchForRoom(r.id);if(r.hostId!==id)throw Error('Aguarde o líder da sala.');if(!m&&r.status==='waiting'){this.broadcastRoom(r);break;}if(!m||m.state.phase!=='finished')throw Error('A batalha ainda está acontecendo.');if(!m.state.rewards?.saved||Date.now()<(m.state.rewards.revealedAt??Infinity)+REWARD_RETURN_MS)throw Error('Aguarde a revelação e o recebimento das recompensas.');this.returnParties(m);break;
@@ -281,7 +281,7 @@ export class Game {
  private leave(p:Peer){
   if(!p.roomId)return;const r=this.rooms.get(p.roomId),m=this.matchForRoom(p.roomId);
   if(r?.spectators?.some(s=>s.id===p.profile.id)){r.spectators=r.spectators.filter(s=>s.id!==p.profile.id);this.detach(p);this.broadcastRoom(r);return;}
-  if(r){this.cancelSearch(r);r.players=r.players.filter(s=>s.id!==p.profile.id);if(m){const f=m.state.players.find(f=>f.id===p.profile.id);if(f){f.hp=0;f.connected=false;f.powerArmed=false;}if(!this.checkWin(m)&&m.state.turnId===p.profile.id&&m.state.phase==='aiming')this.nextTurn(m);else this.broadcastBattle(m);}
+  if(r){this.cancelSearch(r);r.players=r.players.filter(s=>s.id!==p.profile.id);if(m){const f=m.state.players.find(f=>f.id===p.profile.id);if(f&&m.state.phase==='finished')f.connected=false;else if(f){f.hp=0;f.connected=false;f.powerArmed=false;f.left=true;}if(!this.checkWin(m)&&m.state.turnId===p.profile.id&&m.state.phase==='aiming')this.nextTurn(m);else this.broadcastBattle(m);}
    if(!r.players.some(s=>!s.bot)){for(const spectator of r.spectators??[]){const peer=this.peers.get(spectator.id);if(peer?.roomId===r.id)this.detach(peer);}r.spectators=[];this.rooms.delete(r.id);this.roomMatches.delete(r.id);if(m)this.cleanupMatch(m);}
    else{if(r.hostId===p.profile.id)r.hostId=r.players.find(s=>!s.bot)!.id;if(!r.practice&&r.status!=='playing')this.updateParty(r);this.broadcastRoom(r);}
   }
@@ -478,14 +478,15 @@ export class Game {
  private revealRewards(m:Match,now=Date.now()){
   const rewards=m.state.rewards!;
   if(rewards.phase==='revealed')return;
-  for(const player of m.state.players)this.autoPick(m,player.id);
+  for(const player of m.state.players)if(!player.left)this.autoPick(m,player.id);
   for(const card of rewards.cards)card.prize={...m.rewardDeck![card.index]};
   rewards.phase='revealed';rewards.revealedAt=now;this.broadcastBattle(m);this.saveRewards(m);
  }
  private saveRewards(m:Match){
   const rewards=m.state.rewards;if(!rewards||rewards.saved||m.savingRewards)return;
   m.savingRewards=true;
-  const humans=m.state.players.filter(p=>!p.bot),winners=humans.filter(p=>p.team===m.state.winner).map(p=>p.id);
+  // Fallen fighters who stayed to watch keep their reward; those who left forfeit it.
+  const humans=m.state.players.filter(p=>!p.bot&&!p.left),winners=humans.filter(p=>p.team===m.state.winner).map(p=>p.id);
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
   this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses).then(async()=>{
    for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat)seat.level=profile.level;}}}
