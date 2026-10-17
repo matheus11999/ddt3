@@ -1,5 +1,14 @@
 # Estado da entrega — 16/10/2026
 
+## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
+
+- 13 slots: entram Anel ×2 (`ring` e `ring2`, mesma família; um anel só ocupa um slot), Colar (`necklace`) e Bolha (`bubble`). Pulseira e Bracelete são os 2 slots de pulseira. Fileira inferior: Anel, Colar, Arma, Bolha, Anel. Joias e bolha são invisíveis no boneco; a bolha ainda é só cosmética (sem efeito no chat).
+- Loja: Anel da Brasa (200), Anel da Maré (160), Colar Estelar (320) e Bolha Nuvem (150), com ícones SVG próprios. Anel e colar entram na composição.
+- Cards por classe: Comum, Normal (uncommon/rare), Épico e Lendário (`data-tier`), com gema no canto, brilho no épico e pulso no lendário. O ícone de sexo saiu da grade e só aparece no hover.
+- Hover refeito (`bag-tooltip`): cabeçalho com carta, tipo e sexo; faixa "Classe" com estrelas só para arma, roupa e chapéu (`CLASSED_SLOTS`); atributos em 2 colunas com ícones e diferença ▲/▼ contra o equipado; destruição/ângulo da arma.
+- `UpgradeTag` (SVG) muda de forma com o nível: bronze, +5 esmeralda com asas, +9 violeta com gema, +10 safira com coroa, +11 rubi com chamas e +12 ouro com raios girando.
+- Evidência: `npm run check`, `npm test` (233), build, `test:mobile:browser` e `test:immediate:browser` passando; `test:customization:browser` para no mesmo passo "Treinar" de `main`; `verify:cosmetics` igual a `main`. Prévia em `docs/previews/backpack.png`.
+
 ## Mochila no padrão DDTank — 17/10/2026
 
 - Layout "Informações pessoais": cabeçalho laranja com nível, nome, vitórias e partidas; personagem estático sobre o selo da aura do jogo (`aura-blue-sigil.png` abaixo de +5; selo da aura do Avatar a partir de +5) com 4 slots de cada lado (2×2 em telas baixas) e arma embaixo; barra de XP e Poder; Ataque/Agilidade/Defesa/Sorte em pílulas e Dano/Armadura/Vida/Vigor em barras coloridas.

@@ -2,7 +2,7 @@ import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS} from '../shared/shop';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {canEquipItem,CATALOG,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,MAX_UPGRADE,normalizeDyes,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS} from '../shared/catalog';
+import {canEquipItem,CATALOG,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,MAX_UPGRADE,normalizeDyes,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -50,7 +50,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
   const saved=raw.equipment?.[slot],id=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
-  if(id&&Object.hasOwn(CATALOG,id)&&CATALOG[id].slot===slot&&(inventory.includes(id)||isEmptyItem(id))&&canEquipItem(id,gender))equipment[slot]=id;
+  if(id&&Object.hasOwn(CATALOG,id)&&slotAccepts(slot,CATALOG[id])&&(inventory.includes(id)||isEmptyItem(id))&&canEquipItem(id,gender)&&!heldInSiblingSlot(equipment,slot,id))equipment[slot]=id;
   else equipment[slot]=isEmptyItem(defaults[slot])||inventory.includes(defaults[slot])?defaults[slot]:inventory.find(owned=>CATALOG[owned]?.slot===slot&&canEquipItem(owned,gender))??unequip[slot]??defaults[slot];
   // Every equipped fallback must actually be owned, including sparse historical profiles.
   if(!isEmptyItem(equipment[slot])&&!inventory.includes(equipment[slot]))inventory.push(equipment[slot]);
@@ -101,7 +101,7 @@ export class Store implements ProfileStore {
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
-   for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[equipment[slot]];if(!item||item.slot!==slot||(!isEmptyItem(item)&&!profile.inventory.includes(item.id)))throw Error('Este item não está na sua mochila.');if(!canEquipItem(item,profile.gender))throw Error('Este item não é compatível com o gênero do seu personagem.');}
+   for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[equipment[slot]];if(!item||!slotAccepts(slot,item)||heldInSiblingSlot(equipment,slot,item.id)||(!isEmptyItem(item)&&!profile.inventory.includes(item.id)))throw Error('Este item não está na sua mochila.');if(!canEquipItem(item,profile.gender))throw Error('Este item não é compatível com o gênero do seu personagem.');}
    const selected=Object.fromEntries((Object.keys(SLOT_NAMES) as Slot[]).map(slot=>[slot,equipment[slot]])) as Record<Slot,string>;
    profile.equipment={...selected,dyes:normalizeDyes(equipment.dyes),visibility:normalizeVisibility(visibility.data),upgrade:profile.upgrades[equipment.weapon]??0};
    delete profile.equipment.compositions;

@@ -55,3 +55,13 @@ Arquivos: 1024×1024, PNG transparente, centrado, ocupando 92% da imagem, simetr
 ```text
 Single circular magic seal for a chibi browser artillery game character aura, 1024x1024, perfectly centered, transparent background, flat face-on view, radial symmetry with 8 main points. Two concentric thin glowing rings, an ornate band of curling filigree between them, eight sharp diamond-shaped spikes on the outer ring alternating long and short, tiny rune-like dots (no letters) evenly spaced, an open center (the inner 45% fully transparent so the character stays clear). Luminous neon line art with a bright white core and a saturated colored glow. COLOR: [emerald green #3ee87f | royal violet #b45cff | radiant gold #ffc93a]. Higher tiers more ornate: [simple | add a second inner star ring | add a third ring and small flame-like flares on every spike]. No text, no character, no background, no perspective, crisp edges.
 ```
+
+## 5. Ícones pintados de anel, colar e bolha (atlas 4×1)
+
+Hoje anel, colar e bolha usam ícones SVG em `ItemIcon.tsx`. Para pintá-los no padrão dos outros itens, gerar um atlas e trocar os cases `ring`, `necklace` e `bubble`.
+
+Arquivo: `public/assets/items/jewelry-icons.png`, 1024×256 (células de 256×256), transparente.
+
+```text
+Sprite sheet, 4 cells of 256x256 in a row, transparent background, chunky glossy chibi game item icons, thick dark-brown outline, painted 3D look, soft top-left light, consistent size, centered with 10% padding. Cells: 1) gold ring with a glowing orange ember gem (Anel da Brasa), 2) silver ring with a teal sea-drop gem and tiny wave engraving (Anel da Maré), 3) golden chain necklace with a big shining star pendant and sparkles (Colar Estelar), 4) fluffy white-blue cloud speech bubble with three dots (Bolha Nuvem). No text, no background, no frames.
+```

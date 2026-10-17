@@ -82,7 +82,7 @@ O agente `upgrade_server` também implementou fortalecimento/transações na pri
 
 ## Contratos
 
-- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete e fantasia. Joias invisíveis; fantasia unissex substitui o visual completo. Sem bolsa/acessórios/asas/anel ou olhos/boca separados.
+- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete, fantasia, anel ×2 (`ring`/`ring2`, mesma família), colar e bolha. Joias, anéis, colar e bolha são invisíveis no boneco; fantasia unissex substitui o visual completo. Sem bolsa/asas ou olhos/boca separados. Classe (Comum/Normal/Épico/Lendário) só aparece no hover de arma, roupa e chapéu.
 - Roupa cobre do pescoço para baixo: mãos, calça e sapatos incluídos. Pose pode variar sem alterar a cabeça universal.
 - `ENABLE_MODULAR_APPEARANCE=false` é intencional para corpos incompletos. Rostos estão ativos independentemente desse flag.
 - Arte da arma: 0–8 / 9 / 10–11 / 12. Aura automática: 5 / 9 / 12. Pedras I–V sempre comuns.
