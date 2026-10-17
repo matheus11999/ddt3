@@ -136,7 +136,8 @@ export const WEAPON_STYLE='HOUSE STYLE (mandatory, identical for every weapon of
  */
 export const WEAPON_STYLE_ANCHORS=['/assets/weapons/brick/icon-0.png','/assets/weapons/brick/held-0.png'] as const;
 const STYLE=WEAPON_STYLE;
-const CONSISTENCY='CONSISTENCY: attach the reference images listed below. Match their camera angle, outline thickness, brush texture, lighting and proportions exactly, so every phase reads as the same weapon family; only the design described here changes.';
+const CONSISTENCY='CONSISTENCY: attach the reference images listed below. Copy only their STYLE (camera angle, outline thickness, brush texture, lighting, level of detail), so every phase reads as the same weapon family.';
+const NEW_OBJECT='IMPORTANT: the reference images show EARLIER phases of this weapon. Do NOT redraw, edit or recolor their object. Paint a DIFFERENT object with a new silhouette, exactly as described below; if the result looks like a reference image, it is wrong.';
 
 /** Order to generate pieces: each one uses earlier, approved pieces as references. */
 export function promptOrder(slot:PhaseArtSlot|'terrain'|'atlas',stage?:WeaponPhase):number {
@@ -158,7 +159,7 @@ export function artPrompt(weapon:Weapon,kit:WeaponKit,slot:PhaseArtSlot|'terrain
  const own=references(kit,slot,stage),anchors=WEAPON_STYLE_ANCHORS.filter(path=>!path.startsWith(`/assets/weapons/${kit.id}/`)).map(path=>`public${path}`);
  const refs=[...new Set([...anchors,...own])];
  const head=`${STYLE}\nWeapon "${weapon.name}" (${kit.id}): ${kit.concept}\nEvery phase keeps: ${kit.identity}\nPalette: ${kit.palette}.${refs.length?`\n${CONSISTENCY}\nReference images: ${refs.join(', ')}`:'\nThis is the FIRST piece of the weapon: it sets the style every later phase will copy.'}`;
- const growth=phase?`\nThis is visual phase ${phase.label} (${phase.tier+1} of ${WEAPON_PHASES.length}). Each phase changes silhouette, ornaments and materials, not only adds glow. The base phase is simpler but already colorful, never burnt or gray.`:'';
+ const growth=phase?`\nThis is visual phase ${phase.label} (${phase.tier+1} of ${WEAPON_PHASES.length}). Each phase changes silhouette, ornaments and materials, not only adds glow. The base phase is simpler but already colorful, never burnt or gray.${phase.tier>0&&slot==='icon'?`\n${NEW_OBJECT}`:''}`:'';
  if(slot==='icon')return `${head}${growth}\nCreate ONE square inventory ICON, 512×512, of this weapon: ${brief!.held}. Icon framing like DDTank weapon icons: the object fills about 80% of the square, slight diagonal three-quarter view, chunky and readable at 64 px. Transparent background: the game paints the colored tile behind it.\nSave as public${weaponIconPath(kit.id,stage!)}`;
  if(slot==='held')return `${head}${growth}\nCreate ONE isolated weapon asset, 1254×1254, the same design as the icon of this phase, as the character holds it in combat: ${brief!.held}. Centered, diagonal pointing up-right, no hand or person.\nSave as public${weaponAssetPath(kit.id,stage!)}`;
  if(slot==='terrain')return `${head}\nCreate the TERRAIN MARK this weapon leaves on destructible ground after it explodes: a small organic decal with a transparent center (the crater hole), soft painted edges and little clay shards and mortar dust that match the weapon. The weapon digs small craters, so the mark is modest. Not an active explosion, not a cloud. Square 1024×1024, transparent.\nSave as public${weaponTerrainPath(kit.id)}`;
