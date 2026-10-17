@@ -4,6 +4,7 @@ import {LevelBadge} from './LevelBadge';
 import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
+import {AngleGauge,PowerOrb} from './CombatGauges';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Wind,Zap,SkipForward,LogOut} from 'lucide-react';
@@ -15,6 +16,7 @@ import type {Fighter} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import './BattleHud.css';
 import './BattleHudRefinement.css';
+import './BattleConsole.css';
 type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=5,MAX_POWER=100,CHARGE_MS=2600;
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
@@ -156,7 +158,6 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
  const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed?['homing' as const]:[])];
- const angleStyle={'--aim-angle':`${-angle}deg`} as CSSProperties;
 
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''}`} data-party-size={Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)}>
   <div className="battle-top">
@@ -198,24 +199,25 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   </aside>
 
   <div className="battle-console" aria-label="Controles de batalha">
-   <div className="angle-control" style={angleStyle}>
-    <div className="angle-dial"><svg className="angle-graduations" viewBox="0 0 100 100" aria-hidden="true"><path d="M11 53 A39 39 0 0 1 89 53"/>{Array.from({length:19},(_,index)=>{const radians=index*10*Math.PI/180,inner=index%3===0?30:34;return <line key={index} className={index%3===0?'major':''} x1={50+Math.cos(radians)*inner} y1={53-Math.sin(radians)*inner} x2={50+Math.cos(radians)*39} y2={53-Math.sin(radians)*39}/>;})}<circle className="angle-marker" cx={50+Math.cos(Math.max(0,Math.min(180,angle))*Math.PI/180)*39} cy={53-Math.sin(Math.max(0,Math.min(180,angle))*Math.PI/180)*39} r="3.2"/><text x="12" y="63">180</text><text x="88" y="63">0</text></svg><strong>{angle}<small>°</small></strong><span>{aimSlope?<>TERRENO {aimSlope>0?'+':''}{aimSlope}°</>:'ÂNGULO'}</span></div>
+   <div className="angle-control">
+    <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
     <div className="angle-buttons"><button type="button" disabled={!canAct} aria-label="Aumentar ângulo" onClick={event=>{setAngle(Math.min(maxAngle,angle+1));if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAct} aria-label="Diminuir ângulo" onClick={event=>{setAngle(Math.max(minAngle,angle-1));if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
    </div>
    <div className="power-controls">
     <div className="power-label"><span>FORÇA</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">ÚLTIMO <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
-    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
-     <i className="power-fill" style={{width:`${power}%`}}/><div className="power-graduations" aria-hidden="true">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>
-     {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}/>}
+    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`} style={{'--shot-power':`${power}%`} as CSSProperties}>
+     <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
+     {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
      <span className="power-cursor" aria-hidden="true" style={{left:`${power}%`}}/>
     </div>
-    <div className="power-ticks" aria-hidden="true">{[0,10,20,30,40,50,60,70,80,90,100].map(value=><span key={value} style={{left:`${value}%`}}>{value}</span>)}</div>
+    <div className="power-ruler" aria-hidden="true">
+     <div className="power-graduations">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>
+     <div className="power-ticks">{[0,10,20,30,40,50,60,70,80,90,100].map(value=><span key={value} style={{left:`${value}%`}}>{value}</span>)}</div>
+    </div>
     <div className="power-hint"><kbd>ESPAÇO</kbd><span>{chargeHint}</span></div>
    </div>
    <span id="charge-instructions" className="battle-sr-only">Segure Espaço ou toque e segure a régua para carregar. Solte para disparar a força mostrada. Use as setas do teclado para andar e mirar.</span>
-   <button type="button" className={`combat-power ${(me.powerCharge??0)>=100?'power-full':''} ${me.powerArmed?'power-armed':''}`} style={{'--power-charge':`${me.powerArmed?100:me.powerCharge??0}%`} as CSSProperties} disabled={!canAct||me.flightArmed||me.powerArmed||(me.powerCharge??0)<100} aria-label={me.powerArmed?'Power preparado':`Ativar Power, ${Math.floor(me.powerCharge??0)} de 100`} aria-pressed={!!me.powerArmed} title="Acumule ao acertar e receber dano. Com 100, ative para fortalecer o próximo tiro. Passar ou deixar o tempo acabar perde a ativação." onClick={event=>{client.send({type:'power'});if(event.detail>0)event.currentTarget.blur();}}>
-    <svg className="combat-power-ring" viewBox="0 0 100 100" aria-hidden="true"><circle className="combat-power-ring-track" cx="50" cy="50" r="44"/><circle className="combat-power-ring-fill" cx="50" cy="50" r="44" pathLength="100" strokeDasharray={`${me.powerArmed?100:me.powerCharge??0} 100`}/></svg><span className="combat-power-orbit" aria-hidden="true"/><span className="combat-power-core"><Zap className="combat-power-emblem" size={22} fill="currentColor" aria-hidden="true"/><strong>POWER</strong><small>{me.powerArmed?'ATIVADO':(me.powerCharge??0)>=100?'ATIVAR':`${Math.floor(me.powerCharge??0)} / 100`}</small></span>
-   </button>
+   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100} onActivate={()=>client.send({type:'power'})}/>
    <div className="battle-actions">
     <div className="vigor-display"><div className="vigor-caption"><span><Zap size={13}/>VIGOR</span><strong>{me.stamina}<small> / {me.maxStamina}</small></strong></div><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/></div></div>
     <button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><SkipForward size={16}/><span>PASSAR</span><kbd>P</kbd></button>
