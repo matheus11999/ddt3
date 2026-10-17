@@ -28,7 +28,7 @@
    "piece": 0,
    "x": 640,
    "top": 600,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "floor-middle",
@@ -37,16 +37,16 @@
    "x": 1580,
    "top": 612,
    "flip": true,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "throne-step",
    "sheet": "pecas",
    "piece": 4,
-   "x": 2240,
-   "top": 560,
-   "scale": 0.85,
-   "destructible": true
+   "x": 2225,
+   "top": 596,
+   "scale": 1.0,
+   "destructible": false
   },
   {
    "id": "queen-throne",
@@ -54,7 +54,7 @@
    "piece": 1,
    "x": 2600,
    "top": 340,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "root-ledge",
@@ -63,18 +63,19 @@
    "x": 1280,
    "top": 330,
    "scale": 0.7,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "nest-tunnel",
    "sheet": "pecas",
    "piece": 2,
-   "x": 1960,
+   "x": 1790,
    "top": 400,
-   "scale": 0.7,
-   "destructible": true,
+   "scale": 0.75,
+   "destructible": false,
    "rest": true,
-   "sink": 16
+   "sink": 24,
+   "solid": false
   }
  ],
  "monsters": [
@@ -84,15 +85,15 @@
   },
   {
    "kind": "nest",
-   "x": 1735
+   "x": 1775
   },
   {
    "kind": "ant-worker",
-   "x": 1520
+   "x": 1480
   },
   {
    "kind": "ant-soldier",
-   "x": 1660
+   "x": 1960
   }
  ]
 }

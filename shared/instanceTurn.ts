@@ -12,6 +12,9 @@ export const MONSTER_TURN_ID='monsters';
 export const MONSTER_MOVE_MS=1500,MONSTER_BITE_WINDUP_MS=320,MONSTER_ATTACK_MS=1900,MONSTER_TURN_END_MS=900;
 /** Monsters walk in from the map sides when a stage opens; the first adventurer plays after it. */
 export const INSTANCE_INTRO_MS=2600;
+/** Later stages skip the walk-in: the monsters are already in place and only the stage title shows. */
+export const STAGE_TITLE_MS=1600;
+export const stageIntroMs=(stageIndex:number)=>stageIndex===0?INSTANCE_INTRO_MS:STAGE_TITLE_MS;
 
 export interface InstanceRound {round:number;acted:string[];}
 export interface TurnActor {id:string;hp:number;team:0|1;left?:boolean;}
@@ -27,7 +30,12 @@ export interface MonsterMove {id:string;from:[number,number];to:[number,number];
 export interface MonsterBite {id:string;targetId:string;}
 export interface MonsterPlan {moves:MonsterMove[];bites:MonsterBite[];}
 /** How much closer each extra ant beside the same adventurer stands. */
-export const MONSTER_SPACING=22;
+export const MONSTER_SPACING=56;
+/** Each turn a monster walks 85%–115% of its stride (seeded by its id and spot), so ants of one kind drift apart. */
+export function strideOf(monster:{id:string;x:number;monster?:MonsterKind}){
+ let h=Math.round(monster.x)*2654435761;for(const ch of monster.id)h=Math.imul(h^ch.charCodeAt(0),16777619);
+ return MONSTERS[monster.monster!].stride*(.85+((h>>>0)%1000)/1000*.3);
+}
 
 const feetGap=(a:{x:number},b:{x:number})=>Math.abs(a.x-b.x);
 
@@ -49,8 +57,8 @@ export function planMonsterTurn(terrain:Uint8Array,bodies:readonly MonsterBody[]
   // Ants crowd around their prey: each one ahead of it on this side makes it stop a little closer, so they all reach without standing on each other.
   const crowd=[...placed].filter(([id,other])=>id!==monster.id&&Math.sign(other.x-target.x)===-direction&&Math.abs(other.x-target.x)<feetGap(monster,target)).length;
   const stopAt=Math.max(def.reach*.35,def.reach*.7-MONSTER_SPACING*crowd);
-  let at={x:monster.x,y:monster.y},walked=0;
-  while(walked<def.stride){
+  let at={x:monster.x,y:monster.y},walked=0;const stride=strideOf(monster);
+  while(walked<stride){
    const next=walkPosition(terrain,at,direction);if(!next)break;
    if(next.y>WORLD.height-6||ground(terrain,next.x,Math.max(0,next.y-3))>WORLD.height)break;
    if(Math.abs(target.x-next.x)<stopAt)break;

@@ -255,7 +255,8 @@ export class Game {
      const expedition=getExpedition(c.expedition);if(!expedition)throw Error('Expedição desconhecida.');
      if(!expeditionStages(expedition.id,c.difficulty).length)throw Error('Esta dificuldade chega em breve.');
      const low=room.players.find(player=>player.level<expedition.minLevel);if(low)throw Error(`${low.name} precisa do nível ${expedition.minLevel}.`);
-     room.expedition={id:expedition.id,difficulty:c.difficulty};room.players.forEach(player=>player.ready=false);this.broadcastRoom(room);break;
+     const stage=c.stage??0;if(stage>=expeditionStages(expedition.id,c.difficulty).length)throw Error('Estágio desconhecido.');
+     room.expedition={id:expedition.id,difficulty:c.difficulty,stage};room.players.forEach(player=>player.ready=false);this.broadcastRoom(room);break;
     }
     case 'join':{
      this.join(p,c.roomId);break;
@@ -429,18 +430,16 @@ export class Game {
   const room=this.room(p);if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar a expedição.');if(room.status!=='waiting')throw Error('A expedição já começou.');
   if(!room.expedition)throw Error('Escolha uma expedição primeiro.');
   if(room.players.some(s=>!s.connected||this.profileChanges.has(s.id)||!this.peers.get(s.id)?.connected||(!s.ready&&s.id!==room.hostId)))throw Error('Aguarde todos ficarem prontos.');
-  this.launchExpedition(room,0);
+  this.launchExpedition(room,Math.min(room.expedition.stage??0,expeditionStages(room.expedition.id,room.expedition.difficulty).length-1));
  }
- /** Opens a stage: a new battle (new map) for the room's party; later stages reuse the same match. */
- private launchExpedition(room:Room,stageIndex:number,previous?:Match){
+ /** Opens a stage: a new battle (new map) for the room's party. Each stage is its own start from the room. */
+ private launchExpedition(room:Room,stageIndex:number){
   const choice=room.expedition!,stages=expeditionStages(choice.id,choice.difficulty);
-  const seats=room.players.filter(seat=>!seat.bot&&(!previous||previous.state.players.some(f=>f.id===seat.id&&!f.left)));
-  if(!seats.length){if(previous)this.returnParties(previous);return;}
+  const seats=room.players.filter(seat=>!seat.bot);
   const terrain=createTerrain(stages[stageIndex].map as Battle['map']),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
   setup.fighters.forEach(fighter=>{if(!fighter.monster)adjustAimToTerrain(fighter,terrain);});
   const run:ExpeditionRun={expedition:choice.id,difficulty:choice.difficulty,stages,stage:stageIndex,order:setup.order,round:{round:1,acted:[]},events:[]};
   const state:Battle={id:randomUUID(),roomId:room.id,map:setup.map,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
-  if(previous){const m=previous;delete m.rewardDeck;delete m.activeShot;delete m.pendingImpacts;delete m.pendingPower;delete m.retryRewardsAt;delete m.invisibilityActivated;m.savingRewards=false;m.state=state;m.terrain=terrain;m.instance=run;m.resolveAt=0;this.broadcastBattle(m,true);return;}
   const key=this.matches.has(room.id)?randomUUID():room.id;
   const m:Match={key,roomIds:[room.id],state,terrain,resolveAt:0,botAt:Infinity,createdAt:now,instance:run};
   this.matches.set(key,m);this.queueIds.delete(room.id);room.status='playing';room.matchStartedAt=now;room.map=setup.map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);this.broadcastBattle(m,true);
@@ -614,10 +613,11 @@ export class Game {
    if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
    hits.push({...planned,x:target.x,y:target.y-85});
   }
-  crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch);
+  const dug=crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
-  if(!impact.fragment)m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
+  // Unbreakable instance ground (the anthill) keeps no burn marks either.
+  if(!impact.fragment&&(dug>0||!m.state.instance))m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});
   // The match only ends in nextTurn, once every projectile of the shot has landed and settled.
   this.broadcastBattle(m,true);
@@ -727,7 +727,8 @@ export class Game {
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){
-   if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS){const run=m.instance,room=this.rooms.get(m.roomIds[0]);if(run?.won&&run.stage+1<run.stages.length&&room&&this.matchForRoom(room.id)===m)this.launchExpedition(room,run.stage+1,m);else this.returnParties(m);}this.cleanupMatch(m);}
+   if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS){const run=m.instance,room=this.rooms.get(m.roomIds[0]);// Every stage ends back in the room; a win moves the room's choice on to the next stage (the last one starts over).
+    if(run&&room?.expedition&&this.matchForRoom(room.id)===m&&run.won)room.expedition.stage=run.stage+1<run.stages.length?run.stage+1:0;this.returnParties(m);}this.cleanupMatch(m);}
    if(m.pendingPower&&now>=m.pendingPower.at){const pending=m.pendingPower;delete m.pendingPower;delete m.state.powerCutIn;const shooter=m.state.players.find(f=>f.id===pending.playerId);if(shooter&&shooter.hp>0&&m.state.phase==='resolving')this.resolveFire(m,shooter,pending.angle,pending.power,true,now);else if(m.state.phase!=='finished')this.nextTurn(m);}
    while(m.state.phase==='resolving'&&m.instance?.events.length&&m.instance.events[0].at<=now)m.instance.events.shift()!.run();
    while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}

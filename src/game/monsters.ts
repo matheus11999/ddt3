@@ -15,21 +15,23 @@ export function preloadMonsters(){for(const def of Object.values(MONSTERS))sheet
 export const ARROW_SRC='/assets/expeditions/anthill/arrow.png';
 
 export const MONSTER_DEATH_MS=900;
+/** Step cadence per kind: the quick worker scurries, the heavy warrior plods. */
+const WALK_FRAME_MS:Record<string,number>={'ant-worker':120,'ant-soldier':160,'ant-brute':220};
 export interface MonsterView {x:number;y:number;facing:1|-1;visible:boolean;alpha:number;frame:number;bob:number;lunge:number;squash:number;moving:boolean;}
 
 /** Where and how a monster is drawn right now (server time), from the snapshot and the monster turn's timeline. */
 export function monsterView(b:Battle,f:Fighter,terrain:Uint8Array,now:number):MonsterView{
  const def=MONSTERS[f.monster!],melee=def.behavior==='melee',turn=b.instance?.monsterTurn,width=terrain.length/WORLD.rows*WORLD.cell;
  let x=f.x,y=f.y,facing=f.facing,moving=false,frame=0,lunge=0,squash=0,alpha=1,visible=true;
- // Walk-in: every monster enters from its own side of the map while the stage opens.
- const intro=b.instance?b.instance.introUntil-now:0;
+ // Walk-in (first stage only): every monster enters from its own side of the map while the stage opens.
+ const intro=b.instance?.stage===1?b.instance.introUntil-now:0;
  if(intro>0&&b.instance?.boss!==f.id){
   const k=Math.min(1,Math.max(0,1-intro/(INSTANCE_INTRO_MS*.9))),from=f.x<width/2?-70:width+70,ease=1-(1-k)**2;
   x=from+(f.x-from)*ease;const g=ground(terrain,x,Math.max(0,f.y-60));y=g<=WORLD.height?g:f.y;moving=k<1;facing=from<f.x?1:-1;
  }
  const move=turn?.moves.find(m=>m.id===f.id);
  if(move&&turn){const step=monsterStep(move,now-turn.startedAt);x=step.x;y=step.y;moving=step.moving;facing=move.facing;}
- if(melee&&moving){frame=Math.floor(now/120)%2;}
+ if(melee&&moving){frame=Math.floor(now/WALK_FRAME_MS[f.monster!])%2;}
  const bite=turn?.bites.find(entry=>entry.id===f.id);
  if(bite){const before=bite.at-now;if(before>0&&before<MONSTER_BITE_WINDUP_MS){frame=2;squash=-.06;lunge=-6*(1-before/MONSTER_BITE_WINDUP_MS);}else if(before<=0&&before>-260){frame=3;lunge=14*Math.sin(Math.PI*Math.min(1,-before/260));squash=.05;}}
  if(!melee){
@@ -39,7 +41,7 @@ export function monsterView(b:Battle,f:Fighter,terrain:Uint8Array,now:number):Mo
  const summon=turn?.summons.find(s=>s.id===f.id);
  if(summon){const age=now-summon.at;if(age<0)visible=false;else if(age<500){alpha=age/500;squash=-.2*(1-age/500);}}
  if(f.hp<=0&&!summon)visible=true;
- return {x,y,facing,visible,alpha,frame,bob:moving?Math.abs(Math.sin(now/120*Math.PI))*-3:Math.sin(now/520+f.slot)*1.2,lunge,squash,moving};
+ return {x,y,facing,visible,alpha,frame,bob:moving?Math.abs(Math.sin(now/(WALK_FRAME_MS[f.monster!]??150)*Math.PI))*-3:Math.sin(now/520+f.slot)*1.2,lunge,squash,moving};
 }
 
 /** Draws one monster at its view; `hurtAge` flashes and shakes it, `deathAge` flips it over and fades it out. */
@@ -66,8 +68,8 @@ function fallbackBody(c:CanvasRenderingContext2D,view:MonsterView,height:number)
  c.beginPath();c.ellipse(view.x,view.y-height*.35+view.bob,height*.5,height*.32,0,0,Math.PI*2);c.fill();c.stroke();c.restore();
 }
 
-/** Plate height so the name and HP bar float just above the creature's head. */
-export function monsterPlateY(f:Fighter,feetY:number){return feetY-MONSTERS[f.monster!].sprite.height+105;}
+/** Top of the slim HP bar, just under the creature's feet. */
+export function monsterPlateY(_f:Fighter,feetY:number){return feetY+10;}
 
 /** The queen's arrow along its path, nose first. */
 export function drawArrow(c:CanvasRenderingContext2D,points:number[][],index:number){

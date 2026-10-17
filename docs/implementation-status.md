@@ -323,3 +323,11 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Turno da instância reaproveitável (`shared/instanceTurn.ts`): aventureiros por agilidade, depois todos os monstros juntos.
 - Estágios editáveis no `/admin` como mapas de instância, com lista de monstros e ninho.
 - Testes: `tests/expedition.test.ts` (turno, plano das formigas, fluxo completo com os dois estágios, rainha atirando e invocando) e `node scripts/smoke-expedition.mjs`. Detalhes em `docs/expeditions.md`.
+
+### Expedições: ajustes de 17/10 (noite)
+
+- Formigas: barra de vida fina embaixo dos pés (sem nome, sem empilhar sobre as placas dos jogadores), ritmo por tipo (passo 175/115/65 px com variação de 85%–115%), 56 px de distância entre elas; quadros de andar centrados no corpo (`scripts/cut-monster-sheet.mjs`).
+- Estágio 2: túnel do ninho sem colisão e apoiado no chão, ninho na boca do túnel, degrau ligando o chão ao trono. Formigueiro sem destruição de terreno (servidor também não guarda marca de explosão em chão que não quebra numa instância).
+- Cada estágio volta para a sala; `room.expedition.stage` guarda o próximo; o líder pode escolher o estágio (provisório). Chegada das formigas e câmera nos dois lados só no estágio 1.
+- Janela: arte nova (`picker-art.webp`) montada com os mapas e as formigas, dificuldades com degradê por cor, poder recomendado x poder do jogador; quadro da sala mostra a arte do estágio escolhido. Botão Convidar na sala. Barra da rainha saiu do topo: placa pequena embaixo dela. Objetivo abaixo do minimapa.
+- Evidência: `npm test` (296), `npm run check`, `npm run build`, `test:expedition:browser`, `test:rooms:browser`, `test:battle:browser`, `test:mobile:browser`; jogo rodando com os dois estágios (capturas em `test-results/expedition-live/`).
