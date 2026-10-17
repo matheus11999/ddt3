@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {HIDDEN_POSITION,initialAbilities} from '../shared/abilities';
+import {HIDDEN_POSITION,homingTargets,initialAbilities} from '../shared/abilities';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
@@ -47,6 +47,12 @@ test('homing consumes once when armed, expires without firing and cannot be chan
  await f.game.command(f.actor.id,{type:'pass'});assert.equal(f.actor.homingArmed,false);assert.equal(f.actor.abilities!.homing,0);
  await f.game.command(f.enemy.id,{type:'fire',angle:45,power:25});const before=structuredClone(f.enemy);
  await f.game.command(f.enemy.id,{type:'ability',ability:'invisibility'});assert.deepEqual(f.enemy,before);assert.match(f.error(f.enemy.id)!,/próximo turno/);
+});
+
+test('homing magnet also targets invisible enemies but never allies or the dead',async()=>{
+ const f=await fixture(4),shooter=f.actor,players=f.match.state.players,enemies=players.filter(p=>p.team!==shooter.team);
+ enemies[0].invisibleTurns=2;enemies[1].hp=0;
+ assert.deepEqual(homingTargets(players,shooter).map(p=>p.id),[enemies[0].id]);
 });
 
 test('homing magnet locks onto an enemy the projectile passes near and curves into it',()=>{

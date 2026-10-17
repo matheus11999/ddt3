@@ -12,7 +12,7 @@ import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_IDS} from '../shared/maps';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
-import {HEAL_AMOUNT,HIDDEN_POSITION,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
+import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,clampAimAngle,weaponAimLimits} from '../shared/aim';
@@ -402,7 +402,7 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing?{projectileIndex:0,targets:simulated.state.players.filter(player=>player.team!==shooter.team&&!(player.invisibleTurns??0))}:undefined);
+  },delays,homing?{projectileIndex:0,targets:homingTargets(simulated.state.players,shooter)}:undefined);
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
   const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){

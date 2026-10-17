@@ -25,3 +25,7 @@ export const ABILITIES:readonly {id:AbilityId;name:string;detail:string;uses:num
 ];
 export function initialAbilities(loadout?:unknown):Record<AbilityId,number>{const slots=normalizeAbilityLoadout(loadout);return {heal:slots.includes('heal')?1:0,homing:slots.includes('homing')?1:0,invisibility:slots.includes('invisibility')?1:0};}
 export interface AbilityEffect {playerId:string;ability:AbilityId|'flight';x:number;y:number;amount?:number;at:number;hidden?:boolean;}
+
+/** Enemies the homing magnet may lock onto. Invisible enemies are included on purpose:
+ * the magnet finds hidden targets too. */
+export function homingTargets<T extends {team:number;hp:number}>(players:readonly T[],shooter:{team:number}):T[]{return players.filter(player=>player.team!==shooter.team&&player.hp>0);}
