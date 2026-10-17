@@ -2,7 +2,7 @@
 export interface ShopOffer {id:string;price:number;gender?:'male'|'female'|'unisex';}
 export const MAX_SHOP_ITEMS=20;
 export const SHOP_OFFERS:readonly ShopOffer[]=[
- {id:'ember',price:420},{id:'volt',price:360},{id:'crystal',price:560},{id:'dynamite',price:480},
+ {id:'ember',price:420},{id:'volt',price:360},{id:'crystal',price:560},{id:'dynamite',price:480},{id:'brick',price:500},
  {id:'outfit-surfer',price:280,gender:'male'},{id:'outfit-executive',price:340,gender:'male'},
  {id:'outfit-racer',price:360,gender:'male'},{id:'outfit-dancer',price:360,gender:'female'},
  {id:'face-brave',price:100},{id:'face-smile',price:120},{id:'face-serene',price:150},{id:'face-taunt',price:180},{id:'face-fierce',price:220},{id:'face-wink',price:180},

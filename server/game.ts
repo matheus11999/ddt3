@@ -2,10 +2,11 @@ import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
-import {attributes,BOOSTS,CATALOG,DEFAULT_EQUIPMENT,SMITH_POSITION,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,BOOSTS,CATALOG,DEFAULT_EQUIPMENT,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,Room,Seat,ServerEvent,Shot,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,ground,packTerrain,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap} from '../shared/maps';
 import {damageAtImpact} from '../shared/combat';
@@ -197,28 +198,39 @@ export class Game {
   const penalty=(count===3?.6:count===2?.9:1)*(spread.length===3?.5:1);
   const bonus=1+f.boosts.reduce((n,b)=>n+(b.startsWith('damage')?Number(b.slice(6))/100:0),0);
   const shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0};
+  const demolition=w.demolition??0,shards=weaponFragmentCount(w,f.equipment.upgrade,powered);
+  // One authoritative impact: terrain, damage, Power charge and settling share it.
+  const strike=(result:TrajectoryResult,projectileIndex:number,radius:number,blast:number,multiplier:number):Shot['projectiles'][number]['impact']=>{
+   const impact={x:result.x,y:result.y,radius,...terrainMaterial(m.state.map,result.x,result.y),...(demolition?{demolition}:{})};
+   crater(m.terrain,result.x,result.y,radius,m.state.map,demolition);
+   for(const target of m.state.players){
+    if(target.hp<=0)continue;const distance=Math.hypot(target.x-result.x,target.y-25-result.y);if(distance>blast)continue;
+    const damage=damageAtImpact(f.equipment,target.equipment,{attenuation:Math.max(.15,1-distance/blast),shotMultiplier:penalty*multiplier,boostMultiplier:bonus*(powered?POWER_DAMAGE_MULTIPLIER:1)});
+    const effective=Math.min(target.hp,damage);
+    if(target.team!==f.team){f.powerCharge=chargeFromDamage(f.powerCharge??0,effective,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,effective,target.maxHp,true);}
+    target.hp=Math.max(0,target.hp-damage);if(target.hp<=0)target.powerArmed=false;shot.hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex});
+   }
+   // Subsequent impacts and extra volleys see the same fallen positions shown by the client.
+   this.settle(m);
+   return impact;
+  };
   let delay=0;
   for(let i=0;i<count;i++){
    if(f.hp<=0)break;
    const offset=shot.projectiles.length,impacts:Shot['projectiles'][number]['impact'][]=[];
-   const results=volley(m.terrain,f,spread.map(a=>angle+a),power,m.state.wind,w,m.state.players.filter(p=>p.id!==f.id),(result,index)=>{
-    impacts[index]={x:result.x,y:result.y,radius:w.crater,...terrainMaterial(m.state.map,result.x,result.y)};
-    crater(m.terrain,result.x,result.y,w.crater,m.state.map);
-    for(const target of m.state.players){
-     if(target.hp<=0)continue;const distance=Math.hypot(target.x-result.x,target.y-25-result.y);if(distance>w.blast)continue;
-     const damage=damageAtImpact(f.equipment,target.equipment,{attenuation:Math.max(.15,1-distance/w.blast),shotMultiplier:penalty,boostMultiplier:bonus*(powered?POWER_DAMAGE_MULTIPLIER:1)});
-     const effective=Math.min(target.hp,damage);
-     if(target.team!==f.team){f.powerCharge=chargeFromDamage(f.powerCharge??0,effective,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,effective,target.maxHp,true);}
-     target.hp=Math.max(0,target.hp-damage);if(target.hp<=0)target.powerArmed=false;shot.hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:offset+index});
-    }
-    // Subsequent impacts and extra volleys see the same fallen positions shown by the client.
-    this.settle(m);
-   });
+   const results=volley(m.terrain,f,spread.map(a=>angle+a),power,m.state.wind,w,m.state.players.filter(p=>p.id!==f.id),(result,index)=>{impacts[index]=strike(result,offset+index,w.crater,w.blast,1);});
    let groupDuration=0;
    results.forEach((result,index)=>{groupDuration=Math.max(groupDuration,result.points.length*1000/60);shot.projectiles.push({points:result.points,delay,impact:impacts[index],effect:w.effect,powered});});
+   // Brick shards leave each surviving impact once it lands, in the order the volley resolved.
+   if(w.fragments&&shards)for(const result of results){
+    if(result.x<0||result.x>WORLD.width||result.y>WORLD.height)continue;
+    const center=result.points.at(-1)!,start=delay+result.points.length*1000/60,base=shot.projectiles.length,pieces:Shot['projectiles'][number]['impact'][]=[];
+    const fragments=shatter(m.terrain,{x:center[0],y:center[1]},shards,f.facing,w.fragments,m.state.wind,m.state.players.filter(p=>p.id!==f.id&&p.id!==result.hitId),(piece,index)=>{pieces[index]=strike(piece,base+index,w.fragments!.crater,w.fragments!.blast,w.fragments!.damage);});
+    fragments.forEach((piece,index)=>{groupDuration=Math.max(groupDuration,start-delay+piece.points.length*1000/60);shot.projectiles.push({points:piece.points,delay:start,impact:pieces[index],effect:w.effect,powered,fragment:true});});
+   }
    delay+=groupDuration+250;
   }
-  m.pendingMarks=[...(m.pendingMarks??[]),...shot.projectiles.map((projectile,index)=>({at:Date.now()+projectile.delay+projectile.points.length*1000/60,mark:{id:`${shot.id}:${index}`,x:projectile.impact.x,y:projectile.impact.y,radius:projectile.impact.radius,effect:projectile.effect,level:f.equipment.upgrade}}))];
+  m.pendingMarks=[...(m.pendingMarks??[]),...shot.projectiles.flatMap((projectile,index)=>projectile.fragment?[]:[{at:Date.now()+projectile.delay+projectile.points.length*1000/60,mark:{id:`${shot.id}:${index}`,x:projectile.impact.x,y:projectile.impact.y,radius:projectile.impact.radius,effect:projectile.effect,level:f.equipment.upgrade}}])];
   shot.duration=delay+550;m.state.phase='resolving';m.resolveAt=Date.now()+shot.duration;
   for(const f of m.state.players){const p=this.peers.get(f.id);if(p?.roomId===m.state.roomId)this.emit(p,{type:'shot',shot});}
   this.broadcastBattle(m);

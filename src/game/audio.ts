@@ -2,7 +2,7 @@ import {canonicalMap, getMap} from '../../shared/maps';
 import type {CanonicalMapId, MapId} from '../../shared/maps';
 import {createEnvironmentTrack} from './ambience';
 
-type WeaponSound='fire'|'electric'|'crystal'|'dynamite';
+type WeaponSound=import('../../shared/catalog').WeaponEffect;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
 }
@@ -104,6 +104,7 @@ class AudioEngine {
    if(powered){tone(impact?75:130,impact?26:310,.4,.035,'triangle');tone(impact?880:440,impact?220:880,.3,.018,'sine',.04);}
    if(effect==='crystal'){tone(impact?1300:850,impact?380:1200,.23+richness*.18,.035,'triangle');tone(impact?1740:1275,620,.32,.022,'sine',.035);if(richness>.5)tone(2200,1100,.38,.015,'sine',.07);}
    else if(effect==='dynamite'){tone(impact?95:720,impact?28:170,impact?.42:.13,.045,'triangle');if(impact)tone(210,45,.22,.024,'sawtooth',.035);else tone(1800,800,.1,.012,'square',.025);}
+   else if(effect==='brick'){tone(impact?82:250,impact?28:95,impact?.38:.16,impact?.08:.04,'triangle');if(impact)for(let n=0;n<2+Math.round(richness*3);n++)tone(1180+n*170,820+n*90,.06,.016,'square',.05+n*.065);}
    else if(effect==='electric'){tone(impact?180:420,impact?45:85,.2+richness*.12,.035,'sawtooth');tone(1600,180,.09,.018,'square',.03);}
    else {tone(impact?100:210,impact?26:65,.28+richness*.1,impact?.1:.045,'triangle');}
    if(effect!=='crystal'){

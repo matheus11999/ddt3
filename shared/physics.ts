@@ -41,13 +41,14 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=y-51;py<y-9;py+=WORLD.cell)if(solid(t,px,py))return null;
  return {x,y};
 }
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden'){
+/** `demolition` (0–1) removes that share of the extra hardness of stone, metal and magic. */
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden',demolition=0){
  const template=terrainTemplate(map);let removed=0;const extent=r/Math.sqrt(.72);
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-extent)/3));cx<Math.min(WORLD.cols,Math.ceil((x+extent)/3));cx++){
   const i=cy*WORLD.cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const radius=r/Math.sqrt(MATERIALS[region.material].resistance);
+  const resistance=MATERIALS[region.material].resistance,radius=r/Math.sqrt(resistance>1?1+(resistance-1)*(1-demolition):resistance);
   if((cx*3-x)**2+(cy*3-y)**2<=radius*radius){t[i]=0;removed++;}
  }
  return removed;
@@ -121,29 +122,45 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
  return contact;
 }
 
-/** Simultaneous shots share a clock. The callback applies authoritative impact changes
- * before the remaining shots are checked again against the changed terrain/players. */
-export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
- const speed=power*9.8,shots=angles.map(angle=>{const rad=angle*Math.PI/180,x=origin.x+origin.facing*27,y=origin.y-40;return {x,y,vx:Math.cos(rad)*speed*origin.facing,vy:-Math.sin(rad)*speed,points:[[x,y]],active:true};}),results:TrajectoryResult[]=new Array(angles.length);
+type Body={x:number;y:number;vx:number;vy:number;points:number[][];active:boolean};
+/** Simultaneous bodies share a clock. The callback applies authoritative impact changes
+ * before the remaining bodies are checked again against the changed terrain/players. */
+function simulate(terrain:Uint8Array,shots:Body[],radius:number,gravity:number,wind:number,targets:ProjectileTarget[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
+ const results:TrajectoryResult[]=new Array(shots.length);
  const finish=(index:number,contact:Contact,flightTime:number)=>{const shot=shots[index];shot.active=false;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,flightTime};results[index]=result;onImpact?.(result,index);};
  for(let frame=0;frame<900&&shots.some(shot=>shot.active);frame++){
   let elapsed=0;
   while(true){
    let earliest:{index:number;contact:Contact}|undefined;
    for(let index=0;index<shots.length;index++){
-    const shot=shots[index];if(!shot.active)continue;const dx=shot.vx/120,dy=shot.vy/120,contact=projectileContact(terrain,shot.x+dx*elapsed,shot.y+dy*elapsed,dx*(1-elapsed),dy*(1-elapsed),weapon.projectileRadius,targets);
+    const shot=shots[index];if(!shot.active)continue;const dx=shot.vx/120,dy=shot.vy/120,contact=projectileContact(terrain,shot.x+dx*elapsed,shot.y+dy*elapsed,dx*(1-elapsed),dy*(1-elapsed),radius,targets);
     if(contact){contact.fraction=elapsed+contact.fraction*(1-elapsed);if(!earliest||contact.fraction<earliest.contact.fraction)earliest={index,contact};}
    }
    if(!earliest)break;
    elapsed=earliest.contact.fraction;finish(earliest.index,earliest.contact,(frame+elapsed)*1000/120);
   }
   for(let index=0;index<shots.length;index++){
-   const shot=shots[index];if(!shot.active)continue;shot.x+=shot.vx/120;shot.y+=shot.vy/120;shot.vx+=wind*7/120;shot.vy+=weapon.gravity/120;
+   const shot=shots[index];if(!shot.active)continue;shot.x+=shot.vx/120;shot.y+=shot.vy/120;shot.vx+=wind*7/120;shot.vy+=gravity/120;
    if((frame+1)%2===0)shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);
    if(frame===899)finish(index,{x:shot.x,y:shot.y,fraction:1},7500);
   }
  }
  return results;
+}
+export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
+ const speed=power*9.8,shots=angles.map(angle=>{const rad=angle*Math.PI/180,x=origin.x+origin.facing*27,y=origin.y-40;return {x,y,vx:Math.cos(rad)*speed*origin.facing,vy:-Math.sin(rad)*speed,points:[[x,y]],active:true};});
+ return simulate(terrain,shots,weapon.projectileRadius,weapon.gravity,wind,targets,onImpact);
+}
+/** Deterministic upward fan of shards from an impact center. The middle pieces
+ * fly highest; outer pieces skip low across the ground, biased along `facing`. */
+export function shatterAngles(count:number,facing:number):number[] {
+ if(count<1)return [];if(count===1)return [facing<0?100:80];
+ return Array.from({length:count},(_,n)=>{const angle=32+n*116/(count-1);return facing<0?180-angle:angle;});
+}
+export function shatter(terrain:Uint8Array,origin:{x:number;y:number},count:number,facing:number,fragments:NonNullable<Weapon['fragments']>,wind:number,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
+ // Start just above the contact so a shard from a floor impact does not collide on frame zero.
+ const shots=shatterAngles(count,facing).map((angle,n)=>{const rad=angle*Math.PI/180,speed=fragments.speed*(1-Math.abs(Math.cos(rad))*.25)*(n%2?.92:1.06),x=origin.x,y=origin.y-fragments.radius-2;return {x,y,vx:Math.cos(rad)*speed,vy:-Math.sin(rad)*speed,points:[[x,y]],active:true};});
+ return simulate(terrain,shots,fragments.radius,fragments.gravity,wind*.5,targets,onImpact);
 }
 export function trajectory(terrain:Uint8Array,origin:ProjectileOrigin,angle:number,power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[]):TrajectoryResult {
  return volley(terrain,origin,[angle],power,wind,weapon,targets)[0];

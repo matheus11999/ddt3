@@ -21,12 +21,17 @@ export type Rarity = 'common'|'uncommon'|'rare'|'epic'|'legendary';
 export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; damage?:number; armor?:number; visual?:ItemVisual; }
 export interface ItemAttributes {attack:number;defense:number;agility:number;damage:number;armor:number;}
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
-export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:'fire'|'electric'|'crystal'|'dynamite'; minAngle:number; maxAngle:number; }
+export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
+/** Secondary pieces thrown from the main impact. Counts follow the art stages 0–8 / 9 / 10–11 / 12. */
+export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
+export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** 0–1: share of stone/metal resistance this weapon ignores. */ demolition?:number; }
 export const WEAPONS: Weapon[] = [
  {id:'ember',name:'Dragão de Brasa',slot:'weapon',rarity:'epic',color:'#ff9b44',description:'Uma pequena fera. Uma enorme explosão.',attack:145,defense:35,agility:60,damage:240,crater:66,blast:110,gravity:260,projectileRadius:6,effect:'fire',minAngle:15,maxAngle:85},
  {id:'volt',name:'Tempestade',slot:'weapon',rarity:'rare',color:'#80d9ff',description:'Um núcleo elétrico de precisão.',attack:110,defense:55,agility:135,damage:205,crater:38,blast:94,gravity:220,projectileRadius:3,effect:'electric',minAngle:15,maxAngle:80},
  {id:'crystal',name:'Flor de Cristal',slot:'weapon',rarity:'legendary',color:'#d6a1ff',description:'Fragmentos arcanos que abrem caminho.',attack:125,defense:95,agility:80,damage:220,crater:86,blast:102,gravity:290,projectileRadius:9,effect:'crystal',minAngle:20,maxAngle:85},
- {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:135,defense:45,agility:70,damage:230,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85}
+ {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:135,defense:45,agility:70,damage:230,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85},
+ {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'epic',color:'#d8432a',description:'Um fardo de tijolos que se estilhaça no impacto. Os cacos saltam e demolem até cristal, pedra e metal.',attack:130,defense:70,agility:60,damage:200,crater:44,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.6,
+  fragments:{count:[2,3,4,5],damage:.24,crater:17,blast:44,speed:235,radius:3,gravity:420}}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
@@ -108,6 +113,11 @@ export function itemAttributes(item:Item,level=0,composition:CompositionBonus={}
 }
 export function weaponVisualStage(level:number):0|9|10|12 {
  if(level>=12)return 12;if(level>=10)return 10;if(level>=9)return 9;return 0;
+}
+/** Fragments for one impact: the evolved stages throw more bricks and Power adds two. */
+export function weaponFragmentCount(weapon:Weapon,level:number,powered=false):number {
+ if(!weapon.fragments)return 0;const stage=weaponVisualStage(level),tier=stage===12?3:stage===10?2:stage===9?1:0;
+ return weapon.fragments.count[tier]+(powered?2:0);
 }
 export function weaponAssetPath(id:string,level=0):string {
  const stage=weaponVisualStage(level),suffix=stage===12?'':stage===10?'-awakened':stage===9?'-evolved':'-base';
