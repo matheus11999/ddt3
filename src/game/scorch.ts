@@ -1,12 +1,12 @@
 // A critical hit leaves the target sooty for a moment, as in DDTank. Works on any outfit because it
 // tints the whole avatar draw instead of needing art per piece.
-// Full burn, then a quick return: no long half-burnt phase (user, 17/10/2026).
-export const SCORCH_HOLD=3000,SCORCH_FADE=250;
+// Short and tied to the projectile's arrival: the next shot of a burst may land soon (user, 17/10/2026).
+export const SCORCH_HOLD=900,SCORCH_FADE=200;
 
 /** 0..1 strength of the burn, from the age of the critical hit in ms. */
 export function scorchAmount(age:number){
  if(!Number.isFinite(age)||age<0)return 0;
- if(age<120)return age/120;
+ if(age<60)return age/60;
  if(age<SCORCH_HOLD)return 1;
  return Math.max(0,1-(age-SCORCH_HOLD)/SCORCH_FADE);
 }

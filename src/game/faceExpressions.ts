@@ -17,7 +17,7 @@ export function blinking(time:number,seed:number){
  return phase<130||(seed%3===0&&phase>260&&phase<360);
 }
 /** Pain face after a hit: a normal hit flinches briefly, a critical stuns for longer. */
-export const HURT_FACE_MS=650,CRITICAL_FACE_MS=1400;
+export const HURT_FACE_MS=650,CRITICAL_FACE_MS=1000;
 export function hitFace(age:number,critical:boolean):FaceState|undefined{
  if(!Number.isFinite(age)||age<0)return undefined;
  return age<(critical?CRITICAL_FACE_MS:HURT_FACE_MS)?(critical?'critical':'hurt'):undefined;

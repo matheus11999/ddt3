@@ -41,7 +41,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
-  let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),scorchedAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
+  let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let residues:TerrainResidues|null=null;
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
@@ -57,7 +57,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
    }
    if(b){
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();scorchedAt.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}
@@ -78,8 +78,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
-    // A critical hit leaves its target burnt; kept here so it outlives the impact list of the shot.
-    for(const impact of state.impacts)for(const hit of impact.hits)if(!hit.hidden&&hit.damage>0){if(hit.critical&&impact.at>(scorchedAt.get(hit.id)??-Infinity))scorchedAt.set(hit.id,impact.at);const last=hurtAt.get(hit.id);if(!last||impact.at>last.at||(impact.at===last.at&&hit.critical))hurtAt.set(hit.id,{at:impact.at,critical:hit.critical});}
+    // The latest hit on each fighter, timed at the projectile's arrival: it drives the pain face and,
+    // when critical, a short burn. Each new projectile restarts or ends it; kept past the shot's impact list.
+    for(const impact of state.impacts)for(const hit of impact.hits)if(!hit.hidden&&hit.damage>0){const last=hurtAt.get(hit.id);if(!last||impact.at>last.at||(impact.at===last.at&&hit.critical))hurtAt.set(hit.id,{at:impact.at,critical:hit.critical});}
     const myTeam=b.players.find(player=>player.id===state.profile?.id)?.team,plates:FighterPlate[]=[];
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
@@ -105,9 +106,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
      // The range band and needle pivot on the body, behind the avatar, as in DDTank.
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,f.aimSlope??0,aimAge,limits.minAngle,limits.maxAngle,'back');
-     const scorchAge=serverNow-(scorchedAt.get(f.id)??-Infinity),scorch=hp>0?scorchAmount(scorchAge):0;
      // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
-     const hurt=hurtAt.get(f.id),face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
+     const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
