@@ -7,7 +7,7 @@ import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby'
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_DIG,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_IDS} from '../shared/maps';
@@ -401,7 +401,10 @@ export class Game {
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
   const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{
-   const impact={x:result.x,y:result.y,radius,...terrainMaterial(m.state.map,result.x,result.y),...(w.demolition?{demolition:w.demolition}:{})};
+   // A shot that hits a fighter in full still digs a little, under the target's feet.
+   const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined;
+   const dig=victim?{x:result.x,y:victim.y,radius:radius*DIRECT_HIT_DIG}:undefined;
+   const impact={x:result.x,y:result.y,radius,...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
@@ -409,8 +412,8 @@ export class Game {
     if(damage<=0)continue;
     target.hp=Math.max(0,target.hp-damage);hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
    }
-   crater(simulated.terrain,result.x,result.y,radius,m.state.map,w.demolition??0);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:result.x,y:result.y,radius,effect:w.effect,level:f.equipment.upgrade}});
+   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map);this.settle(simulated);
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
@@ -444,7 +447,7 @@ export class Game {
    if(target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,damage,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);}
    hits.push({...planned,damage,x:target.x,y:target.y-85});
   }
-  const projectile=shot.projectiles[impact.projectileIndex];crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,projectile?.impact.demolition??0);
+  crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
   if(!impact.fragment)m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);

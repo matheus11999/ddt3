@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
-import {MAP_IDS,getMap,MATERIALS} from '../shared/maps';
+import {MAP_IDS,getMap} from '../shared/maps';
 import {crater,createTerrain,ground,packTerrain,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,walkPosition,WORLD} from '../shared/physics';
 import {WEAPONS} from '../shared/catalog';
 import {Game} from '../server/game';
@@ -46,9 +46,8 @@ test('interactive containers block shots and their collision disappears with the
  crater(terrain,666,522,50,'park');assert.equal(solid(terrain,666,522),false);assert.equal(solid(terrain,666,552),true);
 });
 
-test('material resistance affects destruction size without modifying immutable regions',()=>{
- assert.ok(MATERIALS.sand.resistance<MATERIALS.earth.resistance);assert.ok(MATERIALS.stone.resistance>MATERIALS.earth.resistance);
- const terrain=createTerrain('garden');crater(terrain,420,738,20,'garden');assert.equal(solid(terrain,441,738),false);assert.equal(solid(terrain,447,738),true);
+test('craters do not modify immutable regions',()=>{
+ const terrain=createTerrain('garden');crater(terrain,420,738,24,'garden');assert.equal(solid(terrain,441,738),false);assert.equal(solid(terrain,447,738),true);
 });
 
 test('walking cannot enter tall containers and still climbs both park ramps',()=>{

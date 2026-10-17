@@ -179,7 +179,7 @@ test('a shrapnel shot sends authoritative shards after the main impact without m
   const main=shot.projectiles.filter(p=>!p.fragment),shards=shot.projectiles.filter(p=>p.fragment);
   assert.equal(main.length,1);assert.equal(shards.length,3);
   const landed=main[0].delay+main[0].flightTime;
-  for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.equal(shard.impact.demolition,.3);assert.ok(shard.delay+shard.flightTime<=shot.duration);}
+  for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.ok(shard.delay+shard.flightTime<=shot.duration);}
   assert.ok(shot.hits.every(h=>h.projectileIndex!==undefined&&h.projectileIndex<shot.projectiles.length));
   assert.equal(f.match.pendingImpacts?.filter(impact=>!impact.fragment).length,1,'only the main impact leaves a residue mark');
  });
@@ -216,4 +216,21 @@ test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of
  assert.ok(!f.match.state.rewards!.cards.some(card=>card.playerId===f.a.id));
  const [,winners,players,bonuses]=f.store.finishCalls[0] as [string,string[],string[],Record<string,unknown>];
  assert.ok(!players.includes(f.a.id));assert.ok(!winners.includes(f.a.id));assert.equal(bonuses[f.a.id],undefined);assert.ok(players.includes(f.b.id));
+});
+
+test('a direct hit still digs a little under the target, less than a shot on the ground',async()=>{
+ let direct:Extract<ServerEvent,{type:'shot'}>['shot']['projectiles'][number]|undefined,crater=0;
+ for(let power=20;power<=100&&!direct;power+=2){
+  const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
+  shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};crater=(CATALOG.brick as unknown as {crater:number}).crater;
+  f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;
+  await f.game.command(shooter.id,{type:'fire',angle:45,power});
+  const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')?.shot;
+  // Hits are revealed at impact; the planned hole already says whether the brick struck the target.
+  direct=shot?.projectiles.find(p=>p.impact.dig);
+ }
+ assert.ok(direct,'some power lands a direct hit');
+ const dig=direct.impact.dig!;
+ assert.ok(dig.radius>0&&dig.radius<direct.impact.radius,'digs less than a ground shot');
+ assert.ok(Math.abs(dig.radius-crater*.45)<1e-6);assert.ok(dig.y>direct.impact.y,'the hole is under the target, not in the air');
 });
