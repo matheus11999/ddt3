@@ -46,3 +46,13 @@ Game UI sprite sheet, 1024x512, two cells of 512x512 side by side, transparent b
 ```
 
 Integração: `VipBadge` mostra a célula esquerda (ativo) ou direita (inativo) como fundo e mantém o número e "VIP" em texto por cima.
+
+## 5. Selo de nível (atlas 3×2)
+
+Arquivo: `public/assets/ui/level-plates.webp`, 1536×1024 (seis células de 512×512), transparente. Uma célula por faixa de nível do `LevelBadge` (1–10, 11–20, 21–30, 31–40, 41–50, 51–70), na ordem da esquerda para a direita, de cima para baixo. Mesmo acabamento do escudo VIP. A arte **não leva texto**: o jogo escreve o número no centro.
+
+```text
+Game UI sprite sheet, 1536x1024, a 3x2 grid of six 512x512 cells, transparent background, each cell one centered player LEVEL badge for a chibi casual artillery browser game in the style of classic DDTank / Gunny UI, matching a painted gold-and-red VIP heraldic shield from the same game. Shape for every cell: a round medallion with a wide smooth empty centre plate (for a big level number painted later by the game), a thick bevelled metal rim, small wings or leaves on the left and right sides, and one small gem at the bottom. All six cells share the exact same size, silhouette and centre plate position, only materials and ornaments grow richer. Cell 1 (top-left, levels 1-10): plain iron grey metal, dark slate plate, no gem glow. Cell 2 (top-middle, 11-20): emerald green metal, deep green plate, small green gem. Cell 3 (top-right, 21-30): sapphire blue metal, navy plate, blue gem, small crystal spikes on the wings. Cell 4 (bottom-left, 31-40): polished bronze with warm copper shading, dark brown plate, amber gem. Cell 5 (bottom-middle, 41-50): bright silver with cool white highlights, dark steel-blue plate, small three-point silver crown on top, diamond gem. Cell 6 (bottom-right, 51-70): polished gold with orange shading, deep red enamel plate, gold crown with a red gem on top, larger feathered wings, tiny sparkles. The centre plate must be flat and evenly lit with high contrast against a white number. Thick clean dark outlines, saturated painted shading, glossy highlights, front view, no text, no letters, no numbers, no background, no drop shadow outside the badge.
+```
+
+Integração: o selo de nível do card da sala mostra a célula da faixa como fundo e escreve o número em Nunito branco com contorno, igual ao VIP.
