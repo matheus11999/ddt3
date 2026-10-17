@@ -1,14 +1,56 @@
-.upgrade-tag { display: block; overflow: visible; filter: drop-shadow(0 1px 1px #000a); pointer-events: none; }
-.upgrade-tag-5 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 3px #6dff8a66); }
-.upgrade-tag-9 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 4px #6cc4ff88); }
-.upgrade-tag-10, .upgrade-tag-11 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 4px #ffd24a99); }
-.upgrade-tag-12 { filter: drop-shadow(0 1px 1px #000a) drop-shadow(0 0 6px #ffd24acc); }
-.upgrade-tag-12 .upgrade-tag-burst { transform-origin: 60px 33px; transform-box: view-box; animation: upgrade-tag-spin 12s linear infinite; }
-.upgrade-tag-12 .upgrade-tag-halo { transform-origin: 60px 38px; transform-box: view-box; animation: upgrade-tag-pulse 1.8s ease-in-out infinite alternate; }
-.upgrade-tag-12 .upgrade-tag-sparkles path { transform-box: fill-box; transform-origin: center; animation: upgrade-tag-twinkle 1.4s ease-in-out infinite alternate; }
-.upgrade-tag-12 .upgrade-tag-sparkles path:nth-child(2) { animation-delay: .5s; }
-.upgrade-tag-12 .upgrade-tag-sparkles path:nth-child(3) { animation-delay: .9s; }
+/* Strength crest: painted wings from the level-badge sheet, sculpted number on top (same build as LevelBadge). */
+.upgrade-tag {
+  position: relative; isolation: isolate; display: inline-grid; place-items: center; flex: none; overflow: visible; pointer-events: none;
+  --tag-light: #f2f2f2; --tag-face: #b4b4b4; --tag-cut: #5c5c5c; --tag-bottom: #a2a2a2; --tag-bevel: #dedede; --tag-edge: #2e2e2e; --tag-depth: #1c1c1c;
+  --tag-art-filter: grayscale(1) brightness(.95);
+}
+.upgrade-tag[data-tier="5"] { --tag-light: #ceffbf; --tag-face: #55e96b; --tag-cut: #159642; --tag-bottom: #68f285; --tag-bevel: #c3ffc2; --tag-edge: #165a2c; --tag-depth: #0b341e; --tag-art-filter: saturate(1.12); }
+.upgrade-tag[data-tier="9"] { --tag-light: #d5f4ff; --tag-face: #4ebaff; --tag-cut: #1763cb; --tag-bottom: #51acff; --tag-bevel: #b5e6ff; --tag-edge: #12376a; --tag-depth: #08264a; --tag-art-filter: saturate(1.15); }
+.upgrade-tag:is([data-tier="10"], [data-tier="11"], [data-tier="12"]) { --tag-light: #ffffdc; --tag-face: #fff486; --tag-cut: #f19b0b; --tag-bottom: #ffe870; --tag-bevel: #fffac9; --tag-edge: #8d3d12; --tag-depth: #59221a; --tag-art-filter: saturate(1.12); }
+/* +10 uses the warm bronze wings pushed toward gold. */
+.upgrade-tag[data-tier="10"] { --tag-art-filter: sepia(.35) saturate(1.6) hue-rotate(8deg) brightness(1.12); }
+
+.upgrade-tag-art {
+  position: absolute; inset: 0; z-index: 1;
+  background: url('/assets/ui/level-badge-backdrops.png') var(--tag-art-x) var(--tag-art-y) / 300% 200% no-repeat;
+  filter: var(--tag-art-filter) drop-shadow(0 calc(var(--tag-size) * .02) calc(var(--tag-size) * .015) #080808b0);
+}
+.upgrade-tag-digits {
+  position: absolute; left: 50%; top: 44%; z-index: 3; display: grid; transform: translate(-50%, -50%) skewX(-8deg);
+  font-family: 'Nunito', sans-serif; font-size: calc(var(--tag-size) * .52); font-weight: 900; line-height: 1; letter-spacing: -.075em; padding-right: .075em;
+  font-variant-numeric: lining-nums tabular-nums; white-space: nowrap;
+}
+.upgrade-tag-digits > * { grid-area: 1 / 1; position: relative; display: block; margin: 0; font: inherit; letter-spacing: inherit; }
+.upgrade-tag-depth { z-index: 0; transform: translate(calc(var(--tag-size) * .025), calc(var(--tag-size) * .045)); color: var(--tag-depth); -webkit-text-stroke: calc(var(--tag-size) * .06) var(--tag-depth); paint-order: stroke fill; }
+.upgrade-tag-rim { z-index: 1; color: var(--tag-bevel); -webkit-text-stroke: calc(var(--tag-size) * .055) var(--tag-edge); paint-order: stroke fill; }
+.upgrade-tag-number {
+  z-index: 2;
+  color: var(--tag-face);
+  background: linear-gradient(180deg, var(--tag-light) 9%, var(--tag-face) 39%, var(--tag-light) 44%, var(--tag-cut) 49%, var(--tag-cut) 67%, var(--tag-bottom) 91%);
+  background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: calc(var(--tag-size) * .01) var(--tag-bevel); paint-order: stroke fill;
+}
+.upgrade-tag-ribbon {
+  position: absolute; left: 50%; bottom: 4%; z-index: 4; transform: translateX(-50%);
+  padding: 1px 9px 2px; border-radius: 3px; border: 1px solid var(--tag-bevel);
+  background: linear-gradient(var(--tag-cut), var(--tag-depth));
+  color: var(--tag-light); font: 900 calc(var(--tag-size) * .12) / 1.1 'Nunito', sans-serif; letter-spacing: .14em;
+  box-shadow: 0 1px 2px #000a;
+}
+
+/* +11 glows; +12 adds turning rays and sparkles behind the wings. */
+.upgrade-tag-fx { position: absolute; inset: -18%; z-index: 0; background: radial-gradient(circle closest-side, #ffe56a88 0 35%, #ffb30033 72%, transparent 100%); }
+.upgrade-tag[data-tier="12"] .upgrade-tag-fx::before {
+  content: ''; position: absolute; inset: -6%;
+  background: repeating-conic-gradient(from 0deg, #fff3a0e6 0deg 5deg, transparent 9deg 30deg);
+  -webkit-mask-image: radial-gradient(circle closest-side, #000 28%, transparent 100%); mask-image: radial-gradient(circle closest-side, #000 28%, transparent 100%);
+  animation: upgrade-tag-spin 20s linear infinite;
+}
+.upgrade-tag[data-tier="12"] .upgrade-tag-fx::after {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 18% 30%, #fffbd0 0 3%, transparent 4.5%), radial-gradient(circle at 84% 26%, #ffd23f 0 2.5%, transparent 4%), radial-gradient(circle at 80% 78%, #fffbd0 0 2.5%, transparent 4%), radial-gradient(circle at 22% 76%, #ffd23f 0 2%, transparent 3.5%);
+  animation: upgrade-tag-twinkle 1.4s ease-in-out infinite alternate;
+}
 @keyframes upgrade-tag-spin { to { transform: rotate(360deg); } }
-@keyframes upgrade-tag-pulse { from { opacity: .55; transform: scale(.94); } to { opacity: 1; transform: scale(1.04); } }
-@keyframes upgrade-tag-twinkle { from { opacity: .2; transform: scale(.5); } to { opacity: 1; transform: scale(1.1); } }
-@media (prefers-reduced-motion: reduce) { .upgrade-tag * { animation: none !important; } }
+@keyframes upgrade-tag-twinkle { from { opacity: .25; transform: scale(.94); } to { opacity: 1; transform: scale(1.04); } }
+@media (prefers-reduced-motion: reduce) { .upgrade-tag-fx, .upgrade-tag-fx::before, .upgrade-tag-fx::after { animation: none !important; } }

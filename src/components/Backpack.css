@@ -740,10 +740,8 @@
   left: -6px;
   bottom: -7px;
   z-index: 5;
-  width: 46px;
-  height: auto;
 }
-.bag-window .equipment-slots .item-card .bag-upgrade-tag { bottom: 4px; left: -12px; width: 50px; }
+.bag-window .equipment-slots .item-card .bag-upgrade-tag { bottom: -4px; left: -12px; }
 
 /* ---------- Card de informações (hover) ---------- */
 .inventory-tooltip.bag-tooltip {
