@@ -44,13 +44,38 @@ export function terrainMaterial(map:MapId,x:number,y:number):{material:MaterialI
 }
 export function solid(t:Uint8Array,x:number,y:number){const cols=terrainCols(t);if(x<0||x>=cols*3||y<0||y>=WORLD.height)return false;return t[Math.floor(y/3)*cols+Math.floor(x/3)]===1;}
 export function ground(t:Uint8Array,x:number,start=0){for(let y=Math.max(0,Math.floor(start/3)*3);y<WORLD.height;y+=3){if(solid(t,x,y))return y;}return WORLD.height+80;}
-/** A walk can climb a small ledge, but cannot start its ground search inside a wall. */
+/** One walk command moves this far, one pixel at a time, so every bump and dip on the way is felt. */
+export const WALK_STEP=8;
+/** Highest lip the feet can step onto in one pixel (about a knee): taller walls stop the walk. */
+export const WALK_STEP_UP=18;
+/** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 63°): a steeper wall, such as a deep pit or stacked craters, cannot be climbed. */
+export const WALK_SLOPE_SPAN=12;
+export const WALK_MAX_RISE=24;
+/** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
+const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
+/**
+ * Walks up to WALK_STEP pixels along the ground. Going down follows the ground
+ * (a drop taller than a step ends the walk and the fighter falls); going up is
+ * limited by a knee-high lip and a maximum slope, so a steep crater traps its
+ * occupant instead of letting them hop out. Returns null when no pixel was walked.
+ */
 export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1|-1):{x:number;y:number}|null {
- const x=Math.max(30,Math.min(terrainWidth(t)-30,origin.x+direction*8)),y=ground(t,x,origin.y-21);
- if(y<origin.y-21||solid(t,x,y-WORLD.cell))return null;
- // Feet may follow small slopes; the torso/head need clearance across their width.
- for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=y-51;py<y-9;py+=WORLD.cell)if(solid(t,px,py))return null;
- return {x,y};
+ const min=30,max=terrainWidth(t)-30;let x=Math.max(min,Math.min(max,origin.x)),y=origin.y,moved=false;
+ for(let n=0;n<WALK_STEP;n++){
+  const nx=x+direction;if(nx<min||nx>max)break;
+  const top=y-WALK_STEP_UP;if(solid(t,nx,top))break;
+  const ny=ground(t,nx,top);
+  if(ny<y){
+   // Sustained slope: compare with the ground a span behind the new foot.
+   const behind=ground(t,nx-direction*WALK_SLOPE_SPAN,ny);if(behind<=WORLD.height&&behind-ny>WALK_MAX_RISE)break;
+  }
+  let blocked=false;
+  for(let px=0;px<=WALK_BODY_FRONT&&!blocked;px+=WORLD.cell)for(let py=ny-WALK_BODY_TOP;py<ny-WALK_BODY_WAIST;py+=WORLD.cell)if(solid(t,nx+direction*px,py)){blocked=true;break;}
+  if(blocked)break;
+  const drop=ny-y;x=nx;y=ny;moved=true;
+  if(drop>WALK_STEP_UP)break; // stepped off a ledge: the fall takes over
+ }
+ return moved?{x,y}:null;
 }
 /** A projectile that hits a fighter in full digs only this share of its crater, under the target's feet. */
 export const DIRECT_HIT_DIG=.45;
