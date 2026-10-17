@@ -335,7 +335,7 @@
   background: linear-gradient(#e2592f, #a92e14);
   box-shadow: 0 2px #3b1405;
   color: #fff;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
 }
 .smith-window .forge-remove-weapon:disabled { opacity: .5; cursor: not-allowed; }
 
@@ -405,7 +405,7 @@
   color: #6b2c05;
   font-size: 19px;
   font-weight: 900;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: transform .12s, filter .12s;
 }
 .smith-window .smith-action.is-ready { animation: smith-ready 1.8s ease-in-out infinite; }
@@ -667,7 +667,7 @@
   color: var(--bag-ink);
   font-size: 13px;
   font-weight: 800;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
 }
 .smith-window .composition-attributes button.active {
   border-color: #fff3d6;
@@ -697,7 +697,7 @@
   background: var(--bag-grain), linear-gradient(90deg, #7a3a14, #9b4c1c);
   box-shadow: inset 0 1px #ffc98c66, 2px 2px #3e1a0788;
   color: #ffdca4;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: background .15s, transform .15s;
 }
 .smith-window .smith-tabs button span { font-size: 10px; font-weight: 800; text-shadow: 0 1px #3b1806; }

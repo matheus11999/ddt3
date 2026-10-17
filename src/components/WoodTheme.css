@@ -101,12 +101,12 @@
   color: #6b2c05;
   font: 900 15px/1 'Nunito', 'Trebuchet MS', sans-serif;
   text-shadow: 0 1px #fff4c255;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: filter .15s, transform .15s;
 }
 .wood-button:not(:disabled):hover { filter: brightness(1.07); transform: translateY(-1px); }
 .wood-button:not(:disabled):active { transform: translateY(1px); }
-.wood-button:disabled { cursor: default; filter: saturate(.35) brightness(.92); opacity: .6; }
+.wood-button:disabled { cursor:var(--cursor-arrow); filter: saturate(.35) brightness(.92); opacity: .6; }
 .wood-button:focus-visible,
 .wood-quiet:focus-visible,
 .wood-close:focus-visible { outline: 3px solid #fff1c4; outline-offset: 2px; }
@@ -125,11 +125,11 @@
   box-shadow: inset 0 1px #fff, inset 0 -2px #d4a565, 0 2px #3e1a0788;
   color: #8a3f0b;
   font: 900 13px/1 'Nunito', 'Trebuchet MS', sans-serif;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: filter .15s, transform .15s;
 }
 .wood-quiet:not(:disabled):hover { filter: brightness(1.04); transform: translateY(-1px); }
-.wood-quiet:disabled { cursor: default; opacity: .55; }
+.wood-quiet:disabled { cursor:var(--cursor-arrow); opacity: .55; }
 
 /* Botão vermelho de fechar/sair */
 .wood-close {
@@ -144,10 +144,10 @@
   background: linear-gradient(#e2592f, #a92e14);
   box-shadow: inset 0 1px #ffb08c, inset 0 -2px #6d1a08, 0 2px #3b1405;
   color: #fff3dc;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
 }
 .wood-close:not(:disabled):hover { filter: brightness(1.1); }
-.wood-close:disabled { opacity: .55; cursor: default; }
+.wood-close:disabled { opacity: .55; cursor:var(--cursor-arrow); }
 
 /* Selo pintado da aura atrás do personagem (mesmo da mochila) */
 .wood-sigil {

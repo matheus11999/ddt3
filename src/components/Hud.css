@@ -6,24 +6,44 @@
 .player-hud .profile-level-badge .level-badge-art{opacity:1}
 .player-hud .profile-level-badge .level-badge[data-tier="1"]{--level-art-filter:grayscale(1) brightness(1.08) contrast(1.08)}
 
-/* Praça Celeste: event medals across the top right, as in the classic artillery lobbies. */
-.game-frame>.lobby-events{position:absolute;top:74px;right:18px;display:flex;gap:4px;z-index:4}
-.lobby-event{display:flex;flex-direction:column;align-items:center;gap:2px;width:80px;padding:0;border:0;background:none;cursor:pointer;color:#fff6c8;animation:lobby-event-bob 2.8s ease-in-out infinite}
-.lobby-event:nth-child(2){animation-delay:-.7s}.lobby-event:nth-child(3){animation-delay:-1.4s}.lobby-event:nth-child(4){animation-delay:-2.1s}
-.lobby-event-medal{position:relative;display:grid;place-items:center;width:62px;height:62px;border-radius:50%;border:3px solid #ffd968;box-shadow:0 0 0 2px #5a2f12,inset 0 4px 6px #ffffff8a,inset 0 -7px 10px #0000003d,0 5px 10px #10264a66;transition:transform .15s,filter .15s}
-.lobby-event-medal svg{width:31px;height:31px;color:#fff;stroke-width:2.4;filter:drop-shadow(0 2px 0 #00000059)}
-.lobby-event.arena .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#9ff0ff,#2c9ef2 55%,#1a4fb8)}
-.lobby-event.shop .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#ffc2ec,#ff5fb4 55%,#b2246f)}
-.lobby-event.quests .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#fff1a0,#ffb21f 55%,#c2560d)}
-.lobby-event.forge .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#ffcf9e,#ff6a2d 55%,#9e2512)}
-.lobby-event-label{font:900 14px/1.1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;text-shadow:0 0 3px #5a2f12,1px 1px 0 #5a2f12,-1px 1px 0 #5a2f12,1px -1px 0 #5a2f12,-1px -1px 0 #5a2f12,0 2px 0 #5a2f12}
-.lobby-event:hover .lobby-event-medal,.lobby-event:focus-visible .lobby-event-medal{transform:scale(1.08);filter:brightness(1.12)}
-.lobby-event[aria-pressed="true"] .lobby-event-medal{border-color:#fff7cf}
-.lobby-event-count{position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 12px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
-@keyframes lobby-event-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
-@media (prefers-reduced-motion:reduce){.lobby-event{animation:none}}
-.game-frame>.quest-panel{top:150px;left:22px;right:auto}
 .game-frame>.channel-chip{position:absolute;top:118px;left:126px;display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;background:#10294bd9;border:1px solid #dfab4899;color:#ffe9a8;font:800 11px Nunito,sans-serif;letter-spacing:.3px}
 .game-frame>.channel-chip i{width:3px;height:3px;border-radius:50%;background:#ffd968}
-html.mobile-landscape .game-frame>.lobby-events{transform:scale(calc(.62 / var(--game-scale)));transform-origin:top right;top:92px}
 html.mobile-landscape .game-frame>.channel-chip{display:none}
+
+/* Praça Celeste: bottom menu in the PvP room's wood style, with the room's painted
+   menu icons on cream tiles. The game draws every label and counter. */
+.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:4px;height:auto;padding:8px 12px 7px;border:2px solid var(--wood-rim);border-radius:20px;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 0 0 4px #f6c07a55,0 12px 26px #1a0c04a0;z-index:5}
+.game-frame>nav.lobby-dock:before{content:'';position:absolute;inset:auto 10px 6px;height:24px;border-radius:0 0 13px 13px;background:linear-gradient(var(--wood-bar),var(--wood-bar-deep));box-shadow:inset 0 1px #ffc78a44;pointer-events:none}
+.lobby-dock>.lobby-dock-button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:76px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
+.lobby-dock>.lobby-dock-button:hover:not(:disabled),.lobby-dock>.lobby-dock-button.active{background:none;box-shadow:none;transform:translateY(-3px);filter:none}
+.lobby-dock-tile{position:relative;display:grid;place-items:center;width:60px;height:60px;padding:5px;border:2px solid #f2c88c;border-radius:15px;background:radial-gradient(ellipse at 50% 28%,#fffdf6,transparent 70%),linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -3px #e2b77a,0 2px #3e1a0788;transition:border-color .15s,box-shadow .15s}
+.lobby-dock-tile img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 1px #8a431855);pointer-events:none}
+.lobby-dock-tile.line svg{width:31px;height:31px;color:#a2470d;stroke-width:2.3;filter:drop-shadow(0 1px 0 #fff6dc)}
+.lobby-dock>.lobby-dock-button:hover:not(:disabled) .lobby-dock-tile,.lobby-dock>.lobby-dock-button.active .lobby-dock-tile{border-color:var(--wood-gold);box-shadow:inset 0 -3px #e2b77a,0 2px #3e1a0788,0 0 0 2px #fff1c4aa,0 0 14px #ffd36b99}
+.lobby-dock>.lobby-dock-button.arena .lobby-dock-tile{background:radial-gradient(ellipse at 50% 28%,#fff6d0,transparent 70%),linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);border-color:#fff2c8;box-shadow:inset 0 1px #fff7cf,inset 0 -3px #c06d0a,0 2px #2a0f03}
+.lobby-dock>.lobby-dock-button.arena .lobby-dock-tile.line svg{color:#7a2d05}
+.lobby-dock>.lobby-dock-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
+.lobby-dock>.lobby-dock-button:focus-visible{outline:none}.lobby-dock>.lobby-dock-button:focus-visible .lobby-dock-tile{outline:3px solid #fff1c4;outline-offset:2px}
+.lobby-dock-label{position:relative;z-index:1;font:900 12px/1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;color:var(--wood-gold);white-space:nowrap;text-shadow:0 1px #2c1004,0 0 3px #2c1004}
+.lobby-dock .lobby-dock-tile kbd{position:absolute;right:-4px;top:-5px;min-width:17px;padding:1px 4px;border:1px solid #fff2c8;border-radius:6px;background:linear-gradient(#7a3a14,#55250b);color:#ffdca4;font:900 9px/1.2 Nunito,sans-serif;opacity:1}
+.lobby-dock-count{position:absolute;top:-7px;right:-8px;min-width:21px;height:21px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 11px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
+.lobby-dock-popover{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);width:300px;padding:0 0 10px;border:2px solid var(--wood-rim);border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden;font-family:Nunito,sans-serif}
+.lobby-dock-popover>header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 12px;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);color:#fff;font-size:14px;text-shadow:0 1px #8a3a07}
+.lobby-dock-popover>header button{flex:none;min-width:0;min-height:0;display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:8px;background:#fff4d7;color:var(--wood-ink)}
+.lobby-dock-popover>p{margin:14px 12px 4px;font-size:13px;font-weight:800;color:var(--wood-ink-soft);text-align:center}
+.lobby-quest-list{display:grid;gap:6px;padding:10px 10px 0}
+.lobby-quest-list>button{display:flex;align-items:center;gap:9px;padding:7px 9px;border:1px solid #f2c88c;border-radius:10px;background:#fffdf6;text-align:left;color:var(--wood-ink)}
+.lobby-quest-list>button>span{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:linear-gradient(#ffe07a,#e48d12);color:#6b2c05;font-weight:900}
+.lobby-quest-list>button>span.done{background:linear-gradient(#8fe08a,#2f9a4a);color:#fff}
+.lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
+.game-frame>.walk-hint{bottom:124px}
+html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:translateX(-50%) scale(calc(.62 / var(--game-scale)));transform-origin:bottom center;height:auto;padding:6px 10px 6px;gap:2px}
+html.mobile-landscape .lobby-dock .lobby-dock-tile kbd{display:none}
+
+/* Lobby chat in the same wood and cream finish as the PvP room chat. */
+.game-frame>.chat-shell.lobby-chat{bottom:24px;left:20px;width:340px;height:196px;overflow:hidden;border-radius:16px;z-index:6;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 10px 22px #1a0c04a0}
+.game-frame>.chat-shell.lobby-chat.collapsed{height:50px;grid-template-rows:34px}
+.lobby-chat.collapsed .chat-messages,.lobby-chat.collapsed .chat-input{display:none}
+.lobby-chat .chat-tabs{padding-right:40px}
+.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;right:9px;top:9px;width:30px;height:30px;padding:0;border:1px solid #fff3d6;border-radius:9px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b}
+.game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.05)}
