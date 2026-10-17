@@ -123,7 +123,7 @@ kbd{color:#e8f1ff;border-color:#8299ba88;background:#0c1e3be0}
 .game-window button:not(:disabled):hover{filter:brightness(1.12)}
 .game-window button:not(:disabled):active{transform:translateY(2px);filter:brightness(.96)}
 .game-window button:focus-visible,.game-window select:focus-visible,.game-window input:focus-visible{outline:3px solid #ffe18b;outline-offset:3px}
-.game-window button:disabled{cursor:default;filter:saturate(.45);opacity:.48}
+.game-window button:disabled{cursor:var(--cursor-arrow);filter:saturate(.45);opacity:.48}
 .game-window .button[aria-busy=true]{opacity:.85;cursor:progress;filter:none}
 .game-window .button.gold.save-confirmed{background:linear-gradient(#70dcac,#1c956c);border-color:#adf6ce;color:#052e31;box-shadow:inset 0 1px #d3ffe7,0 3px #0b4e49;opacity:1;filter:none}
 .button-spinner{animation:button-spin .8s linear infinite}

@@ -67,3 +67,30 @@ Textura de piso de praça, vista DE CIMA (top-down, sem perspectiva), 1024x1024,
 Lajotas de pedra clara (creme e bege quente, alguns tons de areia e marfim) em padrão de lajes retangulares desencontradas, 4 fileiras por 4 colunas, rejunte fino dourado-acinzentado, leve musgo verde em poucos rejuntes, pequenas lascas e textura de pedra polida, acabamento pintado à mão no mesmo estilo de anime vibrante do panorama.
 Iluminação uniforme e plana: sem sombra projetada, sem vinheta, sem brilho forte de um lado, para a repetição não aparecer. Sem objetos, sem texto, sem personagens. Nitidez alta (não ampliar de imagem menor).
 ```
+
+## Menu inferior e cursor (17/10, tarde)
+
+O menu de medalhas do topo foi removido. A barra de baixo segue a sala PvP: madeira laranja, ladrilhos creme e os ícones pintados da sala (`backpack-button.png`, `arena-quests.png`, `arena-mail.png`, `arena-guild.png`). Arena, Loja, Ferreiro, Como jogar e Ajustes usam `arena-button.png`, `shop-button.png`, `forge-button.png`, `help-button.png` e `settings-button.png`, gerados pelo Codex com os prompts abaixo (17/10, 15h). O cursor `public/assets/ui/cursor.png` é o original de 128 px reduzido para 32 px, ponta em 2,2 (`--cursor-arrow` em `src/styles.css`).
+
+### Prompt dos ícones que faltam (ChatGPT)
+
+Mande junto a imagem `public/assets/ui/backpack-button.png` como referência de estilo.
+
+```
+Gere 5 ícones de menu de jogo, um por imagem, cada um PNG 256x256 com FUNDO TRANSPARENTE, no MESMO estilo da imagem de referência (mochila pintada): objeto único pintado à mão, estilo de jogo de navegador DDTank, contorno escuro marrom firme, volume forte, luz vinda de cima à esquerda, cores vivas (couro marrom, azul royal, dourado polido, detalhes vermelhos), vista levemente de 3/4, objeto ocupando ~85% do quadro e centralizado, sem sombra no chão, SEM TEXTO, sem letras, sem números, sem moldura, sem fundo.
+
+1. arena-button.png — duas espadas cruzadas de lâmina prateada com punhos dourados e uma gema azul no cruzamento, atrás um pequeno escudo redondo azul e dourado.
+2. shop-button.png — sacola de compras de tecido rosa e creme com alças de couro e um laço dourado, um chapéu pequeno saindo de dentro.
+3. forge-button.png — martelo de ferreiro grande com cabo de madeira e anéis dourados apoiado sobre uma bigorna de ferro escuro com borda dourada, sem fogo.
+4. help-button.png — livro grosso de capa azul royal com cantoneiras douradas, aberto em leque, com um pergaminho e uma pena saindo das páginas.
+5. settings-button.png — engrenagem de bronze/dourado polido com uma gema vermelha no centro e uma chave inglesa pequena de prata cruzada atrás.
+
+Salve como public/assets/ui/<nome>.png. Não altere código.
+```
+
+### Prompt do cursor (ChatGPT)
+
+```
+Gere um cursor de mouse para jogo de navegador no estilo DDTank, PNG 128x128 com FUNDO TRANSPARENTE. Uma seta de ponteiro clássica (ponta no canto SUPERIOR ESQUERDO, a 6 px das bordas), corpo dourado polido com brilho creme na borda esquerda, contorno marrom-escuro grosso e contínuo para ler bem sobre céu azul e sobre pedra clara, pequena gema vermelha perto da base da seta. Forma simples e limpa que continue legível reduzida para 32x32. Sem fogo, sem chamas, sem faíscas, sem sombra projetada, sem texto, sem fundo.
+Salve como public/assets/ui/cursor.png. Não altere código.
+```

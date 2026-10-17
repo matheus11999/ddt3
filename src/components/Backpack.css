@@ -239,7 +239,7 @@
   background: #fff;
   font-size: 13px;
   font-weight: 800;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
 }
 .bag-window .avatar-display-options label input { accent-color: #e57a22; width: 16px; height: 16px; }
 .bag-window .avatar-display-options label svg { display: none; }
@@ -605,7 +605,7 @@
   background: var(--bag-grain), linear-gradient(90deg, #7a3a14, #9b4c1c);
   box-shadow: inset 0 1px #ffc98c66, 2px 2px #3e1a0788;
   color: #ffdca4;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: background .15s, transform .15s;
 }
 .bag-window .bag-tabs button span {
@@ -690,7 +690,7 @@
   color: #6b2c05;
   font-size: 14px;
   font-weight: 900;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
 }
 .bag-window .bag-action:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
 .bag-window .bag-action:disabled { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
