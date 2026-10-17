@@ -83,12 +83,14 @@ function StoneIcon({level,size=54}:{level:number;size?:number}){
  </svg>:<img src={`/assets/stone-${level}.png`} width={size} height={size} alt={stone.name} draggable={false} onError={()=>setMissing(true)}/>;
 }
 
-export function Forge({onClose}:{onClose:()=>void}){
+/** `initial` comes from the backpack's "Aprimorar": that copy starts on the anvil, in the mode it supports. */
+export function Forge({onClose,initial}:{onClose:()=>void;initial?:string}){
  const state=useGame(),p=state.profile!;
  const [tooltip,setTooltip]=useState<Tip|null>(null),[chanceDelta,setChanceDelta]=useState<{value:number;key:number}|null>(null),[resultKey,setResultKey]=useState(0);
  const previousChance=useRef<{item:string;mode:ForgeMode;chance:number}|null>(null);
  const [mineralStat,setMineralStat]=useState<CompositionStat>('attack');
- const [mode,setMode]=useState<ForgeMode>('strengthen'),[selected,setSelected]=useState(''),[stones,setStones]=useState<Record<string,number>>({}),[selectedStone,setSelectedStone]=useState('');
+ const startsComposing=!!initial&&CATALOG[copyBase(initial)]?.slot!=='weapon';
+ const [mode,setMode]=useState<ForgeMode>(startsComposing?'compose':'strengthen'),[selected,setSelected]=useState(()=>initial&&p.inventory.includes(initial)?initial:''),[stones,setStones]=useState<Record<string,number>>({}),[selectedStone,setSelectedStone]=useState('');
  const [pending,setPending]=useState(false),[attempt,setAttempt]=useState<ForgeAttempt|null>(null),[dropTarget,setDropTarget]=useState<'weapon'|'stone'|null>(null);
  const [result,setResult]=useState<ForgeOutcome|null>(null),[localError,setLocalError]=useState<string|null>(null),[materialPulse,setMaterialPulse]=useState<{level:number;key:number}|null>(null);
  const submittedResult=useRef(state.forgeResult),submittedComposition=useRef(state.compositionResult),pendingRef=useRef(false),startedAt=useRef(0);

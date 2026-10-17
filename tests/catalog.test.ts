@@ -59,13 +59,20 @@ test('protocol rejects out-of-range simulation input before the game receives it
  assert.equal(commandSchema.safeParse({type:'rename',name:'Ária do Sol'}).success,true);
 });
 
-test('customization accepts all independent slots and rejects forged upgrades, missing slots and unknown dyes',()=>{
+test('customization accepts all independent slots and rejects forged upgrades, missing slots and free colors',()=>{
  const items=Object.fromEntries(SLOTS.map(slot=>[slot,DEFAULT_EQUIPMENT[slot]]));
- assert.equal(commandSchema.safeParse({type:'customize',selection:{items,dyes:{hat:'coral',hair:'gold',outfit:'violet'}}}).success,true);
+ assert.equal(commandSchema.safeParse({type:'customize',selection:{items}}).success,true);
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items,upgrade:12}}).success,false);
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items:{...items,weapon:undefined}}}).success,false);
- assert.equal(commandSchema.safeParse({type:'customize',selection:{items,dyes:{face:'gold'}}}).success,false);
- assert.equal(commandSchema.safeParse({type:'customize',selection:{items,dyes:{hat:'#ffffff'}}}).success,false);
+ // Colors are never part of customization: they cost a Color Ticket (paint command).
+ assert.equal(commandSchema.safeParse({type:'customize',selection:{items,dyes:{hat:'coral'}}}).success,false);
+ assert.equal(commandSchema.safeParse({type:'customize',selection:{items,colors:{hat:'#ffffff'}}}).success,false);
+ assert.equal(commandSchema.safeParse({type:'dye',slot:'hat',color:'coral'}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[{target:'hat-cap',color:'#FFAA00'},{target:'skin',color:null}]}).success,true);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[{target:'hat-cap',color:'red'}]}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[]}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:Array.from({length:9},(_,i)=>({target:`hat-cap~${i+2}`,color:null}))}).success,false);
+ assert.equal(commandSchema.safeParse({type:'recolor',item:'hat-cap',color:'#ffaa00'}).success,false);
 });
 
 test('content migration grants new starter layers once and never refills a removed owned item',()=>{
@@ -149,7 +156,9 @@ test('prototype retirement exchanges owned items and preserves equipment, compos
  assert.ok(retired.every(id=>!result.inventory.includes(id)));
  assert.ok(Object.values(RETIRED_COSMETIC_REPLACEMENTS).every(id=>result.inventory.includes(id)));
  assert.equal(result.equipment.hat,'hat-tide');assert.equal(result.equipment.hair,'hair-undercut');assert.equal(result.equipment.glasses,'glasses-sport');
- assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-executive');assert.equal(result.equipment.dyes?.hat,'coral');
+ assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-executive');
+ // The retired free dye becomes the worn hat's ticket color.
+ assert.equal(result.itemColors['hat-tide'],'#f24b64');assert.equal(result.equipment.colors?.hat,'#f24b64');
  assert.deepEqual(result.compositions,{'hat-tide':{attack:20,defense:30},ember:{armor:20}});
  assert.equal(result.gold,575);assert.equal(result.xp,1234);assert.equal(result.wins,7);assert.equal(result.matches,10);assert.equal(result.upgrades.ember,9);
  assert.equal(result.stones['1'],0);assert.equal(result.stones['5'],3);assert.equal(result.compositionStones['attack-1'],0);

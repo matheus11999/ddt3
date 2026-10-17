@@ -1,8 +1,11 @@
 import {composeUniversalHead,FACE_REGISTRATION} from './faces';
 import {clearFaceOverlays,faceOverlay,FACE_OVERLAY_RECT} from './faceExpressions';
 import type {FaceState} from './faceExpressions';
-import {CATALOG,DYES} from '../../shared/catalog';
-import type {DyeSlot,Equipment,ItemVisual,Slot} from '../../shared/catalog';
+import {CATALOG} from '../../shared/catalog';
+import type {Equipment,ItemVisual,Slot} from '../../shared/catalog';
+import type {ColorSlot} from '../../shared/colors';
+import {recolorItem,tintEyes,tintSkin} from './recolor';
+import {EYES} from './faceExpressions';
 import {drawWornHat,getHeadwearProfile} from './headwear';
 import {cutRegion,drawPinned} from './rig/draw';
 import {COSMETIC_MANIFEST,onTemplate} from './rig/manifest';
@@ -41,7 +44,7 @@ export const AVATAR_LAYERS:Partial<Record<Slot,LayerDefinition>>={
 };
 export function visual(eq:Equipment,slot:Slot):ItemVisual {
  const item=CATALOG[eq[slot]],v=item?.visual??{variant:item?item.id.replace(`${slot}-`,''):'none'};
- const dye=eq.dyes?.[slot as DyeSlot],color=DYES.find(d=>d.id===dye&&d.id!=='original')?.color;
+ const color=eq.colors?.[slot as ColorSlot];
  return {...v,color:color??v.color??item?.color??'#b68c63'};
 }
 export function ellipse(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,color:string|CanvasGradient,stroke?:string){c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fillStyle=color;c.fill();if(stroke){c.strokeStyle=stroke;c.lineWidth=1.3;c.stroke();}}
@@ -49,23 +52,15 @@ function polygon(c:CanvasRenderingContext2D,points:readonly Point[]){c.moveTo(..
 function hsl(color:string){const r=parseInt(color.slice(1,3),16)/255,g=parseInt(color.slice(3,5),16)/255,b=parseInt(color.slice(5,7),16)/255,max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min,l=(max+min)/2;let h=0;if(d)h=max===r?((g-b)/d+(g<b?6:0))/6:max===g?((b-r)/d+2)/6:((r-g)/d+4)/6;return {h,s:d?d/(1-Math.abs(2*l-1)):0};}
 function hue(p:number,q:number,t:number){t=(t+1)%1;return t<1/6?p+(q-p)*6*t:t<.5?q:t<2/3?p+(q-p)*(2/3-t)*6:p;}
 function recolor(data:Uint8ClampedArray,index:number,h:number,s:number,weight=1,luminance=1){const r=data[index]/255,g=data[index+1]/255,b=data[index+2]/255,l=(Math.max(r,g,b)+Math.min(r,g,b))/2*luminance,q=l<.5?l*(1+s):l+s-l*s,p=2*l-q;const rgb=[hue(p,q,h+1/3),hue(p,q,h),hue(p,q,h-1/3)];for(let n=0;n<3;n++)data[index+n]=Math.round(data[index+n]*(1-weight)+rgb[n]*255*weight);}
-function tint(source:HTMLCanvasElement,color:string,path:(c:CanvasRenderingContext2D)=>void,luminance=1,sourceHue?:number){
- const mask=canvas(source.width,source.height),m=mask.getContext('2d')!;m.scale(RESOLUTION,RESOLUTION);m.beginPath();path(m);m.fill('evenodd');
- const c=source.getContext('2d',{willReadFrequently:true})!,pixels=c.getImageData(0,0,source.width,source.height),coverage=m.getImageData(0,0,source.width,source.height).data,{h,s}=hsl(color);
- for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3]&&coverage[i+3]){
-  if(sourceHue!==undefined){const current=hsl('#'+[0,1,2].map(n=>pixels.data[i+n].toString(16).padStart(2,'0')).join('')),delta=Math.abs(current.h-sourceHue);if(current.s<.12||Math.min(delta,1-delta)>.13)continue;}
-  recolor(pixels.data,i,h,s,coverage[i+3]/255,luminance);
- }c.putImageData(pixels,0,0);
-}
 function cut(source:HTMLCanvasElement,points:readonly Point[],pivot:Point):AvatarPart{
  const x=Math.floor(Math.min(...points.map(p=>p[0]))),y=Math.floor(Math.min(...points.map(p=>p[1]))),width=Math.ceil(Math.max(...points.map(p=>p[0]))-x),height=Math.ceil(Math.max(...points.map(p=>p[1]))-y),layer=canvas(width*RESOLUTION,height*RESOLUTION),c=layer.getContext('2d')!;
  c.scale(RESOLUTION,RESOLUTION);c.translate(-x,-y);c.beginPath();polygon(c,points);c.clip();c.drawImage(source,0,0,SIZE,SIZE);return {canvas:layer,x,y,width,height,pivot};
 }
 export function avatarRig(eq:Equipment):AvatarRig|null{
- const outfitId=PAINTED_OUTFITS[eq.outfit]?eq.outfit:'outfit-surfer',outfit=visual({...eq,outfit:outfitId},'outfit');
+ const outfitId=PAINTED_OUTFITS[eq.outfit]?eq.outfit:'outfit-surfer';
  // Loading or stale legacy IDs never reveal a retired outfit. The only fallback is Surfista.
  if(!paintedOutfitReady(outfitId))return null;
- const face=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave'),hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null,base=modular;
+ const face=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes),hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null,base=modular;
  // Wait for the universal head instead of briefly showing the retired starter
  // haircut baked into adventurer.png while the selected artwork is loading.
  if(!face||!base.complete||!base.naturalWidth||hair&&(!hair.complete||!hair.naturalWidth))return null;
@@ -73,10 +68,12 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  const shopOutfit=outfitId==='outfit-racer'||outfitId==='outfit-dancer',cartographer=outfitId==='outfit-cartographer',atlasCombat=shopOutfit||cartographer;
  const body=asset(CATALOG[outfitId].visual!.asset!),walkImage=shopOutfit?asset('/assets/outfits/shop-walking-legs.png'):asset(cartographer?'/assets/outfits/cartographer-walk.png':`/assets/outfits/${outfitId}-walk.png`),walkReady=walkImage.complete&&walkImage.naturalWidth>0;
  const combatImage=atlasCombat?body:asset('/assets/outfits/combat-prone.png'),combatReady=combatImage.complete&&combatImage.naturalWidth>0;
- const key=JSON.stringify([outfitId,base.src,body.src,eq.dyes?.outfit,headReady?eq.face:'original',walkReady,combatReady]);const cached=rigCache.get(key);if(cached){rigCache.delete(key);rigCache.set(key,cached);return cached;}
+ const key=JSON.stringify([outfitId,base.src,body.src,eq.colors?.outfit,eq.skin,eq.eyes,headReady?eq.face:'original',walkReady,combatReady]);const cached=rigCache.get(key);if(cached){rigCache.delete(key);rigCache.set(key,cached);return cached;}
  const registration=PAINTED_OUTFITS[outfitId],source=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),c=source.getContext('2d')!;
  c.scale(RESOLUTION,RESOLUTION);c.drawImage(body,...registration.source,...registration.destination);
- const dyed=eq.dyes?.outfit&&eq.dyes.outfit!=='original';if(dyed)tint(source,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
+ // Ticket colors repaint only the outfit's zone; a body color repaints the painted arms and legs.
+ const paint=(layer:HTMLCanvasElement)=>{recolorItem(layer,outfitId,eq.colors?.outfit);tintSkin(layer,eq.skin,true);};
+ paint(source);
  const headSource=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION);headSource.getContext('2d')!.drawImage(headReady?face!:base,0,0,headSource.width,headSource.height);
  const surfer=outfitId==='outfit-surfer';
  const rig:AvatarRig={modular:headReady,paintedOutfit:true,outfitPose:outfitId.replace('outfit-','') as AvatarRig['outfitPose'],
@@ -104,7 +101,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
   const legs=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),lc=legs.getContext('2d')!;lc.scale(RESOLUTION,RESOLUTION);
   if(cartographer)lc.drawImage(walkImage,47,162,713,1009,390,820,495,420);
   else if(shopOutfit)lc.drawImage(walkImage,...(outfitId==='outfit-racer'?[210,0,620,870]:[1070,0,505,870]) as [number,number,number,number],...(outfitId==='outfit-racer'?[480,790,340,440]:[545,790,245,440]) as [number,number,number,number]);else if(surfer)lc.drawImage(walkImage,450,675,500,540,500,818,380,410);else lc.drawImage(walkImage,415,405,500,830,470,555,405,673);
-  if(dyed)tint(legs,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
+  paint(legs);
   const makeLeg=(hip:Point,knee:Point,ankle:Point,thigh:readonly Point[],shin:readonly Point[],foot:readonly Point[]):WalkingLeg=>{
    const paintedFoot=cut(legs,foot,ankle),pixels=paintedFoot.canvas.getContext('2d')!.getImageData(0,0,paintedFoot.canvas.width,paintedFoot.canvas.height).data;let lastRow=0;
    for(let i=3;i<pixels.length;i+=4)if(pixels[i]>16)lastRow=Math.max(lastRow,Math.floor(i/4/paintedFoot.canvas.width));
@@ -133,7 +130,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  if(combatReady){
   const prone=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),pc=prone.getContext('2d')!;pc.scale(RESOLUTION,RESOLUTION);
   pc.drawImage(combatImage,...(cartographer?[101,926,1055,317]:shopOutfit?(outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]):surfer?[25,380,990,350]:[1040,380,970,350]) as [number,number,number,number],201,1018,560,220);
-  if(dyed)tint(prone,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
+  paint(prone);
   // Compact chibi combat body: the unchanged universal head occupies ~75% of total height.
   const point=(p:Point):Point=>[201+(p[0]-80)*560/856,1018+(p[1]-918)*220/300];
   const cutProne=(points:readonly Point[],pivot:Point)=>cut(prone,points.map(point),point(pivot));
@@ -147,7 +144,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  if(atlasCombat&&combatReady&&rig.combat){
   const prone=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),pc=prone.getContext('2d')!;pc.scale(RESOLUTION,RESOLUTION);
   pc.drawImage(body,...(cartographer?[101,926,1055,317]:outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]) as [number,number,number,number],...(cartographer?[180,1018,650,195]:[201,1018,560,220]) as [number,number,number,number]);
-  if(dyed)tint(prone,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
+  paint(prone);
   const neck:Point=cartographer?[765,1040]:outfitId==='outfit-racer'?[680,1040]:[690,1040],hip:Point=cartographer?[465,1130]:[450,1130];
   rig.combat=cartographer?{neck,
    torso:cut(prone,[[475,1010],[850,1010],[850,1220],[475,1220]],neck),
@@ -192,29 +189,34 @@ function tintedArt(path:string,color?:string,clothOnly=false,trim=false){
  artCache.set(key,result);if(artCache.size>64)artCache.delete(artCache.keys().next().value!);return result;
 }
 
-export function getFacePortrait(id:string):HTMLCanvasElement|null {
+/** The universal head with a face, in the character's body and eye colors. */
+export function getFacePortrait(id:string,skin?:string,eyes?:string):HTMLCanvasElement|null {
  const path=CATALOG[id]?.slot==='face'?CATALOG[id].visual?.asset:undefined;if(!path)return null;
  const image=asset(path);if(!modular.complete||!modular.naturalWidth||!image.complete||!image.naturalWidth)return null;
- const cached=faceCache.get(id);if(cached)return cached;
- const head=composeUniversalHead(modular,image);faceCache.set(id,head);return head;
+ const key=`${id}:${skin??''}:${eyes??''}`,cached=faceCache.get(key);if(cached)return cached;
+ const head=composeUniversalHead(modular,image);
+ // Eyes first: a recolored iris is no longer warm, so the skin pass leaves it alone.
+ tintEyes(head,eyes,EYES);tintSkin(head,skin,false);
+ faceCache.set(key,head);if(faceCache.size>48)faceCache.delete(faceCache.keys().next().value!);return head;
 }
 /** Inventory uses the exact registered full-body painting, including gloves and boots. */
-export function getOutfitPortrait(id:string):HTMLCanvasElement|null {
+export function getOutfitPortrait(id:string,color?:string):HTMLCanvasElement|null {
  const item=CATALOG[id];if(item?.slot!=='outfit'||!PAINTED_OUTFITS[id]||!item.visual?.asset)return null;
  const image=asset(item.visual.asset);
  if(!image.complete||!image.naturalWidth)return null;
- const known=outfitCache.get(id);if(known)return known;
+ const key=`${id}:${color??''}`,known=outfitCache.get(key);if(known)return known;
  const out=canvas(512,768),c=out.getContext('2d')!,crop=PAINTED_OUTFITS[id].portrait;
  const ratio=Math.min(488/crop[2],744/crop[3]),width=crop[2]*ratio,height=crop[3]*ratio;
  c.drawImage(image,crop[0],crop[1],crop[2],crop[3],(out.width-width)/2,(out.height-height)/2,width,height);
- outfitCache.set(id,out);return out;
+ recolorItem(out,id,color);
+ outfitCache.set(key,out);if(outfitCache.size>48)outfitCache.delete(outfitCache.keys().next().value!);return out;
 }
 /** Painted hair and glasses cut from an atlas; their inventory icons use the same region. */
 export const PAINTED_ACCESSORIES:Readonly<Record<string,ArtRegion>>=Object.fromEntries(Object.entries(COSMETIC_MANIFEST).flatMap(([id,manifest])=>manifest.slot!=='hat'&&manifest.worn&&manifest.worn.source[2]!==SIZE?[[id,manifest.worn]]:[]));
 export function getAccessoryPortrait(id:string,color?:string):HTMLCanvasElement|null {
  const registration=PAINTED_ACCESSORIES[id];if(!registration)return null;
  const img=asset(registration.atlas);if(!img.complete||!img.naturalWidth)return null;const known=artCache.get(`portrait:${id}:${color??''}`);if(known)return known;
- const out=cutRegion(img,registration),c=out.getContext('2d',{willReadFrequently:true})!,[w,h]=[out.width,out.height];if(color){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(color);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}
+ const out=cutRegion(img,registration),c=out.getContext('2d',{willReadFrequently:true})!,[w,h]=[out.width,out.height];recolorItem(out,id,color);
  if(id==='glasses-navigator'){
   // The painted cyan lenses are translucent in the game. Preserve the gold
   // rims, temples and bright white glints while showing the full face below.
@@ -227,14 +229,14 @@ export function getAccessoryPortrait(id:string,color?:string):HTMLCanvasElement|
   }
   c.putImageData(pixels,0,0);
  }
- artCache.set(`portrait:${id}:${color??''}`,out);return out;
+ artCache.set(`portrait:${id}:${color??''}`,out);if(artCache.size>64)artCache.delete(artCache.keys().next().value!);return out;
 }
 const headPoint=([x,y]:Point):Point=>[(x-625)*AVATAR_UNIT,(y-1225)*AVATAR_UNIT];
 const nearEye=headPoint(FACE_REGISTRATION.sockets.leftEye),farEye=headPoint(FACE_REGISTRATION.sockets.rightEye);
-function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number){layer(c,v,()=>{
+function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number,color?:string){layer(c,v,()=>{
  // The manifest pins each lens's optical centre to the universal eye sockets.
- const registration=COSMETIC_MANIFEST[`glasses-${v.variant}`]?.worn;if(registration){
-  const translucent=v.variant==='navigator'?getAccessoryPortrait('glasses-navigator'):null;if(translucent){drawPinned(c,translucent,registration,true);return;}
+ const id=`glasses-${v.variant}`,registration=COSMETIC_MANIFEST[id]?.worn;if(registration){
+  const cut=v.variant==='navigator'||color?getAccessoryPortrait(id,color):null;if(cut){drawPinned(c,cut,registration,true);return;}
   const img=asset(registration.atlas);if(img.complete&&img.naturalWidth)drawPinned(c,img,registration);return;
  }
  const pilot=v.variant==='pilot';c.strokeStyle=shade(v.color!,.5);c.lineWidth=pilot?2.2:1.35;const glass=c.createLinearGradient(0,-111,0,-88);glass.addColorStop(0,pilot?'#70b7cf80':'#e5fcff12');glass.addColorStop(1,'#72c6da16');
@@ -249,9 +251,9 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
 /** Under a hat it is the same hairstyle, cut by `underHat`, so nothing appears that the bare hair lacks. */
 function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual,covered=false){
  const fit=(art:HTMLCanvasElement,region:ArtRegion)=>aroundEar(covered?underHat(art,region):art,region);
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,fit(img,registered),registered,true);return;}
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.colors?.hair);if(img)drawPinned(c,fit(img,registered),registered,true);return;}
  if(!hair.asset)return;
- const dyed=eq.dyes?.hair&&eq.dyes.hair!=='original',art=tintedArt(hair.asset,dyed?hair.color:undefined);
+ const art=tintedArt(hair.asset,eq.colors?.hair);
  if(art){const region=COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate(hair.asset);drawPinned(c,fit(art,region),region,true);}
 }
 /** Rear equipment follows exactly the head transform in standing and combat rigs. */
@@ -298,16 +300,24 @@ const HAT_TUCK=10,HAT_SOFT=4,HAT_NAPE:readonly Point[]=[[0,-45],[45,-38],[90,-18
 /** Past the band's front corner the cut curves down the far temple (forward, down), so side strands
  * start under the hat instead of in a flat line beside the brim. */
 const HAT_BROW:readonly Point[]=[[0,0],[30,25],[60,70],[85,140],[100,260]];
+const skinnedOverlays=new WeakMap<HTMLCanvasElement,Map<string,HTMLCanvasElement>>();
+/** Blink and pain overlays repaint the bald base over the eyes, so they take the body color too. */
+function skinnedOverlay(overlay:HTMLCanvasElement,skin:string){
+ let byColor=skinnedOverlays.get(overlay);if(!byColor){byColor=new Map();skinnedOverlays.set(overlay,byColor);}
+ let out=byColor.get(skin);if(!out){out=canvas(overlay.width,overlay.height);out.getContext('2d')!.drawImage(overlay,0,0);tintSkin(out,skin,false);byColor.set(skin,out);}
+ return out;
+}
 /** Blink or pain face over the painted face, under hair and glasses; works for every face. */
 function drawFaceState(c:CanvasRenderingContext2D,eq:Equipment,state:FaceState){
  const face=getFacePortrait(eq.face);if(!face)return;
- const overlay=faceOverlay(eq.face,state,modular,face);if(!overlay)return;
+ const painted=faceOverlay(eq.face,state,modular,face);if(!painted)return;
+ const overlay=eq.skin?skinnedOverlay(painted,eq.skin):painted;
  const [x,y,w,h]=FACE_OVERLAY_RECT,[px,py]=headPoint([x,y]);c.drawImage(overlay,px,py,w*AVATAR_UNIT,h*AVATAR_UNIT);
 }
 export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean,face?:FaceState){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
  if(isModular&&face)drawFaceState(c,eq,face);
  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>drawHair(c,eq,hair,getHeadwearProfile(eq)==='covered'));
- drawGlasses(c,visual(eq,'glasses'),time);
+ drawGlasses(c,visual(eq,'glasses'),time,eq.colors?.glasses);
  if(!drawWornHat(c,eq))drawHat(c,eq);
 }

@@ -20,4 +20,9 @@ export const SHOP_OFFERS:readonly ShopOffer[]=[
  {id:'ring-ember',price:200},{id:'ring-tide',price:160},{id:'necklace-star',price:320},{id:'bubble-cloud',price:150},
  {id:'costume-thunder-chick',price:480},{id:'costume-arcane-fox',price:480}
 ].map(offer=>({...offer,gender:itemGender(offer.id)}));
+/** Stackable goods bought by quantity; they never become equipment copies. */
+export interface ConsumableOffer {id:string;price:number;}
+export const CONSUMABLE_OFFERS:readonly ConsumableOffer[]=[{id:'color-ticket',price:60}];
+export const CONSUMABLE_OFFER_BY_ID:Readonly<Record<string,ConsumableOffer>>=Object.fromEntries(CONSUMABLE_OFFERS.map(offer=>[offer.id,offer]));
+export const isConsumableOffer=(id:string)=>Object.hasOwn(CONSUMABLE_OFFER_BY_ID,id);
 export const SHOP_OFFER_BY_ID:Readonly<Record<string,ShopOffer>>=Object.fromEntries(SHOP_OFFERS.map(offer=>[offer.id,offer]));
