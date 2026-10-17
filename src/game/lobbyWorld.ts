@@ -297,10 +297,10 @@ function portal(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean){
  c.restore();
 }
 /** Light only, laid over a painted portal: pulse, rising sparks and hover halo. */
-function portalLight(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean){
+function portalLight(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean,halo=true){
  const {x,y,scale:s,theme}=p;c.save();c.globalCompositeOperation='lighter';
- const pulse=.55+Math.sin(t/420+x)*.2+(hover?.35:0),glow=c.createRadialGradient(x,y-70*s,4,x,y-70*s,110*s);
- glow.addColorStop(0,theme.glow+'55');glow.addColorStop(1,theme.glow+'00');c.globalAlpha=pulse;c.fillStyle=glow;c.beginPath();c.arc(x,y-70*s,110*s,0,Math.PI*2);c.fill();
+ if(halo){const pulse=.55+Math.sin(t/420+x)*.2+(hover?.35:0),glow=c.createRadialGradient(x,y-70*s,4,x,y-70*s,110*s);
+  glow.addColorStop(0,theme.glow+'55');glow.addColorStop(1,theme.glow+'00');c.globalAlpha=pulse;c.fillStyle=glow;c.beginPath();c.arc(x,y-70*s,110*s,0,Math.PI*2);c.fill();}
  for(let i=0;i<9;i++){const k=(t/1700+i/9+x*.01)%1,px=x+Math.sin(i*2.3+t/500)*34*s*(1-k);c.fillStyle=theme.core;c.globalAlpha=(1-k)*.85;c.beginPath();c.arc(px,y-14*s-k*170*s,(2.4-k)*s+1,0,Math.PI*2);c.fill();}
  c.restore();
 }
@@ -339,6 +339,8 @@ export class LobbyWorld {
  painted=false;
  private art=new Map<string,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();private casts=new Map<string,HTMLCanvasElement>();
  private floor=new Image();private floorCanvas:HTMLCanvasElement|null=null;
+ /** Podium ranks with a player standing on them: their ring and halo are left out, so nothing glows behind the figure. */
+ occupied=new Set<number>();
  constructor(density=2){
   this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
   this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
@@ -421,7 +423,7 @@ export class LobbyWorld {
   for(const station of LOBBY_STATIONS){
    const podium=station.rank?this.podiums().find(p=>p.rank===station.rank):undefined;
    // Podium plaques float above the spot where the ranked player will stand.
-   const top=podium?podium.y-190:station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
+   const top=podium?podium.y-(this.occupied.has(podium.rank)?214:190):station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
    plaque(c,station.title,station.x,top+Math.sin(t/700+station.x)*3,station.id==='arena'||station.rank===1,hover===station.id);
   }
  }
@@ -468,6 +470,7 @@ export class LobbyWorld {
   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
   if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.glow?1:breath());c.drawImage(base,-w/2,-h,w,h);}
   else for(const {layer,image} of parts){
+   if(layer.motion==='pulse'&&station.rank&&this.occupied.has(station.rank))continue;
    const period=layer.period??3000,phase=(layer.phase??0)+station.x*3,amount=layer.amount,[px,py]=layer.pivot??[.5,1],ax=left+px*w,ay=top+py*h;
    c.save();
    if(layer.motion==='breathe'){c.translate(station.x,station.y);c.scale(1,breath(period));c.translate(-station.x,-station.y);}
@@ -477,9 +480,9 @@ export class LobbyWorld {
    c.drawImage(image,left,top,w,h);c.restore();
   }
   c.restore();
-  if(station.glow)portalLight(c,station.glow,t,hover);
+  if(station.glow)portalLight(c,station.glow,t,hover,!(station.rank&&this.occupied.has(station.rank)));
  }
- /** World coordinates in, interactive station out (podiums are not interactive yet). */
+ /** World coordinates in, interactive station out (podiums are not interactive). */
  hit(x:number,y:number):LobbyAction|null{return this.hover(x,y)?.action??null;}
  hover(x:number,y:number):Station|null{
   for(const station of LOBBY_STATIONS){if(!station.action)continue;const [x0,y0,x1,y1]=this.box(station);if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return station;}
