@@ -36,3 +36,13 @@ Small game illustration, 512x320, transparent background, two cute chibi adventu
 ```
 
 Integração: depois de gerar, colocar os arquivos em `public/assets/ui/` e trocar o ícone correspondente por `<img>` no componente. Conferir em `node scripts/preview-arena.mjs` (desktop e celular em paisagem).
+
+## 4. Escudo VIP (atlas 2×1) — prioridade
+
+Arquivo: `public/assets/ui/vip-badges.png`, 1024×512 (duas células de 512×512), transparente. Substitui o escudo em SVG de `src/components/VipBadge.tsx`. A arte **não leva texto**: o número do nível e a palavra "VIP" são escritos pelo jogo por cima, em Nunito com contorno.
+
+```text
+Game UI sprite sheet, 1024x512, two cells of 512x512 side by side, transparent background, each cell one centered VIP rank badge for a chibi casual artillery browser game in the style of classic DDTank / Gunny UI. Shape: a heraldic shield with a small three-point crown on top and a wide horizontal ribbon banner across the lower third. The centre of the shield is a smooth empty plate (for a big number painted later) and the ribbon is an empty smooth band (for the word VIP painted later). LEFT cell, ACTIVE: polished gold metal with warm orange shading, deep red enamel centre plate, glossy highlights, small red gem in the crown, tiny sparkles, dark brown clean outline, rich and premium. RIGHT cell, INACTIVE: identical shape and size but dull grey stone/pewter, desaturated, no sparkles, no gem glow, same outline. Thick clean outlines, saturated painted shading, front view, no text, no letters, no numbers, no background, no drop shadow outside the badge.
+```
+
+Integração: `VipBadge` mostra a célula esquerda (ativo) ou direita (inativo) como fundo e mantém o número e "VIP" em texto por cima.
