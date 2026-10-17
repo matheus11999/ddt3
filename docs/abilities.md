@@ -42,9 +42,9 @@ Cura publica a quantidade efetivamente recuperada em `AbilityEffect.amount`: por
 
 `homingArmed` é consumido ao lançar o tiro e se aplica apenas ao **projétil de índice 0**, inclusive em salvas e Tridente. Não guia todos os projéteis nem garante acerto.
 
-A orientação só atua na **descida** (`vy > 0`). O alvo deve ser inimigo vivo, não invisível, estar a até **100 unidades do centro do projétil** e ter o centro da hitbox na mesma altura ou abaixo dele. Entre candidatos elegíveis, a simulação escolhe o mais próximo. A curvatura é limitada por `HOMING_TURN_RATE = 1,8` radianos por segundo do integrador e preserva o módulo da velocidade; não há teleporte do projétil.
+Funciona como um **ímã**: em qualquer fase do voo (subida ou descida), assim que o centro do projétil passa a até **220 unidades** (`HOMING_RADIUS`) do centro da hitbox de um inimigo vivo e não invisível, ele **trava** no mais próximo e mantém a trava enquanto esse alvo viver. Travado, o projétil ignora vento e gravidade, mantém no mínimo `HOMING_MIN_SPEED = 520` px/s e faz perseguição pura: a curvatura é `max(HOMING_TURN_RATE = 6, 2·velocidade/distância)` rad/s, ou seja, o raio de curva nunca passa de metade da distância ao alvo, então não fica orbitando. Não há teleporte; a trajetória é simulada no servidor (`shared/physics.ts`) e o cliente só reproduz os pontos recebidos.
 
-A colisão continua valendo: terreno, corpo atingido antes do alvo, vento, gravidade, posição e raio do projétil ainda importam. Jogadores invisíveis não são adquiridos pela mira assistida nem selecionados como alvo pela IA do bot, mas continuam sujeitos a colisões e dano.
+A colisão continua valendo: terreno e corpo atingido antes do alvo ainda bloqueiam; vento e gravidade só valem antes da trava. Jogadores invisíveis não são adquiridos pela mira assistida nem selecionados como alvo pela IA do bot, mas continuam sujeitos a colisões e dano.
 
 ## Invisibilidade e destinatários
 
