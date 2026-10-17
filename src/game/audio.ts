@@ -7,7 +7,7 @@ type WeaponSound=import('../../shared/catalog').WeaponEffect;
 const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/assets/audio/sfx/impact-crack.mp3',volume:.3}] as const;
 const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp3`);
 /** Battle cues with a few recorded variations each; one is picked at random every time. */
-const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.3}} as const;
+const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.22},powShot:{urls:variants('pow-shot'),volume:.3},powImpact:{urls:variants('pow-impact'),volume:.3}} as const;
 export type AudioCue=keyof typeof CUES;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
@@ -27,6 +27,7 @@ class AudioEngine {
  private unlocked=false;
  private samples=new Map<string,AudioBuffer>();
  private loading:AudioContext|null=null;
+ private cueAt=new Map<AudioCue,number>();
 
  setEnabled(value:boolean){
   this.enabled=value;savePreference('brasa-sound',value);
@@ -88,12 +89,20 @@ class AudioEngine {
  private playSample(c:AudioContext,buffer:AudioBuffer,volume:number,rate=1){
   const source=c.createBufferSource(),g=c.createGain();source.buffer=buffer;source.playbackRate.value=rate;g.gain.value=volume;source.connect(g);g.connect(c.destination);source.start();
  }
+ /** Plays one random recorded variation of a cue; false until its files are decoded. */
+ private playCue(c:AudioContext,id:AudioCue){
+  const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter(buffer=>buffer!==undefined);
+  if(!loaded.length)return false;
+  // Simultaneous projectiles (trident, volleys) share one cue instead of stacking copies.
+  const now=c.currentTime;if(now-(this.cueAt.get(id)??-1)<.25)return true;this.cueAt.set(id,now);
+  this.playSample(c,loaded[Math.floor(Math.random()*loaded.length)],cue.volume,.97+Math.random()*.06);return true;
+ }
  /** Plays a recorded battle cue; falls back to a short synthesized chime until its files are decoded. */
  cue(id:AudioCue){
   if(!this.enabled||this.isHidden())return;
   try{
-   const c=this.getContext();this.resume(c);const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter(buffer=>buffer!==undefined);
-   if(loaded.length){this.playSample(c,loaded[Math.floor(Math.random()*loaded.length)],cue.volume,.97+Math.random()*.06);return;}
+   const c=this.getContext();this.resume(c);
+   if(this.playCue(c,id))return;
    const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(id==='pow'?330:880,t);o.frequency.exponentialRampToValueAtTime(id==='pow'?990:1320,t+.25);g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.32);
   }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
@@ -135,7 +144,8 @@ class AudioEngine {
    if(type==='click'){tone(480,260,.1,.035);return;}if(type==='turn'){tone(660,630,.18,.04);tone(880,830,.26,.035,'sine',.1);return;}
    const impact=type==='impact';
    const recorded=impact&&this.playImpactLayers(c,t,powered?1.15:1);
-   if(powered){tone(impact?75:130,impact?26:310,.4,.035,'triangle');tone(impact?880:440,impact?220:880,.3,.018,'sine',.04);}
+   // A POW shot adds its own recorded launch or explosion; the synthesized swell stays as the fallback.
+   if(powered&&!this.playCue(c,impact?'powImpact':'powShot')){tone(impact?75:130,impact?26:310,.4,.035,'triangle');tone(impact?880:440,impact?220:880,.3,.018,'sine',.04);}
    if(effect==='crystal'){tone(impact?1300:850,impact?380:1200,.23+richness*.18,.035,'triangle');tone(impact?1740:1275,620,.32,.022,'sine',.035);if(richness>.5)tone(2200,1100,.38,.015,'sine',.07);}
    else if(effect==='dynamite'){tone(impact?95:720,impact?28:170,impact?.42:.13,.045,'triangle');if(impact)tone(210,45,.22,.024,'sawtooth',.035);else tone(1800,800,.1,.012,'square',.025);}
    else if(effect==='brick'){tone(impact?82:250,impact?28:95,impact?.38:.16,impact?.08:.04,'triangle');if(impact)for(let n=0;n<2+Math.round(richness*3);n++)tone(1180+n*170,820+n*90,.06,.016,'square',.05+n*.065);}
