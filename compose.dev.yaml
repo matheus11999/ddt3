@@ -10,6 +10,7 @@ services:
       - ./shared:/app/shared:ro
       - ./public:/app/public:ro
       - ./index.html:/app/index.html:ro
+      - ./admin.html:/app/admin.html:ro
       - ./vite.config.ts:/app/vite.config.ts:ro
       - ./tsconfig.json:/app/tsconfig.json:ro
     init: true

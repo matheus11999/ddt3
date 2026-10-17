@@ -1,0 +1,359 @@
+import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
+import {AlertTriangle,ArrowDown,ArrowLeft,ArrowUp,Copy,Download,FlipHorizontal2,Grid3x3,History,Layers,Loader2,Maximize,Redo2,RotateCcw,Rocket,Save,ShieldAlert,Trash2,Undo2,Users,X,Eye} from 'lucide-react';
+import {api} from './api';
+import type {RevisionData} from './api';
+import {assemble,cutSheet,expandItems,loadImage,montage,preview,MAP_HEIGHT} from '../../shared/mapBuilder';
+import type {Assembly,LayoutItem,MapLayout,Piece} from '../../shared/mapBuilder';
+import {MAP_DEFINITIONS} from '../../shared/maps';
+import type {MapId} from '../../shared/maps';
+import {MAP_KIND_NAMES} from '../../shared/mapAdmin';
+import type {AdminMapSummary,AdminRevision,MapSave} from '../../shared/mapAdmin';
+import {status} from './MapList';
+
+/** Layouts shipped in the repository (scripts/map-layouts), the starting point of built-in maps. */
+const SHIPPED=import.meta.glob('../../scripts/map-layouts/*.json',{eager:true,import:'default'}) as Record<string,MapLayout>;
+const shippedLayout=(id:string)=>{const found=Object.entries(SHIPPED).find(([path])=>path.endsWith(`/${id}.json`));return found?structuredClone(found[1]):null;};
+/** layout.source is a repository path; files under public/ are served from the site root. */
+const sourceUrl=(layout:MapLayout,file:string)=>`/${(layout.source??'').replace(/^public\//,'').replace(/\/$/,'')}/${file}`;
+const SHEET_NAMES:Record<string,string>={pecas:'Terreno',pecas2:'Terreno 2',objetos:'Objetos'};
+const TEAM_COLORS=['#4aa8ff','#ff5a5a'];
+
+type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|null;
+interface Meta {name:string;subtitle:string;kind:'pvp'|'instance';enabled:boolean;}
+interface Doc {layout:MapLayout;meta:Meta;}
+interface Sheet {name:string;pieces:(Piece&{alpha:Uint8ClampedArray;thumb:string})[];}
+interface View {scale:number;x:number;y:number;}
+type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View};
+
+type PieceSave=Extract<MapSave,{layout:unknown}>;
+const clone=<T,>(v:T):T=>structuredClone(v);
+const round=(v:number)=>Math.round(v*10)/10;
+
+export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
+ const [summary,setSummary]=useState<AdminMapSummary|null>(null),[revisions,setRevisions]=useState<AdminRevision[]>([]);
+ const [doc,setDoc]=useState<Doc|null>(null),[sheets,setSheets]=useState<Record<string,Sheet>>({}),[backdrop,setBackdrop]=useState<HTMLImageElement|null>(null);
+ const [selection,setSelection]=useState<Selection>(null),[built,setBuilt]=useState<Assembly|null>(null),[building,setBuilding]=useState(false);
+ const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[dirty,setDirty]=useState(false),[savedRevision,setSavedRevision]=useState<number|null>(null);
+ const [overlay,setOverlay]=useState({collision:false,grid:false,centre:true,ghost:true}),[panel,setPanel]=useState<'pieces'|'layers'>('pieces'),[sheetTab,setSheetTab]=useState(''),[showHistory,setShowHistory]=useState(false),[confirm,setConfirm]=useState<null|{warnings:string[]}>(null);
+ const history=useRef<{past:Doc[];future:Doc[]}>({past:[],future:[]});
+ const builtFor=useRef<string>('');
+
+ // ── Load: draft from the server, else the shipped layout, else a copy of the base map ──
+ useEffect(()=>{let live=true;(async()=>{
+  try{
+   const r=await api.map(id);if(!live)return;setSummary(r.map);setRevisions(r.revisions);
+   const fresh=JSON.parse(sessionStorage.getItem(`brasa-new-map:${id}`)??'null') as {name:string;kind:'pvp'|'instance';base:string}|null;
+   let data:RevisionData|null=r.draft,layout=(data?.layout as MapLayout|undefined)??shippedLayout(id);
+   const base=fresh?.base??r.map.base;
+   if(!layout&&base){const b=await api.map(base).catch(()=>null);layout=(b?.draft?.layout as MapLayout|undefined)??shippedLayout(base);}
+   if(!layout)throw new Error('Não achei o layout deste mapa (scripts/map-layouts).');
+   const meta:Meta={name:data?.name??fresh?.name??layout.name??r.map.name,subtitle:String(data?.subtitle??r.map.subtitle??''),kind:(data?.kind??fresh?.kind??r.map.kind)==='instance'?'instance':'pvp',enabled:data?.enabled!==false};
+   layout.name=meta.name;setDoc({layout,meta});setSavedRevision(r.map.draftRevision);setDirty(!!fresh);
+   // Art: the map's own backdrop, or its base map's for a map created in the panel.
+   const artId=(MAP_DEFINITIONS[id as MapId]?id:base) as MapId;
+   loadImage(MAP_DEFINITIONS[artId]?.art.background??'/assets/maps/snow/background.webp').then(img=>live&&setBackdrop(img)).catch(()=>setError('Fundo do mapa não carregou.'));
+   const entries=Object.entries(layout.sheets??{pieces:layout.pieces??''});
+   const cut=await Promise.all(entries.map(async([name,file])=>{const {pieces}=cutSheet(await loadImage(sourceUrl(layout!,file)));
+    return [name,{name,pieces:pieces.map(p=>{const thumb=document.createElement('canvas'),k=Math.min(1,120/Math.max(p.w,p.h));thumb.width=p.w*k;thumb.height=p.h*k;thumb.getContext('2d')!.drawImage(p.canvas,0,0,thumb.width,thumb.height);
+     return {...p,alpha:p.canvas.getContext('2d')!.getImageData(0,0,p.w,p.h).data,thumb:thumb.toDataURL()};})}] as const;}));
+   if(!live)return;setSheets(Object.fromEntries(cut));setSheetTab(entries[0]?.[0]??'');
+  }catch(e){if(live)setError((e as Error).message);}
+ })();return()=>{live=false;};},[id]);
+
+ // ── Rebuild (collision + warnings) shortly after each change ──
+ const piecesBySheet=useMemo(()=>Object.fromEntries(Object.entries(sheets).map(([k,s])=>[k,s.pieces])),[sheets]);
+ useEffect(()=>{
+  if(!doc||!Object.keys(sheets).length)return;
+  const key=JSON.stringify(doc.layout);if(key===builtFor.current)return;
+  setBuilding(true);const timer=setTimeout(()=>{try{setBuilt(assemble(doc.layout,piecesBySheet));builtFor.current=key;}catch(e){setError((e as Error).message);}setBuilding(false);},450);
+  return()=>clearTimeout(timer);
+ },[doc,sheets,piecesBySheet]);
+
+ // ── Editing with undo ──
+ const change=useCallback((update:(d:Doc)=>void,record=true)=>{
+  setDoc(current=>{if(!current)return current;const next=clone(current);update(next);if(record){history.current.past.push(current);if(history.current.past.length>100)history.current.past.shift();history.current.future=[];}return next;});
+  setDirty(true);
+ },[]);
+ const undo=useCallback(()=>{const h=history.current;setDoc(current=>{const prev=h.past.pop();if(!prev||!current)return current;h.future.push(current);return prev;});setDirty(true);},[]);
+ const redo=useCallback(()=>{const h=history.current;setDoc(current=>{const next=h.future.pop();if(!next||!current)return current;h.past.push(current);return next;});setDirty(true);},[]);
+ const updateItem=(index:number,patch:Partial<LayoutItem>,record=true)=>change(d=>{Object.assign(d.layout.items[index],patch);for(const k of Object.keys(patch) as (keyof LayoutItem)[])if(patch[k]===undefined)delete d.layout.items[index][k];},record);
+ const W=doc?.layout.width??1536;
+
+ const addPiece=(sheet:string,piece:number)=>{if(!doc)return;const v=viewRef.current,canvas=canvasRef.current,centre=canvas?Math.round((canvas.clientWidth/2-v.x)/v.scale):W/2;
+  const object=sheet==='objetos',n=doc.layout.items.length,base=`${sheet}-${piece}`;let itemId=base,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${base}-${k++}`;
+  change(d=>{d.layout.items.push({id:itemId,sheet,piece,x:Math.max(0,Math.min(W,centre)),top:object?200:420,scale:object?.32:.9,material:'earth',destructible:true,...(object?{rest:true}:{}),...(Math.abs(centre-W/2)<60?{mirror:false}:{})});});
+  setSelection({type:'item',index:n});};
+ const removeItem=(index:number)=>{change(d=>{d.layout.items.splice(index,1);});setSelection(null);};
+ const duplicate=(index:number)=>{if(!doc)return;const source=doc.layout.items[index];let itemId=`${source.id}-copia`,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${source.id}-copia${k++}`;
+  change(d=>{d.layout.items.splice(index+1,0,{...clone(source),id:itemId,x:source.x+40});});setSelection({type:'item',index:index+1});};
+ const move=(index:number,by:number)=>{const to=index+by;if(!doc||to<0||to>=doc.layout.items.length)return;change(d=>{const [it]=d.layout.items.splice(index,1);d.layout.items.splice(to,0,it);});setSelection({type:'item',index:to});};
+
+ // ── Canvas: view, drawing, hit testing ──
+ const canvasRef=useRef<HTMLCanvasElement>(null),wrapRef=useRef<HTMLDivElement>(null),viewRef=useRef<View>({scale:.4,x:0,y:0}),dragRef=useRef<Drag|null>(null),[,redraw]=useState(0);
+ const fit=useCallback(()=>{const wrap=wrapRef.current;if(!wrap)return;const scale=Math.min((wrap.clientWidth-40)/W,(wrap.clientHeight-40)/MAP_HEIGHT);viewRef.current={scale,x:(wrap.clientWidth-W*scale)/2,y:(wrap.clientHeight-MAP_HEIGHT*scale)/2};redraw(n=>n+1);},[W]);
+ useEffect(()=>{fit();const wrap=wrapRef.current;if(!wrap)return;const ro=new ResizeObserver(()=>redraw(n=>n+1));ro.observe(wrap);return()=>ro.disconnect();},[fit,!!doc]);
+
+ /** Items as drawn: built positions for props resting on the ground, live positions while they move. */
+ const placed=useMemo(()=>{
+  if(!doc)return [];
+  const builtTop=new Map<string,number>(),builtItems=new Map<string,string>();
+  if(built)for(const p of built.placed){builtTop.set(p.id,p.top);builtItems.set(p.id,JSON.stringify(p.item));}
+  return expandItems(doc.layout).map(({item,source,mirrored})=>{
+   const sheet=item.sheet??Object.keys(doc.layout.sheets??{})[0],piece=sheets[sheet]?.pieces[item.piece];
+   const scale=item.scale??1,w=(piece?.w??0)*scale,h=(piece?.h??0)*scale;
+   const sameAsBuilt=builtItems.get(item.id)===JSON.stringify(item),top=item.rest&&sameAsBuilt?builtTop.get(item.id)??item.top:item.top;
+   return {item,source,mirrored,piece,sheet,w,h,left:item.x-w/2,top};
+  });
+ },[doc,built,sheets]);
+ const collisionLayer=useMemo(()=>{
+  if(!built)return null;const c=document.createElement('canvas');c.width=built.width/3;c.height=MAP_HEIGHT/3;const g=c.getContext('2d')!,img=g.createImageData(c.width,c.height);
+  for(const r of built.regions){const raw=atob(r.shape.bits);for(let n=0;n<r.shape.cols*r.shape.rows;n++)if(raw.charCodeAt(n>>3)>>(n&7)&1){const i=((r.shape.row+Math.floor(n/r.shape.cols))*c.width+r.shape.col+n%r.shape.cols)*4;if(i<0||i>=img.data.length)continue;
+   if(r.destructible){img.data[i]=80;img.data[i+1]=230;img.data[i+2]=120;}else{img.data[i]=170;img.data[i+1]=170;img.data[i+2]=190;}img.data[i+3]=150;}}
+  g.putImageData(img,0,0);return c;
+ },[built]);
+ const warnedItems=useMemo(()=>new Set(built?.warnings.flatMap(w=>w.item===undefined?[]:[w.item])??[]),[built]);
+ const surfaceAt=useCallback((x:number)=>built&&x>=0&&x<built.width?built.surface[Math.floor(x)]:MAP_HEIGHT,[built]);
+
+ useEffect(()=>{
+  const canvas=canvasRef.current,wrap=wrapRef.current;if(!canvas||!wrap||!doc)return;
+  const dpr=devicePixelRatio||1,cw=wrap.clientWidth,ch=wrap.clientHeight;if(canvas.width!==cw*dpr||canvas.height!==ch*dpr){canvas.width=cw*dpr;canvas.height=ch*dpr;}
+  const c=canvas.getContext('2d')!,v=viewRef.current;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,cw,ch);
+  c.save();c.translate(v.x,v.y);c.scale(v.scale,v.scale);
+  c.save();c.beginPath();c.rect(0,0,W,MAP_HEIGHT);c.clip();
+  if(backdrop){const k=Math.max(W/backdrop.width,MAP_HEIGHT/backdrop.height);c.drawImage(backdrop,(W-backdrop.width*k)/2,MAP_HEIGHT-backdrop.height*k,backdrop.width*k,backdrop.height*k);c.fillStyle='rgba(7,13,24,.14)';c.fillRect(0,0,W,MAP_HEIGHT);}
+  else{c.fillStyle='#22324a';c.fillRect(0,0,W,MAP_HEIGHT);}
+  if(overlay.grid){c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=1/v.scale;for(let x=0;x<=W;x+=96){c.beginPath();c.moveTo(x,0);c.lineTo(x,MAP_HEIGHT);c.stroke();}for(let y=0;y<=MAP_HEIGHT;y+=96){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}}
+  for(const p of placed){if(!p.piece)continue;c.save();c.translate(p.item.x,p.top);if(p.item.flip)c.scale(-1,1);if(p.item.solid===false)c.globalAlpha=.75;c.drawImage(p.piece.canvas,-p.w/2,0,p.w,p.h);c.restore();}
+  if(overlay.collision&&collisionLayer){c.imageSmoothingEnabled=false;c.drawImage(collisionLayer,0,0,W,MAP_HEIGHT);c.imageSmoothingEnabled=true;}
+  c.restore();
+  // Frame, centre and the death line.
+  c.lineWidth=2/v.scale;c.strokeStyle='rgba(255,255,255,.35)';c.strokeRect(0,0,W,MAP_HEIGHT);
+  if(overlay.centre){c.setLineDash([10/v.scale,8/v.scale]);c.strokeStyle='rgba(255,214,120,.55)';c.beginPath();c.moveTo(W/2,0);c.lineTo(W/2,MAP_HEIGHT);c.stroke();c.setLineDash([]);
+   for(let s=1;s<W/1536;s++){c.strokeStyle='rgba(255,255,255,.18)';c.beginPath();c.moveTo(s*1536,0);c.lineTo(s*1536,MAP_HEIGHT);c.stroke();}}
+  c.strokeStyle='#ff4040';c.lineWidth=3/v.scale;c.beginPath();c.moveTo(0,MAP_HEIGHT-1);c.lineTo(W,MAP_HEIGHT-1);c.stroke();
+  // Warnings and selection outlines.
+  for(const p of placed){
+   const selected=selection?.type==='item'&&selection.index===p.source,warned=warnedItems.has(p.source)&&!p.mirrored;
+   if(!selected&&!warned)continue;
+   c.lineWidth=(selected?2.5:2)/v.scale;c.strokeStyle=selected?(p.mirrored?'rgba(255,214,120,.7)':'#ffd166'):'#ff6b5a';if(p.mirrored||!selected&&warned)c.setLineDash([8/v.scale,6/v.scale]);
+   if(p.mirrored&&!overlay.ghost&&!warned){c.setLineDash([]);continue;}
+   c.strokeRect(p.left,p.top,p.w,p.h);c.setLineDash([]);
+   if(selected&&!p.mirrored){c.fillStyle='#ffd166';for(const [hx,hy] of [[p.left,p.top],[p.left+p.w,p.top],[p.left,p.top+p.h],[p.left+p.w,p.top+p.h]]){c.fillRect(hx-4/v.scale,hy-4/v.scale,8/v.scale,8/v.scale);}}
+  }
+  // Spawns: a capsule standing on the ground, numbered like spawns.png.
+  doc.layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{const y=surfaceAt(x),bottom=y>=MAP_HEIGHT?MAP_HEIGHT-4:y,s=1/Math.max(.45,v.scale),sel=selection?.type==='spawn'&&selection.team===t&&selection.slot===slot;
+   c.save();c.translate(x,bottom);c.scale(s,s);
+   if(sel){c.shadowColor='#ffd166';c.shadowBlur=18;}
+   c.fillStyle=y>=MAP_HEIGHT?'#7a2a2a':TEAM_COLORS[t];c.strokeStyle=sel?'#ffd166':'#fff';c.lineWidth=sel?4:2.5;c.beginPath();c.roundRect(-11,-46,22,46,9);c.fill();c.stroke();c.shadowBlur=0;
+   c.font='900 20px Nunito, sans-serif';c.textAlign='center';c.lineWidth=5;c.strokeStyle='#000';c.strokeText(String(slot+1),0,-54);c.fillStyle='#fff';c.fillText(String(slot+1),0,-54);
+   c.restore();}));
+  c.restore();
+ });
+
+ const toWorld=(e:{clientX:number;clientY:number})=>{const r=canvasRef.current!.getBoundingClientRect(),v=viewRef.current;return {x:(e.clientX-r.left-v.x)/v.scale,y:(e.clientY-r.top-v.y)/v.scale};};
+ const hitSpawn=(x:number,y:number)=>{if(!doc)return null;const s=1/Math.max(.45,viewRef.current.scale);
+  for(let t=1;t>=0;t--)for(let slot=doc.layout.spawns[t].length-1;slot>=0;slot--){const sx=doc.layout.spawns[t][slot],sy=Math.min(surfaceAt(sx),MAP_HEIGHT-4);if(Math.abs(x-sx)<=14*s&&y<=sy+6*s&&y>=sy-70*s)return {team:t,slot};}return null;};
+ const hitItem=(x:number,y:number)=>{for(let n=placed.length-1;n>=0;n--){const p=placed[n];if(!p.piece||x<p.left||x>p.left+p.w||y<p.top||y>p.top+p.h)continue;
+  const scale=p.item.scale??1,lx=Math.floor(((x-p.item.x)*(p.item.flip?-1:1)+p.w/2)/scale),ly=Math.floor((y-p.top)/scale);
+  if(lx>=0&&ly>=0&&lx<p.piece.w&&ly<p.piece.h&&p.piece.alpha[(ly*p.piece.w+lx)*4+3]>60)return p;}return null;};
+
+ const onPointerDown=(e:React.PointerEvent)=>{
+  if(!doc)return;(e.target as HTMLElement).setPointerCapture(e.pointerId);const {x,y}=toWorld(e);
+  if(e.button===1||e.button===2||e.altKey){dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};return;}
+  const spawn=hitSpawn(x,y);if(spawn){setSelection({type:'spawn',...spawn});dragRef.current={kind:'spawn',...spawn,startX:x,origin:doc.layout.spawns[spawn.team][spawn.slot],moved:false};return;}
+  const item=hitItem(x,y);
+  if(item){setSelection({type:'item',index:item.source});dragRef.current={kind:'item',index:item.source,mirrored:item.mirrored,startX:x,startY:y,origin:clone(doc.layout.items[item.source]),moved:false};return;}
+  setSelection(null);dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};
+ };
+ const onPointerMove=(e:React.PointerEvent)=>{
+  const drag=dragRef.current;if(!drag)return;
+  if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
+  const {x,y}=toWorld(e);
+  if(drag.kind==='spawn'){const nx=Math.round(Math.max(0,Math.min(W,drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
+  let dx=x-drag.startX,dy=y-drag.startY;if(e.shiftKey){if(Math.abs(dx)>Math.abs(dy))dy=0;else dx=0;}
+  if(drag.mirrored)dx=-dx;
+  change(d=>{const item=d.layout.items[drag.index];item.x=Math.round(drag.origin.x+dx);item.top=Math.round(drag.origin.top+dy);},!drag.moved);drag.moved=true;
+ };
+ const onPointerUp=()=>{dragRef.current=null;};
+ const onWheel=(e:React.WheelEvent)=>{
+  const r=canvasRef.current!.getBoundingClientRect(),v=viewRef.current;
+  if(e.shiftKey){viewRef.current={...v,x:v.x-(e.deltaY||e.deltaX)};redraw(n=>n+1);return;}
+  const scale=Math.max(.1,Math.min(3,v.scale*Math.exp(-e.deltaY*.0015))),mx=e.clientX-r.left,my=e.clientY-r.top;
+  viewRef.current={scale,x:mx-(mx-v.x)*scale/v.scale,y:my-(my-v.y)*scale/v.scale};redraw(n=>n+1);
+ };
+ const zoom100=()=>{const wrap=wrapRef.current!,v=viewRef.current,cx=(wrap.clientWidth/2-v.x)/v.scale;viewRef.current={scale:1,x:wrap.clientWidth/2-cx,y:(wrap.clientHeight-MAP_HEIGHT)/2};redraw(n=>n+1);};
+
+ // ── Save and publish ──
+ const save=useCallback(async():Promise<number|null>=>{
+  if(!doc)return null;setBusy('Salvando…');setError('');
+  try{
+   await new Promise(r=>setTimeout(r,20));
+   const fresh=assemble(doc.layout,piecesBySheet);setBuilt(fresh);builtFor.current=JSON.stringify(doc.layout);
+   const whole=montage(fresh.width,backdrop??fresh.world,fresh.world),b64=(c:HTMLCanvasElement)=>c.toDataURL('image/png').split(',')[1];
+   const payload:PieceSave={kind:doc.meta.kind,name:doc.meta.name,subtitle:doc.meta.subtitle,enabled:doc.meta.enabled,layout:{...doc.layout,name:doc.meta.name,subtitle:doc.meta.subtitle,kind:doc.meta.kind} as PieceSave['layout'],
+    regions:fresh.regions.map(({solid:_solid,...r})=>({...r,material:r.material as PieceSave['regions'][number]['material']})),terrain:b64(fresh.world),preview:b64(preview(fresh.width,whole)),warnings:fresh.warnings.map(w=>w.text)};
+   const r=await api.save(id,payload,summary?.builtIn?undefined:summary?.base);
+   sessionStorage.removeItem(`brasa-new-map:${id}`);setSavedRevision(r.revision);setDirty(false);
+   const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);
+   setNotice(r.blockers.length?`Rascunho salvo, mas não pode ser publicado: ${r.blockers[0]}`:'Rascunho salvo.');return r.blockers.length?null:r.revision;
+  }catch(e){setError((e as Error).message);return null;}finally{setBusy('');}
+ },[doc,piecesBySheet,backdrop,id,summary]);
+ const publish=async(revision?:number)=>{
+  setConfirm(null);const target=revision??(dirty||!savedRevision?await save():savedRevision);if(!target)return;
+  setBusy('Publicando…');try{await api.publish(id,target);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);setNotice('Publicado: o jogo já usa esta versão nas próximas partidas.');}catch(e){setError((e as Error).message);}finally{setBusy('');}
+ };
+ const askPublish=()=>{const warnings=built?.warnings.map(w=>w.text)??[];if(warnings.length)setConfirm({warnings});else void publish();};
+ const restoreOriginal=async()=>{if(!window.confirm(summary?.builtIn?'Voltar o jogo para a versão original deste mapa? Os rascunhos continuam no histórico.':'Tirar este mapa do jogo?'))return;
+  setBusy('Voltando…');try{await api.unpublish(id);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);setNotice(summary?.builtIn?'O jogo voltou a usar o mapa original.':'Mapa fora do jogo.');}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+ const deleteMap=async()=>{if(!window.confirm('Apagar este mapa e todo o histórico? Não dá para desfazer.'))return;try{await api.remove(id);onBack();}catch(e){setError((e as Error).message);}};
+ const openRevision=async(revision:number)=>{try{const r=await api.revision(id,revision);const data=r.revision.data;if(!data.layout)return;
+  change(d=>{d.layout=data.layout as MapLayout;d.meta={name:data.name,subtitle:String(data.subtitle??''),kind:data.kind==='instance'?'instance':'pvp',enabled:data.enabled!==false};});setShowHistory(false);setNotice(`Versão ${revision} aberta no editor. Salve para usá-la.`);}catch(e){setError((e as Error).message);}};
+ const exportJson=()=>{if(!doc)return;const {kind:_kind,...layout}={...doc.layout,name:doc.meta.name,subtitle:doc.meta.subtitle};
+  const blob=new Blob([JSON.stringify(layout,null,1)+'\n'],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`${id}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);};
+
+ // ── Keyboard ──
+ useEffect(()=>{
+  const key=(e:KeyboardEvent)=>{
+   if(['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;
+   const mod=e.ctrlKey||e.metaKey;
+   if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
+   if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
+   if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();void save();return;}
+   if(selection?.type==='item'){
+    if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();duplicate(selection.index);return;}
+    if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeItem(selection.index);return;}
+    const step=e.shiftKey?10:1,d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
+    if(d&&doc){e.preventDefault();const it=doc.layout.items[selection.index];updateItem(selection.index,{x:it.x+d[0],top:it.top+d[1]});}
+   }
+   if(selection?.type==='spawn'&&doc&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{d.layout.spawns[selection.team][selection.slot]=Math.max(0,Math.min(W,d.layout.spawns[selection.team][selection.slot]+step));});}
+   if(e.key==='Escape')setSelection(null);
+  };
+  window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
+ });
+ useEffect(()=>{if(!dirty)return;const warn=(e:BeforeUnloadEvent)=>{e.preventDefault();};window.addEventListener('beforeunload',warn);return()=>window.removeEventListener('beforeunload',warn);},[dirty]);
+ useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),5000);return()=>clearTimeout(t);},[notice]);
+
+ if(!doc)return <div className="adm-editor loading">{error?<div className="adm-editor-error"><p className="adm-error">{error}</p><button className="adm-btn" onClick={onBack}><ArrowLeft size={16}/>Voltar</button></div>:<><Loader2 className="adm-spin" size={34}/><p>Recortando as peças do mapa…</p></>}</div>;
+ const selectedItem=selection?.type==='item'?doc.layout.items[selection.index]:null,sheetList=Object.values(sheets),s=summary?status({...summary,draftRevision:savedRevision}):null;
+ const warnings=built?.warnings??[];
+
+ return <div className="adm-editor">
+  <header className="adm-editor-bar">
+   <button className="adm-icon" onClick={()=>{if(!dirty||window.confirm('Sair sem salvar as mudanças?'))onBack();}} title="Voltar aos mapas"><ArrowLeft size={18}/></button>
+   <div className="adm-editor-title"><input value={doc.meta.name} maxLength={40} onChange={e=>change(d=>{d.meta.name=e.target.value;d.layout.name=e.target.value;})} aria-label="Nome do mapa"/>
+    <small><span className={`adm-kind ${doc.meta.kind}`}>{MAP_KIND_NAMES[doc.meta.kind]}</span>{s&&<span className={`adm-status ${dirty?'dirty':s.tone}`}>{dirty?'Alterações não salvas':s.label}</span>}<code>{id}</code></small></div>
+   <div className="adm-toolgroup">
+    <button className="adm-icon" onClick={undo} disabled={!history.current.past.length} title="Desfazer (Ctrl+Z)"><Undo2 size={17}/></button>
+    <button className="adm-icon" onClick={redo} disabled={!history.current.future.length} title="Refazer (Ctrl+Y)"><Redo2 size={17}/></button>
+   </div>
+   <div className="adm-toolgroup">
+    <button className="adm-icon" onClick={fit} title="Ver o mapa inteiro"><Maximize size={17}/></button>
+    <button className="adm-icon text" onClick={zoom100} title="Tamanho real">100%</button>
+    <button className={`adm-icon ${overlay.collision?'on':''}`} onClick={()=>setOverlay(o=>({...o,collision:!o.collision}))} title="Mostrar colisão (verde quebra, cinza não quebra)"><ShieldAlert size={17}/></button>
+    <button className={`adm-icon ${overlay.grid?'on':''}`} onClick={()=>setOverlay(o=>({...o,grid:!o.grid}))} title="Grade de 96 px"><Grid3x3 size={17}/></button>
+    <button className={`adm-icon ${overlay.ghost?'on':''}`} onClick={()=>setOverlay(o=>({...o,ghost:!o.ghost}))} title="Contorno do lado espelhado"><FlipHorizontal2 size={17}/></button>
+   </div>
+   <span className="adm-spacer"/>
+   {building&&<span className="adm-checking"><Loader2 className="adm-spin" size={14}/>Verificando</span>}
+   <button className="adm-btn ghost" onClick={()=>setShowHistory(v=>!v)}><History size={16}/>Histórico</button>
+   <button className="adm-btn ghost" onClick={exportJson} title="Baixar o layout para scripts/map-layouts e npm run build:map"><Download size={16}/>JSON</button>
+   <button className="adm-btn" onClick={()=>void save()} disabled={!!busy}><Save size={16}/>Salvar</button>
+   <button className="adm-btn gold" onClick={askPublish} disabled={!!busy}><Rocket size={16}/>Publicar</button>
+  </header>
+
+  <aside className="adm-editor-left">
+   <div className="adm-tabs small"><button className={panel==='pieces'?'on':''} onClick={()=>setPanel('pieces')}>Peças</button><button className={panel==='layers'?'on':''} onClick={()=>setPanel('layers')}><Layers size={14}/>Itens <small>{doc.layout.items.length}</small></button></div>
+   {panel==='pieces'?<>
+    <div className="adm-seg small">{sheetList.map(sh=><button key={sh.name} className={sheetTab===sh.name?'on':''} onClick={()=>setSheetTab(sh.name)}>{SHEET_NAMES[sh.name]??sh.name}</button>)}</div>
+    <p className="adm-hint">Clique numa peça para pôr no meio da tela. Objetos já caem no chão.</p>
+    <div className="adm-pieces">{sheets[sheetTab]?.pieces.map((p,n)=><button key={n} onClick={()=>addPiece(sheetTab,n)} title={`Peça ${n} · ${p.w}×${p.h}`}><img src={p.thumb} alt=""/><small>{n}</small></button>)}</div>
+   </>:<ol className="adm-layers">{doc.layout.items.map((item,n)=><li key={`${item.id}-${n}`} className={selection?.type==='item'&&selection.index===n?'on':''} onClick={()=>setSelection({type:'item',index:n})}>
+     <img src={sheets[item.sheet??'']?.pieces[item.piece]?.thumb} alt=""/><span><b>{item.id}</b><small>{SHEET_NAMES[item.sheet??'']??item.sheet} · peça {item.piece}{doc.layout.mirror&&item.mirror!==false?' · espelhado':''}</small></span>{warnedItems.has(n)&&<AlertTriangle size={14} className="warn"/>}</li>)}</ol>}
+   <div className="adm-spawn-list"><h4><Users size={15}/>Spawns</h4>{doc.layout.spawns.map((team,t)=><div key={t} className="adm-spawn-team"><span style={{color:TEAM_COLORS[t]}}>Time {t+1}</span>{team.map((x,slot)=><button key={slot} className={selection?.type==='spawn'&&selection.team===t&&selection.slot===slot?'on':''} style={{'--team':TEAM_COLORS[t]} as React.CSSProperties} onClick={()=>setSelection({type:'spawn',team:t,slot})} title={`x ${x}`}>{slot+1}</button>)}</div>)}
+    <small>Posição 1 é a do 1x1. Arraste no mapa (só na horizontal; o pé fica no chão).</small></div>
+  </aside>
+
+  <div className="adm-stage" ref={wrapRef}>
+   <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel} onContextMenu={e=>e.preventDefault()}/>
+   <div className="adm-stage-help">Arraste para mover · Shift trava o eixo · roda = zoom · arraste o fundo para navegar · Del apaga · Ctrl+D duplica</div>
+   {(notice||error||busy)&&<div className={`adm-toast ${error?'bad':''}`}>{busy?<><Loader2 className="adm-spin" size={15}/>{busy}</>:error||notice}{(error||notice)&&!busy&&<button onClick={()=>{setError('');setNotice('');}}><X size={14}/></button>}</div>}
+  </div>
+
+  <aside className="adm-editor-right">
+   {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1}/>
+   :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
+   :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onDelete={deleteMap}/>}
+   <section className="adm-warnings"><h4>{warnings.length?<><AlertTriangle size={15}/>{warnings.length} {warnings.length===1?'aviso':'avisos'}</>:<><Eye size={15}/>Sem avisos</>}</h4>
+    {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
+    {built&&<small>{built.regions.length} regiões de colisão · {doc.layout.items.length} itens</small>}
+   </section>
+  </aside>
+
+  {showHistory&&<div className="adm-drawer"><header><h3><History size={17}/>Histórico</h3><button className="adm-icon" onClick={()=>setShowHistory(false)}><X size={17}/></button></header>
+   {revisions.length?<ul>{revisions.map(r=><li key={r.id} className={r.published?'live':''}><div><b>Versão {r.id}{r.published&&<span className="adm-status live">No jogo</span>}</b><small>{new Date(r.createdAt).toLocaleString('pt-BR')} · {r.createdBy}{r.warnings?` · ${r.warnings} avisos`:''}</small></div>
+    <span><button className="adm-btn small ghost" onClick={()=>openRevision(r.id)}>Abrir</button>{!r.published&&<button className="adm-btn small" onClick={()=>publish(r.id)}><Rocket size={13}/>Publicar</button>}</span></li>)}</ul>:<p className="adm-empty">Ainda não há versões salvas. A primeira aparece quando você salvar.</p>}
+  </div>}
+
+  {confirm&&<div className="adm-overlay"><div className="adm-dialog"><header><h2>Publicar com avisos?</h2><button className="adm-icon" onClick={()=>setConfirm(null)}><X size={18}/></button></header>
+   <p>O montador encontrou {confirm.warnings.length} {confirm.warnings.length===1?'problema':'problemas'}. O ideal é zerar antes de pôr no jogo.</p>
+   <ul className="adm-warn-list">{confirm.warnings.map((w,n)=><li key={n}>{w}</li>)}</ul>
+   <footer><button className="adm-btn ghost" onClick={()=>setConfirm(null)}>Voltar e corrigir</button><button className="adm-btn gold" onClick={()=>publish()}><Rocket size={16}/>Publicar mesmo assim</button></footer></div></div>}
+ </div>;
+}
+
+function Num({label,value,onChange,step=1,min,max,suffix}:{label:string;value:number;onChange:(v:number,record:boolean)=>void;step?:number;min?:number;max?:number;suffix?:string}){
+ return <label className="adm-field"><span>{label}</span><span className="adm-num"><input type="number" value={round(value)} step={step} min={min} max={max} onChange={e=>{const v=Number(e.target.value);if(Number.isFinite(v))onChange(v,true);}}/>{suffix&&<em>{suffix}</em>}</span></label>;
+}
+function Toggle({label,hint,value,onChange}:{label:string;hint?:string;value:boolean;onChange:(v:boolean)=>void}){
+ return <label className="adm-toggle-row"><span><b>{label}</b>{hint&&<small>{hint}</small>}</span><button type="button" className={`adm-toggle ${value?'on':''}`} aria-pressed={value} onClick={()=>onChange(!value)}><i/></button></label>;
+}
+
+function ItemInspector({item,index,mirrorMap,sheets,onChange,onDuplicate,onRemove,onMove,last}:{item:LayoutItem;index:number;mirrorMap:boolean;sheets:Record<string,Sheet>;onChange:(patch:Partial<LayoutItem>,record?:boolean)=>void;onDuplicate:()=>void;onRemove:()=>void;onMove:(by:number)=>void;last:number}){
+ const sheet=item.sheet??Object.keys(sheets)[0],pieces=sheets[sheet]?.pieces??[],mirrored=mirrorMap&&item.mirror!==false;
+ return <section className="adm-inspector">
+  <header><h3>{item.id}</h3><span><button className="adm-icon" onClick={()=>onMove(-1)} disabled={index===0} title="Desenhar antes (para trás)"><ArrowDown size={15}/></button><button className="adm-icon" onClick={()=>onMove(1)} disabled={index===last} title="Desenhar depois (para frente)"><ArrowUp size={15}/></button><button className="adm-icon" onClick={onDuplicate} title="Duplicar (Ctrl+D)"><Copy size={15}/></button><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
+  <div className="adm-piece-pick"><img src={pieces[item.piece]?.thumb} alt=""/><div>
+   <label className="adm-field"><span>Folha</span><select value={sheet} onChange={e=>onChange({sheet:e.target.value,piece:0})}>{Object.keys(sheets).map(k=><option key={k} value={k}>{SHEET_NAMES[k]??k}</option>)}</select></label>
+   <label className="adm-field"><span>Peça</span><select value={item.piece} onChange={e=>onChange({piece:Number(e.target.value)})}>{pieces.map((p,n)=><option key={n} value={n}>{n} · {p.w}×{p.h}</option>)}</select></label>
+  </div></div>
+  <label className="adm-field"><span>Nome</span><input value={item.id} maxLength={48} onChange={e=>onChange({id:e.target.value.replace(/[^a-z0-9_-]/gi,'-')})}/></label>
+  <div className="adm-pair"><Num label="X (centro)" value={item.x} onChange={v=>onChange({x:v})}/><Num label="Topo" value={item.top} onChange={v=>onChange({top:v})}/></div>
+  <label className="adm-field"><span>Escala</span><span className="adm-range"><input type="range" min={.1} max={2} step={.01} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)},false)} onPointerUp={e=>onChange({scale:Number((e.target as HTMLInputElement).value)})}/><input type="number" step={.01} min={.05} max={4} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)||1})}/></span></label>
+  <Toggle label="Virar" hint="Espelha a peça no lugar" value={!!item.flip} onChange={v=>onChange({flip:v||undefined})}/>
+  {mirrorMap&&<Toggle label="Repetir no outro time" hint="Cópia espelhada do outro lado do centro" value={mirrored} onChange={v=>onChange({mirror:v?undefined:false})}/>}
+  {mirrored&&<label className="adm-field"><span>Peça do lado espelhado</span><select value={item.mirrorAs?.piece??-1} onChange={e=>{const v=Number(e.target.value);onChange({mirrorAs:v<0?undefined:{...item.mirrorAs,piece:v}});}}><option value={-1}>A mesma</option>{pieces.map((p,n)=><option key={n} value={n}>{n} · {p.w}×{p.h}</option>)}</select><small>Varia os dois lados para não ficarem iguais.</small></label>}
+  <Toggle label="Apoiar no chão" hint="Cai até o chão abaixo do topo" value={!!item.rest} onChange={v=>onChange({rest:v||undefined})}/>
+  {item.rest&&<Num label="Afundar" value={item.sink??8} suffix="px" onChange={v=>onChange({sink:v})}/>}
+  <Toggle label="Quebra com tiros" value={item.destructible!==false} onChange={v=>onChange({destructible:v})}/>
+  <Toggle label="Tem colisão" hint="Desligado: só enfeite, sem chão" value={item.solid!==false} onChange={v=>onChange({solid:v?undefined:false})}/>
+ </section>;
+}
+
+function SpawnInspector({doc,team,slot,width,ground,onChange,onMirror}:{doc:Doc;team:number;slot:number;width:number;ground:number;onChange:(x:number)=>void;onMirror:()=>void}){
+ const x=doc.layout.spawns[team][slot],other=doc.layout.spawns[1-team][slot],duel=Math.abs(doc.layout.spawns[1][0]-doc.layout.spawns[0][0]);
+ return <section className="adm-inspector">
+  <header><h3 style={{color:TEAM_COLORS[team]}}>Time {team+1} · jogador {slot+1}</h3></header>
+  <Num label="X" value={x} min={0} max={width} onChange={v=>onChange(Math.round(Math.max(0,Math.min(width,v))))}/>
+  <dl className="adm-facts"><dt>Chão em</dt><dd>{ground>=MAP_HEIGHT?'sem chão!':`y ${ground}`}</dd><dt>Espelho exato</dt><dd>{width-other===x?'sim':`não (seria ${width-other})`}</dd><dt>Distância no 1x1</dt><dd className={duel<900||duel>1200?'bad':''}>{duel} px <small>(ideal 900–1200)</small></dd></dl>
+  <button className="adm-btn wide" onClick={onMirror}><FlipHorizontal2 size={16}/>Espelhar time 1 → time 2</button>
+ </section>;
+}
+
+function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onDelete:()=>void}){
+ const W=doc.layout.width??1536;
+ return <section className="adm-inspector">
+  <header><h3>Mapa</h3></header>
+  <label className="adm-field"><span>Subtítulo</span><input value={doc.meta.subtitle} maxLength={80} placeholder="Aparece na tela de carregamento" onChange={e=>onChange(d=>{d.meta.subtitle=e.target.value;})}/></label>
+  <label className="adm-field"><span>Tipo</span><span className="adm-seg">{(['pvp','instance'] as const).map(k=><button key={k} type="button" className={doc.meta.kind===k?'on':''} onClick={()=>onChange(d=>{d.meta.kind=k;})}>{MAP_KIND_NAMES[k]}</button>)}</span>
+   <small>{doc.meta.kind==='instance'?'Instâncias (dungeons) ficam guardadas; ainda não entram no jogo.':'Entra no sorteio das partidas PvP.'}</small></label>
+  {doc.meta.kind==='pvp'&&<Toggle label="No sorteio PvP" hint="Desligue para tirar o mapa das partidas" value={doc.meta.enabled} onChange={v=>onChange(d=>{d.meta.enabled=v;})}/>}
+  <label className="adm-field"><span>Largura</span><span className="adm-seg">{[1,1.5,2,2.5,3].map(k=><button key={k} type="button" className={W===1536*k?'on':''} onClick={()=>onChange(d=>{const old=d.layout.width??1536,next=1536*k,shift=(next-old)/2;d.layout.width=next;for(const it of d.layout.items)it.x+=shift;d.layout.spawns=d.layout.spawns.map(t=>t.map(x=>x+shift));})}>{k.toLocaleString('pt-BR')}</button>)}</span><small>Em telas de 1536 px; tudo se desloca para manter o centro. Altura fixa de 864.</small></label>
+  <Toggle label="Espelhar para o outro time" hint="Cada item ganha uma cópia do outro lado" value={!!doc.layout.mirror} onChange={v=>onChange(d=>{d.layout.mirror=v;})}/>
+  <dl className="adm-facts"><dt>Código</dt><dd>{id}</dd><dt>Arte de</dt><dd>{summary?.base??id}</dd><dt>Peças</dt><dd>{doc.layout.source}</dd></dl>
+  <p className="adm-hint">Selecione uma peça ou um spawn no mapa para editar. Peças novas de arte entram pelo Codex (docs/maps-kit.md).</p>
+  <div className="adm-danger-zone">
+   {summary?.publishedRevision&&<button className="adm-btn ghost wide" onClick={onRestore}><RotateCcw size={15}/>{summary.builtIn?'Voltar ao original no jogo':'Tirar do jogo'}</button>}
+   {summary&&!summary.builtIn&&<button className="adm-btn danger wide" onClick={onDelete}><Trash2 size={15}/>Apagar mapa</button>}
+  </div>
+ </section>;
+}

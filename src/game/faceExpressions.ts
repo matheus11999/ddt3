@@ -5,7 +5,7 @@ export type FaceState='blink'|'hurt'|'critical';
 
 type Eye={x:number;y:number;rx:number;ry:number;side:-1|1};
 /** Atlas coordinates (1254 px head template). The near eye is on the left, the far eye on the right. */
-const EYES:readonly Eye[]=[{x:647,y:441,rx:64,ry:52,side:-1},{x:791,y:468,rx:30,ry:42,side:1}];
+export const EYES:readonly Eye[]=[{x:647,y:441,rx:64,ry:52,side:-1},{x:791,y:468,rx:30,ry:42,side:1}];
 const MOUTH={x:713,y:538,rx:48,ry:32};
 /** Region of the atlas the overlay covers. */
 export const FACE_OVERLAY_RECT=[560,370,290,210] as const;

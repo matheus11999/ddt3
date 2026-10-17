@@ -1,6 +1,8 @@
 import {z} from 'zod';
 import type {Equipment,BoostId,MapId,CharacterGender} from './catalog';
-import {CHARACTER_GENDERS,DYE_IDS,DYE_SLOTS,MAX_FORGE_STONES,SLOTS} from './catalog';
+import {CHARACTER_GENDERS,MAX_FORGE_STONES,SLOTS} from './catalog';
+import {MAX_PAINT_CHANGES} from './colors';
+import type {BodyColorPart,BodyColors} from './colors';
 import type {BattleRewards} from './rewards';
 import type {CompositionStat,Compositions} from './composition';
 import {ROOM_MODES} from './rooms';
@@ -8,8 +10,11 @@ import type {RoomMode} from './rooms';
 import {ABILITY_IDS} from './abilities';
 import type {AbilityId,AbilityEffect,AbilityLoadout} from './abilities';
 import type {FighterFall} from './fall';
-export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;}
-export interface ShopResult {items:string[];spent:number;}
+export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
+/** `target` is an item copy key, or `skin`/`eyes`. */
+export interface ColorChange {target:string;color:string|null;}
+export interface ColorResult {changes:ColorChange[];tickets:number;}
+export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
@@ -31,6 +36,8 @@ export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIn
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
 export interface ChatLine {id:string;name:string;text:string;channel:'world'|'room';time:number;}
 import {LOBBY_WALK} from './lobby';
+const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLowerCase());
+export const MAX_SHOP_QUANTITY=20;
 const finite=(lo:number,hi:number)=>z.number().finite().min(lo).max(hi);
 const name=z.string().trim().min(2).max(24).regex(/^[\p{L}\p{N} _!.-]+$/u);
 export const sessionRequestSchema=z.object({gender:z.enum(CHARACTER_GENDERS).optional()}).strict();
@@ -40,7 +47,6 @@ export const equipmentVisibilitySchema=z.object({hat:z.boolean().optional(),glas
 export const equipmentSelectionSchema=z.object({
  items:z.record(z.enum(SLOTS),z.string().min(1).max(40)),
  copies:z.partialRecord(z.enum(SLOTS),z.string().min(1).max(48)).optional(),
- dyes:z.partialRecord(z.enum(DYE_SLOTS),z.enum(DYE_IDS)).optional(),
  visibility:equipmentVisibilitySchema.optional()
 }).strict();
 export const stoneSelectionSchema=z.record(z.string().regex(/^[1-5]$/),z.number().int().min(0).max(MAX_FORGE_STONES)).refine(stones=>{const count=Object.values(stones).reduce((sum,n)=>sum+n,0);return count>=1&&count<=MAX_FORGE_STONES;},'Selecione de 1 a 20 pedras.');
@@ -50,10 +56,12 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
- z.object({type:z.literal('dye'),slot:z.enum(DYE_SLOTS),color:z.enum(DYE_IDS)}).strict(),
+ // Several pieces, skin and eyes at once; one ticket per real change; null goes back to the painted original colors.
+ z.object({type:z.literal('paint'),changes:z.array(z.object({target:z.string().min(1).max(48),color:hexColor.nullable()}).strict()).min(1).max(MAX_PAINT_CHANGES)}).strict(),
+ z.object({type:z.literal('discard'),item:z.string().min(1).max(48)}).strict(),
  z.object({type:z.literal('customize'),selection:equipmentSelectionSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('ability-loadout'),slots:abilityLoadoutSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
- z.object({type:z.literal('shop-buy'),items:z.array(z.string().min(1).max(40)).min(1).max(20).refine(items=>new Set(items).size===items.length,'Itens repetidos no carrinho.')}).strict(),
+ z.object({type:z.literal('shop-buy'),items:z.array(z.string().min(1).max(40)).min(1).max(20).refine(items=>new Set(items).size===items.length,'Itens repetidos no carrinho.'),quantity:z.number().int().min(1).max(MAX_SHOP_QUANTITY).optional()}).strict(),
  z.object({type:z.literal('forge'),item:z.string().min(1).max(48),stones:stoneSelectionSchema}).strict(),
  z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
  // Legacy mode/map are honored only by explicitly requested practice rooms.
@@ -90,11 +98,15 @@ export type ServerEvent =
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
+ | {type:'color-result';result:ColorResult}
+ | {type:'discard-result';item:string}
  | {type:'composition-result';result:CompositionResult}
  | {type:'lobby';players:LobbyPlayer[];online:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}
+ /** Maps were published in the admin panel: reload GET /api/maps. */
+ | {type:'maps'}
  | {type:'online-players';players:OnlinePlayer[];total:number}
  | {type:'room-invite-list';roomId:string;players:RoomInvitePlayer[]}
  | {type:'room-invitation';invite:RoomInvitation}

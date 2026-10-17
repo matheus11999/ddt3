@@ -1,6 +1,12 @@
 # Estado da entrega — 16/10/2026
 
 
+## Painel do administrador — 17/10/2026
+
+- `/admin` com login próprio (credenciais em `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`, scrypt, sessão de 8 h no Postgres, trava após 5 erros), visão geral com estatísticas do dia e dos últimos 14 dias, e editor de mapas PvP/instância/lobby com rascunhos, histórico e publicação no jogo sem rebuild (`docs/admin-panel.md`).
+- `build:map` e o editor usam o mesmo montador (`shared/mapBuilder.ts`); a saída do Sonho Nevado ficou idêntica byte a byte. Folhas e panorama do Sonho Nevado agora estão no repositório em `public/assets/maps/snow/source/`.
+- Evidência: `npm run test:admin:browser` (login, salvar, publicar, `/api/maps`, voltar ao original) e uma partida de treino no mapa publicado com nome e ponte alterados. Unidade: `tests/admin.test.ts`.
+
 ## Validador de armas — 17/10/2026
 
 - `shared/weaponKit.ts` descreve cada arma: o que lança e como evolui em cada fase, paleta, sons e regra POW × Tridente. `npm run verify:weapons` confere ícone, arma na mão, projétil, disparo e impacto por fase, marca no cenário, quatro sons e a regra, com prancha `sheet.png` e prompts prontos para ChatGPT/ElevenLabs (`docs/weapon-kit.md`).
@@ -293,3 +299,12 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 
 - Antes o jogador atravessava barracas, pódios e o portal da Arena. Agora cada estrutura tem uma base no chão (elipse em `LOBBY_OBSTACLES`, `shared/lobby.ts`, medida da parte de baixo da arte). O servidor anda o jogador com `lobbyStep`: ao encostar numa base, ele contorna pela frente, ou por trás quando o destino fica atrás. Clique sobre uma estrutura sem ação leva o jogador até a borda dela (`lobbyFree`). Teste: `tests/lobby-collision.test.ts`. Prévia: `docs/previews/lobby-collision.gif`.
 - Lobby (17/10/2026, noite): sem o aviso "Clique na rua para caminhar"; caminhada de 110 para 132 px/s (`LOBBY_WALK_SPEED`). A passada mantém o tamanho e o ritmo das pernas sobe junto, com o pé apoiado sem escorregar.
+
+## Ticket de Cor e menu da mochila (17/10/2026)
+
+- O botão direito na mochila abre o menu do jogo: Equipar ou Remover, Aprimorar (abre o Ferreiro com o item carregado), Trocar cor e Excluir (com confirmação).
+- A janela Trocar cor tem prévia, cores prontas e seletor RGB. Corpo e olhos ficam num botão ao lado do personagem.
+- Cada troca gasta 1 Ticket de Cor. O jogador começa com 3, e a loja vende cada ticket por 60 moedas, com escolha de quantidade.
+- A cor é guardada por cópia e decidida no servidor. A tintura gratuita antiga saiu, e as cores dela migraram.
+- Cada cabelo, chapéu, óculos e roupa tem uma região de cor. Chapéus e roupas mudam só a parte principal; o validador mede a cobertura e desenha `colors.png`.
+- Testes: `tests/colors.test.ts` e `npm run test:colors:browser`. Detalhes em `docs/color-tickets.md`.

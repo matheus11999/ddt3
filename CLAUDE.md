@@ -20,7 +20,7 @@ Leia e siga `AGENTS.md`: ele vale para todos os agentes, inclusive o Claude. Est
 
 - Não há gerador de imagens nas sessões de nuvem. O usuário gera a arte no ChatGPT/Codex a partir de prompts que nós escrevemos em `docs/*-prompts.md` (um arquivo por área: `lobby-art-prompts.md`, `shop-art-prompts.md`, `forge-art-prompts.md`, `backpack-art-prompts.md`, `pvp-arena-art-prompts.md`, `cosmetics-art-briefs.md` etc.).
 - **A IA pinta a forma; o jogo desenha texto e números.** Nada de texto dentro da imagem gerada (placas, níveis, números de dano, VIP).
-- Cosméticos: rodar `npm run verify:cosmetics` **antes e depois** de gerar qualquer cabelo, chapéu, óculos ou roupa (regra completa em `AGENTS.md` e `docs/cosmetics-fit.md`). Passar no validador não é aprovação: mostre `zones.png` e `matrix.png` ao usuário.
+- Cosméticos: todo cabelo, chapéu, óculos e roupa tem região de Ticket de Cor (`docs/color-tickets.md`); confira `colors.png`. Rodar `npm run verify:cosmetics` **antes e depois** de gerar qualquer cabelo, chapéu, óculos ou roupa (regra completa em `AGENTS.md` e `docs/cosmetics-fit.md`). Passar no validador não é aprovação: mostre `zones.png` e `matrix.png` ao usuário.
 - Armas: rodar `npm run verify:weapons` antes e depois de gerar qualquer arte ou som de arma; ele lista o que falta por arma e fase e escreve os prompts do ChatGPT/ElevenLabs (`docs/weapon-kit.md`). Mostre `sheet.png` ao usuário.
 - **Mapas** (sistema do PR #46, guia `docs/maps-kit.md`, plano e referências do DDTank em `/mnt/project-files/mapas/`):
   - Arte pelo Codex no PC do usuário (Remote Control em `D:\APPS\ddt`, `codex exec`, imagens em `test-results/codex-maps/<id>/`); prompts em `/mnt/project-files/mapas/<tema>/prompts/`.
@@ -74,6 +74,8 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Pendências para continuar
 
+- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild. Próximas áreas previstas: jogadores, loja, eventos.
+
 - **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
 - Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
@@ -83,4 +85,5 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Perguntas abertas: permitir itens de tiro junto com o voo; arte pintada pendente da loja (fundo do provador, ícones de categoria, placa) e do piso do lobby (`floor.webp`).
 - PR #1 (Quebra-Tijolos antigo) está obsoleto: a versão do Codex já está na `main`.
 - **Armas** (17/10/2026): arsenal apagado para refazer do zero com fases +0/+10/+12/+15 (nível máx. 15). Só existe o Quebra-Tijolos, arma inicial de início/meio de jogo (85/95/85/85, cratera pequena, POW de projétil único), sem arte até o usuário gerar as peças pelos prompts de `npm run verify:weapons` (gerar na ordem numerada, com as anteriores como referência). Próximas armas: uma por vez, sempre pelo kit.
+- **Ticket de Cor** (17/10, PR desta thread): menu do botão direito na mochila (Equipar/Remover, Aprimorar, Trocar cor, Excluir), janela de cor com prévia, cores prontas e RGB, cor do corpo e dos olhos; 1 ticket por troca, 3 no início, 60 moedas na loja. Cosmético novo precisa de região em `src/game/rig/recolorZones.ts` (validador mede; ver `docs/color-tickets.md`).
 - Registre evidências e pendências também em `docs/implementation-status.md`.

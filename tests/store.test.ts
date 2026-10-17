@@ -73,10 +73,10 @@ test('equipment persistence derives upgrade from the locked profile and validate
  const before=structuredClone(state.profile);await assert.rejects(store.saveEquipment(state.profile.id,{...profile.equipment,face:'volt'}),/mochila/);assert.deepEqual(state.profile,before);
 });
 
-test('customization saves simultaneous facial, head and clothing layers with dyes atomically',async()=>{
+test('customization saves simultaneous facial, head and clothing layers atomically and ignores client colors',async()=>{
  const {store,state}=await database();state.profile.inventory.push('glasses-sport','hair-undercut');const before=structuredClone(state.profile);
- const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',hair:'hair-undercut',outfit:'outfit-executive',dyes:{hat:'coral' as const,hair:'gold' as const,outfit:'violet' as const}};
- const saved=await store.saveEquipment(before.id,equipment);
+ const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',hair:'hair-undercut',outfit:'outfit-executive'};
+ const saved=await store.saveEquipment(before.id,{...equipment,colors:{hat:'#ff0000'}});
  assert.deepEqual(saved.equipment,equipment);assert.deepEqual(saved.stones,before.stones);assert.deepEqual(saved.upgrades,before.upgrades);
  assert.equal(saved.equipment.wristband,before.equipment.wristband);assert.equal(saved.equipment.bracelet,before.equipment.bracelet);
  state.profile.inventory=state.profile.inventory.filter(id=>id!=='hair-silver');const locked=structuredClone(state.profile);

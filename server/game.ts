@@ -10,7 +10,7 @@ import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomIn
 import {crater,createTerrain,DIRECT_HIT_DIG,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
-import {getMap,canonicalMap,MAP_DEFAULT,MAP_IDS} from '../shared/maps';
+import {getMap,canonicalMap,MAP_DEFAULT,pvpRotation} from '../shared/maps';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
@@ -163,13 +163,11 @@ export class Game {
      if(currentRoom?.status==='waiting'){const seat=currentRoom.players.find(player=>player.id===id);if(seat){seat.abilityLoadout=normalizeAbilityLoadout(p.profile.abilityLoadout);currentRoom.players.forEach(player=>player.ready=player.bot);}this.broadcastRoom(currentRoom);}break;
     }
     case 'customize':
-    case 'dye':
     case 'equip':{
      if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Troque seus equipamentos entre as batalhas.');
      if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
-     const equipment=c.type==='customize'?{...p.profile.equipment,...c.selection.items,dyes:c.selection.dyes??{},visibility:c.selection.visibility??p.profile.equipment.visibility,copies:c.selection.copies??p.profile.equipment.copies}:{...p.profile.equipment};
+     const equipment=c.type==='customize'?{...p.profile.equipment,...c.selection.items,visibility:c.selection.visibility??p.profile.equipment.visibility,copies:c.selection.copies??p.profile.equipment.copies}:{...p.profile.equipment};
      if(c.type==='customize'){/* All slots and ownership are checked atomically by the store. */}
-     else if(c.type==='dye')equipment.dyes={...equipment.dyes,[c.slot]:c.color};
      else {const item=CATALOG[c.item];if(!item||(!isEmptyItem(item)&&!p.profile.inventory.includes(c.item)))throw Error('Este item não está na sua mochila.');equipment[targetSlotForItem(equipment,item)]=item.id;}
      // Cancel before awaiting persistence, so a pending outfit cannot race a queue match.
      this.profileChanges.add(id);if(p.roomId&&!this.isSpectator(p)){const r=this.room(p);this.cancelSearch(r);r.players.forEach(s=>s.ready=s.bot);this.broadcastRoom(r);}
@@ -178,8 +176,21 @@ export class Game {
     }
     case 'shop-buy':{
      if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Visite a loja entre as batalhas.');
-     const outcome=await this.store.buy(id,c.items);p.profile=outcome.profile;
+     const outcome=await this.store.buy(id,c.items,c.quantity);p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'shop-result',result:outcome.result});break;
+    }
+    case 'paint':
+    case 'discard':{
+     if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Mexa na mochila entre as batalhas.');
+     if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     const store=this.store;if(!store.paint||!store.discard)throw Error('Indisponível no momento.');
+     this.profileChanges.add(id);
+     try{
+      if(c.type==='discard'){p.profile=await store.discard(id,c.item);this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'discard-result',item:c.item});}
+      else{const outcome=await store.paint(id,c.changes);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'color-result',result:outcome.result});}
+     }finally{this.profileChanges.delete(id);}
+     // Other players see the new look right away, in the plaza and in the waiting room.
+     if(p.roomId){const r=this.room(p);const seat=r.players.find(s=>s.id===id);if(seat)seat.equipment={...p.profile.equipment};this.broadcastRoom(r);}this.sendLobby(p.channel);return;
     }
     case 'forge':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para fortalecer sua arma.');
@@ -343,7 +354,7 @@ export class Game {
   this.launchMatch([room],seats);
  }
  private launchMatch(rooms:Room[],practiceSeats?:Seat[]){
-  const r=rooms[0],map=rooms.length===2||practiceSeats?MAP_IDS[randomInt(MAP_IDS.length)]:r.map;
+  const r=rooms[0],rotation=pvpRotation(),map=rooms.length===2||practiceSeats?rotation[randomInt(rotation.length)]:r.map;
   const seats:Seat[]=practiceSeats??(rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):r.players);
   const terrain=createTerrain(map);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment);const x=getMap(map).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));

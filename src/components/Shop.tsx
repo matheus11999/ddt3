@@ -1,10 +1,13 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {ChevronLeft,ChevronRight,Glasses,LoaderCircle,RotateCcw,Search,Shirt,ShoppingBag,Smile,Sparkles,Swords,X} from 'lucide-react';
+import {ChevronLeft,ChevronRight,Glasses,LoaderCircle,Minus,Plus,RotateCcw,Search,Shirt,ShoppingBag,Smile,Sparkles,Swords,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES,canEquipItem,normalizeVisibility} from '../../shared/catalog';
 import type {Equipment} from '../../shared/catalog';
-import {SHOP_OFFERS,SHOP_OFFER_BY_ID} from '../../shared/shop';
+import {CONSUMABLE_OFFERS,SHOP_OFFERS,SHOP_OFFER_BY_ID,isConsumableOffer} from '../../shared/shop';
+import {COLOR_TICKET,isColorSlot} from '../../shared/colors';
+import {MAX_SHOP_QUANTITY} from '../../shared/protocol';
+import {TicketIcon} from './ColorStudio';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {Avatar} from './Avatar';
@@ -28,20 +31,23 @@ const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 type Category=typeof CATEGORIES[number]['id'];
 const money=(value:number)=>value.toLocaleString('pt-BR');
 const searchable=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
+/** Consumables (the Color Ticket) sit beside equipment; they are bought by quantity and never tried on. */
+const priceOf=(id:string)=>isConsumableOffer(id)?CONSUMABLE_OFFERS.find(offer=>offer.id===id)!.price:SHOP_OFFER_BY_ID[id].price;
+const nameOf=(id:string)=>id===COLOR_TICKET.id?COLOR_TICKET.name:CATALOG[id].name;
 
 export function Shop({onClose}:{onClose:()=>void}){
  const state=useGame(),p=state.profile!;
  const [category,setCategory]=useState<Category>('all'),[query,setQuery]=useState(''),[page,setPage]=useState(0),[confirming,setConfirming]=useState<string|null>(null);
- const [draft,setDraft]=useState<Equipment>(()=>({...p.equipment,dyes:{...p.equipment.dyes}})),[trying,setTrying]=useState<string|null>(null),[tip,setTip]=useState<Tip|null>(null),[feedback,setFeedback]=useState(''),[pending,setPending]=useState(false);
+ const [draft,setDraft]=useState<Equipment>(()=>({...p.equipment})),[quantity,setQuantity]=useState(1),[trying,setTrying]=useState<string|null>(null),[tip,setTip]=useState<Tip|null>(null),[feedback,setFeedback]=useState(''),[pending,setPending]=useState(false);
  const request=useRef<string|null>(null),sentResult=useRef(state.shopResult),touchUntil=useRef(0),confirmButton=useRef<HTMLButtonElement>(null);
  const locked=pending||state.status!=='online'||!!state.battle||!!state.room;
  // The other gender's pieces never show up: only this character's collection and unisex items.
- const entries=SHOP_OFFERS.filter(({id})=>{const item=CATALOG[id];return item&&canEquipItem(item,p.gender)&&(category==='all'||category==='style'&&!['weapon','outfit','face','costume'].includes(item.slot)||item.slot===category)&&searchable(item.name).includes(searchable(query));}).map(({id})=>id);
+ const entries=[...(category==='all'||category==='style')&&searchable(COLOR_TICKET.name).includes(searchable(query))?[COLOR_TICKET.id]:[],...SHOP_OFFERS.filter(({id})=>{const item=CATALOG[id];return item&&canEquipItem(item,p.gender)&&(category==='all'||category==='style'&&!['weapon','outfit','face','costume'].includes(item.slot)||item.slot===category)&&searchable(item.name).includes(searchable(query));}).map(({id})=>id)];
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
  useEffect(()=>{
   // The server's purchase receipt ends the request, so buying a piece already in the backpack also completes.
   const id=request.current,result=state.shopResult;if(!id||!result||result===sentResult.current||!result.items.includes(id))return;
-  request.current=null;setPending(false);setConfirming(null);setFeedback(`${CATALOG[id].name} guardado na mochila!`);audio.play('click');
+  request.current=null;setPending(false);setConfirming(null);setFeedback(isConsumableOffer(id)?`${result.quantity??1} ${(result.quantity??1)===1?'Ticket de Cor guardado':'Tickets de Cor guardados'} na mochila!`:`${nameOf(id)} guardado na mochila!`);audio.play('click');
  },[state.shopResult]);
  useEffect(()=>{if(request.current&&(state.error||state.status!=='online')){request.current=null;setPending(false);setConfirming(null);setFeedback(state.error??'Reconectando. Seu saldo será atualizado ao voltar.');}},[state.error,state.status]);
  useEffect(()=>{
@@ -56,6 +62,8 @@ export function Shop({onClose}:{onClose:()=>void}){
  },[confirming]);
  function experiment(id:string){
   const item=CATALOG[id];if(!item||!canEquipItem(item,p.gender))return;
+  // A new piece arrives in its painted colors, so the fitting drops the worn copy's ticket color.
+  const slot=item.slot;
   setDraft(current=>{
    // A fitting must reveal the selected piece even when the saved appearance hides it.
    // These display changes belong only to the shop draft; Restore recovers the saved flags.
@@ -63,12 +71,12 @@ export function Shop({onClose}:{onClose:()=>void}){
    if(item.slot==='costume')visibility.costume=true;
    else if(['face','outfit','hair','hat','glasses'].includes(item.slot))visibility.costume=false;
    if(item.slot==='hat'||item.slot==='glasses')visibility[item.slot]=true;
-   return {...current,[item.slot]:id,visibility,upgrade:item.slot==='weapon'?0:current.upgrade,compositions:{...current.compositions,[id]:{}},dyes:{...current.dyes,...(['outfit','hat','hair','glasses'].includes(item.slot)?{[item.slot]:'original' as const}:{})}};
+   return {...current,[item.slot]:id,visibility,upgrade:item.slot==='weapon'?0:current.upgrade,compositions:{...current.compositions,[id]:{}},colors:isColorSlot(slot)?{...current.colors,[slot]:undefined}:current.colors};
   });setTrying(id);setFeedback('');audio.play('click');
  }
- function ask(id:string){if(locked||!canEquipItem(id,p.gender)||SHOP_OFFER_BY_ID[id].price>p.gold)return;setTip(null);setFeedback('');setConfirming(id);audio.play('click');}
- function buy(){const id=confirming;if(!id||locked||SHOP_OFFER_BY_ID[id].price>p.gold)return;request.current=id;sentResult.current=state.shopResult;setPending(true);client.update({error:null});client.send({type:'shop-buy',items:[id]});}
- function restore(){setDraft({...p.equipment,dyes:{...p.equipment.dyes}});setTrying(null);audio.play('click');}
+ function ask(id:string){if(locked||!isConsumableOffer(id)&&!canEquipItem(id,p.gender)||priceOf(id)>p.gold)return;setTip(null);setFeedback('');setQuantity(1);setConfirming(id);audio.play('click');}
+ function buy(){const id=confirming;if(!id||locked)return;const consumable=isConsumableOffer(id),count=consumable?quantity:1;if(priceOf(id)*count>p.gold)return;request.current=id;sentResult.current=state.shopResult;setPending(true);client.update({error:null});client.send({type:'shop-buy',items:[id],...(consumable?{quantity:count}:{})});}
+ function restore(){setDraft({...p.equipment});setTrying(null);audio.play('click');}
  function browse(next:Category){setCategory(next);setPage(0);setTip(null);}
  function tipEvents(id:string){return {
   onMouseEnter:(event:React.MouseEvent<HTMLElement>)=>{if(Date.now()>touchUntil.current)setTip({id,anchor:event.currentTarget,mode:'hover'});},onMouseLeave:()=>setTip(current=>current?.mode==='touch'?current:null),
@@ -78,7 +86,8 @@ export function Shop({onClose}:{onClose:()=>void}){
   onClick:(event:React.MouseEvent<HTMLElement>)=>{const anchor=event.currentTarget,touch=Date.now()<=touchUntil.current;experiment(id);if(touch)setTip(current=>current?.id===id&&current.mode==='touch'?null:{id,anchor,mode:'touch'});}
  };}
  const tipped=(id:string)=>tip?.id===id?'item-tooltip':undefined;
- const pick=confirming?CATALOG[confirming]:null;
+ const pick=confirming&&!isConsumableOffer(confirming)?CATALOG[confirming]:null,pickTicket=confirming===COLOR_TICKET.id;
+ const maxQuantity=Math.max(1,Math.min(MAX_SHOP_QUANTITY,Math.floor(p.gold/priceOf(COLOR_TICKET.id))));
 
  return <Modal title="Loja da Brasa" onClose={onClose} className="shop-window" viewport>
   <div className="shop-layout">
@@ -102,7 +111,12 @@ export function Shop({onClose}:{onClose:()=>void}){
     </div>
     <div className="shop-shelf">
      <div className="shop-grid">
-      {visible.map(id=>{const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
+      {visible.map(id=>{if(id===COLOR_TICKET.id){const price=priceOf(id),short=price>p.gold;return <article key={id} className="shop-offer consumable" data-shop-item={id}>
+       <ItemCard rarity="rare" aria-label={COLOR_TICKET.name} aria-describedby={tipped(id)} {...tipEvents(id)}><TicketIcon size={64}/></ItemCard>
+       <div className="shop-offer-info"><h2>{COLOR_TICKET.name}</h2><small>Consumível · você tem {p.colorTickets}</small></div>
+       <div className="shop-offer-buy"><span className={`shop-price ${short?'short':''}`}><RewardIcon size={20}/>{money(price)}</span><div className="shop-offer-actions"><button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${COLOR_TICKET.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={17}/></button></div></div>
+      </article>;}
+       const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
        <ItemCard rarity={item.rarity} selected={trying===id} aria-label={`Experimentar ${item.name}`} aria-pressed={trying===id} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
        <div className="shop-offer-info">
         <h2>{item.name}</h2>
@@ -124,6 +138,23 @@ export function Shop({onClose}:{onClose:()=>void}){
      <div className="shop-pager"><button aria-label="Página anterior" disabled={currentPage===0} onClick={()=>{setPage(currentPage-1);setTip(null);}}><ChevronLeft size={16}/></button><span>{currentPage+1} / {pages}</span><button aria-label="Próxima página" disabled={currentPage===pages-1} onClick={()=>{setPage(currentPage+1);setTip(null);}}><ChevronRight size={16}/></button></div>
     </div>
    </section>
+   {pickTicket&&(()=>{const price=priceOf(COLOR_TICKET.id),total=price*quantity;return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
+    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier="normal">
+     <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" disabled={pending} onClick={()=>setConfirming(null)}><X size={18}/></button></header>
+     <div className="shop-confirm-body">
+      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame rarity="rare" variant="detail"><TicketIcon size={84}/></ItemCardFrame></div>
+      <b className="shop-confirm-name">{COLOR_TICKET.name}</b>
+      <span className="shop-confirm-kind">Cada troca de cor gasta 1 ticket</span>
+      <div className="shop-quantity" role="group" aria-label="Quantidade"><button className="wood-quiet" aria-label="Menos" disabled={pending||quantity<=1} onClick={()=>setQuantity(q=>Math.max(1,q-1))}><Minus size={16}/></button><output aria-live="polite">{quantity}</output><button className="wood-quiet" aria-label="Mais" disabled={pending||quantity>=maxQuantity} onClick={()=>setQuantity(q=>Math.min(maxQuantity,q+1))}><Plus size={16}/></button></div>
+      <dl className="shop-confirm-cost">
+       <div><dt>Preço</dt><dd><RewardIcon size={22}/>{money(total)}</dd></div>
+       <div><dt>Seu saldo</dt><dd><RewardIcon size={22}/>{money(p.gold)}</dd></div>
+       <div className="after"><dt>Depois da compra</dt><dd><RewardIcon size={22}/>{money(p.gold-total)}</dd></div>
+      </dl>
+     </div>
+     <footer><button className="wood-quiet" disabled={pending} onClick={()=>setConfirming(null)}>Cancelar</button><button ref={confirmButton} className="wood-button" disabled={locked&&!pending||total>p.gold} aria-busy={pending} onClick={buy}>{pending?<LoaderCircle size={18} className="button-spinner"/>:<ShoppingBag size={18}/>}{pending?'Comprando…':'Confirmar'}</button></footer>
+    </section>
+   </div>;})()}
    {pick&&(()=>{const price=SHOP_OFFER_BY_ID[pick.id].price,tier=itemTier(pick.rarity);return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
     <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier={tier}>
      <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" disabled={pending} onClick={()=>setConfirming(null)}><X size={18}/></button></header>
@@ -141,6 +172,6 @@ export function Shop({onClose}:{onClose:()=>void}){
     </section>
    </div>;})()}
   </div>
-  {tip&&createPortal(<InventoryTooltip tip={tip} gender={p.gender} equipment={draft} upgrades={{}} compositions={p.compositions} hideGender action={`Permanente · ${money(SHOP_OFFER_BY_ID[tip.id]?.price??0)} Moedas Brasa${CATALOG[tip.id]?.slot==='weapon'?' · +0':''}`}/>,document.body)}
+  {tip&&createPortal(<InventoryTooltip tip={tip} gender={p.gender} equipment={draft} upgrades={{}} compositions={p.compositions} hideGender tickets={tip.id===COLOR_TICKET.id?p.colorTickets:undefined} action={tip.id===COLOR_TICKET.id?`${money(priceOf(tip.id))} Moedas Brasa cada`:`Permanente · ${money(SHOP_OFFER_BY_ID[tip.id]?.price??0)} Moedas Brasa${CATALOG[tip.id]?.slot==='weapon'?' · +0':''}`}/>,document.body)}
  </Modal>;
 }

@@ -1,5 +1,6 @@
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
+import type {ColorSlot} from './colors';
 export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
 /** Equipment slots that accept the items of another slot family (two rings share one item type). */
@@ -22,19 +23,13 @@ export const CLASSED_SLOTS:readonly Slot[]=['weapon','outfit','hat'];
 export const CHARACTER_GENDERS=['male','female'] as const;
 export type CharacterGender=typeof CHARACTER_GENDERS[number];
 export type ItemGender=CharacterGender|'unisex';
-export const DYE_IDS = ['original','coral','azure','violet','gold'] as const;
-export type DyeId = typeof DYE_IDS[number];
-export const DYE_SLOTS = ['hat','outfit','hair','glasses'] as const;
-export type DyeSlot = typeof DYE_SLOTS[number];
-export const DYES: {id:DyeId;name:string;color:string}[] = [
- {id:'original',name:'Original',color:'#b89870'}, {id:'coral',name:'Coral',color:'#f24b64'},
- {id:'azure',name:'Celeste',color:'#168cf0'}, {id:'violet',name:'Violeta',color:'#9836e7'}, {id:'gold',name:'Ouro',color:'#ffbb24'}
-];
+/** Colors of the retired free dyes, kept only to migrate old profiles to ticket colors (shared/colors.ts). */
+export const LEGACY_DYE_COLORS:Readonly<Record<string,string>>={coral:'#f24b64',azure:'#168cf0',violet:'#9836e7',gold:'#ffbb24'};
 export const VISIBILITY_SLOTS=['hat','glasses','costume'] as const;
 export type EquipmentVisibility=Partial<Record<typeof VISIBILITY_SLOTS[number],boolean>>;
 /** Which owned copy fills a slot when it is not the first one (the key of a repeated purchase). */
 export type EquipmentCopies=Partial<Record<Slot,string>>;
-export type Equipment = Record<Slot, string> & {upgrade:number;compositions?:Compositions;dyes?:Partial<Record<DyeSlot,DyeId>>;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
+export type Equipment = Record<Slot, string> & {upgrade:number;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
 /** Buying an item again adds a separate copy: the first keeps the item id, later ones are `id~2`, `id~3`… */
 export const COPY_SEPARATOR='~';
 export function copyBase(key:string):string {const at=key.indexOf(COPY_SEPARATOR);return at<0?key:key.slice(0,at);}
@@ -54,11 +49,6 @@ export function equippedCompositions(equipment:Equipment,compositions:Compositio
 export function normalizeVisibility(value:unknown):Record<typeof VISIBILITY_SLOTS[number],boolean> {
  const input=value&&typeof value==='object'?value as Record<string,unknown>:{};
  return {hat:input.hat!==false,glasses:input.glasses!==false,costume:input.costume!==false};
-}
-export function normalizeDyes(value:unknown):Partial<Record<DyeSlot,DyeId>> {
- const dyes:Partial<Record<DyeSlot,DyeId>>={};
- if(value&&typeof value==='object')for(const slot of DYE_SLOTS){const id=(value as Record<string,unknown>)[slot];if(DYE_IDS.includes(id as DyeId))dyes[slot]=id as DyeId;}
- return dyes;
 }
 export interface ItemVisual {variant:string;visible?:boolean;pose?:'adventurer'|'confident'|'regal'|'surfer'|'executive'|'racer'|'dancer'|'cartographer';asset?:string;color?:string;secondary?:string;hideHair?:boolean;offset?:[number,number];scale?:number;rotation?:number;}
 export type Rarity = 'common'|'uncommon'|'rare'|'epic'|'legendary';
@@ -150,11 +140,12 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
-export const CONTENT_VERSION=12;
+export const CONTENT_VERSION=13;
 export const MAX_UPGRADE = 15;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
-export const SMITH_POSITION = {x:3640,y:640} as const;
+/** Where players stand to use the forge, just in front of the smith (moves with the forge station, shared/lobby.ts). */
+export const SMITH_POSITION:{x:number;y:number} = {x:3640,y:640};
 export const STONES = [
  {level:1,name:'Pedra de Fortificação I',color:'#c9d0ca',power:1},
  {level:2,name:'Pedra de Fortificação II',color:'#65cffa',power:2},

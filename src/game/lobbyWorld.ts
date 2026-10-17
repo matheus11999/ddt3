@@ -7,7 +7,8 @@
  * Without the panorama, a procedural plaza tiles the width as a stand-in, and
  * stations without art fall back to procedural podiums or keeper avatars.
  */
-import {LOBBY_WIDTH,LOBBY_WALK} from '../../shared/lobby';
+import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
+import type {LobbyStationSpot} from '../../shared/lobby';
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
 
@@ -60,6 +61,19 @@ export const LOBBY_STATIONS:Station[]=[
   {name:'barraca',motion:'still'},
   {name:'npc',motion:'breathe'}]},
 ];
+
+/** Spots as shipped; a layout published in the admin panel moves stations from these (podium glows follow). */
+export const LOBBY_STATION_DEFAULTS:readonly LobbyStationSpot[]=LOBBY_STATIONS.map(({id,x,y,height})=>({id,x,y,height}));
+const glowDefaults=new Map(LOBBY_STATIONS.map(s=>[s.id,s.glow?{...s.glow}:undefined]));
+export function placeStations(spots:readonly LobbyStationSpot[]){
+ for(const station of LOBBY_STATIONS){
+  const spot=spots.find(s=>s.id===station.id)??LOBBY_STATION_DEFAULTS.find(s=>s.id===station.id)!,home=LOBBY_STATION_DEFAULTS.find(s=>s.id===station.id)!,glow=glowDefaults.get(station.id);
+  station.x=spot.x;station.y=spot.y;station.height=spot.height;
+  if(glow&&station.glow){station.glow.x=glow.x+spot.x-home.x;station.glow.y=station.rank&&station.stand?spot.y-spot.height*(1-station.stand[1])+40:glow.y+spot.y-home.y;}
+  if(station.fallback.kind!=='keeper'){station.fallback.portal.x=spot.x;station.fallback.portal.y=station.fallback.kind==='gate'?spot.y-18:spot.y;}
+ }
+}
+onLobbyLayout(layout=>placeStations(layout.stations));
 
 /** Where the painted floor starts under the balustrade's curb; floor tile width, its depth at the bottom (fraction of width) and at the far edge (fraction of that). */
 const FLOOR_TOP=548,FLOOR_TILE=620,FLOOR_NEAR=.6,FLOOR_FAR=.28;

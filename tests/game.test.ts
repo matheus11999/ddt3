@@ -45,9 +45,9 @@ function errors(events:ServerEvent[]){return events.filter((event):event is Extr
 test('customization broadcasts all layers to other players and remains locked during battle',async()=>{
  const f=fixture();const items=Object.fromEntries(SLOTS.map(slot=>[slot,f.a.equipment[slot]])) as Record<keyof typeof import('../shared/catalog').SLOT_NAMES,string>;
  items.hat='hat-cap';items.glasses='glasses-sport';items.hair='hair-undercut';items.face='face-taunt';
- await f.game.command(f.a.id,{type:'customize',selection:{items,dyes:{hat:'coral'}}});
+ await f.game.command(f.a.id,{type:'customize',selection:{items}});
  const other=f.events.get(f.b.id)!.filter((e):e is Extract<ServerEvent,{type:'lobby'}>=>e.type==='lobby').at(-1)!;
- assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.glasses,'glasses-sport');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.face,'face-taunt');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.dyes?.hat,'coral');
+ assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.glasses,'glasses-sport');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.face,'face-taunt');
  await f.game.command(f.a.id,{type:'create',practice:true,name:'Visual',mode:'1v1',map:'sky'});const roomId=f.game.peers.get(f.a.id)!.roomId!;
  await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const fighter=f.game.matches.get(roomId)!.state.players.find(p=>p.id===f.a.id)!;assert.equal(fighter.equipment.hair,'hair-undercut');
