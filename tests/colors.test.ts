@@ -42,30 +42,41 @@ test('recoloring a copy costs one ticket, follows the worn copy and refuses with
  const {store,state}=await database();state.profile.inventory.push('hat-cap~2');
  const recolor=(target:string,color:string|null)=>store.paint(state.profile.id,[{target,color}]);
  const tickets=state.profile.colorTickets;
- const outcome=await recolor('hat-cap~2','#2b3fb8');
- assert.equal(outcome.profile.colorTickets,tickets-1);assert.equal(outcome.profile.itemColors['hat-cap~2'],'#2b3fb8');
+ const outcome=await recolor('hat-cap~2','#3a6fb0');
+ assert.equal(outcome.profile.colorTickets,tickets-1);assert.equal(outcome.profile.itemColors['hat-cap~2'],'#3a6fb0');
  // The first copy is worn, so the equipment keeps its painted colors.
  assert.equal(outcome.profile.equipment.colors?.hat,undefined);
  const worn=await store.saveEquipment(state.profile.id,{...outcome.profile.equipment,copies:{hat:'hat-cap~2'}});
- assert.equal(worn.equipment.colors?.hat,'#2b3fb8');
- await assert.rejects(recolor('hat-cap~2','#2b3fb8'),/Nada mudou/);
- await assert.rejects(recolor('brick','#ff0000'),/visual/);
- await assert.rejects(recolor('hat-mage','#ff0000'),/visual/);
+ assert.equal(worn.equipment.colors?.hat,'#3a6fb0');
+ await assert.rejects(recolor('hat-cap~2','#3a6fb0'),/Nada mudou/);
+ await assert.rejects(recolor('brick','#c8463d'),/visual/);
+ await assert.rejects(recolor('hat-mage','#c8463d'),/visual/);
  const restored=await recolor('hat-cap~2',null);assert.equal(restored.profile.itemColors['hat-cap~2'],undefined);
  state.profile.colorTickets=0;const before=structuredClone(state.profile);
- await assert.rejects(recolor('hat-cap','#ff0000'),/Ticket de Cor/);assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');
+ await assert.rejects(recolor('hat-cap','#c8463d'),/Ticket de Cor/);assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');
 });
 
 test('one paint request changes pieces, skin and eyes together, charging only real changes',async()=>{
  const {store,state}=await database();state.profile.colorTickets=3;state.profile.inventory.push('hair-undercut');state.profile.itemColors={'hair-undercut':'#e8332f'};
- const outcome=await store.paint(state.profile.id,[{target:'hat-cap',color:'#2b3fb8'},{target:'hair-undercut',color:'#e8332f'},{target:'skin',color:'#8d5534'},{target:'eyes',color:'#2f7fd8'}]);
+ const outcome=await store.paint(state.profile.id,[{target:'hat-cap',color:'#3a6fb0'},{target:'hair-undercut',color:'#e8332f'},{target:'skin',color:'#b77b52'},{target:'eyes',color:'#3a78b8'}]);
  // The hair already had that color, so three tickets pay for the three real changes.
- assert.equal(outcome.profile.colorTickets,0);assert.deepEqual(outcome.result,{changes:[{target:'hat-cap',color:'#2b3fb8'},{target:'skin',color:'#8d5534'},{target:'eyes',color:'#2f7fd8'}],tickets:0});
- assert.equal(outcome.profile.equipment.colors?.hat,'#2b3fb8');assert.equal(outcome.profile.equipment.skin,'#8d5534');assert.equal(outcome.profile.equipment.eyes,'#2f7fd8');
+ assert.equal(outcome.profile.colorTickets,0);assert.deepEqual(outcome.result,{changes:[{target:'hat-cap',color:'#3a6fb0'},{target:'skin',color:'#b77b52'},{target:'eyes',color:'#3a78b8'}],tickets:0});
+ assert.equal(outcome.profile.equipment.colors?.hat,'#3a6fb0');assert.equal(outcome.profile.equipment.skin,'#b77b52');assert.equal(outcome.profile.equipment.eyes,'#3a78b8');
  // Without a ticket for every change nothing is painted.
  state.profile.colorTickets=1;const before=structuredClone(state.profile);
  await assert.rejects(store.paint(state.profile.id,[{target:'hat-cap',color:null},{target:'skin',color:null}]),/2 Tickets de Cor/);assert.deepEqual(state.profile,before);
- await assert.rejects(store.paint(state.profile.id,[{target:'skin',color:null},{target:'skin',color:'#ffffff'}]),/duas vezes/);
+ await assert.rejects(store.paint(state.profile.id,[{target:'skin',color:null},{target:'skin',color:'#5a3624'}]),/duas vezes/);
+});
+
+test('only the ready colors can be painted, and colors painted before the palette stay',async()=>{
+ const {store,state}=await database();state.profile.itemColors={'hat-cap':'#ff00ff'};state.profile.bodyColors={skin:'#a1311c'};
+ await assert.rejects(store.paint(state.profile.id,[{target:'hat-cap',color:'#00ff00'}]),/cores prontas/);
+ await assert.rejects(store.paint(state.profile.id,[{target:'skin',color:'#3a6fb0'}]),/cores prontas/);
+ await assert.rejects(store.paint(state.profile.id,[{target:'eyes',color:'#c8463d'}]),/cores prontas/);
+ // The old strong colors are kept on load and an unchanged entry costs nothing.
+ const p=normalizeProfile(structuredClone(state.profile));assert.equal(p.itemColors['hat-cap'],'#ff00ff');assert.equal(p.bodyColors.skin,'#a1311c');
+ const outcome=await store.paint(state.profile.id,[{target:'hat-cap',color:'#ff00ff'},{target:'skin',color:'#5a3624'}]);
+ assert.deepEqual(outcome.result.changes,[{target:'skin',color:'#5a3624'}]);
 });
 
 test('tickets are bought by quantity and equipment never by quantity',async()=>{
@@ -79,7 +90,7 @@ test('tickets are bought by quantity and equipment never by quantity',async()=>{
 
 test('discarding removes a copy with its data, unequips it and keeps one of each worn type',async()=>{
  const {store,state}=await database();
- state.profile.inventory.push('hat-cap~2');state.profile.itemColors={'hat-cap':'#ff0000','hat-cap~2':'#00ff00'};state.profile.equipment.copies={hat:'hat-cap~2'};
+ state.profile.inventory.push('hat-cap~2');state.profile.itemColors={'hat-cap':'#c8463d','hat-cap~2':'#00ff00'};state.profile.equipment.copies={hat:'hat-cap~2'};
  // Throwing away the first copy moves the newest one into the plain id, keeping what is worn.
  let p=await store.discard(state.profile.id,'hat-cap');
  assert.deepEqual(p.inventory.filter(key=>key.startsWith('hat-cap')),['hat-cap']);assert.equal(p.itemColors['hat-cap'],'#00ff00');assert.equal(p.equipment.hat,'hat-cap');assert.equal(p.equipment.copies?.hat,undefined);assert.equal(p.equipment.colors?.hat,'#00ff00');

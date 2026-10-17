@@ -131,11 +131,20 @@ try{
    [undefined,...swatches].forEach((color,i)=>{cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);fitIn(portrait(id,color),170+i*cw,y);});});
   // Body and eye colors on the universal head (Ticket de Cor in the character settings).
   const bodyRow=(row,label,options)=>{const y=30+row*cw;cs.fillStyle='#fff';cs.font='12px sans-serif';cs.fillText(label,6,y+cw/2);options.forEach((option,i)=>{const head=A.getFacePortrait('face-brave',option.skin,option.eyes);cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);if(head)cs.drawImage(head,380,150,520,520,170+i*cw,y,cw-4,cw-4);});};
-  bodyRow(colorItems.length,'Cor do corpo',[{},{skin:'#f8cfae'},{skin:'#b97a4f'},{skin:'#6a3b22'},{skin:'#c9dcf6'},{skin:'#cfe7c9'}]);
+  const {SKIN_TONES}=await import('/shared/colors.ts');
+  bodyRow(colorItems.length,'Cor do corpo',SKIN_TONES.map(tone=>({skin:tone.color??undefined})));
   // Whole bodies: the outfit's painted arms and legs follow the skin color, its clothes stay.
-  const skins=[undefined,'#f8cfae','#b97a4f','#6a3b22','#c9dcf6','#cfe7c9'],bodyStart=colorItems.length+2;
+  const skins=SKIN_TONES.map(tone=>tone.color??undefined),bodyStart=colorItems.length+2;
   outfits.forEach((outfit,row)=>{const y=30+(bodyStart+row)*cw;cs.fillStyle='#fff';cs.font='12px sans-serif';cs.fillText(`Corpo · ${CATALOG[outfit].name}`,6,y+cw/2);
    skins.forEach((skin,i)=>{const cell=document.createElement('canvas');cell.width=cell.height=cw;const cc=cell.getContext('2d');V.drawAvatar(cc,{...eqOf({outfit,hair:'hair-undercut'}),skin},cw/2,cw-6,cw-12,1000,false,1,false);cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);cs.drawImage(cell,170+i*cw,y);});});
+  // Large sheet of every outfit and face in each skin tone, front and lying down, to spot pieces of skin that keep the old tone.
+  const sc=300,faces=ITEMS.filter(item=>item.slot==='face'&&!item.id.endsWith('-none')).map(item=>item.id),skinSheet=document.createElement('canvas');
+  skinSheet.width=170+sc*skins.length;skinSheet.height=30+sc*outfits.length+Math.ceil(faces.length)*160;const ks=skinSheet.getContext('2d');ks.fillStyle='#16233a';ks.fillRect(0,0,skinSheet.width,skinSheet.height);
+  ks.fillStyle='#fff';ks.font='bold 13px sans-serif';SKIN_TONES.forEach((tone,i)=>ks.fillText(tone.name,170+i*sc+8,20));
+  outfits.forEach((outfit,row)=>{const y=30+row*sc;ks.fillStyle='#fff';ks.font='13px sans-serif';ks.fillText(CATALOG[outfit].name,8,y+sc/2);
+   skins.forEach((skin,i)=>{const cell=document.createElement('canvas');cell.width=cell.height=sc;V.drawAvatar(cell.getContext('2d'),{...eqOf({outfit,hair:'hair-undercut'}),skin},sc/2,sc-8,sc-16,1000,false,1,false);ks.fillStyle='#ffffff0d';ks.fillRect(170+i*sc,y,sc-4,sc-4);ks.drawImage(cell,170+i*sc,y);});});
+  faces.forEach((face,row)=>{const y=30+outfits.length*sc+row*160;ks.fillStyle='#fff';ks.font='13px sans-serif';ks.fillText(CATALOG[face].name,8,y+80);
+   skins.forEach((skin,i)=>{const head=A.getFacePortrait(face,skin,undefined);ks.fillStyle='#ffffff0d';ks.fillRect(170+i*sc,y,sc-4,156);if(head)ks.drawImage(head,290,20,720,720,170+i*sc+70,y,156,156);});});
   bodyRow(colorItems.length+1,'Cor dos olhos',[{},{eyes:'#2f7fd8'},{eyes:'#1f9c6b'},{eyes:'#c43a3a'},{eyes:'#8a3fd6'},{eyes:'#8b8f99'}]);
 
   // Sheets: each item alone with its zone, and the hair × hat matrix with the sport glasses.
@@ -154,7 +163,7 @@ try{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,prone,recolor,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,recolor,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -173,5 +182,5 @@ const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  '## Ticket de Cor','','| Peça | O que muda | Área | Problemas |','| --- | --- | --- | --- |',...data.recolor.map(item=>`| ${item.id} | ${item.label} | ${Math.round(item.coverage*100)}% | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
 console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png, ${output}/skins.png`);
 if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingColors.length))process.exit(1);
