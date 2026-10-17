@@ -56,18 +56,20 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
 export const DIRECT_HIT_DIG=.45;
 /** Where an impact removes terrain: under the target on a direct hit, else at the explosion. */
 export function impactDig(impact:{x:number;y:number;radius:number;dig?:{x:number;y:number;radius:number}}){return impact.dig??impact;}
-/** Broken ground is never a perfect circle: the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
+/** Broken ground is never a perfect circle: by default the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
 export const CRATER_ROUGHNESS=.14;
+/** A weapon may set its own `craterRoughness` (0 = a clean circle); impacts carry it so clients dig the same hole. */
+export function weaponRoughness(weapon:{craterRoughness?:number}){return weapon.craterRoughness??CRATER_ROUGHNESS;}
 function roughness(angle:number,seed:number){const a=(seed&1023)/163,b=((seed>>10)&1023)/163,c=((seed>>20)&1023)/163;
  return (Math.sin(angle*5+a)*.45+Math.sin(angle*9+b)*.35+Math.sin(angle*17+c)*.2+1)/2;}
 /** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden'){
- const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+CRATER_ROUGHNESS);
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden',rough=CRATER_ROUGHNESS){
+ const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+rough);
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-extent)/3));cx<Math.min(cols,Math.ceil((x+extent)/3));cx++){
   const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const dx=cx*3-x,dy=cy*3-y,edge=r*(1+CRATER_ROUGHNESS*roughness(Math.atan2(dy,dx),seed));if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+  const dx=cx*3-x,dy=cy*3-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
  }
  return removed;
 }
