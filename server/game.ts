@@ -15,7 +15,7 @@ import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
-import {adjustAimToTerrain,clampAimAngle,weaponAimLimits} from '../shared/aim';
+import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
 import {createFall,fallPosition,fallVelocity} from '../shared/fall';
 export interface Peer {profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
@@ -242,18 +242,18 @@ export class Game {
     case 'start':this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
     case 'ability':{const {m,f}=this.turn(p);this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
-    case 'flight':{const {m,f}=this.turn(p);if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;this.broadcastBattle(m);break;}
+    case 'flight':{const {m,f}=this.turn(p);if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
     case 'power':{const {m,f}=this.turn(p);this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
      const {m,f}=this.turn(p);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
-     const w=WEAPONS.find(w=>w.id===f.equipment.weapon)!;adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(w,f.aimSlope??0,c.angle);f.chargePower=c.power;f.charging=c.charging;this.broadcastBattle(m);break;
+     adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;f.charging=c.charging;this.broadcastBattle(m);break;
     }
     case 'walk':{
-     const {m,f}=this.turn(p);if(f.flightArmed)throw Error('Cancele o voo antes de andar.');if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();if(f.stamina<3)throw Error('Vigor insuficiente.');
+     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();if(f.stamina<3)throw Error('Vigor insuficiente.');
      f.facing=c.direction;const destination=walkPosition(m.terrain,f,c.direction);if(destination){const fromY=f.y;f.x=destination.x;f.y=destination.y;f.stamina-=3;if(f.y>WORLD.height){f.y=WORLD.height+150;f.hp=0;}this.animateFall(f,fromY,Date.now());}adjustAimToTerrain(f,m.terrain);if(!this.checkWin(m))this.broadcastBattle(m);break;
     }
-    case 'fire':{const {m,f}=this.turn(p);const w=WEAPONS.find(w=>w.id===f.equipment.weapon)!;adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(w,f.aimSlope??0,c.angle),c.power);break;}
+    case 'fire':{const {m,f}=this.turn(p);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
     case 'pass':{const {m}=this.turn(p);this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
@@ -350,7 +350,8 @@ export class Game {
   f.powerCharge=0;f.powerArmed=true;
  }
  private useAbility(m:Match,f:Fighter,ability:AbilityId){
-  if(f.flightArmed)throw Error('Cancele o voo antes de usar habilidades.');
+  // Heal and invisibility act at once and combine with flight; homing guides a shot, which flight replaces.
+  if(f.flightArmed&&ability==='homing')throw Error('Cancele o voo antes de usar a mira assistida.');
   if(!normalizeAbilityLoadout(f.abilityLoadout).includes(ability))throw Error('Esta habilidade não está equipada.');
   f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');

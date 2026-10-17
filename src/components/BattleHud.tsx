@@ -10,7 +10,7 @@ import {ChevronDown,ChevronUp,Wind,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
-import {clampAimAngle,weaponAimLimits} from '../../shared/aim';
+import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
 import type {Fighter} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import './BattleHud.css';
@@ -25,7 +25,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
  const opponents=b.players.filter(player=>player.team!==me.team);
  // Limits remain authoritative equipment data; equipment itself is not part of the HUD.
- const weapon=WEAPONS.find(item=>item.id===me.equipment.weapon)!,aimSlope=me.aimSlope??0;
+ // With the paper plane armed the plane's wider envelope replaces the weapon's.
+ const weapon=aimSource(me),aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
  const [power,setPower]=useState(MIN_POWER),[lastPower,setLastPower]=useState<number|null>(null);
  const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false);
@@ -132,8 +133,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const visibility=()=>{if(document.hidden)blur();};
   const timer=setInterval(()=>{
    if(!live.current.canAct||turnSubmitted.current||ignoresGameKeys(document.activeElement))return;
-   if(!live.current.me.flightArmed&&(keys.has('a')||keys.has('arrowleft')))client.send({type:'walk',direction:-1});
-   if(!live.current.me.flightArmed&&(keys.has('d')||keys.has('arrowright')))client.send({type:'walk',direction:1});
+   if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
+   if(keys.has('d')||keys.has('arrowright'))client.send({type:'walk',direction:1});
    if(keys.has('w')||keys.has('arrowup'))setAngle(Math.min(live.current.maxAngle,live.current.angle+1));
    if(keys.has('s')||keys.has('arrowdown'))setAngle(Math.max(live.current.minAngle,live.current.angle-1));
   },90);
@@ -143,7 +144,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
- const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed?['homing' as const]:[])];
+ const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
 
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''}`} data-party-size={Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)}>
   <div className="battle-top">
@@ -166,9 +167,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   {mine&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
 
   <aside className="battle-ability-tray" aria-label="Habilidades e voo">
-   <AbilitySlots loadout={me.abilityLoadout} counts={me.abilities} active={activeAbilities} disabled={!canAct||!!me.flightArmed} unavailable={unavailableAbilities} onUse={ability=>{if(canAct&&!me.flightArmed)client.send({type:'ability',ability});}}/>
+   <AbilitySlots loadout={me.abilityLoadout} counts={me.abilities} active={activeAbilities} disabled={!canAct} unavailable={unavailableAbilities} onUse={ability=>{if(canAct&&!(me.flightArmed&&ability==='homing'))client.send({type:'ability',ability});}}/>
    <span className="ability-flight-divider" aria-hidden="true"/>
-   <button type="button" className={`flight-control ${me.flightArmed?'flight-armed':''}`} data-flight={!!me.flightArmed} disabled={flightBlocked} aria-pressed={!!me.flightArmed} aria-label={me.flightArmed?'Cancelar voo':'Ativar voo'} title="Voo: mire e lance o avião para se deslocar. Substitui seu disparo e não causa dano. Não combina com poderes ou mira assistida." onClick={event=>{cancelCharge();if(!flightBlocked)client.send({type:'flight',active:!me.flightArmed});if(event.detail>0)event.currentTarget.blur();}}><img src="/assets/abilities/flight.png" alt="" draggable={false}/><span>{me.flightArmed?'ATIVO':'VOO'}</span></button>
+   <button type="button" className={`flight-control ${me.flightArmed?'flight-armed':''}`} data-flight={!!me.flightArmed} disabled={flightBlocked} aria-pressed={!!me.flightArmed} aria-label={me.flightArmed?'Cancelar voo':'Ativar voo'} title="Voo: mire e lance o avião para se deslocar. Substitui seu disparo e não causa dano. Combina com andar, cura e invisibilidade." onClick={event=>{cancelCharge();if(!flightBlocked)client.send({type:'flight',active:!me.flightArmed});if(event.detail>0)event.currentTarget.blur();}}><img src="/assets/abilities/flight.png" alt="" draggable={false}/><span>{me.flightArmed?'ATIVO':'VOO'}</span></button>
   </aside>
 
   <aside className="boost-bar" aria-label="Ferramentas de batalha">

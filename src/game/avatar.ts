@@ -283,7 +283,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    let throwing=proneThrow(m,pose,context.poseTime??0,angle,context.power??0,crawl,cycle,time,painted.arms?proneArmRest(painted):0);
    // Guns and wands are taken in hand to aim, charge and fire; thrown weapons stay on the back.
    const holds=weapon&&!!painted.arms&&WEAPONS.find(item=>item.id===eq.weapon)?.hold==='hand';
-   m.grab=mix(m.grab,Number(holds&&(pose==='aim'||pose==='charge'||pose==='fire')),context.animated===false?1:.12);if(Math.abs(m.grab-Math.round(m.grab))<.01)m.grab=Math.round(m.grab);
+   m.grab=mix(m.grab,Number(holds&&(pose==='charge'||pose==='fire')),context.animated===false?1:.12);if(Math.abs(m.grab-Math.round(m.grab))<.01)m.grab=Math.round(m.grab);
    const inHand=holds&&m.grab>.5;
    if(holds&&m.grab>.01){const grip=heldGrip(painted,angle,recoil);throwing={...grip,angle:mix(throwing.angle,grip.angle,m.grab),grow:mix(1,grip.grow!,m.grab),front:inHand};}
    if(weapon&&!holds)drawBackWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,surge,crawl,cycle);

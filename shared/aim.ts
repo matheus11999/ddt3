@@ -19,6 +19,13 @@ export function terrainAimOffset(terrain:Uint8Array,fighter:{x:number;y:number;f
  return Math.round(clamp(-fighter.facing*slope,-MAX_AIM_SLOPE,MAX_AIM_SLOPE))||0;
 }
 
+/** The paper plane is not a weapon shot: with flight armed the whole 5–90° envelope opens. */
+export const FLIGHT_AIM={minAngle:5,maxAngle:90} as const;
+/** Angle range source for a fighter right now: the plane's envelope when flight is armed, else the weapon. */
+export function aimSource(fighter:{flightArmed?:boolean;equipment:{weapon:string}}):Pick<Weapon,'minAngle'|'maxAngle'>{
+ return fighter.flightArmed?FLIGHT_AIM:WEAPONS.find(weapon=>weapon.id===fighter.equipment.weapon)!;
+}
+
 /** Weapon limits describe elevation relative to the supporting ground.
  * The global 5–90° envelope keeps the same forward-facing controls. */
 export function weaponAimLimits(weapon:Pick<Weapon,'minAngle'|'maxAngle'>,offset=0){
@@ -32,7 +39,7 @@ export function clampAimAngle(weapon:Pick<Weapon,'minAngle'|'maxAngle'>,offset:n
 
 /** Preserve the arm's relative elevation when a crater changes its support. */
 export function adjustAimToTerrain(fighter:Fighter,terrain:Uint8Array){
- const weapon=WEAPONS.find(weapon=>weapon.id===fighter.equipment.weapon)!;
+ const weapon=aimSource(fighter);
  const previous=fighter.aimSlope??0,next=terrainAimOffset(terrain,fighter);
  fighter.aimAngle=clampAimAngle(weapon,next,(fighter.aimAngle??45)+next-previous);fighter.aimSlope=next;
 }

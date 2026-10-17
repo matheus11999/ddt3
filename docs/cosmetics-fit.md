@@ -64,6 +64,14 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 
 Nenhum número novo vai para `appearance.ts` ou `headwear.ts`.
 
+## Redução provisória (17/10/2026)
+
+Corte Horizonte, Corte Tempestade e Rabo de Cavalo Rubi passavam da cabeça (1,56–1,71× de largura). `shrink(..., .9)` em `manifest.ts` reduz cada um a 90% em volta do centro do crânio (o Horizonte gira perto do olho distante para a franja não descer sobre os olhos). Agora cabem na largura; sobra uma pequena altura extra e a franja sobre os olhos, que só a arte nova corrige. Quando a arte repintada chegar, remover o `shrink` da peça.
+
+## Orelha na frente do cabelo (17/10/2026)
+
+O cabelo passava por cima da orelha. Agora cada arte de cabelo, descoberto ou coberto, é recortada pelo contorno exato da orelha (`EAR_FRONT` em `anchors.ts`, traçado no meio da linha pintada da cabeça universal) e ganha uma borda escura no corte, como no DDTank: a orelha da cabeça aparece por baixo e o cabelo a contorna com uma linha contínua, sem recorte quadrado. Arte nova não deve pintar mechas sobre a orelha.
+
 ## Fase 3: ajustes de código
 
 - Todos os chapéus pintados usam o mesmo assento (`HEAD_ANCHORS.hatSeat`); antes cada um tinha o seu, com até 23 px de diferença.
@@ -81,3 +89,7 @@ Comparação com 353 imagens de referência (todas as combinações chapéu × c
 ## Relatório inicial (fase 1)
 
 8 de 17 peças fora da zona: Corte Tempestade, Rabo de Cavalo Rubi, Cabelo Aventureiro e Lunar (largura, altura, quadro); Cabelo Ondulado (desce 10 px além e franja sobre os olhos); Chapéu Astral (aba baixa e sai do quadro); Elmo do Guardião (sai do quadro e cobre os olhos); Óculos Gatinho (0,99× a cabeça). 49 de 54 combinações com problema, principalmente franja sobre os olhos e aba de bonés cobrindo 25–35% da frente dos óculos. Executivo e Dançarina têm tronco de 0,77–0,78× a cabeça, contra 0,85–1,01× nas outras roupas.
+
+## Cabelo sob chapéu
+
+Com chapéu aparece o mesmo cabelo de sem chapéu, só cortado: nada surge que o cabelo descoberto não tenha. `drawHair` passa a arte por `underHat` em `appearance.ts`, que apaga tudo acima da linha de assento do chapéu (`HEAD_ANCHORS.hatSeat`). Atrás da cabeça o corte desce pela curva do crânio (`HAT_NAPE`) e, passando da frente da faixa, desce pela têmpora (`HAT_BROW`), com borda suave, para as mechas laterais parecerem sair por baixo do chapéu. As regiões `covered` do manifesto não são mais desenhadas. Vale para todo cabelo, sem número por item.
