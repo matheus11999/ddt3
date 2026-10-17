@@ -71,6 +71,10 @@ export interface ExpeditionDef {
  id:string;name:string;subtitle:string;description:string;cover:string;minLevel:number;
  /** Wide art at the top of the expedition window (scripts/compose-expedition-cover.py). */
  art:string;
+ /** Portrait art on the room's board once the expedition is chosen, the same for every stage. */
+ board:string;
+ /** Items listed under "Chances de drop" (more slots stay empty for future drops). */
+ drops:readonly {kind:'stone';level:number}[];
  /** Power (gearscore) the team should have, per difficulty. */
  recommendedPower:Record<Difficulty,number>;
  /** Stages per difficulty; a difficulty without stages is shown locked ("Em breve"). */
@@ -78,7 +82,7 @@ export interface ExpeditionDef {
 }
 export const EXPEDITIONS:readonly ExpeditionDef[]=[
  {id:'anthill',name:'Formigueiro',subtitle:'Tronco caído e a câmara da rainha',cover:'/assets/expeditions/anthill/cover.webp',minLevel:1,
-  art:'/assets/expeditions/anthill/picker-art.webp',recommendedPower:{easy:3000,normal:6000,hard:12000,hero:20000},
+  art:'/assets/expeditions/anthill/picker-art.webp',board:'/assets/expeditions/anthill/stage-1.webp',drops:[{kind:'stone',level:1}],recommendedPower:{easy:3000,normal:6000,hard:12000,hero:20000},
   description:'Formigas cercam o tronco caído. Derrote todas e enfrente a Rainha Formiga dentro do formigueiro.',
   stages:{easy:[
    {map:'anthill-1',name:'O tronco caído',art:'/assets/expeditions/anthill/stage-1.webp',objective:'Derrotar todas as formigas',cards:4,award:{coins:20,xp:40},prizes:[
@@ -90,5 +94,7 @@ export const EXPEDITIONS:readonly ExpeditionDef[]=[
 ];
 export function getExpedition(id:string){return EXPEDITIONS.find(expedition=>expedition.id===id);}
 export function expeditionStages(id:string,difficulty:Difficulty):readonly StageDef[]{return getExpedition(id)?.stages[difficulty]??[];}
+/** Chance (0–1) that one reward card of the stage holds this item. */
+export function dropChance(stage:StageDef,drop:{kind:string;level?:number}){return stage.prizes.length?stage.prizes.filter(prize=>prize.kind===drop.kind&&(prize.level??1)===(drop.level??1)).length/stage.prizes.length:0;}
 /** Monster HP grows with the party: a full team of four fights 1.9x tougher monsters than one adventurer. */
 export function partyHpScale(players:number){return .6+.325*Math.max(1,Math.min(4,players));}
