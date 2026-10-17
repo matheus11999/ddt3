@@ -97,8 +97,12 @@ export function LobbyEditor({onBack}:{onBack:()=>void}){
     const j=l.obstacles.findIndex(b=>b.id===what.id);if(linked&&j>=0){l.obstacles[j].x=o.obstacles[j].x+dx;l.obstacles[j].y=o.obstacles[j].y+dy;}}
   },!d.moved);d.moved=true;
  };
- const onWheel=(e:React.WheelEvent)=>{const r=canvasRef.current!.getBoundingClientRect(),v=view.current;if(e.shiftKey){view.current={...v,x:v.x-(e.deltaY||e.deltaX)};return;}
-  const scale=Math.max(.08,Math.min(2.5,v.scale*Math.exp(-e.deltaY*.0015))),mx=e.clientX-r.left,my=e.clientY-r.top;view.current={scale,x:mx-(mx-v.x)*scale/v.scale,y:my-(my-v.y)*scale/v.scale};};
+ // Native, non-passive wheel: zooms at the cursor without the page (or a trackpad pinch) zooming the browser.
+ useEffect(()=>{const canvas=canvasRef.current;if(!canvas)return;
+  const wheel=(e:WheelEvent)=>{e.preventDefault();const r=canvas.getBoundingClientRect(),v=view.current,unit=e.deltaMode===1?16:e.deltaMode===2?400:1,dy=e.deltaY*unit;
+   if(e.shiftKey){view.current={...v,x:v.x-(dy||e.deltaX*unit)};return;}
+   const scale=Math.max(.08,Math.min(2.5,v.scale*Math.exp(-dy*(e.ctrlKey?.01:.0015)))),mx=e.clientX-r.left,my=e.clientY-r.top;view.current={scale,x:mx-(mx-v.x)*scale/v.scale,y:my-(my-v.y)*scale/v.scale};};
+  canvas.addEventListener('wheel',wheel,{passive:false});return()=>canvas.removeEventListener('wheel',wheel);},[!!layout]);
 
  const warnings=useMemo(()=>layout?lobbyWarnings(layout):[],[layout]);
  const save=async():Promise<number|null>=>{if(!layout)return null;setBusy('Salvando…');setError('');
@@ -140,7 +144,7 @@ export function LobbyEditor({onBack}:{onBack:()=>void}){
    </ol>
   </aside>
   <div className="adm-stage" ref={wrapRef}>
-   <canvas ref={canvasRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={()=>{drag.current=null;}} onWheel={onWheel} onContextMenu={e=>e.preventDefault()}/>
+   <canvas ref={canvasRef} onPointerDown={onDown} onPointerMove={onMove} onPointerUp={()=>{drag.current=null;}} onContextMenu={e=>e.preventDefault()}/>
    <div className="adm-stage-help">Arraste estações, pegadas (laranja) e a entrada · puxe os quadradinhos para mudar o tamanho · roda = zoom</div>
    {(notice||error||busy)&&<div className={`adm-toast ${error?'bad':''}`}>{busy||error||notice}{!busy&&<button onClick={()=>{setError('');setNotice('');}}><X size={14}/></button>}</div>}
   </div>

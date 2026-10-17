@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
-import {AlertTriangle,ArrowDown,ArrowLeft,ArrowUp,Copy,Download,FlipHorizontal2,Grid3x3,History,Layers,Loader2,Maximize,Redo2,RotateCcw,Rocket,Save,ShieldAlert,Trash2,Undo2,Users,X,Eye} from 'lucide-react';
+import {AlertTriangle,AlignCenterVertical,ArrowDown,ArrowLeft,ArrowUp,Copy,Download,FlipHorizontal2,Grid3x3,History,Keyboard,Layers,Loader2,Lock,Magnet,Maximize,Monitor,PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen,Redo2,RotateCcw,Rocket,Ruler,Save,ShieldAlert,Trash2,Undo2,Unlock,Users,X,Eye,EyeOff,ZoomIn,ZoomOut} from 'lucide-react';
 import {api} from './api';
 import type {RevisionData} from './api';
 import {assemble,cutSheet,expandItems,loadImage,montage,preview,MAP_HEIGHT} from '../../shared/mapBuilder';
@@ -17,6 +17,12 @@ const shippedLayout=(id:string)=>{const found=Object.entries(SHIPPED).find(([pat
 const sourceUrl=(layout:MapLayout,file:string)=>`/${(layout.source??'').replace(/^public\//,'').replace(/\/$/,'')}/${file}`;
 const SHEET_NAMES:Record<string,string>={pecas:'Terreno',pecas2:'Terreno 2',objetos:'Objetos'};
 const TEAM_COLORS=['#4aa8ff','#ff5a5a'];
+const SCREEN_WIDTH=1536,SNAP=8,MIN_ZOOM=.1,MAX_ZOOM=4;
+/** Editor preferences kept per browser: open sidebars and the drawing aids. */
+interface Ui {left:boolean;right:boolean;snap:boolean;ruler:boolean;screen:boolean;}
+const UI_KEY='brasa-admin-map-editor';
+const loadUi=():Ui=>{const fallback={left:true,right:true,snap:false,ruler:true,screen:false};try{return {...fallback,...JSON.parse(localStorage.getItem(UI_KEY)??'{}')};}catch{return fallback;}};
+const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
 
 type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|null;
 interface Meta {name:string;subtitle:string;kind:'pvp'|'instance';enabled:boolean;}
@@ -35,6 +41,12 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const [selection,setSelection]=useState<Selection>(null),[built,setBuilt]=useState<Assembly|null>(null),[building,setBuilding]=useState(false);
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[dirty,setDirty]=useState(false),[savedRevision,setSavedRevision]=useState<number|null>(null);
  const [overlay,setOverlay]=useState({collision:false,grid:false,centre:true,ghost:true}),[panel,setPanel]=useState<'pieces'|'layers'>('pieces'),[sheetTab,setSheetTab]=useState(''),[showHistory,setShowHistory]=useState(false),[confirm,setConfirm]=useState<null|{warnings:string[]}>(null);
+ const [ui,setUi]=useState<Ui>(loadUi),[showKeys,setShowKeys]=useState(false);
+ // Lock and hide only help while editing (by item name, per map in this browser); they are not part of the map.
+ const [locked,setLocked]=useState<Set<string>>(()=>new Set()),[hidden,setHidden]=useState<Set<string>>(()=>new Set());
+ useEffect(()=>{try{localStorage.setItem(UI_KEY,JSON.stringify(ui));}catch{/* private window */}},[ui]);
+ const toggleUi=(key:keyof Ui)=>setUi(u=>({...u,[key]:!u[key]}));
+ const toggleIn=(set:typeof setLocked,name:string)=>set(s=>{const next=new Set(s);if(next.has(name))next.delete(name);else next.add(name);return next;});
  const history=useRef<{past:Doc[];future:Doc[]}>({past:[],future:[]});
  const builtFor=useRef<string>('');
 
@@ -90,8 +102,17 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
 
  // ── Canvas: view, drawing, hit testing ──
  const canvasRef=useRef<HTMLCanvasElement>(null),wrapRef=useRef<HTMLDivElement>(null),viewRef=useRef<View>({scale:.4,x:0,y:0}),dragRef=useRef<Drag|null>(null),[,redraw]=useState(0);
- const fit=useCallback(()=>{const wrap=wrapRef.current;if(!wrap)return;const scale=Math.min((wrap.clientWidth-40)/W,(wrap.clientHeight-40)/MAP_HEIGHT);viewRef.current={scale,x:(wrap.clientWidth-W*scale)/2,y:(wrap.clientHeight-MAP_HEIGHT*scale)/2};redraw(n=>n+1);},[W]);
+ const fit=useCallback(()=>{const wrap=wrapRef.current;if(!wrap)return;const scale=Math.max(MIN_ZOOM,Math.min((wrap.clientWidth-40)/W,(wrap.clientHeight-40)/MAP_HEIGHT));viewRef.current={scale,x:(wrap.clientWidth-W*scale)/2,y:(wrap.clientHeight-MAP_HEIGHT*scale)/2};redraw(n=>n+1);},[W]);
+ /** Zooms keeping the world point under (mx,my) — the cursor, the pinch centre or the middle of the stage — where it is. */
+ const zoomAt=useCallback((scale:number,mx?:number,my?:number)=>{const wrap=wrapRef.current,v=viewRef.current;if(!wrap)return;const next=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,scale)),x=mx??wrap.clientWidth/2,y=my??wrap.clientHeight/2;
+  viewRef.current={scale:next,x:x-(x-v.x)*next/v.scale,y:y-(y-v.y)*next/v.scale};redraw(n=>n+1);},[]);
  useEffect(()=>{fit();const wrap=wrapRef.current;if(!wrap)return;const ro=new ResizeObserver(()=>redraw(n=>n+1));ro.observe(wrap);return()=>ro.disconnect();},[fit,!!doc]);
+ // The wheel listener is native and not passive so it can stop the page (or a trackpad pinch) from zooming the whole browser.
+ useEffect(()=>{const canvas=canvasRef.current;if(!canvas)return;
+  const wheel=(e:WheelEvent)=>{e.preventDefault();const r=canvas.getBoundingClientRect(),v=viewRef.current,unit=e.deltaMode===1?16:e.deltaMode===2?400:1,dy=e.deltaY*unit,dx=e.deltaX*unit;
+   if(e.shiftKey){viewRef.current={...v,x:v.x-(dy||dx)};redraw(n=>n+1);return;}
+   zoomAt(v.scale*Math.exp(-dy*(e.ctrlKey?.01:.0015)),e.clientX-r.left,e.clientY-r.top);};
+  canvas.addEventListener('wheel',wheel,{passive:false});return()=>canvas.removeEventListener('wheel',wheel);},[zoomAt,!!doc]);
 
  /** Items as drawn: built positions for props resting on the ground, live positions while they move. */
  const placed=useMemo(()=>{
@@ -102,9 +123,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    const sheet=item.sheet??Object.keys(doc.layout.sheets??{})[0],piece=sheets[sheet]?.pieces[item.piece];
    const scale=item.scale??1,w=(piece?.w??0)*scale,h=(piece?.h??0)*scale;
    const sameAsBuilt=builtItems.get(item.id)===JSON.stringify(item),top=item.rest&&sameAsBuilt?builtTop.get(item.id)??item.top:item.top;
-   return {item,source,mirrored,piece,sheet,w,h,left:item.x-w/2,top};
+   const name=doc.layout.items[source]?.id??item.id;
+   return {item,source,mirrored,piece,sheet,w,h,left:item.x-w/2,top,locked:locked.has(name),hidden:hidden.has(name)};
   });
- },[doc,built,sheets]);
+ },[doc,built,sheets,locked,hidden]);
  const collisionLayer=useMemo(()=>{
   if(!built)return null;const c=document.createElement('canvas');c.width=built.width/3;c.height=MAP_HEIGHT/3;const g=c.getContext('2d')!,img=g.createImageData(c.width,c.height);
   for(const r of built.regions){const raw=atob(r.shape.bits);for(let n=0;n<r.shape.cols*r.shape.rows;n++)if(raw.charCodeAt(n>>3)>>(n&7)&1){const i=((r.shape.row+Math.floor(n/r.shape.cols))*c.width+r.shape.col+n%r.shape.cols)*4;if(i<0||i>=img.data.length)continue;
@@ -113,6 +135,9 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  },[built]);
  const warnedItems=useMemo(()=>new Set(built?.warnings.flatMap(w=>w.item===undefined?[]:[w.item])??[]),[built]);
  const surfaceAt=useCallback((x:number)=>built&&x>=0&&x<built.width?built.surface[Math.floor(x)]:MAP_HEIGHT,[built]);
+ /** Build warnings per spawn ("t-slot"), shown on the capsule itself so a spawn lifted by a prop or over a hole is seen at once. */
+ const spawnWarnings=useMemo(()=>{const m=new Map<string,string[]>();for(const w of built?.warnings??[])if(w.spawn){const k=`${w.spawn[0]}-${w.spawn[1]}`;m.set(k,[...(m.get(k)??[]),w.text.replace(/^spawn time \d jogador \d \(x \d+\): /,'')]);}return m;},[built]);
+ const hoverRef=useRef<{x:number;y:number}|null>(null);
 
  useEffect(()=>{
   const canvas=canvasRef.current,wrap=wrapRef.current;if(!canvas||!wrap||!doc)return;
@@ -123,7 +148,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(backdrop){const k=Math.max(W/backdrop.width,MAP_HEIGHT/backdrop.height);c.drawImage(backdrop,(W-backdrop.width*k)/2,MAP_HEIGHT-backdrop.height*k,backdrop.width*k,backdrop.height*k);c.fillStyle='rgba(7,13,24,.14)';c.fillRect(0,0,W,MAP_HEIGHT);}
   else{c.fillStyle='#22324a';c.fillRect(0,0,W,MAP_HEIGHT);}
   if(overlay.grid){c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=1/v.scale;for(let x=0;x<=W;x+=96){c.beginPath();c.moveTo(x,0);c.lineTo(x,MAP_HEIGHT);c.stroke();}for(let y=0;y<=MAP_HEIGHT;y+=96){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}}
-  for(const p of placed){if(!p.piece)continue;c.save();c.translate(p.item.x,p.top);if(p.item.flip)c.scale(-1,1);if(p.item.solid===false)c.globalAlpha=.75;c.drawImage(p.piece.canvas,-p.w/2,0,p.w,p.h);c.restore();}
+  for(const p of placed){if(!p.piece||p.hidden)continue;c.save();c.translate(p.item.x,p.top);if(p.item.flip)c.scale(-1,1);if(p.item.solid===false)c.globalAlpha=.75;c.drawImage(p.piece.canvas,-p.w/2,0,p.w,p.h);c.restore();}
   if(overlay.collision&&collisionLayer){c.imageSmoothingEnabled=false;c.drawImage(collisionLayer,0,0,W,MAP_HEIGHT);c.imageSmoothingEnabled=true;}
   c.restore();
   // Frame, centre and the death line.
@@ -134,53 +159,71 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   // Warnings and selection outlines.
   for(const p of placed){
    const selected=selection?.type==='item'&&selection.index===p.source,warned=warnedItems.has(p.source)&&!p.mirrored;
-   if(!selected&&!warned)continue;
+   if(p.hidden||!selected&&!warned)continue;
    c.lineWidth=(selected?2.5:2)/v.scale;c.strokeStyle=selected?(p.mirrored?'rgba(255,214,120,.7)':'#ffd166'):'#ff6b5a';if(p.mirrored||!selected&&warned)c.setLineDash([8/v.scale,6/v.scale]);
    if(p.mirrored&&!overlay.ghost&&!warned){c.setLineDash([]);continue;}
    c.strokeRect(p.left,p.top,p.w,p.h);c.setLineDash([]);
    if(selected&&!p.mirrored){c.fillStyle='#ffd166';for(const [hx,hy] of [[p.left,p.top],[p.left+p.w,p.top],[p.left,p.top+p.h],[p.left+p.w,p.top+p.h]]){c.fillRect(hx-4/v.scale,hy-4/v.scale,8/v.scale,8/v.scale);}}
   }
   // Spawns: a capsule standing on the ground, numbered like spawns.png.
-  doc.layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{const y=surfaceAt(x),bottom=y>=MAP_HEIGHT?MAP_HEIGHT-4:y,s=1/Math.max(.45,v.scale),sel=selection?.type==='spawn'&&selection.team===t&&selection.slot===slot;
+  const s=1/Math.max(.45,v.scale);
+  // 1x1 ruler: distance between position 1 of each team (ideal 900–1200 px).
+  if(ui.ruler&&doc.layout.spawns[0]?.length&&doc.layout.spawns[1]?.length){const a=doc.layout.spawns[0][0],b=doc.layout.spawns[1][0],y=Math.min(surfaceAt(a),surfaceAt(b),MAP_HEIGHT-4)-90*s,d=Math.abs(b-a),ok=d>=900&&d<=1200;
+   c.strokeStyle=ok?'#7be08e':'#ff6b5a';c.fillStyle=c.strokeStyle;c.lineWidth=2*s;c.setLineDash([6*s,5*s]);c.beginPath();c.moveTo(a,y);c.lineTo(b,y);c.stroke();c.setLineDash([]);
+   for(const e of [a,b]){c.beginPath();c.moveTo(e,y-8*s);c.lineTo(e,y+8*s);c.stroke();}
+   const label=`1x1: ${d} px${ok?'':' (ideal 900–1200)'}`;c.font=`800 ${14*s}px Nunito, sans-serif`;c.textAlign='center';const tw=c.measureText(label).width+16*s;
+   c.fillStyle='#000c';c.beginPath();c.roundRect((a+b)/2-tw/2,y-26*s,tw,20*s,6*s);c.fill();c.fillStyle=ok?'#9ff0ad':'#ffb4a8';c.fillText(label,(a+b)/2,y-11*s);}
+  doc.layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{const y=surfaceAt(x),bottom=y>=MAP_HEIGHT?MAP_HEIGHT-4:y,sel=selection?.type==='spawn'&&selection.team===t&&selection.slot===slot,bad=y>=MAP_HEIGHT||spawnWarnings.has(`${t}-${slot}`);
    c.save();c.translate(x,bottom);c.scale(s,s);
-   if(sel){c.shadowColor='#ffd166';c.shadowBlur=18;}
-   c.fillStyle=y>=MAP_HEIGHT?'#7a2a2a':TEAM_COLORS[t];c.strokeStyle=sel?'#ffd166':'#fff';c.lineWidth=sel?4:2.5;c.beginPath();c.roundRect(-11,-46,22,46,9);c.fill();c.stroke();c.shadowBlur=0;
+   if(sel||bad){c.shadowColor=sel?'#ffd166':'#ff4a3a';c.shadowBlur=18;}
+   c.fillStyle=y>=MAP_HEIGHT?'#7a2a2a':TEAM_COLORS[t];c.strokeStyle=sel?'#ffd166':bad?'#ff6b5a':'#fff';c.lineWidth=sel||bad?4:2.5;c.beginPath();c.roundRect(-11,-46,22,46,9);c.fill();c.stroke();c.shadowBlur=0;
    c.font='900 20px Nunito, sans-serif';c.textAlign='center';c.lineWidth=5;c.strokeStyle='#000';c.strokeText(String(slot+1),0,-54);c.fillStyle='#fff';c.fillText(String(slot+1),0,-54);
+   if(bad){c.fillStyle='#ff4a3a';c.beginPath();c.arc(15,-44,10,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font='900 15px Nunito, sans-serif';c.fillText('!',15,-39);}
    c.restore();}));
+  // One game screen around the cursor: what a player sees at once.
+  if(ui.screen&&hoverRef.current){const left=Math.max(0,Math.min(W-SCREEN_WIDTH,hoverRef.current.x-SCREEN_WIDTH/2));c.strokeStyle='#7fd3ff';c.lineWidth=2/v.scale;c.setLineDash([12/v.scale,8/v.scale]);c.strokeRect(left,0,Math.min(SCREEN_WIDTH,W),MAP_HEIGHT);c.setLineDash([]);
+   c.fillStyle='#7fd3ff';c.font=`800 ${13/v.scale}px Nunito, sans-serif`;c.textAlign='left';c.fillText('Tela do jogo',left+8/v.scale,18/v.scale);}
   c.restore();
  });
 
  const toWorld=(e:{clientX:number;clientY:number})=>{const r=canvasRef.current!.getBoundingClientRect(),v=viewRef.current;return {x:(e.clientX-r.left-v.x)/v.scale,y:(e.clientY-r.top-v.y)/v.scale};};
  const hitSpawn=(x:number,y:number)=>{if(!doc)return null;const s=1/Math.max(.45,viewRef.current.scale);
   for(let t=1;t>=0;t--)for(let slot=doc.layout.spawns[t].length-1;slot>=0;slot--){const sx=doc.layout.spawns[t][slot],sy=Math.min(surfaceAt(sx),MAP_HEIGHT-4);if(Math.abs(x-sx)<=14*s&&y<=sy+6*s&&y>=sy-70*s)return {team:t,slot};}return null;};
- const hitItem=(x:number,y:number)=>{for(let n=placed.length-1;n>=0;n--){const p=placed[n];if(!p.piece||x<p.left||x>p.left+p.w||y<p.top||y>p.top+p.h)continue;
+ const hitItem=(x:number,y:number)=>{for(let n=placed.length-1;n>=0;n--){const p=placed[n];if(!p.piece||p.locked||p.hidden||x<p.left||x>p.left+p.w||y<p.top||y>p.top+p.h)continue;
   const scale=p.item.scale??1,lx=Math.floor(((x-p.item.x)*(p.item.flip?-1:1)+p.w/2)/scale),ly=Math.floor((y-p.top)/scale);
   if(lx>=0&&ly>=0&&lx<p.piece.w&&ly<p.piece.h&&p.piece.alpha[(ly*p.piece.w+lx)*4+3]>60)return p;}return null;};
 
+ // Touch: two fingers pinch to zoom and move the view together.
+ const pointers=useRef(new Map<number,{x:number;y:number}>()),pinchRef=useRef<{dist:number;mx:number;my:number;view:View}|null>(null);
+ const pinchState=()=>{const [a,b]=[...pointers.current.values()],r=canvasRef.current!.getBoundingClientRect();return {dist:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2-r.left,my:(a.y+b.y)/2-r.top};};
+ const snap=(v:number)=>ui.snap?Math.round(v/SNAP)*SNAP:Math.round(v);
  const onPointerDown=(e:React.PointerEvent)=>{
-  if(!doc)return;(e.target as HTMLElement).setPointerCapture(e.pointerId);const {x,y}=toWorld(e);
+  if(!doc)return;(e.target as HTMLElement).setPointerCapture(e.pointerId);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pointers.current.size===2){dragRef.current=null;pinchRef.current={...pinchState(),view:{...viewRef.current}};return;}
+  const {x,y}=toWorld(e);
   if(e.button===1||e.button===2||e.altKey){dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};return;}
   const spawn=hitSpawn(x,y);if(spawn){setSelection({type:'spawn',...spawn});dragRef.current={kind:'spawn',...spawn,startX:x,origin:doc.layout.spawns[spawn.team][spawn.slot],moved:false};return;}
   const item=hitItem(x,y);
-  if(item){setSelection({type:'item',index:item.source});dragRef.current={kind:'item',index:item.source,mirrored:item.mirrored,startX:x,startY:y,origin:clone(doc.layout.items[item.source]),moved:false};return;}
+  if(item){setSelection({type:'item',index:item.source});
+   // A prop resting on the ground moves from where it is drawn, not from its stored drop height, so it never jumps into the sky.
+   const origin=clone(doc.layout.items[item.source]),own=placed.find(p=>p.source===item.source&&!p.mirrored);if(origin.rest&&own)origin.top=Math.round(own.top);
+   dragRef.current={kind:'item',index:item.source,mirrored:item.mirrored,startX:x,startY:y,origin,moved:false};return;}
   setSelection(null);dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};
  };
  const onPointerMove=(e:React.PointerEvent)=>{
+  if(pointers.current.has(e.pointerId))pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(pinchRef.current&&pointers.current.size>=2){const p=pinchRef.current,now=pinchState(),scale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,p.view.scale*now.dist/p.dist));
+   viewRef.current={scale,x:now.mx-(p.mx-p.view.x)*scale/p.view.scale,y:now.my-(p.my-p.view.y)*scale/p.view.scale};redraw(n=>n+1);return;}
+  if(ui.screen){hoverRef.current=toWorld(e);if(!dragRef.current)redraw(n=>n+1);}
   const drag=dragRef.current;if(!drag)return;
   if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
   const {x,y}=toWorld(e);
-  if(drag.kind==='spawn'){const nx=Math.round(Math.max(0,Math.min(W,drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
+  if(drag.kind==='spawn'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
   let dx=x-drag.startX,dy=y-drag.startY;if(e.shiftKey){if(Math.abs(dx)>Math.abs(dy))dy=0;else dx=0;}
   if(drag.mirrored)dx=-dx;
-  change(d=>{const item=d.layout.items[drag.index];item.x=Math.round(drag.origin.x+dx);item.top=Math.round(drag.origin.top+dy);},!drag.moved);drag.moved=true;
+  change(d=>{const item=d.layout.items[drag.index];item.x=snap(drag.origin.x+dx);item.top=snap(drag.origin.top+dy);},!drag.moved);drag.moved=true;
  };
- const onPointerUp=()=>{dragRef.current=null;};
- const onWheel=(e:React.WheelEvent)=>{
-  const r=canvasRef.current!.getBoundingClientRect(),v=viewRef.current;
-  if(e.shiftKey){viewRef.current={...v,x:v.x-(e.deltaY||e.deltaX)};redraw(n=>n+1);return;}
-  const scale=Math.max(.1,Math.min(3,v.scale*Math.exp(-e.deltaY*.0015))),mx=e.clientX-r.left,my=e.clientY-r.top;
-  viewRef.current={scale,x:mx-(mx-v.x)*scale/v.scale,y:my-(my-v.y)*scale/v.scale};redraw(n=>n+1);
- };
+ const onPointerUp=(e:React.PointerEvent)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchRef.current=null;dragRef.current=null;};
  const zoom100=()=>{const wrap=wrapRef.current!,v=viewRef.current,cx=(wrap.clientWidth/2-v.x)/v.scale;viewRef.current={scale:1,x:wrap.clientWidth/2-cx,y:(wrap.clientHeight-MAP_HEIGHT)/2};redraw(n=>n+1);};
 
  // ── Save and publish ──
@@ -223,10 +266,23 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
     if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();duplicate(selection.index);return;}
     if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeItem(selection.index);return;}
     const step=e.shiftKey?10:1,d={ArrowLeft:[-step,0],ArrowRight:[step,0],ArrowUp:[0,-step],ArrowDown:[0,step]}[e.key];
-    if(d&&doc){e.preventDefault();const it=doc.layout.items[selection.index];updateItem(selection.index,{x:it.x+d[0],top:it.top+d[1]});}
+    if(d&&doc){e.preventDefault();const it=doc.layout.items[selection.index],own=placed.find(p=>p.source===selection.index&&!p.mirrored),top=it.rest&&own?Math.round(own.top):it.top;updateItem(selection.index,{x:it.x+d[0],top:top+d[1]});}
+    const name=doc?.layout.items[selection.index]?.id;
+    if(name&&!mod&&e.key.toLowerCase()==='l'){toggleIn(setLocked,name);return;}
+    if(name&&!mod&&e.key.toLowerCase()==='h'){toggleIn(setHidden,name);return;}
    }
    if(selection?.type==='spawn'&&doc&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{d.layout.spawns[selection.team][selection.slot]=Math.max(0,Math.min(W,d.layout.spawns[selection.team][selection.slot]+step));});}
-   if(e.key==='Escape')setSelection(null);
+   if(e.key==='Escape'){setSelection(null);setShowKeys(false);}
+   if(mod||e.altKey)return;
+   if(e.key==='+'||e.key==='='){zoomAt(viewRef.current.scale*1.25);return;}
+   if(e.key==='-'||e.key==='_'){zoomAt(viewRef.current.scale/1.25);return;}
+   if(e.key==='0'){fit();return;}
+   if(e.key==='1'){zoom100();return;}
+   if(e.key==='['){toggleUi('left');return;}
+   if(e.key===']'){toggleUi('right');return;}
+   if(e.key==='?'){setShowKeys(v=>!v);return;}
+   const aid={g:'grid',m:'snap',r:'ruler',t:'screen'}[e.key.toLowerCase()];
+   if(aid==='grid')setOverlay(o=>({...o,grid:!o.grid}));else if(aid)toggleUi(aid as keyof Ui);
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
  });
@@ -237,20 +293,28 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const selectedItem=selection?.type==='item'?doc.layout.items[selection.index]:null,sheetList=Object.values(sheets),s=summary?status({...summary,draftRevision:savedRevision}):null;
  const warnings=built?.warnings??[];
 
- return <div className="adm-editor">
+ return <div className={`adm-editor ${ui.left?'':'hide-left'} ${ui.right?'':'hide-right'}`}>
   <header className="adm-editor-bar">
    <button className="adm-icon" onClick={()=>{if(!dirty||window.confirm('Sair sem salvar as mudanças?'))onBack();}} title="Voltar aos mapas"><ArrowLeft size={18}/></button>
    <div className="adm-editor-title"><input value={doc.meta.name} maxLength={40} onChange={e=>change(d=>{d.meta.name=e.target.value;d.layout.name=e.target.value;})} aria-label="Nome do mapa"/>
     <small><span className={`adm-kind ${doc.meta.kind}`}>{MAP_KIND_NAMES[doc.meta.kind]}</span>{s&&<span className={`adm-status ${dirty?'dirty':s.tone}`}>{dirty?'Alterações não salvas':s.label}</span>}<code>{id}</code></small></div>
    <div className="adm-toolgroup">
+    <button className={`adm-icon ${ui.left?'on':''}`} onClick={()=>toggleUi('left')} title="Barra das peças ( [ )">{ui.left?<PanelLeftClose size={17}/>:<PanelLeftOpen size={17}/>}</button>
     <button className="adm-icon" onClick={undo} disabled={!history.current.past.length} title="Desfazer (Ctrl+Z)"><Undo2 size={17}/></button>
     <button className="adm-icon" onClick={redo} disabled={!history.current.future.length} title="Refazer (Ctrl+Y)"><Redo2 size={17}/></button>
    </div>
    <div className="adm-toolgroup">
-    <button className="adm-icon" onClick={fit} title="Ver o mapa inteiro"><Maximize size={17}/></button>
-    <button className="adm-icon text" onClick={zoom100} title="Tamanho real">100%</button>
+    <button className="adm-icon" onClick={()=>zoomAt(viewRef.current.scale/1.25)} title="Afastar ( − )"><ZoomOut size={17}/></button>
+    <button className="adm-icon text adm-zoom" onClick={zoom100} title="Tamanho real ( 1 )">{Math.round(viewRef.current.scale*100)}%</button>
+    <button className="adm-icon" onClick={()=>zoomAt(viewRef.current.scale*1.25)} title="Aproximar ( + )"><ZoomIn size={17}/></button>
+    <button className="adm-icon" onClick={fit} title="Ver o mapa inteiro ( 0 )"><Maximize size={17}/></button>
+   </div>
+   <div className="adm-toolgroup">
     <button className={`adm-icon ${overlay.collision?'on':''}`} onClick={()=>setOverlay(o=>({...o,collision:!o.collision}))} title="Mostrar colisão (verde quebra, cinza não quebra)"><ShieldAlert size={17}/></button>
-    <button className={`adm-icon ${overlay.grid?'on':''}`} onClick={()=>setOverlay(o=>({...o,grid:!o.grid}))} title="Grade de 96 px"><Grid3x3 size={17}/></button>
+    <button className={`adm-icon ${overlay.grid?'on':''}`} onClick={()=>setOverlay(o=>({...o,grid:!o.grid}))} title="Grade de 96 px ( G )"><Grid3x3 size={17}/></button>
+    <button className={`adm-icon ${ui.snap?'on':''}`} onClick={()=>toggleUi('snap')} title={`Encaixe de ${SNAP} px ao arrastar ( M )`}><Magnet size={17}/></button>
+    <button className={`adm-icon ${ui.ruler?'on':''}`} onClick={()=>toggleUi('ruler')} title="Régua do 1x1 ( R )"><Ruler size={17}/></button>
+    <button className={`adm-icon ${ui.screen?'on':''}`} onClick={()=>toggleUi('screen')} title="Tamanho de uma tela do jogo em volta do cursor ( T )"><Monitor size={17}/></button>
     <button className={`adm-icon ${overlay.ghost?'on':''}`} onClick={()=>setOverlay(o=>({...o,ghost:!o.ghost}))} title="Contorno do lado espelhado"><FlipHorizontal2 size={17}/></button>
    </div>
    <span className="adm-spacer"/>
@@ -259,6 +323,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    <button className="adm-btn ghost" onClick={exportJson} title="Baixar o layout para scripts/map-layouts e npm run build:map"><Download size={16}/>JSON</button>
    <button className="adm-btn" onClick={()=>void save()} disabled={!!busy}><Save size={16}/>Salvar</button>
    <button className="adm-btn gold" onClick={askPublish} disabled={!!busy}><Rocket size={16}/>Publicar</button>
+   <div className="adm-toolgroup">
+    <button className={`adm-icon ${showKeys?'on':''}`} onClick={()=>setShowKeys(v=>!v)} title="Atalhos ( ? )"><Keyboard size={17}/></button>
+    <button className={`adm-icon ${ui.right?'on':''}`} onClick={()=>toggleUi('right')} title="Barra de propriedades ( ] )">{ui.right?<PanelRightClose size={17}/>:<PanelRightOpen size={17}/>}</button>
+   </div>
   </header>
 
   <aside className="adm-editor-left">
@@ -268,20 +336,23 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
     <p className="adm-hint">Clique numa peça para pôr no meio da tela. Objetos já caem no chão.</p>
     <div className="adm-pieces">{sheets[sheetTab]?.pieces.map((p,n)=><button key={n} onClick={()=>addPiece(sheetTab,n)} title={`Peça ${n} · ${p.w}×${p.h}`}><img src={p.thumb} alt=""/><small>{n}</small></button>)}</div>
    </>:<ol className="adm-layers">{doc.layout.items.map((item,n)=><li key={`${item.id}-${n}`} className={selection?.type==='item'&&selection.index===n?'on':''} onClick={()=>setSelection({type:'item',index:n})}>
-     <img src={sheets[item.sheet??'']?.pieces[item.piece]?.thumb} alt=""/><span><b>{item.id}</b><small>{SHEET_NAMES[item.sheet??'']??item.sheet} · peça {item.piece}{doc.layout.mirror&&item.mirror!==false?' · espelhado':''}</small></span>{warnedItems.has(n)&&<AlertTriangle size={14} className="warn"/>}</li>)}</ol>}
+     <img src={sheets[item.sheet??'']?.pieces[item.piece]?.thumb} alt="" style={hidden.has(item.id)?{opacity:.35}:undefined}/><span><b>{item.id}</b><small>{SHEET_NAMES[item.sheet??'']??item.sheet} · peça {item.piece}{doc.layout.mirror&&item.mirror!==false?' · espelhado':''}</small></span>{warnedItems.has(n)&&<AlertTriangle size={14} className="warn"/>}
+     <button className={`adm-layer-btn ${locked.has(item.id)?'on':''}`} onClick={e=>{e.stopPropagation();toggleIn(setLocked,item.id);}} title={locked.has(item.id)?'Destravar ( L )':'Travar: não move pelo mapa ( L )'}>{locked.has(item.id)?<Lock size={13}/>:<Unlock size={13}/>}</button>
+     <button className={`adm-layer-btn ${hidden.has(item.id)?'on':''}`} onClick={e=>{e.stopPropagation();toggleIn(setHidden,item.id);}} title={hidden.has(item.id)?'Mostrar ( H )':'Esconder só no editor ( H )'}>{hidden.has(item.id)?<EyeOff size={13}/>:<Eye size={13}/>}</button></li>)}</ol>}
    <div className="adm-spawn-list"><h4><Users size={15}/>Spawns</h4>{doc.layout.spawns.map((team,t)=><div key={t} className="adm-spawn-team"><span style={{color:TEAM_COLORS[t]}}>Time {t+1}</span>{team.map((x,slot)=><button key={slot} className={selection?.type==='spawn'&&selection.team===t&&selection.slot===slot?'on':''} style={{'--team':TEAM_COLORS[t]} as React.CSSProperties} onClick={()=>setSelection({type:'spawn',team:t,slot})} title={`x ${x}`}>{slot+1}</button>)}</div>)}
-    <small>Posição 1 é a do 1x1. Arraste no mapa (só na horizontal; o pé fica no chão).</small></div>
+    <small>Posição 1 é a do 1x1. Arraste no mapa (só na horizontal; o pé fica no chão). O spawn fica sobre o que tiver colisão embaixo, inclusive objetos: com <b>!</b> vermelho, tire o objeto de baixo dele.</small></div>
   </aside>
 
   <div className="adm-stage" ref={wrapRef}>
-   <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel} onContextMenu={e=>e.preventDefault()}/>
-   <div className="adm-stage-help">Arraste para mover · Shift trava o eixo · roda = zoom · arraste o fundo para navegar · Del apaga · Ctrl+D duplica</div>
+   <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={()=>{if(ui.screen){hoverRef.current=null;redraw(n=>n+1);}}} onContextMenu={e=>e.preventDefault()}/>
+   <div className="adm-stage-help">Arraste para mover · roda ou dois dedos = zoom · arraste o fundo para navegar · <b>?</b> atalhos</div>
+   {showKeys&&<div className="adm-keys"><header><h4><Keyboard size={15}/>Atalhos</h4><button className="adm-icon" onClick={()=>setShowKeys(false)}><X size={15}/></button></header><dl>{SHORTCUTS.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>}
    {(notice||error||busy)&&<div className={`adm-toast ${error?'bad':''}`}>{busy?<><Loader2 className="adm-spin" size={15}/>{busy}</>:error||notice}{(error||notice)&&!busy&&<button onClick={()=>{setError('');setNotice('');}}><X size={14}/></button>}</div>}
   </div>
 
   <aside className="adm-editor-right">
-   {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1}/>
-   :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
+   {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} width={W} locked={locked.has(selectedItem.id)} onLock={()=>toggleIn(setLocked,selectedItem.id)} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1}/>
+   :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} problems={spawnWarnings.get(`${selection.team}-${selection.slot}`)??[]} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
    :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onDelete={deleteMap}/>}
    <section className="adm-warnings"><h4>{warnings.length?<><AlertTriangle size={15}/>{warnings.length} {warnings.length===1?'aviso':'avisos'}</>:<><Eye size={15}/>Sem avisos</>}</h4>
     {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
@@ -308,10 +379,10 @@ function Toggle({label,hint,value,onChange}:{label:string;hint?:string;value:boo
  return <label className="adm-toggle-row"><span><b>{label}</b>{hint&&<small>{hint}</small>}</span><button type="button" className={`adm-toggle ${value?'on':''}`} aria-pressed={value} onClick={()=>onChange(!value)}><i/></button></label>;
 }
 
-function ItemInspector({item,index,mirrorMap,sheets,onChange,onDuplicate,onRemove,onMove,last}:{item:LayoutItem;index:number;mirrorMap:boolean;sheets:Record<string,Sheet>;onChange:(patch:Partial<LayoutItem>,record?:boolean)=>void;onDuplicate:()=>void;onRemove:()=>void;onMove:(by:number)=>void;last:number}){
+function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange,onDuplicate,onRemove,onMove,last}:{item:LayoutItem;index:number;mirrorMap:boolean;sheets:Record<string,Sheet>;width:number;locked:boolean;onLock:()=>void;onChange:(patch:Partial<LayoutItem>,record?:boolean)=>void;onDuplicate:()=>void;onRemove:()=>void;onMove:(by:number)=>void;last:number}){
  const sheet=item.sheet??Object.keys(sheets)[0],pieces=sheets[sheet]?.pieces??[],mirrored=mirrorMap&&item.mirror!==false;
  return <section className="adm-inspector">
-  <header><h3>{item.id}</h3><span><button className="adm-icon" onClick={()=>onMove(-1)} disabled={index===0} title="Desenhar antes (para trás)"><ArrowDown size={15}/></button><button className="adm-icon" onClick={()=>onMove(1)} disabled={index===last} title="Desenhar depois (para frente)"><ArrowUp size={15}/></button><button className="adm-icon" onClick={onDuplicate} title="Duplicar (Ctrl+D)"><Copy size={15}/></button><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
+  <header><h3>{item.id}</h3><span><button className="adm-icon" onClick={()=>onMove(-1)} disabled={index===0} title="Desenhar antes (para trás)"><ArrowDown size={15}/></button><button className="adm-icon" onClick={()=>onMove(1)} disabled={index===last} title="Desenhar depois (para frente)"><ArrowUp size={15}/></button><button className={`adm-icon ${locked?'on':''}`} onClick={onLock} title={locked?'Destravar ( L )':'Travar: não move pelo mapa ( L )'}>{locked?<Lock size={15}/>:<Unlock size={15}/>}</button><button className="adm-icon" onClick={()=>onChange({x:width/2,mirror:mirrorMap?false:item.mirror})} title="Pôr no centro do mapa (sem cópia espelhada)"><AlignCenterVertical size={15}/></button><button className="adm-icon" onClick={onDuplicate} title="Duplicar (Ctrl+D)"><Copy size={15}/></button><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
   <div className="adm-piece-pick"><img src={pieces[item.piece]?.thumb} alt=""/><div>
    <label className="adm-field"><span>Folha</span><select value={sheet} onChange={e=>onChange({sheet:e.target.value,piece:0})}>{Object.keys(sheets).map(k=><option key={k} value={k}>{SHEET_NAMES[k]??k}</option>)}</select></label>
    <label className="adm-field"><span>Peça</span><select value={item.piece} onChange={e=>onChange({piece:Number(e.target.value)})}>{pieces.map((p,n)=><option key={n} value={n}>{n} · {p.w}×{p.h}</option>)}</select></label>
@@ -329,12 +400,13 @@ function ItemInspector({item,index,mirrorMap,sheets,onChange,onDuplicate,onRemov
  </section>;
 }
 
-function SpawnInspector({doc,team,slot,width,ground,onChange,onMirror}:{doc:Doc;team:number;slot:number;width:number;ground:number;onChange:(x:number)=>void;onMirror:()=>void}){
+function SpawnInspector({doc,team,slot,width,ground,problems,onChange,onMirror}:{doc:Doc;team:number;slot:number;width:number;ground:number;problems:string[];onChange:(x:number)=>void;onMirror:()=>void}){
  const x=doc.layout.spawns[team][slot],other=doc.layout.spawns[1-team][slot],duel=Math.abs(doc.layout.spawns[1][0]-doc.layout.spawns[0][0]);
  return <section className="adm-inspector">
   <header><h3 style={{color:TEAM_COLORS[team]}}>Time {team+1} · jogador {slot+1}</h3></header>
   <Num label="X" value={x} min={0} max={width} onChange={v=>onChange(Math.round(Math.max(0,Math.min(width,v))))}/>
   <dl className="adm-facts"><dt>Chão em</dt><dd>{ground>=MAP_HEIGHT?'sem chão!':`y ${ground}`}</dd><dt>Espelho exato</dt><dd>{width-other===x?'sim':`não (seria ${width-other})`}</dd><dt>Distância no 1x1</dt><dd className={duel<900||duel>1200?'bad':''}>{duel} px <small>(ideal 900–1200)</small></dd></dl>
+  {problems.length>0&&<ul className="adm-spawn-problems">{problems.map(p=><li key={p}><AlertTriangle size={13}/>{p}</li>)}</ul>}
   <button className="adm-btn wide" onClick={onMirror}><FlipHorizontal2 size={16}/>Espelhar time 1 → time 2</button>
  </section>;
 }
@@ -344,8 +416,8 @@ function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:s
  return <section className="adm-inspector">
   <header><h3>Mapa</h3></header>
   <label className="adm-field"><span>Subtítulo</span><input value={doc.meta.subtitle} maxLength={80} placeholder="Aparece na tela de carregamento" onChange={e=>onChange(d=>{d.meta.subtitle=e.target.value;})}/></label>
-  <label className="adm-field"><span>Tipo</span><span className="adm-seg">{(['pvp','instance'] as const).map(k=><button key={k} type="button" className={doc.meta.kind===k?'on':''} onClick={()=>onChange(d=>{d.meta.kind=k;})}>{MAP_KIND_NAMES[k]}</button>)}</span>
-   <small>{doc.meta.kind==='instance'?'Instâncias (dungeons) ficam guardadas; ainda não entram no jogo.':'Entra no sorteio das partidas PvP.'}</small></label>
+  <div className="adm-field"><span>Tipo</span><span className={`adm-kind ${doc.meta.kind}`}>{MAP_KIND_NAMES[doc.meta.kind]}</span>
+   <small>{doc.meta.kind==='instance'?'Instâncias (dungeons) ficam guardadas; ainda não entram no jogo.':'Entra no sorteio das partidas PvP.'} O tipo é escolhido ao criar o mapa e não muda depois.</small></div>
   {doc.meta.kind==='pvp'&&<Toggle label="No sorteio PvP" hint="Desligue para tirar o mapa das partidas" value={doc.meta.enabled} onChange={v=>onChange(d=>{d.meta.enabled=v;})}/>}
   <label className="adm-field"><span>Largura</span><span className="adm-seg">{[1,1.5,2,2.5,3].map(k=><button key={k} type="button" className={W===1536*k?'on':''} onClick={()=>onChange(d=>{const old=d.layout.width??1536,next=1536*k,shift=(next-old)/2;d.layout.width=next;for(const it of d.layout.items)it.x+=shift;d.layout.spawns=d.layout.spawns.map(t=>t.map(x=>x+shift));})}>{k.toLocaleString('pt-BR')}</button>)}</span><small>Em telas de 1536 px; tudo se desloca para manter o centro. Altura fixa de 864.</small></label>
   <Toggle label="Espelhar para o outro time" hint="Cada item ganha uma cópia do outro lado" value={!!doc.layout.mirror} onChange={v=>onChange(d=>{d.layout.mirror=v;})}/>
