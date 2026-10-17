@@ -3,6 +3,8 @@ import type {CanonicalMapId, MapId} from '../../shared/maps';
 import {createEnvironmentTrack} from './ambience';
 
 type WeaponSound=import('../../shared/catalog').WeaponEffect;
+/** Recorded layers shared by every weapon's impact: a deep boom and a mid-range crack that still reads on phone speakers. */
+const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/assets/audio/sfx/impact-crack.mp3',volume:.3}] as const;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
 }
@@ -19,6 +21,8 @@ class AudioEngine {
  private listening=false;
  private pageHidden=false;
  private unlocked=false;
+ private samples=new Map<string,AudioBuffer>();
+ private loading:AudioContext|null=null;
 
  setEnabled(value:boolean){
   this.enabled=value;savePreference('brasa-sound',value);
@@ -62,7 +66,20 @@ class AudioEngine {
    this.context=new AudioContext();
    this.context.addEventListener('statechange',this.onContextState);
   }
+  this.loadSamples(this.context);
   return this.context;
+ }
+ private loadSamples(context:AudioContext){
+  if(this.loading===context||typeof fetch==='undefined')return;
+  this.loading=context;this.samples.clear();
+  for(const {url} of IMPACT_LAYERS)void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
+ }
+ /** Plays the recorded impact layers with a small random pitch so repeated hits do not sound identical. Returns false until they are decoded. */
+ private playImpactLayers(c:AudioContext,t:number,gain:number){
+  if(!IMPACT_LAYERS.every(layer=>this.samples.has(layer.url)))return false;
+  const rate=.95+Math.random()*.1;
+  for(const layer of IMPACT_LAYERS){const source=c.createBufferSource(),g=c.createGain();source.buffer=this.samples.get(layer.url)!;source.playbackRate.value=rate;g.gain.value=layer.volume*gain;source.connect(g);g.connect(c.destination);source.start(t);}
+  return true;
  }
  private resume(context:AudioContext){
   if(context.state==='suspended')void context.resume().then(()=>this.syncEnvironment()).catch(()=>{});
@@ -101,13 +118,14 @@ class AudioEngine {
    const tone=(frequency:number,end:number,duration:number,volume:number,wave:OscillatorType='sine',delay=0)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=wave;o.frequency.setValueAtTime(frequency,t+delay);o.frequency.exponentialRampToValueAtTime(Math.max(15,end),t+delay+duration);g.gain.setValueAtTime(volume,t+delay);g.gain.exponentialRampToValueAtTime(.001,t+delay+duration);o.start(t+delay);o.stop(t+delay+duration+.02);};
    if(type==='click'){tone(480,260,.1,.035);return;}if(type==='turn'){tone(660,630,.18,.04);tone(880,830,.26,.035,'sine',.1);return;}
    const impact=type==='impact';
+   const recorded=impact&&this.playImpactLayers(c,t,powered?1.15:1);
    if(powered){tone(impact?75:130,impact?26:310,.4,.035,'triangle');tone(impact?880:440,impact?220:880,.3,.018,'sine',.04);}
    if(effect==='crystal'){tone(impact?1300:850,impact?380:1200,.23+richness*.18,.035,'triangle');tone(impact?1740:1275,620,.32,.022,'sine',.035);if(richness>.5)tone(2200,1100,.38,.015,'sine',.07);}
    else if(effect==='dynamite'){tone(impact?95:720,impact?28:170,impact?.42:.13,.045,'triangle');if(impact)tone(210,45,.22,.024,'sawtooth',.035);else tone(1800,800,.1,.012,'square',.025);}
    else if(effect==='brick'){tone(impact?82:250,impact?28:95,impact?.38:.16,impact?.08:.04,'triangle');if(impact)for(let n=0;n<2+Math.round(richness*3);n++)tone(1180+n*170,820+n*90,.06,.016,'square',.05+n*.065);}
    else if(effect==='electric'){tone(impact?180:420,impact?45:85,.2+richness*.12,.035,'sawtooth');tone(1600,180,.09,.018,'square',.03);}
    else {tone(impact?100:210,impact?26:65,.28+richness*.1,impact?.1:.045,'triangle');}
-   if(effect!=='crystal'){
+   if(effect!=='crystal'&&!recorded){
     if(!this.noise){this.noise=c.createBuffer(1,c.sampleRate*.6,c.sampleRate);const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}
     const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();source.buffer=this.noise;filter.type=effect==='electric'?'bandpass':'lowpass';filter.frequency.setValueAtTime(effect==='electric'?2100:impact?900:1500,t);source.connect(filter);filter.connect(gain);gain.connect(c.destination);gain.gain.setValueAtTime((impact?.11:.05)*(1+richness*.3),t);gain.gain.exponentialRampToValueAtTime(.001,t+.22+richness*.13);source.start(t);source.stop(t+.4);
    }
