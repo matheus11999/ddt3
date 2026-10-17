@@ -1,7 +1,7 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
+import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {Check,ChevronLeft,ChevronRight,Eye,Glasses,LoaderCircle,RotateCcw,Search,Shirt,ShoppingBag,Smile,Sparkles,Swords,X} from 'lucide-react';
+import {ChevronLeft,ChevronRight,Glasses,LoaderCircle,RotateCcw,Search,Shirt,ShoppingBag,Smile,Sparkles,Swords,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES,canEquipItem,normalizeVisibility} from '../../shared/catalog';
 import type {Equipment} from '../../shared/catalog';
 import {SHOP_OFFERS,SHOP_OFFER_BY_ID} from '../../shared/shop';
@@ -33,16 +33,16 @@ export function Shop({onClose}:{onClose:()=>void}){
  const state=useGame(),p=state.profile!;
  const [category,setCategory]=useState<Category>('all'),[query,setQuery]=useState(''),[page,setPage]=useState(0),[confirming,setConfirming]=useState<string|null>(null);
  const [draft,setDraft]=useState<Equipment>(()=>({...p.equipment,dyes:{...p.equipment.dyes}})),[trying,setTrying]=useState<string|null>(null),[tip,setTip]=useState<Tip|null>(null),[feedback,setFeedback]=useState(''),[pending,setPending]=useState(false);
- const request=useRef<string|null>(null),touchUntil=useRef(0),confirmButton=useRef<HTMLButtonElement>(null);
- const owned=useMemo(()=>new Set(p.inventory),[p.inventory]);
+ const request=useRef<string|null>(null),sentResult=useRef(state.shopResult),touchUntil=useRef(0),confirmButton=useRef<HTMLButtonElement>(null);
  const locked=pending||state.status!=='online'||!!state.battle||!!state.room;
  // The other gender's pieces never show up: only this character's collection and unisex items.
  const entries=SHOP_OFFERS.filter(({id})=>{const item=CATALOG[id];return item&&canEquipItem(item,p.gender)&&(category==='all'||category==='style'&&!['weapon','outfit','face','costume'].includes(item.slot)||item.slot===category)&&searchable(item.name).includes(searchable(query));}).map(({id})=>id);
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
  useEffect(()=>{
-  const id=request.current;if(!id||!owned.has(id))return;
+  // The server's purchase receipt ends the request, so buying a piece already in the backpack also completes.
+  const id=request.current,result=state.shopResult;if(!id||!result||result===sentResult.current||!result.items.includes(id))return;
   request.current=null;setPending(false);setConfirming(null);setFeedback(`${CATALOG[id].name} guardado na mochila!`);audio.play('click');
- },[owned]);
+ },[state.shopResult]);
  useEffect(()=>{if(request.current&&(state.error||state.status!=='online')){request.current=null;setPending(false);setConfirming(null);setFeedback(state.error??'Reconectando. Seu saldo será atualizado ao voltar.');}},[state.error,state.status]);
  useEffect(()=>{
   if(!tip)return;const dismiss=()=>setTip(null),outside=(event:Event)=>{if(!tip.anchor.contains(event.target as Node))dismiss();},escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){event.stopPropagation();setTip(null);}};
@@ -64,17 +64,18 @@ export function Shop({onClose}:{onClose:()=>void}){
    else if(['face','outfit','hair','hat','glasses'].includes(item.slot))visibility.costume=false;
    if(item.slot==='hat'||item.slot==='glasses')visibility[item.slot]=true;
    return {...current,[item.slot]:id,visibility,upgrade:item.slot==='weapon'?0:current.upgrade,compositions:{...current.compositions,[id]:{}},dyes:{...current.dyes,...(['outfit','hat','hair','glasses'].includes(item.slot)?{[item.slot]:'original' as const}:{})}};
-  });setTrying(id);setTip(null);setFeedback('');audio.play('click');
+  });setTrying(id);setFeedback('');audio.play('click');
  }
- function ask(id:string){if(locked||owned.has(id)||!canEquipItem(id,p.gender)||SHOP_OFFER_BY_ID[id].price>p.gold)return;setTip(null);setFeedback('');setConfirming(id);audio.play('click');}
- function buy(){const id=confirming;if(!id||locked||owned.has(id)||SHOP_OFFER_BY_ID[id].price>p.gold)return;request.current=id;setPending(true);client.update({error:null});client.send({type:'shop-buy',items:[id]});}
+ function ask(id:string){if(locked||!canEquipItem(id,p.gender)||SHOP_OFFER_BY_ID[id].price>p.gold)return;setTip(null);setFeedback('');setConfirming(id);audio.play('click');}
+ function buy(){const id=confirming;if(!id||locked||SHOP_OFFER_BY_ID[id].price>p.gold)return;request.current=id;sentResult.current=state.shopResult;setPending(true);client.update({error:null});client.send({type:'shop-buy',items:[id]});}
  function restore(){setDraft({...p.equipment,dyes:{...p.equipment.dyes}});setTrying(null);audio.play('click');}
  function browse(next:Category){setCategory(next);setPage(0);setTip(null);}
  function tipEvents(id:string){return {
   onMouseEnter:(event:React.MouseEvent<HTMLElement>)=>{if(Date.now()>touchUntil.current)setTip({id,anchor:event.currentTarget,mode:'hover'});},onMouseLeave:()=>setTip(current=>current?.mode==='touch'?current:null),
   onFocus:(event:React.FocusEvent<HTMLElement>)=>{if(Date.now()>touchUntil.current)setTip({id,anchor:event.currentTarget,mode:'focus'});},onBlur:()=>setTip(current=>current?.mode==='touch'?current:null),
   onPointerDown:(event:ReactPointerEvent<HTMLElement>)=>{if(event.pointerType==='touch')touchUntil.current=Date.now()+900;},
-  onClick:(event:React.MouseEvent<HTMLElement>)=>{const anchor=event.currentTarget;setTip(current=>current?.id===id&&current.mode==='touch'?null:{id,anchor,mode:'touch'});}
+  // A click dresses the fitting room; on touch it also opens the item card, since there is no hover.
+  onClick:(event:React.MouseEvent<HTMLElement>)=>{const anchor=event.currentTarget,touch=Date.now()<=touchUntil.current;experiment(id);if(touch)setTip(current=>current?.id===id&&current.mode==='touch'?null:{id,anchor,mode:'touch'});}
  };}
  const tipped=(id:string)=>tip?.id===id?'item-tooltip':undefined;
  const pick=confirming?CATALOG[confirming]:null;
@@ -88,7 +89,7 @@ export function Shop({onClose}:{onClose:()=>void}){
     </header>
     <div className="shop-stage">
      <i className="wood-sigil shop-sigil" aria-hidden="true"/>
-     <Avatar equipment={draft} size={340} animated={false}/>
+     <Avatar equipment={draft} size={290} weapon={CATALOG[trying??'']?.slot==='weapon'} animated={false}/>
      <button className="shop-restore" onClick={restore} disabled={!trying} aria-label="Restaurar visual" title="Restaurar visual"><RotateCcw size={18}/></button>
      {trying&&<div className="shop-preview-caption"><span>{CATALOG[trying].name}</span></div>}
     </div>
@@ -101,17 +102,16 @@ export function Shop({onClose}:{onClose:()=>void}){
     </div>
     <div className="shop-shelf">
      <div className="shop-grid">
-      {visible.map(id=>{const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],has=owned.has(id),short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id}>
-       <ItemCard rarity={item.rarity} selected={trying===id} aria-label={`Ver informações de ${item.name}`} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
+      {visible.map(id=>{const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
+       <ItemCard rarity={item.rarity} selected={trying===id} aria-label={`Experimentar ${item.name}`} aria-pressed={trying===id} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
        <div className="shop-offer-info">
         <h2>{item.name}</h2>
         <small>{SLOT_NAMES[item.slot]}{item.slot==='weapon'?' · +0':''}</small>
        </div>
        <div className="shop-offer-buy">
-        <span className={`shop-price ${short&&!has?'short':''}`}><RewardIcon size={20}/>{money(price)}</span>
+        <span className={`shop-price ${short?'short':''}`}><RewardIcon size={20}/>{money(price)}</span>
         <div className="shop-offer-actions">
-         <button className="shop-try" aria-pressed={trying===id} aria-label={`Experimentar ${item.name}`} title="Prévia" onClick={()=>experiment(id)}><Eye size={17}/></button>
-         {has?<span className="shop-owned"><Check size={14}/>Na mochila</span>:<button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${item.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={15}/><span>Comprar</span></button>}
+         <button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${item.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={15}/><span>Comprar</span></button>
         </div>
        </div>
       </article>;})}
