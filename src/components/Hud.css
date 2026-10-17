@@ -12,13 +12,13 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 
 /* Praça Celeste: bottom menu in the PvP room's wood style, with the room's painted
    menu icons on cream tiles. The game draws every label and counter. */
-.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:auto;right:0;bottom:9px;transform:none;display:flex;align-items:flex-end;gap:2px;height:auto;padding:0 16px 6px 34px;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
+.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:auto;right:0;bottom:9px;transform:none;display:flex;align-items:flex-end;gap:14px;height:auto;padding:0 22px 6px 38px;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
 /* Wooden shelf the icons rest on, anchored to the bottom-right corner like the classic lobby. */
 .game-frame>nav.lobby-dock:before{content:'';position:absolute;left:0;right:0;top:auto;bottom:0;height:36px;border:3px solid #e9b64f;border-right:0;border-bottom:0;border-radius:22px 0 0 0;background:repeating-linear-gradient(90deg,#ffffff08 0 3px,transparent 3px 19px,#0000001a 19px 20px,transparent 20px 41px),linear-gradient(#9a5422,#6e3510 55%,#4a2108);box-shadow:inset 0 2px #ffd58a66,inset 0 -2px #2c1004,0 0 0 2px #3a1605,0 -4px 10px #2c100455;pointer-events:none}
 .game-frame>nav.lobby-dock:after{content:'';position:absolute;left:22px;right:10px;top:auto;bottom:11px;z-index:0;height:2px;border-radius:2px;background:#2c100499;box-shadow:0 1px #ffc98a33;pointer-events:none}
-.lobby-dock>.lobby-dock-button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:80px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
+.lobby-dock>.lobby-dock-button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:74px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
 .lobby-dock>.lobby-dock-button:hover:not(:disabled),.lobby-dock>.lobby-dock-button.active{background:none;box-shadow:none;transform:translateY(-3px);filter:none}
-.lobby-dock-tile{position:relative;display:grid;place-items:center;width:80px;height:80px;padding:0;transition:transform .15s,filter .15s}
+.lobby-dock-tile{position:relative;display:grid;place-items:center;width:74px;height:74px;padding:0;transition:transform .15s,filter .15s}
 .lobby-dock-tile img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 1px #3a1605) drop-shadow(0 4px 4px #2c100488);pointer-events:none}
 .lobby-dock>.lobby-dock-button:hover:not(:disabled) .lobby-dock-tile,.lobby-dock>.lobby-dock-button.active .lobby-dock-tile{transform:scale(1.08);filter:brightness(1.1) drop-shadow(0 0 6px #ffd36bcc)}
 .lobby-dock>.lobby-dock-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
