@@ -59,7 +59,7 @@
 .pvp-room .pr-card-sigil{width:min(96cqw,96cqh);translate:-50% -52%}
 .pvp-room .pr-card-portrait{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:1}
 .pvp-room .pr-card-portrait>canvas{flex:none;width:auto!important;height:min(118cqh,110cqw)!important;max-width:none;aspect-ratio:1;margin-bottom:-2%;pointer-events:none}
-.pvp-room .pr-card-insignia{position:absolute;top:6px;right:6px;z-index:2;display:grid;justify-items:center;gap:4px}
+.pvp-room .pr-card-insignia{position:absolute;top:6px;right:6px;z-index:2;display:grid;justify-items:center;gap:0}
 .pvp-room .pr-host-tag{position:absolute;top:6px;left:7px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border:1px solid #fff0b8;border-radius:999px;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 -2px #c06d0a,0 1px #5b2a0e66;color:#fff;font-size:12px;font-style:italic;font-weight:900;white-space:nowrap;text-shadow:0 1px #8a3a07}
 .pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
