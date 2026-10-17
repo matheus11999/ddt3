@@ -12,12 +12,18 @@
 
 /* ---------- Barra de título ---------- */
 .pvp-room .pr-titlebar{display:flex;align-items:center;gap:12px;min-width:0;padding:0 11px 0 9px}
-.pvp-room .party-room-number{position:relative;display:flex;align-items:center;gap:7px;flex:none;height:50px;padding:0 16px 0 13px;border:2px solid #fff0b8;border-radius:14px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 18px #ffb44f88;color:#fff;line-height:1}
+.pvp-room .party-room-number{position:relative;display:flex;align-items:center;gap:8px;flex:none;height:62px;padding:0 18px 0 14px;border:2px solid #fff0b8;border-radius:14px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 18px #ffb44f88;color:#fff;line-height:1}
 .pvp-room .party-room-number::before{content:'';position:absolute;inset:3px;border:1px solid #fff6cf99;border-radius:10px;pointer-events:none}
-.pvp-room .party-room-number span{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#7a3a0a;text-shadow:0 1px #fff4c2}
-.pvp-room .party-room-number strong{min-width:24px;font-size:32px;font-weight:900;text-align:center;color:#fff;-webkit-text-stroke:2px #7a2d04;paint-order:stroke fill;text-shadow:0 2px 0 #4a1a04,0 0 10px #fff1b0}
-.pvp-room .party-room-name{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0}
-.pvp-room .party-room-name h1{min-width:0;margin:0;overflow:hidden;font:700 24px/1.15 'Cinzel',Georgia,serif;letter-spacing:.3px;color:var(--wood-gold);text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px #2c1004,0 0 12px #ffae4a55}
+.pvp-room .party-room-number span{font-size:13px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#7a3a0a;text-shadow:0 1px #fff4c2}
+.pvp-room .party-room-number strong{min-width:30px;font-size:44px;font-weight:900;text-align:center;color:#fff;-webkit-text-stroke:2.5px #7a2d04;paint-order:stroke fill;text-shadow:0 2px 0 #4a1a04,0 0 10px #fff1b0}
+.pvp-room .party-room-name{display:flex;align-items:center;gap:8px;flex:1 1 auto;min-width:0}
+/* Placa da sala no topo da coluna da direita: número grande e nome. */
+.pvp-room .pr-room-plaque{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;flex:none;min-width:0;padding:9px 10px 9px 9px;border:1px solid #ffc78a55;border-radius:12px;background:linear-gradient(#6a3416,#4a2310);box-shadow:inset 0 1px #ffc78a44,inset 0 -2px #2a1206,0 2px #2a120655}
+.pvp-room .pr-titlebar .pr-format{margin-left:auto}
+.pvp-room .pr-room-plaque .party-room-name{justify-content:center;max-width:100%}
+.pvp-room .pr-room-plaque .party-room-name h1{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:18px;line-height:1.12;white-space:normal;overflow-wrap:anywhere}
+html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name h1{font-size:12px}
+.pvp-room .party-room-name h1{min-width:0;margin:0;overflow:hidden;font:700 20px/1.15 'Cinzel',Georgia,serif;letter-spacing:.3px;color:var(--wood-gold);text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px #2c1004,0 0 12px #ffae4a55}
 .pvp-room .party-rename-button{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:1px solid #fff3d6;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565,0 2px #2c1004;color:#8a3f0b}
 .pvp-room .party-rename-form{display:flex;align-items:center;gap:5px;height:36px;padding:0 4px 0 12px;border-radius:999px;background:linear-gradient(#fffdf5,#f5e3be);box-shadow:inset 0 -2px #d9b880,0 0 0 2px #fff1c4}
 .pvp-room .party-rename-form input{width:min(260px,32vw);min-width:0;height:100%;padding:0;border:0;outline:0;background:none;color:var(--wood-ink);font-size:16px;font-weight:900}
@@ -32,12 +38,12 @@
 /* ---------- Corpo ---------- */
 /* Desktop: a coluna da equipe tem a largura exata das cartas 4:5 na altura
    disponível, sem sobra nas laterais; a conversa fica sob a faixa PvP. */
-.pvp-room .pr-body{--card-fit:min(310px,calc((100dvh - 177px) / 2 * .8));display:grid;grid-template-columns:calc(var(--card-fit) * 2 + 52px) minmax(0,1fr) clamp(300px,23vw,350px);grid-template-rows:minmax(0,1fr) clamp(140px,22vh,190px);grid-template-areas:"team banner side" "team chat side";gap:8px;min-width:0;min-height:0}
+.pvp-room .pr-body{--card-fit:min(310px,calc((100dvh - 136px) / 2 * .8));display:grid;grid-template-columns:calc(var(--card-fit) * 2 + 52px) minmax(0,1fr) clamp(300px,23vw,350px);grid-template-rows:minmax(0,1fr) clamp(140px,22vh,190px);grid-template-areas:"team banner side" "team chat side";gap:8px;min-width:0;min-height:0}
 .pvp-room .pr-team{grid-area:team}
 .pvp-room .pr-banner{grid-area:banner}
 .pvp-room .pr-chat{grid-area:chat}
 .pvp-room .pr-side{grid-area:side}
-.pvp-room .pr-team{display:grid;grid-template-rows:34px minmax(0,1fr);gap:7px;min-width:0;min-height:0;padding:7px}
+.pvp-room .pr-team{display:grid;grid-template-rows:minmax(0,1fr);gap:7px;min-width:0;min-height:0;padding:7px}
 .pvp-room .pr-pane-title{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
 .pvp-room .pr-pane-title h2{display:flex;align-items:center;gap:7px;height:100%;margin:0;padding:0 14px 0 11px;border-radius:9px;font-size:15px;font-weight:900}
 .pvp-room .pr-ready-count{height:28px;padding:0 11px 0 9px;font-size:14px}
@@ -65,15 +71,21 @@
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
 .pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
 .pvp-room .pr-card.vacant{grid-template-rows:30px minmax(0,1fr)}
-.pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:#fff8e866}
-.pvp-room .closed-slot .pr-card-vacant{border-color:#d9c3a1;background:#f3e6d055}
-.pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#c9771f}
+/* Vaga aberta: clara, dourada, com o "+" verde pulsando, convida a entrar. */
+.pvp-room .pr-card.open-slot{border-color:#f2b56b;background:linear-gradient(#fffdf6,#fbecd0)}
+.pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:none}
+.pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#fff}
 .pvp-room .party-slot-toggle:disabled{cursor:var(--cursor-arrow);opacity:1}
-.pvp-room .party-vacant-emblem{display:grid;place-items:center;width:66px;height:66px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffe9b8,#f7c573 70%);box-shadow:inset 0 -3px #d99a45,0 2px #a75a2344;color:#b4510f;transition:transform .15s}
-.pvp-room .closed-slot .party-vacant-emblem{background:radial-gradient(circle at 40% 30%,#f7ecd9,#dfc8a4 70%);box-shadow:inset 0 -3px #bf9f72;color:#9a7a55}
-.pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.06)}
+.pvp-room .party-vacant-emblem{position:relative;display:grid;place-items:center;width:66px;height:66px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fffaf0,#f3d9a9 75%);box-shadow:inset 0 -3px #d4a565,0 2px #a75a2344;color:#a2470c;transition:transform .15s}
+.pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.07)}
 .pvp-room .party-slot-toggle:focus-visible{outline:3px solid #c25f12;outline-offset:-4px;border-radius:10px}
-.pvp-room .pr-vacant-caption{position:absolute;left:0;right:0;bottom:12%;font-size:13px;font-weight:900;color:var(--wood-ink-soft);text-align:center;pointer-events:none}
+.pvp-room .pr-vacant-caption{position:absolute;left:0;right:0;bottom:12%;font-size:14px;font-weight:900;color:var(--wood-ink-soft);text-align:center;pointer-events:none;text-shadow:0 1px #fff}
+/* Vaga fechada: madeira escura, listras apagadas e cadeado de ferro. */
+.pvp-room .pr-card.closed-slot{border-color:#6e3d1c;background:linear-gradient(#5b3218,#3f220f);box-shadow:inset 0 2px #ffffff14,inset 0 -3px #2a1407,0 3px #1d0a0255}
+.pvp-room .closed-slot .pr-card-name--vacant{border-bottom-color:#2a1407;background:linear-gradient(#6a3b1c,#4d2a12);color:#d6b48a}
+.pvp-room .closed-slot .pr-card-vacant{border:2px solid #2d1709;background:repeating-linear-gradient(135deg,#ffffff08 0 12px,transparent 12px 24px),#00000026;box-shadow:inset 0 2px 6px #0000005c}
+.pvp-room .closed-slot .party-vacant-emblem{border-color:#9b7a55;background:radial-gradient(circle at 40% 30%,#6f6a64,#3c3936 70%);box-shadow:inset 0 -3px #1f1d1b,0 2px #00000066;color:#e8b94e;filter:none}
+.pvp-room .closed-slot .pr-vacant-caption{color:#c7a57c;text-shadow:0 1px #1d0a02}
 
 /* ---------- Conversa ---------- */
 .pvp-room .pr-chat{min-width:0}
@@ -188,11 +200,12 @@
 /* ---------- Celular em paisagem ---------- */
 html.mobile-landscape .arena-room-portal .pvp-room{grid-template-rows:42px minmax(0,1fr);gap:5px;padding:max(5px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-width:1px}
 html.mobile-landscape .pvp-room .pr-titlebar{gap:7px;padding:0 4px 0 4px;border-radius:12px 12px 8px 8px}
-html.mobile-landscape .pvp-room .party-room-number{height:34px;gap:4px;padding:0 10px 0 8px;border-width:1px;border-radius:10px;box-shadow:inset 0 1px #fffbe0,inset 0 -2px #9a4a0a,0 0 0 1px #5b2a0e,0 0 10px #ffb44f88}
+html.mobile-landscape .pvp-room .party-room-number{height:40px;gap:4px;padding:0 10px 0 8px;border-width:1px;border-radius:10px;box-shadow:inset 0 1px #fffbe0,inset 0 -2px #9a4a0a,0 0 0 1px #5b2a0e,0 0 10px #ffb44f88}
 html.mobile-landscape .pvp-room .party-room-number::before{inset:2px;border-radius:8px}
 html.mobile-landscape .pvp-room .party-room-number span{font-size:8px}
-html.mobile-landscape .pvp-room .party-room-number strong{min-width:16px;font-size:20px;-webkit-text-stroke:1.5px #7a2d04}
-html.mobile-landscape .pvp-room .party-room-name h1{font-size:16px}
+html.mobile-landscape .pvp-room .party-room-number strong{min-width:18px;font-size:27px;-webkit-text-stroke:1.5px #7a2d04}
+html.mobile-landscape .pvp-room .party-room-name h1{font-size:14px}
+html.mobile-landscape .pvp-room .pr-room-plaque{gap:3px;padding:4px 6px 4px 4px;border-radius:9px}
 html.mobile-landscape .pvp-room .party-rename-button{width:26px;height:26px}
 html.mobile-landscape .pvp-room .party-rename-form{height:30px}
 html.mobile-landscape .pvp-room .party-rename-form input{font-size:13px}
@@ -201,7 +214,7 @@ html.mobile-landscape .pvp-room .pr-room-state{padding:3px 9px;font-size:10px}
 html.mobile-landscape .pvp-room .pr-leave{width:34px;height:34px;border-radius:10px}
 html.mobile-landscape .pvp-room .pr-body{grid-template-columns:minmax(0,1fr) clamp(214px,31vw,290px);grid-template-rows:minmax(0,1fr) clamp(78px,24vh,120px);grid-template-areas:"team side" "chat side";gap:5px}
 html.mobile-landscape .pvp-room .pr-banner{display:none}
-html.mobile-landscape .pvp-room .pr-team{grid-template-rows:24px minmax(0,1fr);gap:4px;padding:4px;border-radius:12px}
+html.mobile-landscape .pvp-room .pr-team{grid-template-rows:minmax(0,1fr);gap:4px;padding:4px;border-radius:12px}
 html.mobile-landscape .pvp-room .pr-pane-title h2{padding:0 10px 0 8px;border-radius:7px;font-size:11px}
 html.mobile-landscape .pvp-room .pr-pane-title h2 svg{width:12px;height:12px}
 html.mobile-landscape .pvp-room .pr-ready-count{height:21px;font-size:11px}
@@ -255,9 +268,26 @@ html.mobile-landscape .pvp-room .party-bottom-actions{gap:5px}
 html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}
 html.mobile-landscape .pvp-room .party-spectator-status{min-height:38px;font-size:12px}
 
-@media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important}.pvp-room .party-search-progress svg{animation:none}}
+@media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important;animation:none!important}.pvp-room .party-search-progress svg{animation:none}}
 /* Celular: ferramentas e espectadores rolam juntos; ações e menus ficam presos embaixo. */
 html.mobile-landscape .pvp-room .pr-side{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#f2b56b transparent}
 html.mobile-landscape .pvp-room .pr-side-scroll{flex:none;overflow:visible}
 html.mobile-landscape .pvp-room .pr-actions{position:sticky;bottom:43px;z-index:3;margin-top:auto;padding-top:4px;background:#8e451c;box-shadow:0 -6px 8px -4px #3e1a0799}
 html.mobile-landscape .pvp-room .party-bottom-actions{position:sticky;bottom:0;z-index:3;padding-top:5px;background:#87401a}
+
+/* Celular em paisagem: placa da sala em linha e ícones compactos na coluna da direita. */
+html.mobile-landscape .pvp-room .pr-room-plaque{flex-direction:row;justify-content:flex-start;text-align:left}
+html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name{justify-content:flex-start}
+html.mobile-landscape .pvp-room .ability-preparation{padding-bottom:6px}
+html.mobile-landscape .pvp-room .ability-preparation>header{margin-bottom:6px;padding:4px 8px}
+html.mobile-landscape .pvp-room .ability-preparation h2{font-size:12px}
+html.mobile-landscape .pvp-room .preparation-state{padding:1px 6px;font-size:9px}
+html.mobile-landscape .pvp-room :is(.preparation-loadout,.preparation-catalog){gap:6px;padding:0 6px}
+html.mobile-landscape .pvp-room .preparation-slot{width:40px;height:40px;padding:3px;border-radius:9px}
+html.mobile-landscape .pvp-room .preparation-slot-number{top:1px;left:3px;font-size:8px}
+html.mobile-landscape .pvp-room .preparation-choice{width:34px;height:34px;padding:2px;border-radius:8px}
+html.mobile-landscape .pvp-room .preparation-choice.chosen::after{border-radius:8px}
+html.mobile-landscape .pvp-room .preparation-divider{margin:6px 8px}
+html.mobile-landscape .pvp-room .preparation-divider span{font-size:9px}
+html.mobile-landscape .pvp-room .preparation-hint{margin-top:5px;font-size:9px}
+html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}

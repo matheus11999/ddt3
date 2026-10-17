@@ -1,20 +1,28 @@
-export const MAP_IDS = ['garden','park','celestial'] as const;
+import {SNOW_REGIONS} from './generated/snowTerrain';
+
+export const MAP_IDS = ['garden','park','celestial','snow'] as const;
 export type CanonicalMapId = typeof MAP_IDS[number];
 /** Legacy room identifiers remain readable; only canonical maps appear in the lobby. */
 export type MapId = CanonicalMapId | 'sky' | 'valley';
 export type MaterialId = 'earth'|'sand'|'stone'|'ice'|'metal'|'magic';
 export type EnvironmentQuality = 'low'|'medium'|'high';
 export type Point = readonly [number,number];
-export type Shape = {kind:'polygon';points:readonly Point[]}|{kind:'ellipse';x:number;y:number;rx:number;ry:number}|{kind:'rect';x:number;y:number;width:number;height:number};
+export type Shape = {kind:'polygon';points:readonly Point[]}|{kind:'ellipse';x:number;y:number;rx:number;ry:number}|{kind:'rect';x:number;y:number;width:number;height:number}
+ /** Collision traced from painted art by `npm run build:map`: packed bits (base64), row-major, in 3px cells from (col,row). */
+ |{kind:'cells';col:number;row:number;cols:number;rows:number;bits:string};
 export interface MapRegion {id:string;shape:Shape;material:MaterialId;destructible:boolean;surface?:'grass'|'paving'|'marble'|'wood';}
 export interface EnvironmentObject {id:string;kind:'tree'|'flowers'|'fence'|'fountain'|'butterfly'|'ferris'|'carousel'|'balloons'|'bunting'|'crystal'|'statue'|'flag'|'crate'|'barrel';x:number;y:number;scale:number;layer:3|5|6;region?:string;animated?:boolean;}
 export interface MapDefinition {
- id:CanonicalMapId;name:string;subtitle:string;color:string;theme:'garden'|'park'|'celestial';
+ id:CanonicalMapId;name:string;subtitle:string;color:string;theme:'garden'|'park'|'celestial'|'snow';
  dimensions:{width:number;height:number};camera:{minZoom:number;maxZoom:number};
  lighting:{sky:string;horizon:string;ambient:string};audio:{ambience:'birds'|'carnival'|'wind';impact:Partial<Record<MaterialId,'dust'|'spark'|'chime'>>};
  layers:readonly {id:string;depth:number;role:string}[];
  regions:readonly MapRegion[];objects:readonly EnvironmentObject[];spawns:readonly [readonly number[],readonly number[]];
- art:{midground:string;props:string;terrain?:string;midgroundRect?:{x:number;y:number;width:number;height:number}};
+ art:{midground:string;props:string;terrain?:string;midgroundRect?:{x:number;y:number;width:number;height:number};
+  /** One large painted backdrop that replaces the procedural sky and midground layers; never collides. */
+  background?:string;
+  /** Optional mid-distance band (transparent), tiled across the world at half camera speed. */
+  mid?:string};
 }
 export const MATERIALS:Record<MaterialId,{color:string;highlight:string;debris:string}>={
  earth:{color:'#a46c48',highlight:'#d9a16c',debris:'#b18455'},
@@ -60,13 +68,23 @@ export const MAP_DEFINITIONS:Record<CanonicalMapId,MapDefinition>={
    structure('celestial-bridge',[[537,551],[999,551],[999,582],[960,595],[918,581],[876,595],[834,581],[792,595],[750,581],[708,595],[666,581],[624,595],[582,581],[537,595]],'magic','marble'),
    structure('celestial-left-crystal',[[166,551],[156,527],[170,489],[186,527],[180,551]],'magic'),structure('celestial-right-crystal',[[1370,551],[1380,527],[1366,489],[1350,527],[1356,551]],'magic')],
   objects:[{id:'statue-a',kind:'statue',x:104,y:552,scale:.85,layer:5},{id:'statue-b',kind:'statue',x:1432,y:552,scale:.85,layer:5},{id:'crystal-a',kind:'crystal',x:171,y:551,scale:.65,layer:5,region:'celestial-left-crystal',animated:true},{id:'crystal-b',kind:'crystal',x:1365,y:551,scale:.65,layer:5,region:'celestial-right-crystal',animated:true},{id:'flag-a',kind:'flag',x:570,y:540,scale:1,layer:5,animated:true},{id:'flag-b',kind:'flag',x:966,y:540,scale:1,layer:5,animated:true},{id:'crystal-front-a',kind:'crystal',x:35,y:890,scale:2,layer:6,animated:true},{id:'crystal-front-b',kind:'crystal',x:1503,y:890,scale:1.8,layer:6,animated:true}]
+ },
+ snow:{...common,dimensions:{width:3072,height:864},spawns:[[1040,820,1250,385],[2032,2252,1822,2687]],id:'snow',name:'Sonho Nevado',subtitle:'Pontes de pedra nevadas · Destrutível',color:'#8fb8ff',theme:'snow',lighting:{sky:'#5d6fb8',horizon:'#b9c4ee',ambient:'#dfe8ff'},audio:{ambience:'wind',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/snow/background.webp',midground:'/assets/maps/snow/background.webp',props:'/assets/maps/garden-props.png',terrain:'/assets/maps/snow/terrain-world.png'},
+  regions:SNOW_REGIONS,objects:[]
  }
 };
 export const MAPS=MAP_IDS.map(id=>{const m=MAP_DEFINITIONS[id];return {id:m.id,name:m.name,subtitle:m.subtitle,color:m.color};});
 export function canonicalMap(id:MapId):CanonicalMapId{return id==='sky'?'garden':id==='valley'?'park':id;}
 export function getMap(id:MapId):MapDefinition{return MAP_DEFINITIONS[canonicalMap(id)];}
 export function contains(shape:Shape,x:number,y:number):boolean {
+ if(shape.kind==='cells'){const cx=Math.floor(x/3)-shape.col,cy=Math.floor(y/3)-shape.row;if(cx<0||cy<0||cx>=shape.cols||cy>=shape.rows)return false;const n=cy*shape.cols+cx;return (cellBits(shape)[n>>3]>>(n&7)&1)===1;}
  if(shape.kind==='rect')return x>=shape.x&&y>=shape.y&&x<shape.x+shape.width&&y<shape.y+shape.height;
  if(shape.kind==='ellipse')return ((x-shape.x)/shape.rx)**2+((y-shape.y)/shape.ry)**2<=1;
  let inside=false;for(let i=0,j=shape.points.length-1;i<shape.points.length;j=i++){const [ax,ay]=shape.points[i],[bx,by]=shape.points[j];if((ay>y)!==(by>y)&&x<(bx-ax)*(y-ay)/(by-ay)+ax)inside=!inside;}return inside;
+}
+const decodedCells=new WeakMap<object,Uint8Array>();
+/** Decoded once per shape; works in browsers and Node alike. */
+export function cellBits(shape:Extract<Shape,{kind:'cells'}>):Uint8Array{
+ let bits=decodedCells.get(shape);if(!bits){const raw=atob(shape.bits);bits=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bits[i]=raw.charCodeAt(i);decodedCells.set(shape,bits);}return bits;
 }
