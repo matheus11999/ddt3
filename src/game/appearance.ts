@@ -5,6 +5,7 @@ import {drawWornHat,getHeadwearProfile} from './headwear';
 import {cutRegion,drawPinned} from './rig/draw';
 import {COSMETIC_MANIFEST,onTemplate} from './rig/manifest';
 import type {ArtRegion} from './rig/manifest';
+import {EAR_FRONT} from './rig/anchors';
 
 export const AVATAR_UNIT=160/1254;
 const SIZE=1254,RESOLUTION=.5;
@@ -244,10 +245,10 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
  else if(v.variant==='knight'){c.translate(-3,-116);c.scale(.85,.85);c.rotate(.025);ellipse(c,0,9,35,8,'#25313a44');c.fillStyle=material(c,v.color!);c.strokeStyle=shade(v.color!,.48);c.lineWidth=1.7;c.beginPath();c.moveTo(-36,9);c.quadraticCurveTo(-42,-43,0,-41);c.quadraticCurveTo(37,-42,36,9);c.lineTo(21,1);c.lineTo(1,-5);c.lineTo(-21,5);c.closePath();c.fill();c.stroke();c.strokeStyle='#eff9e0aa';c.lineWidth=1.5;c.beginPath();c.moveTo(-29,-10);c.quadraticCurveTo(-23,-34,2,-34);c.stroke();c.fillStyle='#b8555c';c.beginPath();c.moveTo(-5,-38);c.quadraticCurveTo(-17,-64,21,-57);c.quadraticCurveTo(6,-49,6,-38);c.fill();}
  });}
 function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual){
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,img,registered,true);return;}
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,aroundEar(img,registered),registered,true);return;}
  if(!hair.asset)return;
  const dyed=eq.dyes?.hair&&eq.dyes.hair!=='original',art=tintedArt(hair.asset,dyed?hair.color:undefined);
- if(art)drawPinned(c,art,COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate(hair.asset),true);
+ if(art){const region=COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate(hair.asset);drawPinned(c,aroundEar(art,region),region,true);}
 }
 function coveredHair(eq:Equipment,hair:ItemVisual){
  const registration=COSMETIC_MANIFEST[eq.hair]?.covered;if(!registration)return null;
@@ -266,7 +267,7 @@ function drawCoveredHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual
   // authored fringe and temple area pass in front; the hat brim is drawn last.
   c.beginPath();polygon(c,[[425,130],[920,130],[920,515],[700,515],[600,470],[425,460]].map(p=>headPoint(p as [number,number])));c.clip();
  }
- drawPinned(c,art,registration,true);c.restore();
+ drawPinned(c,aroundEar(art,registration),registration,true);c.restore();
 }
 /** Rear equipment follows exactly the head transform in standing and combat rigs. */
 export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time:number,_emotion:string,isModular:boolean){
@@ -274,6 +275,23 @@ export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time
  if(isModular&&hair.variant!=='none'&&!hat.hideHair&&getHeadwearProfile(eq)==='covered')layer(c,hair,()=>drawCoveredHair(c,eq,hair,false));
 }
 /** Front order: fringe, then glasses (a paid item always stays visible), then the hat brim. */
+const earCuts=new WeakMap<HTMLCanvasElement,HTMLCanvasElement>();
+/** Hair art with the near ear cut out and the cut edge inked like the head's own outline, so the
+ * universal ear shows through and the hair wraps around it as in DDTank. */
+function aroundEar(art:HTMLCanvasElement,region:ArtRegion){
+ const known=earCuts.get(art);if(known)return known;
+ const {source:[sx,sy,sw,sh],pin:{from:[a,b],to:[A,B]}}=region;
+ const dx=b[0]-a[0],dy=b[1]-a[1],tx=B[0]-A[0],ty=B[1]-A[1],den=dx*dx+dy*dy,p=(tx*dx+ty*dy)/den,q=(ty*dx-tx*dy)/den,k=p*p+q*q;
+ const sxScale=art.width/sw,syScale=art.height/sh;
+ // Inverse of drawPinned: template point -> art pixel.
+ const toArt=([x,y]:Point):Point=>{const X=x-A[0],Y=y-A[1];return[((p*X+q*Y)/k+a[0]-sx)*sxScale,((p*Y-q*X)/k+a[1]-sy)*syScale];};
+ const out=canvas(art.width,art.height),c=out.getContext('2d')!;c.drawImage(art,0,0);
+ c.beginPath();EAR_FRONT.forEach((point,i)=>i?c.lineTo(...toArt(point)):c.moveTo(...toArt(point)));c.closePath();
+ c.globalCompositeOperation='destination-out';c.fill();
+ // Half of the stroke lands on the remaining hair only: a dark rim that continues the ear outline.
+ c.globalCompositeOperation='source-atop';c.strokeStyle='#260803';c.lineJoin=c.lineCap='round';c.lineWidth=5*sxScale/Math.sqrt(k);c.stroke();
+ earCuts.set(art,out);return out;
+}
 export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>getHeadwearProfile(eq)==='covered'?drawCoveredHair(c,eq,hair,true):drawHair(c,eq,hair));
