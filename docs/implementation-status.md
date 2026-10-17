@@ -7,6 +7,7 @@
 - Fundo pintado por código é só reserva (usuário achou simples/infantil); a arte final é uma pintura única em `public/assets/lobby/plaza.webp`, que substitui o cenário e os NPCs-boneco. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
 
 - Atualização 17/10 02h: praça com **três telas de largura** (`shared/lobby.ts`, 4608 px) e câmera seguindo o jogador (clique ou setas/A-D). Portais viraram o **pódio do ranking PvP do dia** (1º/2º/3º, `LobbyWorld.podiums()` pronto para os bonecos), porta da Arena PvP e NPCs animados por camadas recortadas. Ferreiro em x 3720 (`SMITH_POSITION` 3640, 640). Prompt e mapa das estações em [lobby-art-prompts.md](lobby-art-prompts.md).
+- Atualização 17/10 03h30: NPCs e animais viraram figuras inteiras que só respiram (braços animados pareciam quebrados), forja sem fogo animado, sombra do contorno de cada estação no chão, placas de nome em esmalte azul com moldura dourada e suporte a `floor.webp` para trocar o piso borrado.
 
 ## Salão PvP e sala no padrão da mochila — 17/10/2026
 
@@ -14,6 +15,13 @@
 - Sala: título com número, nome editável, formato, estado e saída; cartas 4:5 com faixa laranja, selo da aura abaixo de +5 e estado Pronto/Líder/Preparando; faixa pintada da Batalha PvP no centro (some abaixo de 1180px); painel com ferramentas, espectadores, convite, treino, Início e menus. No celular em paisagem as quatro cartas ficam em linha e o painel rola por dentro.
 - Materiais em `WoodTheme.css` (tokens e classes `wood-*`); `ArenaTheme.css`, `RoomSpectators.css` e `RoomInvitations.css` passaram para `.pvp-room`. Regras antigas da arena em `MobileOrientation.css` removidas.
 - Evidência: `npm run check`, `npm test` (232), `smoke-arena-hall`, `smoke-rooms`, `smoke-spectators`, `smoke-room-invites`, `smoke-loadout` e `smoke-mobile-landscape` passando. Prévias em `docs/previews/pvp-*.png`.
+
+## Mochila: cards mais limpos — 17/10/2026
+
+- Sem a gema de raridade no canto dos cards (a cor da carta, o brilho do épico e o pulso do lendário continuam).
+- Selo de força da arma só aparece ao passar o mouse ou focar o card; o hover continua mostrando o selo grande.
+- O hover não mostra mais "Clique/Toque para equipar"; só avisa quando o item é incompatível (ou o texto de ação do Ferreiro).
+- Pedras com quantidade 0 não aparecem na grade (Tudo e Pedras).
 
 ## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
 

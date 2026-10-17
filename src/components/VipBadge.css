@@ -1,0 +1,6 @@
+.vip-badge{position:relative;display:inline-block;flex:none;width:var(--vip-size);height:var(--vip-size);background:url('/assets/ui/vip-badges.webp') 0 0/200% 100% no-repeat;font-family:'Nunito','Trebuchet MS',sans-serif;line-height:1;filter:drop-shadow(0 calc(var(--vip-size) * .03) 0 #3b180888)}
+.vip-badge.is-inactive{background-position:100% 0}
+.vip-badge .vip-level{position:absolute;left:0;right:0;top:46%;transform:translateY(-50%);text-align:center;font-size:calc(var(--vip-size) * .3);font-weight:900;color:#fff;-webkit-text-stroke:calc(var(--vip-size) * .045) #6e1606;paint-order:stroke fill;text-shadow:0 calc(var(--vip-size) * .02) 0 #3b0c03}
+.vip-badge .vip-word{position:absolute;left:23%;right:23%;top:69%;transform:translateY(-50%);text-align:center;font-size:calc(var(--vip-size) * .14);font-weight:900;letter-spacing:.05em;-webkit-text-stroke:calc(var(--vip-size) * .025) #4a1a06;paint-order:stroke fill}
+.vip-badge.is-active .vip-word{color:#ffe27a}
+.vip-badge.is-inactive .vip-word{color:#f1ede6;-webkit-text-stroke-color:#3f3a34}

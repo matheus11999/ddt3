@@ -104,7 +104,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       if(age<flightTime(p)){c.save();c.translate(offset[0]*ease,offset[1]*ease);drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});c.restore();}else drawImpact(c,p,age-flightTime(p),level,p.impact.material,{quality:quality==='high'?'high':'low'});
      });
     }
-    for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden)drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low'});}
+    // Each hit of a multi-shot gets its own number, stacked above the earlier ones on the same fighter.
+    for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=state.impacts.reduce((n,other)=>other.shotId===impact.shotId&&(other.at<impact.at||(other.at===impact.at&&other.projectileIndex<impact.projectileIndex))?n+other.hits.filter(h=>h.id===hit.id&&!h.hidden&&h.damage>0).length:n,0);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     c.restore();environment!.drawFront(c,t,camera);
    }else{
