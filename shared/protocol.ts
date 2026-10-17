@@ -27,6 +27,7 @@ export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
 export interface ChatLine {id:string;name:string;text:string;channel:'world'|'room';time:number;}
+import {LOBBY_WALK} from './lobby';
 const finite=(lo:number,hi:number)=>z.number().finite().min(lo).max(hi);
 const name=z.string().trim().min(2).max(24).regex(/^[\p{L}\p{N} _!.-]+$/u);
 export const sessionRequestSchema=z.object({gender:z.enum(CHARACTER_GENDERS).optional()}).strict();
@@ -41,7 +42,7 @@ export const equipmentSelectionSchema=z.object({
 export const stoneSelectionSchema=z.record(z.string().regex(/^[1-5]$/),z.number().int().min(0).max(MAX_FORGE_STONES)).refine(stones=>{const count=Object.values(stones).reduce((sum,n)=>sum+n,0);return count>=1&&count<=MAX_FORGE_STONES;},'Selecione de 1 a 20 pedras.');
 export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('arena-presence'),open:z.boolean()}).strict(),
- z.object({type:z.literal('move'),x:finite(160,1400),y:finite(470,750)}),
+ z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
  z.object({type:z.literal('dye'),slot:z.enum(DYE_SLOTS),color:z.enum(DYE_IDS)}).strict(),

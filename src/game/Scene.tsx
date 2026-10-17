@@ -17,7 +17,8 @@ import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
 import {weaponAimLimits} from '../../shared/aim';
-import {LobbyWorld,LOBBY_NPCS,LOBBY_WALK} from './lobbyWorld';
+import {LobbyWorld,LOBBY_WALK} from './lobbyWorld';
+import {LOBBY_SPAWN} from '../../shared/lobby';
 import type {LobbyAction} from './lobbyWorld';
 const W=1536,H=864;
 type Entity={x:number;y:number;lastX:number;facing:number;motion:AvatarMotion;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
@@ -30,14 +31,20 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}};
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
-  resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:LobbyAction|null=null;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>();let click:{x:number;y:number;time:number}|null=null;let turnId='';let camera=createCamera();
   let residues:TerrainResidues|null=null;
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;const moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;if(Math.abs(dx)>.5)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    if(quality!==getEnvironmentQuality())resizeCanvas();
-   c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;if(!b)lobby.drawBack(c,t);
+   c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
+   if(!b){
+    // The plaza is wider than the view: the camera eases after the player.
+    const meId=state.profile?.id,me=state.players.find(p=>p.id===meId),focus=(meId&&entities.get(meId)?.x)||me?.x||LOBBY_SPAWN.x,target=LobbyWorld.camera(focus);
+    camX=camX<0?target:camX+(target-camX)*.12;c.save();c.translate(-camX,0);lobby.drawBack(c,t,camX);
+    if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
+   }
    if(b){
     if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);}
@@ -93,20 +100,28 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }else{
     if(matchId)stopEnvironmentAudio();environment=null;residues=null;matchId='';terrainSource='';shotId='';
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
-    const npcs=[{...LOBBY_NPCS.storage,name:'',facing:1,equipment:{...DEFAULT_EQUIPMENT,hat:'hat-tide',outfit:'outfit-surfer'}},{...LOBBY_NPCS.forge,name:'',facing:-1,equipment:{...DEFAULT_EQUIPMENT,hat:'hat-cap',outfit:'outfit-executive'}}];
-    const people=[...(lobby.painted?[]:npcs),...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
+    const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat,outfit:`outfit-${k.outfit}`}}));
+    const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
     const drawn=[...lobby.sprites(t,hover),...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);
     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}
+    c.restore();lobby.drawOverlay(c,t);
    }
    frame=requestAnimationFrame(render);
   };
-  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0)el.focus({preventScroll:true});return;}if(state.room)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W,y=(e.clientY-r.top)/r.height*H;
+  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0)el.focus({preventScroll:true});return;}if(state.room)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
-  const pointerMove=(e:PointerEvent)=>{if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hit((e.clientX-r.left)/r.width*W,(e.clientY-r.top)/r.height*H);el.style.cursor=hover?'pointer':'';};
-  el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);};
+  const pointerMove=(e:PointerEvent)=>{if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hover((e.clientX-r.left)/r.width*W+Math.max(0,camX),(e.clientY-r.top)/r.height*H)?.id??null;el.style.cursor=hover?'pointer':'';};
+  // Arrow keys / A-D walk sideways along the plaza; releasing stops where the player is.
+  const typing=(e:KeyboardEvent)=>['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName);
+  const keyDir=(e:KeyboardEvent)=>['arrowleft','a'].includes(e.key.toLowerCase())?-1:['arrowright','d'].includes(e.key.toLowerCase())?1:0;
+  const keyDown=(e:KeyboardEvent)=>{if(state.battle||state.room||typing(e))return;const dir=keyDir(e);if(dir){walkDir=dir;lastWalk=0;}};
+  const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e);if(!dir||dir!==walkDir)return;walkDir=0;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
+  const stopWalk=()=>{walkDir=0;};
+  window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',stopWalk);
+  el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',stopWalk);};
  },[]);
  return <canvas className="world-canvas" ref={canvas} width={1536} height={864} tabIndex={0} aria-label="Mundo do jogo. Clique na rua para caminhar. Na batalha, use as setas e segure Espaço para disparar."/>;
 }

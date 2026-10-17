@@ -1,68 +1,56 @@
 /**
- * Praça Celeste: the social lobby, drawn in layers so painted art can replace
- * any procedural layer without touching gameplay. Order, back to front:
- * sky (static) → drifting clouds/sea shimmer → world (static) → waterfall,
- * airship, balloons → y-sorted props mixed with avatars → titles and motes.
+ * Praça Celeste: the social lobby. The world is LOBBY_WIDTH wide (three
+ * screens) and the camera follows the player sideways.
  *
- * Painted scene (optional): `/assets/lobby/plaza.webp`, one 16:9 illustration
- * holding everything static, portals and keepers included. When it loads it
- * replaces every procedural layer and the keeper avatars; only portal light,
- * motes, labels and hotspots stay in code, so LOBBY_PORTALS/LOBBY_NPCS must be
- * measured against the painting. Without the file the procedural plaza stays.
+ * Painted art (preferred): `/assets/lobby/plaza.webp`, one panorama of the empty
+ * plaza (no NPCs, no podiums), plus one folder of cut-out layers per station.
+ * Without the panorama, a procedural plaza tiles the width as a stand-in, and
+ * stations without art fall back to procedural podiums or keeper avatars.
  */
+import {LOBBY_WIDTH,LOBBY_WALK} from '../../shared/lobby';
+export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
-export const LOBBY_WALK={minX:160,maxX:1400,minY:560,maxY:750} as const;
 
 export type LobbyAction='arena'|'practice'|'shop'|'storage'|'forge';
-export interface LobbyHotspot {id:LobbyAction;title:string;x:number;y:number;box:[number,number,number,number];}
 type Theme={glow:string;core:string;metal:[string,string,string];rune:string};
-type Portal={id:LobbyAction;title:string;x:number;y:number;scale:number;theme:Theme};
+type Portal={x:number;y:number;scale:number;theme:Theme;wings?:boolean};
 
-const PINK:Theme={glow:'#ff5fc8',core:'#ffd0f1',metal:['#fff1a6','#f2b73a','#a8641c'],rune:'#ff8be0'};
 const BLUE:Theme={glow:'#2fb6ff',core:'#d9f6ff',metal:['#f3fbff','#8fc4ef','#3d5fa8'],rune:'#7fe2ff'};
 const GOLD:Theme={glow:'#ffb11f',core:'#fff3c0',metal:['#fff1a6','#f2b73a','#a8641c'],rune:'#ffd34d'};
-export const LOBBY_PORTALS:Portal[]=[
- {id:'shop',title:'Ateliê',x:430,y:548,scale:.9,theme:PINK},
- {id:'arena',title:'Arena',x:690,y:540,scale:1.08,theme:BLUE},
- {id:'practice',title:'Treino',x:948,y:548,scale:.9,theme:GOLD},
-];
-export const LOBBY_NPCS={
- storage:{id:'npc-storage',name:'Guarda-volumes',x:1112,y:582},
- forge:{id:'npc-forge',name:'Ferreiro',x:1316,y:596},
-} as const;
-export const LOBBY_HOTSPOTS:LobbyHotspot[]=[
- ...LOBBY_PORTALS.map(p=>({id:p.id,title:p.title,x:p.x,y:p.y,box:[p.x-86*p.scale,p.y-215*p.scale,p.x+86*p.scale,p.y+26] as [number,number,number,number]})),
- {id:'storage',title:'Guarda-volumes',x:1080,y:582,box:[1010,430,1170,600]},
- {id:'forge',title:'Ferreiro',x:1340,y:596,box:[1262,440,1470,625]},
-];
+const SILVER:Theme={glow:'#9fd8ff',core:'#f4fbff',metal:['#ffffff','#c9d3e6','#6f7d9a'],rune:'#cfe9ff'};
+const BRONZE:Theme={glow:'#ff8a3d',core:'#ffe0c2',metal:['#ffd9a8','#d08a4a','#7a4220'],rune:'#ffb27a'};
 
 /**
- * Animated stations on the painted plaza. Each one is a folder in
- * /assets/lobby/<dir>/ of layers exported on the SAME transparent canvas
- * (feet at the bottom centre), like PSD layers, drawn in order. Code moves each
- * layer around its pivot (fractions of the canvas), cut-out style:
- * breathe = whole-body breathing, nod = head, swing = hammer strike,
- * wave = arm, sway = tail/ears/cloth, bob = floating chalice, blink = eyelids
- * flashed briefly, flicker = fire. A missing layer is skipped; with no layer at
- * all the single `<dir>.png` is drawn, gently breathing.
+ * Stations on the plaza. Each one is a folder in /assets/lobby/<dir>/ of layers
+ * exported on the SAME transparent canvas (feet at the bottom centre), like PSD
+ * layers, drawn in order. Code moves each layer around its pivot (fractions of
+ * the canvas), cut-out style: breathe = whole-body breathing, nod = head,
+ * swing = hammer strike, wave = arm, sway = tail/ears/cloth, bob = floating
+ * piece, blink = eyelids flashed briefly, flicker = fire. A missing layer is
+ * skipped; with no layer at all the single `<dir>.png` is drawn breathing.
+ *
+ * Podiums carry `rank` and `stand`, the point on the canvas where the ranked
+ * player's feet go (see LobbyWorld.podiums()).
  */
 type Motion='still'|'breathe'|'nod'|'swing'|'wave'|'sway'|'bob'|'blink'|'flicker';
 type Layer={name:string;motion:Motion;pivot?:[number,number];period?:number;amount?:number;phase?:number};
-type Station={id:LobbyAction;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];portal?:Portal;spark?:[number,number]};
+type Fallback={kind:'podium'|'gate';portal:Portal}|{kind:'keeper';outfit:'surfer'|'executive';hat:string;facing:1|-1};
+export type Station={id:string;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];action?:LobbyAction;rank?:1|2|3;stand?:[number,number];glow?:Portal;spark?:[number,number];fallback:Fallback};
 const STRIKE=1500;
 export const LOBBY_STATIONS:Station[]=[
- {id:'shop',title:'Ateliê',dir:'npc-loja',x:205,y:612,height:250,layers:[
+ {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:620,height:250,action:'shop',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-tide',facing:1},layers:[
   {name:'barraca',motion:'still'},{name:'toldo',motion:'sway',pivot:[.5,.08],period:2600,amount:.012},
   {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.62,.48],period:1800,amount:.22},
   {name:'cabeca',motion:'nod',pivot:[.55,.42]},{name:'olhos',motion:'blink'}]},
- {id:'practice',title:'Treino',dir:'portal-treino',x:480,y:588,height:225,portal:{id:'practice',title:'Treino',x:480,y:588,scale:.85,theme:GOLD},layers:[
-  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2200,amount:7}]},
- {id:'arena',title:'Arena PvP',dir:'portal-arena',x:752,y:592,height:290,portal:{id:'arena',title:'Arena PvP',x:752,y:592,scale:1.05,theme:BLUE},layers:[
-  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2400,amount:9},{name:'asas',motion:'sway',pivot:[.5,.3],period:1700,amount:.035}]},
- {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1060,y:614,height:215,layers:[
+ {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:622,height:215,action:'storage',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-cap',facing:1},layers:[
   {name:'burro',motion:'breathe',period:3400},{name:'rabo',motion:'sway',pivot:[.1,.55],period:900,amount:.25},{name:'orelhas',motion:'sway',pivot:[.32,.3],period:2600,amount:.08},
   {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.7,.5],period:1400,amount:.3},{name:'cabeca',motion:'nod',pivot:[.7,.45]},{name:'olhos',motion:'blink',phase:1300}]},
- {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:1330,y:628,height:265,spark:[.42,.62],layers:[
+ ...([[2,2040,602,215,SILVER],[1,2304,592,265,GOLD],[3,2568,606,195,BRONZE]] as const).map(([rank,x,y,height,theme]):Station=>({
+  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height,rank,stand:[.5,.3],glow:{x,y,scale:height/250,theme},
+  fallback:{kind:'podium',portal:{x,y,scale:height/250,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'flicker',pivot:[.5,.3]}]})),
+ {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:600,height:300,action:'arena',glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
+  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2400,amount:9},{name:'asas',motion:'sway',pivot:[.5,.3],period:1700,amount:.035}]},
+ {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:630,height:265,action:'forge',spark:[.42,.62],fallback:{kind:'keeper',outfit:'executive',hat:'hat-cap',facing:-1},layers:[
   {name:'barraca',motion:'still'},{name:'fogo',motion:'flicker',pivot:[.85,.6]},
   {name:'corpo',motion:'breathe'},{name:'cabeca',motion:'nod',pivot:[.6,.36],period:STRIKE,amount:.04},{name:'braco',motion:'swing',pivot:[.62,.45],period:STRIKE},{name:'olhos',motion:'blink',phase:700}]},
 ];
@@ -284,7 +272,7 @@ function portal(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean){
  const cy=y-158*s+bob;c.strokeStyle=INK;c.lineWidth=2.5;
  c.fillStyle=vgrad(c,cy,cy+64*s,[theme.core,theme.glow]);path(c,[[x-20*s,cy+10*s],[x+20*s,cy+10*s],[x,cy+66*s]]);c.fill();c.stroke();
  c.fillStyle='#ffffff99';path(c,[[x-12*s,cy+12*s],[x-2*s,cy+12*s],[x-1*s,cy+52*s]]);c.fill();
- if(p.id==='arena'){for(const side of [-1,1]){c.fillStyle=vgrad(c,cy-40*s,cy+20*s,[theme.metal[0],theme.metal[1]]);c.beginPath();c.moveTo(x+side*40*s,cy+4*s);c.quadraticCurveTo(x+side*86*s,cy-6*s,x+side*94*s,cy-46*s);c.quadraticCurveTo(x+side*76*s,cy-26*s,x+side*70*s,cy-34*s);c.quadraticCurveTo(x+side*62*s,cy-14*s,x+side*50*s,cy-20*s);c.quadraticCurveTo(x+side*52*s,cy-6*s,x+side*36*s,cy-8*s);c.closePath();c.fill();c.stroke();}}
+ if(p.wings){for(const side of [-1,1]){c.fillStyle=vgrad(c,cy-40*s,cy+20*s,[theme.metal[0],theme.metal[1]]);c.beginPath();c.moveTo(x+side*40*s,cy+4*s);c.quadraticCurveTo(x+side*86*s,cy-6*s,x+side*94*s,cy-46*s);c.quadraticCurveTo(x+side*76*s,cy-26*s,x+side*70*s,cy-34*s);c.quadraticCurveTo(x+side*62*s,cy-14*s,x+side*50*s,cy-20*s);c.quadraticCurveTo(x+side*52*s,cy-6*s,x+side*36*s,cy-8*s);c.closePath();c.fill();c.stroke();}}
  const bowl=c.createLinearGradient(x-56*s,0,x+56*s,0);bowl.addColorStop(0,theme.metal[2]);bowl.addColorStop(.35,theme.metal[0]);bowl.addColorStop(.7,theme.metal[1]);bowl.addColorStop(1,theme.metal[2]);
  c.fillStyle=bowl;c.beginPath();c.moveTo(x-56*s,cy-8*s);c.quadraticCurveTo(x-50*s,cy+20*s,x,cy+20*s);c.quadraticCurveTo(x+50*s,cy+20*s,x+56*s,cy-8*s);c.closePath();c.fill();c.stroke();
  c.fillStyle=theme.metal[1];c.beginPath();c.ellipse(x,cy-8*s,58*s,13*s,0,0,Math.PI*2);c.fill();c.stroke();
@@ -328,89 +316,114 @@ function forgeProps(c:CanvasRenderingContext2D,t:number){
  c.restore();
 }
 
+export interface LobbyKeeper {id:string;x:number;y:number;outfit:'surfer'|'executive';hat:string;facing:1|-1;}
+export interface LobbyPodium {rank:1|2|3;x:number;y:number;}
+
 export class LobbyWorld {
  private sky:HTMLCanvasElement;private world:HTMLCanvasElement;private plaza=new Image();
- /** True once the painted scene has loaded; keepers are then part of the painting. */
+ /** True once the painted panorama has loaded. */
  painted=false;
- private art=new Map<LobbyAction,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();
+ private art=new Map<string,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();
  constructor(density=2){
+  this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
+  this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
   for(const station of LOBBY_STATIONS){
    const image=new Image();image.src=`/assets/lobby/${station.dir}.png`;this.art.set(station.id,image);
    for(const layer of station.layers){const part=new Image();part.src=`/assets/lobby/${station.dir}/${layer.name}.png`;this.layers.set(`${station.dir}/${layer.name}`,part);}
   }
-  this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
-  this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
  }
  private layer(density:number,paint:(c:CanvasRenderingContext2D)=>void){const canvas=document.createElement('canvas');canvas.width=LOBBY_W*density;canvas.height=LOBBY_H*density;const c=canvas.getContext('2d')!;c.scale(density,density);c.lineCap='round';c.lineJoin='round';paint(c);return canvas;}
- drawBack(c:CanvasRenderingContext2D,t:number){
+ private loaded(station:Station){return station.layers.map(layer=>({layer,image:this.layers.get(`${station.dir}/${layer.name}`)!})).filter(({image})=>image.complete&&image.naturalWidth>0);}
+ private hasArt(station:Station){const single=this.art.get(station.id)!;return this.loaded(station).length>0||(single.complete&&single.naturalWidth>0);}
+ /** Camera x that keeps `focusX` centred without showing past the plaza's ends. */
+ static camera(focusX:number){return Math.max(0,Math.min(LOBBY_WIDTH-LOBBY_W,focusX-LOBBY_W/2));}
+ /** Draws the backdrop in world coordinates; the caller has already translated by -camX. */
+ drawBack(c:CanvasRenderingContext2D,t:number,camX:number){
   if(this.painted){
-   // Cover-fit, so a 1672×941 export works as well as 1536×864.
-   const k=Math.max(LOBBY_W/this.plaza.naturalWidth,LOBBY_H/this.plaza.naturalHeight),w=this.plaza.naturalWidth*k,h=this.plaza.naturalHeight*k;
-   c.drawImage(this.plaza,(LOBBY_W-w)/2,(LOBBY_H-h)/2,w,h);return;
+   // Height fits the view; a panorama narrower than the plaza repeats.
+   const k=LOBBY_H/this.plaza.naturalHeight,tile=this.plaza.naturalWidth*k;
+   for(let x0=Math.floor(camX/tile)*tile;x0<camX+LOBBY_W;x0+=tile){const from=Math.max(camX,x0),to=Math.min(camX+LOBBY_W,x0+tile);c.drawImage(this.plaza,(from-x0)/k,0,(to-from)/k,this.plaza.naturalHeight,from,0,to-from,LOBBY_H);}
+   return;
   }
-  c.drawImage(this.sky,0,0,LOBBY_W,LOBBY_H);
-  for(let i=0;i<5;i++){const s=.9+(i%3)*.25,x=((i*347+t*(.006+i*.0015))%(LOBBY_W+400))-200;cloud(c,x,60+(i*53)%170,s,.92);}
-  c.save();c.strokeStyle='#ffffffb0';c.lineWidth=2;for(let i=0;i<26;i++){const x=(i*61+t*.012*(i%2?1:-1)+LOBBY_W*4)%LOBBY_W,y=410+(i*13)%52,w=10+(i%4)*6;c.globalAlpha=.4+Math.sin(t/500+i)*.35;c.beginPath();c.moveTo(x,y);c.lineTo(x+w,y);c.stroke();}c.restore();
-  c.drawImage(this.world,0,0,LOBBY_W,LOBBY_H);
-  waterfall(c,t);airship(c,t);banner(c,t);
-  balloon(c,1170,96,'#b05cff',t,0);balloon(c,1204,120,'#ff5f9e',t,1);balloon(c,1500,330,'#ff5f9e',t,2);balloon(c,860,120,'#c58cff',t,3);balloon(c,1086,70,'#ff8a3d',t,4);
- }
- /** Props that share the avatars' depth order. */
- sprites(t:number,hover:LobbyAction|null):LobbySprite[]{
-  if(this.painted)return LOBBY_STATIONS.map(station=>({y:station.y-24,draw:(c:CanvasRenderingContext2D)=>this.station(c,station,t,hover===station.id)}));
-  return [
-   {y:500,draw:c=>lamp(c,214,524,t)},{y:500,draw:c=>lamp(c,1486,524,t)},
-   ...LOBBY_PORTALS.map(p=>({y:p.y-30,draw:(c:CanvasRenderingContext2D)=>portal(c,p,t,hover===p.id)})),
-   {y:560,draw:storageProps},{y:584,draw:c=>forgeProps(c,t)},
-  ];
- }
- drawFront(c:CanvasRenderingContext2D,t:number,hover:LobbyAction|null){
-  if(!this.painted){title(c,'Ilha das Cascatas',420,240,22);title(c,'Praça Celeste',1290,372,34);}
-  if(this.painted)for(const station of LOBBY_STATIONS)plaque(c,station.title,station.x,station.y-station.height-20+Math.sin(t/700+station.x)*3,station.id==='arena',hover===station.id);
-  else{
-   for(const p of LOBBY_PORTALS)plaque(c,p.title,p.x,p.y-246*p.scale+Math.sin(t/700+p.x)*3,p.id==='arena',hover===p.id);
-   for(const [action,npc,icon] of [['storage',LOBBY_NPCS.storage,'chest'],['forge',LOBBY_NPCS.forge,'hammer']] as const)npcTag(c,npc.name,npc.x,npc.y-164,icon,hover===action);
+  for(let x0=Math.floor(camX/LOBBY_W)*LOBBY_W;x0<camX+LOBBY_W;x0+=LOBBY_W){
+   c.save();c.translate(x0,0);c.drawImage(this.sky,0,0,LOBBY_W,LOBBY_H);
+   for(let i=0;i<5;i++){const s=.9+(i%3)*.25,x=((i*347+t*(.006+i*.0015))%(LOBBY_W+400))-200;cloud(c,x,60+(i*53)%170,s,.92);}
+   c.save();c.strokeStyle='#ffffffb0';c.lineWidth=2;for(let i=0;i<26;i++){const x=(i*61+t*.012*(i%2?1:-1)+LOBBY_W*4)%LOBBY_W,y=410+(i*13)%52,w=10+(i%4)*6;c.globalAlpha=.4+Math.sin(t/500+i)*.35;c.beginPath();c.moveTo(x,y);c.lineTo(x+w,y);c.stroke();}c.restore();
+   c.drawImage(this.world,0,0,LOBBY_W,LOBBY_H);
+   waterfall(c,t);airship(c,t);banner(c,t);
+   balloon(c,1170,96,'#b05cff',t,0);balloon(c,1204,120,'#ff5f9e',t,1);balloon(c,1500,330,'#ff5f9e',t,2);balloon(c,860,120,'#c58cff',t,3);balloon(c,1086,70,'#ff8a3d',t,4);
+   c.restore();
   }
+ }
+ /** Stations that share the avatars' depth order. */
+ sprites(t:number,hover:string|null):LobbySprite[]{
+  return LOBBY_STATIONS.map(station=>({y:station.y-24,draw:(c:CanvasRenderingContext2D)=>this.station(c,station,t,hover===station.id)}));
+ }
+ /** Keepers to stand in as avatars while their painting is missing. */
+ keepers():LobbyKeeper[]{
+  return LOBBY_STATIONS.flatMap(station=>station.fallback.kind==='keeper'&&!this.hasArt(station)?[{id:`npc-${station.id}`,x:station.x,y:station.y,outfit:station.fallback.outfit,hat:station.fallback.hat,facing:station.fallback.facing}]:[]);
+ }
+ /** Where the day's top PvP players stand, in world coordinates. */
+ podiums():LobbyPodium[]{
+  return LOBBY_STATIONS.flatMap(station=>{
+   if(!station.rank)return [];
+   const image=this.loaded(station)[0]?.image;
+   if(image&&station.stand)return [{rank:station.rank,x:station.x-station.height*image.naturalWidth/image.naturalHeight*(.5-station.stand[0]),y:station.y-station.height*(1-station.stand[1])}];
+   const s=station.height/250;return [{rank:station.rank,x:station.x,y:station.y-166*s}];
+  });
+ }
+ drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null){
+  title(c,'Ranking PvP do dia',2304,268,26);
+  for(const station of LOBBY_STATIONS){
+   const top=station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
+   plaque(c,station.title,station.x,top+Math.sin(t/700+station.x)*3,station.id==='arena'||station.rank===1,hover===station.id);
+  }
+ }
+ /** Screen-space sparkle, drawn after the camera transform is undone. */
+ drawOverlay(c:CanvasRenderingContext2D,t:number){
   for(let i=0;i<22;i++){const x=(i*137+t*.014)%LOBBY_W,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}
  }
- private loaded(station:Station){return station.layers.map(layer=>({layer,image:this.layers.get(`${station.dir}/${layer.name}`)!})).filter(({image})=>image.complete&&image.naturalWidth>0);}
  private box(station:Station):[number,number,number,number]{
-  const image=this.loaded(station)[0]?.image??this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.85,half=station.height*ratio/2*.8;
+  const image=this.loaded(station)[0]?.image??this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.8,half=station.height*ratio/2*.8;
   return [station.x-half,station.y-station.height,station.x+half,station.y+12];
  }
  private station(c:CanvasRenderingContext2D,station:Station,t:number,hover:boolean){
   const parts=this.loaded(station),single=this.art.get(station.id)!;
   const base=parts[0]?.image??(single.complete&&single.naturalWidth?single:null);
-  if(base){
-   const h=station.height,w=h*base.naturalWidth/base.naturalHeight,left=station.x-w/2,top=station.y-h;
-   const breath=(period=3000,phase=0)=>1+Math.sin((t+phase)/period*Math.PI*2)*.012;
-   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
-   if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.portal?1:breath());c.drawImage(base,-w/2,-h,w,h);}
-   else for(const {layer,image} of parts){
-    const period=layer.period??3000,phase=(layer.phase??0)+station.x*3,amount=layer.amount,[px,py]=layer.pivot??[.5,1],ax=left+px*w,ay=top+py*h;
-    if(layer.motion==='blink'&&(t+phase)%3600>130)continue;
-    c.save();
-    // Everything above the feet breathes with the body, so heads and arms stay attached.
-    if(layer.motion!=='still'&&layer.motion!=='bob'&&layer.motion!=='flicker'){c.translate(station.x,station.y);c.scale(1,breath(layer.motion==='breathe'?period:3000));c.translate(-station.x,-station.y);}
-    if(layer.motion==='nod'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.03));c.translate(-ax,-ay);}
-    else if(layer.motion==='swing'){c.translate(ax,ay);c.rotate(strike(t,period));c.translate(-ax,-ay);}
-    else if(layer.motion==='wave'||layer.motion==='sway'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.1));c.translate(-ax,-ay);}
-    else if(layer.motion==='bob')c.translate(0,Math.sin((t+phase)/period*Math.PI*2)*(amount??6));
-    else if(layer.motion==='flicker'){const f=1+Math.sin(t/90)*.04+Math.sin(t/37)*.03;c.translate(ax,ay+h*.08);c.scale(1/f,f);c.translate(-ax,-ay-h*.08);c.globalAlpha=.9+Math.sin(t/60)*.1;}
-    c.drawImage(image,left,top,w,h);c.restore();
-   }
-   c.restore();
-   // Sparks fly from the anvil on each blow.
-   if(station.spark&&parts.some(({layer})=>layer.motion==='swing')){const k=((t%STRIKE)/STRIKE-.63)/.25;if(k>=0&&k<1){const sx=left+station.spark[0]*w,sy=top+station.spark[1]*h;c.save();c.globalCompositeOperation='lighter';for(let i=0;i<10;i++){const a=-Math.PI*(.15+.7*((i*37%10)/10)),d=k*(30+i*4);c.globalAlpha=1-k;c.fillStyle=i%2?'#ffe27a':'#ff9a3c';c.beginPath();c.arc(sx+Math.cos(a)*d,sy+Math.sin(a)*d+k*k*20,2.2,0,Math.PI*2);c.fill();}c.restore();}}
+  if(!base){
+   const fallback=station.fallback;
+   // The props were drawn around the old keeper spots (storage 1112,582; smith 1316,596).
+   if(station.id==='forge'){c.save();c.translate(station.x-1316,station.y-596);forgeProps(c,t);c.restore();}
+   else if(station.id==='storage'){c.save();c.translate(station.x-1112,station.y-582);storageProps(c);c.restore();}
+   else if(fallback.kind!=='keeper')portal(c,fallback.portal,t,hover);
+   return;
   }
-  if(station.portal)portalLight(c,station.portal,t,hover);
+  const h=station.height,w=h*base.naturalWidth/base.naturalHeight,left=station.x-w/2,top=station.y-h;
+  const breath=(period=3000)=>1+Math.sin(t/period*Math.PI*2)*.012;
+  c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
+  if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.glow?1:breath());c.drawImage(base,-w/2,-h,w,h);}
+  else for(const {layer,image} of parts){
+   const period=layer.period??3000,phase=(layer.phase??0)+station.x*3,amount=layer.amount,[px,py]=layer.pivot??[.5,1],ax=left+px*w,ay=top+py*h;
+   if(layer.motion==='blink'&&(t+phase)%3600>130)continue;
+   c.save();
+   // Everything above the feet breathes with the body, so heads and arms stay attached.
+   if(layer.motion!=='still'&&layer.motion!=='bob'&&layer.motion!=='flicker'){c.translate(station.x,station.y);c.scale(1,breath(layer.motion==='breathe'?period:3000));c.translate(-station.x,-station.y);}
+   if(layer.motion==='nod'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.03));c.translate(-ax,-ay);}
+   else if(layer.motion==='swing'){c.translate(ax,ay);c.rotate(strike(t,period));c.translate(-ax,-ay);}
+   else if(layer.motion==='wave'||layer.motion==='sway'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.1));c.translate(-ax,-ay);}
+   else if(layer.motion==='bob')c.translate(0,Math.sin((t+phase)/period*Math.PI*2)*(amount??6));
+   else if(layer.motion==='flicker'){const f=1+Math.sin(t/90)*.04+Math.sin(t/37)*.03;c.translate(ax,ay+h*.08);c.scale(1/f,f);c.translate(-ax,-ay-h*.08);c.globalAlpha=.9+Math.sin(t/60)*.1;}
+   c.drawImage(image,left,top,w,h);c.restore();
+  }
+  c.restore();
+  // Sparks fly from the anvil on each blow.
+  if(station.spark&&parts.some(({layer})=>layer.motion==='swing')){const k=((t%STRIKE)/STRIKE-.63)/.25;if(k>=0&&k<1){const sx=left+station.spark[0]*w,sy=top+station.spark[1]*h;c.save();c.globalCompositeOperation='lighter';for(let i=0;i<10;i++){const a=-Math.PI*(.15+.7*((i*37%10)/10)),d=k*(30+i*4);c.globalAlpha=1-k;c.fillStyle=i%2?'#ffe27a':'#ff9a3c';c.beginPath();c.arc(sx+Math.cos(a)*d,sy+Math.sin(a)*d+k*k*20,2.2,0,Math.PI*2);c.fill();}c.restore();}}
+  if(station.glow)portalLight(c,station.glow,t,hover);
  }
- hit(x:number,y:number):LobbyAction|null{
-  if(this.painted){
-   for(const station of LOBBY_STATIONS){const [x0,y0,x1,y1]=this.box(station);if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return station.id;}
-   return null;
-  }
-  for(const h of LOBBY_HOTSPOTS){const [x0,y0,x1,y1]=h.box;if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return h.id;}
+ /** World coordinates in, interactive station out (podiums are not interactive yet). */
+ hit(x:number,y:number):LobbyAction|null{return this.hover(x,y)?.action??null;}
+ hover(x:number,y:number):Station|null{
+  for(const station of LOBBY_STATIONS){if(!station.action)continue;const [x0,y0,x1,y1]=this.box(station);if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return station;}
   return null;
  }
 }
@@ -429,11 +442,4 @@ function plaque(c:CanvasRenderingContext2D,text:string,x:number,y:number,big:boo
  if(hover){c.shadowColor='#fff3a0';c.shadowBlur=14;}
  c.font=`900 ${Math.round(19*s)}px Nunito, "Trebuchet MS", sans-serif`;c.textAlign='center';c.textBaseline='middle';c.lineWidth=4;c.strokeStyle='#fff6cf';c.strokeText(text,0,1);c.fillStyle='#8a2a0e';c.fillText(text,0,1);
  c.restore();
-}
-function npcTag(c:CanvasRenderingContext2D,text:string,x:number,y:number,icon:string,hover:boolean){
- c.save();c.font='900 17px Nunito, "Trebuchet MS", sans-serif';c.textBaseline='middle';const w=c.measureText(text).width;c.translate(x-w/2+12,y);if(hover)c.scale(1.08,1.08);
- c.strokeStyle=INK;c.lineWidth=2;
- if(icon==='chest'){c.fillStyle='#b57a3e';roundRect(c,-30,-6,20,14,3);c.fill();c.stroke();c.fillStyle='#d99a55';c.beginPath();c.moveTo(-30,-5);c.quadraticCurveTo(-20,-16,-10,-5);c.closePath();c.fill();c.stroke();c.fillStyle='#f2c34a';c.fillRect(-22,-4,4,6);}
- else{c.save();c.translate(-20,0);c.rotate(-.6);c.fillStyle='#a8693c';c.fillRect(-2,-2,4,18);c.strokeRect(-2,-2,4,18);c.fillStyle='#9aa3c2';roundRect(c,-9,-10,18,9,2);c.fill();c.stroke();c.restore();}
- c.lineJoin='round';c.lineWidth=5;c.strokeStyle='#1d3f74';c.strokeText(text,0,0);c.fillStyle=hover?'#fff3a7':'#ffffff';c.fillText(text,0,0);c.restore();
 }

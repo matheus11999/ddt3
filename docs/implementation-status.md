@@ -6,6 +6,8 @@
 - HUD do lobby: título central e placas Arena/Ferreiro trocados por medalhas de evento no topo direito (Arena, Ateliê, Missões com contador, Ferreiro) e um selo de canal sob o retrato. Painel de missões abre pela medalha Missões.
 - Fundo pintado por código é só reserva (usuário achou simples/infantil); a arte final é uma pintura única em `public/assets/lobby/plaza.webp`, que substitui o cenário e os NPCs-boneco. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
 
+- Atualização 17/10 02h: praça com **três telas de largura** (`shared/lobby.ts`, 4608 px) e câmera seguindo o jogador (clique ou setas/A-D). Portais viraram o **pódio do ranking PvP do dia** (1º/2º/3º, `LobbyWorld.podiums()` pronto para os bonecos), porta da Arena PvP e NPCs animados por camadas recortadas. Ferreiro em x 3720 (`SMITH_POSITION` 3640, 640). Prompt e mapa das estações em [lobby-art-prompts.md](lobby-art-prompts.md).
+
 ## Ajuste atual — contato e dano próximo
 
 - Colisão direta do personagem reduzida de raio 24 para 22; raio adicional da explosão reduzido de `blast × 0,65` para `blast × 0,60`. Um disparo que passa mais longe não deve registrar contato ou dano.
