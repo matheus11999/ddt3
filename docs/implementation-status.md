@@ -16,6 +16,13 @@
 - Materiais em `WoodTheme.css` (tokens e classes `wood-*`); `ArenaTheme.css`, `RoomSpectators.css` e `RoomInvitations.css` passaram para `.pvp-room`. Regras antigas da arena em `MobileOrientation.css` removidas.
 - Evidência: `npm run check`, `npm test` (232), `smoke-arena-hall`, `smoke-rooms`, `smoke-spectators`, `smoke-room-invites`, `smoke-loadout` e `smoke-mobile-landscape` passando. Prévias em `docs/previews/pvp-*.png`.
 
+## Mochila: cards mais limpos — 17/10/2026
+
+- Sem a gema de raridade no canto dos cards (a cor da carta, o brilho do épico e o pulso do lendário continuam).
+- Selo de força da arma só aparece ao passar o mouse ou focar o card; o hover continua mostrando o selo grande.
+- O hover não mostra mais "Clique/Toque para equipar"; só avisa quando o item é incompatível (ou o texto de ação do Ferreiro).
+- Pedras com quantidade 0 não aparecem na grade (Tudo e Pedras).
+
 ## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
 
 - 13 slots: entram Anel ×2 (`ring` e `ring2`, mesma família; um anel só ocupa um slot), Colar (`necklace`) e Bolha (`bubble`). Pulseira e Bracelete são os 2 slots de pulseira. Anéis ficam na base das colunas laterais (Anel à esquerda, Anel à direita); fileira inferior só Colar, Arma e Bolha. Joias e bolha são invisíveis no boneco; a bolha ainda é só cosmética (sem efeito no chat).
