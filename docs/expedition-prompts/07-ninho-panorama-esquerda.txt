@@ -1,0 +1,10 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the LEFT HALF of a single wide panoramic background (the right half will be painted next, so this image must NOT look complete or symmetrical on its own).
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look. Keep the painting quality of the attached estilo-fundo.png (approved background of the same game), but a completely different place.
+Map "Formigueiro, estágio 2": INSIDE A GIANT ANTHILL, the royal chamber of the ant queen, seen from the side. Scenery only.
+- Far layer (pale, hazy, warm): huge rounded earth caverns in warm terracotta, ochre and reddish brown, layered tunnel holes in the walls glowing softly, tree roots hanging from the ceiling, tiny glowing amber crystals and glowing white ant eggs piled in alcoves, soft beams of light coming from holes in the ceiling.
+- Middle layer (a bit more saturated, still paler than the playable ground): honeycomb-like wax cells with amber honey, carved earth arches, ROYAL decorations made of leaves and petals hung like banners (no symbols, no letters).
+- Bottom 28%: deep warm darkness, brown haze getting very dark at the very bottom (the pit players fall into). No floor, ledge or platform in the lower 40%.
+- The RIGHT 20% of the image is only soft cave haze and pale earth wall: no distinct object touches the right edge.
+- Nothing important near the top 8%.
+Readability: pale, low contrast, hazy like distance, so the darker playable earth platforms drawn on top stand out. No strong black outlines.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

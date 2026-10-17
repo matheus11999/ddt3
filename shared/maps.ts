@@ -1,8 +1,13 @@
 import {SNOW_REGIONS} from './generated/snowTerrain';
+import {ANTHILL_1_REGIONS,ANTHILL_1_MONSTERS} from './generated/anthill-1Terrain';
+import {ANTHILL_2_REGIONS,ANTHILL_2_MONSTERS} from './generated/anthill-2Terrain';
+import type {MonsterPlacement} from './expeditions';
 
 /** Maps in the game. Each is painted art assembled by `npm run build:map` (docs/maps-kit.md). */
 export const MAP_IDS = ['snow'] as const;
-export type CanonicalMapId = typeof MAP_IDS[number];
+/** Expedition stage maps (kind 'instance'): never in the PvP draw. */
+export const INSTANCE_MAP_IDS = ['anthill-1','anthill-2'] as const;
+export type CanonicalMapId = typeof MAP_IDS[number] | typeof INSTANCE_MAP_IDS[number];
 /** Ids of removed maps still arrive from old clients and saved rooms; they resolve to a real map. */
 export type LegacyMapId = 'garden'|'park'|'celestial'|'sky'|'valley';
 export type MapId = CanonicalMapId | LegacyMapId;
@@ -20,6 +25,8 @@ export interface MapDefinition {
  /** background: one fixed painting that never repeats; terrain: the painted pieces, masked by collision; mid: optional layer between them. */
  art:{background:string;terrain:string;mid?:string};
  regions:readonly MapRegion[];spawns:readonly [readonly number[],readonly number[]];
+ /** Instance maps: monsters and markers placed in the map editor (layout `monsters`). */
+ monsters?:readonly MonsterPlacement[];
 }
 /** Debris palette for impacts; terrain itself has no material distinction for players. */
 export const MATERIALS:Record<MaterialId,{color:string;highlight:string;debris:string}>={
@@ -35,7 +42,17 @@ export const MAP_DEFINITIONS:Partial<Record<MapId,MapDefinition>>&Record<Canonic
   dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1040,820,1190,385],[2032,2252,1882,2687]],
   lighting:{sky:'#5d6fb8',horizon:'#b9c4ee',ambient:'#dfe8ff'},audio:{ambience:'wind',impact:{earth:'dust'}},
   art:{background:'/assets/maps/snow/background.webp',terrain:'/assets/maps/snow/terrain-world.png'},
-  regions:SNOW_REGIONS}
+  regions:SNOW_REGIONS},
+ 'anthill-1':{id:'anthill-1',name:'Formigueiro · O tronco caído',subtitle:'Expedição · Estágio 1',color:'#9bc463',
+  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1300,1780,1090,1880],[0]],
+  lighting:{sky:'#c6d98a',horizon:'#f4e3a1',ambient:'#fff3cf'},audio:{ambience:'birds',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/anthill-1/background.webp',terrain:'/assets/maps/anthill-1/terrain-world.png'},
+  regions:ANTHILL_1_REGIONS,monsters:ANTHILL_1_MONSTERS},
+ 'anthill-2':{id:'anthill-2',name:'Formigueiro · A câmara da rainha',subtitle:'Expedição · Estágio 2',color:'#c4774a',
+  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[640,900,480,1040],[0]],
+  lighting:{sky:'#6b3c2a',horizon:'#c98a55',ambient:'#ffd8a8'},audio:{ambience:'wind',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/anthill-2/background.webp',terrain:'/assets/maps/anthill-2/terrain-world.png'},
+  regions:ANTHILL_2_REGIONS,monsters:ANTHILL_2_MONSTERS},
 };
 /** The map a new room starts on and the one unknown ids fall back to (tests point it at their fixture map). */
 export const MAP_DEFAULT:{id:MapId}={id:'snow'};
@@ -46,13 +63,13 @@ export const MAPS:{id:MapId;name:string;subtitle:string;color:string}[]=[];
  * Maps published from the admin panel (shared/mapAdmin.ts) replace a built-in map's name, spawns,
  * collision and terrain art, or add a new map based on another one's art. Server and client apply the same list.
  */
-export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;}
-const BUILT_IN=new Map<string,MapDefinition>(MAP_IDS.map(id=>[id,MAP_DEFINITIONS[id]]));
+export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;monsters?:MonsterPlacement[];}
+const BUILT_IN=new Map<string,MapDefinition>([...MAP_IDS,...INSTANCE_MAP_IDS].map(id=>[id,MAP_DEFINITIONS[id]]));
 const status=new Map<string,{kind:'pvp'|'instance';enabled:boolean}>();
 export function applyMapOverride(o:MapOverride){
  const base=BUILT_IN.get(o.id)??BUILT_IN.get(o.base)??MAP_DEFINITIONS[o.base as MapId]??MAP_DEFINITIONS[MAP_DEFAULT.id]!;
  const id=o.id as MapId;
- MAP_DEFINITIONS[id]={...base,id,name:o.name,subtitle:o.subtitle||base.subtitle,dimensions:{...base.dimensions,width:o.width},spawns:[[...o.spawns[0]],[...o.spawns[1]]],regions:o.regions,art:{...base.art,terrain:o.terrain}};
+ MAP_DEFINITIONS[id]={...base,id,name:o.name,subtitle:o.subtitle||base.subtitle,dimensions:{...base.dimensions,width:o.width},spawns:[[...o.spawns[0]],[...o.spawns[1]]],regions:o.regions,art:{...base.art,terrain:o.terrain},monsters:o.monsters??base.monsters};
  status.set(o.id,{kind:o.kind,enabled:o.enabled});listMaps();
 }
 /** Back to the repository version (or gone, for a map created in the panel). */
@@ -60,7 +77,7 @@ export function removeMapOverride(id:string){
  const original=BUILT_IN.get(id);if(original)MAP_DEFINITIONS[id as MapId]=original;else delete MAP_DEFINITIONS[id as MapId];
  status.delete(id);listMaps();
 }
-export function mapStatus(id:string){return status.get(id)??{kind:'pvp' as const,enabled:true};}
+export function mapStatus(id:string){return status.get(id)??{kind:(INSTANCE_MAP_IDS as readonly string[]).includes(id)?'instance' as const:'pvp' as const,enabled:true};}
 /** Maps a PvP match may be drawn on: built-in and published PvP maps that are switched on. */
 export function pvpRotation():MapId[]{
  const ids=[...new Set([...MAP_IDS,...status.keys()])].filter(id=>MAP_DEFINITIONS[id as MapId]&&mapStatus(id).kind==='pvp'&&mapStatus(id).enabled) as MapId[];

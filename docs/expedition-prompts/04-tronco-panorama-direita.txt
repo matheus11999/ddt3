@@ -1,0 +1,10 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the RIGHT HALF of a single wide panoramic background; the attached panorama-esquerda.png is the LEFT HALF already painted. Continue it seamlessly: same light, palette, haze and painting.
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look.
+Map "Formigueiro, estágio 1", giant sunny storybook forest, scenery only.
+- The LEFT 20% of this image continues the right edge of the left half: only soft canopy light, haze and pale leaves (no distinct object touches the left edge).
+- Far layer: a wooden BIRDHOUSE nailed high on a big tree trunk at the right (like the attached ddtank-formigueiro.png reference), a second giant tree WITHOUT a face, warm light rays.
+- Middle layer: a giant snail shell resting on a mossy stone, a spider web with dew drops between two grass stems, big clover leaves, one giant acorn. Do NOT repeat or mirror anything from the left half; every element appears only once.
+- Bottom 28%: same soft green-amber haze getting darker deep green-brown at the very bottom. No ground, floor, ledge, log or platform in the lower 40%.
+- Nothing important near the top 8%.
+Readability: pale, low contrast like distance. No strong black outlines.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

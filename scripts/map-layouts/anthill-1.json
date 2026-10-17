@@ -1,0 +1,111 @@
+{
+ "name": "Formigueiro · O tronco caído",
+ "subtitle": "Expedição · Estágio 1",
+ "kind": "instance",
+ "source": "public/assets/maps/anthill-1/source",
+ "background": [
+  "panorama-esquerda.png",
+  "panorama-direita.png"
+ ],
+ "mirror": false,
+ "width": 3072,
+ "sheets": {
+  "pecas": "pecas.png",
+  "objetos": "objetos.png"
+ },
+ "spawns": [
+  [
+   1300,
+   1780,
+   1090,
+   1880
+  ],
+  []
+ ],
+ "items": [
+  {
+   "id": "log-right",
+   "sheet": "pecas",
+   "piece": 0,
+   "x": 2302,
+   "top": 584,
+   "scale": 1.05,
+   "flip": false,
+   "destructible": true
+  },
+  {
+   "id": "log-left",
+   "sheet": "pecas",
+   "piece": 0,
+   "x": 750,
+   "top": 560,
+   "scale": 1.05,
+   "destructible": true
+  },
+  {
+   "id": "moss-island",
+   "sheet": "pecas",
+   "piece": 4,
+   "x": 2240,
+   "top": 230,
+   "scale": 0.8,
+   "destructible": true
+  },
+  {
+   "id": "mushroom",
+   "sheet": "objetos",
+   "piece": 0,
+   "x": 2210,
+   "top": 120,
+   "scale": 0.26,
+   "destructible": true,
+   "rest": true
+  },
+  {
+   "id": "bluebell",
+   "sheet": "objetos",
+   "piece": 6,
+   "x": 62,
+   "top": 300,
+   "scale": 0.3,
+   "destructible": true,
+   "rest": true
+  },
+  {
+   "id": "clover",
+   "sheet": "objetos",
+   "piece": 5,
+   "x": 3005,
+   "top": 300,
+   "scale": 0.28,
+   "destructible": true,
+   "rest": true
+  }
+ ],
+ "monsters": [
+  {
+   "kind": "ant-worker",
+   "x": 180
+  },
+  {
+   "kind": "ant-worker",
+   "x": 330
+  },
+  {
+   "kind": "ant-soldier",
+   "x": 520
+  },
+  {
+   "kind": "ant-worker",
+   "x": 2890
+  },
+  {
+   "kind": "ant-soldier",
+   "x": 2700
+  },
+  {
+   "kind": "ant-brute",
+   "x": 2520
+  }
+ ]
+}
