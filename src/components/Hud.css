@@ -12,17 +12,20 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 
 /* Praça Celeste: bottom menu in the PvP room's wood style, with the room's painted
    menu icons on cream tiles. The game draws every label and counter. */
-.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
-.lobby-dock>.lobby-dock-button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:76px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
+.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:auto;right:0;bottom:9px;transform:none;display:flex;align-items:flex-end;gap:2px;height:auto;padding:0 16px 6px 34px;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
+/* Wooden shelf the icons rest on, anchored to the bottom-right corner like the classic lobby. */
+.game-frame>nav.lobby-dock:before{content:'';position:absolute;left:0;right:0;bottom:0;height:36px;border:3px solid #e9b64f;border-right:0;border-bottom:0;border-radius:22px 0 0 0;background:repeating-linear-gradient(90deg,#ffffff08 0 3px,transparent 3px 19px,#0000001a 19px 20px,transparent 20px 41px),linear-gradient(#9a5422,#6e3510 55%,#4a2108);box-shadow:inset 0 2px #ffd58a66,inset 0 -2px #2c1004,0 0 0 2px #3a1605,0 -4px 10px #2c100455;pointer-events:none}
+.game-frame>nav.lobby-dock:after{content:'';position:absolute;left:22px;right:10px;bottom:11px;height:2px;border-radius:2px;background:#2c100499;box-shadow:0 1px #ffc98a33;pointer-events:none}
+.lobby-dock>.lobby-dock-button{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;width:80px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
 .lobby-dock>.lobby-dock-button:hover:not(:disabled),.lobby-dock>.lobby-dock-button.active{background:none;box-shadow:none;transform:translateY(-3px);filter:none}
-.lobby-dock-tile{position:relative;display:grid;place-items:center;width:68px;height:68px;padding:0;transition:transform .15s,filter .15s}
+.lobby-dock-tile{position:relative;display:grid;place-items:center;width:80px;height:80px;padding:0;transition:transform .15s,filter .15s}
 .lobby-dock-tile img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 1px #3a1605) drop-shadow(0 4px 4px #2c100488);pointer-events:none}
 .lobby-dock>.lobby-dock-button:hover:not(:disabled) .lobby-dock-tile,.lobby-dock>.lobby-dock-button.active .lobby-dock-tile{transform:scale(1.08);filter:brightness(1.1) drop-shadow(0 0 6px #ffd36bcc)}
 .lobby-dock>.lobby-dock-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
 .lobby-dock>.lobby-dock-button:focus-visible{outline:none}.lobby-dock>.lobby-dock-button:focus-visible .lobby-dock-tile{outline:3px solid #fff1c4;outline-offset:2px}
-.lobby-dock-label{position:relative;z-index:1;font:900 12px/1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;color:var(--wood-gold);white-space:nowrap;text-shadow:1px 1px 0 #4a1d06,-1px 1px 0 #4a1d06,1px -1px 0 #4a1d06,-1px -1px 0 #4a1d06,0 2px 0 #4a1d06,0 0 4px #2c1004}
-.lobby-dock-count{position:absolute;top:-7px;right:-8px;min-width:21px;height:21px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 11px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
-.lobby-dock-popover{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);width:300px;padding:0 0 10px;border:2px solid var(--wood-rim);border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden;font-family:Nunito,sans-serif}
+.lobby-dock-label{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+.lobby-dock-count{position:absolute;top:2px;right:2px;min-width:21px;height:21px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 11px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
+.lobby-dock-popover{position:absolute;right:16px;bottom:calc(100% + 10px);width:300px;padding:0 0 10px;border:2px solid var(--wood-rim);border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden;font-family:Nunito,sans-serif}
 .lobby-dock-popover>header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 12px;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);color:#fff;font-size:14px;text-shadow:0 1px #8a3a07}
 .lobby-dock-popover>header button{flex:none;min-width:0;min-height:0;display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:8px;background:#fff4d7;color:var(--wood-ink)}
 .lobby-dock-popover>p{margin:14px 12px 4px;font-size:13px;font-weight:800;color:var(--wood-ink-soft);text-align:center}
@@ -32,25 +35,28 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-quest-list>button>span.done{background:linear-gradient(#8fe08a,#2f9a4a);color:#fff}
 .lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
 .game-frame>.walk-hint{bottom:124px}
-html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:translateX(-50%) scale(calc(.62 / var(--game-scale)));transform-origin:bottom center;height:auto;padding:6px 10px 6px;gap:2px}
+html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(calc(.62 / var(--game-scale)));transform-origin:bottom right;height:auto}
 
-/* Lobby chat in the same wood and cream finish as the PvP room chat: folder tabs
-   that join the cream message area, and a sunken cream input. */
-.game-frame>.chat-shell.lobby-chat{bottom:24px;left:20px;width:340px;height:170px;overflow:hidden;border-radius:12px;z-index:6;grid-template-rows:19px minmax(0,1fr) 28px;gap:0;padding:4px 5px 5px;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 10px 22px #1a0c04a0}
-.game-frame>.chat-shell.lobby-chat.collapsed{height:28px;grid-template-rows:19px}
-.lobby-chat.collapsed .chat-messages,.lobby-chat.collapsed .chat-input{display:none}
-.lobby-chat.wood-chat .chat-tabs{align-items:flex-end;gap:2px;padding:0 24px 0 6px}
-.lobby-chat.wood-chat .chat-tabs>button{position:relative;z-index:1;height:19px;min-width:58px;padding:0 10px;border:1px solid #f6c27e88;border-bottom:0;border-radius:7px 7px 0 0;background:linear-gradient(#6a3010,#83401a);box-shadow:inset 0 1px #ffc98c44;color:#f3c58a;font:800 11px/1 Nunito,sans-serif;letter-spacing:.2px;text-shadow:0 1px #2c1004}
+/* Lobby chat floats over the plaza like the classic lobby: no panel, outlined
+   message text, slim wood tabs and a dark wood input strip. */
+.game-frame>.chat-shell.lobby-chat{bottom:10px;left:14px;width:400px;height:200px;overflow:visible;border:0;border-radius:0;z-index:6;grid-template-rows:20px minmax(0,1fr) 30px;gap:4px;padding:0;background:none;box-shadow:none}
+.game-frame>.chat-shell.lobby-chat.collapsed{height:56px;grid-template-rows:20px 30px}
+.lobby-chat.collapsed .chat-messages{display:none}
+.lobby-chat.wood-chat .chat-tabs{align-items:flex-end;gap:3px;padding:0 0 0 2px}
+.lobby-chat.wood-chat .chat-tabs>button{height:20px;min-width:52px;padding:0 10px;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:inset 0 1px #ffc98c44,0 1px 2px #0006;color:#f3c58a;font:800 11px/1 Nunito,sans-serif;text-shadow:0 1px #2c1004}
 .lobby-chat.wood-chat .chat-tabs>button:hover:not(:disabled){color:#ffe2b0}
-.lobby-chat.wood-chat .chat-tabs>button.active{height:20px;margin-bottom:-1px;border-color:#fff7e4;background:#fff8e8;box-shadow:inset 0 2px #ffd36b;color:#9a3d0a;text-shadow:none}
+.lobby-chat.wood-chat .chat-tabs>button.active{background:linear-gradient(#ffe07a,#e9a422);border-color:#fff2c8;color:#6b2c05;text-shadow:none}
 .lobby-chat.wood-chat .chat-tabs>button:disabled{opacity:.6}
-.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;right:7px;top:4px;width:18px;height:18px;padding:0;border:1px solid #fff3d6;border-radius:6px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -1px #d4a565;color:#8a3f0b}
+.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;left:112px;right:auto;top:0;width:20px;height:20px;padding:0;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 2px #0006;color:#ffd36b}
 .game-frame>.chat-shell.lobby-chat .chat-collapse svg{width:12px;height:12px}
-.game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.05)}
-.lobby-chat.wood-chat .chat-messages{padding:6px 9px;border-radius:0 8px 8px 8px;font-size:12px}
-.lobby-chat.wood-chat .chat-input{margin-top:5px;height:28px;padding:0 3px 0 10px;border:1px solid #4a210a;border-radius:8px;background:linear-gradient(#f3dfb8,#fff8e8 45%);box-shadow:inset 0 2px 3px #8a431855,0 1px #ffd9a866}
-.lobby-chat.wood-chat .chat-input:focus-within{border-color:#ffd36b;box-shadow:inset 0 2px 3px #8a431855,0 0 0 2px #ffd36b88}
-.lobby-chat.wood-chat .chat-input>input{font-size:12px}
-.lobby-chat.wood-chat .chat-input>input::placeholder{color:#b08a62;font-style:italic}
-.lobby-chat.wood-chat .chat-input>button{width:22px;height:22px;border-radius:6px}
+.game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.1)}
+.lobby-chat.wood-chat .chat-messages{padding:2px 4px;border:0;border-radius:0;background:none;box-shadow:none;scrollbar-color:#e9b64f66 transparent;font:800 13px/1.4 Nunito,sans-serif;color:#fff;text-shadow:1px 1px 0 #2c1004,-1px 1px 0 #2c1004,1px -1px 0 #2c1004,-1px -1px 0 #2c1004,0 1px 3px #000a}
+.lobby-chat.wood-chat .chat-messages p{color:#fff}
+.lobby-chat.wood-chat .chat-messages strong{color:#ffd36b}
+.lobby-chat.wood-chat .chat-messages .system-message{color:#9ff07a}
+.lobby-chat.wood-chat .chat-input{height:30px;padding:0 3px 0 12px;border:2px solid #e9b64f;border-radius:9px;background:linear-gradient(#5a2a0cee,#3a1605ee);box-shadow:inset 0 1px #ffc98a33,0 0 0 2px #2c1004,0 3px 8px #0006}
+.lobby-chat.wood-chat .chat-input:focus-within{border-color:#ffe07a;box-shadow:inset 0 1px #ffc98a33,0 0 0 2px #2c1004,0 0 10px #ffd36b88}
+.lobby-chat.wood-chat .chat-input>input{color:#fff3d6;font-size:12px}
+.lobby-chat.wood-chat .chat-input>input::placeholder{color:#d8a970;font-style:italic}
+.lobby-chat.wood-chat .chat-input>button{width:24px;height:24px;border-radius:7px}
 .lobby-chat.wood-chat .chat-input>button svg{width:13px;height:13px}
