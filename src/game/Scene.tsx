@@ -20,11 +20,12 @@ import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
-import {LobbyWorld,LOBBY_WALK} from './lobbyWorld';
+import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
 import {LOBBY_SPAWN} from '../../shared/lobby';
+import {chaseLobbyPosition} from './lobbyMotion';
 import type {LobbyAction} from './lobbyWorld';
 const W=1536,H=864;
-type Entity={x:number;y:number;lastX:number;facing:number;motion:AvatarMotion;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
+type Entity={x:number;y:number;lastX:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
  const blockedRef=useRef(blocked);blockedRef.current=blocked;
@@ -38,7 +39,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let camera=createCamera();
   let residues:TerrainResidues|null=null;
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
-  const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;const moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;if(Math.abs(dx)>.5)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+  const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
+   if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
@@ -117,7 +120,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat,outfit:`outfit-${k.outfit}`}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
-    const drawn=[...lobby.sprites(t,hover),...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing);}}))].sort((a,b)=>a.y-b.y);
+    // The day's top three stand on their podium, facing the middle; drawn just after the podium itself.
+    const podiums=lobby.podiums(),ranked=state.ranking.flatMap(entry=>{const spot=podiums.find(p=>p.rank===entry.rank);return spot?[{entry,spot}]:[];});
+    lobby.occupied=new Set(ranked.map(({entry})=>entry.rank));
+    const champions=ranked.map(({entry,spot})=>({y:LOBBY_STATIONS.find(s=>s.rank===entry.rank)!.y-23,draw:()=>{avatar(`podium-${entry.id}`,`${entry.name} · ${entry.wins} ${entry.wins===1?'vitória':'vitórias'}`,entry.equipment,spot.x,spot.y,124,t,entry.rank===3?-1:1,{},true);}}));
+    const drawn=[...lobby.sprites(t,hover),...champions,...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing,{},false,true);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);
     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}

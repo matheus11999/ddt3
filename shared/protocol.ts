@@ -14,6 +14,8 @@ export interface ForgeResult {item:string;success:boolean;level:number;chance:nu
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
 export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;}
+/** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
+export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
 export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
@@ -83,7 +85,7 @@ export const commandSchema=z.discriminatedUnion('type',[
 ]);
 export type Command=z.infer<typeof commandSchema>;
 export type ServerEvent =
- | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number}
+ | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number;ranking?:RankingEntry[]}
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
@@ -91,6 +93,7 @@ export type ServerEvent =
  | {type:'lobby';players:LobbyPlayer[];online:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
+ | {type:'ranking';ranking:RankingEntry[]}
  | {type:'online-players';players:OnlinePlayer[];total:number}
  | {type:'room-invite-list';roomId:string;players:RoomInvitePlayer[]}
  | {type:'room-invitation';invite:RoomInvitation}

@@ -2,10 +2,10 @@ import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
-import {LOBBY_SPAWN} from '../shared/lobby';
+import {LOBBY_SPAWN,LOBBY_WALK_SPEED} from '../shared/lobby';
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
-import type {Battle,Command,Fighter,LobbyPlayer,Profile,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
+import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
 import {crater,createTerrain,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
@@ -28,6 +28,7 @@ export class Game {
  // Parties keep their identity throughout a match; opponents are never merged into a room.
  private nextRoomNumber=1;private roomMatches=new Map<string,string>();private queueIds=new Set<string>();private profileChanges=new Set<string>();
  private lastTick=Date.now();private lobbyTick=0;private roomsDirty=false;private arenaPopulation=0;
+ private ranking:RankingEntry[]=[];private rankingAt=0;private rankingLoading:Promise<void>|null=null;
  private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
  constructor(private store:ProfileStore,private report:(e:unknown)=>void=console.error,private criticalRoll:()=>number=()=>randomInt(1_000_000)/1_000_000){}
  connect(profile:Profile,send:Peer['send']){
@@ -38,7 +39,7 @@ export class Game {
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
-  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena()});
+  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
   this.sendLobby(p.channel);this.publishArenaPopulation();return p;
  }
@@ -496,8 +497,19 @@ export class Game {
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
   this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses).then(async()=>{
    for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat)seat.level=profile.level;}}}
-   rewards.saved=true;this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
+   rewards.saved=true;void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
   }).catch(error=>{this.report(error);m.retryRewardsAt=Date.now()+2000;}).finally(()=>{m.savingRewards=false;});
+ }
+ /** Reloads the day's podium and tells everyone when it changed; also rolls over at midnight. */
+ refreshRanking():Promise<void>{
+  if(!this.store.dailyRanking)return Promise.resolve();
+  if(this.rankingLoading)return this.rankingLoading.then(():Promise<void>=>this.refreshRanking());
+  this.rankingAt=Date.now();
+  this.rankingLoading=this.store.dailyRanking().then(ranking=>{
+   if(JSON.stringify(ranking)===JSON.stringify(this.ranking))return;
+   this.ranking=ranking;for(const peer of this.peers.values())this.emit(peer,{type:'ranking',ranking});
+  }).catch(this.report).finally(()=>{this.rankingLoading=null;});
+  return this.rankingLoading;
  }
  private bot(m:Match,f:Fighter){
   const target=m.state.players.filter(p=>p.team!==f.team&&p.hp>0&&!(p.invisibleTurns??0)).sort((a,b)=>a.hp-b.hp)[0];if(!target){this.nextTurn(m);return;}f.facing=target.x>f.x?1:-1;
@@ -509,11 +521,12 @@ export class Game {
  }
  tick(now=Date.now()){
   this.pruneInvitations(now);
+  if(now-this.rankingAt>=60000)void this.refreshRanking();
   const dt=Math.min(.15,(now-this.lastTick)/1000);this.lastTick=now;
   const channels=new Set<number>();
   for(const [id,p] of this.peers){
    if(!p.connected&&now-p.lastSeen>30000&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
-   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=Math.min(d,160*dt);p.x+=dx/d*step;p.y+=dy/d*step;channels.add(p.channel);}}
+   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=Math.min(d,LOBBY_WALK_SPEED*dt);p.x+=dx/d*step;p.y+=dy/d*step;channels.add(p.channel);}}
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){

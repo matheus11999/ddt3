@@ -9,11 +9,13 @@ import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} fro
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
-import type {CompositionResult,ForgeResult,Profile,ShopResult} from '../shared/protocol';
+import type {CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
-export interface ProfileStore {buy(id:string,items:string[]):Promise<ShopOutcome>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[]):Promise<ShopOutcome>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+
+export const RANKING_TIME_ZONE='America/Sao_Paulo';
 
 type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>};
 const integer=(value:unknown,fallback=0,max=Number.MAX_SAFE_INTEGER)=>typeof value==='number'&&Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):fallback;
@@ -94,6 +96,7 @@ export class Store implements ProfileStore {
  CREATE TABLE IF NOT EXISTS sessions(token_hash char(64) PRIMARY KEY,player_id uuid REFERENCES players(id) ON DELETE CASCADE,expires_at timestamptz NOT NULL);
  CREATE INDEX IF NOT EXISTS sessions_expiration ON sessions(expires_at);
  CREATE TABLE IF NOT EXISTS matches(id uuid PRIMARY KEY,winners jsonb NOT NULL,players jsonb NOT NULL,finished_at timestamptz NOT NULL DEFAULT now());
+ CREATE INDEX IF NOT EXISTS matches_finished ON matches(finished_at);
  DELETE FROM sessions WHERE expires_at<now();
  `);}
  hash(token:string){return createHash('sha256').update(token).digest('hex');}
@@ -186,6 +189,16 @@ export class Store implements ProfileStore {
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');
    return {profile,result:{items:[...items],spent}};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+ }
+ /**
+  * Top three of today's PvP ranking (Brasília day): most wins, ties to whoever got
+  * there first. Every saved match counts, including training against bots.
+  */
+ async dailyRanking():Promise<RankingEntry[]>{
+  const r=await this.pool.query(`SELECT w.id,count(*)::int AS wins,p.profile,p.name FROM matches m CROSS JOIN LATERAL jsonb_array_elements_text(m.winners) AS w(id) JOIN players p ON p.id::text=w.id
+   WHERE m.finished_at>=(date_trunc('day',now() AT TIME ZONE '${RANKING_TIME_ZONE}') AT TIME ZONE '${RANKING_TIME_ZONE}')
+   GROUP BY w.id,p.profile,p.name ORDER BY wins DESC,max(m.finished_at) ASC,w.id LIMIT 3`);
+  return r.rows.map((row,i)=>{const profile=normalizeProfile({...row.profile,name:row.name});return {rank:(i+1) as 1|2|3,id:profile.id,name:profile.name,level:profile.level,wins:row.wins,equipment:profile.equipment};});
  }
  async rename(id:string,name:string){await this.pool.query('UPDATE players SET name=$2 WHERE id=$1',[id,name]);}
  async finishMatch(matchId:string,winners:string[],players:string[],bonuses:MatchBonuses={}){

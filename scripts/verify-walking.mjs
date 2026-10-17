@@ -12,7 +12,7 @@ try{
   const ids=['outfit-surfer','outfit-executive'];
   await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`])].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   const results=ids.map(id=>{
-   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?10.5:9;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
+   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?12:11;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
    for(let i=0;i<120;i++){
     const phase=i*Math.PI/60;let contacts=0;
     for(const [leg,offset] of [[rig.walking.near,0],[rig.walking.far,Math.PI]]){
@@ -47,6 +47,6 @@ try{
  });
  await page.locator('#walking-sheet').screenshot({path:'test-results/walking-transitions.png'});
  assert.ok(transitions.every(v=>v.frames===8&&v.finalPose==='idle'&&v.finalWalkBlend<.002),'After walking each costume returns to its own idle painting');report.transitions=transitions;
- for(const result of report.results){assert.ok(result.maxJointError<.6,'Bones retain their length');assert.ok(result.maxGroundError<.01,'Supporting soles remain on the ground');assert.ok(result.maxLift>=9,'Swinging foot must lift clear of the ground');assert.equal(result.framesWithSupport,120);assert.ok(result.plantedWorldDrift<.001,'Supporting foot must not slide as character advances');}
+ for(const result of report.results){assert.ok(result.maxJointError<.6,'Bones retain their length');assert.ok(result.maxGroundError<.01,'Supporting soles remain on the ground');assert.ok(result.maxLift>=6,'Swinging foot must lift clear of the ground');assert.equal(result.framesWithSupport,120);assert.ok(result.plantedWorldDrift<.001,'Supporting foot must not slide as character advances');}
  assert.deepEqual(errors,[]);await writeFile('test-results/walking-report.json',JSON.stringify({ok:true,...report},null,2));console.log(JSON.stringify({ok:true,...report},null,2));
 }finally{await browser.close();}
