@@ -1,10 +1,11 @@
 /** Aim around the fighter, DDTank style: the green weapon-range band and the needle
  * pivot on the body centre and sit behind the avatar ('back'); the angle plate is
  * drawn over it ('front'). No rim, ticks, numbers or terrain-slope readout (user
- * requests, 17/10/2026): the slope still shifts the band, silently. */
+ * requests, 17/10/2026): the slope still shifts the band, silently, and tilts the pivot with the body. */
 export const AIM_PIVOT={x:0,y:-24,radius:78};
 export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,facing:1|-1,angle:number,slope:number,changedAge:number,minAngle=5,maxAngle=90,layer:'back'|'front'='back'){
- const cx=x+facing*AIM_PIVOT.x,cy=y+AIM_PIVOT.y,radius=AIM_PIVOT.radius,changed=changedAge>=0&&changedAge<1500,shown=Math.max(0,Math.min(90,angle));
+ // The pivot rides the tilted body: rotate its offset by the ground angle (aim slope).
+ const tilt=-slope*facing*Math.PI/180,cx=x+facing*AIM_PIVOT.x*Math.cos(tilt)-AIM_PIVOT.y*Math.sin(tilt),cy=y+facing*AIM_PIVOT.x*Math.sin(tilt)+AIM_PIVOT.y*Math.cos(tilt),radius=AIM_PIVOT.radius,changed=changedAge>=0&&changedAge<1500,shown=Math.max(0,Math.min(90,angle));
  const point=(degree:number,r:number)=>({x:cx+facing*Math.cos(degree*Math.PI/180)*r,y:cy-Math.sin(degree*Math.PI/180)*r});
  const arc=(start:number,end:number,r:number,move=true)=>{const steps=Math.max(1,Math.ceil(Math.abs(end-start)/3));for(let i=0;i<=steps;i++){const p=point(start+(end-start)*i/steps,r);if(i===0&&move)c.moveTo(p.x,p.y);else c.lineTo(p.x,p.y);}};
  c.save();c.lineJoin='round';c.lineCap='round';

@@ -38,6 +38,10 @@ Prompt-base (anexar o molde e a roupa em pé como referência):
 
 > Production 2D chibi RPG COMBAT BODY sprite for a turn-based artillery browser game, one NECK-DOWN character on a transparent 1254×1254 canvas, matching the attached template exactly in position and scale. Redraw the attached outfit LYING BELLY-DOWN, chest slightly raised, feet at LEFT, small open neck socket at the FRONT RIGHT, no head, no face, no hair. BOTH forearms bent forward and BOTH fists resting on the floor IN FRONT of the chest, fully inside the green box of the template, clearly separate from the chest so they can be lifted as one layer. Legs stretched behind, knees slightly apart. Same costume design, saturated colors, painted volume and clean warm brown outlines as the reference. No weapon, no props, no floor, no shadow, no text. Genuine transparent background.
 
+## Inclinação do chão
+
+No combate o corpo inteiro (pernas, tronco, braços, cabeça e arma) gira em torno do ponto de contato pelo ângulo do chão (`slope` vindo de `aimSlope`), como no DDTank (pedido do usuário em 17/10/2026). O ângulo de mira continua sendo um ângulo do mundo: dentro do corpo inclinado ele é convertido para o ângulo em relação à rampa. O pivô do arco de mira e o ponto visual da boca da arma (`heldMuzzle`) giram junto. Nome, barra de vida, aura do POW e lápide continuam retos.
+
 ## Limites
 
 Os dois braços sobem juntos (arremesso com as duas mãos), porque as pinturas atuais têm os punhos lado a lado. Um braço único exigiria pintar os braços em camada separada; o molde já reserva a caixa para isso.

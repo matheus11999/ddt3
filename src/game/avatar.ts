@@ -199,9 +199,10 @@ function drawProneArms(c:CanvasRenderingContext2D,rig:CombatRig,swing:ProneThrow
 export const HELD_WEAPON={muzzle:[54,-48] as [number,number],scale:.6,grip:20};
 /** Where a held weapon's painted muzzle is, in world pixels from the fighter's feet, for an
  * avatar drawn `size` tall. Visual only: the server still launches from x+27*facing, y-40. */
-export function heldMuzzle(weaponId:string,facing:number,size:number):[number,number]|null{
+export function heldMuzzle(weaponId:string,facing:number,size:number,tilt=0):[number,number]|null{
  if(WEAPONS.find(item=>item.id===weaponId)?.hold!=='hand')return null;
- return [HELD_WEAPON.muzzle[0]*size/160*(facing<0?-1:1),HELD_WEAPON.muzzle[1]*size/160];
+ const mx=HELD_WEAPON.muzzle[0]*size/160*(facing<0?-1:1),my=HELD_WEAPON.muzzle[1]*size/160,cos=Math.cos(tilt),sin=Math.sin(tilt);
+ return [mx*cos-my*sin,mx*sin+my*cos];
 }
 function heldGrip(rig:CombatRig,angle:number,recoil:number):ProneThrow{
  const aim=clamp(angle,5,90)*Math.PI/180,dx=Math.cos(aim),dy=-Math.sin(aim),back=HELD_WEAPON.grip+recoil*4;
@@ -277,7 +278,10 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat)return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
  const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
- c.save();c.translate(x,y);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
+ // Combat fighters lie along the ground under them, as in DDTank: the whole body
+ // (weapon included) turns about the contact point by the ground angle.
+ const tilt=context.combat&&rig.combat?slope:0;
+ c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
@@ -286,7 +290,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    // Crawl: the chest surges forward on each stroke while the legs drag and
    // kick in turn and the forearms paddle. Built only from the universal prone
    // layers, so every outfit crawls the same way.
-   const surge=stroke*3.6*crawl,rise=Math.abs(Math.cos(cycle))*2*crawl,angle=context.angle??45;
+   // The aim is a world angle; in the tilted body frame it is measured from the slope.
+   const surge=stroke*3.6*crawl,rise=Math.abs(Math.cos(cycle))*2*crawl,angle=(context.angle??45)+(facing<0?-1:1)*tilt*180/Math.PI;
    let throwing=proneThrow(m,pose,context.poseTime??0,angle,context.power??0,crawl,cycle,time,painted.arms?proneArmRest(painted):0);
    // Guns and wands are taken in hand to aim, charge and fire; thrown weapons stay on the back.
    const holds=weapon&&!!painted.arms&&WEAPONS.find(item=>item.id===eq.weapon)?.hold==='hand';
@@ -295,7 +300,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(holds&&m.grab>.01){const grip=heldGrip(painted,angle,recoil);throwing={...grip,angle:mix(throwing.angle,grip.angle,m.grab),grow:mix(1,grip.grow!,m.grab),front:inHand};}
    if(weapon&&!holds)drawBackWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,surge,crawl,cycle);
    else if(holds&&!inHand)m.grab>0?drawHeldWeapon(c,eq,time,angle,recoil,false,0,m.grab):drawBackWeapon(c,eq,time,angle,recoil,false,0,surge,crawl,cycle);
-   c.save();c.translate(-recoil*3-hit*2,breath);c.rotate(slope*.13);
+   c.save();c.translate(-recoil*3-hit*2,breath);
    c.save();c.translate(-surge*.55,0);
    drawPart(c,painted.farLeg,Math.max(0,stroke)*.46*crawl-.03*crawl,0,-Math.max(0,stroke)*2*crawl);
    drawPart(c,painted.nearLeg,Math.max(0,-stroke)*.42*crawl-.03*crawl,0,-Math.max(0,-stroke)*1.6*crawl);
@@ -305,7 +310,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    const arms=()=>{if(painted.arms)drawProneArms(c,painted,throwing,eq);};
    if(!throwing.front)arms();
    const neckX=(painted.neck[0]-625)*AVATAR_UNIT,neckY=(painted.neck[1]-1225)*AVATAR_UNIT;
-   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045-slope*.13+Math.sin(cycle*2)*.03*crawl);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
+   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045+Math.sin(cycle*2)*.03*crawl);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
    drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
    if(throwing.front)arms();
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
