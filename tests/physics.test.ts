@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {crater,CRATER_ROUGHNESS,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_ROUGHNESS,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -167,4 +167,12 @@ test('every destructible region breaks the same, whatever material it is drawn a
     if((cx*3-x)**2+(cy*3-y)**2<=radius*radius)assert.equal(terrain[cell],0,`${map} ${material} keeps a cell inside the crater`);}
   }
  }
+});
+
+test('the Quebra-Tijolos digs a rounder crater than the default jagged edge',()=>{
+ const brick=WEAPONS.find(w=>w.id==='brick')!,rough=weaponRoughness(brick);
+ assert.ok(rough<CRATER_ROUGHNESS);
+ const spread=(roughness:number)=>{const terrain=createTerrain(),before=terrain.slice(),x=600,y=ground(terrain,x)+40;crater(terrain,x,y,40,'garden',roughness);
+  let far=0;for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;far=Math.max(far,Math.hypot(cx-x,cy-y));}return far;};
+ assert.ok(spread(rough)<=40*(1+rough)+.01);assert.ok(spread(rough)<spread(CRATER_ROUGHNESS));
 });
