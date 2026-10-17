@@ -107,7 +107,7 @@ try{
   seams.forEach((d,n)=>{if(d>28)warnings.push(`fundo: emenda ${n+1} com diferença média de cor ${d.toFixed(0)} (acima de 28 aparece); gere a metade de novo`);});
   const bg=backdrop;
   const montage=canvas(W,H),mc=montage.getContext('2d'),scale=Math.max(W/bg.width,H/bg.height);
-  if(bg.width*H/bg.height<W*.8)warnings.push('fundo: imagem estreita para a largura do mapa; no jogo ela só desliza pouco, mas o mapa inteiro vai cortar o céu. Use um panorama (duas metades)');
+  if(bg.width*H/bg.height<W*.7)warnings.push('fundo: imagem estreita para a largura do mapa; no jogo ela só desliza pouco, mas o mapa inteiro vai cortar o céu. Use um panorama (duas metades)');
   mc.drawImage(bg,(W-bg.width*scale)/2,H-bg.height*scale,bg.width*scale,bg.height*scale);mc.fillStyle='rgba(7,13,24,.14)';mc.fillRect(0,0,W,H);mc.drawImage(world,0,0);
   // The preview shows the whole world (minimap backdrop); the loading screen crops its centre.
   const preview=canvas(768,Math.round(432*1536/W));preview.getContext('2d').imageSmoothingQuality='high';preview.getContext('2d').drawImage(montage,0,0,preview.width,preview.height);

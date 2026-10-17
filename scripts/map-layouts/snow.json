@@ -1,7 +1,10 @@
 {
  "name": "Sonho Nevado",
  "source": "test-results/codex-maps/neve",
- "background": "fundo.png",
+ "background": [
+  "panorama-esquerda.png",
+  "panorama-direita.png"
+ ],
  "mirror": true,
  "spawns": [
   [
@@ -162,6 +165,5 @@
   "pecas": "pecas.png",
   "pecas2": "pecas2.png",
   "objetos": "objetos.png"
- },
- "mid": "meio.png"
+ }
 }
