@@ -14,7 +14,7 @@ import {InventoryTooltip,LEFT_SLOTS,LOWER_SLOTS,RIGHT_SLOTS,SLOT_ICONS} from './
 import type {Tip} from './Inventory';
 import {ItemCard} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
-import {LevelBadge} from './LevelBadge';
+import {LevelNumber} from './LevelNumber';
 import {Modal} from './Modal';
 import {PowerIcon} from './PowerIcon';
 import {UpgradeTag} from './UpgradeTag';
@@ -55,6 +55,8 @@ function PlayerInfoWindow({target,self}:{target:PlayerTarget;self:boolean}){
 
 function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;setTip:(tip:Tip|null)=>void;onReport?:()=>void}){
  const equipment=info.equipment,stats=attributes(equipment),upgrade=equipment.upgrade??0;
+ // No title system yet: the plate shows the character's class name, like the plaza HUD.
+ const title=info.bot?'Bot do jogo':info.gender==='female'?'Aventureira':'Aventureiro';
  useEffect(()=>{if(!tip)return;const outside=(event:Event)=>{if(!tip.anchor.contains(event.target as Node))setTip(null);};window.addEventListener('pointerdown',outside,true);window.addEventListener('scroll',()=>setTip(null),true);return()=>window.removeEventListener('pointerdown',outside,true);},[tip,setTip]);
  const slot=(slot:Slot)=>{
   const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
@@ -66,23 +68,18 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
   </ItemCard>;
  };
  return <section className="bag-profile" aria-label={`Informações de ${info.name}`}>
-  <header className="bag-profile-head">
-   <LevelBadge level={info.level} size={42}/>
-   <div className="bag-identity"><small>{info.bot?'Bot':info.online?'Online agora':'Offline'}</small><h2>{info.name}</h2><span className="equipment-status">{info.bot?'Bot do jogo':info.gender==='female'?'Aventureira':'Aventureiro'} · Nível {info.level}</span></div>
-   <dl className="bag-records"><div><dt>Vitórias</dt><dd>{info.wins.toLocaleString('pt-BR')}</dd></div><div><dt>Partidas</dt><dd>{info.matches.toLocaleString('pt-BR')}</dd></div></dl>
-   {onReport&&<button className="player-info-report" onClick={onReport} aria-label={`Denunciar ${info.name}`} title="Denunciar"><Flag size={16}/></button>}
-  </header>
   <div className="bag-stage">
    <div className="equipment-slots left">{LEFT_SLOTS.map(slot)}</div>
    <div className="dressing-room">
     {upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}
+    <header className="player-info-plate"><div><LevelNumber level={info.level} size={36}/><h2>{info.name}</h2></div><small>{title}</small></header>
     <Avatar equipment={equipment} size={340} animated={false} auraAnimated showAura weapon={false}/>
+    {onReport&&<button className="player-info-report" onClick={onReport} aria-label={`Denunciar ${info.name}`} title="Denunciar"><Flag size={16}/></button>}
    </div>
    <div className="equipment-slots right">{RIGHT_SLOTS.map(slot)}</div>
    <div className="bag-stage-foot"><div className="equipment-slots lower">{LOWER_SLOTS.map(slot)}</div></div>
   </div>
-  <div className="bag-progress">
-   <div className="bag-level"><span>Nv <b>{info.level}</b></span><div className="bag-xp player-info-winrate" title="Vitórias por partida"><i style={{width:`${info.matches?Math.round(info.wins/info.matches*100):0}%`}}/><small>{info.matches?`${Math.round(info.wins/info.matches*100)}% de vitórias`:'Sem partidas'}</small></div></div>
+  <div className="bag-progress player-info-power">
    <div className="combat-power" title="Poder (gearscore): soma dos atributos do equipamento"><PowerIcon size={28}/><span>Poder</span><strong>{stats.power.toLocaleString('pt-BR')}</strong></div>
   </div>
   <div className="stat-grid" aria-label="Atributos do personagem">
