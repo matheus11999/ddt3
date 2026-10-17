@@ -3,7 +3,7 @@
 Pedidos do usuário, em ordem: lobby parecido com a foto de referência de lobby clássico de artilharia; a primeira versão por código ficou "simples, de jogo infantil"; a pintura gerada pelo Codex ficou no nível certo, mas com NPCs pintados. Decisões finais:
 
 - **Cenário vazio** em panorama e cada ponto de interação como camada separada, para poder adicionar NPCs no futuro.
-- **NPCs animados**, não PNG parado: cada NPC é recortado em partes que o código anima.
+- **NPCs inteiros** (mudança de 17/10, 03h30): braços animados ficaram com cara de quebrados, então cada NPC e cada animal é uma peça só que apenas respira. A forja ficou sem fogo animado.
 - Os três "portais" da referência são o **pódio do ranking PvP do dia (1º, 2º, 3º)**, com espaço para o boneco do jogador ficar em cima.
 - A praça tem **três telas de largura** e a câmera segue o jogador para os lados (clique ou setas/A-D), para caber mais NPCs.
 
@@ -24,7 +24,9 @@ Pedidos do usuário, em ordem: lobby parecido com a foto de referência de lobby
 | livre | 120–380 e 3950–4480 | NPCs futuros | — |
 
 - `LobbyWorld.podiums()` devolve onde ficam os pés do 1º, 2º e 3º colocados. Falta o servidor ter o ranking PvP do dia para desenhar os bonecos ali.
-- Animação por camadas: as partes de um NPC são exportadas no MESMO canvas transparente (pés no centro da borda inferior). O código move cada parte em volta de um pivô: respirar, cabeça, martelada com faíscas, aceno, rabo/orelhas/toldo, flutuar, piscar, fogo. Pivôs são ajustados quando a arte chega. Sem arte, o jogo usa um desenho provisório por código.
+- Camadas: barraca (parada) e NPC inteiro (respira) no MESMO canvas transparente, pés no centro da borda inferior. Portal e pódios ainda têm brilho, asas e emblema flutuando. Sem arte, o jogo usa um desenho provisório por código.
+- Sombras: cada estação projeta o próprio contorno no chão (achatado e inclinado para a esquerda, luz vinda da direita) e tem sombra de contato onde toca o piso (`shadows` em `LOBBY_STATIONS`).
+- Piso: se existir `public/assets/lobby/floor.webp`, o código cobre o piso pintado com essa textura em perspectiva a partir de y 548 (`FLOOR_TOP`). Sem o arquivo, fica o piso do panorama. O piso atual é o segundo do Codex (pedras irregulares cinza e bege, 17/10); o primeiro, de lajes retangulares, parecia parede de tijolo.
 - Novo NPC = uma pasta de camadas + uma linha em `LOBBY_STATIONS` (+ a ação em `App.tsx`).
 - Verificação: `node scripts/shot-lobby.mjs <pasta>` com Vite e servidor ligados (prévia, câmera andando com as setas, porta da Arena, caminhada até o Ferreiro).
 
@@ -53,4 +55,15 @@ npc-armazem/: burro.png (burrinho com baús, sem rabo e sem orelhas), rabo.png, 
 npc-ferreiro/: barraca.png (barraca de madeira, bigorna e braseiro SEM fogo), fogo.png (só as chamas), corpo.png (ferreiro forte e barbudo, avental de couro, sem cabeça e sem o braço direito), cabeca.png, braco.png (braço direito com martelo grande, levemente erguido), olhos.png.
 portal-arena/: base.png (grande portal/arco da Arena PvP sobre plataforma de mármore com runas azuis), calice.png (emblema de cristal azul flutuando no centro do arco), asas.png (par de asas de prata do emblema).
 podio-1/, podio-2/, podio-3/: pódio do ranking PvP do dia. 1º o mais alto, ouro com coroa e louros; 2º médio, prata com safira; 3º mais baixo, bronze com rubi. Cada pódio é um pedestal ornamentado com o TOPO PLANO E VAZIO, onde um personagem vai ficar de pé (deixe espaço livre acima do topo). base.png = o pódio; brilho.png = só o brilho mágico em volta do topo. Sem números, sem texto, sem personagem.
+```
+
+## Prompt do piso para o Codex
+
+O piso do panorama saiu borrado (foi ampliado). Em vez de repintar o panorama, o jogo desenha uma textura de piso repetida, sem ampliação.
+
+```
+Gere só uma imagem e salve em public/assets/lobby/floor.webp. Não altere código e não faça commit.
+Textura de piso de praça, vista DE CIMA (top-down, sem perspectiva), 1024x1024, SEM EMENDA nas quatro bordas (tileable: a borda esquerda continua na direita e a de cima na de baixo).
+Lajotas de pedra clara (creme e bege quente, alguns tons de areia e marfim) em padrão de lajes retangulares desencontradas, 4 fileiras por 4 colunas, rejunte fino dourado-acinzentado, leve musgo verde em poucos rejuntes, pequenas lascas e textura de pedra polida, acabamento pintado à mão no mesmo estilo de anime vibrante do panorama.
+Iluminação uniforme e plana: sem sombra projetada, sem vinheta, sem brilho forte de um lado, para a repetição não aparecer. Sem objetos, sem texto, sem personagens. Nitidez alta (não ampliar de imagem menor).
 ```

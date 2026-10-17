@@ -7,6 +7,7 @@
 - Fundo pintado por código é só reserva (usuário achou simples/infantil); a arte final é uma pintura única em `public/assets/lobby/plaza.webp`, que substitui o cenário e os NPCs-boneco. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
 
 - Atualização 17/10 02h: praça com **três telas de largura** (`shared/lobby.ts`, 4608 px) e câmera seguindo o jogador (clique ou setas/A-D). Portais viraram o **pódio do ranking PvP do dia** (1º/2º/3º, `LobbyWorld.podiums()` pronto para os bonecos), porta da Arena PvP e NPCs animados por camadas recortadas. Ferreiro em x 3720 (`SMITH_POSITION` 3640, 640). Prompt e mapa das estações em [lobby-art-prompts.md](lobby-art-prompts.md).
+- Atualização 17/10 03h30: NPCs e animais viraram figuras inteiras que só respiram (braços animados pareciam quebrados), forja sem fogo animado, sombra do contorno de cada estação no chão, placas de nome em esmalte azul com moldura dourada e suporte a `floor.webp` para trocar o piso borrado.
 
 ## Salão PvP e sala no padrão da mochila — 17/10/2026
 
