@@ -43,6 +43,8 @@ export type Station={id:string;title:string;dir:string;x:number;y:number;height:
 type Shadow=[number,number,number,number,number?];
 // Pivots were measured on Codex's layers (17/10): canvases are
 // 1400×1200 for keepers and 1200×1400 for the gate and podiums.
+/** Podiums sit a little smaller than the other stations so the ranked players stand out. */
+const PODIUM_HEIGHT=255;
 export const LOBBY_STATIONS:Station[]=[
  {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:626,height:300,action:'shop',shadows:[[.5,.95,.5,.05],[.51,.99,.09,.02]],fallback:{kind:'keeper',outfit:'surfer',hat:'hat-tide',facing:1},layers:[
   {name:'barraca',motion:'still'},{name:'npc',motion:'breathe'}]},
@@ -50,7 +52,7 @@ export const LOBBY_STATIONS:Station[]=[
   {name:'burro',motion:'breathe',period:3400},{name:'npc',motion:'breathe'}]},
  // All podium canvases share one scale, so they share one height; `stand` is the centre of each top.
  ...([[2,2040,616,[.5,.66],SILVER],[1,2304,608,[.5,.49],GOLD],[3,2568,620,[.5,.75],BRONZE]] as const).map(([rank,x,y,stand,theme]):Station=>({
-  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:300,rank,noCast:true,shadows:[[.5,.97,.5,.07,1.5],[.34,.95,.44,.07,1.1]],stand:[stand[0],stand[1]],glow:{x,y:y-300*(1-stand[1])+40,scale:.8,theme},
+  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:PODIUM_HEIGHT,rank,noCast:true,shadows:[[.5,.97,.5,.07,1.5],[.34,.95,.44,.07,1.1]],stand:[stand[0],stand[1]],glow:{x,y:y-PODIUM_HEIGHT*(1-stand[1])+40,scale:.8,theme},
   fallback:{kind:'podium',portal:{x,y,scale:1,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'pulse'}]})),
  {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',noCast:true,shadows:[[.5,.97,.52,.075,1.5],[.34,.95,.48,.075,1.1]],glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
   {name:'base',motion:'still'},{name:'asas',motion:'sway',pivot:[.5,.45],period:1700,amount:.03},{name:'calice',motion:'bob',period:2400,amount:8}]},
