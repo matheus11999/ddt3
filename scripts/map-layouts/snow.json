@@ -8,16 +8,16 @@
  "mirror": true,
  "spawns": [
   [
-   1000,
-   860,
-   1140,
-   720
+   1040,
+   820,
+   1250,
+   385
   ],
   [
-   2072,
-   2212,
-   1932,
-   2352
+   2032,
+   2252,
+   1822,
+   2687
   ]
  ],
  "items": [
@@ -77,31 +77,17 @@
    "id": "snow-crystals",
    "sheet": "pecas2",
    "piece": 4,
-   "x": 430,
+   "x": 545,
    "top": 424,
    "scale": 0.45,
    "material": "earth",
    "destructible": true
   },
   {
-   "id": "snow-sled",
-   "sheet": "objetos",
-   "piece": 3,
-   "x": 565,
-   "top": 200,
-   "scale": 0.32,
-   "material": "earth",
-   "destructible": true,
-   "rest": true,
-   "mirrorAs": {
-    "piece": 4
-   }
-  },
-  {
    "id": "snow-snowman",
    "sheet": "objetos",
    "piece": 0,
-   "x": 790,
+   "x": 700,
    "top": 200,
    "scale": 0.32,
    "material": "earth",
@@ -112,21 +98,10 @@
    }
   },
   {
-   "id": "snow-barrel",
-   "sheet": "objetos",
-   "piece": 5,
-   "x": 930,
-   "top": 200,
-   "scale": 0.32,
-   "material": "earth",
-   "destructible": true,
-   "rest": true
-  },
-  {
    "id": "snow-gifts",
    "sheet": "objetos",
    "piece": 7,
-   "x": 1070,
+   "x": 940,
    "top": 200,
    "scale": 0.32,
    "material": "earth",
@@ -140,7 +115,7 @@
    "id": "snow-lamp",
    "sheet": "objetos",
    "piece": 2,
-   "x": 1290,
+   "x": 1330,
    "top": 200,
    "scale": 0.32,
    "material": "earth",

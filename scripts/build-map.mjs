@@ -90,6 +90,17 @@ try{
   for(const a of placed)if(a.sheet!=='objetos'){const covered=placed.filter(b=>b!==a&&b.sheet!=='objetos'&&b.bottom<a.top-10).reduce((n,b)=>n+Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left)),0);
    if(covered>(a.right-a.left)*.5)warnings.push(`${a.id}: peça escondida embaixo de outra (${Math.round(100*covered/(a.right-a.left))}% coberta por cima); só faz sentido se tiver motivo`);}
 
+  // Spawns stand on open terrain: never on or against a prop, with room to walk both ways and nothing overhead.
+  const groundData=gc.getImageData(0,0,W,H).data;
+  layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{const name=`spawn time ${t+1} jogador ${slot+1} (x ${x})`;
+   let y=0;while(y<H&&!opaque(groundData,x,y))y++;if(y>=H){warnings.push(`${name}: sem chão, cai no abismo`);return;}
+   const prop=placed.find(p=>p.sheet==='objetos'&&x>p.left-40&&x<p.right+40);if(prop)warnings.push(`${name}: colado em ${prop.id}`);
+   // The column's top pixel is the floor, so "obstructed" means a wall or bump rising beside the body, or a drop right next to it.
+   for(let dx=-40;dx<=40;dx+=4){if(!dx)continue;let g=0;while(g<H&&!opaque(groundData,x+dx,g))g++;
+    if(g<y-24){warnings.push(`${name}: obstáculo a ${Math.abs(dx)} px (${y-g} px mais alto)`);break;}
+    if(g>y+30){warnings.push(`${name}: beirada a ${Math.abs(dx)} px`);break;}}
+  }));
+
   // 4. Backdrop, preview and the collision overlay used for review.
   // The backdrop is ONE image. Panels painted as left/right halves are joined with a soft crossfade
   // (the prompts keep the seam strip to sky and fog); the seam report measures how well they match.
@@ -116,16 +127,20 @@ try{
    for(let n=0;n<r.shape.cols*r.shape.rows;n++)if(raw.charCodeAt(n>>3)>>(n&7)&1)cc.fillRect((r.shape.col+n%r.shape.cols)*CELL,(r.shape.row+Math.floor(n/r.shape.cols))*CELL,CELL,CELL);}
   cc.strokeStyle='#ff3030';cc.lineWidth=3;cc.beginPath();cc.moveTo(0,H-2);cc.lineTo(W,H-2);cc.stroke();
   for(const team of layout.spawns)for(const x of team){cc.fillStyle='#ffe14a';cc.fillRect(x-2,0,4,H);}
+  const spawnsImage=canvas(W,H),sc2=spawnsImage.getContext('2d');sc2.drawImage(montage,0,0);sc2.font='bold 26px sans-serif';sc2.textAlign='center';
+  layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{let y=0;while(y<H&&!opaque(groundData,x,y))y++;
+   sc2.fillStyle=t?'#ff5050':'#4aa8ff';sc2.strokeStyle='#fff';sc2.lineWidth=3;sc2.beginPath();sc2.roundRect(x-14,y-56,28,56,10);sc2.fill();sc2.stroke();
+   sc2.fillStyle='#fff';sc2.strokeStyle='#000';sc2.lineWidth=5;sc2.strokeText(String(slot+1),x,y-66);sc2.fillText(String(slot+1),x,y-66);}));
   const midLayer=mid?unkey(await load(mid)).sc.toDataURL('image/webp',.9).split(',')[1]:null;
   const sizes=Object.fromEntries(Object.entries(sheetPieces).map(([name,list])=>[name,list.map(p=>`${p.w}x${p.h}`).join(' ')]));
-  return {seams,sizes,warnings,pieces:Object.values(sheetPieces).reduce((n,list)=>n+list.length,0),regions,midLayer,sheetReports,world:png(world),backdrop:backdrop.toDataURL('image/webp',.9).split(',')[1],preview:png(preview),montage:png(montage),collision:png(collision)};
+  return {seams,sizes,warnings,pieces:Object.values(sheetPieces).reduce((n,list)=>n+list.length,0),regions,midLayer,sheetReports,world:png(world),backdrop:backdrop.toDataURL('image/webp',.9).split(',')[1],preview:png(preview),montage:png(montage),spawns:png(spawnsImage),collision:png(collision)};
  },{layout,background:await Promise.all([layout.background].flat().map(dataUrl)),mid:layout.mid?await dataUrl(layout.mid):null,
   sheets:Object.fromEntries(await Promise.all(Object.entries(layout.sheets??{pieces:layout.pieces}).map(async([name,file])=>[name,await dataUrl(file)])))});
 }finally{await browser.close();}
 
 const file=(path,base64)=>writeFile(path,Buffer.from(base64,'base64'));
 await file(`${assets}/terrain-world.png`,out.world);await file(`${assets}/background.webp`,out.backdrop);await file(`public/assets/maps/${map}-preview.png`,out.preview);
-for(const name of ['montage','collision'])await file(`${report}/${name}.png`,out[name]);
+for(const name of ['montage','collision','spawns'])await file(`${report}/${name}.png`,out[name]);
 for(const [name,data] of Object.entries(out.sheetReports))await file(`${report}/sheet-${name}.png`,data);
 if(out.midLayer)await file(`${assets}/mid.webp`,out.midLayer);
 const name=`${map.toUpperCase()}_REGIONS`,generated=`shared/generated/${map}Terrain.ts`;await mkdir(dirname(generated),{recursive:true});
@@ -134,4 +149,4 @@ console.log(`${out.pieces} peças na folha; ${out.regions.length} regiões (${ou
 for(const [name,size] of Object.entries(out.sizes))console.log(`${name}: ${size}`);
 for(const warning of out.warnings)console.warn(`AVISO: ${warning}`);
 if(out.seams.length)console.log(`Emendas do fundo (diferença média de cor, ideal < 28): ${out.seams.map(d=>d.toFixed(0)).join(', ')}`);
-console.log(`Relatório: ${report}/{montage,collision,sheet-*}.png`);
+console.log(`Relatório: ${report}/{montage,collision,spawns,sheet-*}.png`);

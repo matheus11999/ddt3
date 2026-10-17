@@ -43,3 +43,4 @@ Depois olhe `montage.png` (o mapa inteiro, que é a imagem para mostrar ao usuá
 
 - Fundo em duas metades: cada metade deixa 20% do lado da emenda só com céu, nuvem e névoa; a segunda recebe a primeira como referência e é proibida de repetir ou espelhar elementos.
 - Montes de neve sobre pontes parecem nuvens: não usar. Peças sem função (portões, muros soltos) não entram no layout.
+- Spawns (`spawns` no layout e em `shared/maps.ts`, 4 por time = até 8 jogadores, posição 1 é a do 1x1): o `build:map` avisa spawn sem chão, colado em objeto (menos de 40 px), com obstáculo ou beirada a até 40 px. Deixe espaços livres entre os objetos para eles. `spawns.png` no relatório mostra cada um numerado (azul time 1, vermelho time 2).
