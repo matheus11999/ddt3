@@ -27,6 +27,10 @@ try{
  await page.locator('.adm-pieces button').first().waitFor({timeout:30000});
  await page.locator('.adm-warnings h4').waitFor();await page.waitForTimeout(1500);
  await page.screenshot({path:`${output}/editor.png`});
+ // Zoom buttons and keys, and the sidebars fold away and come back.
+ const zoom=page.locator('.adm-zoom'),fitted=await zoom.innerText();await page.getByRole('button',{name:'Aproximar ( + )'}).click();assert.notEqual(await zoom.innerText(),fitted);
+ await page.keyboard.press('0');assert.equal(await zoom.innerText(),fitted);
+ await page.keyboard.press('[');await page.locator('.adm-editor-left').waitFor({state:'hidden'});await page.keyboard.press('[');await page.locator('.adm-editor-left').waitFor();
  // Select the left tower in the layer list and nudge it with the keyboard (mirrored copy follows).
  await page.getByRole('button',{name:/^Itens/}).click();await page.locator('.adm-layers li',{hasText:'snow-tower'}).click();
  const x=page.locator('.adm-inspector input[type=number]').first(),before=Number(await x.inputValue());
