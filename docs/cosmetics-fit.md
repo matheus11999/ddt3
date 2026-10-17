@@ -89,3 +89,7 @@ Comparação com 353 imagens de referência (todas as combinações chapéu × c
 ## Relatório inicial (fase 1)
 
 8 de 17 peças fora da zona: Corte Tempestade, Rabo de Cavalo Rubi, Cabelo Aventureiro e Lunar (largura, altura, quadro); Cabelo Ondulado (desce 10 px além e franja sobre os olhos); Chapéu Astral (aba baixa e sai do quadro); Elmo do Guardião (sai do quadro e cobre os olhos); Óculos Gatinho (0,99× a cabeça). 49 de 54 combinações com problema, principalmente franja sobre os olhos e aba de bonés cobrindo 25–35% da frente dos óculos. Executivo e Dançarina têm tronco de 0,77–0,78× a cabeça, contra 0,85–1,01× nas outras roupas.
+
+## Cabelo sob chapéu
+
+Com chapéu aparece o mesmo cabelo de sem chapéu, só cortado: nada surge que o cabelo descoberto não tenha. `drawHair` passa a arte por `underHat` em `appearance.ts`, que apaga tudo acima da linha de assento do chapéu (`HEAD_ANCHORS.hatSeat`). Atrás da cabeça o corte desce pela curva do crânio (`HAT_NAPE`) e, passando da frente da faixa, desce pela têmpora (`HAT_BROW`), com borda suave, para as mechas laterais parecerem sair por baixo do chapéu. As regiões `covered` do manifesto não são mais desenhadas. Vale para todo cabelo, sem número por item.
