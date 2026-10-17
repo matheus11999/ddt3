@@ -29,7 +29,7 @@ type Point=readonly[number,number];
 export interface AvatarPart {canvas:HTMLCanvasElement;x:number;y:number;width:number;height:number;pivot:Point;}
 export interface WalkingLeg {thigh:AvatarPart;shin:AvatarPart;foot:AvatarPart;hip:Point;knee:Point;ankle:Point;groundY:number;}
 export interface WalkingRig {torso:AvatarPart;near:WalkingLeg;far:WalkingLeg;}
-export interface CombatRig {torso:AvatarPart;nearLeg:AvatarPart;farLeg:AvatarPart;neck:Point;}
+export interface CombatRig {torso:AvatarPart;nearLeg:AvatarPart;farLeg:AvatarPart;neck:Point;arms?:AvatarPart;hand?:Point;}
 export interface AvatarRig {combat?:CombatRig;head:AvatarPart;stanceBody:AvatarPart;walking?:WalkingRig;modular:boolean;paintedOutfit:boolean;outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer';neckCloth?:AvatarPart;}
 export interface LayerDefinition {anchor:'head'|'chest'|'hands'|'hips'|'feet'|'back'|'world';order:number;bounds:[number,number,number,number];}
 /** New assets reuse a slot's anchor; visual.offset/scale/rotation refine individual fits. */
@@ -152,7 +152,29 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
    nearLeg:cut(prone,[[180,1115],[500,1115],[500,1230],[180,1230]],hip)
   }:{neck,torso:cut(prone,[[440,1000],[780,1000],[780,1254],[440,1254]],neck),farLeg:cut(prone,[[180,1000],[460,1000],[460,1125],[180,1125]],hip),nearLeg:cut(prone,[[180,1125],[460,1125],[460,1254],[180,1254]],hip)};
  }
+ if(rig.combat)splitProneArms(rig.combat);
  rigCache.set(key,rig);if(rigCache.size>32)rigCache.delete(rigCache.keys().next().value!);return rig;
+}
+/** Universal prone arms. Every painted prone body lies with its forearms and
+ * fists on the ground ahead of the chest, so the front-lower part of the torso
+ * silhouette is lifted into its own layer for crawling and throwing. The box
+ * comes from the torso's own alpha, not per-outfit numbers, so a new outfit
+ * painted on the prone template works without coordinates. See docs/prone-combat.md. */
+export const PRONE_ARMS={left:.42,top:.58,shoulder:.3,hand:[.9,.86] as Point};
+function splitProneArms(combat:CombatRig){
+ const torso=combat.torso,tc=torso.canvas.getContext('2d',{willReadFrequently:true})!,{width,height}=torso.canvas,data=tc.getImageData(0,0,width,height).data;
+ let left=width,right=-1,top=height,bottom=-1;
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(data[(y*width+x)*4+3]>24){left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+ if(right<left||bottom<top)return;
+ const L=torso.x+left/RESOLUTION,R=torso.x+(right+1)/RESOLUTION,T=torso.y+top/RESOLUTION,B=torso.y+(bottom+1)/RESOLUTION,at=([u,v]:Point):Point=>[L+(R-L)*u,T+(B-T)*v];
+ const [x0,y0]=at([PRONE_ARMS.left,PRONE_ARMS.top]),arms=canvas(width,height),ac=arms.getContext('2d')!;
+ const local=(x:number,y:number)=>[(x-torso.x)*RESOLUTION,(y-torso.y)*RESOLUTION] as const,[lx,ly]=local(x0,y0);
+ ac.drawImage(torso.canvas,lx,ly,width-lx,height-ly,lx,ly,width-lx,height-ly);
+ // Lifting the forearms leaves the chest above them intact; the head covers the shoulder seam.
+ tc.clearRect(lx,ly,width-lx,height-ly);
+ // The arms swing from the shoulder, just under the universal neck pivot.
+ combat.arms={canvas:arms,x:torso.x,y:torso.y,width:torso.width,height:torso.height,pivot:[combat.neck[0],combat.neck[1]+(B-T)*PRONE_ARMS.shoulder]};
+ combat.hand=at(PRONE_ARMS.hand);
 }
 export function drawPart(c:CanvasRenderingContext2D,part:AvatarPart,angle=0,dx=0,dy=0){c.save();c.translate((part.pivot[0]-625)*AVATAR_UNIT+dx,(part.pivot[1]-1225)*AVATAR_UNIT+dy);c.rotate(angle);c.drawImage(part.canvas,(part.x-part.pivot[0])*AVATAR_UNIT,(part.y-part.pivot[1])*AVATAR_UNIT,part.width*AVATAR_UNIT,part.height*AVATAR_UNIT);c.restore();}
 

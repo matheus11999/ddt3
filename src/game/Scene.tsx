@@ -3,7 +3,7 @@ import {client} from '../client';
 import type {Equipment} from '../../shared/catalog';
 import {DEFAULT_EQUIPMENT,WEAPONS} from '../../shared/catalog';
 import {createTerrain,ground,unpackTerrain} from '../../shared/physics';
-import {createAvatarMotion,drawAvatar} from './avatar';
+import {createAvatarMotion,drawAvatar,heldMuzzle} from './avatar';
 import type {AvatarContext,AvatarMotion} from './avatar';
 import {audio,startEnvironmentAudio,stopEnvironmentAudio} from './audio';
 import {TerrainResidues} from './terrainResidues';
@@ -13,6 +13,8 @@ import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
 import {drawFighterIndicators} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
+import {drawPowerArmed} from './powerArmedEffect';
+import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -46,8 +48,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
    }
    if(b){
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);}
-    else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);}
+    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}
     const shot=state.shot,shooter=shot?b.players.find(f=>f.id===shot.shooterId):undefined,level=shooter?.equipment.upgrade??0;
@@ -55,12 +57,12 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const elapsed=t-shotStart;
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded,b.phase==='finished');
-     if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);}
+     if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
      for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment)continue;residues!.add({id:`${shot.id}:${i}`,x:p.impact.x,y:p.impact.y,radius:p.impact.radius,effect:p.effect,level});if(elapsed-impactTime(p)<700)audio.play('impact',p.effect,level,p.powered);}
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
-    updateCamera(camera,focusX,focusY);environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
+    updateCamera(camera,focusX,focusY);sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
     const serverNow=Date.now()+state.offset;
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
@@ -81,17 +83,22 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=p?elapsed-impactTime(p):500;if(age>=0&&age<500){pose='hit';poseTime=age;}}
      }
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
+     const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined},falling||entity?.motion.pose==='fall');
-     c.restore();drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
+     c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished'){const weapon=WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,limits=weaponAimLimits(weapon,f.aimSlope??0);drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle);}
     }
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.kind==='flight'){if(age<flightTime(p))drawFlightProjectile(c,p,index,t,{quality:quality==='high'?'high':'low'});return;}
-      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)audio.play('shot',p.effect,level,p.powered);}const origin=p.points[0];drawMuzzle(c,origin?origin[0]-27*shooter.facing:shooter.x,origin?origin[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
-      if(age<flightTime(p))drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});else drawImpact(c,p,age-flightTime(p),level,p.impact.material,{quality:quality==='high'?'high':'low'});
+      // Held guns and wands: the flash and the first frames of the projectile start at the
+      // painted muzzle and ease onto the authoritative path. Drawing only; physics is unchanged.
+      const origin=p.points[0],seen=shooter&&!p.fragment?entities.get(shooter.id):undefined,muzzle=seen&&origin?heldMuzzle(shooter!.equipment.weapon,shooter!.facing,112):null;
+      const offset=muzzle&&origin?[seen!.x+muzzle[0]-origin[0],seen!.y+muzzle[1]-origin[1]]:[0,0],ease=1-Math.min(1,age/140)**2;
+      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)audio.play('shot',p.effect,level,p.powered);}drawMuzzle(c,origin?origin[0]+offset[0]-27*shooter.facing:shooter.x,origin?origin[1]+offset[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
+      if(age<flightTime(p)){c.save();c.translate(offset[0]*ease,offset[1]*ease);drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});c.restore();}else drawImpact(c,p,age-flightTime(p),level,p.impact.material,{quality:quality==='high'?'high':'low'});
      });
     }
     for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden)drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low'});}

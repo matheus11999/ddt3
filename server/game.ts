@@ -3,7 +3,7 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN} from '../shared/lobby';
-import {attributes,BOOSTS,CATALOG,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
+import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
 import {crater,createTerrain,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
@@ -159,7 +159,7 @@ export class Game {
      const equipment=c.type==='customize'?{...p.profile.equipment,...c.selection.items,dyes:c.selection.dyes??{},visibility:c.selection.visibility??p.profile.equipment.visibility}:{...p.profile.equipment};
      if(c.type==='customize'){/* All slots and ownership are checked atomically by the store. */}
      else if(c.type==='dye')equipment.dyes={...equipment.dyes,[c.slot]:c.color};
-     else {const item=CATALOG[c.item];if(!item||(!isEmptyItem(item)&&!p.profile.inventory.includes(c.item)))throw Error('Este item não está na sua mochila.');equipment[item.slot]=item.id;}
+     else {const item=CATALOG[c.item];if(!item||(!isEmptyItem(item)&&!p.profile.inventory.includes(c.item)))throw Error('Este item não está na sua mochila.');equipment[targetSlotForItem(equipment,item)]=item.id;}
      // Cancel before awaiting persistence, so a pending outfit cannot race a queue match.
      this.profileChanges.add(id);if(p.roomId&&!this.isSpectator(p)){const r=this.room(p);this.cancelSearch(r);r.players.forEach(s=>s.ready=s.bot);this.broadcastRoom(r);}
      try{p.profile=await this.store.saveEquipment(id,equipment);}finally{this.profileChanges.delete(id);}

@@ -70,40 +70,6 @@
 
 .artillery-hud .battle-console{bottom:13px;left:18px;right:18px;height:125px;display:flex;align-items:center;gap:20px;padding:12px 17px 12px 13px;border:2px solid #f0b44c;border-radius:23px 23px 17px 17px;background:linear-gradient(180deg,#284e7bf5,#132a4cf7 39%,#0b1b35f8);box-shadow:inset 0 2px #fff1b477,inset 0 0 0 4px #0c1832,inset 0 -5px #1d3957,0 5px #050c20,0 8px 18px #020b2880;z-index:4}
 .artillery-hud .battle-console::before{content:'';position:absolute;left:22%;right:20%;top:4px;height:1px;background:linear-gradient(90deg,transparent,#a5e8ff80,transparent);pointer-events:none}
-.artillery-hud .angle-control{width:164px;flex:none;gap:6px;padding:0 10px 0 0;border:0;border-right:1px solid #9db5d044;color:#fff0af}
-.artillery-hud .angle-dial{width:112px;height:112px;position:relative;flex:none;margin-top:-12px;display:flex;align-items:center;justify-content:center;flex-direction:column;border:3px solid #f6c363;border-radius:50%;background:radial-gradient(circle at 50% 52%,#173b67 0 42%,transparent 43%),repeating-conic-gradient(from -90deg,#e7d789 0deg 1deg,#122b48 1.4deg 12deg);box-shadow:inset 0 0 0 3px #2f1f31,inset 0 0 0 6px #e6ae4a,inset 0 0 0 8px #091f3a,0 5px #060e25,0 6px 12px #020b22aa}
-.artillery-hud .angle-dial>svg{color:#63d9fc;position:absolute;top:19px;opacity:.9}
-.artillery-hud .angle-dial>strong{font:900 31px/.9 'Nunito',sans-serif;color:#fff28d;text-shadow:0 2px #a35d21,0 4px #112244;margin-top:19px;z-index:1}
-.artillery-hud .angle-dial>strong>small{font-size:19px;color:#fff4b6}
-.artillery-hud .angle-dial>span{font-size:7px;font-weight:900;letter-spacing:1.6px;color:#b8ddf2;margin-top:8px}
-.artillery-hud .angle-needle{position:absolute;left:50%;top:50%;width:40px;height:3px;transform-origin:left center;transform:rotate(var(--aim-angle));background:linear-gradient(90deg,#ffd15b,#fa7428);box-shadow:0 0 5px #ffbe5544;opacity:.6;pointer-events:none}
-.artillery-hud .angle-needle::after{content:'';position:absolute;right:-2px;top:-3px;border-left:7px solid #ffbf3c;border-top:4px solid transparent;border-bottom:4px solid transparent}
-.artillery-hud .angle-buttons{display:flex;flex-direction:column;gap:8px}
-.artillery-hud .angle-buttons>button{display:grid;place-items:center;width:31px;height:33px;padding:0;border:1px solid #87b2d8;border-radius:7px;background:linear-gradient(#365f8e,#183455);box-shadow:inset 0 1px #c5e7ff44,0 2px #060e23;color:#ffe4a0}
-.artillery-hud .power-controls{flex:1;min-width:0;max-width:none;margin:0;position:relative;padding:0 4px}
-.artillery-hud .power-label{height:26px;display:flex;align-items:center;justify-content:flex-start;gap:12px;margin:0 0 3px;letter-spacing:1.2px;color:#d8ecff}
-.artillery-hud .power-label>span:first-child{font:900 13px 'Nunito',sans-serif;color:#ffda6d;text-shadow:0 2px #432b25}
-.artillery-hud .power-readout{display:flex;align-items:baseline;gap:5px;min-width:73px}
-.artillery-hud .power-readout>output{font:900 25px/1 'Nunito',sans-serif;letter-spacing:-.5px;color:#fff1a1;text-shadow:0 2px #8b4c23,0 3px #132137;font-variant-numeric:tabular-nums}
-.artillery-hud .power-readout>small{font-size:9px;letter-spacing:0;color:#b9d3ea}
-.artillery-hud .last-power-label{margin-left:auto;font-size:8px;color:#aed0e7;letter-spacing:.7px;display:flex;align-items:center;gap:6px}
-.artillery-hud .last-power-label>output{font:900 12px 'Nunito',sans-serif;color:#8ff2ff;min-width:18px}
-.artillery-hud .power-track{position:relative;height:29px;border:2px solid #e8c16b;border-radius:7px;background:linear-gradient(#050e25,#132c4d);box-shadow:inset 0 3px 7px #000a,0 1px #091027,0 0 0 2px #08152c;overflow:visible}
-.artillery-hud .power-track>.power-fill{position:absolute;left:0;top:0;bottom:0;height:100%;border-radius:4px;background:linear-gradient(0deg,#ed7725 0%,#ffce37 40%,#ffeb66 53%,#fff0a0 61%,#ffca34 100%);box-shadow:inset 0 1px #fffac7,inset 0 -2px #ad4f20,0 0 8px #ffd64255;transition:none}
-.artillery-hud .power-graduations{position:absolute;inset:1px 0;background:repeating-linear-gradient(90deg,transparent 0 calc(1% - 1px),#1b2539b3 calc(1% - 1px) 1%);border-radius:4px;pointer-events:none}
-.artillery-hud .power-graduations::after{content:'';position:absolute;inset:0 0 60%;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),#080e25 calc(10% - 2px) 10%)}
-.artillery-hud .power-cursor{position:absolute;top:-9px;bottom:-4px;width:3px;background:#fff7ad;box-shadow:0 0 9px #fff1a8,0 0 2px #1c1228;transform:translateX(-50%);pointer-events:none}
-.artillery-hud .power-cursor::before{content:'';position:absolute;left:-5px;top:-3px;width:11px;height:11px;transform:rotate(45deg);border:1px solid #ffe788;background:linear-gradient(135deg,#ff8d29,#bc281c);box-shadow:1px 1px #421d29}
-.artillery-hud .last-power-marker{position:absolute;top:-5px;bottom:-5px;border-left:2px dashed #71e7ff;z-index:1;pointer-events:none;filter:drop-shadow(0 0 3px #051f3a)}
-.artillery-hud .last-power-marker::after{content:'';position:absolute;bottom:-6px;left:-5px;border-bottom:6px solid #80eeff;border-left:4px solid transparent;border-right:4px solid transparent}
-.artillery-hud .power-track.charging{border-color:#fff2a0;box-shadow:inset 0 3px 7px #0008,0 0 0 2px #9b5a29,0 0 15px #ffbe3d66}
-.artillery-hud .power-track.at-cap.charging{box-shadow:0 0 0 2px #d88d2c,0 0 23px #ffbb3c99}
-.artillery-hud .power-track.at-cap.charging>.power-fill{background:linear-gradient(#fff8ac,#ffde35 50%,#f26f16);animation:battle-full-power .55s ease-in-out infinite alternate}
-.artillery-hud .power-ticks{position:static;display:flex;justify-content:space-between;margin-top:5px;font:800 8px 'Nunito',sans-serif;color:#acc6dd;padding:0 1px}
-.artillery-hud .power-ticks>span{min-width:9px;text-align:center}
-.artillery-hud .power-hint{display:flex;justify-content:center;align-items:center;gap:7px;height:17px;margin-top:4px;text-align:center;font:800 8px 'Nunito',sans-serif;letter-spacing:.8px;color:#bbd3e6}
-.artillery-hud .power-hint>kbd{font-size:7px;margin:0;padding:0 4px;color:#ffe8a1;border-color:#b7a87377;background:#091b35}
-.artillery-hud.is-charging .power-hint{color:#ffe49a}
 .artillery-hud .fire-button{position:relative;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:0;width:119px;height:101px;flex:none;padding:4px 0 7px;touch-action:none;user-select:none;-webkit-user-select:none;border:3px solid #ffe78d;border-radius:23px 23px 29px 29px;background:radial-gradient(ellipse at 50% 13%,#fff28a,#f7ba30 37%,#ec7c1a 73%,#c74c20);box-shadow:inset 0 0 0 3px #b76924,inset 0 5px 5px #fff9c373,0 4px #672d26,0 6px 12px #030c28bb;color:#522817;text-shadow:0 1px #ffec93;overflow:hidden}
 .artillery-hud .charge-emblem{display:grid;place-items:center;width:46px;height:40px;margin-bottom:1px;color:#7a391d;filter:drop-shadow(0 1px #fff2b3)}
 .artillery-hud .fire-button>strong{font:900 18px/1 'Nunito',sans-serif;letter-spacing:-.2px}
@@ -111,16 +77,8 @@
 .artillery-hud .fire-button.charging{background:radial-gradient(ellipse at 50% 15%,#fff6ac,#ffd92c 33%,#fa9720 73%,#d3551b);filter:brightness(1.08);box-shadow:inset 0 0 0 3px #d5952a,0 4px #672d26,0 0 23px #ffc23488}
 .artillery-hud .fire-button.charging .charge-emblem{transform:scale(1.09);color:#8f3618}
 .artillery-hud .fire-button:disabled{filter:saturate(.45);opacity:.65}
-.artillery-hud .battle-actions{display:flex;flex-direction:column;gap:7px;width:153px;flex:none;border-left:1px solid #8db5d333;padding-left:15px}
-.artillery-hud .vigor-bar{height:19px;flex:none;border:1px solid #75cde8;border-radius:5px;margin:0;background:#071a37;box-shadow:inset 0 2px 5px #0009}
-.artillery-hud .vigor-bar>i{background:linear-gradient(#84f9f5,#15b5ce 55%,#1262a3);box-shadow:inset 0 1px #c3fff5}
-.artillery-hud .vigor-bar>span{color:#f5ffed;font-size:10px;font-weight:900;text-shadow:0 1px 2px #082746}
-.artillery-hud .vigor-bar small{font-size:7px;letter-spacing:.8px;margin-left:auto;margin-right:6px;color:#e3f9ff}
-.artillery-hud .vigor-bar svg{margin-left:5px;color:#fff4b2}
 .artillery-hud .walk-controls{display:flex;flex-direction:row;gap:7px;margin:0;align-items:stretch}
 .artillery-hud .walk-controls>button{display:grid;place-items:center;flex:1;height:30px;border:1px solid #a2c8e4;border-radius:7px;background:linear-gradient(#35618d,#183759);box-shadow:inset 0 1px #d2f5ff44,0 2px #071027;color:#d8f7ff}
-.artillery-hud .skip-button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:27px;border:1px solid #e0ae68;border-radius:7px;padding:3px;background:linear-gradient(#72534b,#422f40);box-shadow:inset 0 1px #ffe2b733,0 2px #0c1026;color:#ffe7af;font:900 9px 'Nunito',sans-serif;letter-spacing:.5px}
-.artillery-hud .skip-button>kbd{font-size:8px;margin-left:4px;padding:0 3px;background:#251c2d}
 .artillery-hud .battle-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 .artillery-hud .result-backdrop{background:radial-gradient(ellipse at 50% 43%,#2340749c,#030b25de);backdrop-filter:blur(6px)}
@@ -174,45 +132,11 @@
 .artillery-hud .turn-clock.urgent .clock-face{filter:drop-shadow(0 0 9px #ff9f3877) drop-shadow(0 3px 1px #30182d)}
 .artillery-hud .turn-clock.critical-time .clock-face{--face-top:#fff1ae;--face-middle:#ff7637;--face-bottom:#e52530;filter:drop-shadow(0 0 13px #ff412377) drop-shadow(0 3px 1px #30182d)}
 .artillery-hud .battle-console{height:127px;gap:24px;padding-right:23px}
-.artillery-hud .power-controls{padding:0 8px}
-.artillery-hud .power-track{height:35px;border-radius:4px;pointer-events:auto;touch-action:none;user-select:none;cursor:crosshair}
-.artillery-hud .power-track[aria-disabled="true"]{cursor:default}
-.artillery-hud .power-graduations{inset:0 1px;background:none;border-radius:0}
-.artillery-hud .power-graduations::after{display:none}
-.artillery-hud .power-graduations>span{position:absolute;top:0;width:1px;height:7px;background:#a9cbdc;box-shadow:1px 0 #03152a99;transform:translateX(-50%)}
-.artillery-hud .power-graduations>span.medium{height:13px;background:#e1d7ae}
-.artillery-hud .power-graduations>span.major{height:23px;width:2px;background:#fff0b7;box-shadow:1px 0 #30241acc}
-.artillery-hud .power-track.charging .power-graduations>span{background:#4a2b16;box-shadow:1px 0 #fff1a255}
-.artillery-hud .power-ticks{position:relative;display:block;height:14px;margin:5px 2px 0;padding:0;color:#e5e0be;font:900 10px 'Nunito',sans-serif}
-.artillery-hud .power-ticks>span{position:absolute;transform:translateX(-50%);min-width:0}
-.artillery-hud .power-ticks>span:first-child{transform:none}
-.artillery-hud .power-ticks>span:last-child{transform:translateX(-100%)}
-.artillery-hud .power-cursor{top:-7px;bottom:-2px;z-index:2}
-.artillery-hud .battle-actions{width:160px;gap:14px}
-.artillery-hud .skip-button{min-height:35px}
-.artillery-hud .power-hint{margin-top:0;letter-spacing:1px}
 .artillery-hud.battle-finished>.battle-console,.artillery-hud.battle-finished>.boost-bar,.artillery-hud.battle-finished>.battle-top{visibility:hidden}
 @keyframes battle-warning-tick{0%{transform:scale(1.22) rotate(-3deg)}60%{transform:scale(.98) rotate(1deg)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.artillery-hud .turn-clock.urgent>b{animation:none}.artillery-hud .battle-health>i{transition:none}}
 
-/* A separate resource from trajectory force: compact luminous metal dial. */
-.artillery-hud .combat-power{position:relative;flex:none;display:grid;place-items:center;width:94px;height:94px;min-width:94px;padding:6px;border:2px solid #c8dfef;border-radius:50%;isolation:isolate;background:conic-gradient(from -90deg,#fff5b3 0%,#ffb82d var(--power-charge),#172e47 var(--power-charge),#172e47 100%);box-shadow:0 3px 0 #081726,inset 0 0 0 2px #18354c,0 5px 10px #0008;pointer-events:auto;transition:filter .2s,transform .15s;cursor:default}
-.artillery-hud .combat-power:disabled{opacity:1;filter:none}
-.artillery-hud .combat-power-core{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;height:100%;border:2px solid #3e647b;border-radius:50%;background:radial-gradient(ellipse at 45% 18%,#46748f,#173651 52%,#07192e);box-shadow:inset 0 2px 2px #91d3e944,inset 0 -3px 4px #031022;color:#d4efff}
-.artillery-hud .combat-power strong{font:900 italic 19px/1 'Nunito',sans-serif;letter-spacing:-1px;text-shadow:0 2px #071629,1px 0 #071629,-1px 0 #071629}
-.artillery-hud .combat-power small{font:900 9px 'Nunito',sans-serif;margin-top:7px;color:#a9d6ed;letter-spacing:.3px}
-.artillery-hud .combat-power.power-full,.artillery-hud .combat-power.power-armed{border-color:#fff1b3;box-shadow:0 3px #7d421f,inset 0 0 0 2px #d68422,0 0 19px #ffb72877}
-.artillery-hud .combat-power.power-full:not(:disabled){cursor:pointer}
-.artillery-hud .combat-power.power-full:not(:disabled):hover{filter:brightness(1.15);transform:translateY(-2px)}
-.artillery-hud .combat-power.power-full:not(:disabled):active{transform:translateY(1px)}
-.artillery-hud .power-full .combat-power-core,.artillery-hud .power-armed .combat-power-core{background:radial-gradient(ellipse at 45% 18%,#ffe87f,#d78922 46%,#753019);border-color:#ffe48b;color:#fff6c2;box-shadow:inset 0 2px 3px #fff9da99,inset 0 -3px 6px #5c2418}
-.artillery-hud .power-full small,.artillery-hud .power-armed small{color:#fff5d5;text-shadow:0 1px #5a2b14}
-.artillery-hud .combat-power-orbit{position:absolute;inset:-7px;border:2px solid transparent;border-radius:50%;pointer-events:none}
-.artillery-hud .power-full .combat-power-orbit,.artillery-hud .power-armed .combat-power-orbit{border-top-color:#fff5b5;border-bottom-color:#ffae32;filter:drop-shadow(0 0 4px #ffc65a);animation:power-orbit 2.4s linear infinite}
-.artillery-hud .power-armed .combat-power-orbit{border-left-color:#ffc54d;animation-duration:1.3s}
-.artillery-hud .combat-power:focus-visible{outline:3px solid #ecfaff;outline-offset:7px}
 @keyframes power-orbit{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){.artillery-hud .combat-power-orbit{animation:none!important}.artillery-hud .combat-power{transition:none}}
 /* Even a +0 portrait has a faint light halo; equipment auras add their own evolution. */
 .artillery-hud .battle-player-portrait::before{content:"";position:absolute;inset:10% 8% 4%;z-index:-1;pointer-events:none;border-radius:50%;background:radial-gradient(ellipse at 48% 48%,#58dbf500 25%,#51ddff22 47%,#95edff44 60%,#5bb8ee00 73%);filter:blur(4px)}
 .artillery-hud .battle-player-portrait::after{content:"";position:absolute;inset:10% 8% 4%;z-index:-1;pointer-events:none;border-radius:50%;background:conic-gradient(transparent 8%,#bbf7ff80 20%,transparent 34%,transparent 54%,#62dcff80 70%,transparent 84%);mask:radial-gradient(transparent 58%,#000 64%,transparent 71%);animation:power-orbit 18s linear infinite;filter:blur(1px)}

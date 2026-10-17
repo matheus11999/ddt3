@@ -1,0 +1,279 @@
+/* Linguagem visual da mochila (PR #6) em peças reutilizáveis: moldura de madeira
+   laranja, barra de título escura com título dourado em Cinzel, painéis de
+   madeira, áreas creme, faixa laranja de destaque e botões no mesmo acabamento.
+   Telas em tela cheia (salão PvP, sala) usam estas classes; janelas Modal podem
+   adotar os mesmos tokens. Só cores e formas: nenhuma textura pintada. */
+:root {
+  --wood-light: #e8964a;
+  --wood: #c66d2c;
+  --wood-dark: #8a4318;
+  --wood-deep: #5b2a0e;
+  --wood-bar: #7a3a14;
+  --wood-bar-deep: #55250b;
+  --wood-rim: #f2b56b;
+  --wood-cream: #fff5df;
+  --wood-cream-mid: #f7e4bd;
+  --wood-cream-deep: #ecd2a0;
+  --wood-edge: #d98f45;
+  --wood-ink: #5a2f12;
+  --wood-ink-soft: #95653e;
+  --wood-gold: #ffd36b;
+  --wood-grain: repeating-linear-gradient(92deg, #ffffff0a 0 2px, transparent 2px 11px, #0000000c 11px 12px, transparent 12px 23px);
+}
+
+/* Moldura externa */
+.wood-window {
+  border: 2px solid var(--wood-rim);
+  border-radius: 22px;
+  background: var(--wood-grain), linear-gradient(160deg, var(--wood-light), var(--wood) 45%, var(--wood-dark));
+  color: var(--wood-ink);
+  box-shadow: inset 0 1px #ffd9a8, inset 0 -3px #4d220a99, 0 0 0 3px #4a210a, 0 0 0 4px #f6c07a55, 0 22px 65px #1a0c04c0;
+  font-family: 'Nunito', 'Trebuchet MS', sans-serif;
+}
+
+/* Barra de título escura */
+.wood-titlebar {
+  border: 1px solid #f0b06855;
+  border-bottom-color: #3b1806;
+  border-radius: 16px 16px 10px 10px;
+  background: var(--wood-grain), linear-gradient(var(--wood-bar), var(--wood-bar-deep));
+  box-shadow: inset 0 1px #ffc78a55, inset 0 -2px #2c110440, 0 2px #ffcf8f30;
+}
+.wood-title {
+  margin: 0;
+  font: 700 25px/1.1 'Cinzel', Georgia, serif;
+  letter-spacing: .3px;
+  color: var(--wood-gold);
+  text-shadow: 0 2px #2c1004, 0 0 12px #ffae4a55;
+  white-space: nowrap;
+}
+
+/* Painel de madeira (contêiner das áreas creme) */
+.wood-pane {
+  border: 2px solid var(--wood-rim);
+  border-radius: 14px;
+  background: linear-gradient(#a85524, #87401a);
+  box-shadow: inset 0 1px #ffc98c88, inset 0 0 0 1px #5a280c, 0 2px #3e1a0788;
+}
+
+/* Área creme interna */
+.wood-cream {
+  border: 1px solid #fff7e4;
+  border-radius: 10px;
+  background: radial-gradient(ellipse at 50% 30%, #fffdf6, transparent 65%), linear-gradient(#fff8e8, var(--wood-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--wood-edge), inset 0 3px 10px #c47a3233;
+  color: var(--wood-ink);
+}
+
+/* Faixa laranja de destaque (cabeçalho de perfil, nome no card) */
+.wood-ribbon {
+  border: 1px solid #fff0c9;
+  background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c);
+  box-shadow: inset 0 1px #fff7d9, inset 0 -2px #c76413;
+  color: #fff;
+  text-shadow: 0 1px #8a3a07, 0 0 3px #9a4508;
+}
+
+/* Pílula creme (carteira, contadores) */
+.wood-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  background: linear-gradient(#fffdf5, #f5e3be);
+  box-shadow: inset 0 -2px #d9b880, 0 1px 2px #1d0a0288;
+  color: var(--wood-ink);
+  font-weight: 900;
+}
+
+/* Botões */
+.wood-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 18px;
+  border: 1px solid #fff2c8;
+  border-radius: 12px;
+  background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
+  box-shadow: inset 0 1px #fff7cf, inset 0 -3px #c06d0a, 0 2px #2a0f03;
+  color: #6b2c05;
+  font: 900 15px/1 'Nunito', 'Trebuchet MS', sans-serif;
+  text-shadow: 0 1px #fff4c255;
+  cursor: pointer;
+  transition: filter .15s, transform .15s;
+}
+.wood-button:not(:disabled):hover { filter: brightness(1.07); transform: translateY(-1px); }
+.wood-button:not(:disabled):active { transform: translateY(1px); }
+.wood-button:disabled { cursor: default; filter: saturate(.35) brightness(.92); opacity: .6; }
+.wood-button:focus-visible,
+.wood-quiet:focus-visible,
+.wood-close:focus-visible { outline: 3px solid #fff1c4; outline-offset: 2px; }
+
+/* Botão secundário creme */
+.wood-quiet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid #fff3d6;
+  border-radius: 10px;
+  background: linear-gradient(#fffaf0, #f3d9a9);
+  box-shadow: inset 0 1px #fff, inset 0 -2px #d4a565, 0 2px #3e1a0788;
+  color: #8a3f0b;
+  font: 900 13px/1 'Nunito', 'Trebuchet MS', sans-serif;
+  cursor: pointer;
+  transition: filter .15s, transform .15s;
+}
+.wood-quiet:not(:disabled):hover { filter: brightness(1.04); transform: translateY(-1px); }
+.wood-quiet:disabled { cursor: default; opacity: .55; }
+
+/* Botão vermelho de fechar/sair */
+.wood-close {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 1px solid #f4bf75;
+  border-radius: 12px;
+  background: linear-gradient(#e2592f, #a92e14);
+  box-shadow: inset 0 1px #ffb08c, inset 0 -2px #6d1a08, 0 2px #3b1405;
+  color: #fff3dc;
+  cursor: pointer;
+}
+.wood-close:not(:disabled):hover { filter: brightness(1.1); }
+.wood-close:disabled { opacity: .55; cursor: default; }
+
+/* Selo pintado da aura atrás do personagem (mesmo da mochila) */
+.wood-sigil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: url('/assets/ui/aura-blue-sigil.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);
+  opacity: .9;
+  animation: wood-sigil-spin 40s linear infinite;
+  pointer-events: none;
+}
+@keyframes wood-sigil-spin { to { rotate: 360deg; } }
+
+/* Conversa no padrão creme */
+.wood-chat {
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr) 38px;
+  gap: 6px;
+  min-height: 0;
+  padding: 7px;
+}
+.wood-chat .chat-tabs {
+  position: static;
+  display: flex;
+  gap: 4px;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+.wood-chat .chat-tabs > button {
+  min-width: 74px;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0 14px;
+  border: 1px solid #f6c27e;
+  border-radius: 10px 10px 4px 4px;
+  background: var(--wood-grain), linear-gradient(#7a3a14, #9b4c1c);
+  box-shadow: inset 0 1px #ffc98c66;
+  color: #ffdca4;
+  font: 800 13px/1 'Nunito', sans-serif;
+  text-shadow: 0 1px #3b1806;
+}
+.wood-chat .chat-tabs > button.active {
+  border-color: #fff3d6;
+  background: linear-gradient(#fff3d6, #ffd28a);
+  color: #9a3d0a;
+  text-shadow: none;
+}
+.wood-chat .chat-tabs > button:disabled { opacity: .55; }
+.wood-chat .chat-messages {
+  position: static;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  max-height: none;
+  margin: 0;
+  padding: 8px 10px;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #d98f45 transparent;
+  border: 1px solid #fff7e4;
+  border-radius: 10px;
+  background: linear-gradient(#fff8e8, var(--wood-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--wood-edge), inset 0 3px 8px #c47a3226;
+  color: var(--wood-ink);
+  font: 700 13px/1.45 'Nunito', sans-serif;
+  text-shadow: none;
+}
+.wood-chat .chat-messages p { margin: 0 0 3px; overflow-wrap: anywhere; color: var(--wood-ink); }
+.wood-chat .chat-messages strong { color: #b4510f; }
+.wood-chat .chat-messages .system-message { color: #2f8a55; }
+.wood-chat .chat-input {
+  position: static;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 0 4px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(#fffdf5, #f5e3be);
+  box-shadow: inset 0 -2px #d9b880, 0 1px 2px #1d0a0288;
+}
+.wood-chat .chat-input > input {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--wood-ink);
+  font: 700 13px 'Nunito', sans-serif;
+}
+.wood-chat .chat-input > input::placeholder { color: #b4895c; }
+.wood-chat .chat-input > button {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 30px;
+  height: 30px;
+  min-height: 0;
+  padding: 0;
+  border: 1px solid #fff2c8;
+  border-radius: 50%;
+  background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
+  box-shadow: inset 0 -2px #c06d0a;
+  color: #6b2c05;
+}
+.wood-chat .chat-input:focus-within { box-shadow: inset 0 -2px #d9b880, 0 0 0 2px #fff1c4; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wood-sigil { animation: none; }
+  .wood-button, .wood-quiet { transition: none; }
+}

@@ -1,39 +1,23 @@
-@import './GameTheme.css';
-/* Shared arena materials and controls. Layout and cards remain owned by each screen. */
-:is(.arena-hall,.compact-party-room){
- --arena-ink:var(--game-ink);
- --arena-text:var(--game-text);
- --arena-muted:#91a4bd;
- --arena-title:var(--game-title);
- --arena-gold:var(--game-gold);
- --arena-border:#536780;
- --arena-panel:var(--game-panel);
- --arena-panel-deep:var(--game-deep);
- --arena-highlight:#6389ad;
- --arena-shadow:#050e1ec2;
- --arena-card:var(--game-card);
- --arena-card-edge:#c5b28a;
- --arena-focus:#f0d49a;
- --arena-texture:var(--game-texture);
-}
-:is(.arena-hall,.compact-party-room) .arena-action{
+@import './WoodTheme.css';
+/* Botões compartilhados do salão PvP e da sala, no acabamento da mochila.
+   Layout e cards continuam em cada tela (ArenaHall.css, Arena.css). */
+:is(.arena-hall,.pvp-room) .arena-action{
  --arena-action-height:40px;
- --arena-action-size:12px;
  position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;
- min-height:var(--arena-action-height);min-width:0;padding:8px 16px;flex:none;
- border:1px solid #b49c715c;border-radius:10px;background:linear-gradient(#2b435f,#172a43);
- color:var(--arena-text);font:800 var(--arena-action-size)/1.15 'Nunito',sans-serif;letter-spacing:.1px;
- text-shadow:0 1px #091225;box-shadow:inset 0 1px #92adc037,inset 0 -2px #06122450,0 3px 5px #040c1733;
- cursor:pointer;transition:filter .16s,transform .16s,border-color .16s,box-shadow .16s;
+ min-height:var(--arena-action-height);min-width:0;padding:0 16px;flex:none;
+ border:1px solid #fff3d6;border-radius:10px;background:linear-gradient(#fffaf0,#f3d9a9);
+ color:#8a3f0b;font:900 13px/1.1 'Nunito','Trebuchet MS',sans-serif;text-shadow:none;
+ box-shadow:inset 0 1px #fff,inset 0 -2px #d4a565,0 2px #3e1a0788;
+ cursor:pointer;transition:filter .15s,transform .15s;
 }
-:is(.arena-hall,.compact-party-room) .arena-action--primary{
- border-color:#e1c795;background:linear-gradient(110deg,#e4cca0,#c1a16c 60%,#d5ba86);
- color:#243047;text-shadow:0 1px #fff2d45c;box-shadow:inset 0 1px #fff2d0,inset 0 -3px #8e754545,0 3px 0 #0a1629,0 5px 13px #020b1b66;
+:is(.arena-hall,.pvp-room) .arena-action--primary{
+ border-color:#fff2c8;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);color:#6b2c05;
+ box-shadow:inset 0 1px #fff7cf,inset 0 -3px #c06d0a,0 2px #2a0f03;
 }
-:is(.arena-hall,.compact-party-room) .arena-action--subtle{background:linear-gradient(#23395199,#142840cc);border-color:#7a90a34a;box-shadow:inset 0 1px #8ba3b320;}
-:is(.arena-hall,.compact-party-room) .arena-action--icon{width:var(--arena-action-height);height:var(--arena-action-height);padding:7px;}
-:is(.arena-hall,.compact-party-room) .arena-action:not(:disabled):hover{filter:brightness(1.12);border-color:#d9bd83;box-shadow:inset 0 1px #cce0ee33,0 0 0 1px #d1b57c26,0 4px 10px #02091966;transform:translateY(-1px);}
-:is(.arena-hall,.compact-party-room) .arena-action:not(:disabled):active{transform:translateY(1px);filter:brightness(1.02);}
-:is(.arena-hall,.compact-party-room) .arena-action:disabled{cursor:default;filter:saturate(.4);opacity:.48;}
-:is(.arena-hall,.compact-party-room) .arena-action:focus-visible{outline:2px solid var(--arena-focus);outline-offset:3px;}
-@media(prefers-reduced-motion:reduce){:is(.arena-hall,.compact-party-room) .arena-action{transition:none;}}
+:is(.arena-hall,.pvp-room) .arena-action--subtle{background:linear-gradient(#fff4dc,#ecd2a0);}
+:is(.arena-hall,.pvp-room) .arena-action--icon{width:var(--arena-action-height);height:var(--arena-action-height);padding:0;}
+:is(.arena-hall,.pvp-room) .arena-action:not(:disabled):hover{filter:brightness(1.05);transform:translateY(-1px);}
+:is(.arena-hall,.pvp-room) .arena-action:not(:disabled):active{transform:translateY(1px);}
+:is(.arena-hall,.pvp-room) .arena-action:disabled{cursor:default;filter:saturate(.35);opacity:.55;}
+:is(.arena-hall,.pvp-room) .arena-action:focus-visible{outline:3px solid #fff1c4;outline-offset:2px;}
+@media(prefers-reduced-motion:reduce){:is(.arena-hall,.pvp-room) .arena-action{transition:none;}}
