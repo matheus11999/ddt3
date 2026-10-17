@@ -13,7 +13,7 @@ export interface ShopResult {items:string[];spent:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
-export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;}
+export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
 export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
