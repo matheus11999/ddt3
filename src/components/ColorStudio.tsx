@@ -75,12 +75,14 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
     </div>
     <div className="color-studio-controls">
      <nav className="color-studio-parts" aria-label="Partes do personagem">
-      {parts.map(key=>{const body=isBodyColorPart(key),base=body?null:CATALOG[copyBase(key)],label=body?(key==='skin'?'Corpo':'Olhos'):SLOT_NAMES[base!.slot],edited=value(key)!==current(key);
-       return <button key={key} className={`color-part ${selected===key?'active':''} ${edited?'edited':''}`} aria-pressed={selected===key} aria-label={`${label}${base?`: ${base.name}`:''}${edited?' (cor nova)':''}`} title={base?.name??(key==='skin'?'Cor do corpo':'Cor dos olhos')} disabled={pending} onClick={()=>select(key)}>
-        <ItemCardFrame rarity={base?.rarity??'common'} variant="detail">{icon(key,46)}</ItemCardFrame>
-        <span>{key==='skin'?<PersonStanding size={12}/>:key==='eyes'?<Eye size={12}/>:null}{label}</span>
-        {edited&&<i className="color-part-dot" aria-hidden="true"/>}
-       </button>;})}
+      {[parts.filter(key=>!isBodyColorPart(key)),parts.filter(isBodyColorPart)].map((group,index)=><div key={index} className="color-part-group" data-group={index?'body':'pieces'}>
+       <small>{index?'Personagem':'Visual'}</small>
+       <div>{group.map(key=>{const body=isBodyColorPart(key),base=body?null:CATALOG[copyBase(key)],label=body?(key==='skin'?'Corpo':'Olhos'):SLOT_NAMES[base!.slot],edited=value(key)!==current(key);
+        return <button key={key} className={`color-part ${selected===key?'active':''} ${edited?'edited':''}`} aria-pressed={selected===key} aria-label={`${label}${base?`: ${base.name}`:''}${edited?' (cor nova)':''}`} title={base?.name??(key==='skin'?'Cor do corpo':'Cor dos olhos')} disabled={pending} onClick={()=>select(key)}>
+         <span className="color-part-art">{icon(key,50)}{edited&&<i className="color-part-dot" aria-hidden="true"/>}</span>
+         <span className="color-part-label">{label}</span>
+        </button>;})}</div>
+      </div>)}
      </nav>
      <div className="color-studio-head">
       <div className="color-studio-name">

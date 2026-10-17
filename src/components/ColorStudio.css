@@ -73,17 +73,25 @@
 .color-studio-name { display: grid; gap: 3px; min-width: 0; }
 .color-studio-name b { font-size: 20px; font-weight: 900; line-height: 1.15; }
 .color-studio-name small { font-size: 12.5px; font-weight: 800; line-height: 1.3; color: var(--wood-ink-soft); }
-.color-studio-parts { display: flex; flex-wrap: wrap; gap: 8px; }
+.color-studio-parts { display: flex; gap: 10px; }
+.color-part-group { display: grid; gap: 5px; padding: 6px 8px 8px; border-radius: 14px; background: linear-gradient(#f6dcab, #efc98a); box-shadow: inset 0 2px 5px #a8551f40, inset 0 -1px #fff4d8, 0 1px #fff8e8; }
+.color-part-group > small { padding-left: 2px; font-size: 10px; font-weight: 900; color: #9a5016; text-transform: uppercase; letter-spacing: .08em; }
+.color-part-group > div { display: flex; gap: 6px; }
 .color-part {
-  position: relative; display: grid; justify-items: center; gap: 3px; width: 66px; padding: 4px 2px 5px;
-  border: 0; border-radius: 12px; background: transparent; color: var(--wood-ink-soft);
-  font: 900 11px/1 'Nunito', sans-serif; cursor: var(--cursor-arrow); transition: transform .12s, background .12s;
+  display: grid; justify-items: center; gap: 4px; width: 68px; padding: 0;
+  border: 0; background: transparent; cursor: var(--cursor-arrow);
 }
-.color-part > .item-card { width: 56px; height: 56px; padding: 3px; border-radius: 11px; }
-.color-part > span { display: inline-flex; align-items: center; gap: 3px; }
-.color-part:not(:disabled):hover { transform: translateY(-2px); }
-.color-part.active { background: linear-gradient(#ffe9a8, #f6c35a); color: #6b2c05; box-shadow: inset 0 -2px #c9780f, 0 0 0 2px #fff4cf; }
-.color-part-dot { position: absolute; top: 2px; right: 4px; width: 12px; height: 12px; border: 2px solid #fff; border-radius: 50%; background: #f0631f; box-shadow: 0 1px 2px #0005; }
+.color-part-art {
+  position: relative; display: grid; place-items: center; width: 64px; height: 64px;
+  border-radius: 14px; background: radial-gradient(circle at 50% 40%, #fffdf5, #f7e2b8 75%);
+  box-shadow: inset 0 0 0 2px #e2a95e, inset 0 -3px #d79a4d, 0 2px 3px #7a3a0e40;
+  transition: transform .12s, box-shadow .12s;
+}
+.color-part-label { min-width: 54px; padding: 3px 6px; border-radius: 999px; font: 900 11px/1 'Nunito', sans-serif; color: #7a3a0e; text-align: center; }
+.color-part:not(:disabled):hover .color-part-art { transform: translateY(-2px); }
+.color-part.active .color-part-art { background: radial-gradient(circle at 50% 40%, #fffef8, #ffe6a3 75%); box-shadow: inset 0 0 0 2px #fff6d6, 0 0 0 3px #f2a91f, 0 0 0 5px #6b2c05, 0 4px 10px #7a3a0e66; transform: translateY(-2px); }
+.color-part.active .color-part-label { background: linear-gradient(#ffe07a, #f2a91f); color: #5a2404; box-shadow: inset 0 -2px #c06d0a; }
+.color-part-dot { position: absolute; top: -4px; right: -4px; width: 14px; height: 14px; border: 2px solid #fff; border-radius: 50%; background: #f0631f; box-shadow: 0 1px 2px #0006; }
 .color-studio-undo {
   display: inline-flex; flex: none; align-items: center; gap: 5px; min-height: 30px; padding: 0 11px;
   border: 1px solid #e9b877; border-radius: 999px; background: #fff; color: #a2581c;
@@ -92,10 +100,10 @@
 .color-studio-undo:hover { background: #fff3dc; }
 .color-studio-section { display: grid; gap: 7px; }
 .color-studio-section h3 { margin: 0; font-size: 12px; font-weight: 900; color: #a2581c; text-transform: uppercase; letter-spacing: .06em; }
-.color-swatches { display: grid; grid-template-columns: repeat(9, 34px); gap: 7px; }
+.color-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
 .color-swatch {
-  display: grid; place-items: center; width: 34px; height: 34px; padding: 0;
-  border: 2px solid #fff; border-radius: 9px; color: #fff;
+  display: grid; place-items: center; width: 38px; height: 38px; padding: 0;
+  border: 3px solid #fff; border-radius: 50%; color: #fff;
   box-shadow: 0 0 0 1px #b8773a, inset 0 -3px #0003, inset 0 2px #fff5;
   cursor: var(--cursor-arrow); transition: transform .12s;
 }
@@ -173,13 +181,14 @@ html.mobile-landscape .color-studio > header { min-height: 38px; }
 html.mobile-landscape .color-studio > header strong { font-size: 17px; }
 html.mobile-landscape .color-studio > footer { padding: 6px 10px 8px; }
 html.mobile-landscape .color-studio > footer > button { min-height: 38px; }
-html.mobile-landscape .color-part { width: 54px; }
-html.mobile-landscape .color-part > .item-card { width: 44px; height: 44px; }
+html.mobile-landscape .color-part { width: 50px; }
+html.mobile-landscape .color-part-art { width: 48px; height: 48px; }
+html.mobile-landscape .color-part-group > div { gap: 4px; }
+html.mobile-landscape .color-studio-parts { gap: 6px; }
 html.mobile-landscape .color-studio-controls { gap: 8px; }
-html.mobile-landscape .color-swatches { grid-template-columns: repeat(9, 28px); gap: 5px; }
-html.mobile-landscape .color-swatch { width: 28px; height: 28px; }
+html.mobile-landscape .color-swatches { gap: 7px; }
+html.mobile-landscape .color-swatch { width: 32px; height: 32px; }
 @media (max-width: 700px) {
   .color-studio-body { grid-template-columns: 1fr; }
-  .color-swatches { grid-template-columns: repeat(auto-fill, 32px); }
   .color-studio > footer { grid-template-columns: auto minmax(0, 1fr); }
 }

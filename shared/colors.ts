@@ -21,9 +21,9 @@ export function isHexColor(value:unknown):value is string {return typeof value==
 export function normalizeHex(value:unknown):string|undefined {return typeof value==='string'&&HEX.test(value.toLowerCase())?value.toLowerCase():undefined;}
 
 /** Quick picks in the color window; any other color comes from the RGB picker. */
-export const COLOR_PRESETS=['#e8332f','#f26b21','#ffc21a','#7ccf2c','#1fa94f','#19c2c9','#1f7fe0','#2b3fb8','#8a3fd6','#e04aa8','#f4f1ea','#8a8f99','#2b2b33','#7a4a26','#c9a063','#f0b7c6'] as const;
-export const SKIN_PRESETS=['#fde0c8','#f8cfae','#efb98f','#d99a6c','#b97a4f','#8d5534','#6a3b22','#4a2716','#f6d7e4','#cfe7c9','#c9dcf6','#d9cdf2'] as const;
-export const EYE_PRESETS=['#7a4a1c','#3c2414','#2f7fd8','#1f9c6b','#7fb33a','#8b8f99','#c43a3a','#8a3fd6','#e58a1f','#e04aa8','#1fb7c9','#ffd23a'] as const;
+export const COLOR_PRESETS=['#e8332f','#ff8a1f','#ffc93a','#2fb24f','#1f8fe8','#7a3fd6','#f2efe6','#2b2b33'] as const;
+export const SKIN_PRESETS=['#fde0c8','#f2c39c','#d99a6c','#b97a4f','#8d5534','#5a311c','#cfe7c9','#c9dcf6'] as const;
+export const EYE_PRESETS=['#7a4a1c','#2f7fd8','#1f9c6b','#8b8f99','#c43a3a','#8a3fd6','#e58a1f','#ffd23a'] as const;
 
 /** Colors as renderers read them: from the copy worn in each color slot (repeat purchases keep their own). */
 export function equippedColors(equipment:Equipment,itemColors:Readonly<Record<string,string>>):Partial<Record<ColorSlot,string>> {
