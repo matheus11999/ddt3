@@ -40,14 +40,23 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:translateX(-50%) scale(calc(.62 / var(--game-scale)));transform-origin:bottom center;height:auto;padding:6px 10px 6px;gap:2px}
 html.mobile-landscape .lobby-dock .lobby-dock-tile kbd{display:none}
 
-/* Lobby chat in the same wood and cream finish as the PvP room chat, with a slim tab strip. */
-.game-frame>.chat-shell.lobby-chat{bottom:24px;left:20px;width:340px;height:176px;overflow:hidden;border-radius:14px;z-index:6;grid-template-rows:22px minmax(0,1fr) 32px;gap:5px;padding:5px 6px 6px;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 10px 22px #1a0c04a0}
-.game-frame>.chat-shell.lobby-chat.collapsed{height:32px;grid-template-rows:22px}
+/* Lobby chat in the same wood and cream finish as the PvP room chat: folder tabs
+   that join the cream message area, and a sunken cream input. */
+.game-frame>.chat-shell.lobby-chat{bottom:24px;left:20px;width:340px;height:170px;overflow:hidden;border-radius:12px;z-index:6;grid-template-rows:19px minmax(0,1fr) 28px;gap:0;padding:4px 5px 5px;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 10px 22px #1a0c04a0}
+.game-frame>.chat-shell.lobby-chat.collapsed{height:28px;grid-template-rows:19px}
 .lobby-chat.collapsed .chat-messages,.lobby-chat.collapsed .chat-input{display:none}
-.lobby-chat.wood-chat .chat-tabs{gap:3px;padding-right:28px}
-.lobby-chat.wood-chat .chat-tabs>button{min-width:0;padding:0 11px;border-radius:7px 7px 3px 3px;font-size:11px}
-.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;right:6px;top:5px;width:22px;height:22px;padding:0;border:1px solid #fff3d6;border-radius:7px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b}
-.game-frame>.chat-shell.lobby-chat .chat-collapse svg{width:13px;height:13px}
+.lobby-chat.wood-chat .chat-tabs{align-items:flex-end;gap:2px;padding:0 24px 0 6px}
+.lobby-chat.wood-chat .chat-tabs>button{position:relative;z-index:1;height:19px;min-width:58px;padding:0 10px;border:1px solid #f6c27e88;border-bottom:0;border-radius:7px 7px 0 0;background:linear-gradient(#6a3010,#83401a);box-shadow:inset 0 1px #ffc98c44;color:#f3c58a;font:800 11px/1 Nunito,sans-serif;letter-spacing:.2px;text-shadow:0 1px #2c1004}
+.lobby-chat.wood-chat .chat-tabs>button:hover:not(:disabled){color:#ffe2b0}
+.lobby-chat.wood-chat .chat-tabs>button.active{height:20px;margin-bottom:-1px;border-color:#fff7e4;background:#fff8e8;box-shadow:inset 0 2px #ffd36b;color:#9a3d0a;text-shadow:none}
+.lobby-chat.wood-chat .chat-tabs>button:disabled{opacity:.6}
+.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;right:7px;top:4px;width:18px;height:18px;padding:0;border:1px solid #fff3d6;border-radius:6px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -1px #d4a565;color:#8a3f0b}
+.game-frame>.chat-shell.lobby-chat .chat-collapse svg{width:12px;height:12px}
 .game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.05)}
-.lobby-chat.wood-chat .chat-messages{padding:6px 9px;font-size:12px}
-.lobby-chat.wood-chat .chat-input>button{width:26px;height:26px}
+.lobby-chat.wood-chat .chat-messages{padding:6px 9px;border-radius:0 8px 8px 8px;font-size:12px}
+.lobby-chat.wood-chat .chat-input{margin-top:5px;height:28px;padding:0 3px 0 10px;border:1px solid #4a210a;border-radius:8px;background:linear-gradient(#f3dfb8,#fff8e8 45%);box-shadow:inset 0 2px 3px #8a431855,0 1px #ffd9a866}
+.lobby-chat.wood-chat .chat-input:focus-within{border-color:#ffd36b;box-shadow:inset 0 2px 3px #8a431855,0 0 0 2px #ffd36b88}
+.lobby-chat.wood-chat .chat-input>input{font-size:12px}
+.lobby-chat.wood-chat .chat-input>input::placeholder{color:#b08a62;font-style:italic}
+.lobby-chat.wood-chat .chat-input>button{width:22px;height:22px;border-radius:6px}
+.lobby-chat.wood-chat .chat-input>button svg{width:13px;height:13px}
