@@ -23,7 +23,7 @@ import './Shop.css';
    Só aparecem itens do gênero do personagem e unissex; cada item é comprado
    direto no card, com confirmação, sem carrinho. */
 const CATEGORIES=[{id:'all',label:'Destaques',Icon:ShoppingBag},{id:'weapon',label:'Armas',Icon:Swords},{id:'outfit',label:'Roupas',Icon:Shirt},{id:'costume',label:'Fantasias',Icon:Sparkles},{id:'face',label:'Rostos',Icon:Smile},{id:'style',label:'Complementos',Icon:Glasses}] as const;
-const PAGE_SIZE=12;
+const PAGE_SIZE=10;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 type Category=typeof CATEGORIES[number]['id'];
 const money=(value:number)=>value.toLocaleString('pt-BR');

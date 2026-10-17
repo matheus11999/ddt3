@@ -228,8 +228,8 @@
   background: linear-gradient(#fff8e8, var(--wood-cream-mid));
   box-shadow: inset 0 0 0 2px var(--wood-edge), inset 0 3px 10px #c47a3233;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(84px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(5, minmax(84px, 1fr));
   gap: 8px;
   padding: 10px;
   overflow: auto;
@@ -290,7 +290,6 @@
   text-overflow: ellipsis;
 }
 .shop-window .shop-offer-info small { font-size: 11px; font-weight: 800; color: var(--wood-ink-soft); }
-.shop-window .shop-offer-buy { display: grid; justify-items: end; gap: 6px; }
 .shop-window .shop-price {
   display: inline-flex;
   align-items: center;
@@ -526,7 +525,7 @@ html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height:
   .shop-window .shop-offer-info h2 { font-size: 14px; }
 }
 @media (max-height: 800px) {
-  .shop-window .shop-grid { grid-template-rows: repeat(4, minmax(76px, 1fr)); gap: 6px; padding: 8px; }
+  .shop-window .shop-grid { grid-template-rows: repeat(5, minmax(76px, 1fr)); gap: 6px; padding: 8px; }
   .shop-window .shop-offer { padding-block: 5px; }
   .shop-window .shop-offer > .item-card[data-rarity][data-card-variant] { width: 58px; height: 58px; }
   .shop-window .shop-offer > .item-card .item-art { width: 52px !important; height: 52px !important; }
@@ -546,7 +545,7 @@ html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height:
   html:not(.mobile-landscape) .shop-window .shop-stage { contain: paint; }
 }
 
-/* Celular em paisagem: provador estreito, vitrine com três colunas, rolagem interna e controles compactos. */
+/* Celular em paisagem: provador estreito, vitrine com duas colunas, rolagem interna e controles compactos. */
 html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu-frame.shop-window[class] { width: 100%; height: calc(100dvh - 16px); }
 html.mobile-landscape .shop-window .shop-layout { grid-template-columns: minmax(160px, 23%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
 html.mobile-landscape .shop-window .shop-fitting { gap: 5px; padding: 5px; }

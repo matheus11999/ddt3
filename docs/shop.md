@@ -1,6 +1,6 @@
 # Loja da Brasa
 
-A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mochila e do ferreiro (17/10/2026): madeira laranja, painéis creme, provador estático à esquerda com a carteira e vitrine à direita com cards horizontais em três colunas, abas verticais de categoria e paginação de 12 itens. Sem carrinho e sem Poder na prévia (pedido do usuário). Celular em paisagem mantém as três colunas com rolagem interna; janela estreita empilha provador e vitrine. Layout e prompts de arte em `docs/shop-art-prompts.md`; prévia com `node scripts/preview-shop.mjs`.
+A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mochila e do ferreiro (17/10/2026): madeira laranja, painéis creme, provador estático à esquerda com a carteira e vitrine à direita com cards horizontais em duas colunas, abas verticais de categoria e paginação de 10 itens. Sem carrinho e sem Poder na prévia (pedido do usuário). Celular em paisagem mantém as duas colunas com rolagem interna; janela estreita empilha provador e vitrine. Layout e prompts de arte em `docs/shop-art-prompts.md`; prévia com `node scripts/preview-shop.mjs`.
 
 ## Catálogo e prévia
 
