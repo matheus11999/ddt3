@@ -63,7 +63,10 @@ test('homing magnet locks onto an enemy the projectile passes near and curves in
  const target={id:'assist',x:point[0]+60,y:point[1]+180+31,hp:100};assert.equal(volley(terrain,origin,[60],45,0,weapon,[target])[0].hitId,undefined);
  const result=volley(terrain,origin,[60,60],45,0,weapon,[target],undefined,[0,0],{projectileIndex:0,targets:[target]});
  assert.equal(result[0].hitId,'assist');assert.ok((result[0].hitQuality??0)>.9,'a locked shot lands near the centre of the hitbox');
- assert.notEqual(result[1].hitId,'assist','only the first projectile is guided');
+ assert.notEqual(result[1].hitId,'assist','projectileIndex limits guidance to one projectile');
+ // Server shots guide every projectile of the turn: a Trident-like spread plus a delayed +1 volley all lock on.
+ const spread=[56,60,64,56,60,64],all=volley(terrain,origin,spread,45,0,weapon,[target],undefined,[0,0,0,300,300,300],{targets:[target]});
+ assert.deepEqual(all.map(r=>r.hitId),spread.map(()=>'assist'));
  // The lock survives wind: a strong headwind still cannot pull a locked projectile away.
  assert.equal(volley(terrain,origin,[60],45,-6,weapon,[target],undefined,[],{projectileIndex:0,targets:[target]})[0].hitId,'assist');
  // Out of range or dead enemies are never acquired.

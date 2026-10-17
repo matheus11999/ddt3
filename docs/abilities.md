@@ -33,14 +33,14 @@ Reconectar não substitui o perfil confirmado em memória por uma leitura antiga
 | Habilidade | Regra atual |
 | --- | --- |
 | Cura | Recupera até **300 HP**, limitada a `maxHp`. Vida já cheia rejeita o comando sem consumir o uso. |
-| Mira assistida | Arma orientação para o primeiro projétil do próximo tiro. Um uso por partida, mesmo se o jogador encerrar o turno sem atirar. |
+| Mira assistida | Arma orientação para todos os projéteis do próximo tiro. Um uso por partida, mesmo se o jogador encerrar o turno sem atirar. |
 | Invisibilidade | Oculta a posição aos inimigos imediatamente e durante **três turnos próprios completos posteriores ao turno da ativação**. |
 
 Cura publica a quantidade efetivamente recuperada em `AbilityEffect.amount`: por exemplo +140 quando faltavam 140 HP. O cliente nunca substitui isso por +300 fixo.
 
 ## Mira assistida
 
-`homingArmed` é consumido ao lançar o tiro e se aplica apenas ao **projétil de índice 0**, inclusive em salvas e Tridente. Não guia todos os projéteis nem garante acerto.
+`homingArmed` é consumido ao lançar o tiro e guia **todos os projéteis do turno**, inclusive salvas (+1, +2) e Tridente. Cada projétil trava sozinho no inimigo mais próximo. Estilhaços secundários (tijolos) não são guiados.
 
 Funciona como um **ímã**: em qualquer fase do voo (subida ou descida), assim que o centro do projétil passa a até **220 unidades** (`HOMING_RADIUS`) do centro da hitbox de um inimigo vivo, **inclusive invisível**, ele **trava** no mais próximo e mantém a trava enquanto esse alvo viver. Travado, o projétil ignora vento e gravidade, mantém no mínimo `HOMING_MIN_SPEED = 520` px/s e faz perseguição pura: a curvatura é `max(HOMING_TURN_RATE = 6, 2·velocidade/distância)` rad/s, ou seja, o raio de curva nunca passa de metade da distância ao alvo, então não fica orbitando. Não há teleporte; a trajetória é simulada no servidor (`shared/physics.ts`) e o cliente só reproduz os pontos recebidos.
 
