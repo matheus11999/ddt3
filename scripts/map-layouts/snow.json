@@ -1,0 +1,144 @@
+{
+ "name": "Sonho Nevado",
+ "source": "test-results/codex-maps/neve",
+ "background": [
+  "panorama-esquerda.png",
+  "panorama-direita.png"
+ ],
+ "mirror": true,
+ "spawns": [
+  [
+   1040,
+   820,
+   1250,
+   385
+  ],
+  [
+   2032,
+   2252,
+   1822,
+   2687
+  ]
+ ],
+ "items": [
+  {
+   "id": "snow-island",
+   "sheet": "pecas2",
+   "piece": 0,
+   "x": 330,
+   "top": 540,
+   "scale": 0.9,
+   "material": "earth",
+   "destructible": true
+  },
+  {
+   "id": "snow-bridge",
+   "sheet": "pecas",
+   "piece": 4,
+   "x": 1000,
+   "top": 570,
+   "scale": 1.2,
+   "material": "earth",
+   "destructible": true
+  },
+  {
+   "id": "snow-ledge",
+   "sheet": "pecas2",
+   "piece": 2,
+   "x": 1536,
+   "top": 420,
+   "scale": 0.9,
+   "material": "earth",
+   "destructible": true,
+   "mirror": false
+  },
+  {
+   "id": "snow-tower",
+   "sheet": "pecas2",
+   "piece": 3,
+   "x": 110,
+   "top": 362,
+   "scale": 0.55,
+   "material": "earth",
+   "destructible": true
+  },
+  {
+   "id": "snow-pine",
+   "sheet": "objetos",
+   "piece": 1,
+   "x": 255,
+   "top": 200,
+   "scale": 0.32,
+   "material": "earth",
+   "destructible": true,
+   "rest": true
+  },
+  {
+   "id": "snow-crystals",
+   "sheet": "pecas2",
+   "piece": 4,
+   "x": 545,
+   "top": 424,
+   "scale": 0.45,
+   "material": "earth",
+   "destructible": true
+  },
+  {
+   "id": "snow-snowman",
+   "sheet": "objetos",
+   "piece": 0,
+   "x": 700,
+   "top": 200,
+   "scale": 0.32,
+   "material": "earth",
+   "destructible": true,
+   "rest": true,
+   "mirrorAs": {
+    "piece": 6
+   }
+  },
+  {
+   "id": "snow-gifts",
+   "sheet": "objetos",
+   "piece": 7,
+   "x": 940,
+   "top": 200,
+   "scale": 0.32,
+   "material": "earth",
+   "destructible": true,
+   "rest": true,
+   "mirrorAs": {
+    "piece": 9
+   }
+  },
+  {
+   "id": "snow-lamp",
+   "sheet": "objetos",
+   "piece": 2,
+   "x": 1330,
+   "top": 200,
+   "scale": 0.32,
+   "material": "earth",
+   "destructible": true,
+   "rest": true
+  },
+  {
+   "id": "snow-lantern",
+   "sheet": "objetos",
+   "piece": 8,
+   "x": 1536,
+   "top": 200,
+   "scale": 0.32,
+   "material": "earth",
+   "destructible": true,
+   "mirror": false,
+   "rest": true
+  }
+ ],
+ "width": 3072,
+ "sheets": {
+  "pecas": "pecas.png",
+  "pecas2": "pecas2.png",
+  "objetos": "objetos.png"
+ }
+}
