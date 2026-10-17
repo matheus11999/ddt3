@@ -437,9 +437,14 @@ export class Game {
   const shot=m.activeShot;if(!shot||m.state.phase!=='resolving'||shot.impacted.includes(impact.projectileIndex))return;
   const shooter=m.state.players.find(player=>player.id===shot.shooterId)!,hits:ShotHit[]=[];
   if(impact.flight){
-   const landing=shooter.hp>0?flightLanding(m.terrain,impact.mark,m.state.players.filter(player=>player.id!==shooter.id)):null;
-   if(landing){Object.assign(shooter,landing);delete shooter.fall;adjustAimToTerrain(shooter,m.terrain);this.abilityEffect(m,{playerId:shooter.id,ability:'flight',...landing,at:impact.at});}
-   shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:[]});this.broadcastBattle(m,true);return;
+   const landing=shooter.hp>0?flightLanding(m.terrain,{...impact.mark,points:shot.projectiles[impact.projectileIndex]?.points}):null;
+   if(landing){
+    shooter.x=landing.x;shooter.y=landing.y;
+    if(shooter.y>WORLD.height){hits.push({id:shooter.id,damage:shooter.hp,x:landing.x,y:landing.fromY-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});shooter.y=WORLD.height+150;shooter.hp=0;shooter.powerArmed=false;}
+    this.animateFall(shooter,landing.fromY,impact.at);if(shooter.fall)m.resolveAt=Math.max(m.resolveAt,shooter.fall.startedAt+shooter.fall.duration);
+    adjustAimToTerrain(shooter,m.terrain);this.abilityEffect(m,{playerId:shooter.id,ability:'flight',x:landing.x,y:landing.fromY,at:impact.at});
+   }
+   shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});if(!this.checkWin(m))this.broadcastBattle(m,true);return;
   }
   for(const planned of impact.hits){
    const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.hp<=0)continue;

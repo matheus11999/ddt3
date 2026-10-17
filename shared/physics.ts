@@ -79,18 +79,19 @@ interface ProjectileOrigin {x:number;y:number;facing:number;}
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
 /** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
 export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
-/** Flight can only land near its first contact, with solid support and room for
- * the entire fighter. A miss or an enclosed wall leaves the shooter in place. */
-export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number},targets:ProjectileTarget[]=[]):{x:number;y:number}|null {
- const width=terrainWidth(terrain);if(impact.x<24||impact.x>width-24||impact.y<0||impact.y>=WORLD.height)return null;
- for(let distance=0;distance<=48;distance+=WORLD.cell)for(const direction of distance?[1,-1]:[1]){
-  const x=impact.x+distance*direction;if(x<24||x>width-24)continue;
-  const y=ground(terrain,x,impact.y-54);if(y>WORLD.height||Math.abs(y-impact.y)>54)continue;
-  if(targets.some(target=>target.hp>0&&Math.abs(target.x-x)<30&&Math.abs(target.y-y)<60))continue;
-  let clear=true;for(let px=x-12;px<=x+12&&clear;px+=WORLD.cell){if(Math.abs(ground(terrain,px,y-6)-y)>9){clear=false;break;}for(let py=y-63;py<y-3;py+=WORLD.cell)if(solid(terrain,px,py)){clear=false;break;}}
-  if(clear)return {x,y};
- }
- return null;
+/** Flight puts the fighter exactly where the plane touched. Against a wall it is set just outside the
+ * wall on the side the plane came from; against an underside, just below it. From there the fighter
+ * drops to the first ground under it (`y`), or into the void (`y` past the bottom) and dies.
+ * Only a plane that leaves the map leaves the shooter in place. */
+export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number;points?:number[][]}):{x:number;y:number;fromY:number}|null {
+ const width=terrainWidth(terrain);if(impact.x<0||impact.x>=width||impact.y<0||impact.y>=WORLD.height)return null;
+ const last=impact.points?.at(-1),before=impact.points?.at(-2),travel=last&&before&&last[0]!==before[0]?Math.sign(last[0]-before[0]):0;
+ const blocked=(x:number)=>{for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=impact.y-51;py<impact.y-6;py+=WORLD.cell)if(solid(terrain,px,py))return true;return false;};
+ let x=Math.max(24,Math.min(width-24,impact.x));
+ // Only a wall in the plane's way pushes the fighter back; under a ceiling it simply hangs below the contact.
+ if(travel&&solid(terrain,impact.x+travel*4,impact.y))for(let back=0;back<=36&&blocked(x);back+=WORLD.cell)x=Math.max(24,Math.min(width-24,impact.x-travel*back));
+ let fromY=impact.y-6;while(fromY<impact.y+6&&solid(terrain,x,fromY))fromY+=WORLD.cell;
+ return {x,y:ground(terrain,x,fromY),fromY:Math.min(fromY,impact.y)};
 }
 /** Points track the projectile center; x/y identify the contacted surface. */
 export interface TrajectoryResult {points:number[][];x:number;y:number;hitId?:string;hitQuality?:number;flightTime:number;}
