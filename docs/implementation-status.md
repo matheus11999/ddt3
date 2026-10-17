@@ -20,6 +20,7 @@
 - Sem a gema de raridade no canto dos cards (a cor da carta, o brilho do épico e o pulso do lendário continuam).
 - Selo de força da arma só aparece ao passar o mouse ou focar o card; o hover continua mostrando o selo grande.
 - O hover não mostra mais "Clique/Toque para equipar"; só avisa quando o item é incompatível (ou o texto de ação do Ferreiro).
+- Pedras com quantidade 0 não aparecem na grade (Tudo e Pedras).
 
 ## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
 
