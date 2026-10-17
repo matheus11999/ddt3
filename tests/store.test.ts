@@ -148,7 +148,7 @@ test('shop purchase atomically deducts the server price and grants all selected 
  assert.equal(outcome.result.spent,540);assert.equal(outcome.profile.gold,460);
  assert.ok(outcome.profile.inventory.includes('volt')&&outcome.profile.inventory.includes('face-taunt'));
  assert.deepEqual(outcome.profile.equipment,before.equipment);assert.match(state.queries[1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'COMMIT');
- await assert.rejects(store.buy(before.id,['volt']),/já possui/);assert.equal(state.profile.gold,460);
+ await assert.rejects(store.buy(before.id,['volt']),/já tem este item/);assert.equal(state.profile.gold,460);
 });
 test('shop rejects duplicate, unavailable, owned or unaffordable carts without partial purchases',async()=>{
  const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>id!=='volt');state.profile.gold=10;
