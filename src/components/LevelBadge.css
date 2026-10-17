@@ -26,35 +26,16 @@
 @keyframes level-aura-orbit{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.level-badge .level-badge-aura,.level-badge .level-badge-aura:before,.level-badge .level-badge-aura:after{animation:none!important;transform:none!important}}
 
-/* Tier backdrop: one effect per colour band, behind the art and the ring aura. */
-.level-badge .level-badge-fx{position:absolute;inset:-22%;z-index:-1;pointer-events:none;border-radius:50%}
-.level-badge .level-badge-fx:before,.level-badge .level-badge-fx:after{content:'';position:absolute;inset:0;border-radius:50%}
-/* 1–10 stone: grey dust drifting up from a soft halo. */
-.level-badge[data-tier="1"] .level-badge-fx{background:radial-gradient(circle closest-side,#c9c9c955 0 45%,#8a8a8a22 73%,transparent 97%)}
-.level-badge[data-tier="1"] .level-badge-fx:before{background:radial-gradient(circle at 28% 70%,#e6e6e6 0 3%,transparent 4.5%),radial-gradient(circle at 70% 76%,#bdbdbd 0 2.5%,transparent 4%),radial-gradient(circle at 52% 82%,#d6d6d6 0 2%,transparent 3.5%);animation:level-fx-rise 4.2s ease-in infinite}
-.level-badge[data-tier="1"] .level-badge-fx:after{background:radial-gradient(circle at 38% 78%,#f2f2f2 0 2%,transparent 3.5%),radial-gradient(circle at 63% 70%,#a8a8a8 0 3%,transparent 4.5%);animation:level-fx-rise 4.2s 2.1s ease-in infinite}
-/* 11–20 leaf: green glow with slow turning leaf blades and rising sparks. */
-.level-badge[data-tier="2"] .level-badge-fx{background:radial-gradient(circle closest-side,#5dff7a66 0 39%,#18c94a2e 70%,transparent 97%)}
-.level-badge[data-tier="2"] .level-badge-fx:before{inset:6%;background:repeating-conic-gradient(from 10deg,#7dff8fcc 0deg 9deg,transparent 22deg 60deg);mask-image:radial-gradient(circle closest-side,transparent 45%,#000 66%,transparent 100%);-webkit-mask-image:radial-gradient(circle closest-side,transparent 45%,#000 66%,transparent 100%);animation:level-aura-orbit 14s linear infinite}
-.level-badge[data-tier="2"] .level-badge-fx:after{background:radial-gradient(circle at 26% 72%,#d6ffc4 0 3%,transparent 4.5%),radial-gradient(circle at 74% 66%,#8cff9d 0 2.5%,transparent 4%),radial-gradient(circle at 50% 84%,#b8ffb0 0 2%,transparent 3.5%);animation:level-fx-rise 3.4s ease-in infinite}
-/* 21–30 water: blue ripples expanding behind the badge. */
-.level-badge[data-tier="3"] .level-badge-fx{background:radial-gradient(circle closest-side,#4ebaff66 0 42%,#1763cb2e 73%,transparent 97%)}
-.level-badge[data-tier="3"] .level-badge-fx:before,.level-badge[data-tier="3"] .level-badge-fx:after{background:radial-gradient(circle closest-side,transparent 74%,#8fd8ff 82%,#2f8dffaa 88%,transparent 98%);animation:level-fx-ripple 2.8s ease-out infinite}
-.level-badge[data-tier="3"] .level-badge-fx:after{animation-delay:1.4s}
-/* 31–40 ember: bronze flames licking up and sparks. */
-.level-badge[data-tier="4"] .level-badge-fx{background:radial-gradient(circle closest-side,#ff9a4a5c 0 39%,#b0521c33 73%,transparent 97%)}
-.level-badge[data-tier="4"] .level-badge-fx:before{background:radial-gradient(ellipse 12% 30% at 22% 50%,#ff9a3d,transparent 80%),radial-gradient(ellipse 14% 38% at 40% 36%,#ffc56b,transparent 80%),radial-gradient(ellipse 14% 38% at 60% 36%,#ffb04f,transparent 80%),radial-gradient(ellipse 12% 30% at 78% 50%,#f07a2c,transparent 80%);transform-origin:50% 80%;animation:level-fx-flame 1.3s ease-in-out infinite alternate}
-.level-badge[data-tier="4"] .level-badge-fx:after{background:radial-gradient(circle at 34% 70%,#ffe2a6 0 2.5%,transparent 4%),radial-gradient(circle at 66% 76%,#ffb15c 0 3%,transparent 4.5%),radial-gradient(circle at 54% 84%,#fff0c4 0 2%,transparent 3.5%);animation:level-fx-rise 2.6s ease-in infinite}
-/* 41–50 crystal: silver star rays turning with a twinkle. */
-.level-badge[data-tier="5"] .level-badge-fx{background:radial-gradient(circle closest-side,#ffffff5e 0 39%,#b9c6d633 73%,transparent 97%)}
-.level-badge[data-tier="5"] .level-badge-fx:before{background:repeating-conic-gradient(from 0deg,#ffffffe6 0deg 2.5deg,transparent 5deg 45deg);mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);-webkit-mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);animation:level-aura-orbit 18s linear infinite}
-.level-badge[data-tier="5"] .level-badge-fx:after{background:radial-gradient(circle at 22% 30%,#fff 0 2.5%,transparent 4%),radial-gradient(circle at 80% 28%,#e8f4ff 0 2%,transparent 3.5%),radial-gradient(circle at 76% 78%,#fff 0 2.5%,transparent 4%),radial-gradient(circle at 24% 76%,#dfe9f5 0 2%,transparent 3.5%);animation:level-fx-twinkle 1.8s ease-in-out infinite alternate}
-/* 51–70 sun: golden sunburst and sparkles. */
-.level-badge[data-tier="6"] .level-badge-fx{background:radial-gradient(circle closest-side,#ffe56a80 0 39%,#ffb3003d 73%,transparent 100%)}
-.level-badge[data-tier="6"] .level-badge-fx:before{inset:-4%;background:repeating-conic-gradient(from 0deg,#fff3a0e6 0deg 5deg,transparent 9deg 30deg);mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);-webkit-mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);animation:level-aura-orbit 22s linear infinite}
-.level-badge[data-tier="6"] .level-badge-fx:after{background:radial-gradient(circle at 20% 34%,#fffbd0 0 3%,transparent 4.5%),radial-gradient(circle at 82% 30%,#ffe066 0 2.5%,transparent 4%),radial-gradient(circle at 78% 80%,#fffbd0 0 2.5%,transparent 4%),radial-gradient(circle at 24% 78%,#ffd23f 0 2%,transparent 3.5%);animation:level-fx-twinkle 1.4s ease-in-out infinite alternate}
-@keyframes level-fx-rise{0%{transform:translateY(8%);opacity:0}25%{opacity:1}100%{transform:translateY(-34%);opacity:0}}
-@keyframes level-fx-ripple{0%{transform:scale(.55);opacity:.95}100%{transform:scale(1.18);opacity:0}}
-@keyframes level-fx-flame{0%{transform:scale(.94,.86)}100%{transform:scale(1.04,1.1)}}
+/* Tier backdrop: one sunburst pattern for every band, in the band's colours and growing with the tier. */
+.level-badge .level-badge-fx{position:absolute;inset:-22%;z-index:-1;pointer-events:none;background:radial-gradient(circle closest-side,var(--fx-glow) 0 39%,var(--fx-glow-outer) 73%,transparent 100%)}
+.level-badge .level-badge-fx:before,.level-badge .level-badge-fx:after{content:'';position:absolute;inset:0}
+.level-badge .level-badge-fx:before{inset:-4%;background:repeating-conic-gradient(from 0deg,var(--fx-ray) 0deg var(--fx-ray-width),transparent calc(var(--fx-ray-width) + 4deg) var(--fx-ray-step));mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);-webkit-mask-image:radial-gradient(circle closest-side,#000 30%,transparent 100%);opacity:var(--fx-ray-opacity);animation:level-aura-orbit var(--fx-speed) linear infinite}
+.level-badge .level-badge-fx:after{background:radial-gradient(circle at 20% 34%,var(--fx-spark) 0 3%,transparent 4.5%),radial-gradient(circle at 82% 30%,var(--fx-spark-second) 0 2.5%,transparent 4%),radial-gradient(circle at 78% 80%,var(--fx-spark) 0 2.5%,transparent 4%),radial-gradient(circle at 24% 78%,var(--fx-spark-second) 0 2%,transparent 3.5%);animation:level-fx-twinkle 1.4s ease-in-out infinite alternate}
+.level-badge[data-tier="1"]{--fx-glow:#d4d4d44d;--fx-glow-outer:#8a8a8a1f;--fx-ray:#e4e4e4b3;--fx-ray-width:4deg;--fx-ray-step:45deg;--fx-ray-opacity:.55;--fx-speed:30s;--fx-spark:#f0f0f0;--fx-spark-second:#bdbdbd}
+.level-badge[data-tier="2"]{--fx-glow:#5dff7a5c;--fx-glow-outer:#18c94a29;--fx-ray:#9dffa8d9;--fx-ray-width:4deg;--fx-ray-step:40deg;--fx-ray-opacity:.7;--fx-speed:28s;--fx-spark:#e2ffd6;--fx-spark-second:#6dff86}
+.level-badge[data-tier="3"]{--fx-glow:#4ebaff66;--fx-glow-outer:#1763cb30;--fx-ray:#a8e2ffe0;--fx-ray-width:4.5deg;--fx-ray-step:36deg;--fx-ray-opacity:.78;--fx-speed:26s;--fx-spark:#e4f7ff;--fx-spark-second:#56b8ff}
+.level-badge[data-tier="4"]{--fx-glow:#ffa45a66;--fx-glow-outer:#b0521c33;--fx-ray:#ffcf96e0;--fx-ray-width:4.5deg;--fx-ray-step:33deg;--fx-ray-opacity:.84;--fx-speed:25s;--fx-spark:#fff0d0;--fx-spark-second:#ff9f4f}
+.level-badge[data-tier="5"]{--fx-glow:#ffffff66;--fx-glow-outer:#b9c6d638;--fx-ray:#ffffffe6;--fx-ray-width:5deg;--fx-ray-step:30deg;--fx-ray-opacity:.9;--fx-speed:24s;--fx-spark:#fff;--fx-spark-second:#d8e6f5}
+.level-badge[data-tier="6"]{--fx-glow:#ffe56a80;--fx-glow-outer:#ffb3003d;--fx-ray:#fff3a0e6;--fx-ray-width:5deg;--fx-ray-step:30deg;--fx-ray-opacity:1;--fx-speed:22s;--fx-spark:#fffbd0;--fx-spark-second:#ffd23f}
 @keyframes level-fx-twinkle{0%{opacity:.25;transform:scale(.94)}100%{opacity:1;transform:scale(1.04)}}
 @media(prefers-reduced-motion:reduce){.level-badge .level-badge-fx:before,.level-badge .level-badge-fx:after{animation:none!important}}

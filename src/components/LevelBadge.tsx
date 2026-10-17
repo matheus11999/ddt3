@@ -3,7 +3,7 @@ import {MAX_PLAYER_LEVEL,normalizeLevel} from '../../shared/progression';
 import './LevelBadge.css';
 
 /** A live, sculpted numeral leads; the original painted accents stay behind it.
- * Every tier has its own backdrop effect (stone, leaf, water, ember, crystal, sun); the ring aura still starts at 30. */
+ * Every tier shares one sunburst backdrop in its own colours, stronger at higher tiers; the ring aura still starts at 30. */
 export function LevelBadge({level,size=42,className=''}:{level:number;size?:number;className?:string}){
  const value=normalizeLevel(level);
  // The gold palette spans both decades after silver (levels 51–70).
