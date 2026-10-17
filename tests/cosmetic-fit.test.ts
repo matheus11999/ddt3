@@ -42,7 +42,7 @@ test('unregistered items, hidden glasses and body proportions are reported',()=>
  const glasses=rect(500,400,200,80),half=rect(500,400,100,80);
  assert.equal(evaluateGlassesVisibility('glasses-sport',glasses,glasses),null);
  assert.equal(evaluateGlassesVisibility('glasses-sport',glasses,half)?.code,'hidden');
- assert.deepEqual(evaluateBody('outfit-test',.45,.95).issues,[]);
+ assert.deepEqual(evaluateBody('outfit-test',.5,.95).issues,[]);
  assert.equal(evaluateBody('outfit-test',.55,.7).issues.length,2);
 });
 

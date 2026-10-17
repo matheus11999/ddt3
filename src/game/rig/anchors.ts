@@ -59,5 +59,9 @@ export const FIT_ZONES:Readonly<Record<FitClass,FitZone>>={
 /** Transparent margin every painted layer keeps from the template frame. */
 export const FRAME_MARGIN=24;
 
-/** Standing body proportions shared by every outfit. */
-export const BODY_PROPORTIONS={headShare:[.42,.48] as const,shoulderWidth:[.85,1.05] as const};
+/** Drawn head size relative to the body art, applied at neckPivot in every pose and screen.
+ * Head cosmetics are pinned in head space, so they scale with it; the template stays 1254px. */
+export const HEAD_SCALE=1.3;
+/** Standing body proportions shared by every outfit, measured with HEAD_SCALE applied.
+ * Shoulder width compares the body art with the unscaled reference head (HEAD_WIDTH). */
+export const BODY_PROPORTIONS={headShare:[.47,.53] as const,shoulderWidth:[.85,1.05] as const};

@@ -27,6 +27,7 @@ O usuário ampliou o checkpoint de rostos para cenários, roupas, inventário, f
 ## Encaixe de cosméticos
 
 - Fase 1 do rig v1 (`docs/cosmetics-fit.md`): âncoras, zonas de tamanho por classe e `npm run verify:cosmetics` em modo relatório. Nenhuma mudança visual. Relatório inicial: 8 de 17 peças fora da zona, 49 de 54 combinações chapéu × cabelo com franja sobre os olhos ou óculos encobertos, Executivo e Dançarina com tronco mais estreito. Fase 2: `COSMETIC_MANIFEST` e `drawPinned` substituem os ajustes manuais de cabelo, chapéu e óculos; 313 de 353 imagens de referência idênticas, o resto com diferença abaixo de meio pixel. Fase 3 (código): assento único dos chapéus, óculos entre franja e aba, tintura em todos os cabelos, moldes `docs/templates/` e briefs de repintura em `cosmetics-art-briefs.md`; a arte nova ainda não foi gerada nesta sessão (sem ferramenta de geração de imagem). Fases 4–5 pendentes.
+- Cabeça 30% maior (`HEAD_SCALE=1.3`) em pé, andando, combate, cartas, HUD, mochila, loja, Power e resultado. Cosméticos seguem a cabeça sem mudança de arte; molduras de `Avatar.tsx` reduzidas a 74% e nome/vida/seta no cenário elevados. Conferido em prancha com Cabelo Aventureiro e Chapéu Astral com aura +12 (o mais alto). `npm run check`, `npm test` (103) e `npm run build` passam; relatório de encaixe inalterado, proporção da cabeça 50% em pé.
 
 ## Inventário, ferreiro e arena
 

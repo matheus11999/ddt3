@@ -19,7 +19,7 @@ try{
  await page.goto(server.resolvedUrls.local[0],{waitUntil:'networkidle'});
  report=await page.evaluate(async()=>{
   const A=await import('/src/game/appearance.ts');
-  const {FIT_ZONES,HEAD_ANCHORS,HEAD_WIDTH}=await import('/src/game/rig/anchors.ts');
+  const {FIT_ZONES,HEAD_ANCHORS,HEAD_SCALE,HEAD_WIDTH}=await import('/src/game/rig/anchors.ts');
   const {COSMETIC_MANIFEST}=await import('/src/game/rig/manifest.ts');
   const F=await import('/src/game/rig/fit.ts');
   const {CATALOG,DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts');
@@ -77,12 +77,14 @@ try{
   const bodies=[];
   for(const outfit of outfits){
    const outfitRig=A.avatarRig(eqOf({outfit}));if(!outfitRig){bodies.push({id:outfit,bounds:null,widthRatio:0,issues:[{code:'unregistered',message:'Rig da roupa não carregou',measured:0,limit:0}]});continue;}
-   const [el,c]=surface();A.drawPart(c,outfitRig.stanceBody);A.drawPart(c,outfitRig.head);
-   const mask=toMask(el),bounds=F.maskBounds(mask),headHeight=HEAD_ANCHORS.neckLine-HEAD_ANCHORS.crown[1];
+   const [el,c]=surface();A.drawPart(c,outfitRig.stanceBody);
+   // Head drawn at HEAD_SCALE around the neck pivot, as in the game; the body art is unscaled.
+   const mask=toMask(el),body=F.maskBounds(mask),pivot=HEAD_ANCHORS.neckPivot[1],crown=pivot-(pivot-HEAD_ANCHORS.crown[1])*HEAD_SCALE,feet=body.y+body.height;
+   const headHeight=(HEAD_ANCHORS.neckLine-HEAD_ANCHORS.crown[1])*HEAD_SCALE,bounds={...body,y:Math.round(crown),height:Math.round(feet-crown)};
    // Torso width two thirds of a head below the neck, where arms in each pose rarely reach.
    const row=HEAD_ANCHORS.neckLine+Math.round(HEAD_WIDTH*.2)+PAD;let left=-1,right=-1;
    for(let x=0;x<FULL;x++)if(mask.data[row*FULL+x]){if(left<0)left=x;right=x;}
-   bodies.push({...F.evaluateBody(outfit,headHeight/bounds.height,(right-left+1)/HEAD_WIDTH),bounds});
+   bodies.push({...F.evaluateBody(outfit,headHeight/(feet-crown),(right-left+1)/HEAD_WIDTH),bounds});
   }
 
   // Sheets: each item alone with its zone, and the hair × hat matrix with the sport glasses.

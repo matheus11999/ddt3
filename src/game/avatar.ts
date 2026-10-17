@@ -2,6 +2,7 @@ import type {Equipment} from '../../shared/catalog';
 import {weaponAssetPath} from '../../shared/catalog';
 import type {WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse} from './appearance';
+import {HEAD_SCALE} from './rig/anchors';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
 export interface AvatarContext {pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;}
@@ -128,7 +129,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    drawPart(c,painted.nearLeg,kick*.055,0,-Math.max(0,-kick)*.8);
    drawPart(c,painted.torso,0,-Math.sin(m.phase+.5)*walk*.7,pose==='charge'?.7:0);
    const neckX=(painted.neck[0]-625)*AVATAR_UNIT,neckY=(painted.neck[1]-1225)*AVATAR_UNIT;
-   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045-slope*.13);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
+   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045-slope*.13);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
    drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
    c.restore();c.restore();return;
   }
@@ -143,7 +144,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   c.save();c.translate(-24*lie,rootY+(rig.outfitPose==='surfer'?-8:14)*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
   if(walkBlend<.999){c.save();c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
   if(rig.walking&&walkBlend>.001){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
-  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
+  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
   if(weapon){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;
    c.translate(mix(31-stride*2.8*walk-recoil*7,7,lie),mix(-35-Math.abs(stride)*1.6*walk-(aiming?5:0),-125,lie));c.rotate(Math.sin(time/600)*.02+stride*.065*walk+angle-recoil*.17-lie*Math.PI/2);

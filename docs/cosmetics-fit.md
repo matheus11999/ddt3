@@ -23,9 +23,13 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | `hat-band` | 1,20 | 0,30 | Até y=420; sem cobrir olhos/boca |
 | `hat-helmet` | 1,30 | 0,70 | Até y=470; sem cobrir olhos/boca |
 | `glasses` | 0,80–0,95 | — | A partir de y=340; frente ≥70% visível (aba pode cobrir o topo do aro) |
-| Roupa | ombros 0,85–1,05 | — | Cabeça = 42–48% da altura em pé |
+| Roupa | ombros 0,85–1,05 (cabeça de referência) | — | Cabeça = 47–53% da altura em pé, já com `HEAD_SCALE` |
 
 Todo PNG mantém 24 px de margem transparente até a borda do quadro de 1254 px.
+
+## Tamanho da cabeça
+
+Pedido do usuário em 17/10/2026: cabeça 30% maior em todos os bonecos e telas. `HEAD_SCALE=1.3` em `anchors.ts` é aplicado em `avatar.ts` no pivô do pescoço, em pé, andando e em combate. Rosto, cabelo, chapéu e óculos estão no espaço da cabeça e crescem juntos; moldes, âncoras e zonas continuam no espaço de 1254 px e não mudam. O corpo não muda. Para caber nas molduras, `Avatar.tsx` desenha o boneco a 74% do quadro (antes 79%), e nome, barra de vida e seta de turno no cenário subiram (`Scene.tsx`). Mudar o tamanho da cabeça no futuro é trocar só esse número e conferir esses enquadramentos.
 
 ## Gerações futuras
 

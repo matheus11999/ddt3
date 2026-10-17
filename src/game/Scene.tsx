@@ -27,7 +27,7 @@ export function Scene({angle,onArena,onForge}:{angle:number;onArena:()=>void;onF
   let panEnabled=false,drag:{id:number;x:number;y:number}|null=null;
   const cameraState=()=>window.dispatchEvent(new CustomEvent('brasa-camera-state',{detail:{zoom:camera.targetZoom,panning:panEnabled}}));
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
-  const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={})=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;const moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y+=dy*.16;if(Math.abs(dx)>.5)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});label(name,e.x,e.y-size*(context.combat?.75:1)-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+  const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={})=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;const moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y+=dy*.16;if(Math.abs(dx)>.5)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});label(name,e.x,e.y-size*(context.combat?.95:1.15)-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;if(!b){if(lobby.complete&&lobby.naturalWidth)c.drawImage(lobby,0,0,W,H);else{c.fillStyle='#12365e';c.fillRect(0,0,W,H);}}
@@ -67,8 +67,8 @@ export function Scene({angle,onArena,onForge}:{angle:number;onArena:()=>void;onF
      }
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';
      const e=avatar(f.id,f.name,f.equipment,f.x,Math.min(y,1000),112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined});
-     c.fillStyle='#302537bb';c.fillRect(e.x-35,e.y-111,70,7);c.fillStyle=f.team===0?'#16cfff':'#ff4b67';c.fillRect(e.x-34,e.y-110,68*hp/f.maxHp,5);
-     if(b.turnId===f.id&&b.phase==='aiming'){c.fillStyle='#ffe7a2';c.beginPath();c.moveTo(e.x-7,e.y-131);c.lineTo(e.x+7,e.y-131);c.lineTo(e.x,e.y-122);c.fill();
+     c.fillStyle='#302537bb';c.fillRect(e.x-35,e.y-133,70,7);c.fillStyle=f.team===0?'#16cfff':'#ff4b67';c.fillRect(e.x-34,e.y-132,68*hp/f.maxHp,5);
+     if(b.turnId===f.id&&b.phase==='aiming'){c.fillStyle='#ffe7a2';c.beginPath();c.moveTo(e.x-7,e.y-153);c.lineTo(e.x+7,e.y-153);c.lineTo(e.x,e.y-144);c.fill();
       if(f.id===state.profile?.id){const a=angleRef.current*Math.PI/180;c.save();c.strokeStyle='#fff5b1';c.lineWidth=2;c.setLineDash([4,7]);c.beginPath();c.moveTo(e.x,e.y-40);c.lineTo(e.x+Math.cos(a)*100*f.facing,e.y-40-Math.sin(a)*100);c.stroke();c.restore();}}
     }
     if(shot&&elapsed<shot.duration+700){
