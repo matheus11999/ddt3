@@ -60,7 +60,8 @@ export function packTerrain(t:Uint8Array):Uint8Array{const b=new Uint8Array(Math
 export function unpackTerrain(b:Uint8Array){const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let i=0;i<t.length;i++)t[i]=(b[i>>3]>>(i%8))&1;return t;}
 interface ProjectileOrigin {x:number;y:number;facing:number;}
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
-export interface ProjectileGuidance {projectileIndex:number;targets:ProjectileTarget[];}
+/** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
+export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
 /** Flight can only land near its first contact, with solid support and room for
  * the entire fighter. A miss or an enclosed wall leaves the shooter in place. */
 export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number},targets:ProjectileTarget[]=[]):{x:number;y:number}|null {
@@ -161,7 +162,7 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
   }
   time+=duration;
   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;
-   const locked=guidance?.projectileIndex===index?homingTarget(shot,guidance):undefined;
+   const locked=guidance&&(guidance.projectileIndex??index)===index?homingTarget(shot,guidance):undefined;
    if(locked){
     // Magnet lock: pure pursuit that ignores wind/gravity. The turn rate grows as the
     // distance shrinks (turn radius <= half the distance), so it always closes in.

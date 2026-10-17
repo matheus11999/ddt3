@@ -20,7 +20,7 @@ export const INVISIBILITY_TURNS=3;
 export const HIDDEN_POSITION=-10000;
 export const ABILITIES:readonly {id:AbilityId;name:string;detail:string;uses:number;cost:number}[]=[
  {id:'heal',name:'Cura',detail:'Recupera até 300 de vida. Uma vez por partida.',uses:1,cost:0},
- {id:'homing',name:'Mira assistida',detail:'Ímã: o primeiro projétil que passar a até 220 de um inimigo trava nele e curva até o alvo. Uma vez por partida.',uses:1,cost:0},
+ {id:'homing',name:'Mira assistida',detail:'Ímã: todo projétil do tiro que passar a até 220 de um inimigo trava nele e curva até o alvo. Uma vez por partida.',uses:1,cost:0},
  {id:'invisibility',name:'Invisibilidade',detail:'Oculta sua posição dos inimigos por três turnos próprios completos. Uma vez por partida.',uses:1,cost:0}
 ];
 export function initialAbilities(loadout?:unknown):Record<AbilityId,number>{const slots=normalizeAbilityLoadout(loadout);return {heal:slots.includes('heal')?1:0,homing:slots.includes('homing')?1:0,invisibility:slots.includes('invisibility')?1:0};}
