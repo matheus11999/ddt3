@@ -13,7 +13,7 @@ test('gendered appearance, including the navigator glasses, rejects the opposite
  const female=['face-smile','face-serene','face-wink','outfit-dancer','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy'];
  for(const [gender,ids] of [['male',male],['female',female]] as const)for(const id of ids){assert.equal(itemGender(id),gender);assert.equal(canEquipItem(id,gender),true);assert.equal(canEquipItem(CATALOG[id],gender==='male'?'female':'male'),false);}
  for(const item of ITEMS){
-  if(item.id.endsWith('-none')||['weapon','wristband','bracelet','costume'].includes(item.slot)||item.slot==='glasses'&&item.id!=='glasses-navigator'){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
+  if(item.id.endsWith('-none')||['weapon','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)||item.slot==='glasses'&&item.id!=='glasses-navigator'){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
   else assert.notEqual(itemGender(item),'unisex');
  }
  for(const offer of SHOP_OFFERS)assert.equal(offer.gender,itemGender(offer.id),'store categories derive from equipment compatibility');

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,SLOTS,STONES,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,SLOTS,slotAccepts,slotFamily,slotsForItem,STONES,targetSlotForItem,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
 import {SHOP_OFFER_BY_ID} from '../shared/shop';
 import {COMPOSITION_STONES,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {levelForXp,levelProgress,MAX_PLAYER_LEVEL} from '../shared/progression';
@@ -83,8 +83,8 @@ test('version six grants the two new outfits without restoring removed cosmetics
  assert.equal(saved.inventory.includes('outfit-surfer'),false);assert.equal(saved.contentVersion,CONTENT_VERSION);
 });
 
-test('retired cosmetic items disappear while current equipment uses the nine supported slots',()=>{
- assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume']);
+test('retired cosmetic items disappear while current equipment uses the thirteen supported slots',()=>{
+ assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble']);
  const migrated=normalizeProfile({id:'retired',name:'Teste',contentVersion:4,inventory:['ember','accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'],equipment:{...DEFAULT_EQUIPMENT,...{accessory:'accessory-satchel',eyes:'eyes-ocean'}}});
  for(const id of ['accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'])assert.equal(migrated.inventory.includes(id),false);
  assert.equal(migrated.equipment.face,'face-brave');assert.equal(migrated.equipment.wristband,'wristband-none');
@@ -160,5 +160,16 @@ test('prototype retirement exchanges owned items and preserves equipment, compos
 test('migration ignores unknown and inherited object keys instead of granting invalid items',()=>{
  const result=normalizeProfile({id:'invalid-legacy',name:'Teste',contentVersion:9,inventory:['ember','constructor','__proto__','toString'],equipment:{...DEFAULT_EQUIPMENT,hat:'constructor',hair:'__proto__'}});
  assert.ok(result.inventory.every(id=>typeof id==='string'&&Object.hasOwn(CATALOG,id)));
- for(const slot of SLOTS)assert.equal(CATALOG[result.equipment[slot]].slot,slot);
+ for(const slot of SLOTS)assert.equal(CATALOG[result.equipment[slot]].slot,slotFamily(slot));
+});
+
+test('both ring slots take ring items, but one owned ring cannot fill both',()=>{
+ assert.deepEqual(slotsForItem(CATALOG['ring-ember']),['ring','ring2']);
+ assert.equal(slotAccepts('ring2',CATALOG['ring-tide']),true);assert.equal(slotAccepts('ring2',CATALOG['necklace-star']),false);
+ const both=normalizeProfile({id:'rings',name:'Teste',contentVersion:CONTENT_VERSION,inventory:['ember','ring-ember','ring-tide'],equipment:{...DEFAULT_EQUIPMENT,ring:'ring-ember',ring2:'ring-tide'}});
+ assert.equal(both.equipment.ring,'ring-ember');assert.equal(both.equipment.ring2,'ring-tide');
+ const twice=normalizeProfile({id:'rings',name:'Teste',contentVersion:CONTENT_VERSION,inventory:['ember','ring-ember'],equipment:{...DEFAULT_EQUIPMENT,ring:'ring-ember',ring2:'ring-ember'}});
+ assert.equal(twice.equipment.ring,'ring-ember');assert.equal(twice.equipment.ring2,'ring-none');
+ assert.equal(targetSlotForItem({...DEFAULT_EQUIPMENT,ring:'ring-ember'},CATALOG['ring-tide']),'ring2');
+ assert.equal(targetSlotForItem({...DEFAULT_EQUIPMENT,ring:'ring-ember',ring2:'ring-tide'},CATALOG['ring-tide']),'ring2');
 });

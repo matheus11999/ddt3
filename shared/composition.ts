@@ -17,7 +17,7 @@ export const COMPOSITION_STONES:CompositionStone[] = COMPOSITION_STATS.flatMap(s
 export const COMPOSITION_STONE_BY_ID = Object.fromEntries(COMPOSITION_STONES.map(stone=>[stone.id,stone]));
 export const STARTER_COMPOSITION_STONES:Record<string,number> = Object.fromEntries(COMPOSITION_STONES.map(stone=>[stone.id,4-stone.tier]));
 export function canCompose(item:Item|undefined):boolean {
- return !!item&&['weapon','hat','outfit','wristband','bracelet'].includes(item.slot)&&item.visual?.variant!=='none';
+ return !!item&&['weapon','hat','outfit','wristband','bracelet','ring','necklace'].includes(item.slot)&&item.visual?.variant!=='none';
 }
 /** Only complete tiers survive persisted-data normalization; arbitrary client points never do. */
 export function normalizeCompositions(value:unknown,items:readonly Item[]):Compositions {

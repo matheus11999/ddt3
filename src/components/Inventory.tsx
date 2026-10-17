@@ -2,9 +2,9 @@ import {RewardIcon} from './RewardIcon';
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {Check,ChevronLeft,ChevronRight,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Palette,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
+import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {attributes,itemAttributes,CATALOG,DYES,DYE_SLOTS,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem} from '../../shared/catalog';
+import {attributes,itemAttributes,CATALOG,DYES,DYE_SLOTS,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY} from '../../shared/catalog';
 import type {CharacterGender,DyeId,DyeSlot,Equipment,Slot} from '../../shared/catalog';
 import {levelProgress} from '../../shared/progression';
 import {COMPOSITION_STAT_NAMES} from '../../shared/composition';
@@ -14,20 +14,20 @@ import {audio} from '../game/audio';
 import {Avatar} from './Avatar';
 import {ItemIcon} from './ItemIcon';
 import {Modal} from './Modal';
-import {UpgradeBadge} from './UpgradeBadge';
 import {LevelBadge} from './LevelBadge';
 import {PowerIcon} from './PowerIcon';
 import {ItemGenderBadge} from './ItemGenderBadge';
-import {ItemCard,ItemCardFrame,rarityLabel,stoneRarity} from './ItemCard';
+import {ItemCard,ItemCardFrame,itemTier,rarityLabel,stoneRarity} from './ItemCard';
+import {UpgradeTag} from './UpgradeTag';
 import './Inventory.css';
 import './Backpack.css';
 
 const PAGE_SIZE=42;
 const ITEM_DRAG='application/x-brasa-item';
-const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face'];
-const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet'];
-const LOWER_SLOTS:Slot[]=['weapon'];
-const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair};
+const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face','ring'];
+const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
+const LOWER_SLOTS:Slot[]=['necklace','weapon','bubble'];
+const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair,ring:CircleDot,ring2:CircleDot,necklace:Medal,bubble:MessageCircle};
 const BAG_TABS:{id:string;name:string;Icon:LucideIcon}[]=[{id:'all',name:'Tudo',Icon:LayoutGrid},{id:'style',name:'Visuais',Icon:Shirt},{id:'weapons',name:'Armas',Icon:Swords},{id:'stones',name:'Pedras',Icon:Gem}];
 type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
 function searchable(text:string){return text.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
@@ -35,7 +35,7 @@ function searchable(text:string){return text.toLocaleLowerCase('pt-BR').normaliz
 export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void}){
  const state=useGame(),p=state.profile!;
  const equipment=state.customizationEquipment??p.equipment,pending=state.customizationPending;
- const [tab,setTab]=useState('all'),[category,setCategory]=useState<Slot|'all'>('all'),[query,setQuery]=useState(''),[page,setPage]=useState(0);
+ const [tab,setTab]=useState('all'),[category,setCategory]=useState<Slot|'all'>('all'),[activeSlot,setActiveSlot]=useState<Slot|null>(null),[query,setQuery]=useState(''),[page,setPage]=useState(0);
  const [selected,setSelected]=useState(p.equipment.weapon),[dragging,setDragging]=useState<string|null>(null),[tooltip,setTooltip]=useState<Tip|null>(null);
  const [feedback,setFeedback]=useState<string|null>(null);
  const hold=useRef<{timer:ReturnType<typeof setTimeout>|null;x:number;y:number;triggered:boolean}>({timer:null,x:0,y:0,triggered:false}),touchUntil=useRef(0);
@@ -60,18 +60,22 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
   window.addEventListener('pointerdown',outside);window.addEventListener('keydown',escape,true);return()=>{window.removeEventListener('pointerdown',outside);window.removeEventListener('keydown',escape,true);};
  },[displayOptions]);
 
- function equipItem(id:string){
+ function equipItem(id:string,slot?:Slot){
   if(hold.current.triggered){hold.current.triggered=false;return;}
   setSelected(id);setTooltip(current=>current?.id===id&&current.mode!=='touch'?current:null);
   const next=CATALOG[id];if(locked||!next||(!p.inventory.includes(id)&&!isEmptyItem(next))||!canEquipItem(next,p.gender))return;
-  client.customize({items:{[next.slot]:id}});setPreviewFlash({id,key:Date.now()});setFeedback(null);audio.play('click');
+  const target=slot&&slotAccepts(slot,next)?slot:activeSlot&&slotAccepts(activeSlot,next)?activeSlot:targetSlotForItem(equipment,next);
+  if(equipment[target]===id)return;
+  // The same owned ring cannot sit in both ring slots: moving it frees the other one.
+  const freed=Object.fromEntries(slotsForItem(next).filter(other=>other!==target&&equipment[other]===id).map(other=>[other,unequip[other]??next.id]));
+  client.customize({items:{...freed,[target]:id}});setPreviewFlash({id,key:Date.now()});setFeedback(null);audio.play('click');
  }
  function changeDye(color:DyeId){
   if(locked||!dyeable)return;
   client.customize({items:{[item.slot]:item.id},dyes:{[item.slot]:color}});setPreviewFlash({id:item.id,key:Date.now()});setFeedback(null);audio.play('click');
  }
- function removeFromSlot(slot:Slot){const fallback=unequip[slot];if(!locked&&fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback)))equipItem(fallback);}
- function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equipment[slot]);setCategory(slot);setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
+ function removeFromSlot(slot:Slot){const fallback=unequip[slot];if(!locked&&fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback)))equipItem(fallback,slot);}
+ function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equipment[slot]);setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
  function showTip(id:string,anchor:HTMLElement,mode:Tip['mode']){if(dragging||mode!=='touch'&&Date.now()<touchUntil.current)return;setTooltip({id,anchor,mode});}
  function startTouchTip(id:string,event:ReactPointerEvent<HTMLElement>){
   if(event.pointerType!=='touch')return;touchUntil.current=Date.now()+1200;setTooltip(null);
@@ -89,11 +93,11 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
 
  const renderSlot=(slot:Slot)=>{
   const id=equipment[slot],it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
-  return <ItemCard key={slot} rarity={it?.rarity} selected={category===slot} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===id?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&CATALOG[dragging]?.slot===slot?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
+  return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===id?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[dragging])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
    {...(empty?{}:tooltipEvents(id))}
-   onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&CATALOG[dragging]?.slot===slot?'copy':'none';}}}
-   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG);if(CATALOG[id]?.slot===slot)equipItem(id);else setFeedback(`Use o slot de ${SLOT_NAMES[CATALOG[id]?.slot]??'equipamento'}.`);}}>
-   {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&<b className="slot-upgrade">+{preview.upgrade}</b>}
+   onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[dragging])?'copy':'none';}}}
+   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG);if(slotAccepts(slot,CATALOG[id]))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[CATALOG[id]?.slot]??'equipamento'}.`);}}>
+   {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
  const progress=levelProgress(p.level,p.xp),stoneTotal=Object.values(p.stones).reduce((sum,count)=>sum+count,0);
@@ -109,7 +113,9 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
     <div className="bag-stage">
      <div className="equipment-slots left">{LEFT_SLOTS.map(renderSlot)}</div>
      <div className="dressing-room" onDragOver={e=>{if(!locked&&e.dataTransfer.types.includes(ITEM_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={e=>{e.preventDefault();if(e.target===e.currentTarget||!(e.target as HTMLElement).closest('[data-slot]'))equipItem(e.dataTransfer.getData(ITEM_DRAG));setDragging(null);}}>
-      {preview.upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}<Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
+      {preview.upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}
+      <div className="appearance-actions" aria-label="Ajustar aparência" hidden={!dyeable}>{dyeable&&<><Palette size={15} aria-hidden="true"/><div className="dye-swatches" role="group" aria-label={`Cor de ${SLOT_NAMES[item.slot]}`}>{DYES.map(dye=><button key={dye.id} title={dye.name} aria-label={`Cor ${dye.name}`} aria-pressed={(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id} disabled={locked} className={`dye-swatch ${dye.id==='original'?'original':''}`} style={{backgroundColor:dye.color}} onClick={()=>changeDye(dye.id)}>{(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id&&<Check size={13}/>}</button>)}</div></>}</div>
+      <Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
       <button ref={optionsButton} className="avatar-options-toggle" aria-label="Exibição do personagem" aria-expanded={displayOptions} aria-controls="avatar-display-options" title="Exibição do personagem" onClick={()=>{setDisplayOptions(value=>!value);setTooltip(null);}}><Settings size={18}/></button>
       {displayOptions&&<div ref={optionsRef} id="avatar-display-options" className="avatar-display-options" role="dialog" aria-label="Exibição do personagem" onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setDisplayOptions(false);optionsButton.current?.focus();}}}>
        <header><strong>Exibição</strong><button aria-label="Fechar exibição" onClick={()=>{setDisplayOptions(false);optionsButton.current?.focus();}}><X size={16}/></button></header>
@@ -118,9 +124,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
      </div>
      <div className="equipment-slots right">{RIGHT_SLOTS.map(renderSlot)}</div>
      <div className="bag-stage-foot">
-      <div className="appearance-actions" aria-label="Ajustar aparência" hidden={!dyeable}>{dyeable&&<><Palette size={15} aria-hidden="true"/><div className="dye-swatches" role="group" aria-label={`Cor de ${SLOT_NAMES[item.slot]}`}>{DYES.map(dye=><button key={dye.id} title={dye.name} aria-label={`Cor ${dye.name}`} aria-pressed={(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id} disabled={locked} className={`dye-swatch ${dye.id==='original'?'original':''}`} style={{backgroundColor:dye.color}} onClick={()=>changeDye(dye.id)}>{(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id&&<Check size={13}/>}</button>)}</div></>}</div>
       <div className="equipment-slots lower">{LOWER_SLOTS.map(renderSlot)}</div>
-      <span className="bag-stage-hint">Duplo clique retira</span>
      </div>
     </div>
     <div className="bag-progress">
@@ -135,19 +139,19 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
     </div>
    </section>
    <section className="bag-pane" aria-label="Itens da mochila">
-    <div className="bag-toolbar"><select aria-label="Categoria" value={category} disabled={tab==='stones'} onChange={e=>{setCategory(e.target.value as Slot|'all');setPage(0);setTooltip(null);}}><option value="all">Todas as categorias</option>{SLOTS.filter(slot=>tab!=='weapons'||slot==='weapon').filter(slot=>tab!=='style'||slot!=='weapon').map(slot=><option key={slot} value={slot}>{SLOT_NAMES[slot]}</option>)}</select><label><Search size={14}/><input aria-label="Buscar item" placeholder="Buscar item" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);setTooltip(null);}}/></label><span className="capacity">{entries.length} itens</span></div>
+    <div className="bag-toolbar"><select aria-label="Categoria" value={category} disabled={tab==='stones'} onChange={e=>{setCategory(e.target.value as Slot|'all');setActiveSlot(null);setPage(0);setTooltip(null);}}><option value="all">Todas as categorias</option>{SLOTS.filter(slot=>!SLOT_FAMILY[slot]).filter(slot=>tab!=='weapons'||slot==='weapon').filter(slot=>tab!=='style'||slot!=='weapon').map(slot=><option key={slot} value={slot}>{SLOT_NAMES[slot]}</option>)}</select><label><Search size={14}/><input aria-label="Buscar item" placeholder="Buscar item" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);setTooltip(null);}}/></label><span className="capacity">{entries.length} itens</span></div>
     <div className="bag-shelf">
      <div className="bag-grid">{Array.from({length:PAGE_SIZE},(_,index)=>{
       const id=visible[index];if(!id)return <ItemCardFrame variant="slot" empty className="bag-cell empty" key={`empty-${index}`}/>;
-      const it=CATALOG[id],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&equipment[it.slot]===id,genderLocked=!!it&&!canEquipItem(it,p.gender);
+      const it=CATALOG[id],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equipment[slot]===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
       return <ItemCard key={id} rarity={it?.rarity??stoneRarity(st?.level??1)} selected={id===selected} aria-label={it?.name??st?.name} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
        onDragStart={e=>{if(genderLocked){e.preventDefault();return;}e.dataTransfer.setData(ITEM_DRAG,id);e.dataTransfer.effectAllowed='copy';setDragging(id);setTooltip(null);}} onDragEnd={()=>setDragging(null)}
        onClick={()=>equipItem(id)} {...tooltipEvents(id)}>
        {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={id} upgrade={level} size={60}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
-       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it&&itemGender(it)!=='unisex'&&<span className="inventory-item-gender"><ItemGenderBadge gender={itemGender(it)} locked={genderLocked} compact/></span>}{it?.slot==='weapon'&&<b className="slot-upgrade">+{level}</b>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}
+       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it?.slot==='weapon'&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}
       </ItemCard>;
      })}{!entries.length&&<span className="inventory-no-items">Nenhum item encontrado</span>}</div>
-     <nav className="bag-tabs" aria-label="Tipo de item">{BAG_TABS.map(({id,name,Icon})=><button key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setCategory('all');setPage(0);setTooltip(null);}}><Icon size={19} aria-hidden="true"/><span>{name}</span></button>)}</nav>
+     <nav className="bag-tabs" aria-label="Tipo de item">{BAG_TABS.map(({id,name,Icon})=><button key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setCategory('all');setActiveSlot(null);setPage(0);setTooltip(null);}}><Icon size={19} aria-hidden="true"/><span>{name}</span></button>)}</nav>
     </div>
     <div className="inventory-pagination"><span role="status" aria-live="polite">{feedback??''}</span><div><button aria-label="Página anterior" disabled={currentPage===0} onClick={()=>{setPage(currentPage-1);setTooltip(null);}}><ChevronLeft size={16}/></button><span>{currentPage+1} / {pages}</span><button aria-label="Próxima página" disabled={currentPage===pages-1} onClick={()=>{setPage(currentPage+1);setTooltip(null);}}><ChevronRight size={16}/></button></div></div>
     <footer className="bag-footer">
@@ -160,24 +164,47 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
  </Modal>;
 }
 
+const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
+const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions}){
- const {id,anchor}=tip,level=upgrades[id]??0,item=CATALOG[id],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===id),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),equipped=!!item&&equipment[item.slot]===id;
+ const {id,anchor}=tip,level=upgrades[id]??0,item=CATALOG[id],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===id),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
+ const equipped=!!item&&slotsForItem(item).some(slot=>equipment[slot]===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
  const values=item?itemAttributes(item,level,compositions?.[id]):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
- const current=attributes({...equipment,compositions}),candidate=item?attributes({...equipment,compositions,[item.slot]:id,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
+ const target=item?(anchor.dataset.slot as Slot|undefined)??targetSlotForItem(equipment,item):undefined;
+ const current=attributes({...equipment,compositions}),candidate=item&&target?attributes({...equipment,compositions,[target]:id,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
  useLayoutEffect(()=>{
-  const element=ref.current;if(!element)return;const target=anchor.getBoundingClientRect(),bounds=element.getBoundingClientRect(),edge=10;
-  let x=target.right+12,y=target.top;
-  if(x+bounds.width>innerWidth-edge)x=target.left-bounds.width-12;
-  if(x<edge){x=(innerWidth-bounds.width)/2;y=target.bottom+12;if(y+bounds.height>innerHeight-edge)y=target.top-bounds.height-12;}
+  const element=ref.current;if(!element)return;const box=anchor.getBoundingClientRect(),bounds=element.getBoundingClientRect(),edge=10;
+  let x=box.right+12,y=box.top;
+  if(x+bounds.width>innerWidth-edge)x=box.left-bounds.width-12;
+  if(x<edge){x=(innerWidth-bounds.width)/2;y=box.bottom+12;if(y+bounds.height>innerHeight-edge)y=box.top-bounds.height-12;}
   setPosition({x:Math.max(edge,Math.min(innerWidth-bounds.width-edge,x)),y:Math.max(edge,Math.min(innerHeight-bounds.height-edge,y))});
  },[id,anchor,equipped,level]);
- const compatible=!item||canEquipItem(item,gender);
- const fallback=item?unequipForGender(gender)[item.slot]:undefined,removable=!!fallback&&fallback!==id;
- const delta=(value:number)=>compatible&&!equipped&&value!==0?<span className={`tooltip-delta ${value>0?'positive':'negative'}`}>{value>0?'+':''}{value}</span>:null;
- return <aside ref={ref} id="item-tooltip" role="tooltip" className="item-tooltip inventory-tooltip" data-rarity={rarity} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
-  <header><ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={id} size={49} upgrade={level}/>:<img width={46} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame><div><small>{rarityLabel(rarity)} · {item?SLOT_NAMES[item.slot]:'Pedra de upgrade'}</small><div className="tooltip-name"><strong>{item?.name??stone?.name}</strong>{weapon&&<UpgradeBadge level={level} size={76}/>}</div>{stone&&<b>Nível {stone.level}</b>}</div></header>
-  {item&&<div className="tooltip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></div>}
-  {item?<><p>{item.description}</p>{!!Object.keys(compositions?.[id]??{}).length&&<div className="tooltip-composed">Composição: {Object.entries(compositions[id]).map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}{hasAttributes?<dl><dt>Ataque</dt><dd>{values?.attack}{delta(candidate.attack-current.attack)}</dd><dt>Defesa</dt><dd>{values?.defense}{delta(candidate.defense-current.defense)}</dd><dt>Dano</dt><dd>{values?.damage}{delta(candidate.damage-current.damage)}</dd><dt>Armadura</dt><dd>{values?.armor}{delta(candidate.armor-current.armor)}</dd><dt>Agilidade</dt><dd>{values?.agility}{delta(candidate.agility-current.agility)}</dd><dt>Sorte</dt><dd>{values?.luck}{delta(candidate.luck-current.luck)}</dd>{stats&&<><dt>Destruição</dt><dd>{stats.crater}</dd><dt>Ângulo</dt><dd>{stats.minAngle}°–{stats.maxAngle}°</dd></>}</dl>:<div className="cosmetic-tooltip-note">Visual cosmético · não altera atributos</div>}{compatible&&!equipped&&hasAttributes?<div className="tooltip-comparison">Comparação com {CATALOG[equipment[item.slot]]?.name??'seu equipamento'}</div>:null}<footer>{!compatible?'Incompatível com este personagem':equipped?(tip.anchor.dataset.slot&&removable?'Duplo clique para retirar':'✓ Equipado'):tip.mode==='touch'?'Toque para equipar':'Clique para equipar'}</footer></>:<><p>Material para fortalecer armas no ferreiro.</p><dl><dt>Potência</dt><dd>{stone?.power}</dd><dt>Nível</dt><dd>{stone?.level}</dd></dl><footer>Use no ferreiro</footer></>}
+ const compatible=!item||canEquipItem(item,gender),classed=!!item&&CLASSED_SLOTS.includes(item.slot);
+ const delta=(value:number)=>compatible&&!equipped&&value!==0?<span className={`bag-tip-delta ${value>0?'up':'down'}`}>{value>0?'▲':'▼'}{Math.abs(value)}</span>:null;
+ const composed=Object.entries(compositions?.[id]??{});
+ return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
+  <header className="bag-tip-head">
+   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={id} size={56} upgrade={level}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
+   <div className="bag-tip-title">
+    <strong>{item?.name??stone?.name}</strong>
+    <small>{item?SLOT_NAMES[item.slot]:'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
+    {item&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
+   </div>
+   {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
+  </header>
+  {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
+  {item?<>
+   <p className="bag-tip-desc">{item.description}</p>
+   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{values![key]}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
+   {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
+   {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
+   {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
+   {(!compatible||!equipped)&&<footer className={`bag-tip-foot ${!compatible?'blocked':''}`}>{!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar'}</footer>}
+  </>:<>
+   <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
+   <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>
+   <footer className="bag-tip-foot">Use no ferreiro</footer>
+  </>}
  </aside>;
 }
