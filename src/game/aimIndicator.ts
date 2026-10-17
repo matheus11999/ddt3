@@ -20,7 +20,7 @@ export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,fa
  c.restore();return;}
  // Readout plate on the ground just past the band, on the facing side.
  const label=Math.round(angle)+'°',labelX=cx+facing*(radius+6),labelY=cy+12;
- c.font='900 17px "Nunito","Trebuchet MS",sans-serif';const w=c.measureText(label).width+14;
+ c.textAlign='center';c.textBaseline='middle';c.font='900 17px "Nunito","Trebuchet MS",sans-serif';const w=c.measureText(label).width+14;
  c.beginPath();c.roundRect(labelX-w/2,labelY-11,w,22,8);c.fillStyle='#071629d9';c.fill();c.strokeStyle=changed?'#fff0a8':'#d8ab55';c.lineWidth=1.5;c.stroke();
  c.lineWidth=3;c.strokeStyle='#3a1a06';c.fillStyle=changed?'#fff7b0':'#ffe35e';c.strokeText(label,labelX,labelY+1);c.fillText(label,labelX,labelY+1);
  c.restore();
