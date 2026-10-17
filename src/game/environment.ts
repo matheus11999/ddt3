@@ -9,12 +9,13 @@ export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
 const decodedImages=new WeakMap<HTMLImageElement,Promise<boolean>>();
 function loadImage(src:string){let image=images.get(src);if(!image){image=new Image();image.decoding='async';image.src=src;images.set(src,image);decodedImages.set(image,image.decode().then(()=>true,()=>false));}return image;}
-const preloadedMaps=new Map<MapId,Promise<boolean>>();
+const preloadedMaps=new Map<string,Promise<boolean>>();
 /** Decode before entering a map; callers may prefetch while its room is open. */
 export function preloadEnvironment(map:MapId):Promise<boolean>{
- const def=getMap(map),cached=preloadedMaps.get(def.id);if(cached)return cached;
+ // Keyed by terrain art: a map republished in the admin panel loads its new art.
+ const def=getMap(map),cached=preloadedMaps.get(def.art.terrain);if(cached)return cached;
  const sources=[def.art.background,...def.art.mid?[def.art.mid]:[],def.art.terrain];
- const ready=Promise.all([...new Set(sources)].map(src=>decodedImages.get(loadImage(src))!)).then(results=>results.every(Boolean));preloadedMaps.set(def.id,ready);return ready;
+ const ready=Promise.all([...new Set(sources)].map(src=>decodedImages.get(loadImage(src))!)).then(results=>results.every(Boolean));preloadedMaps.set(def.art.terrain,ready);return ready;
 }
 let quality:EnvironmentQuality='high';
 try{const value=localStorage.getItem('brasa-environment-quality');if(value==='low'||value==='medium'||value==='high')quality=value;}catch{}

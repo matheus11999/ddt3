@@ -1,6 +1,12 @@
 # Estado da entrega — 16/10/2026
 
 
+## Painel do administrador — 17/10/2026
+
+- `/admin` com login próprio (credenciais em `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`, scrypt, sessão de 8 h no Postgres, trava após 5 erros), visão geral com estatísticas do dia e dos últimos 14 dias, e editor de mapas PvP/instância/lobby com rascunhos, histórico e publicação no jogo sem rebuild (`docs/admin-panel.md`).
+- `build:map` e o editor usam o mesmo montador (`shared/mapBuilder.ts`); a saída do Sonho Nevado ficou idêntica byte a byte. Folhas e panorama do Sonho Nevado agora estão no repositório em `public/assets/maps/snow/source/`.
+- Evidência: `npm run test:admin:browser` (login, salvar, publicar, `/api/maps`, voltar ao original) e uma partida de treino no mapa publicado com nome e ponte alterados. Unidade: `tests/admin.test.ts`.
+
 ## Validador de armas — 17/10/2026
 
 - `shared/weaponKit.ts` descreve cada arma: o que lança e como evolui em cada fase, paleta, sons e regra POW × Tridente. `npm run verify:weapons` confere ícone, arma na mão, projétil, disparo e impacto por fase, marca no cenário, quatro sons e a regra, com prancha `sheet.png` e prompts prontos para ChatGPT/ElevenLabs (`docs/weapon-kit.md`).

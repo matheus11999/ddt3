@@ -10,7 +10,7 @@ import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomIn
 import {crater,createTerrain,DIRECT_HIT_DIG,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
-import {getMap,canonicalMap,MAP_DEFAULT,MAP_IDS} from '../shared/maps';
+import {getMap,canonicalMap,MAP_DEFAULT,pvpRotation} from '../shared/maps';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
@@ -354,7 +354,7 @@ export class Game {
   this.launchMatch([room],seats);
  }
  private launchMatch(rooms:Room[],practiceSeats?:Seat[]){
-  const r=rooms[0],map=rooms.length===2||practiceSeats?MAP_IDS[randomInt(MAP_IDS.length)]:r.map;
+  const r=rooms[0],rotation=pvpRotation(),map=rooms.length===2||practiceSeats?rotation[randomInt(rotation.length)]:r.map;
   const seats:Seat[]=practiceSeats??(rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):r.players);
   const terrain=createTerrain(map);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment);const x=getMap(map).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));

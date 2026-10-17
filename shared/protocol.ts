@@ -105,6 +105,8 @@ export type ServerEvent =
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}
+ /** Maps were published in the admin panel: reload GET /api/maps. */
+ | {type:'maps'}
  | {type:'online-players';players:OnlinePlayer[];total:number}
  | {type:'room-invite-list';roomId:string;players:RoomInvitePlayer[]}
  | {type:'room-invitation';invite:RoomInvitation}

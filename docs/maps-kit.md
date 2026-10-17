@@ -7,6 +7,7 @@ Primeiro mapa feito assim: `snow` / Sonho Nevado (17/10/2026). É o único mapa 
 - **Largura**: um mapa pode ter mais de uma tela (`dimensions.width`, `width` no layout; o Sonho Nevado tem 3072 px, duas telas). A altura é sempre 864. A câmera rola, o minimapa fica largo e baixo, e a física lê a largura do próprio terreno. Spawns de 1x1 ficam entre 900 e 1200 px de distância (teste).
 - **Fundo**: uma imagem única (`art.background`), que não colide e **nunca se repete**. Em mapa largo ela é um panorama pintado em duas metades (`background: ["esquerda.png","direita.png"]` no layout), unidas com degradê (`backgroundBlend`, padrão 240 px). No jogo ela rola na velocidade que mostra o panorama inteiro uma vez de ponta a ponta; uma imagem estreita só desliza um pouco.
 - **Meio** (opcional, `art.mid`, `mid` no layout): camada pintada sobre magenta, também desenhada uma única vez. Prefira pôr o meio dentro do panorama.
+- **Fonte das peças**: as folhas e as metades do panorama ficam no repositório em `public/assets/maps/<id>/source/` (`source` no layout), para o `build:map` rodar em qualquer máquina e o editor do painel (`/admin`, `docs/admin-panel.md`) recortar as mesmas peças.
 - **Terreno**: uma ou mais folhas de peças (`sheets` no layout; cada item diz `sheet` e `piece`). Objetos (boneco de neve, barril, poste) são peças também: sólidos e destrutíveis, porque só aparece o que tem colisão. Folha pintadas pelo Codex sobre magenta `#FF00FF`. `npm run build:map -- --map=<id>` recorta as peças, numera (linha de cima, depois de baixo, da esquerda para a direita), coloca cada uma segundo `scripts/map-layouts/<id>.json` (`mirror` cria o lado do outro time espelhado) e grava:
   - `public/assets/maps/<id>/terrain-world.png` e `background.webp`, mais `public/assets/maps/<id>-preview.png`;
   - `shared/generated/<id>Terrain.ts`: a colisão tirada do alfa de cada peça (forma `cells`, células de 3 px). O que está pintado é chão.
@@ -18,9 +19,13 @@ Primeiro mapa feito assim: `snow` / Sonho Nevado (17/10/2026). É o único mapa 
 ## Gerar um mapa novo
 
 1. Escrever os prompts do fundo e da folha de peças (modelo: `/mnt/project-files/mapas/neve/prompts/`). Sem texto na imagem; fundo claro e de baixo contraste; peças mais escuras e com contorno.
-2. Gerar pelo Codex no PC (`codex exec` com a referência anexada) em `test-results/codex-maps/<id>/`.
+2. Gerar pelo Codex no PC (`codex exec` com a referência anexada) em `test-results/codex-maps/<id>/` e copiar as aprovadas para `public/assets/maps/<id>/source/`.
 3. Escrever `scripts/map-layouts/<id>.json`, rodar `npm run build:map -- --map=<id>` e olhar o relatório.
 4. Adicionar o mapa em `shared/maps.ts` (`MAP_IDS` e `MAP_DEFINITIONS`) usando as regiões geradas. `tests/maps.test.ts` confere spawns espelhados, apoiados e com espaço.
+
+## Editar sem código
+
+O painel do administrador (`/admin` → Mapas) abre o layout num editor visual com o mesmo montador (`shared/mapBuilder.ts`): arrastar peças, objetos e spawns, ver os avisos ao vivo, salvar rascunhos e publicar no jogo sem rebuild. O botão **JSON** baixa o layout no formato deste arquivo para trazer a mudança de volta ao repositório.
 
 ## Regras do layout
 

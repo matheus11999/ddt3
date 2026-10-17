@@ -1,0 +1,24 @@
+import {applyMapOverride,removeMapOverride} from '../shared/maps';
+import type {MapOverride} from '../shared/maps';
+import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
+import type {LobbyLayoutOverride} from '../shared/lobby';
+import {LOBBY_STATION_DEFAULTS} from './game/lobbyWorld';
+import type {PublishedMaps} from '../shared/mapAdmin';
+
+/** Maps published in the admin panel (GET /api/maps), applied the same way the server applies them. */
+const shipped:LobbyLayoutOverride=structuredClone({spawn:{...LOBBY_SPAWN},walk:{...LOBBY_WALK},obstacles:[...LOBBY_OBSTACLES],stations:[...LOBBY_STATION_DEFAULTS]});
+let applied=new Set<string>(),pending:Promise<void>|null=null;
+
+export function applyPublishedMaps(data:PublishedMaps){
+ const next=new Set(data.maps.map(m=>m.id));
+ for(const id of applied)if(!next.has(id))removeMapOverride(id);
+ for(const map of data.maps)applyMapOverride(map as MapOverride);
+ applyLobbyLayout(data.lobby?.lobby??shipped);
+ applied=next;
+}
+
+/** Fetches and applies the published maps; a failure keeps the maps already in use. */
+export function syncPublishedMaps():Promise<void>{
+ pending??=fetch('/api/maps',{signal:AbortSignal.timeout(10000)}).then(r=>r.ok?r.json():null).then(data=>{if(data&&Array.isArray(data.maps))applyPublishedMaps(data as PublishedMaps);}).catch(()=>{}).finally(()=>{pending=null;});
+ return pending;
+}

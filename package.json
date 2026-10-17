@@ -24,6 +24,8 @@
     "test:power:integration": "tsx tests/power.integration.ts",
     "verify:cosmetics": "node scripts/verify-cosmetics.mjs",
     "build:map": "node scripts/build-map.mjs",
+    "admin:password": "tsx scripts/admin-password.ts",
+    "test:admin:browser": "node scripts/smoke-admin.mjs",
     "verify:weapons": "node scripts/verify-weapons.mjs",
     "split:weapon-sheet": "node scripts/split-weapon-sheet.mjs",
     "sounds:weapons": "node scripts/generate-weapon-sounds.mjs",
