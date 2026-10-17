@@ -14,6 +14,8 @@ export interface ForgeResult {item:string;success:boolean;level:number;chance:nu
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
 export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;}
+/** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
+export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
 export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
@@ -37,6 +39,7 @@ export const abilityLoadoutSchema=z.tuple([abilitySlot,abilitySlot,abilitySlot])
 export const equipmentVisibilitySchema=z.object({hat:z.boolean().optional(),glasses:z.boolean().optional(),costume:z.boolean().optional()}).strict();
 export const equipmentSelectionSchema=z.object({
  items:z.record(z.enum(SLOTS),z.string().min(1).max(40)),
+ copies:z.partialRecord(z.enum(SLOTS),z.string().min(1).max(48)).optional(),
  dyes:z.partialRecord(z.enum(DYE_SLOTS),z.enum(DYE_IDS)).optional(),
  visibility:equipmentVisibilitySchema.optional()
 }).strict();
@@ -51,8 +54,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('customize'),selection:equipmentSelectionSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('ability-loadout'),slots:abilityLoadoutSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('shop-buy'),items:z.array(z.string().min(1).max(40)).min(1).max(20).refine(items=>new Set(items).size===items.length,'Itens repetidos no carrinho.')}).strict(),
- z.object({type:z.literal('forge'),item:z.string().min(1).max(40),stones:stoneSelectionSchema}).strict(),
- z.object({type:z.literal('compose'),item:z.string().min(1).max(40),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
+ z.object({type:z.literal('forge'),item:z.string().min(1).max(48),stones:stoneSelectionSchema}).strict(),
+ z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
  // Legacy mode/map are honored only by explicitly requested practice rooms.
  z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
@@ -82,7 +85,7 @@ export const commandSchema=z.discriminatedUnion('type',[
 ]);
 export type Command=z.infer<typeof commandSchema>;
 export type ServerEvent =
- | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number}
+ | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number;ranking?:RankingEntry[]}
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
@@ -90,6 +93,7 @@ export type ServerEvent =
  | {type:'lobby';players:LobbyPlayer[];online:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
+ | {type:'ranking';ranking:RankingEntry[]}
  | {type:'online-players';players:OnlinePlayer[];total:number}
  | {type:'room-invite-list';roomId:string;players:RoomInvitePlayer[]}
  | {type:'room-invitation';invite:RoomInvitation}
