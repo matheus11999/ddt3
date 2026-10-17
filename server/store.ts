@@ -15,8 +15,15 @@ export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
+/** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
+export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
+ if(!prize)return;const amount=integer(prize.amount);
+ if(prize.kind==='coins')p.gold+=amount;else if(prize.kind==='xp')p.xp+=amount;
+ else if(prize.kind==='stone'){const tier=String(Math.max(1,Math.min(5,integer(prize.level??1))));p.stones[tier]=(p.stones[tier]??0)+amount;}
+ else if(prize.kind==='ticket')p.colorTickets=Math.min(MAX_COLOR_TICKETS,p.colorTickets+amount);
+}
 export const RANKING_TIME_ZONE='America/Sao_Paulo';
 
 type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>&{dyes?:Record<string,string>}};
@@ -281,13 +288,24 @@ export class Store implements ProfileStore {
    GROUP BY w.id,p.profile,p.name ORDER BY wins DESC,max(m.finished_at) ASC,w.id LIMIT 3`);
   return r.rows.map((row,i)=>{const profile=normalizeProfile({...row.profile,name:row.name});return {rank:(i+1) as 1|2|3,id:profile.id,name:profile.name,level:profile.level,wins:row.wins,equipment:profile.equipment};});
  }
+ async finishExpedition(stageId:string,players:string[],award:{coins:number;xp:number},bonuses:MatchBonuses={}){
+  const c=await this.pool.connect();try{
+   // Same idempotency key table as matches, with no winners: expeditions never count for the PvP ranking.
+   await c.query('BEGIN');const inserted=await c.query('INSERT INTO matches(id,winners,players) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id',[stageId,'[]',JSON.stringify(players)]);
+   if(inserted.rowCount)for(const id of [...players].sort()){
+    const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);if(!r.rows[0])continue;
+    const p=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});p.gold+=integer(award.coins);p.xp+=integer(award.xp);applyPrize(p,bonuses[id]);p.level=Math.max(p.level,levelForXp(p.xp));
+    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,p]);
+   }await c.query('COMMIT');
+  }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
+ }
  async rename(id:string,name:string){await this.pool.query('UPDATE players SET name=$2 WHERE id=$1',[id,name]);}
  async finishMatch(matchId:string,winners:string[],players:string[],bonuses:MatchBonuses={}){
   const c=await this.pool.connect();try{
    await c.query('BEGIN');const inserted=await c.query('INSERT INTO matches(id,winners,players) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id',[matchId,JSON.stringify(winners),JSON.stringify(players)]);
    if(inserted.rowCount)for(const id of [...players].sort()){
     const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);if(!r.rows[0])continue;
-    const p=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}),win=winners.includes(id);p.matches++;p.wins+=win?1:0;p.xp+=win?120:50;p.gold+=win?80:25;const bonus=bonuses[id];if(bonus){if(bonus.kind==='coins')p.gold+=integer(bonus.amount);else p.xp+=integer(bonus.amount);}p.level=Math.max(p.level,levelForXp(p.xp));
+    const p=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}),win=winners.includes(id);p.matches++;p.wins+=win?1:0;p.xp+=win?120:50;p.gold+=win?80:25;applyPrize(p,bonuses[id]);p.level=Math.max(p.level,levelForXp(p.xp));
     await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,p]);
    }await c.query('COMMIT');
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}

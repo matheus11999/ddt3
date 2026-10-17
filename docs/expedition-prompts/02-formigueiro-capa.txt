@@ -1,0 +1,6 @@
+Paint ONE image, exactly 1536x1024 pixels (landscape), fully opaque.
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look.
+Cover art for the dungeon "the Anthill" in the expedition selection window. A cheerful but slightly menacing scene: a giant hollow fallen tree trunk in a sunny forest clearing, and right next to it a big dome-shaped anthill of red-brown earth with several round tunnel holes; a few cute but fierce chibi red ants with big shiny eyes and sharp mandibles march out in a line carrying leaves; inside the biggest hole a royal glow hints at the ant queen (only her silhouette with a small crown and glowing eyes). Leaves, mushrooms, acorns and dandelions around. Warm afternoon light.
+The main subject (anthill and ants) should fill the center; keep 10% of calm margin at every border because the image will be cropped into a card.
+Use the attached ddtank-formigueiro.png only as reference for the mood of DDTank's forest and ants; do not copy it.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

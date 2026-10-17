@@ -1,0 +1,12 @@
+Paint ONE image, exactly 1536x1024 pixels, as a SPRITE SHEET of separate terrain pieces on a perfectly flat solid magenta background #FF00FF (pure magenta everywhere that is not a drawing; no gradient, no floor, no cast shadow on the background, no magenta tint or magenta outline on the drawings). Crisp anti-aliased edges.
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look. Side view, light from the upper left on every piece. Match the painting quality of the attached estilo-pecas.png (approved terrain of the same game).
+These are the PLAYABLE ground pieces of a giant forest map where players stand ON TOP OF A HUGE FALLEN TREE TRUNK, exactly like the long log in the attached ddtank-formigueiro.png. They must be clearly darker, more saturated and better outlined than a pale background.
+Row 1 (top half), two separate pieces with at least 50 px of magenta between them:
+1. A very LONG straight FALLEN TRUNK SEGMENT seen from the side: thick brown bark with deep vertical grooves, a flat walkable top edge with patches of bright green moss, a few tiny leaves and small sprouts on top, knots and a bit of lighter wood. Both ends are cleanly cut flat vertical ends showing a little of the bark thickness (so segments can be joined end to end). About 1440 px wide and 200 px tall.
+Row 2 (bottom half), four separate pieces with at least 50 px of magenta between them:
+2. The ROUND BROKEN END of the trunk: the end of the log with jagged splintered wood and visible growth rings on the right, flat cut on the left side to join the long segment. About 380 px wide, 230 px tall.
+3. A thick BRANCH STUB growing up from a log piece: a short upward bark branch with a leafy sprig, flat bottom. About 220 px wide, 260 px tall.
+4. A MOSSY TREE STUMP with roots spreading at its base and a flat walkable top with growth rings. About 300 px wide, 230 px tall.
+5. A HANGING ROOT CLUMP: tangled roots and moss dangling down, flat on top so it can hang under the log. About 320 px wide, 220 px tall.
+Every piece must be complete (not cut by the image border), separated from the others by pure magenta, with crisp anti-aliased edges and no drop shadow.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

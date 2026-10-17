@@ -1,0 +1,98 @@
+{
+ "name": "Formigueiro · A câmara da rainha",
+ "subtitle": "Expedição · Estágio 2",
+ "kind": "instance",
+ "source": "public/assets/maps/anthill-2/source",
+ "background": [
+  "panorama-esquerda.png",
+  "panorama-direita.png"
+ ],
+ "mirror": false,
+ "width": 3072,
+ "sheets": {
+  "pecas": "pecas.png"
+ },
+ "spawns": [
+  [
+   640,
+   900,
+   480,
+   1040
+  ],
+  []
+ ],
+ "items": [
+  {
+   "id": "floor-left",
+   "sheet": "pecas",
+   "piece": 0,
+   "x": 640,
+   "top": 600,
+   "destructible": true
+  },
+  {
+   "id": "floor-middle",
+   "sheet": "pecas",
+   "piece": 0,
+   "x": 1580,
+   "top": 612,
+   "flip": true,
+   "destructible": true
+  },
+  {
+   "id": "throne-step",
+   "sheet": "pecas",
+   "piece": 4,
+   "x": 2240,
+   "top": 560,
+   "scale": 0.85,
+   "destructible": true
+  },
+  {
+   "id": "queen-throne",
+   "sheet": "pecas",
+   "piece": 1,
+   "x": 2600,
+   "top": 340,
+   "destructible": true
+  },
+  {
+   "id": "root-ledge",
+   "sheet": "pecas",
+   "piece": 3,
+   "x": 1280,
+   "top": 330,
+   "scale": 0.7,
+   "destructible": true
+  },
+  {
+   "id": "nest-tunnel",
+   "sheet": "pecas",
+   "piece": 2,
+   "x": 1960,
+   "top": 400,
+   "scale": 0.7,
+   "destructible": true,
+   "rest": true,
+   "sink": 16
+  }
+ ],
+ "monsters": [
+  {
+   "kind": "ant-queen",
+   "x": 2600
+  },
+  {
+   "kind": "nest",
+   "x": 1735
+  },
+  {
+   "kind": "ant-worker",
+   "x": 1520
+  },
+  {
+   "kind": "ant-soldier",
+   "x": 1660
+  }
+ ]
+}

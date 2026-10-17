@@ -5,6 +5,8 @@ import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
 import {AngleGauge,PowerOrb} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
+import {ExpeditionFoes,ExpeditionBanners} from './ExpeditionBattle';
+import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Wind,Zap} from 'lucide-react';
@@ -24,7 +26,8 @@ const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!ta
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
  const {battle,profile,offset,status}=useGame();
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
- const opponents=b.players.filter(player=>player.team!==me.team);
+ const opponents=b.players.filter(player=>player.team!==me.team),instance=b.instance,monsterTurn=b.turnId===MONSTER_TURN_ID;
+ const [intro,setIntro]=useState(()=>!!instance&&instance.introUntil-Date.now()-offset>0);
  // Limits remain authoritative equipment data; equipment itself is not part of the HUD.
  // With the paper plane armed the plane's wider envelope replaces the weapon's.
  const weapon=aimSource(me),aimSlope=me.aimSlope??0;
@@ -35,7 +38,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const mine=b.turnId===me.id&&b.phase==='aiming';
  // A fallen fighter keeps watching until the end (and keeps the reward) but plays no more.
  const fallen=me.hp<=0&&b.phase!=='finished';
- const canAct=mine&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
+ const canAct=mine&&!intro&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
  // Turning in place is free and allowed on anyone's turn (the server checks it too).
  const canFace=b.phase==='aiming'&&!blocked&&!exit&&status==='online'&&me.hp>0;
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
@@ -94,6 +97,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const tick=()=>setSeconds(Math.max(0,Math.ceil((b.deadline-Date.now()-offset)/1000)));
   tick();const timer=setInterval(tick,100);return()=>clearInterval(timer);
  },[b.deadline,offset]);
+ // Expeditions open with the monsters walking in; nobody plays until they arrive (the server agrees).
+ useEffect(()=>{
+  const until=instance?.introUntil??0,left=until-Date.now()-offset;setIntro(left>0);if(left<=0)return;
+  const timer=setTimeout(()=>setIntro(false),left);return()=>clearTimeout(timer);
+ },[instance?.introUntil,offset]);
  useEffect(()=>{
   if(!charging)return;
   let frame=0;
@@ -157,26 +165,27 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
  const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
 
- return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''} ${fallen?'fighter-fallen':''}`} data-party-size={Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)}>
+ return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''} ${fallen?'fighter-fallen':''}`} data-party-size={instance?b.players.filter(player=>player.team===me.team).length:Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)} data-expedition={instance?'':undefined}>
   <div className="battle-top">
    {turn&&<ActivePortrait fighter={turn} mine={turn.id===me.id} resolving={b.phase==='resolving'} ally={turn.team===me.team}/>}
    <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="ally"/>
-   <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>
+   {instance?<ExpeditionFoes battle={b}/>:<FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>}
    <div className="battle-center-status">
    <div className={`wind-pill ${Math.abs(b.wind)<.05?'calm-wind':''}`} role="status" aria-label={`Vento ${Math.abs(b.wind).toFixed(1)} para ${b.wind<0?'esquerda':'direita'}`}>
     <Wind className="wind-symbol" size={18} aria-hidden="true"/><div className="wind-reading"><small>VENTO</small><strong>{Math.abs(b.wind).toFixed(1)}</strong></div>
     <span className={`wind-direction ${b.wind<0?'wind-left':''}`} aria-hidden="true"><svg viewBox="0 0 64 30"><defs><linearGradient id="battle-wind-arrow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f3fcff"/><stop offset=".5" stopColor="#a0ebff"/><stop offset="1" stopColor="#319dd1"/></linearGradient></defs><path d="M4 9h34V3a1 1 0 0 1 2-1l20 12a1.2 1.2 0 0 1 0 2L40 28a1 1 0 0 1-2-1v-6H4l6-6z" fill="url(#battle-wind-arrow)" stroke="#133954" strokeWidth="2" strokeLinejoin="round"/><path d="M13 11h25M41 7l13 8" fill="none" stroke="#fff8cc" strokeWidth="2" strokeLinecap="round"/></svg></span>
    </div>
    <div className={`turn-clock ${mine?'your-turn':''} ${seconds<=10&&b.phase==='aiming'?'urgent':''} ${seconds<=5&&b.phase==='aiming'?'critical-time':''}`}>
-    <span>{b.phase==='finished'?'FINAL':b.phase==='resolving'?'DISPARO':mine?'SUA VEZ':'AGUARDE'}</span>
+    <span>{b.phase==='finished'?'FINAL':monsterTurn?'MONSTROS':intro?'CHEGANDO':b.phase==='resolving'?'DISPARO':mine?'SUA VEZ':'AGUARDE'}</span>
     <b key={`${b.turnNumber}-${seconds}`} aria-label={b.phase==='aiming'?`${seconds} segundos`:undefined}><BattleText className="clock-face">{b.phase==='aiming'?String(seconds):b.phase==='finished'?'◆':'···'}</BattleText></b>
     <small>TURNO {b.turnNumber}</small>
    </div>
-   {mine&&<button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>}
+   {mine&&!intro&&<button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>}
    </div>
    <Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>
   </div>
-  {mine&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
+  {instance&&<ExpeditionBanners battle={b} intro={intro}/>}
+  {mine&&!intro&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
 
   {fallen&&<div className="fallen-banner" role="status"><strong>VOCÊ CAIU</strong><span>{me.left?'Você saiu da partida':'Assista até o fim para receber a recompensa'}</span></div>}
   <aside className="battle-ability-tray" aria-label="Habilidades e voo">

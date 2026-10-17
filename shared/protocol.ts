@@ -12,6 +12,9 @@ import type {AbilityId,AbilityEffect,AbilityLoadout} from './abilities';
 import type {FighterFall} from './fall';
 import {reportCommandSchema} from './reports';
 import type {PlayerInfo} from './reports';
+import {DIFFICULTIES} from './expeditions';
+import type {Difficulty,MonsterKind} from './expeditions';
+import type {MonsterMove,MonsterBite} from './instanceTurn';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
@@ -24,14 +27,16 @@ export interface Seat {id:string;name:string;level:number;equipment:Equipment;re
 /** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
 export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
-export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;}
+export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;/** Expedition Center room: co-op party against an expedition's monsters, chosen by the leader. */kind?:'expedition';expedition?:{id:string;difficulty:Difficulty}|null;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
 export interface OnlinePlayer {id:string;name:string;level:number;gender:CharacterGender;}
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
-export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;}
-export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};}
-export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number;stretch?:number};roughness?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;}
+export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;}
+export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};instance?:BattleInstance;}
+/** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
+export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
+export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number;stretch?:number};roughness?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;/** Shot by a monster (the queen's arrow): drawn by the expedition renderer, no crater. */monster?:'arrow';}
 export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;effect:Projectile['effect'];level:number;}
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
@@ -71,6 +76,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  // Legacy mode/map are honored only by explicitly requested practice rooms.
  z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','snow','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
+ z.object({type:z.literal('create-expedition')}).strict(),
+ z.object({type:z.literal('expedition-select'),expedition:z.string().regex(/^[a-z][a-z0-9-]{1,31}$/),difficulty:z.enum(DIFFICULTIES)}).strict(),
  z.object({type:z.literal('queue')}).strict(),z.object({type:z.literal('cancel-queue')}).strict(),
  z.object({type:z.literal('room-slot'),slot:z.number().int().min(1).max(3),open:z.boolean()}).strict(),
  z.object({type:z.literal('room-rename'),name:z.string().trim().min(2).max(24)}).strict(),

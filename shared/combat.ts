@@ -17,9 +17,9 @@ export function shotModifiers(boosts:readonly BoostId[]){
 }
 /** Approach quality is the penetration of the projectile's travel line through
  * the expanded fighter circle; surface distance cannot distinguish a graze. */
-export function impactExposure(target:{id:string;x:number;y:number},impact:{x:number;y:number;hitId?:string;hitQuality?:number},blast:number):{kind:HitKind;quality:number;attenuation:number}{
+export function impactExposure(target:{id:string;x:number;y:number;hitRadius?:number;hitHeight?:number},impact:{x:number;y:number;hitId?:string;hitQuality?:number},blast:number):{kind:HitKind;quality:number;attenuation:number}{
  if(impact.hitId===target.id){const quality=Math.max(0,Math.min(1,impact.hitQuality??0)),direct=quality>=.65;return {kind:direct?'direct':'graze',quality,attenuation:.84+.16*quality};}
- const distance=Math.max(0,Math.hypot(target.x-impact.x,target.y-31-impact.y)-FIGHTER_HIT_RADIUS),radius=Math.max(0,blast*SPLASH_RADIUS_SCALE),quality=radius>0&&distance<radius-1e-7?Math.max(0,1-distance/radius):0;
+ const distance=Math.max(0,Math.hypot(target.x-impact.x,target.y-(target.hitHeight??31)-impact.y)-(target.hitRadius??FIGHTER_HIT_RADIUS)),radius=Math.max(0,blast*SPLASH_RADIUS_SCALE),quality=radius>0&&distance<radius-1e-7?Math.max(0,1-distance/radius):0;
  return {kind:'splash',quality,attenuation:SPLASH_MAX_MULTIPLIER*(1-(1-quality)**1.5)};
 }
 export interface DamageModifiers {attenuation?:number;shotMultiplier?:number;boostMultiplier?:number;critical?:boolean;}
@@ -37,4 +37,9 @@ export function damageAtImpact(attacker:Equipment,defender:Equipment,{attenuatio
  // Round once; forcing a minimum of one also turns floating-point residue at
  // the exact radius into a hit and incorrectly feeds Power on distant targets.
  return Number.isFinite(raw)?Math.max(0,Math.round(raw)):0;
+}
+/** A monster's hit on an adventurer: its attack against the same defense and armor curve as weapons. */
+export function monsterDamage(attack:number,defender:Equipment,scale=1){
+ const protection=attributes(defender),raw=attack*scale/(1+protection.defense/1000)/(1+protection.armor/600);
+ return Number.isFinite(raw)?Math.max(1,Math.round(raw)):0;
 }
