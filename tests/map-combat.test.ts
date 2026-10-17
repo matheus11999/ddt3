@@ -6,6 +6,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
 import {crater,ground,unpackTerrain} from '../shared/physics';
+import {VOLLEY_CADENCE_MS} from '../shared/combat';
 
 async function fixture(){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>();
@@ -38,7 +39,7 @@ test('extra volleys use a fixed cadence before the first impact and terrain sett
  await game.command(shooter.id,{type:'boost',boost:'extra1'});await game.command(shooter.id,{type:'fire',angle:85,power:5});
  const shot=events.get(shooter.id)!.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,2);const [first,second]=shot.projectiles;
- assert.equal(second.delay,240);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
+ assert.equal(second.delay,VOLLEY_CADENCE_MS);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
  game.tick(shot.startedAt+first.flightTime-.001);assert.deepEqual(match.terrain,before);
  crater(before,first.impact.x,first.impact.y,first.impact.radius,'garden');
  const settled=ground(before,shooter.x,first.points[0][1]+40-3);
