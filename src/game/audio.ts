@@ -5,6 +5,10 @@ import {createEnvironmentTrack} from './ambience';
 type WeaponSound=import('../../shared/catalog').WeaponEffect;
 /** Recorded layers shared by every weapon's impact: a deep boom and a mid-range crack that still reads on phone speakers. */
 const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/assets/audio/sfx/impact-crack.mp3',volume:.3}] as const;
+const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp3`);
+/** Battle cues with a few recorded variations each; one is picked at random every time. */
+const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.3}} as const;
+export type AudioCue=keyof typeof CUES;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
 }
@@ -72,7 +76,7 @@ class AudioEngine {
  private loadSamples(context:AudioContext){
   if(this.loading===context||typeof fetch==='undefined')return;
   this.loading=context;this.samples.clear();
-  for(const {url} of IMPACT_LAYERS)void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
+  for(const url of [...IMPACT_LAYERS.map(layer=>layer.url),...Object.values(CUES).flatMap(cue=>cue.urls)])void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
  }
  /** Plays the recorded impact layers with a small random pitch so repeated hits do not sound identical. Returns false until they are decoded. */
  private playImpactLayers(c:AudioContext,t:number,gain:number){
@@ -80,6 +84,18 @@ class AudioEngine {
   const rate=.95+Math.random()*.1;
   for(const layer of IMPACT_LAYERS){const source=c.createBufferSource(),g=c.createGain();source.buffer=this.samples.get(layer.url)!;source.playbackRate.value=rate;g.gain.value=layer.volume*gain;source.connect(g);g.connect(c.destination);source.start(t);}
   return true;
+ }
+ private playSample(c:AudioContext,buffer:AudioBuffer,volume:number,rate=1){
+  const source=c.createBufferSource(),g=c.createGain();source.buffer=buffer;source.playbackRate.value=rate;g.gain.value=volume;source.connect(g);g.connect(c.destination);source.start();
+ }
+ /** Plays a recorded battle cue; falls back to a short synthesized chime until its files are decoded. */
+ cue(id:AudioCue){
+  if(!this.enabled||this.isHidden())return;
+  try{
+   const c=this.getContext();this.resume(c);const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter(buffer=>buffer!==undefined);
+   if(loaded.length){this.playSample(c,loaded[Math.floor(Math.random()*loaded.length)],cue.volume,.97+Math.random()*.06);return;}
+   const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(id==='pow'?330:880,t);o.frequency.exponentialRampToValueAtTime(id==='pow'?990:1320,t+.25);g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.32);
+  }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
  private resume(context:AudioContext){
   if(context.state==='suspended')void context.resume().then(()=>this.syncEnvironment()).catch(()=>{});
