@@ -39,15 +39,13 @@ try{
  male.initial=await profile(male);const initial=male.initial;
  assert.ok(initial.gold>=680,`Fresh account has ${initial.gold} Brasa; requires 680 for transactional purchase`);
  let dialog=await shop(male);
- await expect(dialog.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name:'Masculino',exact:true})).toHaveAttribute('aria-pressed','true');
+ await expect(dialog.getByRole('group',{name:'Coleções da loja'})).toHaveCount(0);
  const items=[['outfit-cartographer','Cartógrafo da Aurora','Roupas'],['hair-horizon','Corte Horizonte','Complementos'],['glasses-navigator','Óculos de Navegação','Complementos']];
- for(const [id,name,group] of items){await category(dialog,group);const card=await offer(dialog,id);await expect(card).toHaveAttribute('data-item-gender','male');await dialog.getByRole('button',{name:`Experimentar ${name}`,exact:true}).click();await expect(card).toHaveClass(/trying/);}
+ for(const [id,name,group] of items){await category(dialog,group);const card=await offer(dialog,id);await dialog.getByRole('button',{name:`Experimentar ${name}`,exact:true}).click();await expect(card).toHaveClass(/trying/);}
  await page.screenshot({path:`${output}/shop-preview-desktop.png`});
- // Buy all three at once; the trial is local, while purchase must be atomic on the server.
- for(const [,name,group] of items){await category(dialog,group);await dialog.getByRole('button',{name:`Adicionar ${name} ao carrinho`,exact:true}).click();}
+ // The trial is local; each purchase is confirmed and validated by the server.
  assert.deepEqual((await profile(male)).equipment,initial.equipment,'Trying on items must not equip them');
- await dialog.getByRole('button',{name:'Ver carrinho 3',exact:true}).click();await expect(dialog.locator('.shop-checkout-total')).toContainText('680');
- await dialog.getByRole('button',{name:'Comprar tudo',exact:true}).click();await expect(dialog.getByRole('status')).toContainText('Itens guardados na mochila!');
+ for(const [,name,group] of items){await category(dialog,group);await dialog.getByRole('button',{name:`Comprar ${name}`,exact:true}).click();await dialog.getByRole('alertdialog',{name:'Confirmar compra'}).getByRole('button',{name:'Confirmar',exact:true}).click();await expect(dialog.getByRole('status')).toContainText(`${name} guardado na mochila!`);}
  const purchased=await profile(male);assert.equal(purchased.gold,initial.gold-680);for(const [id] of items)assert.ok(purchased.inventory.includes(id),id);assert.deepEqual(purchased.equipment,initial.equipment);
  await dialog.getByRole('button',{name:'Fechar',exact:true}).click();
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();let bag=page.getByRole('dialog',{name:'Mochila'});await expect(bag).toBeVisible();
@@ -61,10 +59,10 @@ try{
  await bag.getByRole('button',{name:'Fechar',exact:true}).click();
  await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('.bottom-dock')).toBeVisible();let restored=await profile(male);for(const [id,,,slot] of items.map(([id,name,group])=>[id,name,group,id.startsWith('outfit')?'outfit':id.startsWith('hair')?'hair':'glasses']))assert.equal(restored.equipment[slot],id);
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();bag=page.getByRole('dialog',{name:'Mochila'});await page.screenshot({path:`${output}/inventory-reloaded-desktop.png`});await bag.getByRole('button',{name:'Fechar',exact:true}).click();
- checks.push('male shop filter, local trial, one 680-Brasa transaction, immediate equipment and persistence after reload');
+ checks.push('male shop filter, local trial, three confirmed purchases totaling 680 Brasa, immediate equipment and persistence after reload');
 
- const female=await create('female');dialog=await shop(female);await dialog.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name:'Masculino',exact:true}).click();
- for(const [id,name,group] of items){await category(dialog,group);const card=await offer(dialog,id);await expect(card).toHaveAttribute('data-gender-locked','true');await expect(dialog.getByRole('button',{name:`Experimentar ${name}`,exact:true})).toBeDisabled();await expect(dialog.getByRole('button',{name:`Adicionar ${name} ao carrinho`,exact:true})).toBeDisabled();}
+ const female=await create('female');dialog=await shop(female);
+ for(const [id,,group] of items){await category(dialog,group);await expect(dialog.locator(`[data-shop-item="${id}"]`)).toHaveCount(0);}
  await female.page.screenshot({path:`${output}/female-locked.png`});assert.deepEqual((await profile(female)).equipment,female.initial.equipment);assert.equal(female.commands.filter(command=>command.type==='shop-buy'||command.type==='customize').length,0);
  // Simulate legacy ownership only in this freshly created female test account.
  // The server must reject equipping these IDs even when they appear in inventory.
@@ -75,7 +73,7 @@ try{
  const femaleBefore=await profile(female);for(const [id] of items)assert.ok(femaleBefore.inventory.includes(id));
  await forgedCommands(female,[{type:'shop-buy',items:['outfit-cartographer']},...items.map(([id])=>({type:'equip',item:id}))]);
  const femaleAfter=await profile(female);assert.deepEqual(femaleAfter.equipment,femaleBefore.equipment);assert.equal(femaleAfter.gold,femaleBefore.gold);
- checks.push('female shop locks all three; server rejects forged purchase and equipment even with legacy ownership');
+ checks.push('female shop never lists the three; server rejects forged purchase and equipment even with legacy ownership');
 
  const mobile=await create('male',{viewport:{width:844,height:390},isMobile:true,hasTouch:true});dialog=await shop(mobile);for(const [id,name,group] of items){await category(dialog,group);await offer(dialog,id);await dialog.getByRole('button',{name:`Experimentar ${name}`,exact:true}).click();}
  await mobile.page.screenshot({path:`${output}/shop-preview-landscape.png`});
