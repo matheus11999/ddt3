@@ -2,11 +2,11 @@
 
 ## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
 
-- 13 slots: entram Anel ×2 (`ring` e `ring2`, mesma família; um anel só ocupa um slot), Colar (`necklace`) e Bolha (`bubble`). Pulseira e Bracelete são os 2 slots de pulseira. Fileira inferior: Anel, Colar, Arma, Bolha, Anel. Joias e bolha são invisíveis no boneco; a bolha ainda é só cosmética (sem efeito no chat).
+- 13 slots: entram Anel ×2 (`ring` e `ring2`, mesma família; um anel só ocupa um slot), Colar (`necklace`) e Bolha (`bubble`). Pulseira e Bracelete são os 2 slots de pulseira. Anéis ficam na base das colunas laterais (Anel à esquerda, Anel à direita); fileira inferior só Colar, Arma e Bolha. Joias e bolha são invisíveis no boneco; a bolha ainda é só cosmética (sem efeito no chat).
 - Loja: Anel da Brasa (200), Anel da Maré (160), Colar Estelar (320) e Bolha Nuvem (150), com ícones SVG próprios. Anel e colar entram na composição.
 - Cards por classe: Comum, Normal (uncommon/rare), Épico e Lendário (`data-tier`), com gema no canto, brilho no épico e pulso no lendário. O ícone de sexo saiu da grade e só aparece no hover.
 - Hover refeito (`bag-tooltip`): cabeçalho com carta, tipo e sexo; faixa "Classe" com estrelas só para arma, roupa e chapéu (`CLASSED_SLOTS`); atributos em 2 colunas com ícones e diferença ▲/▼ contra o equipado; destruição/ângulo da arma.
-- `UpgradeTag` (SVG) muda de forma com o nível: bronze, +5 esmeralda com asas, +9 violeta com gema, +10 safira com coroa, +11 rubi com chamas e +12 ouro com raios girando.
+- `UpgradeTag` (SVG) é um brasão com número grande, asas de penas e faixa "FORÇA": até +4 cinza, +5 a +8 verde, +9 azul, +10 dourado, +11 dourado com rubi e +12 dourado com asas maiores, halo pulsante e brilhos. O hover não mostra mais "Equipado".
 - Evidência: `npm run check`, `npm test` (233), build, `test:mobile:browser` e `test:immediate:browser` passando; `test:customization:browser` para no mesmo passo "Treinar" de `main`; `verify:cosmetics` igual a `main`. Prévia em `docs/previews/backpack.png`.
 
 ## Mochila no padrão DDTank — 17/10/2026

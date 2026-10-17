@@ -145,10 +145,10 @@
 .bag-window .bag-stage > .equipment-slots {
   position: static;
   display: grid;
-  grid-template-columns: 70px;
-  grid-auto-rows: 70px;
+  grid-template-columns: 64px;
+  grid-auto-rows: 64px;
   align-content: center;
-  gap: 14px;
+  gap: 11px;
   height: auto;
   margin: 0;
   transform: none;
@@ -261,7 +261,7 @@
   justify-content: center;
   width: auto;
   transform: none;
-  gap: 12px;
+  gap: 22px;
   height: auto;
   min-height: 0;
   margin: 0;
@@ -306,8 +306,8 @@
 /* Slots equipados (cards com raridade) e vazios (creme com silhueta). */
 .bag-window .equipment-slots .item-card[data-rarity][data-card-variant] {
   position: relative;
-  width: 70px;
-  height: 70px;
+  width: 64px;
+  height: 64px;
   padding: 3px;
   border-radius: 12px;
   overflow: visible;
@@ -740,10 +740,10 @@
   left: -6px;
   bottom: -7px;
   z-index: 5;
-  width: 40px;
+  width: 46px;
   height: auto;
 }
-.bag-window .equipment-slots .item-card .bag-upgrade-tag { bottom: 6px; left: -8px; }
+.bag-window .equipment-slots .item-card .bag-upgrade-tag { bottom: 4px; left: -12px; width: 50px; }
 
 /* ---------- Card de informações (hover) ---------- */
 .inventory-tooltip.bag-tooltip {
