@@ -9,6 +9,7 @@ services:
       - ./src:/app/src:ro
       - ./shared:/app/shared:ro
       - ./public:/app/public:ro
+      - ./scripts/map-layouts:/app/scripts/map-layouts:ro
       - ./index.html:/app/index.html:ro
       - ./admin.html:/app/admin.html:ro
       - ./vite.config.ts:/app/vite.config.ts:ro
