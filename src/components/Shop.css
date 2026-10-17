@@ -41,7 +41,7 @@
 /* ---------- Estrutura ---------- */
 .shop-window .shop-layout {
   display: grid;
-  grid-template-columns: minmax(300px, 34fr) minmax(0, 66fr);
+  grid-template-columns: minmax(230px, 24fr) minmax(0, 76fr);
   grid-template-rows: minmax(0, 1fr);
   gap: 8px;
   flex: 1;
@@ -115,13 +115,13 @@
   background: linear-gradient(#e9b77400, #e2a7612e 40%, #d58c4555);
   pointer-events: none;
 }
-.shop-window .shop-sigil { width: min(300px, 88%); translate: -50% -54%; }
+.shop-window .shop-sigil { width: min(260px, 80%); translate: -50% -54%; }
 .shop-window .shop-stage > canvas {
   position: absolute;
   inset: 0;
   z-index: 1;
   width: auto !important;
-  height: min(340px, 100%) !important;
+  height: min(290px, 86%) !important;
   max-width: 100%;
   aspect-ratio: 1;
   margin: auto;
@@ -252,6 +252,7 @@
   border-radius: 12px;
   background: linear-gradient(#fffdf7, #fbecd0);
   box-shadow: inset 0 1px #fff, inset 0 -2px #ecd2a0, 0 2px #c4813d55;
+  cursor: pointer;
   transition: box-shadow .15s, border-color .15s, transform .15s;
 }
 .shop-window .shop-offer:hover { border-color: #f0a24a; transform: translateY(-1px); }
@@ -269,7 +270,8 @@
 .shop-window .shop-offer > .item-card .item-art { width: 62px !important; height: 62px !important; object-fit: contain; }
 .shop-window .shop-offer-info { display: grid; justify-items: start; gap: 3px; min-width: 0; }
 /* Nome na largura toda; tipo e preço embaixo, ações à direita. */
-.shop-window .shop-offer { grid-template-rows: auto auto auto; row-gap: 3px; }
+.shop-window .shop-offer { grid-template-rows: auto auto auto; row-gap: 3px; align-content: center; }
+.shop-window .shop-offer .shop-price { margin-top: 6px; }
 .shop-window .shop-offer > .item-card { grid-row: 1 / -1; }
 .shop-window :is(.shop-offer-info, .shop-offer-buy) { display: contents; }
 .shop-window .shop-offer-info h2 { grid-column: 2 / 4; grid-row: 1; align-self: end; }
@@ -288,7 +290,6 @@
   text-overflow: ellipsis;
 }
 .shop-window .shop-offer-info small { font-size: 11px; font-weight: 800; color: var(--wood-ink-soft); }
-.shop-window .shop-offer-buy { display: grid; justify-items: end; gap: 6px; }
 .shop-window .shop-price {
   display: inline-flex;
   align-items: center;
@@ -301,7 +302,7 @@
   text-shadow: 0 1px #fff;
 }
 .shop-window .shop-offer-actions { display: flex; gap: 5px; }
-.shop-window :is(.shop-try, .shop-buy, .shop-owned) {
+.shop-window .shop-buy {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -313,27 +314,18 @@
   white-space: nowrap;
   transition: filter .15s, transform .15s;
 }
-.shop-window .shop-try {
+.shop-window .shop-buy {
   width: 36px;
   padding: 0;
-  border: 1px solid #fff3d6;
-  background: linear-gradient(#fffaf0, #f3d9a9);
-  box-shadow: inset 0 1px #fff, inset 0 -2px #d4a565, 0 1px #8a4318aa;
-  color: #8a3f0b;
-}
-.shop-window .shop-buy {
-  padding: 0 12px;
   border: 1px solid #fff2c8;
   background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
   box-shadow: inset 0 1px #fff7cf, inset 0 -2px #c06d0a, 0 1px #6b2c05;
   color: #6b2c05;
 }
 .shop-window .shop-buy:disabled { filter: saturate(.3); opacity: .6; }
-.shop-window .shop-owned { padding: 0 10px; border: 1px solid #f2fff0; background: linear-gradient(#e7f6d8, #bfe0a2); box-shadow: inset 0 -2px #93c06f; color: #2f7a24; }
-.shop-window :is(.shop-try, .shop-buy):not(:disabled):hover { filter: brightness(1.06); transform: translateY(-1px); }
-.shop-window :is(.shop-try, .shop-buy):not(:disabled):active { transform: translateY(1px); }
+.shop-window .shop-buy:not(:disabled):hover { filter: brightness(1.06); transform: translateY(-1px); }
+.shop-window .shop-buy:not(:disabled):active { transform: translateY(1px); }
 .shop-window .shop-price.short { color: #c0301a; }
-.shop-window .shop-try[aria-pressed="true"] { background: linear-gradient(#ffc566, #f39a2c); box-shadow: inset 0 1px #fff7d9, inset 0 -2px #c76413; color: #fff; text-shadow: 0 1px #8a3a07; }
 
 /* Abas verticais à direita da vitrine (mesmas da mochila). */
 .shop-window .shop-tabs { display: flex; flex-direction: column; gap: 5px; min-height: 0; padding-top: 8px; }
@@ -531,7 +523,6 @@ html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height:
   .shop-window .shop-offer > .item-card[data-rarity][data-card-variant] { width: 60px; height: 60px; }
   .shop-window .shop-offer > .item-card .item-art { width: 54px !important; height: 54px !important; }
   .shop-window .shop-offer-info h2 { font-size: 14px; }
-  .shop-window .shop-try { width: 32px; padding: 0; }
 }
 @media (max-height: 800px) {
   .shop-window .shop-grid { grid-template-rows: repeat(5, minmax(76px, 1fr)); gap: 6px; padding: 8px; }
@@ -554,15 +545,15 @@ html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height:
   html:not(.mobile-landscape) .shop-window .shop-stage { contain: paint; }
 }
 
-/* Celular em paisagem: duas colunas, rolagem interna e controles compactos. */
+/* Celular em paisagem: provador estreito, vitrine com duas colunas, rolagem interna e controles compactos. */
 html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu-frame.shop-window[class] { width: 100%; height: calc(100dvh - 16px); }
-html.mobile-landscape .shop-window .shop-layout { grid-template-columns: minmax(200px, 30%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
+html.mobile-landscape .shop-window .shop-layout { grid-template-columns: minmax(160px, 23%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
 html.mobile-landscape .shop-window .shop-fitting { gap: 5px; padding: 5px; }
 html.mobile-landscape .shop-window .shop-fitting-head { height: 38px; gap: 6px; padding: 0 6px 0 4px; }
 html.mobile-landscape .shop-window .shop-fitting-head > .level-badge { width: 30px !important; height: 30px !important; --level-size: 30px !important; font-size: 30px !important; }
 html.mobile-landscape .shop-window .shop-identity small { display: none; }
 html.mobile-landscape .shop-window .shop-identity h2 { font-size: 13px; }
-html.mobile-landscape .shop-window .shop-sigil { width: min(170px, 92%); }
+html.mobile-landscape .shop-window .shop-sigil { width: min(150px, 84%); }
 html.mobile-landscape .shop-window .shop-restore { left: 6px; bottom: 6px; width: 30px; height: 30px; }
 html.mobile-landscape .shop-window .shop-preview-caption { left: 40px; right: 6px; bottom: 7px; justify-content: flex-end; }
 html.mobile-landscape .shop-window .shop-preview-caption span { padding: 3px 9px; font-size: 10px; }
@@ -588,10 +579,9 @@ html.mobile-landscape .shop-window .shop-offer-actions { grid-row: 2; align-self
 html.mobile-landscape .shop-window .shop-offer-actions { gap: 4px; }
 html.mobile-landscape .shop-window .shop-price { font-size: 12px; gap: 2px; }
 html.mobile-landscape .shop-window .shop-price > :first-child { width: 15px !important; height: 15px !important; }
-html.mobile-landscape .shop-window :is(.shop-try, .shop-buy, .shop-owned) { height: 24px; border-radius: 7px; font-size: 10px; }
-html.mobile-landscape .shop-window :is(.shop-try, .shop-buy, .shop-owned) svg { width: 13px; height: 13px; }
-html.mobile-landscape .shop-window .shop-try { width: 28px; padding: 0; }
-html.mobile-landscape .shop-window :is(.shop-buy, .shop-owned) { padding: 0 7px; gap: 3px; }
+html.mobile-landscape .shop-window .shop-buy { height: 24px; border-radius: 7px; font-size: 10px; }
+html.mobile-landscape .shop-window .shop-buy svg { width: 13px; height: 13px; }
+html.mobile-landscape .shop-window .shop-buy { width: 28px; }
 html.mobile-landscape .shop-window .shop-count { display: none; }
 html.mobile-landscape .shop-window .shop-tabs { gap: 3px; padding-top: 4px; }
 html.mobile-landscape .shop-window .shop-tabs button { position: relative; flex: 1 1 0; padding: 3px 0; }
@@ -601,5 +591,5 @@ html.mobile-landscape .shop-window .shop-pagination { min-height: 22px; padding-
 html.mobile-landscape .shop-window .shop-pager > button { width: 28px; height: 22px; }
 
 @media (prefers-reduced-motion: reduce) {
-  .shop-window :is(.shop-offer, .shop-try, .shop-buy, .shop-tabs button) { transition: none; }
+  .shop-window :is(.shop-offer, .shop-buy, .shop-tabs button) { transition: none; }
 }

@@ -12,7 +12,7 @@ import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_IDS} from '../shared/maps';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
-import {HEAL_AMOUNT,HIDDEN_POSITION,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
+import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
@@ -20,7 +20,7 @@ import {createFall,fallPosition,fallVelocity} from '../shared/fall';
 export interface Peer {profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
-const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000;
+const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100;
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','fire','pass','reward-pick','rematch']);
 interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];}
 export class Game {
@@ -28,7 +28,7 @@ export class Game {
  // Parties keep their identity throughout a match; opponents are never merged into a room.
  private nextRoomNumber=1;private roomMatches=new Map<string,string>();private queueIds=new Set<string>();private profileChanges=new Set<string>();
  private lastTick=Date.now();private lobbyTick=0;private roomsDirty=false;private arenaPopulation=0;
- private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();
+ private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
  constructor(private store:ProfileStore,private report:(e:unknown)=>void=console.error,private criticalRoll:()=>number=()=>randomInt(1_000_000)/1_000_000){}
  connect(profile:Profile,send:Peer['send']){
   let p=this.peers.get(profile.id);
@@ -102,7 +102,7 @@ export class Game {
    else if(!this.invitationAvailable(pending))this.finishInvitation(pending,'unavailable');
   }
   for(const [key,at] of this.invitePairAt)if(now-at>=ROOM_INVITE_PAIR_MS)this.invitePairAt.delete(key);
-  for(const rates of [this.inviteSentAt,this.inviteListAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
+  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
  }
  private invitePlayer(p:Peer,playerId:string){
   this.pruneInvitations();const room=this.invitationRoom(p),now=Date.now(),id=p.profile.id,target=this.peers.get(playerId);
@@ -131,6 +131,12 @@ export class Game {
    if(this.isSpectator(p)&&SPECTATOR_BLOCKED_COMMANDS.has(c.type))throw Error('Você está assistindo. Apenas participantes podem usar esta ação.');
    switch(c.type){
     case 'arena-presence':if(p.arenaOpen!==c.open){p.arenaOpen=c.open;this.publishArenaPopulation();}return;
+    case 'online-list':{
+     // Everyone connected, on any channel, highest level first; the hall shows the list next to the rooms.
+     const now=Date.now();if(now-(this.onlineListAt.get(id)??-Infinity)<ONLINE_LIST_MS)return;this.onlineListAt.set(id,now);
+     const all=[...this.peers.values()].filter(peer=>peer.connected).map(peer=>({id:peer.profile.id,name:peer.profile.name,level:peer.profile.level,gender:peer.profile.gender})).sort((a,b)=>b.level-a.level||a.name.localeCompare(b.name,'pt-BR')||a.id.localeCompare(b.id));
+     this.emit(p,{type:'online-players',players:all.slice(0,ONLINE_LIST_LIMIT),total:all.length});return;
+    }
     case 'room-invite-list':{
      const room=this.invitationRoom(p),now=Date.now();if(now-(this.inviteListAt.get(id)??-Infinity)<ROOM_INVITE_LIST_MS)throw Error('Aguarde um instante antes de atualizar a lista.');this.inviteListAt.set(id,now);
      const players=[...this.peers.values()].filter(peer=>peer.connected&&!peer.roomId&&peer.profile.id!==id).map(peer=>({id:peer.profile.id,name:peer.profile.name,level:peer.profile.level})).sort((a,b)=>a.name.localeCompare(b.name,'pt-BR')||a.id.localeCompare(b.id));
@@ -403,7 +409,7 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing?{projectileIndex:0,targets:simulated.state.players.filter(player=>player.team!==shooter.team&&!(player.invisibleTurns??0))}:undefined);
+  },delays,homing?{projectileIndex:0,targets:homingTargets(simulated.state.players,shooter)}:undefined);
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
   const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){
