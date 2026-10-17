@@ -2,7 +2,7 @@ import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
-import {LOBBY_SPAWN} from '../shared/lobby';
+import {LOBBY_SPAWN,LOBBY_WALK_SPEED} from '../shared/lobby';
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
@@ -526,7 +526,7 @@ export class Game {
   const channels=new Set<number>();
   for(const [id,p] of this.peers){
    if(!p.connected&&now-p.lastSeen>30000&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
-   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=Math.min(d,160*dt);p.x+=dx/d*step;p.y+=dy/d*step;channels.add(p.channel);}}
+   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=Math.min(d,LOBBY_WALK_SPEED*dt);p.x+=dx/d*step;p.y+=dy/d*step;channels.add(p.channel);}}
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){

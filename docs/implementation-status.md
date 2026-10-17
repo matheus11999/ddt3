@@ -257,3 +257,11 @@ Smoke no frontend de produção passou após liberar cache de builds que havia e
 ### Quebra-Tijolos no checkout de desenvolvimento
 
 O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica produz cacos autoritativos após o impacto principal e aplica demolição adicional em materiais resistentes. A arte final gerada por `image_gen` substitui as seis pinturas provisórias: quatro estágios da arma, atlas de efeitos e resíduo. Prompts, medidas e prancha estão em [brick-weapon.md](brick-weapon.md). Os testes específicos de física e combate foram adaptados ao checkout atual; `npx tsx --test tests/physics.test.ts tests/game.test.ts` passou com 27 testes.
+
+## Virada do personagem ao andar (17/10/2026)
+
+- Antes a virada misturava duas cópias espelhadas e semitransparentes e achatava o boneco na largura por 150 ms, o que parecia uma folha de papel girando. Agora o boneco troca de lado de uma vez, como no DDTank, com um agachamento curto e um pulinho nos pés (`turnPop` em `src/game/avatar.ts`). Vale para roupas, fantasias e combate.
+- No lobby, o boneco só vira quando o movimento horizontal domina (`Scene.tsx`), para não ficar virando ao andar quase na vertical.
+- Andar conferido nas cinco roupas e nas duas fantasias, com chapéus: todas mexem as pernas pelo mesmo mecanismo. Prévia: `docs/previews/lobby-turn.gif`.
+- Passos (17/10/2026): o cliente suavizava a posição do lobby andando 16% da distância por quadro, e o servidor manda posição a cada 100 ms. A velocidade na tela oscilava entre 83 e 253 px/s, então as pernas aceleravam e freavam a cada pacote. Agora o boneco persegue a posição do servidor na velocidade de caminhada (`src/game/lobbyMotion.ts`), com ritmo constante e parada limpa. A caminhada caiu de 160 para 110 px/s (`LOBBY_WALK_SPEED` em `shared/lobby.ts`) e a passada cresceu (12 no Surfista, 11 nas outras), para cerca de 2,8 passadas por segundo em vez de 4,5 com o pé sempre plantado. Prévia: `docs/previews/lobby-steps.gif`.
+- Pernas (17/10/2026): a pose pintada abre as pernas em 3/4, e a caminhada partia dessa abertura. Um passo virava um espacate largo e o seguinte uma tesoura, com os pés se cruzando. Agora cada perna inteira (quadril e pé) anda numa faixa 75% mais perto do meio (`WALK_LANE_PULL`), os dois passos ficam iguais e o pé balança mais baixo (7 em vez de 10). Prévia: `docs/previews/lobby-legs.gif`.
