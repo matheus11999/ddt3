@@ -31,7 +31,7 @@ try{
  for(const [width,height] of [[1536,864],[1280,720],[390,844],[844,390]]){
   await page.setViewportSize({width,height});await page.evaluate(({width,height})=>{document.querySelector('.game-frame').style.transform=`translate(-50%,-50%) scale(${Math.min(width/1536,height/864)})`;},{width,height});
   const layout=await page.evaluate(()=>{const rect=s=>{const r=document.querySelector(s).getBoundingClientRect();return{x:r.x,right:r.right,y:r.y,bottom:r.bottom};};return{meter:rect('.power-track'),power:rect('.combat-power'),actions:rect('.battle-actions'),frame:rect('.game-frame')};});
-  if(layout.meter.right>=layout.power.x||layout.power.right>=layout.actions.x||layout.power.bottom>layout.frame.bottom)throw Error('Power overlaps combat controls');layouts.push({width,height,...layout});
+  if(layout.meter.right>=layout.actions.x||layout.actions.right>=layout.power.x||layout.power.bottom>layout.frame.bottom)throw Error('Power overlaps combat controls');layouts.push({width,height,...layout});
   if(width===390)await page.screenshot({path:output+'/mobile.png'});
  }
  if(errors.length)throw Error(errors.join('\n'));

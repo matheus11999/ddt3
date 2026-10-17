@@ -7,7 +7,7 @@ import {AbilitySlots} from './AbilitySlots';
 import {AngleGauge,PowerOrb} from './CombatGauges';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {ChevronDown,ChevronUp,Wind,Zap,SkipForward,LogOut} from 'lucide-react';
+import {ChevronDown,ChevronUp,Wind,Zap,LogOut} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
@@ -173,6 +173,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <b key={`${b.turnNumber}-${seconds}`} aria-label={b.phase==='aiming'?`${seconds} segundos`:undefined}><BattleText className="clock-face">{b.phase==='aiming'?String(seconds):b.phase==='finished'?'◆':'···'}</BattleText></b>
     <small>TURNO {b.turnNumber}</small>
    </div>
+   <button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>
    </div>
    {opponent&&<FighterPanel fighter={opponent} others={opponents.filter(player=>player.id!==opponent.id)} opponent turnId={b.turnId} resolving={b.phase==='resolving'}/>}
   </div>
@@ -204,7 +205,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <div className="angle-buttons"><button type="button" disabled={!canAct} aria-label="Aumentar ângulo" onClick={event=>{setAngle(Math.min(maxAngle,angle+1));if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAct} aria-label="Diminuir ângulo" onClick={event=>{setAngle(Math.max(minAngle,angle-1));if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
    </div>
    <div className="power-controls">
-    <div className="power-label"><span>FORÇA</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">ÚLTIMO <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
+    <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
     <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`} style={{'--shot-power':`${power}%`} as CSSProperties}>
      <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
      {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
@@ -217,11 +218,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <div className="power-hint"><kbd>ESPAÇO</kbd><span>{chargeHint}</span></div>
    </div>
    <span id="charge-instructions" className="battle-sr-only">Segure Espaço ou toque e segure a régua para carregar. Solte para disparar a força mostrada. Use as setas do teclado para andar e mirar.</span>
-   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100} onActivate={()=>client.send({type:'power'})}/>
    <div className="battle-actions">
-    <div className="vigor-display"><div className="vigor-caption"><span><Zap size={13}/>VIGOR</span><strong>{me.stamina}<small> / {me.maxStamina}</small></strong></div><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/></div></div>
-    <button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><SkipForward size={16}/><span>PASSAR</span><kbd>P</kbd></button>
+    <div className="vigor-display"><span className="hud-bar-label">Energia</span><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/><b>{me.stamina}/{me.maxStamina}</b></div></div>
+    <div className="vida-display"><span className="hud-bar-label">Vida</span><div className={`vida-bar ${me.hp/me.maxHp<=.25?'critical-health':''}`} role="meter" aria-label="Vida no console" aria-valuenow={me.hp} aria-valuemin={0} aria-valuemax={me.maxHp}><i style={{width:`${Math.max(0,me.hp/me.maxHp)*100}%`}}/><b>{me.hp.toLocaleString('pt-BR')}</b></div></div>
    </div>
+   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>Seu personagem será retirado desta partida.</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
