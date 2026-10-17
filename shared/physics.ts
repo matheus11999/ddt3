@@ -1,5 +1,5 @@
 import type {MapId, Weapon} from './catalog';
-import {canonicalMap,contains,getMap,MATERIALS} from './maps';
+import {canonicalMap,contains,getMap} from './maps';
 import type {CanonicalMapId,MaterialId,MapRegion} from './maps';
 import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
@@ -45,14 +45,18 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=y-51;py<y-9;py+=WORLD.cell)if(solid(t,px,py))return null;
  return {x,y};
 }
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden',demolition=0){
- const template=terrainTemplate(map);let removed=0;const extent=r/Math.sqrt(.72);
+/** A projectile that hits a fighter in full digs only this share of its crater, under the target's feet. */
+export const DIRECT_HIT_DIG=.45;
+/** Where an impact removes terrain: under the target on a direct hit, else at the explosion. */
+export function impactDig(impact:{x:number;y:number;radius:number;dig?:{x:number;y:number;radius:number}}){return impact.dig??impact;}
+/** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden'){
+ const template=terrainTemplate(map);let removed=0;const extent=r;
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-extent)/3));cx<Math.min(WORLD.cols,Math.ceil((x+extent)/3));cx++){
   const i=cy*WORLD.cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const resistance=MATERIALS[region.material].resistance,radius=r/Math.sqrt(resistance>1?1+(resistance-1)*(1-demolition):resistance);
-  if((cx*3-x)**2+(cy*3-y)**2<=radius*radius){t[i]=0;removed++;}
+  if((cx*3-x)**2+(cy*3-y)**2<=r*r){t[i]=0;removed++;}
  }
  return removed;
 }

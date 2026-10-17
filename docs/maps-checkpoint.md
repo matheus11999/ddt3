@@ -18,7 +18,7 @@ O usuário retomou os mapas após o checkpoint facial, rejeitou o acabamento sim
 
 ## Contratos
 
-`createTerrain(map)` entrega cópia independente; `terrainTemplate(map)` guarda máscara e regiões em cache. `crater(mask,x,y,radius,map)` remove apenas células destrutíveis conforme resistência, retornando contagem. `terrainMaterial()` informa material/região. Aliases antigos `sky`/`valley` são normalizados pelo servidor.
+`createTerrain(map)` entrega cópia independente; `terrainTemplate(map)` guarda máscara e regiões em cache. `crater(mask,x,y,radius,map)` remove apenas células destrutíveis, todas iguais, retornando contagem. `terrainMaterial()` informa material/região. Aliases antigos `sky`/`valley` são normalizados pelo servidor.
 
 Projéteis usam colisão contínua de disco contra terreno e personagens, com raios de 6px para Dragão de Brasa, 3px para Tempestade e 9px para Flor de Cristal. Os pontos da trajetória registram o centro do projétil; as coordenadas do impacto registram o contato real com a superfície. Caminhada verifica bloqueios antes de gastar vigor. Impactos são resolvidos em ordem temporal; novas salvas usam a posição do atirador após queda. Cliente nunca decide dano ou modifica terreno remoto.
 
