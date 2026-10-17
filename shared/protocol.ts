@@ -55,7 +55,7 @@ export const stoneSelectionSchema=z.record(z.string().regex(/^[1-5]$/),z.number(
 export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('arena-presence'),open:z.boolean()}).strict(),
  z.object({type:z.literal('online-list')}).strict(),
- z.object({type:z.literal('player-info'),playerId:z.string().uuid()}).strict(),
+ z.object({type:z.literal('player-info'),playerId:z.string().regex(/^(bot-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)}).strict(),
  reportCommandSchema,
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),

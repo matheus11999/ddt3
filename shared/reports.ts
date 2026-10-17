@@ -35,6 +35,8 @@ export const reportUpdateSchema=z.object({status:z.enum(REPORT_STATUSES),note:z.
 /** What another player can see about someone: only what is worn, never the bag or the wallet. */
 export interface PlayerInfo {
  id:string;name:string;level:number;gender:CharacterGender;wins:number;matches:number;online:boolean;
+ /** Room and match bots: shown like players, never reported. */
+ bot?:boolean;
  /** As the server derives it: worn copies, upgrade, compositions, colors, skin and eyes. */
  equipment:Equipment;
  /** By copy key, only for the worn copies (what the tooltip reads). */
