@@ -12,7 +12,7 @@ import {initialSlots,modeForSlots,ROOM_MODES,teamSize} from '../shared/rooms';
 
 function fixture(count=9){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>();
- const store:ProfileStore={buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
+ const store:ProfileStore={saveAbilityLoadout:async()=>{throw Error('unused');},buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
  const game=new Game(store),players=Array.from({length:count},(_,i)=>normalizeProfile({id:randomUUID(),name:`Room ${i}`}));
  for(const player of players){profiles.set(player.id,player);events.set(player.id,[]);game.connect(player,event=>events.get(player.id)!.push(structuredClone(event)));}
  return {game,players,events,host:players[0],lastError:(id=players[0].id)=>events.get(id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').at(-1)?.message};
@@ -20,7 +20,7 @@ function fixture(count=9){
 
 test('one through four paired slots start supported, mirrored combat spawns on every map',async()=>{
  for(const [size,mode] of ROOM_MODES.entries())for(const map of MAP_IDS){
-  const {game,players,host}=fixture((size+1)*2);await game.command(host.id,{type:'create',name:'Team sizes',mode,map});
+  const {game,players,host}=fixture((size+1)*2);await game.command(host.id,{type:'create',practice:true,name:'Team sizes',mode,map});
   const roomId=game.peers.get(host.id)!.roomId!,room=game.rooms.get(roomId)!;assert.deepEqual(room.openSlots,initialSlots(mode));assert.equal(teamSize(mode),size+1);assert.equal(modeForSlots(size+1),mode);
   for(const player of players.slice(1)){await game.command(player.id,{type:'join',roomId});await game.command(player.id,{type:'ready'});}
   await game.command(host.id,{type:'start'});const match=game.matches.get(roomId)!;assert.ok(match);assert.equal(match.state.players.length,(size+1)*2);
@@ -34,7 +34,7 @@ test('one through four paired slots start supported, mirrored combat spawns on e
 });
 
 test('non-contiguous slots preserve their physical index instead of compacting spawns',async()=>{
- const f=fixture(4);await f.game.command(f.host.id,{type:'create',name:'Gap seats',mode:'1v1',map:'garden'});const roomId=f.game.peers.get(f.host.id)!.roomId!;
+ const f=fixture(4);await f.game.command(f.host.id,{type:'create',practice:true,name:'Gap seats',mode:'1v1',map:'garden'});const roomId=f.game.peers.get(f.host.id)!.roomId!;
  await f.game.command(f.host.id,{type:'room-slot',slot:3,open:true});assert.deepEqual(f.game.rooms.get(roomId)!.openSlots,[0,3]);assert.equal(f.game.rooms.get(roomId)!.mode,'2v2');
  for(const player of f.players.slice(1)){await f.game.command(player.id,{type:'join',roomId});await f.game.command(player.id,{type:'ready'});}
  assert.deepEqual(f.game.rooms.get(roomId)!.players.map(player=>[player.team,player.slot]),[[0,0],[1,0],[0,3],[1,3]]);
@@ -44,7 +44,7 @@ test('non-contiguous slots preserve their physical index instead of compacting s
 });
 
 test('only the waiting host can alter paired slots and occupied humans are preserved',async()=>{
- const f=fixture(4);await f.game.command(f.host.id,{type:'create',name:'Permissions',mode:'2v2',map:'park'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
+ const f=fixture(4);await f.game.command(f.host.id,{type:'create',practice:true,name:'Permissions',mode:'2v2',map:'park'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
  for(const player of f.players.slice(1)){await f.game.command(player.id,{type:'join',roomId});await f.game.command(player.id,{type:'ready'});}
  const before=structuredClone(room);
  await f.game.command(f.players[1].id,{type:'room-slot',slot:3,open:true});assert.match(f.lastError(f.players[1].id)!,/líder/);assert.deepEqual(room,before);
@@ -55,7 +55,7 @@ test('only the waiting host can alter paired slots and occupied humans are prese
 });
 
 test('capacity changes clear readiness, reject incomplete starts and remove only bots in closed slots',async()=>{
- const f=fixture(2);await f.game.command(f.host.id,{type:'create',name:'Capacity',mode:'1v1',map:'celestial'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
+ const f=fixture(2);await f.game.command(f.host.id,{type:'create',practice:true,name:'Capacity',mode:'1v1',map:'celestial'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
  await f.game.command(f.players[1].id,{type:'join',roomId});await f.game.command(f.players[1].id,{type:'ready'});assert.equal(room.players[1].ready,true);
  await f.game.command(f.host.id,{type:'room-slot',slot:2,open:true});assert.equal(room.players[1].ready,false);assert.deepEqual(room.openSlots,[0,2]);
  await f.game.command(f.host.id,{type:'start'});assert.equal(f.game.matches.size,0);assert.match(f.lastError()!,/precisa de 4 jogadores|Preencha/);
@@ -65,9 +65,9 @@ test('capacity changes clear readiness, reject incomplete starts and remove only
 });
 
 test('kicking requires the waiting host and cannot target self, outsiders or unknown players',async()=>{
- const f=fixture(6);await f.game.command(f.host.id,{type:'create',name:'Kick guards',mode:'2v2',map:'garden'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
+ const f=fixture(6);await f.game.command(f.host.id,{type:'create',practice:true,name:'Kick guards',mode:'2v2',map:'garden'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
  for(const player of f.players.slice(1,3)){await f.game.command(player.id,{type:'join',roomId});await f.game.command(player.id,{type:'ready'});}
- await f.game.command(f.players[3].id,{type:'create',name:'Another room',mode:'1v1',map:'park'});const otherId=f.game.peers.get(f.players[3].id)!.roomId!;
+ await f.game.command(f.players[3].id,{type:'create',practice:true,name:'Another room',mode:'1v1',map:'park'});const otherId=f.game.peers.get(f.players[3].id)!.roomId!;
  await f.game.command(f.players[4].id,{type:'join',roomId:otherId});
  const before=structuredClone(room),otherBefore=structuredClone(f.game.rooms.get(otherId));
  for(const [sender,target,reason] of [[f.players[1].id,f.players[2].id,/líder/],[f.players[1].id,f.host.id,/líder/],[f.host.id,f.host.id,/Sair da sala/],[f.host.id,f.players[4].id,/nesta sala/],[f.host.id,randomUUID(),/nesta sala/],[f.players[5].id,f.players[2].id,/Entre em uma sala/]] as const){
@@ -84,7 +84,7 @@ test('kicking requires the waiting host and cannot target self, outsiders or unk
 });
 
 test('kick preserves open slots, resets readiness and returns the recipient to a reconnectable lobby',async()=>{
- const f=fixture(4);await f.game.command(f.host.id,{type:'create',name:'Kick membership',mode:'1v1',map:'celestial'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
+ const f=fixture(4);await f.game.command(f.host.id,{type:'create',practice:true,name:'Kick membership',mode:'1v1',map:'celestial'});const roomId=f.game.peers.get(f.host.id)!.roomId!,room=f.game.rooms.get(roomId)!;
  await f.game.command(f.host.id,{type:'room-slot',slot:3,open:true});
  for(const player of f.players.slice(1)){await f.game.command(player.id,{type:'join',roomId});await f.game.command(player.id,{type:'ready'});}
  const victim=f.players[3],mark=f.events.get(victim.id)!.length;

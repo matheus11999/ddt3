@@ -1,5 +1,17 @@
 # Retomar localmente — checkpoint de 16/10/2026
 
+## Atualização local posterior à sessão cloud
+
+A etapa atual refinou a mochila/loja com personagem estático e maior, slots maiores, restauração por ícone e molduras finas. Lobby sem armas visíveis e cartas de jogador estáticas. Arena passa a usar grupos de até quatro aliados, busca por tamanho e mapa sorteado no servidor; [matchmaking.md](matchmaking.md) documenta o protocolo e seus limites. Manter o treino separado.
+
+A clarificação final preserva rostos pintados, Surfista, Executivo, Ondulado e chapéus redesenhados. Apenas seis protótipos antigos foram retirados do catálogo/loja. A migração de conteúdo 10 troca itens possuídos e preserva recursos; IDs e equivalências estão em `shared/catalog.ts`. Não aplicar remoção indiscriminada de todos os itens anteriores à loja.
+
+Conteúdo atual 12 inclui migração de gênero fixo escolhido na criação, validação de compatibilidade no servidor, loja separada e duas fantasias iniciais unissex. A engrenagem da mochila salva preferências de exibição sem desequipar. Fantasia é um slot próprio e substitui o personagem completo na rua, nas prévias e em batalha. Itens vazios “Sem ...” foram retirados da lista de posses/cards. Ler `customization.md` e `costume-art-prompts.md`; a arte acompanha o repositório.
+
+Celular é jogável somente em paisagem; retrato exibe a orientação para girar e bloqueia controles sem perder sessão. Layout de menus com pouca altura usa duas colunas e rolagem interna. Teste específico: `npm run test:mobile:browser`, com navegador móvel emulado e troca de orientação durante a carga de um disparo. Ler `mobile.md` para os limites do navegador.
+
+Os parágrafos seguintes registram o checkpoint anterior da cloud. O pedido local e a seção mais recente de `AGENTS.md` prevalecem.
+
 Repositório: `matheus11999/ddt3`, branch de entrega `main`. Este checkpoint reúne o trabalho da sessão cloud e termina na correção dos chapéus/cabelos. Não reiniciar o projeto nem retomar automaticamente outras pendências.
 
 ## Atualizar o checkout
@@ -31,15 +43,13 @@ docker compose ps
 
 Abrir `http://127.0.0.1:8097`. Os perfis ficam no volume local `brasa-data`. Não executar `docker compose down -v` para atualizar o projeto.
 
-Para desenvolvimento com atualização automática, instalar Node.js 24 e executar:
+Para desenvolvimento ao vivo no mesmo8097:
 
 ```sh
-npm ci
-docker compose -f compose.yaml -f compose.dev.yaml up -d --build server
-npm run dev
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 ```
 
-Abrir `http://127.0.0.1:5177`. Backend publicado em `127.0.0.1:4107`. Depois de mudar `shared/` ou `server/`, reconstruir o serviço `server`; Vite só atualiza o cliente.
+Vite atualiza a interface e os assets por HMR; tsx watch reinicia server/shared automaticamente. Reinício perde salas/filas/combates em memória, não o PostgreSQL. Cliente local opcional: Node24, `npm ci`, `npm run dev` em5177. Voltar à produção: `docker compose up -d --build`. Não usar `down -v`.
 
 Os auxiliares `/workspace/ddt3-cloud` eram adaptações do proxy/Chromium da cloud. **Não são necessários no computador local**. Usar os Dockerfiles e arquivos Compose deste repositório. Os caminhos `/workspace/generated_images` nos prompts são apenas a procedência da geração; todos os PNGs usados pelo jogo estão em `public/assets`.
 

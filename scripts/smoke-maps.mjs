@@ -1,18 +1,28 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium,expect} from '@playwright/test';
 import {WebSocket} from 'ws';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 import {chargeWithPointer} from './charge-helpers.mjs';
 
-// Uses the actual room UI and HTTP/WebSocket backend. Works against either the
-// Docker web service or Vite; no preview harness or mocked game state is used.
+// Explicit practice commands select deterministic maps through the real server.
+// All battle controls below use the actual UI; matchmaking UI is smoke-rooms' job.
+// Works against Docker or Vite without imported client modules or mocked state.
 const base=process.env.BASE_URL??'http://127.0.0.1:8097';
 const output='test-results/maps/browser';
-const maps=[['garden','Jardim Encantado','Destrutível'],['park','Parque dos Sonhos','Híbrido'],['celestial','Fortaleza Celestial','Indestrutível']];
+const maps=[['garden','Jardim Encantado'],['park','Parque dos Sonhos'],['celestial','Fortaleza Celestial']];
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1536,height:864}});
 const page=await context.newPage(),errors=[],serverErrors=[],commands=[],events=[],results=[];
+await context.addInitScript(()=>{
+ const Native=window.WebSocket;
+ window.WebSocket=class extends Native {constructor(...args){super(...args);if(new URL(String(args[0]),location.href).pathname==='/ws')window.__mapTestSocket=this;}};
+});
+const send=command=>page.evaluate(command=>{
+ const socket=window.__mapTestSocket;if(!socket||socket.readyState!==WebSocket.OPEN)throw Error('The game WebSocket is not connected');
+ socket.send(JSON.stringify(command));
+},command);
 let battle=null,profile=null,partner;
 page.on('pageerror',error=>errors.push(error.message));
 page.on('websocket',socket=>{
@@ -29,7 +39,7 @@ async function waitEvent(journal,type,predicate=()=>true,after=0,timeout=15000){
  return journal.slice(after).find(event=>event.type===type&&predicate(event));
 }
 async function connectPartner(){
- const response=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base},signal:AbortSignal.timeout(10000)});assert.equal(response.status,200);
+ const response=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({gender:'male'}),signal:AbortSignal.timeout(10000)});assert.equal(response.status,200);
  const cookie=response.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie);
  const {profile}=await response.json(),journal=[];
  const socket=new WebSocket(base.replace(/^http/,'ws')+'/ws',{origin:base,headers:{Cookie:cookie},handshakeTimeout:10000});
@@ -44,23 +54,15 @@ async function settledFrames(){await page.evaluate(()=>new Promise(resolve=>requ
 async function screenshot(name){await settledFrames();await page.screenshot({path:`${output}/${name}.png`});}
 
 try{
- await page.goto(base,{waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
+ await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
  await page.evaluate(()=>Promise.all(['ember','volt','crystal'].map(async weapon=>{const image=new Image();image.src=`/assets/vfx/${weapon}-effects.png`;await image.decode();if(!image.naturalWidth||!image.naturalHeight)throw Error(`Missing painted effects for ${weapon}`);})));
  partner=await connectPartner();
- for(const [map,name,behavior] of maps){
-  if(map==='celestial')await page.setViewportSize({width:640,height:960});
-  await page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();
-  await page.getByRole('button',{name:'Criar sala',exact:true}).last().click();
-  const form=page.locator('.create-panel');await form.getByLabel('Nome da sala').fill(`TEST UI ${map}`);
-  const choice=form.getByRole('button',{name:`${name}, ${behavior}`,exact:true});await choice.click();await expect(choice).toHaveAttribute('aria-pressed','true');
-  if(map==='celestial'){await form.locator('.map-render-thumbnail').evaluateAll(images=>Promise.all(images.map(image=>image.decode())));await screenshot(`${map}-compact-map-selection`);}
-  const createMark=events.length;await form.getByRole('button',{name:'Criar sala',exact:true}).click();
-  const created=await waitEvent(events,'room',event=>event.room?.map===map,createMark);assert.equal(created.room.mode,'1v1');
-  await page.setViewportSize({width:1536,height:864});
-  await expect(page.locator('.selected-map')).toContainText(name);
+ for(const [map,name] of maps){
+  const createMark=events.length;await send({type:'create',practice:true,name:`TEST map ${map}`,mode:'1v1',map});
+  const created=await waitEvent(events,'room',event=>event.room?.map===map,createMark);assert.equal(created.room.mode,'1v1');assert.equal(created.room.practice,true);
   await partner.request({type:'join',roomId:created.room.id},'room',event=>event.room?.id===created.room.id);
   await partner.request({type:'ready'},'room',event=>event.room?.players.some(p=>p.id===partner.profile.id&&p.ready));
-  const startMark=events.length;await page.getByRole('button',{name:'Iniciar batalha',exact:true}).click();
+  const startMark=events.length;await send({type:'start'});
   const started=await waitEvent(events,'battle',event=>event.battle?.map===map,startMark);assert.equal(started.battle.players.length,2);assert.ok(started.battle.terrain);
   await expect(page.locator('.battle-console')).toBeVisible();
   // Decode the map illustration and texture before capturing, including cold loads.
@@ -113,12 +115,12 @@ try{
   }
   await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();
   await partner.request({type:'leave'},'room',event=>event.room===null);
-  results.push({map,roomCreation:true,realPlayers:2,projectiles:9,zoom:true,qualityPersistence:true,ambientMutePersistence:true,reconnect:true,compactControls:map==='celestial'});
-  console.log(`${map}: real UI room, 9 projectiles, camera/quality/audio and reconnect OK`);
+  results.push({map,name,setup:'practice-protocol',realPlayers:2,projectiles:9,zoom:true,qualityPersistence:true,ambientMutePersistence:true,reconnect:true,compactControls:map==='celestial'});
+  console.log(`${map}: practice protocol setup, real battle UI, 9 projectiles, camera/quality/audio and reconnect OK`);
  }
  assert.deepEqual(errors,[],'browser JavaScript errors');assert.deepEqual(serverErrors,[],'game rejected an action');
  assert.deepEqual(partner.events.filter(event=>event.type==='error'),[],'partner commands rejected');
- const report={ok:true,base,results,errors,serverErrors,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+ const report={ok:true,base,setup:'practice-protocol',coverage:'battle UI and authoritative map physics; arena matchmaking UI is verified separately',results,errors,serverErrors,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){
  await page.screenshot({path:`${output}/failure.png`}).catch(()=>{});
  await writeFile(`${output}/failure.json`,JSON.stringify({error:String(error),errors,serverErrors,lastEvents:events.slice(-15).map(event=>({type:event.type,...(event.type==='battle'?{battle:event.battle&&{id:event.battle.id,phase:event.battle.phase,map:event.battle.map}}:{}),...(event.type==='room'?{roomId:event.room?.id??null}:{}),...(event.type==='error'?{message:event.message}:{})}))},null,2));

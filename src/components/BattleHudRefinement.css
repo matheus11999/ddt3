@@ -1,0 +1,229 @@
+/* Combat-only chrome. World characters, inventory and shop keep their own art. */
+.artillery-hud .battle-top{top:19px;left:24px;right:24px;grid-template-columns:minmax(0,1fr)170px minmax(0,1fr);gap:22px}
+.artillery-hud .battle-exit{width:30px;height:30px;left:0;top:10px;border:1px solid #c7b282;border-radius:10px;background:linear-gradient(#36506a,#183047);color:#ecdfbd;box-shadow:inset 0 1px #c3d5e43d,0 2px #061728}
+.artillery-hud .battle-player-panel{--health-bright:#b6ffd0;--health-mid:#31db98;--health-dark:#137d73;--team-edge:#80c4e4;display:flex;align-items:flex-start;gap:11px;width:min(440px,calc(100% - 40px));min-height:99px;margin:0 0 0 40px;padding:7px 12px 9px 7px;border:1px solid #7898b47d;border-radius:53px 17px 17px 53px;background:linear-gradient(110deg,#162c42f2,#17364de8 57%,#172c4194);box-shadow:inset 0 1px #bcdae430,0 4px 14px #0711244d;isolation:isolate}
+.artillery-hud .battle-player-panel.opponent-panel{--health-bright:#ffc5b0;--health-mid:#f4776f;--health-dark:#ae3d58;--team-edge:#e9a997;justify-self:end;flex-direction:row-reverse;margin:0;width:min(440px,100%);padding:7px 7px 9px 12px;border-radius:17px 53px 53px 17px;background:linear-gradient(250deg,#35263af2,#3d2c40e8 57%,#231d3494)}
+.artillery-hud .battle-player-panel.active-fighter{border-color:#efd088;box-shadow:inset 0 1px #fff1bf70,0 0 0 1px #d6ac4e5e,0 4px 14px #0711244d}
+.artillery-hud .battle-player-panel.defeated-fighter{filter:saturate(.4);opacity:.72}
+.artillery-hud .battle-player-portrait{width:80px;height:80px;margin:0;position:relative;flex:none;border:2px solid var(--team-edge);border-radius:50%;background:radial-gradient(ellipse at 45% 25%,#5d8ba6,#264f6b 60%,#132d46);box-shadow:inset 0 0 0 3px #152d46,0 2px #07192c;isolation:isolate}
+.artillery-hud .battle-player-portrait::before,.artillery-hud .battle-player-portrait::after{display:none}
+.artillery-hud .battle-player-portrait>canvas{position:absolute;inset:-2px;width:80px!important;height:80px!important;border-radius:50%}
+.artillery-hud .battle-player-portrait .level-badge{position:absolute;left:23px;bottom:-11px;z-index:2}
+.artillery-hud .battle-player-portrait .portrait-turn-point{position:absolute;top:-20px;left:calc(50% - 12px);width:24px;height:20px;display:grid;place-items:center;border-radius:7px;background:linear-gradient(#ffefad,#e0ae4c);color:#493825;border:1px solid #fff1c5;box-shadow:0 2px #263140;z-index:3}
+.artillery-hud .portrait-turn-point svg{stroke-width:3}
+.artillery-hud .battle-player-vitals{padding-top:3px;flex:1;width:auto;min-width:0}
+.artillery-hud .battle-player-heading{display:flex;align-items:center;gap:7px;min-height:25px;margin-bottom:6px}
+.artillery-hud .battle-player-name{font-size:16px;line-height:21px;margin:0;min-width:0;flex:1;color:#fff0ce;text-shadow:0 2px 2px #0b2034}
+.artillery-hud .fighter-turn-label{font:900 8px/1 'Nunito',sans-serif;letter-spacing:.55px;white-space:nowrap;color:#ffedb1;background:#c49f491c;border:1px solid #dbb66566;border-radius:6px;padding:5px 6px}
+.artillery-hud .battle-health{height:26px;border:1px solid #b4beaa;border-radius:8px;background:#0b1828;box-shadow:0 2px #071526,inset 0 2px 5px #030812;overflow:hidden}
+.artillery-hud .battle-health .health-current{background:linear-gradient(var(--health-bright),var(--health-mid) 29%,var(--health-dark) 75%);box-shadow:inset 0 2px #ffffff50,inset 0 -2px #071b2966;transition:width .15s ease-out}
+.artillery-hud .battle-health .health-trail{background:#fff3b4;transition:width .55s .12s ease-out}
+.artillery-hud .battle-health::after{content:'';position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 calc(20% - 1px),#061c3725 calc(20% - 1px) 20%);pointer-events:none;z-index:1}
+.artillery-hud .battle-health>span{font-size:13px;padding:0 9px;z-index:2}
+.artillery-hud .battle-health small{font-size:10px;color:#f4f6df}
+.artillery-hud .battle-health b{font-size:9px}
+.artillery-hud .battle-team-line{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:5px;min-height:11px}
+.artillery-hud .battle-player-team{font-size:7px;margin:0;letter-spacing:1px;color:#c2d9e9}
+.artillery-hud .fighter-out{font-size:7px;color:#d2c3c4;white-space:nowrap}
+.artillery-hud .battle-player-vitals .fighter-hud{position:relative;margin-top:5px;width:100%;min-height:28px;height:28px;padding:4px 7px;border:1px solid #7293ac88;border-radius:8px;gap:5px;background:#10283dd9;box-shadow:inset 0 1px #ccedff22,0 2px #091a2c}
+.artillery-hud .battle-player-vitals .fighter-hud.coral{border-color:#b5899588;background:#342438d9}
+.artillery-hud .battle-player-vitals .fighter-hud.active-fighter{border-color:#ffda8e;background:#56452ed9;box-shadow:0 0 0 1px #d1b27150}
+.artillery-hud .fighter-hud .fighter-mini-turn{width:9px;min-width:9px;flex:none;font-size:8px;color:#ffda83}
+.artillery-hud .fighter-hud>div{flex:1}
+.artillery-hud .fighter-hud strong{font-size:9px;margin-bottom:3px;max-width:none}
+.artillery-hud .fighter-hud>span:last-child{font-size:10px}
+.artillery-hud .mini-health{height:4px;border:0}
+.artillery-hud .battle-center-status{display:flex;align-items:center;flex-direction:column;gap:8px;min-width:0}
+.artillery-hud .wind-pill{position:relative;inset:auto;width:164px;min-width:0;height:47px;display:flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid #b2c4cc;border-radius:14px;background:linear-gradient(#405d72e6,#18354ce9);box-shadow:inset 0 1px #e1f4fa55,0 3px #0b2034;isolation:isolate}
+.artillery-hud .wind-symbol{width:17px;height:17px;color:#b4dce9;opacity:.8}
+.artillery-hud .wind-reading{display:flex;flex-direction:column;gap:1px}
+.artillery-hud .wind-pill small{font:900 7px/1 'Nunito',sans-serif;letter-spacing:1px;color:#d5e8ee}
+.artillery-hud .wind-pill strong{font:900 22px/1 'Nunito',sans-serif;letter-spacing:-.4px;color:#fff2c4;font-variant-numeric:tabular-nums}
+.artillery-hud .wind-direction{display:block;width:59px;flex:none;margin-left:auto;filter:drop-shadow(0 2px 1px #07182c)}
+.artillery-hud .wind-direction svg{display:block;width:100%;height:28px;overflow:visible}
+.artillery-hud .wind-direction.wind-left{transform:scaleX(-1)}
+.artillery-hud .calm-wind .wind-direction{opacity:.45}
+.artillery-hud .turn-clock,.artillery-hud .turn-clock.your-turn{width:128px;min-height:96px;padding:0;border:0;background:none;box-shadow:none}
+.artillery-hud .turn-clock>span{font-size:9px;letter-spacing:1.2px}
+.artillery-hud .turn-clock>b{font-size:63px;min-height:64px;margin:3px 0 1px}
+.artillery-hud .turn-clock>small{font-size:7px;letter-spacing:1.5px}
+.artillery-hud .turn-label{top:178px;font-size:10px;padding:5px 14px;border-radius:13px;background:#172e46c9;border-color:#809cab80;box-shadow:0 2px 6px #07132533}
+.artillery-hud .turn-announcement{top:220px}
+.artillery-hud .boost-ready{left:-6px;top:-6px;width:auto;min-width:23px;height:20px;padding:0 4px;border-radius:7px;font-size:10px;background:linear-gradient(#fff1ad,#d9a13d);box-shadow:0 2px #1c2537}
+.artillery-hud .boost.selected:disabled{filter:brightness(.78)}
+
+/* A shorter trajectory ruler between two machined dials. */
+.artillery-hud .battle-console{left:50%;right:auto;bottom:15px;transform:translateX(-50%);width:calc(100% - 68px);max-width:1260px;height:118px;justify-content:space-between;gap:18px;padding:11px 22px 10px 15px;border:2px solid #af9870;border-radius:24px 24px 17px 17px;background:linear-gradient(#385269ed,#1c354deF 18%,#132a40f5 72%,#0e2037f7);box-shadow:inset 0 1px #e1d8bd88,inset 0 -3px #081a2cb3,0 0 0 2px #071526c9,0 5px 14px #05112880}
+.artillery-hud .battle-console::before{left:16%;right:14%;top:4px;background:linear-gradient(90deg,transparent,#b7d9e54a,transparent)}
+.artillery-hud .angle-control{width:145px;gap:7px;padding-right:11px;border-right:1px solid #9db7c82a}
+.artillery-hud .angle-dial{width:98px;height:98px;margin-top:-7px;border:2px solid #c1c9c4;background:radial-gradient(circle at 50% 51%,#24455e 0 38%,#102c44 39% 48%,transparent 49%),repeating-conic-gradient(from -90deg,#d7d7b0 0deg 1deg,#254259 1deg 12deg);box-shadow:inset 0 0 0 3px #314b5f,inset 0 0 0 5px #b69f6e,inset 0 0 0 7px #142e43,0 3px #071526,0 5px 9px #06101c88}
+.artillery-hud .angle-dial>svg{top:16px;width:15px;height:15px;color:#9cdce9;opacity:.75}
+.artillery-hud .angle-dial>strong{margin-top:16px;font-size:29px;color:#fff0bd;text-shadow:0 2px #26364a}
+.artillery-hud .angle-dial>span{font-size:6px;margin-top:7px;letter-spacing:1.2px;color:#c4d9e2}
+.artillery-hud .angle-needle{width:34px;height:2px;opacity:.7;background:linear-gradient(90deg,#e5cd8d,#e5a350)}
+.artillery-hud .angle-needle::after{border-left-color:#f0c77c;top:-3px}
+.artillery-hud .angle-buttons{gap:7px}
+.artillery-hud .angle-buttons>button{width:28px;height:31px;border-color:#849bad;border-radius:9px;background:linear-gradient(#456175,#253e55);box-shadow:inset 0 1px #dbe4e438,0 2px #091b2d;color:#efdfb6}
+.artillery-hud .power-controls{max-width:760px;padding:0 6px}
+.artillery-hud .power-label{height:24px;gap:10px;margin-bottom:4px}
+.artillery-hud .power-label>span:first-child{font-size:10px;letter-spacing:1.3px;color:#e9d3a1;text-shadow:0 1px #102238}
+.artillery-hud .power-readout>output{font-size:23px;color:#fff0b7;text-shadow:0 2px #142c40}
+.artillery-hud .power-track{height:29px;border:1px solid #b9ba9c;border-radius:7px;background:linear-gradient(#081a2d,#193750);box-shadow:inset 0 2px 6px #020c18bb,0 0 0 2px #0d263a,0 2px #b6c4ca33}
+.artillery-hud .power-track>.power-fill{border-radius:6px;background:linear-gradient(#fff4ac,#f7cd5e 30%,#dda23c 60%,#bb792d);box-shadow:inset 0 1px #fffad1,inset 0 -1px #9a642a,0 0 6px #efbe5133}
+.artillery-hud .power-graduations>span{height:5px;background:#9bb6c3}
+.artillery-hud .power-graduations>span.medium{height:10px;background:#d5cfad}
+.artillery-hud .power-graduations>span.major{height:18px;background:#efe6c2}
+.artillery-hud .power-cursor{width:2px;top:-6px;bottom:-3px;box-shadow:0 0 5px #f2e7bd88}
+.artillery-hud .power-cursor::before{width:9px;height:9px;left:-4px;top:-3px;background:linear-gradient(#f3dd9a,#ba7840);border-color:#fff1be;border-radius:2px}
+.artillery-hud .power-ticks{top:auto;left:auto;right:auto;margin-top:5px;font-size:9px;height:13px;color:#bfd1da}
+.artillery-hud .power-hint{font-size:7px;letter-spacing:.75px;color:#afc4d4}
+.artillery-hud .power-hint>kbd{border-color:#8197a363;color:#e9d9b3;border-radius:4px;padding:1px 4px}
+.artillery-hud .combat-power{width:96px;height:96px;min-width:96px;padding:10px;border:2px solid #bfbea6;background:linear-gradient(#567284,#243f57 45%,#142c43);box-shadow:inset 0 1px #e9f0e16b,inset 0 -2px #102135,0 3px #07192a,0 5px 10px #05122388}
+.artillery-hud .combat-power-ring{position:absolute;inset:1px;width:calc(100% - 2px);height:calc(100% - 2px);transform:rotate(-90deg);overflow:visible;pointer-events:none}
+.artillery-hud .combat-power-ring circle{fill:none;stroke-width:5}
+.artillery-hud .combat-power-ring-track{stroke:#0b243a}
+.artillery-hud .combat-power-ring-fill{stroke:#e9bb5b;stroke-linecap:round;filter:drop-shadow(0 0 2px #ffd87955);transition:stroke-dasharray .3s ease-out}
+.artillery-hud .combat-power-core{border:1px solid #718a9d;background:radial-gradient(ellipse at 45% 15%,#42667d,#1b3a54 55%,#0d263e);box-shadow:inset 0 1px #cde9f536,inset 0 -3px 5px #071526;gap:2px;color:#c3dce7}
+.artillery-hud .combat-power-emblem{width:18px;height:18px;margin-top:-2px;color:#d2b77c;filter:drop-shadow(0 2px #15314a)}
+.artillery-hud .combat-power strong{font-size:15px;letter-spacing:-.6px;text-shadow:0 2px #13283d;color:inherit}
+.artillery-hud .combat-power small{margin-top:3px;font-size:8px;letter-spacing:.1px;color:#bccfda}
+.artillery-hud .combat-power.power-full,.artillery-hud .combat-power.power-armed{border-color:#e9cd86;background:linear-gradient(#f3da94,#a7783a 55%,#66472c);box-shadow:inset 0 1px #fff6cd,0 3px #50351f,0 0 17px #e6af4744}
+.artillery-hud .power-full .combat-power-core,.artillery-hud .power-armed .combat-power-core{background:radial-gradient(ellipse at 45% 15%,#ffe8a3,#ca8e3e 55%,#77492d);border-color:#ffe2a0;color:#fff2c7;box-shadow:inset 0 1px #fff8cf85,inset 0 -3px 6px #59371f}
+.artillery-hud .power-full .combat-power-emblem,.artillery-hud .power-armed .combat-power-emblem{color:#fff2af;filter:drop-shadow(0 2px #915627)}
+.artillery-hud .combat-power-orbit{inset:-5px;border-width:1px}
+.artillery-hud .battle-actions{width:156px;gap:10px;padding-left:15px;border-color:#9db7c82a}
+.artillery-hud .vigor-display{border:1px solid #718f9c80;border-radius:10px;padding:7px 8px 8px;background:linear-gradient(#143449cc,#10283bd9);box-shadow:inset 0 1px #b8dde626,0 2px #0b2030}
+.artillery-hud .vigor-caption{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;font:900 7px 'Nunito',sans-serif;letter-spacing:.5px;color:#bdd9e6}
+.artillery-hud .vigor-caption>span{display:flex;align-items:center;gap:2px}
+.artillery-hud .vigor-caption svg{color:#a8e8ed}
+.artillery-hud .vigor-caption strong{font-size:12px;font-variant-numeric:tabular-nums;letter-spacing:0;color:#e1f5ef}
+.artillery-hud .vigor-caption strong>small{font-size:7px;font-weight:700;color:#97bdcb}
+.artillery-hud .vigor-bar{height:9px;border:1px solid #0a2437;border-radius:5px;background:#061b2e;box-shadow:0 1px #a6d0db33,inset 0 1px #041424;overflow:hidden}
+.artillery-hud .vigor-bar>i{border-radius:4px;background:linear-gradient(#c0f7f3,#6bd0da 37%,#308ca8);box-shadow:inset 0 1px #e9fff3;transition:width .18s}
+.artillery-hud .skip-button{min-height:29px;border:1px solid #a59b83;border-radius:9px;background:linear-gradient(#4f6371,#2a4056);box-shadow:inset 0 1px #d8e0d333,0 2px #0b1d30;color:#e4d5b1;font-size:8px}
+.artillery-hud .skip-button>kbd{font-size:7px;background:#1c3044;border-color:#9eaba166;color:#e6dcb8}
+
+/* Physical touch sizes keep the combat HUD readable on a landscape phone. */
+html.mobile-landscape .artillery-hud .battle-top{width:calc(100% * var(--game-scale) - 24px - env(safe-area-inset-left) - env(safe-area-inset-right));left:50%;right:auto;top:calc(8px / var(--game-scale));transform:translateX(-50%) scale(calc(1 / var(--game-scale)));transform-origin:top center;grid-template-columns:minmax(0,1fr)100px minmax(0,1fr);gap:10px}
+html.mobile-landscape .artillery-hud .battle-exit{width:24px;height:24px;top:3px;left:0;border-radius:8px}
+html.mobile-landscape .artillery-hud .battle-exit svg{width:14px;height:14px}
+html.mobile-landscape .artillery-hud .battle-player-panel{width:calc(100% - 29px);margin-left:29px;min-height:58px;gap:6px;padding:5px 7px 6px 4px;border-radius:29px 11px 11px 29px}
+html.mobile-landscape .artillery-hud .battle-player-panel.opponent-panel{width:100%;margin:0;padding:5px 4px 6px 7px;border-radius:11px 29px 29px 11px}
+html.mobile-landscape .artillery-hud .battle-player-portrait{width:44px;height:44px;border-width:1px;margin-top:1px}
+html.mobile-landscape .artillery-hud .battle-player-portrait>canvas{inset:-1px;width:44px!important;height:44px!important}
+html.mobile-landscape .artillery-hud .battle-player-portrait .level-badge{width:19px!important;height:19px!important;font-size:19px!important;--level-size:19px!important;left:12px;bottom:-8px}
+html.mobile-landscape .artillery-hud .battle-player-portrait .portrait-turn-point{top:-11px;left:calc(50% - 8px);width:16px;height:12px;border-radius:4px}
+html.mobile-landscape .artillery-hud .portrait-turn-point svg{width:13px;height:13px}
+html.mobile-landscape .artillery-hud .battle-player-vitals{padding:0}
+html.mobile-landscape .artillery-hud .battle-player-heading{min-height:18px;margin-bottom:3px;gap:4px}
+html.mobile-landscape .artillery-hud .battle-player-name{font-size:11px;line-height:16px}
+html.mobile-landscape .artillery-hud .fighter-turn-label{font-size:6px;padding:3px;letter-spacing:0;border-radius:4px}
+html.mobile-landscape .artillery-hud .battle-health{height:18px;border-radius:5px}
+html.mobile-landscape .artillery-hud .battle-health>span{font-size:10px;gap:3px;padding:0 5px}
+html.mobile-landscape .artillery-hud .battle-health b{font-size:6px}
+html.mobile-landscape .artillery-hud .battle-health small{font-size:7px}
+html.mobile-landscape .artillery-hud .battle-team-line{margin-top:3px;min-height:7px}
+html.mobile-landscape .artillery-hud .battle-player-team{font-size:5px;letter-spacing:.5px}
+html.mobile-landscape .artillery-hud .fighter-out{font-size:5px}
+html.mobile-landscape .artillery-hud .battle-player-vitals .fighter-hud{min-height:19px;height:19px;padding:2px 4px;margin-top:3px;gap:3px;border-radius:5px}
+html.mobile-landscape .artillery-hud .fighter-hud strong{font-size:7px;margin-bottom:2px}
+html.mobile-landscape .artillery-hud .fighter-hud>span:last-child{font-size:7px;min-width:20px}
+html.mobile-landscape .artillery-hud .fighter-hud .fighter-mini-turn{width:6px;min-width:6px;font-size:6px}
+html.mobile-landscape .artillery-hud .mini-health{height:3px}
+html.mobile-landscape .artillery-hud .battle-center-status{gap:4px}
+html.mobile-landscape .artillery-hud .wind-pill{width:100px;height:33px;gap:5px;padding:4px 6px;border-radius:10px}
+html.mobile-landscape .artillery-hud .wind-symbol{display:none}
+html.mobile-landscape .artillery-hud .wind-pill small{font-size:6px;letter-spacing:.8px}
+html.mobile-landscape .artillery-hud .wind-pill strong{font-size:17px}
+html.mobile-landscape .artillery-hud .wind-direction{width:46px}
+html.mobile-landscape .artillery-hud .wind-direction svg{height:23px}
+html.mobile-landscape .artillery-hud .turn-clock{width:78px;min-height:61px}
+html.mobile-landscape .artillery-hud .turn-clock>span{font-size:6px;letter-spacing:.5px}
+html.mobile-landscape .artillery-hud .turn-clock>b{font-size:37px;min-height:39px;margin:1px 0}
+html.mobile-landscape .artillery-hud .turn-clock>small{font-size:5px;letter-spacing:.8px}
+html.mobile-landscape .artillery-hud .turn-label{top:calc(111px / var(--game-scale));transform:translateX(-50%) scale(calc(1 / var(--game-scale)));transform-origin:top center;font-size:8px;padding:4px 10px;white-space:nowrap}
+html.mobile-landscape .artillery-hud .turn-announcement{top:calc(125px / var(--game-scale))}
+html.mobile-landscape .artillery-hud .battle-console{left:50%;right:auto;bottom:calc((6px + env(safe-area-inset-bottom)) / var(--game-scale));width:calc(100% * var(--game-scale) - 20px - env(safe-area-inset-left) - env(safe-area-inset-right));max-width:none;height:85px;transform:translateX(-50%) scale(calc(1 / var(--game-scale)));transform-origin:bottom center;gap:9px;padding:7px 11px 7px 8px;border-width:1px;border-radius:17px 17px 13px 13px}
+html.mobile-landscape .artillery-hud .angle-control{width:94px;padding-right:6px;gap:4px}
+html.mobile-landscape .artillery-hud .angle-dial{width:65px;height:65px;margin-top:-3px;border-width:1px;box-shadow:inset 0 0 0 2px #314b5f,inset 0 0 0 3px #b69f6e,inset 0 0 0 5px #142e43,0 3px #071526}
+html.mobile-landscape .artillery-hud .angle-dial>svg{width:10px;height:10px;top:10px}
+html.mobile-landscape .artillery-hud .angle-dial>strong{font-size:20px;margin-top:12px}
+html.mobile-landscape .artillery-hud .angle-dial>strong>small{font-size:12px}
+html.mobile-landscape .artillery-hud .angle-dial>span{font-size:4px;margin-top:5px;letter-spacing:.7px}
+html.mobile-landscape .artillery-hud .angle-needle{width:22px;height:1px}
+html.mobile-landscape .artillery-hud .angle-needle::after{border-left-width:5px;border-top-width:3px;border-bottom-width:3px;top:-2px}
+html.mobile-landscape .artillery-hud .angle-buttons{gap:5px}
+html.mobile-landscape .artillery-hud .angle-buttons>button{width:22px;height:27px;border-radius:6px}
+html.mobile-landscape .artillery-hud .angle-buttons svg{width:17px;height:17px}
+html.mobile-landscape .artillery-hud .power-controls{max-width:none;padding:0 3px}
+html.mobile-landscape .artillery-hud .power-label{height:18px;gap:6px;margin-bottom:4px}
+html.mobile-landscape .artillery-hud .power-label>span:first-child{font-size:7px;letter-spacing:.5px}
+html.mobile-landscape .artillery-hud .power-readout{min-width:42px;gap:3px}
+html.mobile-landscape .artillery-hud .power-readout>output{font-size:17px}
+html.mobile-landscape .artillery-hud .power-readout>small{font-size:6px}
+html.mobile-landscape .artillery-hud .last-power-label{font-size:6px;gap:3px;letter-spacing:0}
+html.mobile-landscape .artillery-hud .last-power-label>output{font-size:9px}
+html.mobile-landscape .artillery-hud .power-track{height:24px;border-radius:5px}
+html.mobile-landscape .artillery-hud .power-graduations>span{height:4px}
+html.mobile-landscape .artillery-hud .power-graduations>span.medium{height:8px}
+html.mobile-landscape .artillery-hud .power-graduations>span.major{height:15px;width:1px}
+html.mobile-landscape .artillery-hud .power-ticks{height:10px;font-size:7px;margin-top:4px}
+html.mobile-landscape .artillery-hud .power-hint{display:none}
+html.mobile-landscape .artillery-hud .combat-power{width:64px;height:64px;min-width:64px;padding:7px;border-width:1px}
+html.mobile-landscape .artillery-hud .combat-power-emblem{width:12px;height:12px;margin-top:-1px}
+html.mobile-landscape .artillery-hud .combat-power strong{font-size:10px;letter-spacing:-.2px}
+html.mobile-landscape .artillery-hud .combat-power small{font-size:6px;margin-top:2px}
+html.mobile-landscape .artillery-hud .combat-power-core{gap:1px}
+html.mobile-landscape .artillery-hud .battle-actions{width:107px;padding-left:8px;gap:6px}
+html.mobile-landscape .artillery-hud .vigor-display{padding:5px 6px;border-radius:8px}
+html.mobile-landscape .artillery-hud .vigor-caption{font-size:5px;gap:3px;margin-bottom:4px;letter-spacing:0}
+html.mobile-landscape .artillery-hud .vigor-caption svg{width:9px;height:9px}
+html.mobile-landscape .artillery-hud .vigor-caption strong{font-size:10px}
+html.mobile-landscape .artillery-hud .vigor-caption small{font-size:5px}
+html.mobile-landscape .artillery-hud .vigor-bar{height:7px}
+html.mobile-landscape .artillery-hud .skip-button{min-height:23px;gap:3px;font-size:6px;padding:3px;border-radius:7px}
+html.mobile-landscape .artillery-hud .skip-button svg{width:12px;height:12px}
+html.mobile-landscape .artillery-hud .skip-button kbd{display:none}
+html.mobile-landscape .artillery-hud .boost-bar{top:auto;bottom:calc((100px + env(safe-area-inset-bottom)) / var(--game-scale));right:calc(13px / var(--game-scale));width:auto;flex-direction:row;gap:5px;padding:6px;transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom right;border-width:1px;border-radius:12px;background:linear-gradient(#233f54ed,#132b40f2);box-shadow:inset 0 1px #e9e0bb33,0 3px #07192a}
+html.mobile-landscape .artillery-hud .boost-caption{display:none}
+html.mobile-landscape .artillery-hud .boost{width:39px;height:39px;min-width:39px;border-radius:8px}
+html.mobile-landscape .artillery-hud .boost-symbol-label>strong{font-size:20px;-webkit-text-stroke-width:1.8px}
+html.mobile-landscape .artillery-hud .boost-shot-label>strong{font-size:18px}
+html.mobile-landscape .artillery-hud .boost-symbol-label>strong>small{font-size:9px;-webkit-text-stroke-width:1px}
+html.mobile-landscape .artillery-hud .boost-damage-label>i{top:9px;font-size:6px;-webkit-text-stroke-width:.8px}
+html.mobile-landscape .artillery-hud .boost>kbd{display:none}
+html.mobile-landscape .artillery-hud .boost-ready{min-width:18px;height:16px;font-size:8px;left:-4px;top:-5px;border-radius:5px;padding:0 3px}
+@media(prefers-reduced-motion:reduce){.artillery-hud .battle-health>i,.artillery-hud .combat-power-ring-fill,.artillery-hud .vigor-bar>i{transition:none}}
+
+.artillery-hud .battle-ability-tray{position:absolute;left:calc(50% - 630px);bottom:148px;display:flex;align-items:center;gap:11px;padding:9px 11px;border:1px solid #8ea5b0aa;border-radius:17px;background:linear-gradient(#27465be8,#142b41f5);box-shadow:inset 0 1px #e3d6ad44,0 4px #061729;pointer-events:auto}
+.artillery-hud .ability-flight-divider{width:1px;height:36px;background:linear-gradient(transparent,#a1b8bd88,transparent);margin-left:1px}
+.artillery-hud .flight-control{position:relative;display:grid;place-items:center;width:52px;height:52px;padding:3px 4px 10px;border:1px solid #c0ab7f;border-radius:12px;background:radial-gradient(ellipse at top,#45697c,#203f52 75%);box-shadow:inset 0 1px #ffebbc66,0 3px #08192a;transition:filter .12s;color:#ffebbe}
+.artillery-hud .flight-control img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 2px #071c32);pointer-events:none}
+.artillery-hud .flight-control>span{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px #071526}
+.artillery-hud .flight-control.flight-armed{border-color:#ffe399;background:radial-gradient(ellipse at top,#97723c,#58452b 75%);box-shadow:inset 0 0 0 2px #eac77a55,0 0 12px #ffcc5e66,0 3px #08192a}
+.artillery-hud .flight-control:not(:disabled):hover{filter:brightness(1.13)}
+.artillery-hud .flight-control:disabled{opacity:.48;cursor:default}
+.artillery-hud .flight-control:focus-visible{outline:2px solid #ffe3a1;outline-offset:4px}
+.artillery-hud.battle-finished .battle-ability-tray{display:none}
+html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(13px / var(--game-scale));bottom:calc((100px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom left;padding:6px;gap:6px;border-radius:12px;box-shadow:inset 0 1px #e3d6ad44,0 3px #061729}
+html.mobile-landscape .artillery-hud .battle-ability-tray .ability-slots{--ability-size:37px;gap:5px}
+html.mobile-landscape .artillery-hud .battle-ability-tray .ability-slot{border-radius:8px;padding:2px}
+html.mobile-landscape .artillery-hud .battle-ability-tray .ability-slot::before{border-radius:6px;inset:2px}
+html.mobile-landscape .artillery-hud .battle-ability-tray .ability-use-count{font-size:8px;min-width:14px;height:14px;border-radius:5px;padding:0 3px;right:-2px;bottom:-2px}
+html.mobile-landscape .artillery-hud .ability-flight-divider{height:28px;margin:0}
+html.mobile-landscape .artillery-hud .flight-control{width:39px;height:39px;padding:2px 3px 9px;border-radius:9px}
+html.mobile-landscape .artillery-hud .flight-control>span{font-size:6px;letter-spacing:.3px;bottom:2px}
+
+/* A graduated brass arc replaces the floating needle. */
+.artillery-hud .angle-dial{background:radial-gradient(ellipse at 50% 30%,#28485c,#10273c 75%)}
+.artillery-hud .angle-dial>svg.angle-graduations{position:absolute;inset:0;top:0;width:100%;height:100%;overflow:visible;opacity:1}
+.angle-graduations path{stroke:#7c8e8a;stroke-width:.6;fill:none}
+.angle-graduations line{stroke:#b0af93;stroke-width:1}
+.angle-graduations line.major{stroke:#e0d0a0;stroke-width:1.4}
+.angle-graduations .angle-marker{fill:#ffe1a0;stroke:#b88943;stroke-width:1;filter:drop-shadow(0 0 2px #f4c96699)}
+.angle-graduations text{font:700 5px 'Nunito',sans-serif;fill:#a5b5b7;text-anchor:middle}
+.artillery-hud .angle-dial>strong{margin-top:13px}
+.artillery-hud .angle-dial>span{margin-top:6px}
+html.mobile-landscape .artillery-hud .angle-dial>svg.angle-graduations{inset:0;top:0;width:100%;height:100%}
+html.mobile-landscape .artillery-hud .angle-dial>strong{margin-top:10px}
+html.mobile-landscape .artillery-hud .angle-dial>span{margin-top:4px}

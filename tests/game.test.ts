@@ -9,6 +9,7 @@ import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 
 class MemoryStore implements ProfileStore {
+ async saveAbilityLoadout():Promise<never>{throw Error('unused');}
  async buy():Promise<never>{throw Error('unused');}
  async compose():Promise<never>{throw Error('unused');}
  profiles=new Map<string,Profile>();forgeCalls=0;
@@ -26,13 +27,13 @@ class MemoryStore implements ProfileStore {
 
 function fixture(){
  const store=new MemoryStore(),game=new Game(store),events=new Map<string,ServerEvent[]>();
- const players=['Ária','Bento'].map(name=>normalizeProfile({id:randomUUID(),name,gold:500}));
+ const players=['Ária','Bento'].map(name=>normalizeProfile({id:randomUUID(),name,gender:'male',gold:500}));
  for(const p of players){store.profiles.set(p.id,structuredClone(p));events.set(p.id,[]);game.connect(p,event=>events.get(p.id)!.push(structuredClone(event)));}
  return {game,store,events,players,a:players[0],b:players[1]};
 }
 
 async function battleFixture(){
- const f=fixture();await f.game.command(f.a.id,{type:'create',name:'Duelo',mode:'1v1',map:'sky'});
+ const f=fixture();await f.game.command(f.a.id,{type:'create',practice:true,name:'Duelo',mode:'1v1',map:'sky'});
  const roomId=f.game.peers.get(f.a.id)!.roomId!;await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  return {...f,roomId,match:f.game.matches.get(roomId)!};
 }
@@ -41,13 +42,13 @@ function errors(events:ServerEvent[]){return events.filter((event):event is Extr
 
 test('customization broadcasts all layers to other players and remains locked during battle',async()=>{
  const f=fixture();const items=Object.fromEntries(SLOTS.map(slot=>[slot,f.a.equipment[slot]])) as Record<keyof typeof import('../shared/catalog').SLOT_NAMES,string>;
- items.hat='hat-cap';items.glasses='glasses-round';items.hair='hair-wavy';items.face='face-taunt';
+ items.hat='hat-cap';items.glasses='glasses-sport';items.hair='hair-undercut';items.face='face-taunt';
  await f.game.command(f.a.id,{type:'customize',selection:{items,dyes:{hat:'coral'}}});
  const other=f.events.get(f.b.id)!.filter((e):e is Extract<ServerEvent,{type:'lobby'}>=>e.type==='lobby').at(-1)!;
- assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.glasses,'glasses-round');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.face,'face-taunt');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.dyes?.hat,'coral');
- await f.game.command(f.a.id,{type:'create',name:'Visual',mode:'1v1',map:'sky'});const roomId=f.game.peers.get(f.a.id)!.roomId!;
+ assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.glasses,'glasses-sport');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.face,'face-taunt');assert.equal(other.players.find(p=>p.id===f.a.id)!.equipment.dyes?.hat,'coral');
+ await f.game.command(f.a.id,{type:'create',practice:true,name:'Visual',mode:'1v1',map:'sky'});const roomId=f.game.peers.get(f.a.id)!.roomId!;
  await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
- const fighter=f.game.matches.get(roomId)!.state.players.find(p=>p.id===f.a.id)!;assert.equal(fighter.equipment.hair,'hair-wavy');
+ const fighter=f.game.matches.get(roomId)!.state.players.find(p=>p.id===f.a.id)!;assert.equal(fighter.equipment.hair,'hair-undercut');
  await f.game.command(f.a.id,{type:'customize',selection:{items:{...items,hat:'hat-none'}}});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/entre as batalhas/);assert.equal(fighter.equipment.hat,'hat-cap');
 });
 
@@ -61,14 +62,16 @@ test('a player cannot fire, walk, boost or pass during the opponent turn',async(
  assert.ok(errors(f.events.get(other.id)!).every(e=>e.message==='Aguarde a sua vez.'));
 });
 
-test('boosts consume vigor, prevent duplicate/mutually exclusive tools and reject overspending',async()=>{
+test('boosts repeat while vigor lasts, reject overspending and keep trident unique',async()=>{
  const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,stamina=player.stamina;
  await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.stamina,stamina-110);
  await f.game.command(player.id,{type:'boost',boost:'extra1'});await f.game.command(player.id,{type:'boost',boost:'extra2'});
- assert.equal(player.stamina,stamina-110);assert.deepEqual(player.boosts,['extra1']);
+ assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','extra1']);
  await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-220);
- await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','trident']);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','extra1']);
  assert.equal(errors(f.events.get(player.id)!).length,3);
+ await f.game.command(player.id,{type:'pass'});await f.game.command(f.match.state.turnId,{type:'pass'});
+ await f.game.command(player.id,{type:'boost',boost:'trident'});await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-110);assert.deepEqual(player.boosts,['trident']);assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/tridente já/);
 });
 
 test('+2 and trident produce nine authoritative projectiles and lock further input while resolving',async()=>{
@@ -93,7 +96,7 @@ test('forge checks actual server position and lobby presence before accessing ma
  await f.game.command(f.a.id,{type:'move',...SMITH_POSITION});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
  assert.equal(f.store.forgeCalls,0);assert.equal(errors(f.events.get(f.a.id)!).at(-1)!.message,'Aproxime-se do ferreiro.');
  p.x=SMITH_POSITION.x;p.y=SMITH_POSITION.y;
- await f.game.command(f.a.id,{type:'create',name:'Duelo',mode:'1v1',map:'sky'});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
+ await f.game.command(f.a.id,{type:'create',practice:true,name:'Duelo',mode:'1v1',map:'sky'});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
  assert.equal(f.store.forgeCalls,0);
  await f.game.command(f.a.id,{type:'leave'});await f.game.command(f.a.id,{type:'forge',item:'ember',stones:{'1':1}});
  assert.equal(f.store.forgeCalls,1);assert.equal(p.profile.equipment.upgrade,1);
@@ -122,12 +125,14 @@ async function finishedFixture(){
  await f.game.command(f.match.state.turnId,{type:'pass'});assert.equal(f.match.state.phase,'finished');return f;
 }
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
-test('reward picks are exclusive, immutable and secret until the shared deadline, including reconnect',async()=>{
+test('reward picks open after the result, remain exclusive and reveal together once all humans choose',async()=>{
  const f=await finishedFixture();
+ const rewards=f.match.state.rewards!;assert.equal(rewards.deadline-rewards.opensAt!,5000);assert.ok(rewards.opensAt!>Date.now());
+ await f.game.command(f.a.id,{type:'reward-pick',card:2});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/abertura/);assert.ok(rewards.cards.every(card=>!card.playerId));
+ rewards.opensAt=Date.now()-1;
  await Promise.all([f.game.command(f.a.id,{type:'reward-pick',card:2}),f.game.command(f.b.id,{type:'reward-pick',card:2})]);
  assert.equal(f.match.state.rewards!.cards[2].playerId,f.a.id);assert.match(errors(f.events.get(f.b.id)!).at(-1)!.message,/já foi escolhida/);
  await f.game.command(f.a.id,{type:'reward-pick',card:3});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/já está reservada/);
- await f.game.command(f.b.id,{type:'reward-pick',card:4});
  assert.ok(f.match.state.rewards!.cards.every(card=>!card.prize));
  f.game.disconnect(f.a.id);f.game.connect(f.a,event=>f.events.get(f.a.id)!.push(structuredClone(event)));
  const welcome=f.events.get(f.a.id)!.at(-1)!; // lobby notifications may follow; locate welcome explicitly.
@@ -135,10 +140,10 @@ test('reward picks are exclusive, immutable and secret until the shared deadline
  assert.ok(reconnect.battle!.rewards!.cards.every(card=>!card.prize));assert.equal(reconnect.battle!.rewards!.cards[2].playerId,f.a.id);
  assert.equal(f.store.finishCalls.length,0);
  await f.game.command(f.a.id,{type:'rematch'});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/revelação/);
- f.game.tick(f.match.state.rewards!.deadline+1);await flush();
- const rewards=f.match.state.rewards!;assert.equal(rewards.phase,'revealed');assert.equal(rewards.saved,true);
- assert.ok(rewards.cards[2].prize);assert.ok(rewards.cards[4].prize);assert.equal(rewards.cards.filter(c=>c.prize).length,2);
- assert.equal(f.store.finishCalls.length,1);f.game.tick(Date.now()+60000);await flush();assert.equal(f.store.finishCalls.length,1);
+ await f.game.command(f.b.id,{type:'reward-pick',card:4});await flush();assert.equal(rewards.phase,'revealed');assert.equal(rewards.saved,true);assert.ok(rewards.revealedAt!<rewards.deadline);
+ assert.ok(rewards.cards[2].prize);assert.ok(rewards.cards[4].prize);assert.equal(rewards.cards.filter(c=>c.prize).length,8);
+ assert.equal(f.store.finishCalls.length,1);f.game.tick(rewards.revealedAt!+1999);assert.equal(f.game.rooms.get(f.roomId)!.status,'playing');
+ f.game.tick(rewards.revealedAt!+2000);await flush();assert.equal(f.game.matches.size,0);assert.equal(f.game.rooms.get(f.roomId)!.status,'waiting');assert.equal(f.store.finishCalls.length,1);
  await f.game.command(f.a.id,{type:'rematch'});assert.equal(f.game.matches.size,0);
 });
 test('unselected players receive distinct automatic cards and abandoned rooms still settle once',async()=>{
@@ -153,11 +158,26 @@ test('late and foreign reward picks are rejected; failed saves retry without unl
  await f.game.command(f.a.id,{type:'reward-pick',card:0});assert.match(errors(f.events.get(f.a.id)!).at(-1)!.message,/terminou/);
  f.match.state.rewards!.deadline=original;f.store.failFinish=true;f.game.tick(original+1);await flush();
  assert.equal(f.match.state.rewards!.saved,false);await f.game.command(f.a.id,{type:'rematch'});assert.ok(f.game.matches.has(f.roomId));
+ f.game.tick(original+3000);await flush();assert.equal(f.game.rooms.get(f.roomId)!.status,'playing');assert.equal(f.match.state.rewards!.saved,false);
  f.store.failFinish=false;f.game.tick(Date.now()+60000);await flush();assert.equal(f.match.state.rewards!.saved,true);assert.equal(f.store.finishCalls.length,1);
+ f.game.tick(Date.now()+60001);assert.equal(f.game.rooms.get(f.roomId)!.status,'waiting');assert.equal(f.game.matches.size,0);assert.equal(f.store.finishCalls.length,1);
 });
 test('terrain marks are not exposed before impact and survive later snapshots',async()=>{
  const f=await battleFixture();await f.game.command(f.match.state.turnId,{type:'fire',angle:45,power:30});
  const immediate=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!.battle!;
- assert.equal(immediate.terrainMarks!.length,0);assert.ok(f.match.pendingMarks!.length);
- f.game.tick(Math.max(...f.match.pendingMarks!.map(mark=>mark.at))+1);assert.ok(f.match.state.terrainMarks!.length);
+ assert.equal(immediate.terrainMarks!.length,0);assert.ok(f.match.pendingImpacts!.length);
+ f.game.tick(Math.max(...f.match.pendingImpacts!.map(impact=>impact.at))+1);assert.ok(f.match.state.terrainMarks!.length);
+});
+
+test('a brick shot sends authoritative shards after the main impact without muzzle residue marks',async()=>{
+ const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
+ player.equipment={...player.equipment,weapon:'brick',upgrade:10};
+ await f.game.command(player.id,{type:'fire',angle:45,power:30});
+ const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
+ const main=shot.projectiles.filter(p=>!p.fragment),shards=shot.projectiles.filter(p=>p.fragment);
+ assert.equal(main.length,1);assert.equal(shards.length,4);
+ const landed=main[0].delay+main[0].flightTime;
+ for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.equal(shard.impact.demolition,.6);assert.ok(shard.delay+shard.flightTime<=shot.duration);}
+ assert.ok(shot.hits.every(h=>h.projectileIndex!==undefined&&h.projectileIndex<shot.projectiles.length));
+ assert.equal(f.match.pendingImpacts?.filter(impact=>!impact.fragment).length,1,'only the main impact leaves a residue mark');
 });

@@ -1,94 +1,87 @@
-.artillery-hud .battle-reward-overlay{position:absolute;inset:0;z-index:20;pointer-events:auto;display:grid;place-items:center;background:linear-gradient(110deg,#08142ebd,#071e3978);backdrop-filter:blur(2px);padding:32px;outline:none}
-.artillery-hud .battle-loot{width:1240px;max-width:100%;border:2px solid #e5ae51;border-radius:28px;padding:22px 32px 20px;background:linear-gradient(140deg,#163c60e8,#102946d9 75%);box-shadow:inset 0 2px #ffe2a35c,0 16px 70px #010b3180;color:#fff3d5;position:relative}
-.artillery-hud .loot-heading{text-align:center;padding-bottom:15px;border-bottom:1px solid #e1c78c36}
-.artillery-hud .loot-heading>span{font-size:10px;font-weight:900;letter-spacing:4px;color:#aad9f3}
-.artillery-hud .loot-heading h1{margin:4px 0 13px;font-size:62px;line-height:1.1;transform:rotate(-2deg)}
-.artillery-hud .loot-heading h1 .battle-3d-text{animation:battle-result-in .6s ease-out both}
-.artillery-hud .loot-heading p{font-size:13px;margin:0;color:#cee5f6}
-.artillery-hud .loot-layout{display:grid;grid-template-columns:280px 1fr;gap:30px;align-items:center;padding:16px 0}
-.artillery-hud .loot-player{text-align:center;align-self:center;min-width:0}
-.artillery-hud .loot-character{height:265px;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 50%,#258ad04d,transparent 68%)}
-.artillery-hud .loot-player-name{display:flex;align-items:center;justify-content:center;gap:9px;margin:8px 0 15px}
-.artillery-hud .loot-player-name strong{max-width:210px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:20px;color:#fff3c5;text-shadow:0 2px #092340}
-.artillery-hud .loot-earned-label{color:#8fc6e8;font-weight:900;letter-spacing:2px;font-size:9px}
-.artillery-hud .loot-base-awards{display:flex;gap:15px;justify-content:center;margin:7px 0;font-size:19px;font-weight:900}
-.artillery-hud .loot-base-awards>span{display:flex;align-items:center;gap:3px}
-.artillery-hud .loot-player>p{font-size:11px;color:#b4d9ed;margin:5px 0}
-.artillery-hud .loot-instruction{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding:0 8px}
-.artillery-hud .loot-instruction small{font-size:9px;letter-spacing:1.6px;color:#f6cc70;font-weight:900}
-.artillery-hud .loot-instruction h2{font-size:25px;color:#fff2c8;margin:3px 0}
-.artillery-hud .loot-instruction p{font-size:12px;color:#b9dcf3;margin:0}
-.artillery-hud .loot-countdown{text-align:center;min-width:74px}
-.artillery-hud .loot-countdown>.battle-3d-text{font-size:42px;display:block}
-.artillery-hud .loot-countdown>small{display:block;font-size:7px;letter-spacing:1px;margin-top:5px;color:#c8dff2}
-.artillery-hud .loot-countdown.urgent:not(:has([data-text="✓"]))>.battle-3d-text{--face-bottom:#f13a33}
-.artillery-hud .loot-deck{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:7px 15px;max-width:660px;margin:auto}
-.artillery-hud .loot-card-slot{min-width:0;text-align:center}
-.artillery-hud .loot-card{display:block;width:100%;height:166px;perspective:800px;background:none;border:0;box-shadow:none;padding:0;cursor:pointer;transition:transform .18s,filter .18s;border-radius:15px}
-.artillery-hud .loot-card:disabled{opacity:1;cursor:default}
-.artillery-hud .loot-card:not(:disabled):hover{transform:translateY(-5px);filter:brightness(1.13) drop-shadow(0 0 9px #75dfff70)}
-.artillery-hud .loot-card-turn{display:block;position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .7s cubic-bezier(.2,.7,.2,1)}
-.artillery-hud .loot-card-slot.revealed .loot-card-turn{transform:rotateY(180deg)}
-.artillery-hud .loot-card-back,.artillery-hud .loot-card-front{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;backface-visibility:hidden;background-image:url('/assets/ui/reward-cards.png');background-size:200% 100%;background-repeat:no-repeat;filter:drop-shadow(0 4px 2px #02162b88);border-radius:15px}
-.artillery-hud .loot-card-back{background-position:0% 50%}
-.artillery-hud .loot-card-front{background-position:100% 50%;transform:rotateY(180deg);color:#744122}
-.artillery-hud .loot-card-front>strong{font:1000 30px/1 'Nunito',sans-serif;color:#7d3816;text-shadow:0 1px #fff2a5;margin-top:0}
-.artillery-hud .loot-card-front>small{font-size:8px;letter-spacing:.7px;font-weight:1000;margin-top:5px}
-.artillery-hud .loot-card-number{position:absolute;top:14%;left:21%;font:900 13px 'Nunito',sans-serif;color:#ddf6ff;text-shadow:0 2px #0d346a}
-.artillery-hud .loot-seal{position:absolute;bottom:13%;right:16%;border:2px solid #cafff0;border-radius:50%;background:#087f90;color:#e9ffe7;width:32px;height:32px;display:grid;place-items:center;box-shadow:0 2px #06294b}
-.artillery-hud .loot-card-slot.mine .loot-card{filter:drop-shadow(0 0 7px #ffe984aa)}
-.artillery-hud .loot-card-slot.mine .loot-seal{background:#f5b92d;border-color:#fff4ae;color:#6e3a13}
-.artillery-hud .loot-owner{height:21px;display:flex;align-items:center;justify-content:center;gap:4px;color:#a7cce4;font-size:10px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:145px;margin:auto}
-.artillery-hud .loot-owner small{font-size:8px;color:#a2b9cd}
-.artillery-hud .loot-card-slot.mine .loot-owner{color:#ffe18a}
-.artillery-hud .loot-status{font-size:11px;text-align:center;color:#b5def0;min-height:17px;margin-top:8px}
-.artillery-hud .loot-actions{display:flex;align-items:center;justify-content:flex-end;gap:12px;padding-top:15px;border-top:1px solid #e2c57833}
-.artillery-hud .loot-actions>span{margin-right:auto;font-size:11px;color:#aacbe1}
-.artillery-hud .loot-actions .button{min-height:42px;font-size:12px}
-.artillery-hud .loot-actions>small{font-size:11px;color:#d4dfeb}
-@media(prefers-reduced-motion:reduce){.artillery-hud .loot-card,.artillery-hud .loot-card-turn{transition:none}.artillery-hud .loot-heading h1 .battle-3d-text{animation:none}}
-.artillery-hud .loot-card{height:194px}
-.artillery-hud .loot-card-front{color:#cbe3f1}
-.artillery-hud .loot-card-front>strong{color:#fff0a1;text-shadow:0 2px #67381d}
-@media(max-width:700px){
- .artillery-hud.rewards-mobile-shell{position:fixed;inset:0;z-index:90}
- .rewards-mobile-shell .battle-reward-overlay{overflow-y:auto;display:block;padding:12px 9px;overscroll-behavior:contain;background:#071a35c9}
- .rewards-mobile-shell .battle-loot{width:100%;padding:15px 12px;border-radius:20px}
- .rewards-mobile-shell .loot-heading{padding-bottom:12px}
- .rewards-mobile-shell .loot-heading>span{font-size:8px;letter-spacing:2px}
- .rewards-mobile-shell .loot-heading h1{font-size:39px;margin-bottom:9px}
- .rewards-mobile-shell .loot-heading p{font-size:10px;line-height:1.4}
- .rewards-mobile-shell .loot-layout{grid-template-columns:1fr;gap:10px;padding:8px 0}
- .rewards-mobile-shell .loot-player{display:grid;grid-template-columns:105px 1fr;align-items:center;column-gap:7px;text-align:left}
- .rewards-mobile-shell .loot-character{grid-row:1/6;height:110px}
- .rewards-mobile-shell .loot-character canvas{width:110px!important;height:110px!important}
- .rewards-mobile-shell .loot-player-name{margin:0;gap:5px;justify-content:flex-start}
- .rewards-mobile-shell .loot-player-name strong{font-size:13px;max-width:175px}
- .rewards-mobile-shell .loot-player-name .level-badge{transform:scale(.75);margin:-6px}
- .rewards-mobile-shell .loot-earned-label{font-size:7px;letter-spacing:1px}
- .rewards-mobile-shell .loot-base-awards{font-size:13px;gap:8px;margin:0;justify-content:flex-start}
- .rewards-mobile-shell .loot-base-awards [role=img]{width:22px!important;height:22px!important}
- .rewards-mobile-shell .loot-player>p{font-size:9px;margin:0}
- .rewards-mobile-shell .loot-instruction{padding:0 3px;margin:6px 0}
- .rewards-mobile-shell .loot-instruction small{font-size:7px;letter-spacing:.7px}
- .rewards-mobile-shell .loot-instruction h2{font-size:19px}
- .rewards-mobile-shell .loot-instruction p{font-size:10px;max-width:245px}
- .rewards-mobile-shell .loot-countdown{min-width:45px}
- .rewards-mobile-shell .loot-countdown>.battle-3d-text{font-size:30px}
- .rewards-mobile-shell .loot-countdown>small{font-size:6px;letter-spacing:.4px}
- .rewards-mobile-shell .loot-deck{gap:5px;grid-template-columns:repeat(4,minmax(0,1fr))}
- .rewards-mobile-shell .loot-card{height:123px}
- .rewards-mobile-shell .loot-card-front>[role=img]{width:43px!important;height:43px!important}
- .rewards-mobile-shell .loot-card-front>strong{font-size:19px}
- .rewards-mobile-shell .loot-card-front>small{font-size:5.5px;letter-spacing:0;margin-top:3px}
- .rewards-mobile-shell .loot-card-number{font-size:10px;left:17%}
- .rewards-mobile-shell .loot-seal{width:22px;height:22px;right:12%}
- .rewards-mobile-shell .loot-seal>svg{width:16px}
- .rewards-mobile-shell .loot-owner{font-size:8px;max-width:75px;height:17px}
- .rewards-mobile-shell .loot-owner small{display:none}
- .rewards-mobile-shell .loot-status{font-size:10px;line-height:1.4;margin-top:7px}
- .rewards-mobile-shell .loot-actions{flex-wrap:wrap;gap:8px;padding-top:10px}
- .rewards-mobile-shell .loot-actions>span{width:100%;text-align:center;font-size:9px}
- .rewards-mobile-shell .loot-actions .button{flex:1;font-size:10px;padding:8px 6px;min-height:44px;gap:4px}
- .rewards-mobile-shell .loot-actions>small{font-size:9px;text-align:center}
-}
+/* Eight painted cards float above the battlefield. No panel or manual exit. */
+.artillery-hud .battle-reward-overlay.floating-rewards{position:absolute;inset:0;z-index:20;display:grid;place-items:center;pointer-events:auto;padding:24px;background:radial-gradient(ellipse at center,#10244144,#030b1d99);backdrop-filter:blur(1.5px);outline:0;transition:opacity .32s,backdrop-filter .32s;color:#f1e7d1}
+.artillery-hud .floating-rewards.result-introduction{backdrop-filter:none;background:radial-gradient(ellipse,#17365133,#030b1e80)}
+.artillery-hud .result-announcement{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:560px;min-height:330px;text-align:center;isolation:isolate;animation:result-reveal .65s cubic-bezier(.2,.8,.2,1) both}
+.artillery-hud .result-announcement>small{font-size:10px;font-weight:900;letter-spacing:4px;color:#e3d9bf;text-shadow:0 2px 6px #050c1c}
+.artillery-hud .result-announcement h1{font-size:108px;line-height:1.1;margin:13px 0 23px;letter-spacing:1px;transform:rotate(-2deg)}
+.artillery-hud .result-flourish{position:absolute;z-index:-1;inset:8% -10%;background:radial-gradient(ellipse at 50% 54%,#f3c25a55,transparent 62%);filter:blur(12px);animation:result-light 2.9s ease-out both}
+.artillery-hud .result-flourish::before,.artillery-hud .result-flourish::after{content:'';position:absolute;top:51%;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,#fff2c388,transparent);transform:rotate(-7deg)}
+.artillery-hud .result-flourish::after{transform:rotate(7deg)}
+.artillery-hud .result-defeat .result-flourish{background:radial-gradient(ellipse at 50% 54%,#7695c844,transparent 62%)}
+.artillery-hud .result-hairline{height:1px;width:290px;background:linear-gradient(90deg,transparent,#d8bb77aa,transparent)}
+.artillery-hud .result-base-awards{display:flex;gap:23px;margin-top:17px;color:#ffebbc;font-size:16px;font-weight:900;text-shadow:0 2px #0a1834}
+.artillery-hud .result-base-awards>span{display:flex;align-items:center;gap:6px}
+.artillery-hud .floating-rewards .battle-loot{position:relative;width:1230px;max-width:100%;padding:0 12px 18px;background:none;border:0;box-shadow:none;animation:loot-panel-enter .4s ease-out both}
+.artillery-hud .floating-rewards .loot-heading{display:flex;align-items:center;justify-content:center;padding:0;border:0}
+.artillery-hud .floating-rewards .loot-heading h1{margin:0;font-size:65px;line-height:1.15;transform:rotate(-2deg);text-shadow:0 6px 20px #071425}
+.artillery-hud .floating-rewards .loot-heading .battle-3d-text{animation:none}
+.artillery-hud .floating-rewards .loot-layout{display:block;padding-top:15px}
+.artillery-hud .floating-rewards .loot-instruction{display:flex;justify-content:center;align-items:center;gap:15px;min-height:39px;margin:0 0 29px}
+.artillery-hud .floating-rewards .loot-instruction h2{margin:0;font:700 17px 'Cinzel',Georgia,serif;letter-spacing:.25px;color:#f5e8c7;text-shadow:0 2px 4px #071528}
+.artillery-hud .floating-rewards .loot-countdown{display:flex;align-items:center;justify-content:center;gap:3px;min-width:42px;height:39px;padding:4px 10px;border:1px solid #bfa56c;border-radius:12px;background:linear-gradient(#203453c9,#101d33ed),url('/assets/ui/arena-sapphire-texture.webp') center/240px;box-shadow:inset 0 1px #efdbac55,inset 0 -2px #040b1c80,0 3px 7px #03091877}
+.artillery-hud .floating-rewards .loot-countdown>.battle-3d-text{font-size:25px;line-height:1}
+.artillery-hud .floating-rewards .loot-countdown>small{font-size:9px;color:#d0bd96;font-weight:800}
+.artillery-hud .floating-rewards .loot-countdown.urgent{border-color:#e9ae75;box-shadow:inset 0 1px #f8cf9455,0 0 11px #d6854240}
+.artillery-hud .floating-rewards .loot-deck{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));align-items:center;gap:16px;margin:auto;padding:0 8px}
+.artillery-hud .floating-rewards .loot-card-slot{position:relative;min-width:0;text-align:center;animation:loot-card-arrive .48s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--card-index) * 38ms)}
+.artillery-hud .floating-rewards .loot-card{position:relative;display:block;width:100%;height:auto;aspect-ratio:3/4;padding:0;border:0;border-radius:13px;background:transparent;perspective:800px;box-shadow:0 7px 10px #02091c77;transition:transform .2s,filter .2s,box-shadow .2s;cursor:pointer}
+.artillery-hud .floating-rewards .loot-card:disabled{opacity:1;cursor:default}
+.artillery-hud .floating-rewards .loot-card:not(:disabled):hover{transform:translateY(-7px);filter:brightness(1.12);box-shadow:0 0 0 1px #e4c888,0 12px 18px #02091ca6}
+.artillery-hud .floating-rewards .loot-card:focus-visible{outline:3px solid #fff0b7;outline-offset:5px}
+.artillery-hud .floating-rewards .loot-card-turn{display:block;position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .52s cubic-bezier(.2,.7,.2,1)}
+.artillery-hud .floating-rewards .loot-card-slot.revealed .loot-card-turn{transform:rotateY(180deg)}
+.artillery-hud .floating-rewards .loot-card-back,.artillery-hud .floating-rewards .loot-card-front{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;backface-visibility:hidden;border-radius:13px;background-image:url('/assets/ui/reward-cards-refined.png');background-size:200% 100%;background-repeat:no-repeat;overflow:hidden}
+.artillery-hud .floating-rewards .loot-card-back{background-position:0% 50%}
+.artillery-hud .floating-rewards .loot-card-front{background-position:100% 50%;transform:rotateY(180deg);color:#705033;gap:4px}
+.artillery-hud .floating-rewards .loot-card-back::after{content:'';position:absolute;inset:-70% -120%;background:linear-gradient(110deg,transparent 44%,#fff4ce30 49%,#e0eeff14 52%,transparent 57%);transform:translateX(-36%);animation:loot-gleam 5s ease-in-out infinite;animation-delay:calc(var(--card-index) * .18s);pointer-events:none}
+.artillery-hud .floating-rewards .loot-card-front>[role=img]{width:39px!important;height:39px!important;margin:0 0 5px;filter:drop-shadow(0 3px 2px #79512133)}
+.artillery-hud .floating-rewards .loot-card-front>strong{font:900 25px/1 'Nunito',sans-serif;color:#674024;text-shadow:0 1px #fff5d3;margin:0}
+.artillery-hud .floating-rewards .loot-card-front>small{color:#8d693b;font-size:7px;font-weight:900;letter-spacing:1px;margin:0}
+.artillery-hud .floating-rewards .loot-card-number{position:absolute;top:12%;left:18%;font:900 11px 'Nunito',sans-serif;color:#dfc99d;text-shadow:0 1px #0a1f35}
+.artillery-hud .floating-rewards .loot-seal{position:absolute;bottom:13%;right:13%;display:grid;place-items:center;width:25px;height:25px;border:1px solid #ecda9e;border-radius:50%;background:linear-gradient(#bd9d5f,#806129);color:#fff6d2;box-shadow:inset 0 1px #fff2c980,0 2px 3px #071323a6;z-index:1}
+.artillery-hud .floating-rewards .loot-seal svg{width:16px;height:16px}
+.artillery-hud .floating-rewards .loot-card-slot.mine{z-index:2}
+.artillery-hud .floating-rewards .loot-card-slot.mine .loot-card{transform:translateY(-11px);box-shadow:0 0 0 2px #ffe2a0,0 0 0 5px #aa7d3255,0 0 23px #eabe5e66,0 13px 11px #020a1cbb;filter:brightness(1.06)}
+.artillery-hud .floating-rewards .loot-card-slot.mine .loot-card::after{content:'';position:absolute;inset:5% 8%;border:1px solid #fff0b2;border-radius:9px;pointer-events:none;box-shadow:inset 0 0 14px #f4d26633}
+.artillery-hud .floating-rewards .loot-owner{display:flex;align-items:center;justify-content:center;height:25px;max-width:100%;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:9px;letter-spacing:.25px;font-weight:900;color:#d2d9e1;margin:10px auto 0;text-shadow:0 2px 3px #061326}
+.artillery-hud .floating-rewards .loot-card-slot.mine .loot-owner{color:#ffeba9;font-size:9px;letter-spacing:1.1px}
+.artillery-hud .floating-rewards .loot-status{text-align:center;font-size:10px;margin-top:18px;min-height:15px;color:#c5cfdd;text-shadow:0 2px 3px #031327}
+.artillery-hud .floating-rewards.rewards-returning{opacity:0;backdrop-filter:blur(0);pointer-events:none}
+.artillery-hud .floating-rewards.rewards-returning .battle-loot{transform:translateY(-7px) scale(.985);transition:transform .32s ease-in}
+.artillery-hud.rewards-mobile-shell{position:fixed;inset:0;z-index:90}
+.rewards-mobile-shell.artillery-hud .floating-rewards{padding:14px;overflow:auto}
+.rewards-mobile-shell.artillery-hud .floating-rewards .battle-loot{width:100%;padding:0 3px 7px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-heading h1{font-size:44px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-layout{padding-top:6px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-instruction{gap:9px;min-height:28px;margin-bottom:19px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-instruction h2{font-size:12px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-countdown{height:28px;min-width:30px;padding:2px 7px;border-radius:9px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-countdown>.battle-3d-text{font-size:21px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-countdown>small{font-size:8px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-deck{gap:8px;padding:0 2px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card,.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-back,.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front{border-radius:8px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front{gap:3px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front>[role=img]{width:29px!important;height:29px!important;margin-bottom:3px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front>strong{font-size:17px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front>small{font-size:5px;letter-spacing:.5px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-slot.mine .loot-card{transform:translateY(-7px);box-shadow:0 0 0 1px #ffe2a0,0 0 0 3px #aa7d3255,0 0 15px #eabe5e66,0 8px 7px #020a1cbb}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-slot.mine .loot-card::after{border-radius:6px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-owner{font-size:6px;height:17px;margin-top:6px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-slot.mine .loot-owner{font-size:6px;letter-spacing:.6px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-number{font-size:8px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-seal{width:19px;height:19px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-seal svg{width:13px;height:13px}
+.rewards-mobile-shell.artillery-hud .floating-rewards .loot-status{font-size:8px;margin-top:12px}
+.rewards-mobile-shell.artillery-hud .result-announcement{min-width:0;width:100%;min-height:235px}
+.rewards-mobile-shell.artillery-hud .result-announcement h1{font-size:77px;margin:10px 0 17px}
+.rewards-mobile-shell.artillery-hud .result-announcement>small{font-size:8px;letter-spacing:3px}
+.rewards-mobile-shell.artillery-hud .result-base-awards{font-size:12px;margin-top:13px}
+@media(max-width:700px){.rewards-mobile-shell.artillery-hud .floating-rewards .loot-deck{gap:6px}.rewards-mobile-shell.artillery-hud .floating-rewards .loot-heading h1{font-size:39px}.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front>[role=img]{width:24px!important;height:24px!important}.rewards-mobile-shell.artillery-hud .floating-rewards .loot-card-front>strong{font-size:15px}}
+@keyframes result-reveal{from{opacity:0;transform:translateY(15px) scale(.88);filter:blur(3px)}to{opacity:1;transform:none;filter:none}}
+@keyframes result-light{0%{opacity:0;transform:scaleX(.5)}24%{opacity:1;transform:scaleX(1.08)}100%{opacity:.6;transform:scaleX(1)}}
+@keyframes loot-panel-enter{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes loot-card-arrive{from{opacity:0;transform:translateY(23px) rotate(-4deg) scale(.92)}to{opacity:1;transform:none}}
+@keyframes loot-gleam{0%,25%{transform:translateX(-36%);opacity:0}35%{opacity:.8}62%,100%{transform:translateX(36%);opacity:0}}
+@media(prefers-reduced-motion:reduce){.artillery-hud .floating-rewards,.artillery-hud .floating-rewards *{animation:none!important;transition:none!important}}
+.artillery-hud .spectator-rewards .result-announcement h1{font-size:clamp(28px,5vw,76px)}
+.artillery-hud .spectator-rewards .loot-heading h1{font-size:clamp(20px,4vw,48px)}

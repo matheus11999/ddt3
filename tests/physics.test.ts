@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {WEAPONS} from '../shared/catalog';
-import {crater,createTerrain,ground,packTerrain,solid,terrainMaterial,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
+import {MATERIALS} from '../shared/maps';
+import {crater,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
  const sky=createTerrain('sky'),valley=createTerrain('valley');
@@ -50,7 +51,7 @@ test('fast projectiles sweep through thin terrain cells in both directions',()=>
 });
 
 test('a grazing fighter collision is detected between fixed integration positions',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),rad=5*Math.PI/180,dx=Math.cos(rad)*980/120,dy=-Math.sin(rad)*980/120,radius=24+WEAPONS[0].projectileRadius;
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),rad=5*Math.PI/180,dx=Math.cos(rad)*980/120,dy=-Math.sin(rad)*980/120,radius=FIGHTER_HIT_RADIUS+WEAPONS[0].projectileRadius;
  // Both integration endpoints are outside the circle; the segment crosses its rim.
  const target={id:'grazing',x:77+dx/2+Math.sin(rad)*(radius-.1),y:60+dy/2+Math.cos(rad)*(radius-.1)+31,hp:100};
  for(const [x,y] of [[77,60],[77+dx,60+dy]])assert.ok(Math.hypot(x-target.x,y-(target.y-31))>radius);
@@ -63,7 +64,7 @@ test('weapon disks reach a wall at different times without changing its contact 
  const origin={x:50,y:100,facing:1};
  const results=WEAPONS.map(weapon=>{
   const result=trajectory(terrain,origin,0,100,0,{...weapon,gravity:0});
-  assert.ok(Math.abs(result.flightTime-(300-weapon.projectileRadius-77)/980*1000)<1e-8);
+  assert.ok(Math.abs(result.flightTime-(300-weapon.projectileRadius-77)/980*1000/PROJECTILE_SPEED_SCALE)<1e-8);
   assert.ok(Math.abs(result.points.at(-1)![0]-(300-weapon.projectileRadius))<1e-8);
   assert.ok(Math.abs(result.x-300)<.0001);return result;
  });
@@ -89,16 +90,17 @@ test('disk tangency detects the top and bottom of a cell without square corner f
 });
 
 test('fighter collision uses body plus weapon radius and returns a body surface contact',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},target={id:'tangent',x:300,y:121,hp:100};
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},target={id:'tangent',x:300,y:119,hp:100};
  const results=WEAPONS.map(weapon=>trajectory(terrain,origin,0,100,0,{...weapon,gravity:0},[target]));
  assert.equal(results[0].hitId,target.id,'6px ember disk must detect an exact body tangent');
  assert.equal(results[1].hitId,undefined,'3px volt disk clears the same gap');
  assert.equal(results[2].hitId,target.id,'9px crystal disk reaches the body earlier');
+ assert.equal(trajectory(terrain,origin,0,100,0,{...WEAPONS[0],gravity:0},[{...target,y:121}]).hitId,undefined,'a shot two pixels beyond the tighter fighter boundary must miss');
  assert.ok(results[2].flightTime<results[0].flightTime);
  for(const index of [0,2]){
   const result=results[index],center=result.points.at(-1)!;
-  assert.ok(Math.abs(Math.hypot(center[0]-target.x,center[1]-(target.y-31))-(24+WEAPONS[index].projectileRadius))<1e-7);
-  assert.ok(Math.abs(Math.hypot(result.x-target.x,result.y-(target.y-31))-24)<1e-7);
+  assert.ok(Math.abs(Math.hypot(center[0]-target.x,center[1]-(target.y-31))-(FIGHTER_HIT_RADIUS+WEAPONS[index].projectileRadius))<1e-7);
+  assert.ok(Math.abs(Math.hypot(result.x-target.x,result.y-(target.y-31))-FIGHTER_HIT_RADIUS)<1e-7);
  }
 });
 
@@ -142,4 +144,21 @@ test('dynamite uses its own physical footprint and destruction budget',()=>{
  assert.ok(dynamite.crater<brasa.crater&&dynamite.crater<crystal.crater);
  assert.ok(dynamite.damage<brasa.damage,'smaller crater does not exceed the dragon damage budget');
  assert.notEqual(dynamite.blast,dynamite.crater,'blast and terrain destruction have independent radii');
+});
+
+test('the brick breaker shatters into a deterministic fan and demolishes hard material',()=>{
+ const brick=WEAPONS.find(w=>w.id==='brick')!;
+ assert.equal(brick.effect,'brick');assert.ok(brick.fragments);
+ assert.deepEqual([0,8,9,10,11,12].map(level=>weaponFragmentCount(brick,level)),[2,2,3,4,4,5]);
+ assert.equal(weaponFragmentCount(brick,12,true),7);assert.equal(weaponFragmentCount(WEAPONS[0],12,true),0);
+ const terrain=createTerrain('garden'),x=700,surface=ground(terrain,x);
+ const first=shatter(terrain,{x,y:surface-10},4,1,brick,0),again=shatter(createTerrain('garden'),{x,y:surface-10},4,1,brick,0);
+ assert.deepEqual(first,again);assert.equal(first.length,4);
+ for(const piece of first){assert.ok(piece.points.length>3,'a shard flies before landing');assert.ok(Math.abs(piece.x-x)<260,'shards stay near the main impact');}
+ let hard:{map:'garden'|'park'|'celestial';x:number;y:number}|undefined;
+ for(const map of ['garden','park','celestial'] as const){const template=terrainTemplate(map);for(let i=0;i<template.solid.length&&!hard;i++){const region=template.definition[template.regions[i]];if(region?.destructible&&MATERIALS[region.material].resistance>1)hard={map,x:(i%WORLD.cols)*3+1,y:Math.floor(i/WORLD.cols)*3+1};}}
+ assert.ok(hard,'some map has destructible hard material');
+ const plain=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map),demolished=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map,brick.demolition);
+ assert.ok(demolished>plain,'brick demolition opens more stone than the same radius without it');
+ const earth=createTerrain('garden');assert.equal(crater(earth.slice(),x,surface,30,'garden',.6),crater(earth.slice(),x,surface,30,'garden'),'soft ground is unchanged');
 });

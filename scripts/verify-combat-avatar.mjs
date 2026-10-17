@@ -1,14 +1,15 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
 await mkdir('test-results',{recursive:true});
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
+const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 try{
- const page=await browser.newPage({viewport:{width:1680,height:1100}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(process.env.BASE_URL??'http://127.0.0.1:5177',{waitUntil:'networkidle'});
+ const page=await browser.newPage({viewport:{width:1680,height:1100}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await enterGame(page,process.env.BASE_URL??'http://127.0.0.1:5177');await page.waitForLoadState('networkidle');
  const report=await page.evaluate(async()=>{
   const {asset,avatarRig}=await import('/src/game/appearance.ts'),{drawAvatar,createAvatarMotion,drawAura,getUpgradeAura}=await import('/src/game/avatar.ts'),{DEFAULT_EQUIPMENT,weaponAssetPath}=await import('/shared/catalog.ts');
   const ids=['outfit-surfer','outfit-executive'],levels=[0,5,9,12];
-  await Promise.all(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/faces/face-brave.png','/assets/outfits/combat-prone.png','/assets/auras/upgrade-rings.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`]),...levels.map(n=>weaponAssetPath('ember',n))].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
+  await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png','/assets/outfits/combat-prone.png','/assets/auras/upgrade-rings.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`]),...levels.map(n=>weaponAssetPath('ember',n))].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   document.body.replaceChildren();document.body.style.cssText='margin:0;background:#172944';const sheet=document.createElement('canvas');sheet.id='combat-sheet';sheet.width=1680;sheet.height=1150;document.body.append(sheet);const c=sheet.getContext('2d');
   c.fillStyle='#172944';c.fillRect(0,0,sheet.width,sheet.height);c.fillStyle='#fff0bb';c.font='bold 26px Georgia';c.fillText('COMBATE CHIBI COMPACTO · SEM AURA · ARMA ATRÁS',30,42);
   for(let row=0;row<4;row++)for(let col=0;col<4;col++){

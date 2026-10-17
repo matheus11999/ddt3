@@ -1,0 +1,5 @@
+.item-gender-badge{display:inline-flex;align-items:center;justify-content:center;gap:4px;max-width:100%;min-height:20px;padding:3px 6px;border:1px solid #7799b264;border-radius:6px;background:#122d45d9;color:#b8d6e9;font-size:9px;font-weight:800;line-height:1;white-space:nowrap}
+.item-gender-badge[data-gender=male]{border-color:#6ea9d777;color:#aedcff;background:#153b5ddd}
+.item-gender-badge[data-gender=female]{border-color:#bf91c377;color:#ebc2e8;background:#4b2b50dd}
+.item-gender-badge svg{flex:none}.item-gender-badge.compact{padding:3px 4px;min-height:18px}.item-gender-badge.locked{border-style:dashed}.item-gender-badge.locked>svg:last-child{color:#dfbb8f}
+.item-gender-symbol{font-family:'Segoe UI Symbol',sans-serif;font-size:14px;font-weight:700;line-height:11px}

@@ -6,7 +6,7 @@ import {Redis} from 'ioredis';
 import {WebSocket,WebSocketServer} from 'ws';
 import {Store} from './store';
 import {Game} from './game';
-import {commandSchema} from '../shared/protocol';
+import {commandSchema,sessionRequestSchema} from '../shared/protocol';
 const app=Fastify({logger:true,bodyLimit:4096,trustProxy:process.env.BEHIND_PROXY==='true'?(_address:string,hop:number)=>hop===0:false});
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8097,http://127.0.0.1:8097,http://localhost:5177,http://127.0.0.1:5177').split(','));
 const redis=new Redis(process.env.REDIS_URL??'redis://localhost:6397',{maxRetriesPerRequest:2});redis.on('error',e=>app.log.error({err:e},'Redis unavailable'));
@@ -16,8 +16,10 @@ app.addHook('onRequest',async(req,reply)=>{if(req.method!=='GET'&&(!req.headers.
 app.get('/api/health',async()=>{await store.pool.query('SELECT 1');await redis.ping();return {ok:true,version:'0.1.0',online:connections.size,rooms:game.rooms.size};});
 app.get('/api/session',async(req,reply)=>{const profile=await store.session(req.cookies.brasa_session);reply.header('Cache-Control','no-store');return {profile};});
 app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},async(req,reply)=>{
+ const parsed=sessionRequestSchema.safeParse(req.body??{});if(!parsed.success)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
  let profile=await store.session(req.cookies.brasa_session);
- if(!profile){const created=await store.createGuest();profile=created.profile;reply.setCookie('brasa_session',created.token,{path:'/',httpOnly:true,sameSite:'strict',secure:process.env.COOKIE_SECURE==='true',maxAge:2592000});}
+ if(profile&&parsed.data.gender&&parsed.data.gender!==profile.gender)return reply.code(409).send({error:'O gênero do personagem é definido na criação e não pode ser alterado.'});
+ if(!profile){if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});const created=await store.createGuest(parsed.data.gender);profile=created.profile;reply.setCookie('brasa_session',created.token,{path:'/',httpOnly:true,sameSite:'strict',secure:process.env.COOKIE_SECURE==='true',maxAge:2592000});}
  reply.header('Cache-Control','no-store');return {profile};
 });
 const game=new Game(store,e=>app.log.error(e));

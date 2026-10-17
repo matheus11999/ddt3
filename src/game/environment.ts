@@ -3,6 +3,8 @@ import type {EnvironmentObject,EnvironmentQuality,MapDefinition,MapId,Shape} fro
 import {ground,solid,terrainTemplate,WORLD} from '../../shared/physics';
 
 const W=WORLD.width,H=WORLD.height,TAU=Math.PI*2,TERRAIN_SCALE=2;
+/** Art direction: dim only the distant/parallax painting, never the playfield. */
+export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
 const decodedImages=new WeakMap<HTMLImageElement,Promise<boolean>>();
 function loadImage(src:string){let image=images.get(src);if(!image){image=new Image();image.decoding='async';image.src=src;images.set(src,image);decodedImages.set(image,image.decode().then(()=>true,()=>false));}return image;}
@@ -244,6 +246,7 @@ export class EnvironmentRenderer {
   if(this.art.complete&&this.art.naturalWidth){const {x,y,width,height}=m.art.midgroundRect??{x:-42,y:m.id==='celestial'?-10:18,width:W+84,height:m.id==='celestial'?605:555};c.drawImage(this.cached('near',width,height,ctx=>ctx.drawImage(this.art,0,0,width,height)),x,y);}
   for(const object of m.objects)if(object.layer===3)this.drawObject(c,object,time);
   c.restore();
+  c.save();c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);c.restore();
  }
  drawTerrain(c:CanvasRenderingContext2D,time:number){
   if(!this.isReady())return;

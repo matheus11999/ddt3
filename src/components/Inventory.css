@@ -200,3 +200,112 @@
 .game-window.inventory-window .avatar-halo{width:165px;height:245px;top:43%;border:0;background:radial-gradient(ellipse,#4ad8f23b,transparent 69%);box-shadow:none}.game-window.inventory-window .avatar-halo:after{display:none}
 
 .inventory-tooltip .tooltip-composed{font-size:10px;color:#9eecc8;padding:5px 7px;border:1px solid #42b99b55;border-radius:6px;background:#073c3944}
+.inventory-item-gender{position:absolute;right:4px;bottom:4px;z-index:4;pointer-events:none}
+.game-window.inventory-window .bag-grid .item-slot.gender-locked{cursor:help}
+.game-window.inventory-window .bag-grid .gender-locked>.item-illustration{filter:saturate(.65) brightness(.82)}
+.inventory-tooltip .tooltip-gender{display:flex;margin-top:9px}
+
+/* A still, larger portrait with useful equipment targets, without pose controls. */
+.inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-body{grid-template-columns:minmax(365px,36%) minmax(0,1fr);grid-template-rows:minmax(660px,1fr);max-height:none;border:0;gap:7px;padding-top:7px;background:none}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-pane{padding:16px 20px 20px;border:1px solid #6383a14a;border-radius:11px 11px 15px 15px;background:var(--game-surface);box-shadow:inset 0 1px #94c6e122}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-name{height:44px;min-height:44px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-name .equipment-status{display:block;min-height:12px;font-size:9px;line-height:12px;color:#bbd5ee}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-name h2{font-size:18px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .dressing-room{height:344px;min-height:344px;flex:none;align-items:flex-start;margin-top:4px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .dressing-room>canvas{width:340px;height:340px;max-width:340px;max-height:340px;flex:none;margin:-50px 0 0}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .avatar-halo{width:230px;height:290px;top:39%;background:radial-gradient(ellipse,#2993cf3d,transparent 68%)}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots{gap:17px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots .equipment-slot{width:68px;height:68px;padding:3px;border-radius:16px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots .equipment-slot>.equipment-slot-label{font-size:9px;line-height:11px;bottom:-14px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots.lower{height:84px;min-height:84px;flex:none;margin-top:-58px;pointer-events:none}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots.lower>.equipment-slot{pointer-events:auto}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .appearance-actions{min-height:28px;margin:2px 0 7px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .combat-power{height:43px;min-height:43px;margin-top:0;background:linear-gradient(100deg,#49607166,#19334aaa);border-color:#b7995e66;border-radius:13px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .combat-power strong{font-size:27px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid{padding:12px 5px 0;gap:8px 22px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid>span{font-size:11px;min-height:17px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid b{font-size:12px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane{grid-template-rows:43px 37px minmax(0,1fr) 29px 49px;padding:15px 17px 16px;gap:12px;border:1px solid #6383a14a;border-radius:11px 11px 15px 15px;background:var(--game-surface);box-shadow:inset 0 1px #94c6e122}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane .tabs button{border-radius:10px;padding:9px 18px;font-size:12px;border:1px solid var(--game-border);background:var(--game-button)}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane .tabs button.active{background:var(--game-button-primary);border-color:var(--game-gold);color:var(--game-ink);box-shadow:inset 0 1px #fff2d080,0 2px #091527}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-filters>select{height:37px;font-size:11px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-filters input{font-size:11px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{grid-template-columns:repeat(6,minmax(0,94px));grid-template-rows:repeat(4,minmax(72px,92px));align-content:start;justify-content:space-between;gap:14px 13px;padding:3px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid .item-art{width:60px;height:60px;max-width:86%;max-height:86%}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-footer{background:#10273ff5;border-color:#9b855a55;padding-top:9px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-footer .button{height:39px;min-height:39px;border-radius:12px;padding:8px 19px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-footer .forge-link{width:41px;min-width:41px;padding:8px}
+@media(max-width:1000px) and (min-width:701px){
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-body{grid-template-columns:350px minmax(0,1fr)}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-pane{padding-inline:13px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane{padding-inline:11px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane .tabs button{padding-inline:9px;font-size:11px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .capacity{display:none}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-filters{gap:7px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-filters>select{width:125px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{gap:9px;grid-template-columns:repeat(4,minmax(0,86px));grid-template-rows:repeat(6,76px);overflow:auto;scrollbar-width:thin}
+}
+.inventory-window .avatar-options-toggle{position:absolute;right:84px;bottom:67px;z-index:5;display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid #819eb2;border-radius:11px;background:linear-gradient(#3e6077,#233d56);box-shadow:inset 0 1px #dce9ed44,0 2px #081c31;color:#e1d6b5}
+.inventory-window .avatar-options-toggle[aria-expanded=true]{border-color:#e4c58d;color:#ffe4ad;background:linear-gradient(#667071,#344b5d)}
+.inventory-window .avatar-display-options{position:absolute;right:83px;bottom:112px;z-index:9;display:flex;flex-direction:column;gap:5px;width:213px;padding:11px;border:1px solid #b6a27c;border-radius:14px;background:linear-gradient(145deg,#2b4a60fa,#132b44fd);box-shadow:inset 0 1px #f2dbab44,0 9px 25px #031024aa;color:#d8e7f1}
+.avatar-display-options>header{display:flex;align-items:center;justify-content:space-between;padding:0 2px 8px;margin-bottom:3px;border-bottom:1px solid #c5a97833;color:#f2d9a7}
+.avatar-display-options>header>strong{font-size:12px}.avatar-display-options>header>button{width:25px;height:25px;display:grid;place-items:center;padding:0;color:#d2dce4;border-radius:7px;background:#102b4266}
+.inventory-window .avatar-display-options>label{position:relative;display:flex;align-items:center;gap:9px;min-height:35px;padding:6px 8px;font-size:11px;cursor:pointer;border:1px solid transparent;border-radius:8px;color:#d6e5ee}
+.inventory-window .avatar-display-options>label:hover{background:#82b3cc15;border-color:#7296ad33}
+.inventory-window .avatar-display-options input[type=checkbox]{appearance:none;width:18px;height:18px;min-width:18px;min-height:18px;flex:none;margin:0;padding:0;border:1px solid #839fb1;border-radius:5px;background:#112b42;box-shadow:inset 0 1px #07182a66;cursor:pointer}
+.inventory-window .avatar-display-options input[type=checkbox]:checked{border-color:#dfc38d;background:linear-gradient(#d4b675,#8c754c)}
+.inventory-window .avatar-display-options>label>svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:#172e41;opacity:0;pointer-events:none}
+.inventory-window .avatar-display-options input:checked~svg{opacity:1}.inventory-window .avatar-display-options input:disabled{opacity:.5;cursor:default}
+@media(max-width:700px){.inventory-window .avatar-options-toggle{right:66px;bottom:4px}.inventory-window .avatar-display-options{right:56px;bottom:49px;width:213px}.inventory-window .avatar-display-options>label{min-height:39px;font-size:12px}}
+@media(max-width:700px){
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-body{display:block;padding-top:6px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-pane{padding:12px 12px 18px;border-radius:10px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .character-name h2{font-size:16px;max-width:230px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .dressing-room{height:309px;min-height:309px;flex:none;margin-top:4px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .dressing-room>canvas{width:300px;height:300px;max-width:300px;max-height:300px;margin-top:-22px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots{gap:17px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots .equipment-slot{width:61px;height:61px;border-radius:14px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots .equipment-slot>.equipment-slot-label{font-size:8px;width:67px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .equipment-slots.lower{height:77px;min-height:77px;margin-top:-28px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane{grid-template-rows:43px 38px auto 29px 51px;gap:11px;padding:14px 9px 10px;margin-top:7px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane .tabs button{font-size:11px;padding-inline:11px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .inventory-filters>select{width:141px;font-size:10px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{grid-template-columns:repeat(4,minmax(0,76px));grid-template-rows:repeat(6,65px);gap:9px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-footer .button{padding-inline:13px}
+ .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-footer .forge-link{padding:8px}
+}
+
+/* Ivory character display shares the PvP card material; attributes remain sapphire. */
+.inventory-window .character-display{flex:none;min-width:0;padding:10px 12px 12px;border:1px solid var(--game-gold);border-radius:15px;background:var(--game-card-surface);color:var(--game-ink);box-shadow:inset 0 1px #fffdf5,0 3px 8px #06132630}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .character-name h2{color:var(--game-ink);text-shadow:none}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-status{color:#697286}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .dressing-room{max-width:360px;width:100%;height:326px;min-height:326px;margin:4px auto 0}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slots{gap:13px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slot-label{color:#536074;bottom:-11px;font-size:8px;line-height:10px;text-shadow:none}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slots.lower{margin-top:-52px}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .avatar-halo{background:radial-gradient(ellipse,#fffaf0,transparent 68%);opacity:.65}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .combat-power{background:linear-gradient(100deg,#e4d7b980,#fff9eb55);border-color:#bfa16a88;color:#536074;box-shadow:inset 0 1px #fff9ef}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .combat-power strong{color:#7c5928;text-shadow:none}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .appearance-actions{color:#536074}
+.inventory-window .character-display .avatar-options-toggle{background:var(--game-button);border-color:var(--game-gold);color:var(--game-title)}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-pane .tabs{align-items:center;gap:6px;border:0}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid .item-art{transform:scale(.93);transform-origin:center}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{gap:10px}
+html.mobile-landscape .inventory-window .character-display{padding:5px 5px 7px;border-radius:11px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .dressing-room{height:234px;min-height:234px;max-width:none;margin-top:3px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slots{gap:11px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slot-label{font-size:7px;line-height:9px;bottom:-10px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .character-display .equipment-slots.lower{margin-top:-36px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{gap:7px}
+
+/* Compact, regular item spacing and a readable sapphire attributes panel. */
+.inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{justify-content:start;gap:8px;grid-template-columns:repeat(auto-fill,minmax(76px,94px));grid-template-rows:none;grid-auto-rows:92px;overflow:auto;scrollbar-width:thin}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid{margin-top:12px;padding:9px 11px;gap:0 16px;border:1px solid #9a855d55;border-radius:12px;background:linear-gradient(130deg,#1d3a55bb,#10283eb5);box-shadow:inset 0 1px #d3e5ef10}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid>span{min-height:31px;gap:7px;border-bottom:1px solid #b3c5d214;color:#cbdce8}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid>span:nth-last-child(-n+2){border-bottom:0}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid b{margin-left:auto;font-size:13px;font-variant-numeric:tabular-nums;color:#f4dfb2}
+.inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid svg{width:15px;height:15px;flex:none;color:#8bb7c9}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .bag-grid{justify-content:start;gap:6px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid{padding:6px 8px;gap:0 10px;margin-top:8px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid>span{min-height:25px;font-size:9px}
+html.mobile-landscape .inventory-modal-layer .game-window.menu-frame.inventory-window .stat-grid b{font-size:11px}

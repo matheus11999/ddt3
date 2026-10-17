@@ -1,69 +1,58 @@
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
+import {spawnSync} from 'node:child_process';
 import {mkdir,writeFile} from 'node:fs/promises';
+import {enterGame} from './character-helpers.mjs';
 
 const base=process.env.BASE_URL??'http://127.0.0.1:5177';
 await mkdir('test-results/shop',{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
-const context=await browser.newContext({viewport:{width:1536,height:864}}),page=await context.newPage(),commands=[],errors=[];
-page.on('pageerror',error=>errors.push(error.message));
-page.on('websocket',ws=>ws.on('framesent',frame=>{try{commands.push(JSON.parse(String(frame.payload)));}catch{}}));
-const profile=async()=>{const response=await context.request.post(base+'/api/session',{headers:{Origin:base}});assert.equal(response.status(),200);return (await response.json()).profile;};
+const clients=[],errors=[],checks=[];
+async function profile(client){const response=await client.context.request.post(base+'/api/session',{headers:{Origin:base}});assert.equal(response.status(),200);return (await response.json()).profile;}
+async function createClient(gender){
+ const context=await browser.newContext({viewport:{width:1536,height:864}}),page=await context.newPage(),client={context,page,commands:[],gender};clients.push(client);
+ page.on('pageerror',error=>errors.push(`${gender}: ${error.message}`));page.on('websocket',ws=>ws.on('framesent',frame=>{try{client.commands.push(JSON.parse(String(frame.payload)));}catch{}}));
+ await enterGame(page,base,gender);await page.waitForLoadState('networkidle');const current=await profile(client);assert.equal(current.gender,gender);
+ const name=`TEST-SHOP-${gender==='male'?'M':'F'}-${current.id.slice(0,6)}`;
+ await page.getByRole('button',{name:'Configurações',exact:true}).click();const settings=page.getByRole('dialog',{name:'Ajustes'});await settings.getByLabel('Nome do aventureiro').fill(name);await settings.getByRole('button',{name:'Salvar nome',exact:true}).click();await expect.poll(async()=>(await profile(client)).name).toBe(name);await settings.getByRole('button',{name:'Fechar',exact:true}).click();
+ client.initial=await profile(client);return client;
+}
+async function openShop(client){await client.page.locator('.bottom-dock').getByRole('button',{name:'Loja',exact:true}).click();const shop=client.page.getByRole('dialog',{name:'Loja da Brasa'});await expect(shop).toBeVisible();return shop;}
+async function category(shop,name){await shop.getByRole('navigation',{name:'Categorias da loja'}).getByRole('button',{name,exact:true}).click();}
+async function collection(shop,name){await shop.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name,exact:true}).click();}
+async function add(shop,name){await shop.getByRole('button',{name:`Adicionar ${name} ao carrinho`,exact:true}).click();}
+async function preview(shop,name){await shop.getByRole('button',{name:`Experimentar ${name}`,exact:true}).click();}
 try{
- await page.goto(base,{waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
- const initial=await profile();assert.ok(!initial.inventory.includes('outfit-executive'));assert.ok(!initial.inventory.includes('face-smile'));
- await page.locator('.bottom-dock').getByRole('button',{name:'Loja',exact:true}).click();
- const shop=page.getByRole('dialog',{name:'Loja da Brasa'});await expect(shop).toBeVisible();
- for(const id of ['outfit-racer','hair-undercut','glasses-sport','outfit-dancer','hair-ponytail','glasses-cat','face-wink']){
-  const offer=shop.locator(`[data-shop-item="${id}"]`);await expect(offer).toHaveCount(1);await offer.getByRole('button',{name:/^Experimentar /}).click();
- }
- assert.deepEqual((await profile()).equipment,initial.equipment,'all new cosmetic previews stay local');
- await shop.getByRole('button',{name:'Roupas',exact:true}).click();await shop.getByRole('button',{name:'Feminino',exact:true}).click();
- await expect(shop.locator('[data-shop-item]')).toHaveCount(1);await expect(shop.locator('[data-shop-item="outfit-dancer"]')).toBeVisible();
- await page.screenshot({path:'test-results/shop/new-feminine-preview.png'});
- await shop.getByRole('button',{name:'Complementos',exact:true}).click();await expect(shop.locator('[data-shop-item="hair-ponytail"]')).toHaveCount(1);await expect(shop.locator('[data-shop-item="hair-undercut"]')).toHaveCount(0);await expect(shop.locator('[data-shop-item="glasses-sport"]')).toHaveCount(1);
- await shop.getByRole('button',{name:'Masculino',exact:true}).click();await expect(shop.locator('[data-shop-item="hair-undercut"]')).toHaveCount(1);await expect(shop.locator('[data-shop-item="hair-ponytail"]')).toHaveCount(0);await expect(shop.locator('[data-shop-item="glasses-cat"]')).toHaveCount(1);
- await shop.getByRole('button',{name:'Todos',exact:true}).click();await shop.getByRole('button',{name:'Restaurar visual'}).click();
- await shop.getByRole('button',{name:'Armas',exact:true}).click();await expect(shop.locator('[data-shop-item="volt"]')).toBeVisible();
- await shop.getByRole('button',{name:'Ver informações de Tempestade'}).hover();
- const tooltip=page.getByRole('tooltip');await expect(tooltip).toContainText('Armadura');await expect(tooltip).toContainText('Dano');await expect(tooltip).toContainText('Raro');
- const box=await tooltip.boundingBox();assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=1536&&box.y+box.height<=864);
- await page.screenshot({path:'test-results/shop/weapon-tooltip.png'});
- await shop.getByRole('button',{name:'Experimentar Tempestade',exact:true}).click();
- await expect(shop.locator('.shop-preview-caption')).toContainText('Tempestade');
- await shop.getByRole('button',{name:'Roupas',exact:true}).click();
- await shop.getByRole('button',{name:'Masculino',exact:true}).click();await expect(shop.locator('[data-shop-item="outfit-executive"]')).toBeVisible();
- await shop.getByRole('button',{name:'Feminino',exact:true}).click();await expect(shop.locator('[data-shop-item="outfit-executive"]')).toHaveCount(0);
- await shop.getByRole('button',{name:'Todos',exact:true}).click();await shop.getByRole('button',{name:'Experimentar Executivo',exact:true}).click();
- assert.deepEqual((await profile()).equipment,initial.equipment,'experimenting must never equip or buy an item');
- assert.equal(commands.filter(command=>['equip','customize','shop-buy'].includes(command.type)).length,0);
- await shop.getByRole('button',{name:'Adicionar Executivo ao carrinho',exact:true}).click();
- await shop.getByRole('button',{name:'Rostos',exact:true}).click();await shop.getByRole('button',{name:'Adicionar Sorriso Radiante ao carrinho',exact:true}).click();
- await shop.getByRole('button',{name:'Ver carrinho 2',exact:true}).click();
- await expect(shop.locator('.shop-cart-row')).toHaveCount(2);
- await shop.getByRole('button',{name:'Remover Sorriso Radiante do carrinho'}).click();await expect(shop.locator('.shop-cart-row')).toHaveCount(1);
- await shop.getByRole('button',{name:'Continuar comprando'}).click();await shop.getByRole('button',{name:'Adicionar Sorriso Radiante ao carrinho'}).click();
- await shop.getByRole('button',{name:'Ver carrinho 2',exact:true}).click();await expect(shop.locator('.shop-checkout-total')).toContainText('460');
- await page.screenshot({path:'test-results/shop/cart-desktop.png'});
- await shop.getByRole('button',{name:'Comprar tudo',exact:true}).click();await expect(shop.getByRole('status')).toContainText('Itens guardados na mochila!');
- assert.equal(commands.filter(command=>command.type==='shop-buy').length,1,'one click must send one purchase');
- const purchased=await profile();assert.equal(purchased.gold,initial.gold-460);assert.ok(purchased.inventory.includes('outfit-executive'));assert.ok(purchased.inventory.includes('face-smile'));assert.deepEqual(purchased.equipment,initial.equipment);
- await expect(shop.locator('.shop-cart-row')).toHaveCount(0);
- await shop.getByRole('button',{name:'Ver loja 0',exact:true}).click();await shop.getByRole('button',{name:'Armas',exact:true}).click();
- await shop.getByRole('button',{name:'Adicionar Tempestade ao carrinho'}).click();await shop.getByRole('button',{name:'Ver carrinho 1',exact:true}).click();
- await expect(shop.getByRole('button',{name:'Comprar tudo',exact:true})).toBeDisabled();await expect(shop.locator('.shop-insufficient')).toContainText('320');
- await shop.getByRole('button',{name:'Ver loja 1',exact:true}).click();await shop.getByRole('button',{name:'Destaques',exact:true}).click();
- await shop.getByRole('button',{name:'Restaurar visual'}).click();await expect(shop.getByRole('button',{name:'Restaurar visual'})).toBeDisabled();
- await page.screenshot({path:'test-results/shop/store-desktop.png'});
- await page.setViewportSize({width:390,height:844});await expect(shop).toBeVisible();await shop.getByRole('button',{name:'Rostos',exact:true}).click();
- await shop.getByRole('button',{name:'Detalhes de Sorriso Provocador'}).click();await expect(tooltip).toBeVisible();
- const mobileTip=await tooltip.boundingBox();assert.ok(mobileTip.x>=0&&mobileTip.y>=0&&mobileTip.x+mobileTip.width<=390&&mobileTip.y+mobileTip.height<=844);
- await page.screenshot({path:'test-results/shop/store-mobile-tooltip.png'});await shop.getByRole('button',{name:'Feminino',exact:true}).click();
- await shop.getByRole('button',{name:'Ver carrinho 1',exact:true}).click();await shop.locator('.shop-checkout').scrollIntoViewIfNeeded();
- await page.screenshot({path:'test-results/shop/cart-mobile.png'});
- const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);assert.equal(overflow,false);
- await shop.getByRole('button',{name:'Fechar',exact:true}).click();await page.reload({waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
- const restored=await profile();assert.equal(restored.gold,purchased.gold);assert.deepEqual(restored.inventory,purchased.inventory);assert.deepEqual(errors,[]);
- const result={passed:true,profile:initial.id,purchased:['outfit-executive','face-smile'],spent:460,previewKeptLocal:true,persisted:true,mobile:true,errors};
- await writeFile('test-results/shop/report.json',JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));
-}finally{await browser.close();}
+ const male=await createClient('male'),page=male.page,initial=male.initial;let shop=await openShop(male);
+ await expect(shop.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name:'Masculino',exact:true})).toHaveAttribute('aria-pressed','true');await expect(shop.getByRole('button',{name:'Todos',exact:true})).toHaveCount(0);
+ await expect(shop.locator('[data-item-gender="female"],[data-item-gender="unisex"]')).toHaveCount(0);
+ for(const name of ['Piloto Relâmpago','Executivo','Boné Relâmpago'])await preview(shop,name);
+ await collection(shop,'Feminino');await expect(shop.locator('[data-shop-item="outfit-dancer"]')).toBeVisible();await expect(shop.locator('[data-item-gender="male"],[data-item-gender="unisex"]')).toHaveCount(0);
+ for(const name of ['Dançarina Rubi','Piscadela Confiante','Rabo de Cavalo Rubi','Chapéu Astral']){await expect(shop.getByRole('button',{name:`Experimentar ${name}`,exact:true})).toBeDisabled();await expect(shop.getByRole('button',{name:`Adicionar ${name} ao carrinho`,exact:true})).toBeDisabled();}
+ await shop.getByRole('button',{name:'Detalhes de Piscadela Confiante',exact:true}).click();await expect(page.getByRole('tooltip')).toContainText('Feminino');await expect(page.getByRole('tooltip').locator('.item-gender-badge.locked')).toHaveCount(1);await page.screenshot({path:'test-results/shop/male-female-items-locked.png'});await shop.getByRole('heading',{name:'Loja da Brasa'}).click();
+ assert.deepEqual((await profile(male)).equipment,initial.equipment);assert.equal(male.commands.filter(command=>['equip','customize','shop-buy'].includes(command.type)).length,0);
+ checks.push('male initial collection is separate; female preview and cart actions are locked without changing the character');
+ await category(shop,'Armas');await expect(shop.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name:'Unissex',exact:true})).toHaveAttribute('aria-pressed','true');await expect(shop.locator('[data-shop-item="volt"]')).toBeVisible();await preview(shop,'Tempestade');
+ await shop.getByRole('button',{name:'Ver informações de Tempestade',exact:true}).hover();let tooltip=page.getByRole('tooltip');await expect(tooltip).toContainText('Armadura');await expect(tooltip).toContainText('Unissex');let box=await tooltip.boundingBox();assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=1536&&box.y+box.height<=864);await page.screenshot({path:'test-results/shop/weapon-tooltip.png'});await shop.getByRole('heading',{name:'Loja da Brasa'}).click();
+ await category(shop,'Complementos');await preview(shop,'Óculos Gatinho');await add(shop,'Pulseira Trançada');await collection(shop,'Masculino');await category(shop,'Roupas');await add(shop,'Executivo');await shop.getByRole('button',{name:'Ver carrinho 2',exact:true}).click();await expect(shop.locator('.shop-checkout-total')).toContainText('460');
+ await shop.getByRole('button',{name:'Remover Pulseira Trançada do carrinho',exact:true}).click();await expect(shop.locator('.shop-cart-row')).toHaveCount(1);await shop.getByRole('button',{name:'Continuar comprando',exact:true}).click();await collection(shop,'Unissex');await category(shop,'Complementos');await add(shop,'Pulseira Trançada');await shop.getByRole('button',{name:'Ver carrinho 2',exact:true}).click();await page.screenshot({path:'test-results/shop/cart-desktop.png'});
+ await shop.getByRole('button',{name:'Comprar tudo',exact:true}).click();await expect(shop.getByRole('status')).toContainText('Itens guardados na mochila!');const purchased=await profile(male);assert.equal(purchased.gold,initial.gold-460);assert.ok(purchased.inventory.includes('outfit-executive'));assert.ok(purchased.inventory.includes('wristband-braid'));assert.deepEqual(purchased.equipment,initial.equipment);assert.equal(male.commands.filter(command=>command.type==='shop-buy').length,1);
+ await shop.getByRole('button',{name:'Ver loja 0',exact:true}).click();await category(shop,'Armas');await add(shop,'Tempestade');await shop.getByRole('button',{name:'Ver carrinho 1',exact:true}).click();await expect(shop.getByRole('button',{name:'Comprar tudo',exact:true})).toBeDisabled();await expect(shop.locator('.shop-insufficient')).toContainText('320');await shop.getByRole('button',{name:'Ver loja 1',exact:true}).click();await shop.getByRole('button',{name:'Restaurar visual',exact:true}).click();await expect(shop.getByRole('button',{name:'Restaurar visual',exact:true})).toBeDisabled();
+ await page.setViewportSize({width:390,height:844});await category(shop,'Rostos');await shop.getByRole('button',{name:'Detalhes de Sorriso Provocador',exact:true}).click();tooltip=page.getByRole('tooltip');await expect(tooltip).toBeVisible();box=await tooltip.boundingBox();assert.ok(box.x>=0&&box.y>=0&&box.x+box.width<=390&&box.y+box.height<=844);await page.screenshot({path:'test-results/shop/store-mobile-tooltip.png'});await collection(shop,'Feminino');await expect(shop.locator('.shop-gender-notice')).toBeVisible();await shop.locator('.shop-body').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'test-results/shop/store-mobile-separated.png'});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await shop.getByRole('button',{name:'Fechar',exact:true}).click();await page.setViewportSize({width:1536,height:864});await enterGame(page,base,'male');let restored=await profile(male);assert.equal(restored.gold,purchased.gold);assert.deepEqual(restored.inventory,purchased.inventory);
+ checks.push('shared equipment previews safely; one mixed compatible cart charges 460 once; insufficient balance, mobile tooltip and reload persistence work');
+ // Model an older account that already owns an opposite-gender item. Scope the
+ // fixture to this fresh, explicitly named test guest; do not touch real players.
+ const fixtureScript=`import assert from 'node:assert/strict';import {Store} from './server/store.ts';const store=new Store();try{const result=await store.pool.query("UPDATE players SET profile=jsonb_set(profile,'{inventory}',(profile->'inventory')||$3::jsonb) WHERE id=$1 AND name=$2 AND created_at>now()-interval '10 minutes' RETURNING id",[${JSON.stringify(initial.id)},${JSON.stringify(initial.name)},JSON.stringify(['outfit-dancer'])]);assert.equal(result.rowCount,1);}finally{await store.pool.end();}`;
+ const fixture=spawnSync('docker',['compose','exec','-T','server','node','--import','tsx','--input-type=module'],{input:fixtureScript,encoding:'utf8',timeout:30000});assert.equal(fixture.status,0,fixture.stderr);
+ await enterGame(page,base,'male');await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();const bag=page.getByRole('dialog',{name:'Mochila'});await bag.getByRole('combobox',{name:'Categoria'}).selectOption('outfit');const incompatible=bag.getByRole('button',{name:'Dançarina Rubi',exact:true});await expect(incompatible).toHaveAttribute('data-gender-locked','true');await expect(incompatible).toHaveAttribute('draggable','false');await expect(incompatible).toHaveAttribute('aria-disabled','true');await page.waitForLoadState('networkidle');const before=(await profile(male)).equipment,customizationCount=male.commands.filter(command=>command.type==='customize').length;await incompatible.click({force:true});await expect(bag.locator('.dye-swatches')).toHaveCount(0);await expect(bag.getByRole('button',{name:'Salvar personalização',exact:true})).toHaveCount(0);
+ await bag.locator('[data-slot="outfit"]').evaluate(element=>{const transfer=new DataTransfer();transfer.setData('application/x-brasa-item','outfit-dancer');element.dispatchEvent(new DragEvent('drop',{bubbles:true,dataTransfer:transfer}));});assert.deepEqual((await profile(male)).equipment,before);assert.equal(male.commands.filter(command=>command.type==='customize').length,customizationCount);await incompatible.hover();await expect(page.getByRole('tooltip')).toContainText('Incompatível com este personagem');await page.screenshot({path:'test-results/shop/inventory-owned-incompatible.png'});await bag.getByRole('button',{name:'Fechar',exact:true}).click();
+ checks.push('legacy opposite-gender ownership remains visible but cannot equip, drag, dye or drop; no customization request is sent');
+ const female=await createClient('female'),femaleInitial=female.initial;shop=await openShop(female);await expect(shop.getByRole('group',{name:'Coleções da loja'}).getByRole('button',{name:'Feminino',exact:true})).toHaveAttribute('aria-pressed','true');assert.equal(femaleInitial.equipment.outfit,'outfit-dancer');assert.equal(femaleInitial.equipment.face,'face-smile');
+ await preview(shop,'Piscadela Confiante');await preview(shop,'Chapéu Tropical');await add(shop,'Piscadela Confiante');await add(shop,'Chapéu Tropical');await collection(shop,'Masculino');await expect(shop.getByRole('button',{name:'Experimentar Executivo',exact:true})).toBeDisabled();await expect(shop.getByRole('button',{name:'Adicionar Executivo ao carrinho',exact:true})).toBeDisabled();await collection(shop,'Unissex');await preview(shop,'Óculos Sprint');assert.deepEqual((await profile(female)).equipment,femaleInitial.equipment);
+ await shop.getByRole('button',{name:'Ver carrinho 2',exact:true}).click();await shop.getByRole('button',{name:'Comprar tudo',exact:true}).click();await expect(shop.getByRole('status')).toContainText('Itens guardados na mochila!');const femalePurchased=await profile(female);assert.equal(femalePurchased.gold,femaleInitial.gold-360);await shop.getByRole('button',{name:'Ver loja 0',exact:true}).click();await collection(shop,'Feminino');await female.page.screenshot({path:'test-results/shop/female-collection.png'});await shop.getByRole('button',{name:'Fechar',exact:true}).click();
+ await female.page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();const femaleBag=female.page.getByRole('dialog',{name:'Mochila'});await femaleBag.getByRole('combobox',{name:'Categoria'}).selectOption('face');await femaleBag.getByRole('button',{name:'Piscadela Confiante',exact:true}).click();await expect.poll(async()=>(await profile(female)).equipment.face).toBe('face-wink');await expect(femaleBag.locator('.equipment-status')).toHaveText('Visual equipado');await femaleBag.locator('[data-slot="face"]').dblclick();await expect.poll(async()=>(await profile(female)).equipment.face).toBe('face-smile');await expect(femaleBag.locator('.equipment-status')).toHaveText('Visual equipado');await femaleBag.getByRole('button',{name:'Fechar',exact:true}).click();await enterGame(female.page,base,'female');restored=await profile(female);assert.equal(restored.gender,'female');assert.equal(restored.equipment.face,'face-smile');assert.equal(restored.equipment.outfit,'outfit-dancer');assert.equal(restored.gold,femalePurchased.gold);
+ checks.push('female profile uses its own collection, buys female items, rejects male previews and restores the correct female default face');
+ assert.deepEqual(errors,[]);const report={passed:true,base,checks,testPlayerIds:clients.map(client=>client.initial.id),errors};await writeFile('test-results/shop/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+}catch(error){for(const client of clients)await client.page.screenshot({path:`test-results/shop/failure-${client.gender}.png`}).catch(()=>{});throw error;}
+finally{await browser.close();}

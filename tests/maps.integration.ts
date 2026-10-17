@@ -5,6 +5,7 @@ import {BASE_URL,createSession,TestClient} from './integration';
 import {MAP_IDS,getMap} from '../shared/maps';
 import type {CanonicalMapId} from '../shared/maps';
 import {WEAPONS,weaponStats} from '../shared/catalog';
+import {weaponAimLimits} from '../shared/aim';
 import {crater,createTerrain,packTerrain,terrainMaterial,terrainTemplate,trajectory,unpackTerrain} from '../shared/physics';
 import type {Battle,Shot} from '../shared/protocol';
 
@@ -29,8 +30,8 @@ function aim(battle:Battle,terrain:Uint8Array,goalX:number,material?:string){
  const fighter=battle.players.find(p=>p.id===battle.turnId)!;
  const weapon=weaponStats(WEAPONS.find(w=>w.id===fighter.equipment.weapon)!,fighter.equipment.upgrade);
  const targets=battle.players.filter(p=>p.id!==fighter.id);
- let best:{angle:number;power:number;score:number}|undefined;
- for(let angle=Math.max(25,weapon.minAngle);angle<=Math.min(75,weapon.maxAngle);angle+=2)for(let power=15;power<=85;power++){
+ let best:{angle:number;power:number;score:number}|undefined;const limits=weaponAimLimits(weapon,fighter.aimSlope??0);
+ for(let angle=Math.max(25,limits.minAngle);angle<=Math.min(75,limits.maxAngle);angle+=2)for(let power=15;power<=85;power++){
   const impact=trajectory(terrain,fighter,angle,power,battle.wind,weapon,targets);
   const surface=terrainMaterial(battle.map,impact.x,impact.y);
   if(!surface.region||material&&surface.material!==material)continue;
@@ -52,7 +53,7 @@ async function run(){
   await Promise.all(clients.map(client=>client.wait('welcome')));
   for(const [index,client] of clients.entries())await client.request({type:'rename',name:`TEST-MAP-${index}-${client.profile.id.slice(0,6)}`},'profile');
   for(const map of MAP_IDS){
-   const host=clients[0],created=await host.request({type:'create',name:`TEST Maps ${map}`,mode:'2v2',map},'room',event=>event.room?.map===map);
+   const host=clients[0],created=await host.request({type:'create',practice:true,name:`TEST Maps ${map}`,mode:'2v2',map},'room',event=>event.room?.map===map);
    const roomId=created.room!.id;
    for(const client of clients.slice(1)){
     await client.request({type:'join',roomId},'room',event=>event.room?.id===roomId);
@@ -81,6 +82,7 @@ async function run(){
     assert.equal(shot.projectiles.length,round===0?9:1,`${map}: legal multishot count`);
     assert.ok(shot.duration>0&&shot.duration<30000,`${map}: bounded resolution`);
     for(const event of received)assert.deepEqual(event.shot,shot,`${map}: four clients must receive identical trajectories and hits`);
+    const beforeShot=replay.slice();
     for(const projectile of shot.projectiles){
      assert.ok(projectile.points.length>1);assert.ok(projectile.impact.radius>0);
      const expected=terrainMaterial(map,projectile.impact.x,projectile.impact.y);
@@ -95,7 +97,8 @@ async function run(){
      await old.close();const resumed=new TestClient(old.session);clients[index]=resumed;
      const welcome=await resumed.wait('welcome');assert.equal(welcome.battle?.id,battle.id);
      assert.equal(welcome.battle?.phase,'resolving',`${map}: reconnect must actually occur during resolution`);
-     snapshot(welcome.battle!,replay,`${map} resolving reconnect`);duringResolution=true;
+     assert.equal(welcome.battle!.activeShot?.id,shot.id);const atReconnect=beforeShot.slice();for(const projectileIndex of welcome.battle!.activeShot!.impacted){const projectile=shot.projectiles[projectileIndex];crater(atReconnect,projectile.impact.x,projectile.impact.y,projectile.impact.radius,map);}
+     snapshot(welcome.battle!,atReconnect,`${map} resolving reconnect`);duringResolution=true;
      marks[index]=resumed.sequence;
     }
     const settled=await Promise.all(clients.map((client,index)=>client.wait('battle',e=>e.battle?.id===battle.id&&e.battle.phase==='aiming'&&e.battle.turnNumber>turn,marks[index],shot.duration+10000)));
@@ -116,7 +119,8 @@ async function run(){
    const index=clients.indexOf(winners[1]),old=clients[index];await old.close();const resumed=new TestClient(old.session);clients[index]=resumed;
    const finalWelcome=await resumed.wait('welcome');assert.equal(finalWelcome.battle?.phase,'finished');assert.equal(finalWelcome.battle?.winner,0);snapshot(finalWelcome.battle!,replay,`${map} finished reconnect`);
    // Rematch is a fresh mask, including after destructive matches.
-   const resetMarks=clients.map(c=>c.sequence);host.send({type:'rematch'});
+   await host.wait('battle',e=>e.battle?.id===battle.id&&e.battle.rewards?.saved===true,finalMarks[clients.indexOf(host)],25000);
+   const resetMarks=clients.map(c=>c.sequence);
    for(const client of [host,resumed])await client.wait('room',e=>e.room?.id===roomId&&e.room.status==='waiting',resetMarks[clients.indexOf(client)]);
    for(const client of clients){
     const inRoom=client===host||client===resumed;
