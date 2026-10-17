@@ -70,6 +70,8 @@ export interface WeaponKit {
  powTrident?:PowTridentRule;
  /** Slots that already have their own file at `weaponSoundPath()`; the rest use the synthesized default. */
  sounds?:readonly WeaponSoundSlot[];
+ /** Degrees the painted projectile points above horizontal in the atlas; the renderer rotates it back. */
+ projectileTilt?:number;
  /** How the four sounds should feel (English, it feeds the ElevenLabs prompt). */
  sound:Record<WeaponSoundSlot,string>;
  phases:Record<WeaponPhase,PhaseBrief>;
@@ -80,10 +82,13 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
   // Redone from zero on 17/10/2026: the starter weapon for early and mid game, balanced and defensive,
   // small craters, POW is a single projectile.
   id:'brick',
-  concept:'Quebra-Tijolos, a arma inicial de início e meio de jogo. Como as armas do DDTank, a arma é um RECIPIENTE cheio de munição: um saco, balde ou estojo de obra com tijolos de olaria, de onde o personagem tira e arremessa um tijolo que se estilhaça no impacto e solta cacos. Nunca desenhar só tijolos soltos ou amarrados: sempre o recipiente com os tijolos aparecendo dentro. O recipiente sempre tem tamanho que uma pessoa carrega numa mão ou no ombro (nunca caixote ou baú grande); a partir de +12 leva só 3 ou 4 tijolos. Arma de trabalhador, robusta e simpática, nunca uma relíquia divina: o recipiente cresce em capricho e acabamento até +15, sem coroas nem auras de lenda.',
+  concept:'Quebra-Tijolos, a arma inicial de início e meio de jogo. Como as armas do DDTank, a arma é um RECIPIENTE cheio de munição: um saco, balde ou estojo de obra com tijolos de olaria, de onde o personagem tira e arremessa um tijolo que se estilhaça no impacto e solta cacos (só visuais: nenhum caco acerta alvos). Nunca desenhar só tijolos soltos ou amarrados: sempre o recipiente com os tijolos aparecendo dentro. O recipiente sempre tem tamanho que uma pessoa carrega numa mão ou no ombro (nunca caixote ou baú grande); a partir de +12 leva só 3 ou 4 tijolos. Arma de trabalhador, robusta e simpática, nunca uma relíquia divina: o recipiente cresce em capricho e acabamento até +15, sem coroas nem auras de lenda.',
   identity:'um recipiente de obra com os tijolos aparecendo pela boca; os TIJOLOS evoluem a cada fase junto com o recipiente (o tijolo de dentro é o mesmo que é arremessado), nunca o mesmo tijolo em duas fases; alça ou corda grossa de sisal; detalhes de latão; uma pequena gema cor de brasa que aparece em +10 e cresce a cada fase. Mesmo ângulo três-quartos levemente de cima, luz de cima à esquerda, contorno marrom-escuro grosso, mesma espessura de pincel em todas as fases.',
   palette:'vermelho tijolo, laranja barro, creme da argamassa, marrom da corda, latão; brasa laranja-amarela a partir de +10; madeira laqueada vermelha em +12; couro vermelho, latão polido e brasa viva em +15',
   powTrident:'pow-unico',
+  // Recorded with ElevenLabs on 17/10/2026 (version 01 of two; the others are in armas/quebra-tijolos-final/).
+  sounds:['fire','flight','impact','terrain'],
+  projectileTilt:25,
   sound:{fire:'heavy underarm throw whoosh with a creaking rope',flight:'low tumbling whoosh with bricks knocking together',impact:'bricks smashing with a dry crash and clay shards scattering',terrain:'small chunk of wall crumbling, gravel falling'},
   phases:{
    0:{ammo:'tijolos comuns de barro vermelho-alaranjado, foscos, cantos lascados e manchas de argamassa creme',held:'saco de estopa bege remendado, com a boca aberta e franzida por uma corda de sisal, cheio de tijolos vermelhos aparecendo pela abertura, alça de corda para carregar no ombro',projectile:'um tijolo vermelho girando, com lascas nos cantos',muzzle:'nuvem curta de pó de barro com duas lascas',impact:'tijolo partindo em cacos com poeira de barro alaranjada'},

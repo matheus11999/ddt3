@@ -5,7 +5,7 @@ import type {ShopOffer} from '../../shared/shop';
 
 /**
  * Test-only weapons. The game's arsenal is being rebuilt from zero (docs/weapon-kit.md) and today holds
- * only the Quebra-Tijolos, whose shards add extra impacts to every shot. The generic combat, forge,
+ * only the Quebra-Tijolos, a single brick per shot. The generic combat, forge,
  * shop and migration tests keep their former single-projectile weapons as fixtures, loaded before
  * every test file by `npm test` (--import). Tests about the real starter use STARTER_WEAPON.
  */
@@ -15,6 +15,8 @@ export const FIXTURE_WEAPONS:Weapon[]=[
  {id:'crystal',name:'Flor de Cristal',slot:'weapon',rarity:'legendary',color:'#d6a1ff',description:'Fragmentos arcanos que abrem caminho.',attack:110,defense:130,agility:55,luck:65,damage:220,crater:86,blast:102,gravity:290,projectileRadius:9,effect:'crystal',minAngle:20,maxAngle:85,hold:'hand'},
  {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:120,defense:85,agility:75,luck:80,damage:225,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85},
 ];
+/** The shard mechanic (`fragments`) has no real weapon today (matheus did not want shrapnel on the Quebra-Tijolos), so it is tested here, added to the arsenal only while a test needs it. */
+export const SHRAPNEL_FIXTURE:Weapon={id:'shrapnel',name:'Estilhaço de teste',slot:'weapon',rarity:'rare',color:'#d8432a',description:'Arma de teste com cacos.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:30,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.3,fragments:{count:[2,3,4,5],damage:.24,crater:10,blast:44,speed:235,radius:3,gravity:420}};
 const prices:Record<string,number>={ember:420,volt:360,crystal:560,dynamite:480};
 // Same order as the former arsenal (brick last), which some tests destructure.
 WEAPONS.unshift(...FIXTURE_WEAPONS.filter(weapon=>!CATALOG[weapon.id]));ITEMS.unshift(...FIXTURE_WEAPONS.filter(weapon=>!CATALOG[weapon.id]));
@@ -24,3 +26,8 @@ for(const weapon of FIXTURE_WEAPONS){
  const offer:ShopOffer={id:weapon.id,price:prices[weapon.id],gender:itemGender(weapon)};(SHOP_OFFERS as ShopOffer[]).push(offer);(SHOP_OFFER_BY_ID as Record<string,ShopOffer>)[weapon.id]=offer;
 }
 DEFAULT_EQUIPMENT.weapon='ember';
+/** Runs `body` with the shrapnel fixture in the arsenal, then takes it out again. */
+export async function withShrapnel<T>(body:()=>Promise<T>|T):Promise<T>{
+ WEAPONS.push(SHRAPNEL_FIXTURE);(CATALOG as Record<string,Weapon>).shrapnel=SHRAPNEL_FIXTURE;
+ try{return await body();}finally{WEAPONS.splice(WEAPONS.indexOf(SHRAPNEL_FIXTURE),1);delete (CATALOG as Record<string,Weapon>).shrapnel;}
+}

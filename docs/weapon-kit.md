@@ -1,6 +1,6 @@
 # Kit de arma e validador — 17/10/2026
 
-**Arsenal refeito do zero (17/10/2026).** As cinco armas antigas e toda a arte delas foram apagadas. O Quebra-Tijolos é a única arma e a arma inicial: de início e meio de jogo, atributos equilibrados (85/95/85/85), cratera pequena (30, cacos 10, demolição 30%) e POW de projétil único (`pow-unico`). Perfis com armas antigas passam para ele. O jogo fica sem a arte dele até as peças novas chegarem; os efeitos usam o desenho de contingência.
+**Arsenal refeito do zero (17/10/2026).** As cinco armas antigas e toda a arte delas foram apagadas. O Quebra-Tijolos é a única arma e a arma inicial: de início e meio de jogo, atributos equilibrados (85/95/85/85), cratera pequena (30, demolição 30%), um tijolo por tiro sem estilhaços que acertam alvos (os cacos são só efeito visual) e POW de projétil único (`pow-unico`). Perfis com armas antigas passam para ele. As 4 fases, o atlas de efeitos, a marca no cenário e os 4 sons dele estão prontos.
 
 Cada arma do Brasa Arena é única, como no DDTank: arte própria em cada fase de evolução, projétil próprio (o DDTank lança uma TV, bisturis, um bumerangue), efeitos e sons próprios e uma regra de POW × Tridente. O contrato fica em `shared/weaponKit.ts` (`WEAPON_KITS`) e é conferido por `npm run verify:weapons`.
 

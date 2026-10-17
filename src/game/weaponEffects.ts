@@ -1,12 +1,13 @@
 import type {Projectile} from '../../shared/protocol';
 import {WEAPONS,weaponPhaseTier} from '../../shared/catalog';
-import {weaponEffectsPath} from '../../shared/weaponKit';
+import {weaponEffectsPath,weaponKit} from '../../shared/weaponKit';
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 
 type Effect=Projectile['effect'];
 type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number};
-type Atlas={cells:Cell[];ready:Promise<void>};
+/** tilt: radians the painted projectiles point above horizontal, undone when drawing the top row. */
+type Atlas={cells:Cell[];ready:Promise<void>;tilt:number};
 export interface WeaponEffectOptions {quality?:'high'|'low';reducedMotion?:boolean;}
 export const VFX_LIMITS={high:{trailSamples:18,flightParticles:16,impactParticles:26,debris:14},low:{trailSamples:8,flightParticles:6,impactParticles:10,debris:6}} as const;
 const TAU=Math.PI*2;
@@ -28,7 +29,7 @@ const canvas=(width:number,height:number)=>{const out=document.createElement('ca
 
 function atlasFor(effect:Effect):Atlas{
  const cached=atlases.get(effect);if(cached)return cached;
- const image=new Image();const atlas:Atlas={cells:[],ready:Promise.resolve()};
+ const image=new Image();const weapon=WEAPONS.find(item=>item.effect===effect),atlas:Atlas={cells:[],ready:Promise.resolve(),tilt:(weapon&&weaponKit(weapon.id)?.projectileTilt||0)*Math.PI/180};
  atlas.ready=new Promise(resolve=>{
   image.onload=()=>{
    const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
@@ -62,7 +63,7 @@ function atlasFor(effect:Effect):Atlas{
    image.onload=null;image.onerror=null;resolve();
   };
   // Each weapon paints its own atlas (shared/weaponKit.ts); an effect no weapon uses keeps the drawn fallback.
-  const weapon=WEAPONS.find(item=>item.effect===effect);if(!weapon){resolve();return;}
+  if(!weapon){resolve();return;}
   image.onerror=()=>resolve();image.src=weaponEffectsPath(weapon.id);
  });
  atlases.set(effect,atlas);return atlas;
@@ -74,7 +75,8 @@ export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>
 if(typeof Image!=='undefined')void preloadWeaponEffects();
 
 function sprite(c:CanvasRenderingContext2D,effect:Effect,row:number,tier:number,x:number,y:number,width:number,angle=0,anchor=.5,alpha=1,dissolve=0,energy=row!==0){
- const cell=atlasFor(effect).cells[row*4+tier];if(!cell)return false;
+ const atlas=atlasFor(effect),cell=atlas.cells[row*4+tier];if(!cell)return false;
+ if(row===0)angle+=atlas.tilt;
  const height=width*cell.height/cell.width;
  c.save();c.translate(x,y);c.rotate(angle);c.globalAlpha*=alpha;c.drawImage(energy?cell.energy[Math.min(cell.energy.length-1,Math.floor(clamp(dissolve)*6))]:cell.solid,-width*anchor,-height*.5,width,height);c.restore();return true;
 }

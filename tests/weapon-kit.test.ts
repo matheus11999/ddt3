@@ -16,7 +16,7 @@ const kitWeapons=WEAPONS.filter(weapon=>WEAPON_KITS[weapon.id]);
 test('the rebuilt arsenal starts with the Quebra-Tijolos: starter, balanced, small craters, single-projectile POW',()=>{
  assert.equal(STARTER_WEAPON,'brick');assert.ok(CATALOG.brick);
  const brick=CATALOG.brick as Weapon;assert.deepEqual([brick.attack,brick.defense,brick.agility,brick.luck],[85,95,85,85]);
- assert.ok(brick.crater<=30&&brick.fragments!.crater<=10);assert.equal(powTridentRule('brick'),'pow-unico');
+ assert.ok(brick.crater<=30);assert.equal(brick.fragments,undefined,'one brick per shot, no shrapnel');assert.equal(powTridentRule('brick'),'pow-unico');
  assert.deepEqual(WEAPON_PHASES.map(phase=>phase.stage),[0,10,12,15]);
  assert.deepEqual([0,9,10,11,12,14,15].map(weaponVisualStage),[0,0,10,10,12,12,15]);
  assert.equal(weaponAssetPath('brick',12),'/assets/weapons/brick/held-12.png');assert.equal(weaponIconPath('brick',15),'/assets/weapons/brick/icon-15.png');
