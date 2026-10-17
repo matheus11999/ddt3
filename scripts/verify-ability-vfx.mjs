@@ -14,7 +14,7 @@ try{
   await vfx.preloadAbilityEffects();await document.fonts.ready;
   const names=['heal','homing','invisibility','flight'],labels={heal:'CURA',homing:'MIRA ASSISTIDA',invisibility:'INVISIBILIDADE',flight:'VOO'};
   const images=Object.fromEntries(await Promise.all(names.map(async id=>{const image=new Image();image.src=`/assets/abilities/${id}.png`;await image.decode();return [id,image];})));
-  const landscape=new Image();landscape.src='/assets/maps/garden-preview.png';await landscape.decode();
+  const landscape=new Image();landscape.src='/assets/maps/snow-preview.png';await landscape.decode();
   const canvas=(w=360,h=240)=>{const cv=document.createElement('canvas');cv.width=w;cv.height=h;return cv;};
   const render=fn=>{const cv=canvas(),c=cv.getContext('2d',{willReadFrequently:true});let calls=0;const geometry=[];
    for(const key of ['drawImage','fill','stroke','fillRect','fillText','strokeText']){const original=c[key].bind(c);c[key]=(...args)=>{calls++;return original(...args);};}

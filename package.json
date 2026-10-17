@@ -8,7 +8,7 @@
     "dev:server": "tsx watch server/index.ts",
     "build": "tsc --noEmit && vite build",
     "start": "tsx server/index.ts",
-    "test": "tsx --test --import ./tests/fixtures/weapons.ts tests/*.test.ts",
+    "test": "tsx --test --import ./tests/fixtures/weapons.ts --import ./tests/fixtures/maps.ts tests/*.test.ts",
     "test:integration": "tsx tests/integration.ts",
     "test:load": "tsx tests/load.ts",
     "check": "tsc --noEmit",
