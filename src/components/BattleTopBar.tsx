@@ -21,12 +21,14 @@ export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mi
  </section>;
 }
 
-/** Small portraits of every fighter with a mini HP bar (top centre). */
-export function FighterRoster({players,myTeam,turnId}:{players:Fighter[];myTeam:0|1;turnId:string}){
- const ordered=[...players.filter(player=>player.team===myTeam),...players.filter(player=>player.team!==myTeam)];
- return <div className="fighter-roster" aria-label="Jogadores">
-  {ordered.map(player=>{const ally=player.team===myTeam,ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
-   return <div key={player.id} className={`roster-card ${ally?'ally':'enemy'} ${player.id===turnId?'active-fighter':''} ${player.hp<=0?'defeated-fighter':''}`} data-fighter={player.id} title={`${player.name} · ${player.hp}/${player.maxHp}`}>
+/** Small portraits with a mini HP bar, one row per team: allies to the left of the
+ * wind panel, enemies to the right (top centre). */
+export function FighterRoster({players,myTeam,turnId,side}:{players:Fighter[];myTeam:0|1;turnId:string;side:'ally'|'enemy'}){
+ const team=players.filter(player=>(player.team===myTeam)===(side==='ally'));
+ if(!team.length)return null;
+ return <div className={`fighter-roster ${side}`} aria-label={side==='ally'?'Aliados':'Inimigos'}>
+  {team.map(player=>{const ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
+   return <div key={player.id} className={`roster-card ${side} ${player.id===turnId?'active-fighter':''} ${player.hp<=0?'defeated-fighter':''}`} data-fighter={player.id} title={`${player.name} · ${player.hp}/${player.maxHp}`}>
     <div className="roster-face"><Avatar equipment={player.equipment} size={46} portrait animated={false} weapon={false}/></div>
     <div className="roster-health" role="meter" aria-label={`Vida de ${player.name}`} aria-valuenow={player.hp} aria-valuemin={0} aria-valuemax={player.maxHp}><i style={{width:`${ratio*100}%`}}/></div>
    </div>;})}

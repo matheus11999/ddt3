@@ -151,7 +151,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''} ${fallen?'fighter-fallen':''}`} data-party-size={Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)}>
   <div className="battle-top">
    {turn&&<ActivePortrait fighter={turn} mine={turn.id===me.id} resolving={b.phase==='resolving'} ally={turn.team===me.team}/>}
-   <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId}/>
+   <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="ally"/>
+   <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>
    <div className="battle-center-status">
    <div className={`wind-pill ${Math.abs(b.wind)<.05?'calm-wind':''}`} role="status" aria-label={`Vento ${Math.abs(b.wind).toFixed(1)} para ${b.wind<0?'esquerda':'direita'}`}>
     <Wind className="wind-symbol" size={18} aria-hidden="true"/><div className="wind-reading"><small>VENTO</small><strong>{Math.abs(b.wind).toFixed(1)}</strong></div>
