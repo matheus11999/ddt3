@@ -21,6 +21,8 @@ import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnviron
 import {fallPosition} from '../../shared/fall';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
+/** Size of the ranked players on the lobby podium: 50% bigger than the 124 they started at. */
+const PODIUM_AVATAR=186;
 import {LOBBY_SPAWN} from '../../shared/lobby';
 import {chaseLobbyPosition} from './lobbyMotion';
 import type {LobbyAction} from './lobbyWorld';
@@ -123,10 +125,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat,outfit:`outfit-${k.outfit}`}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
-    // The day's top three stand on their podium, facing the middle; drawn just after the podium itself.
+    // The day's top three stand on their podium, half again the size of a walker in the plaza, facing the middle; drawn just after the podium itself.
     const podiums=lobby.podiums(),ranked=state.ranking.flatMap(entry=>{const spot=podiums.find(p=>p.rank===entry.rank);return spot?[{entry,spot}]:[];});
     lobby.occupied=new Set(ranked.map(({entry})=>entry.rank));
-    const champions=ranked.map(({entry,spot})=>({y:LOBBY_STATIONS.find(s=>s.rank===entry.rank)!.y-23,draw:()=>{avatar(`podium-${entry.id}`,`${entry.name} · ${entry.wins} ${entry.wins===1?'vitória':'vitórias'}`,entry.equipment,spot.x,spot.y,124,t,entry.rank===3?-1:1,{},true);}}));
+    const champions=ranked.map(({entry,spot})=>({y:LOBBY_STATIONS.find(s=>s.rank===entry.rank)!.y-23,draw:()=>{avatar(`podium-${entry.id}`,`${entry.name} · ${entry.wins} ${entry.wins===1?'vitória':'vitórias'}`,entry.equipment,spot.x,spot.y,PODIUM_AVATAR,t,entry.rank===3?-1:1,{},true);}}));
     const drawn=[...lobby.sprites(t,hover),...champions,...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing,{},false,true);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);
