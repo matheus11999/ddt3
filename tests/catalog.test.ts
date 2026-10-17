@@ -21,6 +21,7 @@ test('forge chance is shown to one decimal and decreases with weapon level',()=>
  for(let level=1;level<MAX_UPGRADE;level++)assert.ok(upgradeChance(level,{'1':1})<upgradeChance(level-1,{'1':1}));
  assert.equal(upgradeChance(11,{'5':1}),10.4);
  assert.equal(upgradeChance(11,{'5':10}),100);
+ assert.equal(upgradeChance(14,{'5':1}),5);assert.equal(upgradeChance(14,{'5':20}),100);
  for(const stone of STONES){assert.ok(upgradeChance(9,{[stone.level]:2})>=upgradeChance(9,{[stone.level]:1}));}
  assert.equal(upgradeChance(0,{'1':1,'2':1}),100);
 });
@@ -31,9 +32,9 @@ test('forge refuses invalid levels, quantities, material types and forged client
   assert.equal(upgradeChance(0,selection),0);
   assert.equal(commandSchema.safeParse({type:'forge',item:'ember',stones:selection}).success,false);
  }
- for(const level of [-1,.5,12,100,NaN])assert.equal(upgradeChance(level,{'1':1}),0);
+ for(const level of [-1,.5,15,100,NaN])assert.equal(upgradeChance(level,{'1':1}),0);
  assert.equal(commandSchema.safeParse({type:'forge',item:'ember',stones:{'1':1}}).success,true);
- assert.equal(commandSchema.safeParse({type:'forge',item:'ember',stones:{'1':1},chance:100,level:12}).success,false);
+ assert.equal(commandSchema.safeParse({type:'forge',item:'ember',stones:{'1':1},chance:100,level:15}).success,false);
 });
 
 test('all weapon upgrades keep weapon identity and apply the same attribute rules',()=>{
@@ -49,8 +50,8 @@ test('all weapon upgrades keep weapon identity and apply the same attribute rule
 test('legacy profiles gain starter materials and synchronize equipped upgrade without refilling spent stacks',()=>{
  const legacy=normalizeProfile({id:'legacy',name:'Legado',equipment:{...DEFAULT_EQUIPMENT,weapon:'volt'}});
  assert.deepEqual(legacy.upgrades,Object.fromEntries(WEAPONS.map(weapon=>[weapon.id,0])));assert.equal(legacy.stones['1'],30);assert.ok(legacy.inventory.includes('hat-cap'));
- const restored=normalizeProfile({...legacy,stones:{'1':0},upgrades:{ember:4,volt:9,crystal:99},equipment:{...legacy.equipment,upgrade:12}});
- assert.deepEqual(restored.stones,{'1':0,'2':0,'3':0,'4':0,'5':0});assert.equal(restored.equipment.upgrade,9);assert.equal(restored.upgrades.crystal,12);
+ const restored=normalizeProfile({...legacy,stones:{'1':0},upgrades:{ember:4,volt:9,crystal:99},equipment:{...legacy.equipment,upgrade:15}});
+ assert.deepEqual(restored.stones,{'1':0,'2':0,'3':0,'4':0,'5':0});assert.equal(restored.equipment.upgrade,9);assert.equal(restored.upgrades.crystal,15);
 });
 
 test('protocol rejects out-of-range simulation input before the game receives it',()=>{
@@ -121,10 +122,10 @@ test('experience saved at the former level cap unlocks new levels without losing
  assert.deepEqual({...migrated,level:50},before);assert.deepEqual(normalizeProfile(migrated),migrated);
 });
 
-test('the dynamite rollout grants only its new weapon once without refilling materials',()=>{
- const old=normalizeProfile({id:'dynamite-migration',name:'Teste',contentVersion:8,inventory:['ember','outfit-surfer'],upgrades:{ember:4},stones:{'1':0},compositionStones:{}});
- assert.ok(old.inventory.includes('dynamite'));assert.equal(old.upgrades.dynamite,0);assert.equal(old.upgrades.ember,4);assert.equal(old.stones['1'],0);
- const next=normalizeProfile({...old,inventory:old.inventory.filter(id=>id!=='dynamite')});assert.ok(!next.inventory.includes('dynamite'));
+test('removed weapons leave the profile and the starter Quebra-Tijolos takes their place',()=>{
+ const old=normalizeProfile({id:'arsenal-reset',name:'Teste',contentVersion:12,inventory:['removed-cannon','outfit-surfer'],upgrades:{'removed-cannon':9},stones:{'1':0},compositionStones:{},equipment:{...DEFAULT_EQUIPMENT,weapon:'removed-cannon'}});
+ assert.ok(!old.inventory.includes('removed-cannon'));assert.equal(old.upgrades['removed-cannon'],undefined);assert.equal(old.stones['1'],0);
+ assert.equal(old.equipment.weapon,DEFAULT_EQUIPMENT.weapon);assert.ok(old.inventory.includes(DEFAULT_EQUIPMENT.weapon));
 });
 
 test('new shop cosmetics never auto-grant through legacy migrations and owned purchases remain owned',()=>{

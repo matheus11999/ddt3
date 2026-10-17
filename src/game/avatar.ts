@@ -146,9 +146,10 @@ function drawCombatWeapon(c:CanvasRenderingContext2D,eq:Equipment,time:number,an
  const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(!w.complete||!w.naturalWidth)return;
  // The server's projectile starts at x + 27*facing, y - 40. Anchor the painted muzzle there.
  c.save();c.translate(27*160/112-recoil*5,-40*160/112);c.rotate(-(angle-30)*Math.PI/180-recoil*.06);
- c.save();c.translate(eq.weapon==='dynamite'||eq.weapon==='brick'?-7:-30,eq.weapon==='dynamite'||eq.weapon==='brick'?18:4);drawWeaponEnergy(c,WEAPONS.find(weapon=>weapon.id===eq.weapon)?.effect??'fire',level,time);c.restore();
- if(level>=9||charging){c.shadowColor=eq.weapon==='ember'?'#ffb45a':eq.weapon==='volt'?'#69dfff':eq.weapon==='dynamite'?'#ffb52c':eq.weapon==='brick'?'#ff7a3d':'#d4a0ff';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
- if(eq.weapon==='dynamite'||eq.weapon==='brick')c.drawImage(w,-40,-10,68,68);else c.drawImage(w,-67.2,-29.5,82,82);c.restore();
+ const weapon=WEAPONS.find(item=>item.id===eq.weapon),thrown=weapon?.hold!=='hand';
+ c.save();c.translate(thrown?-7:-30,thrown?18:4);drawWeaponEnergy(c,weapon?.effect??'brick',level,time);c.restore();
+ if(level>=9||charging){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
+ if(thrown)c.drawImage(w,-40,-10,68,68);else c.drawImage(w,-67.2,-29.5,82,82);c.restore();
 }
 
 interface ProneThrow {angle:number;front:boolean;held:number;trail:number;from:number;dx:number;grow?:number;}

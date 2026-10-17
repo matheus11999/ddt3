@@ -1,5 +1,8 @@
 # Quebra-Tijolos (`brick`)
 
+> **Revisado em 17/10/2026.** O Quebra-Tijolos está sendo refeito do zero como arma inicial (atributos 85/95/85/85, cratera 30, demolição 30%, cacos com cratera 10, POW de projétil único). Arte e fases novas em `docs/weapon-kit.md`; a mecânica dos cacos abaixo continua valendo, com as fases +0–9/+10/+12/+15.
+
+
 Arma épica nova, vendida na loja por 500 Brasas (não é concedida por migração). Referências do usuário: saco vermelho, pote dourado com picareta e caixa vermelha laqueada com blocos.
 
 ## Mecânica única — estilhaços autoritativos

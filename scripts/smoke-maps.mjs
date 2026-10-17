@@ -55,7 +55,6 @@ async function screenshot(name){await settledFrames();await page.screenshot({pat
 
 try{
  await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
- await page.evaluate(()=>Promise.all(['ember','volt','crystal'].map(async weapon=>{const image=new Image();image.src=`/assets/vfx/${weapon}-effects.png`;await image.decode();if(!image.naturalWidth||!image.naturalHeight)throw Error(`Missing painted effects for ${weapon}`);})));
  partner=await connectPartner();
  for(const [map,name] of maps){
   const createMark=events.length;await send({type:'create',practice:true,name:`TEST map ${map}`,mode:'1v1',map});

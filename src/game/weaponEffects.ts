@@ -1,33 +1,35 @@
 import type {Projectile} from '../../shared/protocol';
-import {weaponVisualStage} from '../../shared/catalog';
+import {WEAPONS,weaponPhaseTier} from '../../shared/catalog';
+import {weaponEffectsPath,weaponKit} from '../../shared/weaponKit';
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 
 type Effect=Projectile['effect'];
 type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number};
-type Atlas={cells:Cell[];ready:Promise<void>};
+/** tilt: radians the painted projectiles point above horizontal, undone when drawing the top row. */
+type Atlas={cells:Cell[];ready:Promise<void>;tilt:number};
 export interface WeaponEffectOptions {quality?:'high'|'low';reducedMotion?:boolean;}
 export const VFX_LIMITS={high:{trailSamples:18,flightParticles:16,impactParticles:26,debris:14},low:{trailSamples:8,flightParticles:6,impactParticles:10,debris:6}} as const;
 const TAU=Math.PI*2;
-const FAMILY:Record<Effect,{asset:string;hot:string;mid:string;dark:string;size:readonly number[];trail:readonly number[]}>= {
- fire:{asset:'ember',hot:'#fff09a',mid:'#ff7920',dark:'#b72a20',size:[42,48,57,66],trail:[6,12,18,25]},
- electric:{asset:'volt',hot:'#c1fdff',mid:'#25caff',dark:'#4154ea',size:[35,40,47,54],trail:[5,11,17,24]},
- dynamite:{asset:'dynamite',hot:'#fff3b4',mid:'#ffaf24',dark:'#d84b2a',size:[30,36,42,48],trail:[8,12,16,21]},
- crystal:{asset:'crystal',hot:'#e6caff',mid:'#ed58ff',dark:'#7033d9',size:[51,58,65,73],trail:[5,10,15,21]},
- brick:{asset:'brick',hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]}
+const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly number[];trail:readonly number[]}>= {
+ fire:{hot:'#fff09a',mid:'#ff7920',dark:'#b72a20',size:[42,48,57,66],trail:[6,12,18,25]},
+ electric:{hot:'#c1fdff',mid:'#25caff',dark:'#4154ea',size:[35,40,47,54],trail:[5,11,17,24]},
+ dynamite:{hot:'#fff3b4',mid:'#ffaf24',dark:'#d84b2a',size:[30,36,42,48],trail:[8,12,16,21]},
+ crystal:{hot:'#e6caff',mid:'#ed58ff',dark:'#7033d9',size:[51,58,65,73],trail:[5,10,15,21]},
+ brick:{hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]}
 };
 const atlases=new Map<Effect,Atlas>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
 const reduced=(options:WeaponEffectOptions)=>options.reducedMotion??motionPreference?.matches??false;
 const limits=(options:WeaponEffectOptions)=>VFX_LIMITS[options.quality==='low'||reduced(options)?'low':'high'];
-function strength(level:number){const stage=weaponVisualStage(level);return stage===12?3:stage===10?2:stage===9?1:0;}
+function strength(level:number){return weaponPhaseTier(level);}
 function clamp(value:number,min=0,max=1){return Math.max(min,Math.min(max,value));}
 const noise=(n:number)=>{const value=Math.sin(n*127.1+311.7)*43758.5453;return value-Math.floor(value);};
 const canvas=(width:number,height:number)=>{const out=document.createElement('canvas');out.width=Math.max(1,Math.round(width));out.height=Math.max(1,Math.round(height));return out;};
 
 function atlasFor(effect:Effect):Atlas{
  const cached=atlases.get(effect);if(cached)return cached;
- const image=new Image();const atlas:Atlas={cells:[],ready:Promise.resolve()};
+ const image=new Image();const weapon=WEAPONS.find(item=>item.effect===effect),atlas:Atlas={cells:[],ready:Promise.resolve(),tilt:(weapon&&weaponKit(weapon.id)?.projectileTilt||0)*Math.PI/180};
  atlas.ready=new Promise(resolve=>{
   image.onload=()=>{
    const canvas=document.createElement('canvas');canvas.width=image.naturalWidth;canvas.height=image.naturalHeight;
@@ -60,18 +62,21 @@ function atlasFor(effect:Effect):Atlas{
    }
    image.onload=null;image.onerror=null;resolve();
   };
-  image.onerror=()=>resolve();image.src=`/assets/vfx/${FAMILY[effect].asset}-effects.png`;
+  // Each weapon paints its own atlas (shared/weaponKit.ts); an effect no weapon uses keeps the drawn fallback.
+  if(!weapon){resolve();return;}
+  image.onerror=()=>resolve();image.src=weaponEffectsPath(weapon.id);
  });
  atlases.set(effect,atlas);return atlas;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
-export function preloadWeaponEffects(){return Promise.all((['fire','electric','crystal','dynamite','brick'] as const).map(effect=>atlasFor(effect).ready));}
+export function preloadWeaponEffects(){return Promise.all([...new Set(WEAPONS.map(weapon=>weapon.effect))].map(effect=>atlasFor(effect).ready));}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
 if(typeof Image!=='undefined')void preloadWeaponEffects();
 
 function sprite(c:CanvasRenderingContext2D,effect:Effect,row:number,tier:number,x:number,y:number,width:number,angle=0,anchor=.5,alpha=1,dissolve=0,energy=row!==0){
- const cell=atlasFor(effect).cells[row*4+tier];if(!cell)return false;
+ const atlas=atlasFor(effect),cell=atlas.cells[row*4+tier];if(!cell)return false;
+ if(row===0)angle+=atlas.tilt;
  const height=width*cell.height/cell.width;
  c.save();c.translate(x,y);c.rotate(angle);c.globalAlpha*=alpha;c.drawImage(energy?cell.energy[Math.min(cell.energy.length-1,Math.floor(clamp(dissolve)*6))]:cell.solid,-width*anchor,-height*.5,width,height);c.restore();return true;
 }

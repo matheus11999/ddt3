@@ -1,6 +1,6 @@
 import {useEffect,useId,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
-import {CATALOG,isEmptyItem,weaponAssetPath,weaponVisualStage} from '../../shared/catalog';
+import {CATALOG,isEmptyItem,weaponAssetPath,weaponIconPath,weaponVisualStage} from '../../shared/catalog';
 import {getFacePortrait,getOutfitPortrait,getAccessoryPortrait,PAINTED_ACCESSORIES} from '../game/appearance';
 import {FACE_REGISTRATION} from '../game/faces';
 import {getWornHatPortrait,hasWornHat} from '../game/headwear';
@@ -30,7 +30,7 @@ function OutfitIcon({id,size,accessory=false,headwear=false,costume=false}:{id:s
 
 /** Original item illustrations. Rarity chrome belongs to ItemCard. */
 export function ItemIcon({id,size=60,upgrade=0}:{id:string;size?:number;upgrade?:number}){
- const uid=useId().replace(/[^a-zA-Z0-9]/g,'');const [missing,setMissing]=useState<string|null>(null);
+ const uid=useId().replace(/[^a-zA-Z0-9]/g,'');const [missing,setMissing]=useState<readonly string[]>([]);
  const item=CATALOG[id];if(!item||isEmptyItem(item))return null;
  if(item.slot==='costume')return <OutfitIcon id={id} size={size} costume/>;
  if(item.slot==='face')return <FaceIcon id={id} size={size}/>;
@@ -38,8 +38,9 @@ export function ItemIcon({id,size=60,upgrade=0}:{id:string;size?:number;upgrade?
  if(PAINTED_ACCESSORIES[id])return <OutfitIcon id={id} size={size} accessory/>;
  if(item.slot==='outfit')return <OutfitIcon id={id} size={size}/>;
  // Body and hair atlases include registration whitespace for the avatar. The bag uses dedicated illustrations.
- const asset=item.slot==='weapon'?weaponAssetPath(id,upgrade):item.slot==='hair'?undefined:item.visual?.asset??(id==='hat-cap'||id==='hat-mage'?`/assets/${id}.png`:undefined);
- if(asset&&missing!==asset)return <img className={`item-art ${item.slot==='weapon'?`weapon-tier-${weaponVisualStage(upgrade)}`:''}`} data-weapon-super={item.slot==='weapon'&&upgrade>=9||undefined} src={asset} alt={item.name} draggable={false} onError={()=>setMissing(asset)} style={{width:size,height:size}}/>;
+ // Weapons show their DDTank-style icon, then the held art while the icon is not painted yet.
+ const asset=item.slot==='weapon'?[weaponIconPath(id,upgrade),weaponAssetPath(id,upgrade)].find(path=>!missing.includes(path)):item.slot==='hair'?undefined:item.visual?.asset??(id==='hat-cap'||id==='hat-mage'?`/assets/${id}.png`:undefined);
+ if(asset&&!missing.includes(asset))return <img className={`item-art ${item.slot==='weapon'?`weapon-tier-${weaponVisualStage(upgrade)}`:''}`} data-weapon-super={item.slot==='weapon'&&upgrade>=9||undefined} src={asset} alt={item.name} draggable={false} onError={()=>setMissing(list=>[...list,asset])} style={{width:size,height:size}}/>;
  const g=`item-${uid}`,paint=`url(#${g}-body)`,metal=`url(#${g}-metal)`,glass=`url(#${g}-glass)`,variant=item.visual?.variant??id;
  let art:ReactNode;
  if(variant==='none')art=<><ellipse cx="40" cy="67" rx="24" ry="5" fill="#132d3333"/><circle cx="40" cy="37" r="24" fill="#a9b7b326" stroke="#d6dbcb" strokeWidth="2"/><path d="M27 37h26" stroke="#cdd2c3" strokeWidth="5" strokeLinecap="round"/><path d="M24 23q12-10 25-3" fill="none" stroke="#fff9d5" strokeWidth="2" opacity=".65"/></>;

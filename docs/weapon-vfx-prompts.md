@@ -1,5 +1,8 @@
 # Pintura e animação dos efeitos de armas — 16/10/2026
 
+> **Obsoleto desde 17/10/2026.** A arte destes prompts foi apagada; as armas novas seguem `docs/weapon-kit.md` e os prompts gerados por `npm run verify:weapons`.
+
+
 Esta etapa substitui os núcleos geométricos provisórios por pinturas originais de projéteis, lançamentos e impactos. Segue o pedido atual de cores vivas e fantasiosas; as pinturas básicas já têm a identidade de cada material. A evolução muda desenho, silhueta e estrutura da trilha, além da intensidade.
 
 ## Contrato de arte e execução
