@@ -17,7 +17,7 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
-import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
+import {INSTANCE_INTRO_MS,MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
@@ -84,6 +84,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(queen&&monsterTurn.arrowAt!==undefined&&now<monsterTurn.arrowAt+200&&now>monsterTurn.arrowAt-900){focusX=queen.x;focusY=queen.y-160;}
      else if(b.instance!.nest&&monsterTurn.summons.some(s=>now>s.at-400&&now<s.at+700)){focusX=b.instance!.nest.x;focusY=b.instance!.nest.y-140;}
      else if(walkers.length){focusX=walkers.reduce((n,f)=>n+f.x,0)/walkers.length;focusY=walkers[0].y-140;}}
+    // Stage 1 opens on the ants arriving: the left column for the first half, then the right one.
+    const intro=b.instance&&b.instance.stage===1?b.instance.introUntil-(Date.now()+state.offset):0;
+    if(intro>0){const now=Date.now()+state.offset,mid=terrainWidth(terrain)/2,left=intro>INSTANCE_INTRO_MS/2,column=b.players.filter(f=>f.monster&&f.id!==b.instance!.boss&&(f.x<mid)===left).map(f=>monsterView(b,f,terrain,now));
+     if(column.length){focusX=column.reduce((n,v)=>n+v.x,0)/column.length+(left?180:-180);focusY=column[0].y-140;}}
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
@@ -105,7 +109,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       if(falling)view.y=fallPosition(f.fall!,serverNow);
       const hurt=hurtAt.get(f.id),hurtAge=hurt?serverNow-hurt.at:-1,slope=f.monster==='ant-queen'||falling?0:Math.max(-.4,Math.min(.4,Math.atan2(ground(terrain,view.x+16,Math.max(0,view.y-40))-ground(terrain,view.x-16,Math.max(0,view.y-40)),32)));
       drawMonster(c,f,view,slope,hurtAge,deathAge);
-      if(deathAge<0&&view.alpha>.5&&f.id!==b.instance?.boss)plates.push({fighter:f,x:view.x,y:monsterPlateY(f,view.y),ally:f.team===myTeam,active:false});
+      // The queen wears a player-style plate under her feet; ants a slim bar under theirs.
+      if(deathAge<0&&view.alpha>.5)plates.push(f.id===b.instance?.boss?{fighter:f,x:view.x,y:view.y+136,ally:false,active:false}:{fighter:f,x:view.x,y:monsterPlateY(f,view.y),ally:f.team===myTeam,active:false,slim:true});
       continue;
      }
      const previous=entities.get(f.id),teleport=state.abilityEffects.filter(effect=>effect.playerId===f.id&&effect.ability==='flight').at(-1);

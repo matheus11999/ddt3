@@ -7,7 +7,7 @@ import {enterGame} from './character-helpers.mjs';
 // Expedition Center against a running game (Vite + server, or Docker): the hall lists a friend's room,
 // the player creates a room, opens the expedition picker, chooses Formigueiro Fácil, the friend joins
 // (over a raw socket) and the run starts on stage 1. Screenshots of the walk-in, the ants' shared turn
-// and their first bite; then a stage 2 preview (queen, boss bar, nest summons) drawn from sample data.
+// and their first bite; then a stage 2 preview (queen and her plate, nest summons, the goal under the minimap) drawn from sample data.
 // Usage: node scripts/smoke-expedition.mjs  (BASE_URL, OUT and CHROME_PATH optional)
 const base=process.env.BASE_URL??'http://127.0.0.1:5177',output=process.env.OUT??'test-results/expedition';
 await mkdir(output,{recursive:true});
@@ -31,7 +31,7 @@ try{
  await page.getByRole('button',{name:'Criar sala',exact:true}).click();await page.locator('.expedition-room').waitFor();await page.waitForTimeout(900);
  await page.screenshot({path:`${output}/02-room-empty.png`});
  await page.locator('.expedition-banner-art').click();await page.getByRole('dialog',{name:'Expedições'}).waitFor();await page.waitForTimeout(600);
- await expect(page.locator('.expedition-difficulty[disabled]')).toHaveCount(3);
+ await expect(page.locator('.expedition-difficulty[disabled]')).toHaveCount(3);await expect(page.locator('.expedition-stage-pick button')).toHaveCount(2);await expect(page.locator('.expedition-power')).toContainText('Poder recomendado');
  await page.screenshot({path:`${output}/03-picker.png`});
  await page.getByRole('button',{name:'Escolher expedição'}).click();await expect(page.locator('.expedition-banner-choice')).toBeVisible();
  const roomId=await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').filter(e=>new URL(e.name).pathname==='/src/client.ts').at(-1).name,{client}=await import(url);return client.state.room.id;});
@@ -40,6 +40,7 @@ try{
  await page.screenshot({path:`${output}/04-room-ready.png`});
  await page.getByRole('button',{name:'Iniciar expedição'}).click();await page.locator('.artillery-hud').waitFor();
  await page.waitForTimeout(1100);await page.screenshot({path:`${output}/05-walk-in.png`});
+ await expect(page.locator('.expedition-objective')).toContainText('0/6');
  await expect.poll(async()=>(await state(page)).intro,{timeout:6000}).toBeLessThan(0);await page.waitForTimeout(700);
  await page.screenshot({path:`${output}/06-first-turn.png`});
  // Everybody passes; the ants walk in turn after turn until the first bite.
@@ -52,7 +53,7 @@ try{
   await expect.poll(async()=>(await state(page)).turnId,{timeout:12000}).not.toBe('monsters');
  }
  assert.ok(bitten,'as formigas chegaram e morderam');
- // Stage 2 preview with sample data (the queen on her throne, the boss bar and two ants leaving the nest).
+ // Stage 2 preview with sample data (the queen on her throne with her plate and two ants leaving the nest).
  await page.evaluate(async()=>{
   const find=path=>performance.getEntriesByType('resource').map(e=>e.name).filter(name=>new URL(name).pathname===path).at(-1)??path;
   const {client}=await import(find('/src/client.ts')),{createTerrain,ground}=await import(find('/shared/physics.ts')),{getMap}=await import(find('/shared/maps.ts')),{MONSTERS,partyHpScale}=await import(find('/shared/expeditions.ts'));
@@ -65,6 +66,7 @@ try{
    instance:{...b.instance,stage:2,stageName:'A câmara da rainha',boss:'q',nest:{x:1735,y:ground(terrain,1735)},introUntil:0,monsterTurn:{id:'t',startedAt:now-2000,moves:[],bites:[],summons:[{id:'s1',at:now-300},{id:'s2',at:now-50}],arrowAt:now+1400}}},shot:null,impacts:[]});
  });
  await page.waitForTimeout(1100);await page.screenshot({path:`${output}/09-queen.png`});
+ await expect(page.locator('.expedition-objective')).toContainText('Derrotar a Rainha Formiga');
  // Phone in landscape: the room keeps the expedition choice reachable from the side panel.
  const phone=await browser.newContext({viewport:{width:844,height:390},isMobile:true,hasTouch:true,deviceScaleFactor:2}),mp=await phone.newPage();mp.on('pageerror',e=>errors.push(e.message));
  await enterGame(mp,base);await mp.locator('.bottom-dock').getByRole('button',{name:/Expedições/}).tap();await mp.locator('.expedition-hall').waitFor();

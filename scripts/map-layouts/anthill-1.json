@@ -31,7 +31,7 @@
    "top": 584,
    "scale": 1.05,
    "flip": false,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "log-left",
@@ -40,7 +40,7 @@
    "x": 750,
    "top": 560,
    "scale": 1.05,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "moss-island",
@@ -49,7 +49,7 @@
    "x": 2240,
    "top": 230,
    "scale": 0.8,
-   "destructible": true
+   "destructible": false
   },
   {
    "id": "mushroom",
@@ -58,7 +58,7 @@
    "x": 2210,
    "top": 120,
    "scale": 0.26,
-   "destructible": true,
+   "destructible": false,
    "rest": true
   },
   {
@@ -68,7 +68,7 @@
    "x": 62,
    "top": 300,
    "scale": 0.3,
-   "destructible": true,
+   "destructible": false,
    "rest": true
   },
   {
@@ -78,7 +78,7 @@
    "x": 3005,
    "top": 300,
    "scale": 0.28,
-   "destructible": true,
+   "destructible": false,
    "rest": true
   }
  ],

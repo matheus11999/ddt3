@@ -42,11 +42,11 @@ export interface MonsterDef {
  sprite:MonsterSprite;
 }
 export const MONSTERS:Record<MonsterKind,MonsterDef>={
- 'ant-worker':{kind:'ant-worker',name:'Formiga Operária',hp:450,attack:120,toughness:1,reach:84,stride:150,hitRadius:36,hitHeight:48,behavior:'melee',
+ 'ant-worker':{kind:'ant-worker',name:'Formiga Operária',hp:450,attack:120,toughness:1,reach:84,stride:175,hitRadius:36,hitHeight:48,behavior:'melee',
   sprite:{src:'/assets/expeditions/anthill/ant-worker.png',height:108,feet:.97,faces:1}},
- 'ant-soldier':{kind:'ant-soldier',name:'Formiga Soldado',hp:750,attack:170,toughness:1.1,reach:92,stride:120,hitRadius:44,hitHeight:58,behavior:'melee',
+ 'ant-soldier':{kind:'ant-soldier',name:'Formiga Soldado',hp:750,attack:170,toughness:1.1,reach:92,stride:115,hitRadius:44,hitHeight:58,behavior:'melee',
   sprite:{src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
- 'ant-brute':{kind:'ant-brute',name:'Formiga Guerreira',hp:1200,attack:240,toughness:1.25,reach:104,stride:90,hitRadius:54,hitHeight:74,behavior:'melee',
+ 'ant-brute':{kind:'ant-brute',name:'Formiga Guerreira',hp:1200,attack:240,toughness:1.25,reach:104,stride:65,hitRadius:54,hitHeight:74,behavior:'melee',
   sprite:{src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
  'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',
   sprite:{src:'/assets/expeditions/anthill/ant-queen.png',height:260,feet:.98,faces:-1}},
@@ -56,6 +56,10 @@ export const isMonsterKind=(kind:string):kind is MonsterKind=>(MONSTER_KINDS as 
 export interface StageDef {
  /** Instance map (shared/maps.ts) with the monster placements. */
  map:string;name:string;
+ /** Portrait card for the room's board once this stage is chosen (scripts/compose-expedition-cover.py). */
+ art:string;
+ /** Goal shown under the minimap (stages without a boss count the monsters down); a boss stage reads "Derrotar a <boss>". */
+ objective?:string;
  /** Number of reward cards on the table and what they hold. */
  cards:number;prizes:readonly CardPrize[];
  /** Fixed award for clearing the stage, before the card. */
@@ -65,16 +69,21 @@ export interface StageDef {
 }
 export interface ExpeditionDef {
  id:string;name:string;subtitle:string;description:string;cover:string;minLevel:number;
+ /** Wide art at the top of the expedition window (scripts/compose-expedition-cover.py). */
+ art:string;
+ /** Power (gearscore) the team should have, per difficulty. */
+ recommendedPower:Record<Difficulty,number>;
  /** Stages per difficulty; a difficulty without stages is shown locked ("Em breve"). */
  stages:Partial<Record<Difficulty,readonly StageDef[]>>;
 }
 export const EXPEDITIONS:readonly ExpeditionDef[]=[
  {id:'anthill',name:'Formigueiro',subtitle:'Tronco caído e a câmara da rainha',cover:'/assets/expeditions/anthill/cover.webp',minLevel:1,
+  art:'/assets/expeditions/anthill/picker-art.webp',recommendedPower:{easy:3000,normal:6000,hard:12000,hero:20000},
   description:'Formigas cercam o tronco caído. Derrote todas e enfrente a Rainha Formiga dentro do formigueiro.',
   stages:{easy:[
-   {map:'anthill-1',name:'O tronco caído',cards:4,award:{coins:20,xp:40},prizes:[
+   {map:'anthill-1',name:'O tronco caído',art:'/assets/expeditions/anthill/stage-1.webp',objective:'Derrotar todas as formigas',cards:4,award:{coins:20,xp:40},prizes:[
     {kind:'coins',amount:30},{kind:'coins',amount:50},{kind:'coins',amount:70},{kind:'xp',amount:40},{kind:'xp',amount:60},{kind:'stone',amount:1,level:1},{kind:'ticket',amount:1}]},
-   {map:'anthill-2',name:'A câmara da rainha',cards:8,award:{coins:60,xp:120},boss:{summonEvery:2,summonCount:2,summonLimit:5,summonKinds:['ant-worker','ant-soldier']},prizes:[
+   {map:'anthill-2',name:'A câmara da rainha',art:'/assets/expeditions/anthill/stage-2.webp',cards:8,award:{coins:60,xp:120},boss:{summonEvery:2,summonCount:2,summonLimit:5,summonKinds:['ant-worker','ant-soldier']},prizes:[
     {kind:'coins',amount:100},{kind:'coins',amount:150},{kind:'coins',amount:250},{kind:'xp',amount:120},{kind:'xp',amount:200},
     {kind:'stone',amount:2,level:1},{kind:'stone',amount:1,level:2},{kind:'stone',amount:1,level:3},{kind:'ticket',amount:1},{kind:'ticket',amount:2}]},
   ]}},
