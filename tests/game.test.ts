@@ -8,7 +8,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 import {withShrapnel} from './fixtures/weapons';
-import {DIRECT_HIT_DIG} from '../shared/physics';
+import {DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH} from '../shared/physics';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -234,6 +234,7 @@ test('a direct hit still digs a little under the target, less than a shot on the
  const dig=direct.impact.dig!;
  assert.ok(dig.radius>0&&dig.radius<direct.impact.radius,'digs less than a ground shot');
  assert.ok(Math.abs(dig.radius-crater*DIRECT_HIT_DIG)<1e-6);assert.ok(dig.y>direct.impact.y,'the hole is under the target, not in the air');
+ assert.ok(dig.radius*(dig.stretch??1)>=DIRECT_HIT_HALF_WIDTH-1e-6,'the hole reaches past the body so it shows');
 });
 
 test('turning in place is free, works on the opponent turn and never moves anyone or changes the active aim',async()=>{

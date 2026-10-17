@@ -76,7 +76,7 @@ A simulação calcula os contatos em ordem, considerando a alteração do terren
 
 `Shot.startedAt + projectile.delay + projectile.flightTime` define o momento do impacto. O evento inicial `shot` não aplica dano: `hits` começa vazio. Ao chegar o momento, o servidor altera HP, cratera e posição e publica `impact {shotId, projectileIndex, at, hits}`. `Shot.impacted` evita reaplicar um contato; `Battle.activeShot` permite recuperar a apresentação na reconexão. O cliente interpola índices fracionários, sem decidir dano, crítico ou cratera.
 
-A cratera usa o raio da arma e a flag de destrutibilidade da região; cristal, pedra, metal e terra quebram igual (decisão do usuário em 17/10/2026). Um acerto em cheio num jogador também cava, só que menos: `DIRECT_HIT_DIG` (75% da cratera), sob os pés do alvo (`impact.dig`). O raio visual de explosão e o raio da cratera não são intercambiáveis. Voo é um projétil de deslocamento sem dano ou cratera; ver [Habilidades](abilities.md).
+A cratera usa o raio da arma e a flag de destrutibilidade da região; cristal, pedra, metal e terra quebram igual (decisão do usuário em 17/10/2026). Um acerto em cheio num jogador também cava, só que menos: `DIRECT_HIT_DIG` (75% da profundidade da cratera), sob os pés do alvo (`impact.dig`). O buraco é uma bacia rasa com pelo menos `DIRECT_HIT_HALF_WIDTH` (46 px) para cada lado dos pés (`stretch`), porque um buraco redondo de 75% ficava inteiro escondido atrás do corpo (cerca de 70 px) e parecia que o tiro não cavou. O raio visual de explosão e o raio da cratera não são intercambiáveis. Voo é um projétil de deslocamento sem dano ou cratera; ver [Habilidades](abilities.md).
 
 ## Queda depois de crateras ou caminhada
 
