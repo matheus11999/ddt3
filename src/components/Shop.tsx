@@ -102,11 +102,11 @@ export function Shop({onClose}:{onClose:()=>void}){
     </div>
     <div className="shop-shelf">
      <div className="shop-grid">
-      {visible.map(id=>{const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} data-tier={itemTier(item.rarity)} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
+      {visible.map(id=>{const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
        <ItemCard rarity={item.rarity} selected={trying===id} aria-label={`Experimentar ${item.name}`} aria-pressed={trying===id} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
        <div className="shop-offer-info">
         <h2>{item.name}</h2>
-        <small>{SLOT_NAMES[item.slot]}{item.slot==='weapon'?' · +0':''}<span className="shop-stars" aria-label={rarityLabel(item.rarity)}>{'★'.repeat(TIER_STARS[itemTier(item.rarity)])}<u>{'★'.repeat(4-TIER_STARS[itemTier(item.rarity)])}</u></span></small>
+        <small>{SLOT_NAMES[item.slot]}{item.slot==='weapon'?' · +0':''}</small>
        </div>
        <div className="shop-offer-buy">
         <span className={`shop-price ${short?'short':''}`}><RewardIcon size={20}/>{money(price)}</span>
