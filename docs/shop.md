@@ -15,7 +15,7 @@ A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mo
 
 ## Compra e autoridade
 
-Cada card tem só o ícone de **Comprar** (sacola); clicar no item veste a prévia (no celular o toque também abre as informações). Comprar abre uma confirmação com o item, o preço e o saldo depois da compra; só **Confirmar** envia o pedido. Itens já possuídos não mostram texto e continuam com **Comprar**. Saldo insuficiente deixa o preço em vermelho e desabilita Comprar.
+Cada card tem só o ícone de **Comprar** (sacola); clicar no item veste a prévia (no celular o toque também abre as informações). Comprar abre uma confirmação com o item, o preço e o saldo depois da compra; só **Confirmar** envia o pedido. Itens já possuídos não mostram texto e continuam com **Comprar**: comprar de novo cria uma **cópia separada** na mochila (chave `id~2`, `id~3`…; a primeira continua com o id do item), com nível de forja e composição próprios. O equipamento guarda o id do item por slot e, em `equipment.copies`, qual cópia está vestida; `equipment.upgrade` e `equipment.compositions` vêm dessa cópia. Saldo insuficiente deixa o preço em vermelho e desabilita Comprar.
 
 O cliente envia `{type:'shop-buy',items:[id]}`, um item por compra. Preços, compatibilidade de gênero, posse, saldo e entrega são validados pelo servidor; esconder ou desabilitar um botão não é a proteção financeira. O retorno `shop-result` contém `items` e `spent`, acompanhado do perfil atualizado. A interface confirma a entrega observando a posse no perfil e mantém a compra bloqueada enquanto aguarda resposta. Não há débito otimista nem alteração local do inventário.
 

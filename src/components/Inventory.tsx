@@ -4,7 +4,7 @@ import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {attributes,itemAttributes,CATALOG,DYES,DYE_SLOTS,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY} from '../../shared/catalog';
+import {attributes,itemAttributes,CATALOG,DYES,DYE_SLOTS,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
 import type {CharacterGender,DyeId,DyeSlot,Equipment,Slot} from '../../shared/catalog';
 import {levelProgress} from '../../shared/progression';
 import {COMPOSITION_STAT_NAMES} from '../../shared/composition';
@@ -36,17 +36,18 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
  const state=useGame(),p=state.profile!;
  const equipment=state.customizationEquipment??p.equipment,pending=state.customizationPending;
  const [tab,setTab]=useState('all'),[category,setCategory]=useState<Slot|'all'>('all'),[activeSlot,setActiveSlot]=useState<Slot|null>(null),[query,setQuery]=useState(''),[page,setPage]=useState(0);
- const [selected,setSelected]=useState(p.equipment.weapon),[dragging,setDragging]=useState<string|null>(null),[tooltip,setTooltip]=useState<Tip|null>(null);
+ const [selected,setSelected]=useState(()=>equippedCopy(p.equipment,'weapon')),[dragging,setDragging]=useState<string|null>(null),[tooltip,setTooltip]=useState<Tip|null>(null);
  const [feedback,setFeedback]=useState<string|null>(null);
  const hold=useRef<{timer:ReturnType<typeof setTimeout>|null;x:number;y:number;triggered:boolean}>({timer:null,x:0,y:0,triggered:false}),touchUntil=useRef(0);
  const [previewFlash,setPreviewFlash]=useState<{id:string;key:number}|null>(null);
  const [displayOptions,setDisplayOptions]=useState(false),optionsRef=useRef<HTMLDivElement>(null),optionsButton=useRef<HTMLButtonElement>(null);
  const locked=!!state.battle||state.status!=='online';
- const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equipment.weapon]??0,compositions:p.compositions}),[equipment,p.upgrades,p.compositions]);
- const stats=attributes(preview),item=CATALOG[selected],unequip=unequipForGender(p.gender);
+ const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equippedCopy(equipment,'weapon')]??0,compositions:equippedCompositions(equipment,p.compositions)}),[equipment,p.upgrades,p.compositions]);
+ const stats=attributes(preview),item=CATALOG[copyBase(selected)],unequip=unequipForGender(p.gender);
  const compatible=!!item&&canEquipItem(item,p.gender);
  const dyeable=compatible&&DYE_SLOTS.includes(item.slot as DyeSlot)&&item.visual?.variant!=='none';
- const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).map(i=>i.id),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
+ // Every owned copy is its own card (repeat purchases), listed right after the first one.
+ const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).flatMap(i=>p.inventory.filter(key=>copyBase(key)===i.id)),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
 
  useEffect(()=>{if(!previewFlash)return;const timer=setTimeout(()=>setPreviewFlash(null),650);return()=>clearTimeout(timer);},[previewFlash]);
@@ -63,19 +64,19 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
  function equipItem(id:string,slot?:Slot){
   if(hold.current.triggered){hold.current.triggered=false;return;}
   setSelected(id);setTooltip(current=>current?.id===id&&current.mode!=='touch'?current:null);
-  const next=CATALOG[id];if(locked||!next||(!p.inventory.includes(id)&&!isEmptyItem(next))||!canEquipItem(next,p.gender))return;
+  const next=CATALOG[copyBase(id)];if(locked||!next||(!p.inventory.includes(id)&&!isEmptyItem(next))||!canEquipItem(next,p.gender))return;
   const target=slot&&slotAccepts(slot,next)?slot:activeSlot&&slotAccepts(activeSlot,next)?activeSlot:targetSlotForItem(equipment,next);
-  if(equipment[target]===id)return;
-  // The same owned ring cannot sit in both ring slots: moving it frees the other one.
-  const freed=Object.fromEntries(slotsForItem(next).filter(other=>other!==target&&equipment[other]===id).map(other=>[other,unequip[other]??next.id]));
-  client.customize({items:{...freed,[target]:id}});setPreviewFlash({id,key:Date.now()});setFeedback(null);audio.play('click');
+  if(equippedCopy(equipment,target)===id)return;
+  // The same item cannot sit in both ring slots: moving it frees the other one.
+  const freed=Object.fromEntries(slotsForItem(next).filter(other=>other!==target&&equipment[other]===next.id).map(other=>[other,unequip[other]??next.id]));
+  client.customize({items:{...freed,[target]:next.id},copies:isCopyKey(id)?{[target]:id}:{}});setPreviewFlash({id,key:Date.now()});setFeedback(null);audio.play('click');
  }
  function changeDye(color:DyeId){
   if(locked||!dyeable)return;
-  client.customize({items:{[item.slot]:item.id},dyes:{[item.slot]:color}});setPreviewFlash({id:item.id,key:Date.now()});setFeedback(null);audio.play('click');
+  client.customize({items:{[item.slot]:item.id},copies:isCopyKey(selected)?{[item.slot]:selected}:{},dyes:{[item.slot]:color}});setPreviewFlash({id:selected,key:Date.now()});setFeedback(null);audio.play('click');
  }
  function removeFromSlot(slot:Slot){const fallback=unequip[slot];if(!locked&&fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback)))equipItem(fallback,slot);}
- function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equipment[slot]);setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
+ function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equippedCopy(equipment,slot));setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
  function showTip(id:string,anchor:HTMLElement,mode:Tip['mode']){if(dragging||mode!=='touch'&&Date.now()<touchUntil.current)return;setTooltip({id,anchor,mode});}
  function startTouchTip(id:string,event:ReactPointerEvent<HTMLElement>){
   if(event.pointerType!=='touch')return;touchUntil.current=Date.now()+1200;setTooltip(null);
@@ -92,12 +93,12 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
  };}
 
  const renderSlot=(slot:Slot)=>{
-  const id=equipment[slot],it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
-  return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===id?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[dragging])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
-   {...(empty?{}:tooltipEvents(id))}
-   onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[dragging])?'copy':'none';}}}
-   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG);if(slotAccepts(slot,CATALOG[id]))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[CATALOG[id]?.slot]??'equipamento'}.`);}}>
-   {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
+  const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
+  return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===copy?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
+   {...(empty?{}:tooltipEvents(copy))}
+   onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'copy':'none';}}}
+   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG),dropped=CATALOG[copyBase(id)];if(slotAccepts(slot,dropped))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[dropped?.slot]??'equipamento'}.`);}}>
+   {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
  const progress=levelProgress(p.level,p.xp),stoneTotal=Object.values(p.stones).reduce((sum,count)=>sum+count,0);
@@ -143,11 +144,11 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
     <div className="bag-shelf">
      <div className="bag-grid">{Array.from({length:PAGE_SIZE},(_,index)=>{
       const id=visible[index];if(!id)return <ItemCardFrame variant="slot" empty className="bag-cell empty" key={`empty-${index}`}/>;
-      const it=CATALOG[id],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equipment[slot]===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
+      const it=CATALOG[copyBase(id)],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equippedCopy(equipment,slot)===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
       return <ItemCard key={id} rarity={it?.rarity??stoneRarity(st?.level??1)} selected={id===selected} aria-label={it?.name??st?.name} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
        onDragStart={e=>{if(genderLocked){e.preventDefault();return;}e.dataTransfer.setData(ITEM_DRAG,id);e.dataTransfer.effectAllowed='copy';setDragging(id);setTooltip(null);}} onDragEnd={()=>setDragging(null)}
        onClick={()=>equipItem(id)} {...tooltipEvents(id)}>
-       {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={id} upgrade={level} size={60}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
+       {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={it.id} upgrade={level} size={60}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
        {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it?.slot==='weapon'&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}
       </ItemCard>;
      })}{!entries.length&&<span className="inventory-no-items">Nenhum item encontrado</span>}</div>
@@ -167,12 +168,13 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
 const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean}){
- const {id,anchor}=tip,level=upgrades[id]??0,item=CATALOG[id],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===id),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
- const equipped=!!item&&slotsForItem(item).some(slot=>equipment[slot]===id);
+ const {id,anchor}=tip,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
+ const equipped=!!item&&slotsForItem(item).some(slot=>equippedCopy(equipment,slot)===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
  const values=item?itemAttributes(item,level,compositions?.[id]):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
  const target=item?(anchor.dataset.slot as Slot|undefined)??targetSlotForItem(equipment,item):undefined;
- const current=attributes({...equipment,compositions}),candidate=item&&target?attributes({...equipment,compositions,[target]:id,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
+ // `equipment` already carries the worn copies' compositions; the candidate swaps in this copy's own.
+ const current=attributes(equipment),candidate=item&&target?attributes({...equipment,compositions:{...equipment.compositions,[base]:compositions?.[id]??{}},[target]:base,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
  useLayoutEffect(()=>{
   const element=ref.current;if(!element)return;const box=anchor.getBoundingClientRect(),bounds=element.getBoundingClientRect(),edge=10;
   let x=box.right+12,y=box.top;
@@ -185,7 +187,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
  const composed=Object.entries(compositions?.[id]??{});
  return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
   <header className="bag-tip-head">
-   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={id} size={56} upgrade={level}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
+   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
    <div className="bag-tip-title">
     <strong>{item?.name??stone?.name}</strong>
     <small>{item?SLOT_NAMES[item.slot]:'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
