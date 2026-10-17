@@ -72,11 +72,13 @@ try{
   // hands the camera back to the turn. Read where the minimap draws the camera frame (its white outline).
   const minimap=page.getByRole('region',{name:'Minimapa',exact:true}).locator('canvas');
   const frameX=()=>minimap.evaluate(canvas=>{const {width,height}=canvas,data=canvas.getContext('2d').getImageData(0,0,width,height).data,columns=[];
-   for(let x=0;x<width;x++){let white=0;for(let y=0;y<height;y++){const i=(y*width+x)*4;if(data[i]>200&&data[i+1]>200&&data[i+2]>200)white++;}if(white>height*.7)columns.push(x);}
-   return columns.length?(columns[0]+columns.at(-1))/2/width:null;});
+   // The frame's top and bottom edges run along the dark minimap border rows, where nothing else is white.
+   const white=(x,rows)=>rows.some(y=>{const i=(y*width+x)*4;return data[i]>200&&data[i+1]>200&&data[i+2]>200;});
+   for(let x=0;x<width;x++)if(white(x,[0,1,2])&&white(x,[height-3,height-2,height-1]))columns.push(x);
+   return columns.length>width*.2?(columns[0]+columns.at(-1))/2/width:null;});
   await screenshot(`${map}-wide`);
   const physicsCommands=()=>commands.filter(command=>!['aim','ping'].includes(command.type)).length;
-  const beforeControls=physicsCommands();await expect.poll(frameX).not.toBeNull();const following=await frameX();
+  const beforeControls=physicsCommands();let following=null;await expect.poll(async()=>following=await frameX()).not.toBeNull();
   const mini=await minimap.boundingBox(),hold=async x=>{await page.mouse.move(mini.x+mini.width*x,mini.y+mini.height/2);await expect.poll(frameX).toBeCloseTo(Math.min(.75,Math.max(.25,x)),1);};
   await page.mouse.move(mini.x+mini.width*.02,mini.y+mini.height/2);await page.mouse.down();await hold(.02);await screenshot(`${map}-look-left`);
   await hold(.98);await screenshot(`${map}-look-right`);await page.mouse.up();
