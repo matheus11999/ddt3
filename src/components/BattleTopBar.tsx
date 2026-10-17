@@ -7,13 +7,14 @@ import {sceneView} from '../game/sceneView';
 import {Avatar} from './Avatar';
 import {LevelBadge} from './LevelBadge';
 
-/** Big round preview of the fighter whose turn it is (top-left). */
+/** Full-body preview of the fighter whose turn it is, over the game's own aura seal
+ * (top-left): the base sigil below +5, the Avatar's upgrade aura from +5, as in the backpack. */
 export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mine:boolean;resolving:boolean;ally:boolean}){
  return <section className={`active-portrait ${ally?'ally':'enemy'}`} aria-label={`Jogador da vez: ${fighter.name}`} data-fighter={fighter.id}>
   <div className="active-portrait-name">{fighter.name}</div>
-  <div className="active-portrait-disc">
-   <span className="active-portrait-sigil" aria-hidden="true"/>
-   <div className="active-portrait-avatar"><Avatar key={fighter.id} equipment={fighter.equipment} size={168} pose="idle" weapon facing={1}/></div>
+  <div className="active-portrait-stage">
+   {(fighter.equipment.upgrade??0)<5&&<i className="active-portrait-sigil" aria-hidden="true"/>}
+   <div className="active-portrait-avatar"><Avatar key={fighter.id} equipment={fighter.equipment} size={170} pose="idle" weapon showAura auraAnimated facing={1}/></div>
    <LevelBadge level={fighter.level} size={34}/>
   </div>
   <div className="active-portrait-state">{resolving?'DISPARANDO':mine?'SUA VEZ':ally?'VEZ DO ALIADO':'VEZ DO RIVAL'}</div>
