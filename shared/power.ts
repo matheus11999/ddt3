@@ -7,5 +7,6 @@ export const POWER_BLAST_MULTIPLIER=1.15;
 export const POWER_CRATER_MULTIPLIER=1.05;
 export function chargeFromDamage(current:number,damage:number,maxHp:number,receiving=false){
  if(!Number.isFinite(damage)||damage<=0||!Number.isFinite(maxHp)||maxHp<=0)return Math.max(0,Math.min(100,current||0));
- return Math.min(POWER_MAX,Math.max(0,current||0)+Math.min(damage,maxHp)/maxHp*(receiving?100:60));
+ // Whole points: the orb shows an integer, and 99.6 must not look full while staying locked.
+ return Math.min(POWER_MAX,Math.round(Math.max(0,current||0)+Math.min(damage,maxHp)/maxHp*(receiving?100:60)));
 }

@@ -73,7 +73,7 @@ kbd{color:#e8f1ff;border-color:#8299ba88;background:#0c1e3be0}
 .fighter-hud.coral{background:linear-gradient(#7c2e4aed,#3f203bf5);border-color:#ef9c9b}.fighter-hud strong{color:#fff1c4}.fighter-hud>span{color:#f0f8ff}
 .fighter-hud .mini-health{background:#091a31;border-color:#7db69f77}.fighter-hud .mini-health i{background:linear-gradient(#77f1b0,#18a882)}.fighter-hud.coral .mini-health i{background:linear-gradient(#ff9f78,#ec4b5e)}
 .turn-clock{background:linear-gradient(#672d4b,#20254c);border-color:#f5bf51;box-shadow:inset 0 0 0 4px #281c3c,0 5px #11182d}.turn-clock.your-turn{background:linear-gradient(#197d7a,#134d5e);box-shadow:inset 0 0 0 4px #123849,0 0 20px #29e8ba44}.turn-clock b{color:#ffe9a1}.turn-clock small{color:#d1e7f5}
-.wind-pill{background:#142e52ed;border-color:#8cb2d4;color:#dcefff;border-radius:10px}.turn-label{background:#112b50df;border-color:#b2c6dd88;color:#fff1bc;text-shadow:0 1px #122043}
+.turn-label{background:#112b50df;border-color:#b2c6dd88;color:#fff1bc;text-shadow:0 1px #122043}
 .fire-button{background:linear-gradient(#ffe773,#f8ab25 55%,#d86c1b);color:#5b251c;border-color:#fff0a2;box-shadow:inset 0 0 0 3px #e79a28,0 4px #7b3323,0 7px 11px #07162b66;border-radius:13px}
 .walk-controls>div>button{background:linear-gradient(#315781,#213c63);border-color:#a2bcda;color:#ffdf91;border-radius:8px;min-width:34px;min-height:33px}.skip-button{color:#c1daee}
 .power-track{background:#081b39;border-color:#aabdce}.power-track>i{background:linear-gradient(90deg,#14c3bb,#67d662,#efcf31,#f77d31)}.vigor-bar{background:#081b38}.vigor-bar>i{background:linear-gradient(#48d8f8,#1c7dc6)}
