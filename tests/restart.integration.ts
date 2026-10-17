@@ -41,4 +41,4 @@ async function run(){
  await client.close();await stop(server,'SIGTERM');
 }
 let server:ChildProcess|null=null,debug:{events:{event:{type:string}}[]}|null=null;
-run().then(()=>process.exit(0),error=>{console.error(error,JSON.stringify(debug?.events.map(e=>e.event)).slice(-1500));server?.kill('SIGKILL');process.exit(1);});
+run().then(()=>process.exit(0),error=>{console.error(error,'\nÚltimos eventos:',JSON.stringify(debug?.events.slice(-5).map(e=>e.event)??[]).slice(-1500));server?.kill('SIGKILL');process.exit(1);});
