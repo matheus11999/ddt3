@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Lápide ao morrer — 17/10/2026
+
+- Fighter morto: após ~0,65 s na pose de derrota a arte do usuário (`public/assets/combat/tombstone.png`, 265×320 recortada do original 1254²) cai no lugar, com sombra e poeira; sem placa de vida/nome, aura POW ou mira. Ao reconectar, mortos já aparecem como lápide.
+- HUD do jogador morto esconde console, poderes e habilidades e mostra "VOCÊ CAIU · Assista até o fim para receber a recompensa".
+- Servidor: morto nunca recebe turno (já existia). Sair no meio da partida marca `left`: não escolhe carta e fica fora de `finishMatch`. Sair depois do resultado mantém a recompensa.
+- Testes: `tests/game.test.ts` (morto assiste e recebe; quem sai perde), `tests/matchmaking.test.ts` ajustado. Evidência visual em captura 2v2 com bots.
+
 ## Lobby redesenhado — Praça Celeste (17/10/2026)
 
 - Rua dos Aventureiros substituída pela Praça Celeste, no estilo de lobby clássico de artilharia: céu aberto, ilha flutuante com cascata, mar, templo, dirigível, balões e faixa de festival animados. Três portais na praça (Ateliê → loja, Arena e Treino → arena) e dois NPCs (Guarda-volumes → mochila, Ferreiro → forja). Ferreiro mudou para a direita: `SMITH_POSITION` agora é (1250, 630).

@@ -177,7 +177,8 @@ test('leaving a matched party keeps remaining allies together and pending reward
  await f.game.command(f.players[1].id,{type:'leave'});assert.equal(m.state.phase,'finished');assert.equal(f.game.rooms.has(ra.id),false);
  for(const player of f.players.slice(2))await f.game.command(player.id,{type:'leave'});
  assert.equal(f.game.rooms.size,0);assert.equal(f.game.matches.size,1);
- f.game.tick(m.state.rewards!.deadline+1);await flush();f.game.tick(Date.now());assert.equal(f.game.matches.size,0);assert.equal(f.finishCalls.length,1);assert.equal(f.finishCalls[0].length,4);
+ f.game.tick(m.state.rewards!.deadline+1);await flush();f.game.tick(Date.now());assert.equal(f.game.matches.size,0);assert.equal(f.finishCalls.length,1);// The two who left mid-match forfeit; the opponents left only after the result and keep it.
+ assert.deepEqual([...f.finishCalls[0]].sort(),f.players.slice(2).map(p=>p.id).sort());
  assert.equal(f.events.get(f.players[0].id)!.slice(mark).some(e=>e.type==='battle'&&e.battle!==null),false);
 });
 

@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {HIDDEN_POSITION,initialAbilities} from '../shared/abilities';
+import {HIDDEN_POSITION,homingTargets,initialAbilities} from '../shared/abilities';
 import {FLIGHT_AIM,weaponAimLimits} from '../shared/aim';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
@@ -50,15 +50,28 @@ test('homing consumes once when armed, expires without firing and cannot be chan
  await f.game.command(f.enemy.id,{type:'ability',ability:'invisibility'});assert.deepEqual(f.enemy,before);assert.match(f.error(f.enemy.id)!,/próximo turno/);
 });
 
-test('assisted guidance only curves the first descending projectile within radius and still collides with terrain',()=>{
+test('homing magnet also targets invisible enemies but never allies or the dead',async()=>{
+ const f=await fixture(4),shooter=f.actor,players=f.match.state.players,enemies=players.filter(p=>p.team!==shooter.team);
+ enemies[0].invisibleTurns=2;enemies[1].hp=0;
+ assert.deepEqual(homingTargets(players,shooter).map(p=>p.id),[enemies[0].id]);
+});
+
+test('homing magnet locks onto an enemy the projectile passes near and curves into it',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:300,y:600,facing:1},weapon=WEAPONS[0];
- const base=trajectory(terrain,origin,60,45,0,weapon),apex=base.points.reduce((best,p,i)=>p[1]<base.points[best][1]?i:best,0),index=base.points.findIndex((p,i)=>i>apex&&p[1]>450),point=base.points[index],target={id:'assist',x:point[0]+50,y:point[1]+95,hp:100};
- const result=volley(terrain,origin,[60,60],45,0,weapon,[],undefined,[0,0],{projectileIndex:0,targets:[target]});
- assert.deepEqual(result[1],base);assert.notDeepEqual(result[0].points,base.points);assert.deepEqual(result[0].points.slice(0,apex+1),base.points.slice(0,apex+1));
+ const base=trajectory(terrain,origin,60,45,0,weapon),apex=base.points.reduce((best,p,i)=>p[1]<base.points[best][1]?i:best,0),point=base.points[apex];
+ // An enemy 180 below the apex is never touched by the plain arc, but the magnet pulls the shot into it.
+ const target={id:'assist',x:point[0]+60,y:point[1]+180+31,hp:100};assert.equal(volley(terrain,origin,[60],45,0,weapon,[target])[0].hitId,undefined);
+ const result=volley(terrain,origin,[60,60],45,0,weapon,[target],undefined,[0,0],{projectileIndex:0,targets:[target]});
+ assert.equal(result[0].hitId,'assist');assert.ok((result[0].hitQuality??0)>.9,'a locked shot lands near the centre of the hitbox');
+ assert.notEqual(result[1].hitId,'assist','only the first projectile is guided');
+ // The lock survives wind: a strong headwind still cannot pull a locked projectile away.
+ assert.equal(volley(terrain,origin,[60],45,-6,weapon,[target],undefined,[],{projectileIndex:0,targets:[target]})[0].hitId,'assist');
+ // Out of range or dead enemies are never acquired.
  const far=volley(terrain,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[{...target,x:1400}]})[0];assert.deepEqual(far,base);
- const ascent=base.points[8],above={...target,x:ascent[0],y:ascent[1]+31};assert.deepEqual(volley(terrain,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[above]})[0],base);
- const wall=terrain.slice(),wallX=Math.ceil((point[0]+25)/3);for(let row=0;row<WORLD.rows;row++)wall[row*WORLD.cols+wallX]=1;
- const blocked=volley(wall,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[target]})[0];assert.ok(blocked.x<=wallX*3+3);assert.ok(blocked.points.every(p=>p[0]<wallX*3));
+ assert.deepEqual(volley(terrain,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[{...target,hp:0}]})[0],base);
+ // Terrain still blocks a locked projectile.
+ const wall=terrain.slice(),wallX=Math.ceil((point[0]+30)/3);for(let row=0;row<WORLD.rows;row++)wall[row*WORLD.cols+wallX]=1;
+ const blocked=volley(wall,origin,[60],45,0,weapon,[target],undefined,[],{projectileIndex:0,targets:[target]})[0];assert.equal(blocked.hitId,undefined);assert.ok(blocked.points.every(p=>p[0]<wallX*3));
 });
 
 test('invisibility redacts snapshots, aims, effects, shot origins and reconnect while allies retain coordinates',async()=>{

@@ -13,13 +13,14 @@ export interface ShopResult {items:string[];spent:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
-export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;}
+export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
 export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
+export interface OnlinePlayer {id:string;name:string;level:number;gender:CharacterGender;}
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
-export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;}
+export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;}
 export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};}
 export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;demolition?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;}
 export interface TerrainMark {id:string;x:number;y:number;radius:number;effect:Projectile['effect'];level:number;}
@@ -42,6 +43,7 @@ export const equipmentSelectionSchema=z.object({
 export const stoneSelectionSchema=z.record(z.string().regex(/^[1-5]$/),z.number().int().min(0).max(MAX_FORGE_STONES)).refine(stones=>{const count=Object.values(stones).reduce((sum,n)=>sum+n,0);return count>=1&&count<=MAX_FORGE_STONES;},'Selecione de 1 a 20 pedras.');
 export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('arena-presence'),open:z.boolean()}).strict(),
+ z.object({type:z.literal('online-list')}).strict(),
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
@@ -88,6 +90,7 @@ export type ServerEvent =
  | {type:'lobby';players:LobbyPlayer[];online:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
+ | {type:'online-players';players:OnlinePlayer[];total:number}
  | {type:'room-invite-list';roomId:string;players:RoomInvitePlayer[]}
  | {type:'room-invitation';invite:RoomInvitation}
  | ({type:'room-invite-result'} & RoomInviteResult)

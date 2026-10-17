@@ -181,3 +181,34 @@ test('a brick shot sends authoritative shards after the main impact without muzz
  assert.ok(shot.hits.every(h=>h.projectileIndex!==undefined&&h.projectileIndex<shot.projectiles.length));
  assert.equal(f.match.pendingImpacts?.filter(impact=>!impact.fragment).length,1,'only the main impact leaves a residue mark');
 });
+
+async function teamBattleFixture(){
+ const f=fixture();await f.game.command(f.a.id,{type:'create',practice:true,name:'Lápide',mode:'2v2',map:'sky'});
+ const roomId=f.game.peers.get(f.a.id)!.roomId!;await f.game.command(f.b.id,{type:'join',roomId});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'bot'});await f.game.command(f.a.id,{type:'bot'});await f.game.command(f.a.id,{type:'start'});
+ const match=f.game.matches.get(roomId)!,fallen=match.state.players.find(p=>p.id===f.a.id)!;
+ assert.equal(match.state.players.length,4);assert.ok(match.state.players.some(p=>p.team===fallen.team&&p.id!==fallen.id));
+ return {...f,roomId,match,fallen};
+}
+const nextTurn=(f:{game:Game;match:unknown})=>(f.game as unknown as {nextTurn:(m:unknown)=>void}).nextTurn(f.match);
+const finishAgainst=async(f:Awaited<ReturnType<typeof teamBattleFixture>>)=>{
+ for(const p of f.match.state.players)if(p.team!==f.fallen.team)p.hp=0;
+ nextTurn(f);assert.equal(f.match.state.phase,'finished');
+};
+test('a fallen fighter stays to watch, never gets a turn and still earns the end-of-match reward',async()=>{
+ const f=await teamBattleFixture();f.fallen.hp=0;
+ for(let n=0;n<8;n++){nextTurn(f);assert.equal(f.match.state.phase,'aiming');assert.notEqual(f.match.state.turnId,f.a.id);}
+ await f.game.command(f.a.id,{type:'walk',direction:1});assert.ok(errors(f.events.get(f.a.id)!).length>0);
+ assert.equal(f.game.peers.get(f.a.id)!.roomId,f.roomId);
+ await finishAgainst(f);f.game.tick(f.match.state.rewards!.deadline+1);await flush();
+ const [,,players,bonuses]=f.store.finishCalls[0] as [string,string[],string[],Record<string,unknown>];
+ assert.ok(players.includes(f.a.id));assert.ok(bonuses[f.a.id]);
+});
+test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of-match reward',async()=>{
+ const f=await teamBattleFixture();f.fallen.hp=0;await f.game.command(f.a.id,{type:'leave'});
+ assert.equal(f.fallen.left,true);assert.equal(f.match.state.phase,'aiming');assert.ok(f.match.state.players.includes(f.fallen));
+ await finishAgainst(f);f.match.state.rewards!.opensAt=Date.now()-1;
+ await f.game.command(f.b.id,{type:'reward-pick',card:0});await flush();assert.equal(f.match.state.rewards!.phase,'revealed');
+ assert.ok(!f.match.state.rewards!.cards.some(card=>card.playerId===f.a.id));
+ const [,winners,players,bonuses]=f.store.finishCalls[0] as [string,string[],string[],Record<string,unknown>];
+ assert.ok(!players.includes(f.a.id));assert.ok(!winners.includes(f.a.id));assert.equal(bonuses[f.a.id],undefined);assert.ok(players.includes(f.b.id));
+});

@@ -8,6 +8,8 @@ import {Chat} from './Hud';
 import {Avatar} from './Avatar';
 import {AbilityPreparation} from './AbilitySlots';
 import {LevelBadge} from './LevelBadge';
+import {VipBadge} from './VipBadge';
+import {LevelNumber} from './LevelNumber';
 import {RoomInvitations} from './RoomInvitations';
 import {RoomSpectators} from './RoomSpectators';
 import './ArenaTheme.css';
@@ -16,16 +18,13 @@ import './Arena.css';
 const SLOT_INDICES=[0,1,2,3] as const;
 export {Arena} from './ArenaHall';
 
-function ArenaVip({active=false}:{active?:boolean}){
- return <span className={`party-vip ${active?'vip-active':'vip-inactive'}`} role="img" aria-label={active?'VIP ativo':'VIP inativo'} title={active?'VIP ativo':'VIP inativo'}><Crown size={16} strokeWidth={1.8} aria-hidden="true"/></span>;
-}
-
 function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
  return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
-  {seat?<><header className="pr-card-name wood-ribbon">{owner&&<Crown size={13} aria-label="Líder da sala"/>}<strong title={seat.name}>{seat.name}</strong>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
+  {seat?<><header className="pr-card-name wood-ribbon"><strong title={seat.name}>{seat.name}</strong>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
    <div className="pr-card-stage">
-    <div className="pr-card-insignia"><LevelBadge level={seat.level} size={40}/><ArenaVip/></div>
+    {owner&&<span className="pr-host-tag" aria-label="Líder da sala"><Crown size={12} aria-hidden="true"/>Líder da sala</span>}
+    <div className="pr-card-insignia"><LevelNumber level={seat.level} size={44}/><VipBadge level={seat.vipLevel??0} size={54}/></div>
     {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>
