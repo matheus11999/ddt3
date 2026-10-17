@@ -1,13 +1,14 @@
+import {SMITH_POSITION} from './catalog';
 /**
  * Praça Celeste is three screens wide (the view is 1536×864); the camera follows
  * the player sideways. Positions are world coordinates shared by server and client.
  */
 export const LOBBY_WIDTH=4608;
 export const LOBBY_HEIGHT=864;
-export const LOBBY_WALK={minX:120,maxX:LOBBY_WIDTH-120,minY:560,maxY:750} as const;
+export const LOBBY_WALK:{minX:number;maxX:number;minY:number;maxY:number}={minX:120,maxX:LOBBY_WIDTH-120,minY:560,maxY:750};
 /** Walking pace on the plaza, px/s. Matches the stride the painted legs can take. */
 export const LOBBY_WALK_SPEED=132;
-export const LOBBY_SPAWN={x:2304,y:670} as const;
+export const LOBBY_SPAWN:{x:number;y:number}={x:2304,y:670};
 
 /** Floor footprint of a solid plaza structure: an ellipse around the base, in world px. */
 export interface LobbyObstacle {id:string;x:number;y:number;rx:number;ry:number;}
@@ -16,7 +17,7 @@ export interface LobbyObstacle {id:string;x:number;y:number;rx:number;ry:number;
  * Measured from the bottom of each painted layer (public/assets/lobby): the base's
  * width and the floor line where it stands. `ry` is how deep the base reads on the floor.
  */
-export const LOBBY_OBSTACLES:readonly LobbyObstacle[]=[
+export const LOBBY_OBSTACLES:LobbyObstacle[]=[
  {id:'shop',x:562,y:618,rx:150,ry:36},
  {id:'storage',x:1221,y:622,rx:95,ry:32},
  {id:'podium-2',x:2040,y:608,rx:72,ry:32},
@@ -56,4 +57,19 @@ export function lobbyStep(from:{x:number;y:number},to:{x:number;y:number},distan
  const along=tx*ex+ty*ey;
  if(Math.abs(along)<1e-3?ty<0:along<0){tx=-tx;ty=-ty;}
  return lobbyFree(from.x+tx*distance,from.y+ty*distance);
+}
+
+/** Station spots edited in the admin panel; the client moves its painted stations to them (src/game/lobbyWorld.ts). */
+export interface LobbyStationSpot {id:string;x:number;y:number;height:number;}
+export interface LobbyLayoutOverride {spawn:{x:number;y:number};walk:{minX:number;maxX:number;minY:number;maxY:number};obstacles:LobbyObstacle[];stations:LobbyStationSpot[];}
+const lobbyListeners=new Set<(layout:LobbyLayoutOverride)=>void>();
+/** Called with every lobby layout published from the admin panel. */
+export function onLobbyLayout(listener:(layout:LobbyLayoutOverride)=>void){lobbyListeners.add(listener);return()=>lobbyListeners.delete(listener);}
+/** Same objects, new values: every importer sees the published plaza. */
+export function applyLobbyLayout(layout:LobbyLayoutOverride){
+ Object.assign(LOBBY_SPAWN,layout.spawn);Object.assign(LOBBY_WALK,layout.walk);
+ LOBBY_OBSTACLES.splice(0,LOBBY_OBSTACLES.length,...layout.obstacles.map(o=>({...o})));
+ // The forge spot sits in front of the smith's stall (3720,632 by default).
+ const forge=layout.stations.find(station=>station.id==='forge');if(forge)Object.assign(SMITH_POSITION,{x:forge.x-80,y:forge.y+8});
+ for(const listener of lobbyListeners)listener(layout);
 }

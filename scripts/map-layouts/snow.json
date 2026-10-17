@@ -1,6 +1,6 @@
 {
  "name": "Sonho Nevado",
- "source": "test-results/codex-maps/neve",
+ "source": "public/assets/maps/snow/source",
  "background": [
   "panorama-esquerda.png",
   "panorama-direita.png"
