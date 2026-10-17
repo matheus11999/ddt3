@@ -44,22 +44,24 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
  const worldWidth=getMap(battle.map).dimensions.width,MINI_H=miniHeight(worldWidth),cols=worldWidth/WORLD.cell;
  useEffect(()=>{
   const c=canvas.current?.getContext('2d');if(!c)return;
-  const ground=document.createElement('canvas');ground.width=cols;ground.height=WORLD.rows;const g=ground.getContext('2d')!;
-  let painted=-1,frame=0,last=0;const backdrop=new Image();backdrop.src=`/assets/maps/${getMap(live.current.battle.map).id}-preview.png`;
+  // The map's own painted terrain, cut by the live destructible cells (craters show up as they happen).
+  const map=getMap(live.current.battle.map),ground=document.createElement('canvas');ground.width=MINI_W*2;ground.height=MINI_H*2;const g=ground.getContext('2d')!;
+  const mask=document.createElement('canvas');mask.width=cols;mask.height=WORLD.rows;const m=mask.getContext('2d')!;
+  let painted=-1,frame=0,last=0;const backdrop=new Image();backdrop.src=map.art.background;const art=new Image();art.src=map.art.terrain;
   const paintTerrain=(terrain:Uint8Array)=>{
-   const image=g.createImageData(cols,WORLD.rows),data=image.data;
-   for(let y=0;y<WORLD.rows;y++)for(let x=0;x<cols;x++){const i=y*cols+x;if(terrain[i]!==1)continue;const top=y===0||terrain[i-cols]!==1,o=i*4;
-    if(top){data[o]=120;data[o+1]=226;data[o+2]=96;}else{const shade=Math.min(1,(y-0)/WORLD.rows+.25);data[o]=Math.round(178-60*shade);data[o+1]=Math.round(118-45*shade);data[o+2]=Math.round(62-25*shade);}data[o+3]=255;}
-   g.putImageData(image,0,0);
+   const image=m.createImageData(cols,WORLD.rows);for(let i=0;i<terrain.length;i++)if(terrain[i]===1)image.data[i*4+3]=255;m.putImageData(image,0,0);
+   g.globalCompositeOperation='source-over';g.clearRect(0,0,ground.width,ground.height);g.imageSmoothingEnabled=true;g.drawImage(mask,0,0,ground.width,ground.height);
+   g.globalCompositeOperation='source-in';if(art.complete&&art.naturalWidth)g.drawImage(art,0,0,ground.width,ground.height);else{g.fillStyle='#c9d6f2';g.fillRect(0,0,ground.width,ground.height);}
   };
+  art.onload=()=>{painted=-1;};
   const draw=(now:number)=>{
    frame=requestAnimationFrame(draw);if(now-last<120)return;last=now;
    const {battle:b,myTeam:team,myId:id}=live.current;
    if(sceneView.terrain?.length===cols*WORLD.rows&&sceneView.version!==painted){painted=sceneView.version;paintTerrain(sceneView.terrain);}
    const sx=MINI_W/worldWidth,sy=MINI_H/WORLD.height;
    const sky=c.createLinearGradient(0,0,0,MINI_H);sky.addColorStop(0,'#1d3b6e');sky.addColorStop(1,'#0b1730');c.fillStyle=sky;c.fillRect(0,0,MINI_W,MINI_H);
-   if(backdrop.complete&&backdrop.naturalWidth){c.globalAlpha=.55;c.drawImage(backdrop,0,0,MINI_W,MINI_H);c.globalAlpha=1;c.fillStyle='#0b173055';c.fillRect(0,0,MINI_W,MINI_H);}
-   c.imageSmoothingEnabled=false;c.drawImage(ground,0,0,MINI_W,MINI_H);c.imageSmoothingEnabled=true;
+   if(backdrop.complete&&backdrop.naturalWidth){const h=backdrop.naturalHeight*MINI_W/backdrop.naturalWidth;c.globalAlpha=.6;c.drawImage(backdrop,0,MINI_H-h,MINI_W,h);c.globalAlpha=1;c.fillStyle='#0b173044';c.fillRect(0,0,MINI_W,MINI_H);}
+   c.drawImage(ground,0,0,MINI_W,MINI_H);
    const cam=sceneView.camera,hw=WORLD.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
    if(cam.zoom>1.02||worldWidth>WORLD.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
    for(const player of b.players){
@@ -70,16 +72,16 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
   };
   frame=requestAnimationFrame(draw);return()=>cancelAnimationFrame(frame);
  },[battle.map]);
- // Drag (or click) on the minimap to look around the map, as in DDTank; the camera goes back to the turn by itself.
- const look=(event:React.PointerEvent<HTMLCanvasElement>,dragging:boolean)=>{
-  const box=event.currentTarget.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*worldWidth,y=(event.clientY-box.top)/box.height*WORLD.height;
-  sceneView.look={x,y,dragging,until:performance.now()+2500,turn:battle.turnNumber};
+ // Hold and drag on the minimap to look around the map, as in DDTank; letting go hands the camera back to the turn.
+ const look=(event:React.PointerEvent<HTMLCanvasElement>)=>{
+  const box=event.currentTarget.getBoundingClientRect();
+  sceneView.look={x:(event.clientX-box.left)/box.width*worldWidth,y:(event.clientY-box.top)/box.height*WORLD.height};
  };
  return <section className="battle-minimap" aria-label="Minimapa">
   <header><span>{getMap(battle.map).name}</span><small>Turno {battle.turnNumber}</small><button type="button" className="battle-exit" title="Sair da batalha" aria-label="Sair da batalha" onClick={onExit}><LogOut size={14}/></button></header>
   <canvas ref={canvas} width={MINI_W} height={MINI_H} aria-hidden="true" title="Arraste para ver o mapa"
-   onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);look(event,true);}}
-   onPointerMove={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))look(event,true);}}
-   onPointerUp={event=>look(event,false)} onPointerCancel={event=>look(event,false)}/>
+   onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);look(event);}}
+   onPointerMove={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))look(event);}}
+   onPointerUp={()=>{sceneView.look=null;}} onPointerCancel={()=>{sceneView.look=null;}}/>
  </section>;
 }
