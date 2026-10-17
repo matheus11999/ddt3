@@ -9,7 +9,8 @@ import {FLIGHT_AIM,weaponAimLimits} from '../shared/aim';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
-import {flightLanding,trajectory,volley,WORLD} from '../shared/physics';
+import {createTerrain,flightLanding,ground,terrainWidth,trajectory,volley,WORLD} from '../shared/physics';
+import {getMap} from '../shared/maps';
 import {createFall} from '../shared/fall';
 
 async function fixture(count=2){
@@ -130,4 +131,17 @@ test('flight teleports only at authoritative contact to clear supported ground, 
  f.game.tick(f.match.resolveAt+1);assert.equal(f.match.state.turnId,f.enemy.id);assert.equal(f.actor.flightArmed,false);assert.deepEqual(f.actor.abilities,initialAbilities());
  assert.equal(flightLanding(new Uint8Array(WORLD.cols*WORLD.rows),{x:400,y:600}),null);assert.equal(flightLanding(f.match.terrain,{x:1600,y:600}),null);
  const solid=new Uint8Array(WORLD.cols*WORLD.rows).fill(1);assert.equal(flightLanding(solid,{x:400,y:600}),null);
+});
+
+test('flight on the snow map lands on the nearest ledge when it hits a prop, a wall or an underside',()=>{
+ const terrain=createTerrain('snow'),width=terrainWidth(terrain),weapon={...WEAPONS[0],projectileRadius:6};
+ // The lantern standing on the floating ledge between the bridges: its sides are too thin to stand on.
+ const lantern=flightLanding(terrain,{x:1530,y:348});assert.ok(lantern);assert.ok(Math.abs(lantern.x-1530)<=150&&lantern.y>=400&&lantern.y<=440,`landed at ${lantern.x},${lantern.y}`);
+ const map=getMap('snow');let shots=0;
+ for(const sx of map.spawns.flat())for(const facing of [1,-1] as const)for(let angle=5;angle<=90;angle+=10)for(let power=10;power<=100;power+=10){
+  const path=trajectory(terrain,{x:sx,y:ground(terrain,sx)-20,facing},angle,power,0,weapon);// Deep down a bridge pillar there is no ledge to stand on: the shooter stays put there.
+  if(path.y>=640||path.x<24||path.x>width-24)continue;shots++;
+  assert.ok(flightLanding(terrain,path),`no landing for contact ${Math.round(path.x)},${Math.round(path.y)}`);
+ }
+ assert.ok(shots>500);
 });

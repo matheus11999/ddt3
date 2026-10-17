@@ -79,18 +79,27 @@ interface ProjectileOrigin {x:number;y:number;facing:number;}
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
 /** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
 export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
-/** Flight can only land near its first contact, with solid support and room for
- * the entire fighter. A miss or an enclosed wall leaves the shooter in place. */
+/** Flight lands on the standable surface nearest its first contact, so a plane that hits a wall,
+ * an underside or a thin prop (lamp, tree) still sets the fighter on the closest ledge around it.
+ * A miss, or a contact with no free ground nearby, leaves the shooter in place. */
+const FLIGHT_REACH_X=150,FLIGHT_REACH_Y=150;
 export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number},targets:ProjectileTarget[]=[]):{x:number;y:number}|null {
  const width=terrainWidth(terrain);if(impact.x<24||impact.x>width-24||impact.y<0||impact.y>=WORLD.height)return null;
- for(let distance=0;distance<=48;distance+=WORLD.cell)for(const direction of distance?[1,-1]:[1]){
-  const x=impact.x+distance*direction;if(x<24||x>width-24)continue;
-  const y=ground(terrain,x,impact.y-54);if(y>WORLD.height||Math.abs(y-impact.y)>54)continue;
-  if(targets.some(target=>target.hp>0&&Math.abs(target.x-x)<30&&Math.abs(target.y-y)<60))continue;
-  let clear=true;for(let px=x-12;px<=x+12&&clear;px+=WORLD.cell){if(Math.abs(ground(terrain,px,y-6)-y)>9){clear=false;break;}for(let py=y-63;py<y-3;py+=WORLD.cell)if(solid(terrain,px,py)){clear=false;break;}}
-  if(clear)return {x,y};
+ const fits=(x:number,y:number)=>{
+  if(targets.some(target=>target.hp>0&&Math.abs(target.x-x)<30&&Math.abs(target.y-y)<60))return false;
+  for(let px=x-12;px<=x+12;px+=WORLD.cell){if(Math.abs(ground(terrain,px,y-6)-y)>9)return false;for(let py=y-63;py<y-3;py+=WORLD.cell)if(solid(terrain,px,py))return false;}
+  return true;
+ };
+ let best:{x:number;y:number}|null=null,bestDistance=Infinity;
+ const top=Math.max(WORLD.cell,Math.floor((impact.y-FLIGHT_REACH_Y)/WORLD.cell)*WORLD.cell),bottom=Math.min(WORLD.height-WORLD.cell,impact.y+FLIGHT_REACH_Y);
+ for(let dx=0;dx<=FLIGHT_REACH_X;dx+=WORLD.cell)for(const direction of dx?[1,-1]:[1]){
+  const x=impact.x+dx*direction;if(x<24||x>width-24||dx*dx>=bestDistance)continue;
+  for(let y=top;y<=bottom;y+=WORLD.cell){
+   if(!solid(terrain,x,y)||solid(terrain,x,y-WORLD.cell))continue;
+   const distance=dx*dx+(y-impact.y)**2;if(distance<bestDistance&&fits(x,y)){best={x,y};bestDistance=distance;}
+  }
  }
- return null;
+ return best;
 }
 /** Points track the projectile center; x/y identify the contacted surface. */
 export interface TrajectoryResult {points:number[][];x:number;y:number;hitId?:string;hitQuality?:number;flightTime:number;}
