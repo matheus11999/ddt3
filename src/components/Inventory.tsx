@@ -200,7 +200,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
    {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
-   {(action||!compatible||!equipped)&&<footer className={`bag-tip-foot ${action?'':!compatible?'blocked':''}`}>{action??(!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar')}</footer>}
+   {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
   </>:<>
    <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
    <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>
