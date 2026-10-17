@@ -36,12 +36,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // A fallen fighter keeps watching until the end (and keeps the reward) but plays no more.
  const fallen=me.hp<=0&&b.phase!=='finished';
  const canAct=mine&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
+ // Turning in place is free and allowed on anyone's turn (the server checks it too).
+ const canFace=b.phase==='aiming'&&!blocked&&!exit&&status==='online'&&me.hp>0;
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
  const paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
- const live=useRef({canAct,angle,minAngle,maxAngle,me});live.current={canAct,angle,minAngle,maxAngle,me};
+ const live=useRef({canAct,canFace,angle,minAngle,maxAngle,me});live.current={canAct,canFace,angle,minAngle,maxAngle,me};
  const terrainAim=useRef<{battleId:string;slope:number}|null>(null);
  useLayoutEffect(()=>{
   const previous=terrainAim.current,newBattle=previous?.battleId!==b.id;
@@ -117,8 +119,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  useEffect(()=>{
   const keys=new Set<string>();
   const down=(event:KeyboardEvent)=>{
-   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||ignoresGameKeys(event.target)||!live.current.canAct)return;
-   const key=event.key.toLowerCase();
+   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||ignoresGameKeys(event.target))return;
+   const key=event.key.toLowerCase(),side=key==='a'||key==='arrowleft'?-1:key==='d'||key==='arrowright'?1:0;
+   if(!live.current.canAct){
+    if(side&&live.current.canFace){event.preventDefault();if(!event.repeat&&live.current.me.facing!==side)client.send({type:'face',direction:side});}
+    return;
+   }
    if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(key))event.preventDefault();
    if(event.repeat)return;
    keys.add(key);
