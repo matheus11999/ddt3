@@ -1,0 +1,34 @@
+/* Número do nível com efeito atrás. Faixas: 1 cinza, 2 verde, 3 azul, 4 bronze, 5 roxo, 6 ouro.
+   Cada faixa soma um efeito: brilho (1+), faíscas (3+), raios girando (4+), mais raios e pulso (5+), chamas e reflexo (6). */
+.level-number{--ln-top:#fff;--ln-mid:#d8d8d8;--ln-low:#9a9a9a;--ln-edge:#3d3d3d;--ln-glow:#ffffff;--ln-ray:#ffffffcc;--ln-spark:#fff;position:relative;isolation:isolate;display:inline-grid;place-items:center;flex:none;width:calc(var(--ln-size) * 1.5);height:var(--ln-size);line-height:1}
+.level-number[data-tier="2"]{--ln-top:#f2ffe6;--ln-mid:#8af07a;--ln-low:#2fa043;--ln-edge:#124d1e;--ln-glow:#7dff7a}
+.level-number[data-tier="3"]{--ln-top:#eefaff;--ln-mid:#78cfff;--ln-low:#2470d6;--ln-edge:#0e2f66;--ln-glow:#5ec4ff;--ln-spark:#d8f3ff}
+.level-number[data-tier="4"]{--ln-top:#fff1df;--ln-mid:#ffb469;--ln-low:#c4581c;--ln-edge:#5a2a0e;--ln-glow:#ff9a3d;--ln-ray:#ffc58acc;--ln-spark:#ffe6c4}
+.level-number[data-tier="5"]{--ln-top:#fbf2ff;--ln-mid:#d3a2ff;--ln-low:#7a3fd6;--ln-edge:#33156b;--ln-glow:#b77bff;--ln-ray:#e2c6ffd9;--ln-spark:#f3e6ff}
+.level-number[data-tier="6"]{--ln-top:#fffbe0;--ln-mid:#ffe060;--ln-low:#f08a10;--ln-edge:#7a2e05;--ln-glow:#ffc430;--ln-ray:#fff0a0e6;--ln-spark:#fffbd0}
+
+.level-number .ln-digits{position:relative;z-index:2;display:grid;font:italic 900 calc(var(--ln-size) * .82)/1 'Nunito','Trebuchet MS',sans-serif;letter-spacing:-.05em;padding-right:.05em;transform:skewX(-6deg);white-space:nowrap}
+.level-number .ln-digits>*{grid-area:1/1;font:inherit;letter-spacing:inherit}
+.level-number .ln-edge{color:var(--ln-edge);-webkit-text-stroke:calc(var(--ln-size) * .1) var(--ln-edge);text-shadow:0 calc(var(--ln-size) * .05) 0 var(--ln-edge),0 calc(var(--ln-size) * .07) calc(var(--ln-size) * .06) #00000066}
+.level-number .ln-face{background:linear-gradient(180deg,var(--ln-top) 15%,var(--ln-mid) 50%,var(--ln-low) 92%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent}
+
+/* Efeito atrás do número */
+.level-number .ln-fx{position:absolute;inset:-35% -12%;z-index:0;pointer-events:none;background:radial-gradient(ellipse closest-side,color-mix(in srgb,var(--ln-glow) 95%,transparent) 0 25%,color-mix(in srgb,var(--ln-glow) 45%,transparent) 60%,transparent 100%)}
+.level-number[data-tier="1"] .ln-fx{opacity:.35}
+.level-number[data-tier="2"] .ln-fx{opacity:.8}
+.level-number .ln-fx::before,.level-number .ln-fx::after{content:'';position:absolute;inset:0;opacity:0}
+/* Faíscas a partir da faixa 3 */
+.level-number:is([data-tier="3"],[data-tier="4"],[data-tier="5"],[data-tier="6"]) .ln-fx::after{opacity:1;background:radial-gradient(circle at 14% 30%,#fff 0 3%,var(--ln-glow) 4%,transparent 6%),radial-gradient(circle at 86% 26%,#fff 0 2.5%,var(--ln-glow) 3.5%,transparent 5.5%),radial-gradient(circle at 82% 78%,#fff 0 2%,var(--ln-glow) 3%,transparent 5%),radial-gradient(circle at 20% 80%,#fff 0 2%,var(--ln-glow) 3%,transparent 5%);animation:ln-twinkle 1.6s ease-in-out infinite alternate}
+/* Raios girando a partir da faixa 4 */
+.level-number:is([data-tier="4"],[data-tier="5"],[data-tier="6"]) .ln-fx::before{opacity:.9;inset:-30% 2%;background:repeating-conic-gradient(from 0deg,var(--ln-glow) 0deg 5deg,transparent 9deg 36deg);mask-image:radial-gradient(circle closest-side,#000 35%,transparent 100%);-webkit-mask-image:radial-gradient(circle closest-side,#000 35%,transparent 100%);animation:ln-spin 18s linear infinite}
+.level-number[data-tier="5"] .ln-fx::before{opacity:1;background:repeating-conic-gradient(from 0deg,var(--ln-glow) 0deg 4deg,transparent 7deg 24deg);animation-duration:14s}
+.level-number:is([data-tier="5"],[data-tier="6"]) .ln-fx{animation:ln-pulse 2.4s ease-in-out infinite}
+/* Ouro: raios densos, chama e reflexo passando no número */
+.level-number[data-tier="6"] .ln-fx::before{opacity:1;inset:-40% -2%;background:repeating-conic-gradient(from 0deg,#ffb000 0deg 3deg,transparent 5deg 15deg);animation-duration:10s;filter:drop-shadow(0 0 calc(var(--ln-size) * .06) #ffb000)}
+.level-number[data-tier="6"] .ln-fx{background:radial-gradient(ellipse closest-side,#fff6b0 0 22%,#ffb72acc 48%,#ff6a0055 75%,transparent 100%)}
+.level-number[data-tier="6"] .ln-face{background:linear-gradient(110deg,transparent 35%,#ffffffe6 45%,transparent 55%) 200% 0/250% 100% no-repeat,linear-gradient(180deg,var(--ln-top) 15%,var(--ln-mid) 50%,var(--ln-low) 92%);-webkit-background-clip:text;background-clip:text;animation:ln-shine 3.2s ease-in-out infinite}
+@keyframes ln-spin{to{transform:rotate(360deg)}}
+@keyframes ln-twinkle{0%{opacity:.3;transform:scale(.92)}100%{opacity:1;transform:scale(1.05)}}
+@keyframes ln-pulse{0%,100%{transform:scale(.95)}50%{transform:scale(1.06)}}
+@keyframes ln-shine{0%,40%{background-position:200% 0,0 0}80%,100%{background-position:-120% 0,0 0}}
+@media(prefers-reduced-motion:reduce){.level-number :is(.ln-fx,.ln-fx::before,.ln-fx::after,.ln-face){animation:none!important}}
