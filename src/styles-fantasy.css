@@ -151,8 +151,3 @@ kbd{color:#e8f1ff;border-color:#8299ba88;background:#0c1e3be0}
  .inventory-modal-layer .game-window.inventory-window .bag-footer .button{padding-inline:7px}.inventory-modal-layer .game-window.inventory-window .bag-footer>div{gap:5px}
  .inventory-modal-layer .game-window.inventory-window .equipment-slots .equipment-slot{width:43px;height:43px}
 }
-/* The forge uses the same viewport shell, inset, and fixed painted frame as the bag. */
-.inventory-modal-layer .game-window.forge-workshop-shell{display:flex;flex-direction:column;width:min(1160px,100%);height:min(758px,calc(100dvh - 24px));max-height:calc(100dvh - 24px);padding:6px;overflow:hidden;border-width:40px;border-image-width:40px;background:#071c35;animation:none}
-.inventory-modal-layer .game-window.forge-workshop-shell>.window-header{height:66px;min-height:66px;flex:none;position:relative;top:auto;padding:12px 20px;border:1px solid #aa824955;box-shadow:inset 0 1px #f3c86a33}
-@media(max-width:1000px) and (min-width:701px){.inventory-modal-layer .game-window.forge-workshop-shell{border-width:30px;border-image-width:30px}}
-@media(max-width:700px){.inventory-modal-layer .game-window.forge-workshop-shell{width:100%;height:calc(100dvh - 20px);max-height:calc(100dvh - 20px);border-width:19px;border-image-width:19px;padding:4px;overflow:hidden}.inventory-modal-layer .game-window.forge-workshop-shell>.window-header{height:56px;min-height:56px;padding:8px 9px}}

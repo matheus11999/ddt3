@@ -1,5 +1,7 @@
 # Ferreiro — revisão de 16/10/2026
 
+> Substituída em 17/10/2026 pelo redesenho no padrão da mochila: ver `docs/forge-art-prompts.md` e `docs/previews/forge.png`. As regras de funcionamento abaixo (seleção, materiais, chance autoritativa, sem consumo ao pré-visualizar) continuam valendo.
+
 O ferreiro mantém a identidade compartilhada em `GameTheme.css`: moldura fina, safira, ouro discreto e botões arredondados. As abas Fortalecer e Composição ficam na horizontal. A bancada pintada preserva o item escolhido, os materiais preparados, a chance e a ação no mesmo painel; não há prévia da evolução da arma nem atributos permanentes da arma.
 
 ## Proporções e organização
