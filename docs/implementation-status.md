@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Ranking PvP do dia no pódio do lobby — 17/10/2026
+
+- Servidor: `Store.dailyRanking()` conta as vitórias do dia (fuso America/Sao_Paulo) na tabela `matches`; toda partida salva conta, inclusive treino contra bot. Empate: quem chegou primeiro. Top 3 com aparência equipada.
+- `Game.refreshRanking()` roda ao iniciar, após salvar cada partida e a cada minuto (virada do dia); envia `ranking` a todos e no `welcome`.
+- Lobby: os 3 primeiros ficam em pé no pódio, virados para o centro, com "Nome · N vitórias". Pódio ocupado esconde o anel `brilho` e o halo de luz atrás do boneco.
+- Teste: `tests/ranking.test.ts` (vitória contra bot entra no pódio).
+
 ## Lápide ao morrer — 17/10/2026
 
 - Fighter morto: após ~0,65 s na pose de derrota a arte do usuário (`public/assets/combat/tombstone.png`, 265×320 recortada do original 1254²) cai no lugar, com sombra e poeira; sem placa de vida/nome, aura POW ou mira. Ao reconectar, mortos já aparecem como lápide.

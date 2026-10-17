@@ -22,7 +22,7 @@ app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},as
  if(!profile){if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});const created=await store.createGuest(parsed.data.gender);profile=created.profile;reply.setCookie('brasa_session',created.token,{path:'/',httpOnly:true,sameSite:'strict',secure:process.env.COOKIE_SECURE==='true',maxAge:2592000});}
  reply.header('Cache-Control','no-store');return {profile};
 });
-const game=new Game(store,e=>app.log.error(e));
+const game=new Game(store,e=>app.log.error(e));await game.refreshRanking();
 const wss=new WebSocketServer({noServer:true,maxPayload:2048,perMessageDeflate:false});
 const connections=new Map<string,WebSocket>();
 const upgradeLimit=new Map<string,{time:number,count:number}>();
