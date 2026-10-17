@@ -55,6 +55,14 @@ Estas regras substituem instruções históricas conflitantes abaixo.
 
 Leia primeiro `README.md`, `docs/implementation-status.md`, `docs/cloud-handoff.md` e `docs/continuation-prompt.md`. A instrução mais recente do usuário prevalece. O checkpoint inicial de rostos foi ampliado pelo pedido de cenários, roupas e interface. **Não retomar outras pendências automaticamente** ao apenas inspecionar ou publicar o projeto.
 
+## Regra obrigatória de armas: validar antes e depois de gerar
+
+Pedido do usuário em 17/10/2026. Cada arma é única: ícone, arma na mão, projétil, disparo e impacto próprios em cada fase (+0 a +8, +9, +10 e +11, +12), marca no cenário, sons próprios e regra POW × Tridente. Contrato em `shared/weaponKit.ts` e `docs/weapon-kit.md`.
+
+1. **Antes de gerar:** `npm run verify:weapons` e usar os prompts de `test-results/weapons/prompts.md` (já trazem tamanho e caminho do arquivo).
+2. **Depois de gerar:** rodar de novo; a peça sai do relatório. Mostrar `test-results/weapons/sheet.png` ao usuário.
+3. Arma nova só entra com entrada em `WEAPON_KITS`. Chave do ElevenLabs só no `.env` local.
+
 ## Regra obrigatória de cosméticos: validar antes e depois de gerar
 
 Pedido do usuário em 17/10/2026. Vale para qualquer IA ou agente que gere ou repinte cabelo, chapéu, óculos ou roupa. Contrato em `docs/cosmetics-fit.md`.

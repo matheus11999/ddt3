@@ -21,6 +21,7 @@ Leia e siga `AGENTS.md`: ele vale para todos os agentes, inclusive o Claude. Est
 - Não há gerador de imagens nas sessões de nuvem. O usuário gera a arte no ChatGPT/Codex a partir de prompts que nós escrevemos em `docs/*-prompts.md` (um arquivo por área: `lobby-art-prompts.md`, `shop-art-prompts.md`, `forge-art-prompts.md`, `backpack-art-prompts.md`, `pvp-arena-art-prompts.md`, `cosmetics-art-briefs.md` etc.).
 - **A IA pinta a forma; o jogo desenha texto e números.** Nada de texto dentro da imagem gerada (placas, níveis, números de dano, VIP).
 - Cosméticos: rodar `npm run verify:cosmetics` **antes e depois** de gerar qualquer cabelo, chapéu, óculos ou roupa (regra completa em `AGENTS.md` e `docs/cosmetics-fit.md`). Passar no validador não é aprovação: mostre `zones.png` e `matrix.png` ao usuário.
+- Armas: rodar `npm run verify:weapons` antes e depois de gerar qualquer arte ou som de arma; ele lista o que falta por arma e fase e escreve os prompts do ChatGPT/ElevenLabs (`docs/weapon-kit.md`). Mostre `sheet.png` ao usuário.
 - Corpo deitado de roupa nova: pintar sobre `docs/templates/prone-body.png` (contrato em `docs/prone-combat.md`); nunca coordenadas de braço por roupa.
 
 ## Gosto do usuário (aprovado e rejeitado)
@@ -58,7 +59,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 ## Testes e prévias
 
 - Antes de entregar: `npm run check`, `npm test`, `npm run build`, mais os testes da área (`npm run test:shop:browser`, `test:rooms:browser`, `test:battle:browser`, `test:mobile:browser` etc., ver `package.json`).
-- Cosméticos: `npm run verify:cosmetics` (relatório em `test-results/cosmetics/`). Rostos: `node scripts/verify-faces.mjs`. Mapas: `node scripts/inspect-maps.mjs`.
+- Cosméticos: `npm run verify:cosmetics` (relatório em `test-results/cosmetics/`). Armas: `npm run verify:weapons` (relatório, prancha e prompts em `test-results/weapons/`). Rostos: `node scripts/verify-faces.mjs`. Mapas: `node scripts/inspect-maps.mjs`.
 - Prévias com dados falsos: `node scripts/preview-shop.mjs` e `node scripts/preview-arena.mjs`. O lobby (`node scripts/shot-lobby.mjs`) precisa do jogo rodando. Na nuvem use `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome` se o Playwright não achar o navegador.
 - Rodar o jogo na nuvem: PostgreSQL 16 na porta 5447 (usuário/senha `brasa`/`brasa_local`), Redis na 6397, `npx tsx server/index.ts` e Vite na 5177. Alguns smoke tests (ex.: compra legada da loja) precisam de Docker e só passam na máquina local.
 - Celular joga só em paisagem; teste também no layout de celular.
@@ -71,4 +72,5 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
 - Perguntas abertas: permitir itens de tiro junto com o voo; arte pintada pendente da loja (fundo do provador, ícones de categoria, placa) e do piso do lobby (`floor.webp`).
 - PR #1 (Quebra-Tijolos antigo) está obsoleto: a versão do Codex já está na `main`.
+- **Armas**: faltam os ícones por fase das 5 armas, todos os sons próprios e a regra POW × Tridente de cada arma (ver `npm run verify:weapons`).
 - Registre evidências e pendências também em `docs/implementation-status.md`.
