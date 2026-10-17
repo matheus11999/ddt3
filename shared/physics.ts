@@ -1,5 +1,5 @@
 import type {MapId, Weapon} from './catalog';
-import {canonicalMap,contains,getMap,MATERIALS} from './maps';
+import {canonicalMap,cellBits,contains,getMap,MATERIALS} from './maps';
 import type {CanonicalMapId,MaterialId,MapRegion} from './maps';
 import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
@@ -22,6 +22,9 @@ export function terrainTemplate(map:MapId='garden'):TerrainTemplate {
     intersections.sort((a,b)=>a-b);
     for(let n=0;n<intersections.length;n+=2){const left=Math.max(0,Math.ceil(intersections[n]/3)),right=Math.min(WORLD.cols,Math.ceil(intersections[n+1]/3));for(let cx=left;cx<right;cx++){const i=cy*WORLD.cols+cx;solid[i]=1;regions[i]=r;}}
    }
+  }else if(shape.kind==='cells'){
+   const bits=cellBits(shape);
+   for(let y=0;y<shape.rows;y++)for(let x=0;x<shape.cols;x++){const n=y*shape.cols+x,cx=shape.col+x,cy=shape.row+y;if(!(bits[n>>3]>>(n&7)&1)||cx<0||cy<0||cx>=WORLD.cols||cy>=WORLD.rows)continue;const i=cy*WORLD.cols+cx;solid[i]=1;regions[i]=r;}
   }else{
    const bounds=shape.kind==='rect'?[shape.x,shape.y,shape.x+shape.width,shape.y+shape.height]:[shape.x-shape.rx,shape.y-shape.ry,shape.x+shape.rx,shape.y+shape.ry];
    for(let cy=Math.max(0,Math.floor(bounds[1]/3));cy<Math.min(WORLD.rows,Math.ceil(bounds[3]/3)+1);cy++)for(let cx=Math.max(0,Math.floor(bounds[0]/3));cx<Math.min(WORLD.cols,Math.ceil(bounds[2]/3)+1);cx++)if(contains(shape,cx*3,cy*3)){const i=cy*WORLD.cols+cx;solid[i]=1;regions[i]=r;}

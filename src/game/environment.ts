@@ -12,7 +12,7 @@ const preloadedMaps=new Map<MapId,Promise<boolean>>();
 /** Decode before entering a map; callers may prefetch while its room is open. */
 export function preloadEnvironment(map:MapId):Promise<boolean>{
  const def=getMap(map),cached=preloadedMaps.get(def.id);if(cached)return cached;
- const sources=[def.art.midground,def.art.terrain??`/assets/maps/${def.id}-terrain.png`,def.art.props,getMap('garden').art.props];
+ const sources=[def.art.background??def.art.midground,def.art.terrain??`/assets/maps/${def.id}-terrain.png`,def.art.props,getMap('garden').art.props];
  const ready=Promise.all([...new Set(sources)].map(src=>decodedImages.get(loadImage(src))!)).then(results=>results.every(Boolean));preloadedMaps.set(def.id,ready);return ready;
 }
 let quality:EnvironmentQuality='high';
@@ -24,13 +24,14 @@ function random(seed:number){return ((Math.sin(seed*127.1+311.7)*43758.5453)%1+1
 function hex(color:string){return [parseInt(color.slice(1,3),16),parseInt(color.slice(3,5),16),parseInt(color.slice(5,7),16)];}
 function gradient(c:CanvasRenderingContext2D,y:number,height:number,a:string,b:string){const g=c.createLinearGradient(0,y,0,y+height);g.addColorStop(0,a);g.addColorStop(1,b);return g;}
 function ellipse(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,color:string){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,TAU);c.fill();}
-function shapePath(c:CanvasRenderingContext2D,shape:Shape){c.beginPath();if(shape.kind==='rect')c.rect(shape.x,shape.y,shape.width,shape.height);else if(shape.kind==='ellipse')c.ellipse(shape.x,shape.y,shape.rx,shape.ry,0,0,TAU);else{shape.points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();}}
+function shapePath(c:CanvasRenderingContext2D,shape:Shape){c.beginPath();if(shape.kind==='cells')c.rect(shape.col*3,shape.row*3,shape.cols*3,shape.rows*3);else if(shape.kind==='rect')c.rect(shape.x,shape.y,shape.width,shape.height);else if(shape.kind==='ellipse')c.ellipse(shape.x,shape.y,shape.rx,shape.ry,0,0,TAU);else{shape.points.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y));c.closePath();}}
 interface Bounds {x:number;y:number;width:number;height:number;}
 interface CachedLayer extends Bounds {canvas:HTMLCanvasElement;}
 function makeCanvas(width:number,height:number){const canvas=document.createElement('canvas');canvas.width=Math.ceil(width);canvas.height=Math.ceil(height);return canvas;}
 function smoothImages(c:CanvasRenderingContext2D,filter:ImageSmoothingQuality='high'){c.imageSmoothingEnabled=true;c.imageSmoothingQuality=filter;}
 function shapeBounds(shape:Shape):Bounds {
  if(shape.kind==='rect')return shape;
+ if(shape.kind==='cells')return {x:shape.col*3,y:shape.row*3,width:shape.cols*3,height:shape.rows*3};
  if(shape.kind==='ellipse')return {x:shape.x-shape.rx,y:shape.y-shape.ry,width:shape.rx*2,height:shape.ry*2};
  const xs=shape.points.map(p=>p[0]),ys=shape.points.map(p=>p[1]),x=Math.min(...xs),y=Math.min(...ys);
  return {x,y,width:Math.max(...xs)-x,height:Math.max(...ys)-y};
@@ -231,6 +232,7 @@ export class EnvironmentRenderer {
   // High-quality resizing belongs in the caches. Bilinear presentation keeps
   // their antialiased coverage while avoiding a costly bicubic pass every frame.
   smoothImages(c,'low');if(!this.isReady()){this.drawLoading(c);return;}
+  if(m.art.background){this.drawBackdrop(c,camera);return;}
   const propsRevision=`${this.props.ready()}:${this.gardenProps.ready()}`;
   if(propsRevision!==this.propsRevision){this.propsRevision=propsRevision;this.objectLayers.clear();this.layers.delete('landscape');}
   c.drawImage(this.cached('sky',W,H,ctx=>{ctx.fillStyle=gradient(ctx,0,H,m.lighting.sky,m.lighting.horizon);ctx.fillRect(0,0,W,H);}),0,0);
@@ -265,6 +267,13 @@ export class EnvironmentRenderer {
   for(const object of this.definition.objects)if(object.layer===6)this.drawObject(c,object,time);
   if(this.definition.id==='celestial')for(let i=0;i<count(2,3,4);i++)this.cloud(c,-100+((i*491+time*.012)%(W+400)),865+i%3*15,230,.62,1.12);
   c.restore();c.save();applyCamera(c,camera,.85);this.atmosphere(c,time);c.restore();
+ }
+ /** A single painted backdrop, cover-fitted to the bottom edge so its abyss sits under the playfield. It barely drifts with the camera. */
+ private drawBackdrop(c:CanvasRenderingContext2D,camera:CameraState){
+  const image=this.art,margin=48;if(!image.naturalWidth)return;
+  const layer=this.cached('backdrop',W+margin*2,H+margin*2,ctx=>{const width=W+margin*2,scale=Math.max(width/image.naturalWidth,(H+margin*2)/image.naturalHeight),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
+  c.save();applyCamera(c,camera,.1);c.drawImage(layer,-margin,-margin);c.restore();
+  c.save();c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
   c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,W,H);

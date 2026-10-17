@@ -1,0 +1,15 @@
+{
+ "name": "Sonho Nevado",
+ "source": "test-results/codex-maps/neve",
+ "background": "fundo.png",
+ "pieces": "pecas.png",
+ "mirror": true,
+ "spawns": [[260,395,125,470],[1276,1141,1411,1066]],
+ "items": [
+  {"id":"snow-bridge-left","piece":4,"x":290,"top":650,"material":"stone","destructible":false},
+  {"id":"snow-bridge-center","piece":6,"x":768,"top":690,"material":"stone","destructible":false,"mirror":false},
+  {"id":"snow-mound-left","piece":0,"x":230,"top":520,"material":"ice","destructible":true},
+  {"id":"snow-mound-inner","piece":3,"x":480,"top":560,"material":"ice","destructible":true},
+  {"id":"snow-mound-center","piece":2,"x":768,"top":600,"material":"ice","destructible":true,"mirror":false}
+ ]
+}
