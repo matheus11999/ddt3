@@ -1,5 +1,5 @@
 import {RewardIcon} from './RewardIcon';
-import {useEffect,useRef,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {CSSProperties,DragEvent,FocusEvent,PointerEvent as ReactPointerEvent} from 'react';
 import {ArrowRight,Check,Gem,Hammer,LoaderCircle,Minus,Sparkles,Swords,X} from 'lucide-react';
@@ -20,7 +20,8 @@ import './Forge.css';
 const ITEM_DRAG='application/x-brasa-item';
 const STONE_DRAG='application/x-brasa-stone';
 const number=new Intl.NumberFormat('pt-BR',{maximumFractionDigits:1});
-const FORGE_ANIMATION_MS=1150;
+// Pedras voam para a bigorna, o martelo bate duas vezes e só então o resultado aparece.
+const FORGE_ANIMATION_MS=1300;
 type ForgeMode='strengthen'|'compose';
 type ForgeAttempt={mode:ForgeMode;level:number;chance:number;stock:Record<string,number>;compositionStock:Record<string,number>;bonus:CompositionBonus};
 type ForgeOutcome={mode:ForgeMode;success:boolean;level?:number;stat?:CompositionStat;value?:number;cost?:number};
@@ -62,6 +63,16 @@ export function Forge({onClose}:{onClose:()=>void}){
  const guidance=!item?`Escolha ${composing?'um equipamento':'uma arma'}.`:composing?!stone?'Escolha um mineral.':stone.value<=(bonus[stone.stat]??0)?'Escolha uma pedra que aumente o atributo.':(compositionStock[stone.id]??0)<1?'Você não tem mais esta pedra.':p.gold<stone.cost?'Moedas Brasa insuficientes para esta composição.':null:level>=MAX_UPGRADE?'Esta arma atingiu o fortalecimento máximo.':stoneCount===0?'Adicione pedras para fortalecer.':null;
  const tipHandlers=(id:string)=>({onPointerEnter:(e:ReactPointerEvent<HTMLElement>)=>{if(e.pointerType==='mouse')setTooltip({id,anchor:e.currentTarget,mode:'hover'});},onPointerLeave:()=>setTooltip(null),onFocus:(e:FocusEvent<HTMLElement>)=>{if(e.currentTarget.matches(':focus-visible'))setTooltip({id,anchor:e.currentTarget,mode:'focus'});},onBlur:()=>setTooltip(null),onDragStartCapture:()=>setTooltip(null)});
  useEffect(()=>{if(pending)setTooltip(null);},[pending]);
+ const stageRef=useRef<HTMLDivElement>(null),anvilRef=useRef<HTMLDivElement>(null),socketRefs=useRef<(HTMLDivElement|null)[]>([]);
+ const [geometry,setGeometry]=useState<{w:number;h:number;anvil:{x:number;y:number};sockets:{x:number;y:number}[]}|null>(null);
+ useLayoutEffect(()=>{
+  const stage=stageRef.current;if(!stage)return;
+  const measure=()=>{const box=stage.getBoundingClientRect(),card=anvilRef.current?.firstElementChild?.getBoundingClientRect();if(!card||!box.width)return;
+   const center=(r:DOMRect)=>({x:r.left+r.width/2-box.left,y:r.top+r.height/2-box.top});
+   setGeometry({w:box.width,h:box.height,anvil:center(card),sockets:socketRefs.current.slice(0,composing?1:STONES.length).filter((el):el is HTMLDivElement=>!!el).map(el=>center(el.getBoundingClientRect()))});};
+  measure();const observer=new ResizeObserver(measure);observer.observe(stage);return()=>observer.disconnect();
+ },[composing,!!item]);
+ const flight=(i:number)=>{const from=geometry?.sockets[i];return (from&&geometry?{'--fly-x':`${geometry.anvil.x-from.x}px`,'--fly-y':`${geometry.anvil.y-from.y}px`,'--fly-delay':`${i*45}ms`}:{}) as CSSProperties;};
  useEffect(()=>{
   const before=previousChance.current;previousChance.current={item:selected,mode,chance};
   if(pending||!before||before.item!==selected||before.mode!==mode||!selected)return;
@@ -97,9 +108,7 @@ export function Forge({onClose}:{onClose:()=>void}){
  const steps:[string,boolean][]=composing?[['Equipamento',!!item],['Mineral',!!stone],['Compor',false]]:[['Arma',!!item],['Pedras',stoneCount>0],['Forjar',false]];
  const currentStep=Math.max(0,steps.findIndex(([,done])=>!done));
  const chanceTone=chance>=70?'high':chance>=30?'mid':'low';
- // Encaixes em arco sob a bigorna (em % do palco); os canais acendem quando recebem pedra.
- const SOCKETS=composing?[{x:50,y:84}]:[{x:15,y:72},{x:31,y:83},{x:50,y:87},{x:69,y:83},{x:85,y:72}];
- const lit=composing?[!!stone]:STONES.map(s=>(stones[String(s.level)]??0)>0);
+ const socketItems=composing?[{key:'mineral',filled:!!stone}]:STONES.map(s=>({key:String(s.level),filled:(stones[String(s.level)]??0)>0}));
  return <Modal title="Ferreiro" onClose={onClose} className="smith-window" viewport>
   <div className="smith-layout">
    <section className={`smith-bench forge-workbench ${pending?'is-strengthening':''} ${composing?'is-composing':''}`} id="forge-service-content" role="tabpanel" aria-label={composing?'Bancada de composição':'Bancada de fortalecimento'} aria-busy={pending}>
@@ -108,38 +117,30 @@ export function Forge({onClose}:{onClose:()=>void}){
      <div className="smith-identity"><small>{composing?'Composição':'Fortalecimento'}</small><h2>{item?.name??(composing?'Escolha um equipamento':'Escolha uma arma')}</h2></div>
      <ol className="smith-steps" aria-label="Etapas">{steps.map(([label,done],i)=><li key={label} data-state={done?'done':i===currentStep||(i===steps.length-1&&canForge)?'current':'todo'}><span>{done?<Check size={12}/>:i+1}</span>{label}</li>)}</ol>
     </header>
-    <div className={`smith-stage forge-workshop ${pending?'working':''} ${result?result.success?'is-success':'is-failure':''} ${dropTarget?'is-dropping':''}`}>
+    <div ref={stageRef} className={`smith-stage forge-workshop ${pending?'working':''} ${result?result.success?'is-success':'is-failure':''}`}>
      <span className="smith-coals" aria-hidden="true"/>
-     <svg className="smith-channels" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{SOCKETS.map((pos,i)=><path key={i} data-lit={lit[i]||undefined} d={`M${pos.x} ${pos.y} Q${pos.x} ${(pos.y+56)/2} 50 56`}/>)}</svg>
-     {pending&&<StrengtheningEffect/>}
-     {item?.slot==='weapon'&&<UpgradeTag level={level} size={86} className="smith-upgrade-badge"/>}
-     {!item&&<span className="smith-pick-hint" aria-hidden="true">{composing?'Escolha um equipamento na grade':'Escolha uma arma na grade'}<ArrowRight size={16}/></span>}
-     <div className="smith-anvil">
+     {geometry&&<svg className="smith-channels" width={geometry.w} height={geometry.h} aria-hidden="true">{geometry.sockets.map((pos,i)=><path key={socketItems[i]?.key??i} data-lit={socketItems[i]?.filled||undefined} d={`M${pos.x} ${pos.y} C${pos.x} ${(pos.y+geometry.anvil.y)/2} ${geometry.anvil.x} ${pos.y} ${geometry.anvil.x} ${geometry.anvil.y}`}/>)}</svg>}
+     <div className={`forge-materials ${composing?'composition-materials':''} ${dropTarget==='stone'?'drag-over':''}`} onDragOver={e=>allowDrop(e,'stone')} onDragLeave={()=>setDropTarget(null)} onDrop={e=>drop(e,'stone')}>
+      {composing?<div className="composition-selection"><div className="smith-socket" ref={el=>{socketRefs.current[0]=el;}} style={flight(0)}><ItemCard rarity="common" empty={!stone} disabled={!stone||locked} className="composition-selected-stone forge-socket" aria-label={stone?`Remover ${stone.name}`:'Escolha uma pedra de composição'} onClick={()=>setSelectedStone('')}>{stone?<CompositionIcon stat={stone.stat} size={44}/>:<Gem className="smith-slot-placeholder" size={20}/>}</ItemCard></div>{stone?<div className="composition-preview" aria-label={`Prévia de composição: ${COMPOSITION_STAT_NAMES[stone.stat]} de ${bonus[stone.stat]??0} para ${stone.value}`}><span>{COMPOSITION_STAT_NAMES[stone.stat]} +{bonus[stone.stat]??0}</span><ArrowRight size={14}/><b>+{stone.value}</b></div>:<div className="composition-preview is-empty"><span>Escolha um mineral ao lado</span></div>}</div>
+      :<div className="forge-sockets">{STONES.map((s,i)=>{const count=stones[String(s.level)]??0;return <div className="smith-socket" key={s.level} ref={el=>{socketRefs.current[i]=el;}} style={flight(i)}><ItemCard rarity={stoneRarity(s.level)} empty={!count} className={`forge-socket ${count?'has-stone':''}`} disabled={!count||locked} onClick={()=>removeStone(s.level)} aria-label={`Remover uma ${s.name}, ${count} selecionadas`}>{materialPulse?.level===s.level&&<i key={materialPulse.key} className="forge-material-pulse" aria-hidden="true"/>}{count?<><StoneIcon level={s.level} size={38}/><b>×{count}</b><span className="forge-socket-minus"><Minus size={10}/></span></>:<small>{['I','II','III','IV','V'][s.level-1]}</small>}</ItemCard></div>;})}</div>}
+     </div>
+     <div className="smith-anvil" ref={anvilRef}>
       <ItemCardFrame rarity={item?.rarity} variant="hero" empty={!item} className={`forge-weapon-target ${item?'filled':''} ${dropTarget==='weapon'?'drag-over':''}`} onDragOver={e=>allowDrop(e,'weapon')} onDragLeave={()=>setDropTarget(null)} onDrop={e=>drop(e,'weapon')} role="region" aria-label="Coloque o equipamento na bigorna">
-       {item?<><ItemIcon id={item.id} size={124} upgrade={level}/><button className="forge-remove-weapon" aria-label="Retirar equipamento da bigorna" disabled={locked} onClick={()=>{setSelected('');setResult(null);}}><X size={13}/></button></>:<><Hammer className="smith-target-placeholder" size={36}/><span>Solte aqui</span></>}
+       {item?<><ItemIcon id={item.id} size={116} upgrade={level}/>{item.slot==='weapon'&&<UpgradeTag level={level} size={66} className="smith-upgrade-badge"/>}<button className="forge-remove-weapon" aria-label="Retirar equipamento da bigorna" disabled={locked} onClick={()=>{setSelected('');setResult(null);}}><X size={13}/></button></>:<><Hammer className="smith-target-placeholder" size={34}/><span>{composing?'Escolha um equipamento':'Escolha uma arma'}</span></>}
       </ItemCardFrame>
       <span className="smith-anvil-base" aria-hidden="true"/>
+      {pending&&<StrengtheningEffect/>}
      </div>
-     <div className={`forge-materials ${composing?'composition-materials':''} ${dropTarget==='stone'?'drag-over':''}`} onDragOver={e=>allowDrop(e,'stone')} onDragLeave={()=>setDropTarget(null)} onDrop={e=>drop(e,'stone')}>
-      {composing?<div className="composition-selection" style={{left:`${SOCKETS[0].x}%`,top:`${SOCKETS[0].y}%`} as CSSProperties}><ItemCard rarity="common" empty={!stone} disabled={!stone||locked} className="composition-selected-stone" aria-label={stone?`Remover ${stone.name}`:'Escolha uma pedra de composição'} onClick={()=>setSelectedStone('')}>{stone?<CompositionIcon stat={stone.stat} size={46}/>:<Gem className="smith-slot-placeholder" size={22}/>}</ItemCard>{stone?<div className="composition-preview" aria-label={`Prévia de composição: ${COMPOSITION_STAT_NAMES[stone.stat]} de ${bonus[stone.stat]??0} para ${stone.value}`}><span>{COMPOSITION_STAT_NAMES[stone.stat]} +{bonus[stone.stat]??0}</span><ArrowRight size={14}/><b>+{stone.value}</b></div>:<div className="composition-preview is-empty"><span>Mineral</span></div>}</div>
-      :STONES.map((s,i)=>{const count=stones[String(s.level)]??0;return <div className="smith-socket" key={s.level} style={{left:`${SOCKETS[i].x}%`,top:`${SOCKETS[i].y}%`} as CSSProperties}><ItemCard rarity={stoneRarity(s.level)} empty={!count} className={`forge-socket ${count?'has-stone':''}`} disabled={!count||locked} onClick={()=>removeStone(s.level)} aria-label={`Remover uma ${s.name}, ${count} selecionadas`}>{materialPulse?.level===s.level&&<i key={materialPulse.key} className="forge-material-pulse" aria-hidden="true"/>}{count?<><StoneIcon level={s.level} size={38}/><b>×{count}</b><span className="forge-socket-minus"><Minus size={10}/></span></>:<small>{['I','II','III','IV','V'][s.level-1]}</small>}</ItemCard></div>;})}
+     <div className="smith-forge-controls">
+      <div className="smith-chance" data-tone={item&&(composing?!!stone:stoneCount>0)?chanceTone:undefined}>
+       <div className="forge-chance-track" role="progressbar" aria-label="Chance de sucesso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={chance}><i style={{width:`${chance}%`}}/><strong>{!composing&&level>=MAX_UPGRADE?'Nível máximo':`Chance ${number.format(chance)}%`}</strong>{chanceDelta&&<em key={chanceDelta.key} className={chanceDelta.value>0?'up':'down'}>{chanceDelta.value>0?'+':''}{number.format(chanceDelta.value)}%</em>}</div>
+      </div>
+      <button className={`smith-action forge-submit ${pending?'pending':''} ${canForge?'is-ready':''}`} disabled={!canForge} aria-busy={pending} aria-describedby="forge-action-feedback" onClick={submit}>{pending?<LoaderCircle className="button-spinner" size={20}/>:composing?<Sparkles size={20}/>:<Hammer size={20}/>}{pending?composing?'Compondo…':'Fortalecendo…':composing?'Compor':level>=MAX_UPGRADE?'Nível máximo':'Fortalecer'}</button>
+      <div id="forge-action-feedback" className={`forge-feedback ${localError?'is-error':guidance?'is-guidance':result?result.success?'is-success':'is-failure':''}`} role="status" aria-live="polite">{localError??(pending?'A forja está trabalhando…':result?result.mode==='compose'?'Pedra e ouro consumidos.':'Pedras consumidas.':guidance??(composing?`Custa ${stone?.cost??0} moedas. A pedra e o ouro são gastos mesmo se falhar.`:`${stoneCount} / ${MAX_FORGE_STONES} pedras. As pedras são gastas em cada tentativa.`))}</div>
      </div>
-     {pending&&<span className="forge-progress-caption">{composing?'Compondo':'Fortalecendo'}…</span>}
-     {result&&<div key={resultKey} className={`forge-outcome ${result.success?'success':'failure'}`} role="status" aria-live="polite"><strong>{result.success?'SUCESSO!':'FALHOU'}</strong>{result.mode==='strengthen'&&result.success?<UpgradeTag level={result.level!} size={104} className="smith-outcome-tag"/>:<span className="forge-outcome-level">{result.mode==='strengthen'?`Continua +${result.level}`:result.success?`${COMPOSITION_STAT_NAMES[result.stat!]} +${result.value}`:'Atributo anterior mantido'}</span>}</div>}
+     {result&&<div key={resultKey} className={`forge-outcome ${result.success?'success':'failure'}`} role="status" aria-live="polite"><strong>{result.success?'SUCESSO!':'FALHOU'}</strong>{result.mode==='strengthen'&&result.success?<UpgradeTag level={result.level!} size={110} className="smith-outcome-tag"/>:<span className="forge-outcome-level">{result.mode==='strengthen'?`Continua +${result.level}`:result.success?`${COMPOSITION_STAT_NAMES[result.stat!]} +${result.value}`:'Atributo anterior mantido'}</span>}</div>}
     </div>
-    <div className="smith-console forge-action">
-     <div className="smith-chance" data-tone={item&&(composing?!!stone:stoneCount>0)?chanceTone:undefined}>
-      <span className="smith-chance-label">Chance de sucesso</span>
-      <strong className="smith-chance-value">{!composing&&level>=MAX_UPGRADE?'Máximo':`${number.format(chance)}%`}{chanceDelta&&<em key={chanceDelta.key} className={chanceDelta.value>0?'up':'down'}>{chanceDelta.value>0?'+':''}{number.format(chanceDelta.value)}%</em>}</strong>
-      <div className="forge-chance-track" role="progressbar" aria-label="Chance de sucesso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={chance}><i style={{width:`${chance}%`}}/></div>
-      <span className="smith-count">{composing?(stone?<><RewardIcon size={14}/>{stone.cost} moedas</>:'1 mineral por vez'):`${stoneCount} / ${MAX_FORGE_STONES} pedras`}</span>
-     </div>
-     {composing&&<div className="composition-current" aria-label="Composições aplicadas">{COMPOSITION_STATS.map(stat=><span key={stat} data-active={stone?.stat===stat||undefined}><CompositionIcon stat={stat} size={20}/><small>{COMPOSITION_STAT_NAMES[stat]}</small><b>+{item?bonus[stat]??0:0}</b></span>)}</div>}
-     <div className="smith-console-foot">
-      <div id="forge-action-feedback" className={`forge-feedback ${localError?'is-error':guidance?'is-guidance':result?result.success?'is-success':'is-failure':''}`} role="status" aria-live="polite">{localError??(pending?'A forja está trabalhando…':result?result.mode==='compose'?'Pedra e ouro consumidos.':'Pedras consumidas.':guidance??(composing?'A pedra e o ouro são consumidos, mesmo em caso de falha.':'As pedras são consumidas em cada tentativa.'))}</div>
-      <button className={`smith-action forge-submit ${pending?'pending':''} ${canForge?'is-ready':''}`} disabled={!canForge} aria-busy={pending} aria-describedby="forge-action-feedback" onClick={submit}>{pending?<LoaderCircle className="button-spinner" size={20}/>:composing?<Sparkles size={20}/>:<Hammer size={20}/>}{pending?composing?'Compondo…':'Forjando…':composing?'Compor':level>=MAX_UPGRADE?'Nível máximo':'Forjar'}</button>
-     </div>
-    </div>
+    {composing&&<div className="smith-console composition-current" aria-label="Composições aplicadas">{COMPOSITION_STATS.map(stat=><span key={stat} data-active={stone?.stat===stat||undefined}><CompositionIcon stat={stat} size={20}/><small>{COMPOSITION_STAT_NAMES[stat]}</small><b>+{item?bonus[stat]??0:0}</b></span>)}</div>}
    </section>
    <section className="smith-pane forge-stock" aria-label="Itens disponíveis">
     <div className="smith-toolbar"><h2><Swords size={16}/>{composing?'Equipamentos':'Suas armas'}</h2><span className="capacity">{owned.length} {owned.length===1?'item':'itens'}</span></div>

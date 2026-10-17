@@ -70,17 +70,18 @@
   background: linear-gradient(#a85524, #87401a);
   box-shadow: inset 0 1px #ffc98c88, inset 0 0 0 1px #5a280c, 0 2px #3e1a0788;
 }
-.smith-window .smith-bench { grid-template-rows: auto minmax(0, 1fr) auto; }
+.smith-window .smith-bench { grid-template-rows: auto minmax(0, 1fr); grid-auto-rows: auto; }
 .smith-window .smith-pane { grid-template-rows: auto minmax(0, 1fr) auto; }
 
-/* ---------- Cabeçalho da bancada (faixa laranja da mochila) ---------- */
+
+/* ---------- Cabeçalho da bancada: nome do item e etapas ---------- */
 .smith-window .smith-head {
   display: flex;
   align-items: center;
   gap: 10px;
   min-width: 0;
-  height: 56px;
-  padding: 0 12px 0 8px;
+  height: 54px;
+  padding: 0 10px 0 8px;
   border: 1px solid #fff0c9;
   border-radius: 10px;
   background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c);
@@ -90,8 +91,8 @@
   display: grid;
   flex: none;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border: 2px solid #fff3d6;
   border-radius: 50%;
   background: linear-gradient(#a3521f, #6e3210);
@@ -110,79 +111,215 @@
   text-overflow: ellipsis;
   text-shadow: 0 1px #8a3a07, 0 0 3px #9a4508;
 }
-.smith-window .smith-identity > span { font-size: 10px; font-weight: 800; color: #7a3a0a; }
-.smith-window .smith-records { display: flex; gap: 6px; margin: 0; }
-.smith-window .smith-records div {
-  display: grid;
-  min-width: 70px;
-  padding: 3px 9px;
-  border-radius: 8px;
-  background: #fff4d7d9;
-  box-shadow: inset 0 1px 2px #b8641a55;
-  text-align: center;
+/* Etapas: mostram o que falta para poder forjar. */
+.smith-window .smith-steps { display: flex; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.smith-window .smith-steps li {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 9px 0 4px;
+  border-radius: 999px;
+  background: #fff4d7a6;
+  font-size: 12px;
+  font-weight: 800;
+  color: #a2602c;
+  white-space: nowrap;
+  transition: background .2s, color .2s;
 }
-.smith-window .smith-records dt { font-size: 10px; font-weight: 800; color: #9a4a12; }
-.smith-window .smith-records dd { display: flex; align-items: center; justify-content: center; gap: 4px; margin: 0; font-size: 16px; font-weight: 900; color: var(--bag-ink); }
+.smith-window .smith-steps li > span {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #e8b47a;
+  font-size: 11px;
+  font-weight: 900;
+  color: #fff;
+}
+.smith-window .smith-steps li[data-state="current"] { background: #fffaf0; color: var(--bag-ink); box-shadow: 0 0 0 2px #fff, 0 0 10px #fff3; }
+.smith-window .smith-steps li[data-state="current"] > span { background: #e5701b; animation: smith-step-pulse 1.4s ease-in-out infinite; }
+.smith-window .smith-steps li[data-state="done"] { background: #fff4d7; color: #2f7d1f; }
+.smith-window .smith-steps li[data-state="done"] > span { background: #3fae3a; }
+@keyframes smith-step-pulse { 50% { box-shadow: 0 0 0 4px #e5701b44; } }
 
-/* ---------- Palco creme: selo dourado, bigorna e encaixes ---------- */
+/* ---------- Palco: forja escura com brasas, encaixes de ferro e bigorna ---------- */
 .smith-window .smith-stage {
   position: relative;
-  display: grid;
-  grid-template-rows: minmax(0, 1fr) auto;
-  justify-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
   min-height: 0;
-  padding: 12px 12px 16px;
+  padding: 14px 14px 12px;
   overflow: hidden;
-  border: 1px solid #fff7e4;
-  border-radius: 10px;
+  border: 2px solid #f2b56b;
+  border-radius: 12px;
   background:
-    radial-gradient(ellipse at 50% 40%, #fffdf6, transparent 62%),
-    linear-gradient(#fff8e8, var(--bag-cream-mid));
-  box-shadow: inset 0 0 0 2px var(--bag-edge), inset 0 3px 10px #c47a3233;
+    radial-gradient(ellipse 70% 38% at 50% 100%, #ff7a1f55, transparent 70%),
+    radial-gradient(ellipse 55% 45% at 50% 45%, #5b2c1288, transparent 75%),
+    repeating-linear-gradient(0deg, transparent 0 46px, #0000001f 46px 48px),
+    repeating-linear-gradient(90deg, transparent 0 92px, #00000014 92px 94px),
+    linear-gradient(#3f2416, #2a170d);
+  box-shadow: inset 0 0 0 2px #5a280c, inset 0 6px 18px #000a, inset 0 -10px 26px #ff6a1a33;
 }
-/* O mesmo selo pintado usado atrás do personagem da mochila, na cor dourada. */
-.smith-window .smith-sigil {
+/* Brasas do fundo: brilho baixo que respira, mais forte enquanto forja. */
+.smith-window .smith-coals {
   position: absolute;
-  left: 50%;
-  top: 40%;
-  width: min(300px, 74%);
-  aspect-ratio: 1;
-  translate: -50% -50%;
-  background: url('/assets/ui/aura-gold-sigil.png') center / contain no-repeat;
-  filter: drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);
-  opacity: .85;
-  animation: smith-sigil-spin 40s linear infinite;
+  inset: auto 0 0;
+  height: 34%;
+  background: radial-gradient(ellipse 60% 70% at 50% 100%, #ff9a2e66, #ff5a1a22 45%, transparent 75%);
+  animation: smith-coals 3.2s ease-in-out infinite alternate;
   pointer-events: none;
 }
-.smith-window .smith-stage.working .smith-sigil { opacity: 1; animation-duration: 6s; }
-@keyframes smith-sigil-spin { to { rotate: 360deg; } }
-.smith-window .smith-upgrade-badge { position: absolute; top: 10px; left: 12px; z-index: 3; }
+.smith-window .smith-stage.working .smith-coals { height: 60%; animation-duration: .4s; }
+@keyframes smith-coals { from { opacity: .6; } to { opacity: 1; } }
 
+/* Canais que ligam cada encaixe à bigorna; acendem com pedra. */
+.smith-window .smith-channels { position: absolute; inset: 0; z-index: 0; overflow: visible; pointer-events: none; }
+.smith-window .smith-channels path { fill: none; stroke: #1a0c05; stroke-width: 6; stroke-linecap: round; }
+.smith-window .smith-channels path[data-lit] {
+  stroke: #ffae3a;
+  stroke-width: 4;
+  stroke-dasharray: 8 10;
+  filter: drop-shadow(0 0 4px #ff8a1f);
+  animation: smith-flow 1.1s linear infinite;
+}
+.smith-window .smith-stage.working .smith-channels path[data-lit] { stroke: #fff1b0; animation-duration: .25s; }
+@keyframes smith-flow { to { stroke-dashoffset: -36; } }
+
+/* Encaixes redondos de ferro (diferentes dos slots quadrados da mochila). */
+.smith-window .forge-materials { position: relative; z-index: 2; border-radius: 999px; }
+.smith-window .forge-materials.drag-over { outline: 2px dashed #ffb14a; outline-offset: 6px; }
+.smith-window .forge-sockets { display: flex; justify-content: center; gap: 16px; }
+.smith-window .smith-socket { position: relative; }
+.smith-window .item-card.forge-socket[data-rarity][data-card-variant] {
+  width: 58px;
+  height: 58px;
+  padding: 4px;
+  border: 3px solid #8d8f96;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 40%, #3d4552, #171b22 75%);
+  box-shadow: inset 0 3px 6px #000c, 0 0 0 2px #1a0c05, 0 2px #ffffff22;
+}
+.smith-window .item-card.forge-socket[data-card-empty] { opacity: 1; }
+.smith-window .item-card.forge-socket > :is(.item-card-ornament, .item-card-gloss) { display: none; }
+.smith-window .item-card.forge-socket[data-tier]::after { display: none; }
+.smith-window .item-card.forge-socket.has-stone,
+.smith-window .composition-selected-stone.forge-socket:not([data-card-empty]) {
+  border-color: #ffc45a;
+  box-shadow: inset 0 3px 6px #000a, 0 0 0 2px #1a0c05, 0 0 14px #ff9a2e;
+}
+.smith-window .item-card.forge-socket > small { position: relative; z-index: 1; font-size: 13px; font-weight: 900; color: #6c7380; }
+.smith-window .item-card.forge-socket > b {
+  position: absolute;
+  right: -4px;
+  bottom: -4px;
+  z-index: 3;
+  min-width: 22px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e5701b;
+  box-shadow: 0 0 0 2px #2a170d;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 18px;
+  color: #fff;
+  text-align: center;
+}
+.smith-window .forge-socket-minus {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #2a170d;
+  border-radius: 50%;
+  background: #d9542b;
+  color: #fff;
+  opacity: 0;
+  transition: opacity .15s;
+}
+.smith-window .item-card.forge-socket:hover .forge-socket-minus { opacity: 1; }
+.smith-window .forge-material-pulse {
+  position: absolute;
+  inset: -4px;
+  z-index: 8;
+  border: 3px solid #ffd36b;
+  border-radius: 50%;
+  pointer-events: none;
+  animation: forge-material-added .5s ease-out both;
+}
+/* Ao forjar, cada pedra voa do encaixe para a bigorna. */
+.smith-window .smith-stage.working .item-card.forge-socket:not([data-card-empty]) > :is(img, .composition-icon, svg) {
+  animation: smith-stone-fly .5s cubic-bezier(.5, 0, .9, .5) var(--fly-delay, 0ms) both;
+}
+.smith-window .smith-stage.working .smith-socket:has(.has-stone, .composition-selected-stone:not([data-card-empty])) { z-index: 9; }
+@keyframes smith-stone-fly {
+  0% { transform: translate(0, 0) scale(1); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--fly-x), var(--fly-y)) scale(.3); opacity: 0; }
+}
+
+/* Composição: um encaixe e a prévia do atributo ao lado. */
+.smith-window .composition-selection { display: flex; align-items: center; gap: 10px; }
+.smith-window .composition-preview {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #fff4d7;
+  box-shadow: 0 0 0 2px #1a0c05;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bag-ink-soft);
+}
+.smith-window .composition-preview b { font-size: 17px; font-weight: 900; color: #2f8d1f; }
+.smith-window .composition-preview.is-empty { background: #fff4d7aa; }
+
+/* Bigorna com o item; o selo +N fica preso no canto do card. */
+.smith-window .smith-anvil { position: relative; z-index: 2; display: grid; justify-items: center; margin-top: auto; }
 .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] {
   position: relative;
   z-index: 2;
-  align-self: center;
   flex-direction: column;
   gap: 6px;
   width: 168px;
   height: 168px;
   border-radius: 18px;
 }
-.smith-window .item-card.forge-weapon-target > .item-art { width: 132px !important; height: 132px !important; animation: forge-hover 4s ease-in-out infinite; }
+.smith-window .item-card.forge-weapon-target > .item-art { width: 130px !important; height: 130px !important; animation: forge-hover 4s ease-in-out infinite; }
 .smith-window .item-card.forge-weapon-target[data-card-empty] {
-  border: 2px dashed #d99a55;
-  background: #fff3dcd9;
-  box-shadow: inset 0 2px 6px #b4702c40, 0 1px #fffaf0;
-  color: #c7894b;
+  border: 3px dashed #c98a4a;
+  background: #ffffff10;
+  box-shadow: inset 0 0 20px #0006;
+  color: #f2b56b;
   opacity: 1;
 }
-.smith-window .item-card.forge-weapon-target[data-card-empty] > span { position: relative; z-index: 1; font-size: 12px; font-weight: 900; }
-.smith-window .item-card.forge-weapon-target.drag-over { outline: 3px solid #ffb14a; outline-offset: 3px; }
-.smith-window .smith-stage.working .item-card.forge-weapon-target { animation: forge-working .58s ease-in-out infinite; }
+.smith-window .item-card.forge-weapon-target[data-card-empty] > span { position: relative; z-index: 1; max-width: 110px; font-size: 12px; font-weight: 900; text-align: center; }
+.smith-window .item-card.forge-weapon-target.drag-over { outline: 3px solid #ffd36b; outline-offset: 4px; box-shadow: 0 0 24px #ffb14a; }
+.smith-window .smith-target-placeholder { position: relative; z-index: 1; color: #f2b56b; animation: smith-nudge 1.6s ease-in-out infinite; }
+@keyframes smith-nudge { 50% { transform: rotate(-14deg) translateY(-3px); } }
+.smith-window .smith-upgrade-badge { position: absolute; left: -16px; bottom: -14px; z-index: 4; }
+.smith-window .smith-anvil-base {
+  width: 220px;
+  height: 30px;
+  margin-top: -8px;
+  border-radius: 6px 6px 16px 16px;
+  background: linear-gradient(#7d8590, #4a515c 45%, #2c3139);
+  box-shadow: inset 0 2px #c9d0d8, inset 0 -3px #15181d, 0 4px 0 #1a0c05, 0 8px 18px #ff7a1f44;
+  clip-path: polygon(0 0, 100% 0, 88% 100%, 12% 100%);
+}
 .smith-window .forge-remove-weapon {
   position: absolute;
-  top: -8px;
-  right: -8px;
+  top: -9px;
+  right: -9px;
   z-index: 5;
   display: grid;
   place-items: center;
@@ -199,139 +336,116 @@
 }
 .smith-window .forge-remove-weapon:disabled { opacity: .5; cursor: not-allowed; }
 
-/* Cards vazios e silhuetas creme, como os slots vazios da mochila. */
-.smith-window .item-card[data-rarity][data-card-variant][data-card-empty] {
-  border: 2px solid #e0b077;
-  background: linear-gradient(#fbecd0, #f1d7aa);
-  box-shadow: inset 0 2px 5px #b4702c40, 0 1px #fffaf0;
-  opacity: 1;
-}
-.smith-window .item-card[data-card-empty] > .item-card-ornament,
-.smith-window .item-card[data-card-empty] > .item-card-gloss { display: none; }
-.smith-window .smith-slot-placeholder { position: relative; z-index: 1; color: #cf9a5c; opacity: .75; stroke-width: 1.6; }
-.smith-window .smith-target-placeholder { position: relative; z-index: 1; color: #d39350; }
-
-.smith-window .forge-materials {
+/* ---------- Controles logo abaixo da bigorna ---------- */
+.smith-window .smith-forge-controls { position: relative; z-index: 3; display: grid; justify-items: center; gap: 8px; width: min(340px, 100%); margin-bottom: auto; }
+.smith-window .smith-chance { width: 100%; --tone: #f6b21b; --tone-deep: #e09009; }
+.smith-window .smith-chance[data-tone="low"] { --tone: #ff7a5a; --tone-deep: #d2391b; }
+.smith-window .smith-chance[data-tone="mid"] { --tone: #ffd24a; --tone-deep: #e39a10; }
+.smith-window .smith-chance[data-tone="high"] { --tone: #7ee05a; --tone-deep: #2f9d22; }
+.smith-window .forge-chance-track {
   position: relative;
-  z-index: 2;
-  width: 100%;
-  border-radius: 12px;
+  height: 24px;
+  overflow: visible;
+  border-radius: 999px;
+  background: #1a0c05;
+  box-shadow: inset 0 2px 4px #000, 0 0 0 2px #6a3514;
 }
-.smith-window .forge-materials.drag-over { outline: 2px dashed #e5801c; outline-offset: 4px; }
-.smith-window .forge-sockets { display: flex; justify-content: center; gap: 14px; }
-.smith-window .smith-socket { position: relative; }
-.smith-window .item-card.forge-socket[data-rarity][data-card-variant] { width: 64px; height: 64px; border-radius: 12px; }
-.smith-window .item-card.forge-socket > b {
+.smith-window .forge-chance-track > i {
   position: absolute;
-  right: 4px;
-  bottom: 2px;
-  z-index: 3;
-  font-size: 12px;
-  font-weight: 900;
-  color: #fff;
-  text-shadow: 0 1px 2px #152130, 0 0 3px #152130;
-}
-.smith-window .forge-socket-minus {
-  position: absolute;
-  top: -6px;
-  right: -6px;
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border: 2px solid #fff;
-  border-radius: 50%;
-  background: #d9542b;
-  color: #fff;
-}
-.smith-window .smith-slot-label {
-  position: absolute;
-  left: 50%;
-  bottom: -12px;
-  z-index: 3;
-  width: max-content;
-  padding: 0 6px;
-  border-radius: 6px;
-  background: #fff6e2;
-  box-shadow: 0 0 0 1px #e7b87d;
-  font-size: 9px;
-  font-weight: 900;
-  line-height: 13px;
-  color: var(--bag-ink-soft);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-.smith-window .forge-material-pulse {
-  position: absolute;
-  inset: -3px;
-  z-index: 8;
-  border: 2px solid #ffb14a;
+  inset: 0 auto 0 0;
   border-radius: inherit;
-  pointer-events: none;
-  animation: forge-material-added .45s ease-out both;
+  background: linear-gradient(color-mix(in srgb, var(--tone) 60%, #fff), var(--tone) 50%, var(--tone-deep));
+  box-shadow: inset 0 1px #ffffff99, 0 0 10px color-mix(in srgb, var(--tone) 60%, transparent);
+  transition: width .35s cubic-bezier(.3, 1.4, .5, 1), background .3s;
 }
+.smith-window .forge-chance-track > strong {
+  position: relative;
+  display: block;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 24px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.smith-window .forge-chance-track > em {
+  position: absolute;
+  right: -6px;
+  top: -6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+  color: #fff;
+  animation: smith-delta .9s ease-out both;
+  pointer-events: none;
+}
+.smith-window .forge-chance-track > em.up { background: #3fae3a; }
+.smith-window .forge-chance-track > em.down { background: #c9431f; }
+@keyframes smith-delta { 0% { transform: translateY(6px) scale(.6); opacity: 0; } 20% { transform: translateY(0) scale(1.1); opacity: 1; } 75% { opacity: 1; } 100% { transform: translateY(-14px); opacity: 0; } }
 
-/* Composição: mineral escolhido + prévia do atributo. */
-.smith-window .composition-selection {
+.smith-window .smith-action {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  width: fit-content;
-  margin: 0 auto;
-  padding: 6px 14px 6px 6px;
+  gap: 8px;
+  width: 100%;
+  height: 48px;
+  border: 2px solid #fff2c8;
   border-radius: 12px;
-  background: #fffaf0;
-  box-shadow: inset 0 0 0 1px #e8b77a, 0 2px #d9a76a55;
+  background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
+  box-shadow: inset 0 1px #fff7cf, inset 0 -3px #c06d0a, 0 3px #1a0c05;
+  color: #6b2c05;
+  font-size: 19px;
+  font-weight: 900;
+  cursor: pointer;
+  transition: transform .12s, filter .12s;
 }
-.smith-window .item-card.composition-selected-stone[data-rarity][data-card-variant] { width: 64px; height: 64px; }
-.smith-window .composition-selection > div { display: grid; gap: 2px; min-width: 150px; }
-.smith-window .composition-selection strong { font-size: 15px; font-weight: 900; color: var(--bag-ink); }
-.smith-window .composition-selection > div > span { font-size: 12px; font-weight: 800; color: var(--bag-ink-soft); }
-.smith-window .composition-preview { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: var(--bag-ink-soft); }
-.smith-window .composition-preview b { font-size: 18px; font-weight: 900; color: #2f8d1f; }
+.smith-window .smith-action.is-ready { animation: smith-ready 1.8s ease-in-out infinite; }
+.smith-window .smith-action:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.smith-window .smith-action:active:not(:disabled) { transform: translateY(2px); box-shadow: inset 0 1px #fff7cf, inset 0 -1px #c06d0a, 0 1px #1a0c05; }
+.smith-window .smith-action:disabled { filter: grayscale(.75) brightness(.8); opacity: .65; cursor: not-allowed; }
+.smith-window .smith-action.pending { filter: none; opacity: 1; }
+.smith-window .smith-action .button-spinner { animation: smith-spin .8s linear infinite; }
+@keyframes smith-spin { to { rotate: 360deg; } }
+@keyframes smith-ready { 50% { box-shadow: inset 0 1px #fff7cf, inset 0 -3px #c06d0a, 0 3px #1a0c05, 0 0 18px #ffb14acc; } }
+.smith-window .forge-feedback { min-height: 16px; font-size: 12px; font-weight: 800; line-height: 1.3; color: #ffd9a3; text-align: center; }
+.smith-window .forge-feedback.is-guidance { color: #ffe9c4; }
+.smith-window .forge-feedback.is-error { color: #ff9c86; }
+.smith-window .forge-feedback.is-success { color: #a6f08a; }
+.smith-window .forge-feedback.is-failure { color: #ffb4a0; }
 
-/* Animação da forja e resultado sobre o palco creme. */
-.smith-window .forge-strengthening { position: absolute; inset: 0; z-index: 8; pointer-events: none; }
-.smith-window .forge-energy-paths { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.smith-window .forge-energy-trails { fill: none; stroke: #ff9d2e; stroke-width: 3; stroke-linecap: round; filter: drop-shadow(0 0 4px #ffc46a); }
-.smith-window .forge-energy-trails > path { stroke-dasharray: 10 30 4 24; animation: forge-energy .72s linear infinite; }
-.smith-window .forge-energy-aura { fill: none; stroke: #f6a53a; stroke-width: 2; transform-origin: 250px 200px; animation: forge-energy-ring .58s ease-out infinite; }
-.smith-window .forge-energy-aura > circle:last-child { stroke-dasharray: 4 16; opacity: .7; }
+/* ---------- Animação da forja (curta) e resultado ---------- */
+.smith-window .forge-strengthening { position: absolute; inset: 0; z-index: 6; pointer-events: none; }
 .smith-window .forge-striking-hammer {
   position: absolute;
-  left: calc(50% + 34px);
-  top: calc(40% - 118px);
-  width: 70px;
-  height: 86px;
+  right: -48px;
+  top: -58px;
+  width: 64px;
+  height: 78px;
   transform-origin: 50% 100%;
-  filter: drop-shadow(0 4px 3px #6b330f77);
-  animation: forge-mallet .58s cubic-bezier(.5, 0, .8, .6) infinite;
+  filter: drop-shadow(0 4px 3px #000a);
+  animation: forge-mallet .4s cubic-bezier(.5, 0, .8, .6) .45s 2 both;
 }
-.smith-window .forge-strike-sparks { position: absolute; left: 50%; top: 40%; width: 1px; height: 1px; }
+.smith-window .forge-strike-sparks { position: absolute; left: 50%; top: 45%; width: 1px; height: 1px; }
 .smith-window .forge-strike-sparks > i {
   position: absolute;
   width: 3px;
   height: 12px;
   border-radius: 50%;
-  background: #ffb347;
+  background: #ffe08a;
   box-shadow: 0 0 6px #ff9a2e;
   transform-origin: 50% 0;
-  animation: forge-spark .58s ease-out infinite;
-  animation-delay: var(--spark-delay);
+  animation: forge-spark .4s ease-out calc(.62s + var(--spark-delay)) 2 both;
 }
-.smith-window .forge-progress-caption {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 96px;
-  z-index: 9;
-  font-size: 13px;
-  font-weight: 900;
-  color: #c4600f;
-  text-align: center;
-  text-shadow: 0 1px #fff;
-  animation: forge-caption .6s ease-in-out infinite alternate;
+.smith-window .smith-stage.working .item-card.forge-weapon-target { animation: smith-heat 1.3s ease-in both; }
+@keyframes smith-heat {
+  0%, 30% { filter: none; }
+  55% { filter: drop-shadow(0 0 12px #ffb14a) brightness(1.15); transform: translateY(2px); }
+  62% { transform: translateY(-2px); }
+  85% { filter: drop-shadow(0 0 22px #ffd36b) brightness(1.35); transform: translateY(2px); }
+  100% { filter: drop-shadow(0 0 30px #fff3b0) brightness(1.6); transform: none; }
 }
 .smith-window .forge-outcome {
   position: absolute;
@@ -341,74 +455,63 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at 50% 42%, #fff8e8f2 0, #fff3dccc 38%, transparent 70%);
+  gap: 8px;
   pointer-events: none;
+  animation: smith-outcome-fade 2.4s ease-in 1.6s both;
 }
+.smith-window .forge-outcome.success { background: radial-gradient(circle at 50% 42%, #fff3b0cc, #ffb14a66 30%, #2a170dcc 72%); }
+.smith-window .forge-outcome.success::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: 520px;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+  background: repeating-conic-gradient(#ffe48a55 0 8deg, transparent 8deg 22deg);
+  mask: radial-gradient(circle, #000 20%, transparent 65%);
+  animation: smith-rays 3s linear infinite;
+  z-index: -1;
+}
+.smith-window .forge-outcome.failure { background: radial-gradient(circle at 50% 42%, #5d5a58cc, #2a170de6 70%); }
 .smith-window .forge-outcome > strong {
   font-family: 'Cinzel', Georgia, serif;
-  font-size: 50px;
+  font-size: 46px;
   font-weight: 900;
   line-height: 1;
   color: #ffd35c;
-  -webkit-text-stroke: 2px #8a3f0b;
+  -webkit-text-stroke: 2px #6b2c05;
   paint-order: stroke fill;
-  text-shadow: 0 3px #5b2a0e, 0 0 18px #ffae4a99;
-  animation: forge-outcome-appear .5s ease-out;
+  text-shadow: 0 3px #3b1806, 0 0 18px #ffae4a;
+  animation: forge-outcome-appear .45s cubic-bezier(.2, 1.4, .4, 1) both;
 }
-.smith-window .forge-outcome-flourish { font-size: 22px; color: #e5801c; }
+.smith-window .forge-outcome.failure > strong { color: #d7d0cb; -webkit-text-stroke-color: #3a2a22; text-shadow: 0 3px #1a0c05; animation: smith-fail .5s ease-out both; }
+.smith-window .smith-outcome-tag { animation: forge-outcome-appear .5s cubic-bezier(.2, 1.4, .4, 1) .12s both; }
 .smith-window .forge-outcome-level {
-  margin-top: 8px;
-  padding: 3px 14px;
+  padding: 4px 14px;
   border-radius: 999px;
   background: linear-gradient(#fffdf5, #f5e3be);
-  box-shadow: inset 0 -2px #d9b880, 0 1px 2px #5b2a0e66;
+  box-shadow: inset 0 -2px #d9b880, 0 2px #1a0c05;
   font-size: 14px;
   font-weight: 900;
   color: var(--bag-ink);
+  animation: forge-outcome-appear .45s ease-out .1s both;
 }
-.smith-window .forge-outcome.failure > strong { color: #ffb4a0; -webkit-text-stroke-color: #8a2a14; text-shadow: 0 3px #4d1608; }
-.smith-window .forge-outcome.failure .forge-outcome-flourish { color: #b4422a; }
+.smith-window .smith-stage.is-failure .item-card.forge-weapon-target { animation: smith-shake .45s ease-in-out; }
+@keyframes smith-rays { to { rotate: 360deg; } }
+@keyframes smith-fail { 0% { opacity: 0; transform: translateY(-20px); } 60% { opacity: 1; transform: translateY(4px); } 100% { transform: none; } }
+@keyframes smith-shake { 20%, 60% { transform: translateX(-7px) rotate(-2deg); } 40%, 80% { transform: translateX(7px) rotate(2deg); } }
+@keyframes smith-outcome-fade { to { opacity: 0; visibility: hidden; } }
 
-/* ---------- Faixa escura: chance, composição atual e ação ---------- */
-.smith-window .smith-console {
+.smith-window .smith-console.composition-current {
   display: grid;
-  gap: 8px;
-  padding: 10px 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  padding: 6px;
   border-radius: 10px;
   background: var(--bag-grain), linear-gradient(#6a3514, #4c230a);
   box-shadow: inset 0 2px 6px #2a0f0399, 0 1px #ffc98c55;
 }
-.smith-window .smith-chance { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; }
-.smith-window .smith-chance > span { display: flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 900; color: #ffe9c4; white-space: nowrap; }
-.smith-window .smith-chance > span > svg { color: var(--bag-gold); }
-.smith-window .smith-chance > .smith-count { font-size: 11px; color: #ffd9a3; }
-.smith-window .forge-chance-track {
-  position: relative;
-  height: 22px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #d9c29a;
-  box-shadow: inset 0 1px 3px #6b3a1466, 0 0 0 1px #2a0f03aa;
-}
-.smith-window .forge-chance-track > i {
-  position: absolute;
-  inset: 0 auto 0 0;
-  border-radius: inherit;
-  background: linear-gradient(#ffe48a, #f6b21b 55%, #e09009);
-  box-shadow: inset 0 1px #fff6c8;
-  transition: width .35s ease;
-}
-.smith-window .forge-chance-track > strong {
-  position: relative;
-  display: block;
-  font-size: 13px;
-  font-weight: 900;
-  line-height: 22px;
-  color: #fff;
-  text-align: center;
-  text-shadow: 0 0 2px #6b3a14, 0 1px #6b3a14;
-}
-.smith-window .composition-current { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
 .smith-window .composition-current > span {
   display: flex;
   align-items: center;
@@ -423,33 +526,16 @@
 .smith-window .composition-current > span[data-active] { box-shadow: inset 0 -2px #d9b880, 0 0 0 2px #ffb14a; }
 .smith-window .composition-current small { flex: 1; min-width: 0; overflow: hidden; font-size: 10px; font-weight: 800; color: var(--bag-ink-soft); text-overflow: ellipsis; white-space: nowrap; }
 .smith-window .composition-current b { font-size: 13px; font-weight: 900; color: var(--bag-ink); }
-.smith-window .smith-console-foot { display: flex; align-items: center; gap: 12px; }
-.smith-window .forge-feedback { flex: 1; min-width: 0; font-size: 12px; font-weight: 800; line-height: 1.25; color: #ffd9a3; }
-.smith-window .forge-feedback.is-error { color: #ff9c86; }
-.smith-window .smith-action {
-  display: flex;
-  flex: none;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  min-width: 156px;
-  height: 42px;
-  padding: 0 20px;
-  border: 1px solid #fff2c8;
-  border-radius: 10px;
-  background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
-  box-shadow: inset 0 1px #fff7cf, inset 0 -2px #c06d0a, 0 2px #2a0f03;
-  color: #6b2c05;
-  font-size: 16px;
-  font-weight: 900;
-  cursor: pointer;
-}
-.smith-window .smith-action:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
-.smith-window .smith-action:disabled { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
-.smith-window .smith-action .button-spinner { animation: smith-spin .8s linear infinite; }
-@keyframes smith-spin { to { rotate: 360deg; } }
 
 /* ---------- Estoque: barra, grade creme e abas verticais ---------- */
+/* Cards vazios em creme, como os slots vazios da mochila. */
+.smith-window .smith-grid .item-card[data-rarity][data-card-variant][data-card-empty] {
+  border: 2px solid #e0b077;
+  background: linear-gradient(#fbecd0, #f1d7aa);
+  box-shadow: inset 0 2px 5px #b4702c40, 0 1px #fffaf0;
+  opacity: 1;
+}
+.smith-window .smith-grid .item-card[data-card-empty] > :is(.item-card-ornament, .item-card-gloss) { display: none; }
 .smith-window .smith-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px; padding: 0 4px 0 8px; }
 .smith-window .smith-toolbar h2 { display: flex; align-items: center; gap: 7px; margin: 0; font-size: 17px; font-weight: 900; color: #fff3dc; text-shadow: 0 1px #3b1806; }
 .smith-window .smith-toolbar h2 svg { color: var(--bag-gold); }
@@ -627,39 +713,23 @@
 .smith-window .smith-wallet img { object-fit: contain; }
 .smith-window .smith-hint { font-size: 11px; font-weight: 800; color: #ffd9a3; }
 
-@keyframes forge-energy { to { stroke-dashoffset: -136; } }
-@keyframes forge-energy-ring { 0% { transform: scale(.7); opacity: 0; } 40% { opacity: .8; } 100% { transform: scale(1.2); opacity: 0; } }
-@keyframes forge-mallet { 0%, 15% { transform: rotate(28deg) translateY(-9px); } 53% { transform: rotate(-35deg) translateY(12px); } 65% { transform: rotate(-27deg) translateY(7px); } 100% { transform: rotate(28deg) translateY(-9px); } }
-@keyframes forge-spark { 0%, 48% { transform: rotate(var(--spark-angle)) translateY(0) scale(.2); opacity: 0; } 53% { opacity: 1; } 100% { transform: rotate(var(--spark-angle)) translateY(calc(-1 * var(--spark-distance))) scale(.3); opacity: 0; } }
-@keyframes forge-caption { to { opacity: .35; } }
-@keyframes forge-outcome-appear { 0% { opacity: 0; transform: scale(1.55); } 55% { opacity: 1; transform: scale(.94); } 100% { opacity: 1; transform: scale(1); } }
-@keyframes forge-hover { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
-@keyframes forge-working { 0%, 100% { transform: translateY(-3px); filter: drop-shadow(0 0 12px #ffb14a99); } 50% { transform: translateY(-7px); filter: drop-shadow(0 0 22px #ffb14add); } }
-@keyframes forge-material-added { 0% { opacity: 1; box-shadow: 0 0 0 0 #ffb14a77; } 100% { opacity: 0; box-shadow: 0 0 0 8px #ffb14a00; } }
-@media (prefers-reduced-motion: reduce) { .smith-window *, .smith-window *::before, .smith-window *::after { animation: none !important; transition: none !important; } }
+@keyframes forge-mallet { 0% { transform: rotate(30deg) translateY(-8px); } 55% { transform: rotate(-38deg) translateY(10px); } 100% { transform: rotate(30deg) translateY(-8px); } }
+@keyframes forge-spark { 0% { transform: rotate(var(--spark-angle)) translateY(0) scale(.2); opacity: 0; } 15% { opacity: 1; } 100% { transform: rotate(var(--spark-angle)) translateY(calc(-1 * var(--spark-distance))) scale(.3); opacity: 0; } }
+@keyframes forge-outcome-appear { 0% { opacity: 0; transform: scale(1.6); } 60% { opacity: 1; transform: scale(.94); } 100% { opacity: 1; transform: scale(1); } }
+@keyframes forge-hover { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-6px) rotate(1deg); } }
+@keyframes forge-material-added { 0% { opacity: 1; transform: scale(.9); } 100% { opacity: 0; transform: scale(1.35); } }
+@media (prefers-reduced-motion: reduce) { .smith-window *, .smith-window *::before, .smith-window *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition: none !important; } }
+
 
 /* ---------- Telas menores ---------- */
-@media (max-height: 760px) {
-  .smith-window .smith-head { height: 48px; }
-  .smith-window .smith-head-icon { width: 34px; height: 34px; }
-  .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 136px; height: 136px; }
-  .smith-window .item-card.forge-weapon-target > .item-art { width: 106px !important; height: 106px !important; }
-  .smith-window .smith-upgrade-badge { width: 76px; height: auto; }
-  .smith-window .item-card.forge-socket[data-rarity][data-card-variant],
-  .smith-window .item-card.composition-selected-stone[data-rarity][data-card-variant] { width: 54px; height: 54px; }
-  .smith-window .smith-tabs button { min-height: 70px; }
-}
-@media (max-width: 1100px) {
-  .smith-window .smith-records div { min-width: 58px; padding-inline: 6px; }
-  .smith-window .smith-hint { display: none; }
-}
+@media (max-height: 760px) { .smith-window .smith-tabs button { min-height: 70px; } }
+@media (max-width: 1100px) { .smith-window .smith-hint { display: none; } }
 
 /* Janela estreita (desktop redimensionado): painéis empilhados com rolagem. */
 @media (max-width: 700px) {
   html:not(.mobile-landscape) .smith-window .smith-layout { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; overscroll-behavior: contain; }
   html:not(.mobile-landscape) .smith-window .smith-bench { grid-template-rows: auto 340px auto; }
   html:not(.mobile-landscape) .smith-window .smith-pane { grid-template-rows: auto 420px auto; }
-  html:not(.mobile-landscape) .smith-window .smith-records { display: none; }
   html:not(.mobile-landscape) .smith-window :is(.forge-weapon-stock, .forge-stone-stock, .composition-tier-grid) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
   html:not(.mobile-landscape) .smith-window .composition-attributes button span { display: none; }
 }
@@ -671,50 +741,51 @@ html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu
 html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu-frame.smith-window[class] .close-button { width: 30px; height: 30px; min-width: 30px; min-height: 30px; }
 html.mobile-landscape .smith-window .smith-layout { grid-template-columns: minmax(0, 48%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
 html.mobile-landscape .smith-window :is(.smith-bench, .smith-pane) { gap: 4px; padding: 4px; }
-html.mobile-landscape .smith-window .smith-head { height: 34px; gap: 6px; padding: 0 6px 0 4px; }
-html.mobile-landscape .smith-window .smith-head-icon { width: 26px; height: 26px; border-width: 1px; }
-html.mobile-landscape .smith-window .smith-head-icon svg { width: 15px; height: 15px; }
-html.mobile-landscape .smith-window .smith-identity small,
-html.mobile-landscape .smith-window .smith-identity > span { display: none; }
-html.mobile-landscape .smith-window .smith-identity h2 { font-size: 13px; }
-html.mobile-landscape .smith-window .smith-records div { min-width: 0; padding: 1px 6px; }
-html.mobile-landscape .smith-window .smith-records dt { font-size: 8px; }
-html.mobile-landscape .smith-window .smith-records dd { font-size: 11px; }
-html.mobile-landscape .smith-window .smith-stage { padding: 4px 6px 12px; }
-html.mobile-landscape .smith-window .smith-sigil { width: 150px; }
-html.mobile-landscape .smith-window .smith-upgrade-badge { top: 4px; left: 6px; width: 52px; height: auto; }
-html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 76px; height: 76px; border-radius: 12px; gap: 2px; }
-html.mobile-landscape .smith-window .item-card.forge-weapon-target > .item-art { width: 60px !important; height: 60px !important; }
-html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-card-empty] > span { font-size: 8px; }
-html.mobile-landscape .smith-window .smith-target-placeholder { width: 22px; height: 22px; }
+@media (max-height: 760px) {
+  .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 116px; height: 116px; }
+  .smith-window .item-card.forge-weapon-target > .item-art { width: 90px !important; height: 90px !important; }
+  .smith-window .smith-upgrade-badge { width: 54px; height: auto; }
+  .smith-window .item-card.forge-socket[data-rarity][data-card-variant] { width: 48px; height: 48px; }
+  .smith-window .smith-action { height: 42px; font-size: 17px; }
+  .smith-window .smith-stage { padding: 10px 12px 8px; gap: 6px; }
+}
+@media (max-width: 1100px) { .smith-window .smith-steps li { padding-right: 4px; font-size: 0; gap: 0; } }
+html.mobile-landscape .smith-window .smith-head { height: 32px; gap: 6px; padding: 0 6px 0 4px; }
+html.mobile-landscape .smith-window .smith-head-icon { width: 24px; height: 24px; border-width: 1px; }
+html.mobile-landscape .smith-window .smith-head-icon svg { width: 14px; height: 14px; }
+html.mobile-landscape .smith-window .smith-identity small { display: none; }
+html.mobile-landscape .smith-window .smith-identity h2 { font-size: 12px; }
+html.mobile-landscape .smith-window .smith-steps li { height: 20px; padding: 0 2px; font-size: 0; gap: 0; }
+html.mobile-landscape .smith-window .smith-steps li > span { width: 16px; height: 16px; font-size: 9px; }
+html.mobile-landscape .smith-window .smith-stage { gap: 3px; padding: 5px 6px 4px; }
 html.mobile-landscape .smith-window .forge-sockets { gap: 6px; }
-html.mobile-landscape .smith-window .item-card.forge-socket[data-rarity][data-card-variant],
-html.mobile-landscape .smith-window .item-card.composition-selected-stone[data-rarity][data-card-variant] { width: 36px; height: 36px; border-radius: 8px; padding: 2px; }
-html.mobile-landscape .smith-window .item-card.forge-socket img { width: 28px; height: 28px; }
-html.mobile-landscape .smith-window .item-card.forge-socket > b { font-size: 9px; }
-html.mobile-landscape .smith-window .smith-slot-label { bottom: -10px; font-size: 7px; line-height: 10px; }
-html.mobile-landscape .smith-window .composition-selection { gap: 6px; padding: 3px 8px 3px 3px; }
-html.mobile-landscape .smith-window .composition-selection > div { min-width: 0; }
-html.mobile-landscape .smith-window .composition-selection strong { font-size: 11px; }
-html.mobile-landscape .smith-window .composition-selection > div > span,
-html.mobile-landscape .smith-window .composition-preview { font-size: 9px; }
-html.mobile-landscape .smith-window .composition-preview b { font-size: 12px; }
-html.mobile-landscape .smith-window .forge-outcome > strong { font-size: 28px; }
-html.mobile-landscape .smith-window .forge-outcome-level { font-size: 10px; margin-top: 4px; }
-html.mobile-landscape .smith-window .forge-progress-caption { bottom: 52px; font-size: 10px; }
-html.mobile-landscape .smith-window .forge-striking-hammer { left: calc(50% + 18px); top: calc(40% - 70px); width: 40px; height: 50px; }
-html.mobile-landscape .smith-window .smith-console { gap: 4px; padding: 5px 7px; }
-html.mobile-landscape .smith-window .smith-chance { gap: 6px; }
-html.mobile-landscape .smith-window .smith-chance > span { font-size: 9px; }
+html.mobile-landscape .smith-window .item-card.forge-socket[data-rarity][data-card-variant] { width: 30px; height: 30px; padding: 2px; border-width: 2px; }
+html.mobile-landscape .smith-window .item-card.forge-socket img { width: 22px; height: 22px; }
+html.mobile-landscape .smith-window .item-card.forge-socket .composition-icon { width: 22px !important; height: 22px !important; background-size: auto 22px !important; }
+html.mobile-landscape .smith-window .item-card.forge-socket > small { font-size: 9px; }
+html.mobile-landscape .smith-window .item-card.forge-socket > b { min-width: 14px; font-size: 8px; line-height: 12px; right: -5px; bottom: -5px; }
+html.mobile-landscape .smith-window .composition-preview { height: 22px; padding: 0 8px; font-size: 9px; }
+html.mobile-landscape .smith-window .composition-preview b { font-size: 11px; }
+html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 70px; height: 70px; border-radius: 12px; gap: 2px; }
+html.mobile-landscape .smith-window .item-card.forge-weapon-target > .item-art { width: 54px !important; height: 54px !important; }
+html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-card-empty] > span { font-size: 7px; }
+html.mobile-landscape .smith-window .smith-target-placeholder { width: 18px; height: 18px; }
+html.mobile-landscape .smith-window .smith-upgrade-badge { width: 36px; height: auto; left: -10px; bottom: -8px; }
+html.mobile-landscape .smith-window .smith-anvil-base { width: 110px; height: 14px; margin-top: -4px; }
+html.mobile-landscape .smith-window .smith-forge-controls { gap: 3px; width: min(220px, 100%); }
 html.mobile-landscape .smith-window .forge-chance-track { height: 16px; }
-html.mobile-landscape .smith-window .forge-chance-track > strong { font-size: 10px; line-height: 16px; }
-html.mobile-landscape .smith-window .composition-current { gap: 3px; }
+html.mobile-landscape .smith-window .forge-chance-track > strong { font-size: 9px; line-height: 16px; }
+html.mobile-landscape .smith-window .forge-chance-track > em { font-size: 8px; }
+html.mobile-landscape .smith-window .smith-action { height: 28px; font-size: 12px; border-radius: 8px; }
+html.mobile-landscape .smith-window .forge-feedback { min-height: 0; font-size: 8px; }
+html.mobile-landscape .smith-window .forge-outcome > strong { font-size: 24px; }
+html.mobile-landscape .smith-window .smith-outcome-tag { width: 64px; height: auto; }
+html.mobile-landscape .smith-window .forge-outcome-level { font-size: 9px; padding: 2px 8px; }
+html.mobile-landscape .smith-window .forge-striking-hammer { right: -28px; top: -34px; width: 34px; height: 42px; }
+html.mobile-landscape .smith-window .composition-current { gap: 3px; padding: 3px; }
 html.mobile-landscape .smith-window .composition-current > span { height: 20px; padding: 0 4px 0 2px; }
 html.mobile-landscape .smith-window .composition-current small { display: none; }
 html.mobile-landscape .smith-window .composition-current b { font-size: 10px; }
-html.mobile-landscape .smith-window .smith-console-foot { gap: 6px; }
-html.mobile-landscape .smith-window .forge-feedback { font-size: 8px; }
-html.mobile-landscape .smith-window .smith-action { min-width: 0; height: 30px; padding: 0 10px; font-size: 12px; }
 html.mobile-landscape .smith-window .smith-toolbar { min-height: 24px; }
 html.mobile-landscape .smith-window .smith-toolbar h2 { font-size: 12px; }
 html.mobile-landscape .smith-window .smith-toolbar .capacity { padding: 2px 8px; font-size: 9px; }
@@ -742,3 +813,4 @@ html.mobile-landscape .smith-window .smith-footer { padding: 3px 6px; }
 html.mobile-landscape .smith-window .smith-wallet > span { min-width: 0; height: 24px; padding-right: 8px; }
 html.mobile-landscape .smith-window .smith-wallet b { font-size: 11px; }
 html.mobile-landscape .smith-window .smith-hint { display: none; }
+
