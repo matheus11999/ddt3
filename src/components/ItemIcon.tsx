@@ -7,36 +7,37 @@ import {getWornHatPortrait,hasWornHat} from '../game/headwear';
 import {getCostumePortrait} from '../game/costumes';
 
 /** The icon and equipped face share the same composited painting and registration. */
-function FaceIcon({id,size}:{id:string;size:number}){
+function FaceIcon({id,size,skin,eyes}:{id:string;size:number;skin?:string;eyes?:string}){
  const ref=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   const c=ref.current!.getContext('2d')!;
-  const draw=()=>{c.clearRect(0,0,160,160);const face=getFacePortrait(id)??getFacePortrait('face-brave');if(face)c.drawImage(face,...FACE_REGISTRATION.headRect,10,11,140,139);};
+  const draw=()=>{c.clearRect(0,0,160,160);const face=getFacePortrait(id,skin,eyes)??getFacePortrait('face-brave',skin,eyes);if(face)c.drawImage(face,...FACE_REGISTRATION.headRect,10,11,140,139);};
   draw();window.addEventListener('brasa-art-loaded',draw);return()=>window.removeEventListener('brasa-art-loaded',draw);
- },[id]);
+ },[id,skin,eyes]);
  return <canvas className="item-art" ref={ref} width={160} height={160} style={{width:size,height:size}} role="img" aria-label={CATALOG[id].name}/>;
 }
 
 /** Complete outfit icons are composed from the exact equipped body painting. */
-function OutfitIcon({id,size,accessory=false,headwear=false,costume=false}:{id:string;size:number;accessory?:boolean;headwear?:boolean;costume?:boolean}){
+function OutfitIcon({id,size,accessory=false,headwear=false,costume=false,color}:{id:string;size:number;accessory?:boolean;headwear?:boolean;costume?:boolean;color?:string}){
  const ref=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   const c=ref.current!.getContext('2d')!;
-  const draw=()=>{c.clearRect(0,0,160,160);const outfit=costume?getCostumePortrait(id):headwear?getWornHatPortrait(id):accessory?getAccessoryPortrait(id):getOutfitPortrait(id);if(outfit){const scale=Math.min(144/outfit.width,148/outfit.height);c.drawImage(outfit,(160-outfit.width*scale)/2,(160-outfit.height*scale)/2,outfit.width*scale,outfit.height*scale);}};
+  const draw=()=>{c.clearRect(0,0,160,160);const outfit=costume?getCostumePortrait(id):headwear?getWornHatPortrait(id,color):accessory?getAccessoryPortrait(id,color):getOutfitPortrait(id,color);if(outfit){const scale=Math.min(144/outfit.width,148/outfit.height);c.drawImage(outfit,(160-outfit.width*scale)/2,(160-outfit.height*scale)/2,outfit.width*scale,outfit.height*scale);}};
   draw();window.addEventListener('brasa-art-loaded',draw);return()=>window.removeEventListener('brasa-art-loaded',draw);
- },[id,accessory,headwear,costume]);
+ },[id,accessory,headwear,costume,color]);
  return <canvas className="item-art" ref={ref} width={160} height={160} style={{width:size,height:size}} role="img" aria-label={CATALOG[id].name}/>;
 }
 
-/** Original item illustrations. Rarity chrome belongs to ItemCard. */
-export function ItemIcon({id,size=60,upgrade=0}:{id:string;size?:number;upgrade?:number}){
+/** Original item illustrations. Rarity chrome belongs to ItemCard. `color` is the copy's ticket color;
+ * `skin` and `eyes` show a face in the character's own body colors. */
+export function ItemIcon({id,size=60,upgrade=0,color,skin,eyes}:{id:string;size?:number;upgrade?:number;color?:string;skin?:string;eyes?:string}){
  const uid=useId().replace(/[^a-zA-Z0-9]/g,'');const [missing,setMissing]=useState<readonly string[]>([]);
  const item=CATALOG[id];if(!item||isEmptyItem(item))return null;
  if(item.slot==='costume')return <OutfitIcon id={id} size={size} costume/>;
- if(item.slot==='face')return <FaceIcon id={id} size={size}/>;
- if(hasWornHat(id))return <OutfitIcon id={id} size={size} headwear/>;
- if(PAINTED_ACCESSORIES[id])return <OutfitIcon id={id} size={size} accessory/>;
- if(item.slot==='outfit')return <OutfitIcon id={id} size={size}/>;
+ if(item.slot==='face')return <FaceIcon id={id} size={size} skin={skin} eyes={eyes}/>;
+ if(hasWornHat(id))return <OutfitIcon id={id} size={size} headwear color={color}/>;
+ if(PAINTED_ACCESSORIES[id])return <OutfitIcon id={id} size={size} accessory color={color}/>;
+ if(item.slot==='outfit')return <OutfitIcon id={id} size={size} color={color}/>;
  // Body and hair atlases include registration whitespace for the avatar. The bag uses dedicated illustrations.
  // Weapons show their DDTank-style icon, then the held art while the icon is not painted yet.
  const asset=item.slot==='weapon'?[weaponIconPath(id,upgrade),weaponAssetPath(id,upgrade)].find(path=>!missing.includes(path)):item.slot==='hair'?undefined:item.visual?.asset??(id==='hat-cap'||id==='hat-mage'?`/assets/${id}.png`:undefined);

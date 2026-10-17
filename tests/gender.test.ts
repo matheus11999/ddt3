@@ -58,7 +58,7 @@ test('prototype retirement migration still replaces owned assets and composition
 
 test('network schemas reject changing gender through equip, dyes, customization, purchases or invented commands',()=>{
  const items=Object.fromEntries(SLOTS.map(slot=>[slot,DEFAULT_EQUIPMENT[slot]]));
- for(const command of [{type:'gender',gender:'female'},{type:'set-gender',gender:'female'},{type:'equip',item:'ember',gender:'female'},{type:'dye',slot:'hat',color:'coral',gender:'female'},{type:'customize',gender:'female',selection:{items}},{type:'customize',selection:{items,gender:'female'}},{type:'shop-buy',items:['volt'],gender:'female'}])assert.equal(commandSchema.safeParse(command).success,false);
+ for(const command of [{type:'gender',gender:'female'},{type:'set-gender',gender:'female'},{type:'equip',item:'ember',gender:'female'},{type:'recolor',item:'hat-cap',color:'#ffffff',gender:'female'},{type:'customize',gender:'female',selection:{items}},{type:'customize',selection:{items,gender:'female'}},{type:'shop-buy',items:['volt'],gender:'female'}])assert.equal(commandSchema.safeParse(command).success,false);
  for(const gender of CHARACTER_GENDERS)assert.equal(sessionRequestSchema.safeParse({gender}).success,true);
  for(const body of [{gender:'other'},{gender:null},{gender:1},{gender:'male',id:randomUUID()},['male']])assert.equal(sessionRequestSchema.safeParse(body).success,false);
 });
@@ -93,11 +93,11 @@ test('owned opposite-gender face, outfit, hat and hair are rejected under the pr
   for(const slot of ['face','outfit','hat','hair'] as const)if(!state.profile.inventory.includes(other[slot]))state.profile.inventory.push(other[slot]);
   for(const slot of ['face','outfit','hat','hair'] as const){
    const before=structuredClone(state.profile),mark=state.queries.length;
-   await assert.rejects(store.saveEquipment(before.id,{...before.equipment,[slot]:other[slot],dyes:{hat:'coral'}}),/gênero/);
+   await assert.rejects(store.saveEquipment(before.id,{...before.equipment,[slot]:other[slot]}),/gênero/);
    assert.deepEqual(state.profile,before);assert.match(state.queries[mark+1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.queries.slice(mark).some(q=>q.startsWith('UPDATE')),false);
   }
   const before=structuredClone(state.profile);await assert.rejects(store.saveEquipment(before.id,{...before.equipment,glasses:'glasses-cat'}),/mochila/);assert.deepEqual(state.profile,before);
-  const saved=await store.saveEquipment(before.id,{...before.equipment,dyes:{hat:'coral'}});assert.equal(saved.gender,gender);assert.equal(saved.equipment.dyes?.hat,'coral');
+  const saved=await store.saveEquipment(before.id,{...before.equipment});assert.equal(saved.gender,gender);
  }
 });
 

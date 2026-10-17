@@ -17,7 +17,7 @@ function deferred(){
 function customization(equipment:Equipment,requestId?:string):Extract<Command,{type:'customize'}>{
  return commandSchema.parse({type:'customize',requestId,selection:{
   items:Object.fromEntries(SLOTS.map(slot=>[slot,equipment[slot]])),
-  dyes:equipment.dyes??{},visibility:equipment.visibility??{}
+  visibility:equipment.visibility??{}
  }}) as Extract<Command,{type:'customize'}>;
 }
 
@@ -58,7 +58,7 @@ test('customization request IDs are optional bounded strings and cannot be attac
 test('customization acknowledges the exact request only after commit, then publishes the saved equipment',async()=>{
  const f=await fixture(),before=structuredClone(f.state.profile),entered=deferred(),commit=deferred();
  f.state.beforeCommit=async()=>{entered.resolve();await commit.promise;};
- const selected={...before.equipment,face:'face-taunt',costume:'costume-thunder-chick',dyes:{hat:'coral' as const},visibility:{hat:false,glasses:false,costume:true}};
+ const selected={...before.equipment,face:'face-taunt',costume:'costume-thunder-chick',visibility:{hat:false,glasses:false,costume:true}};
  const saving=f.game.command(before.id,customization(selected,'appearance-1'));
  await entered.promise;
  assert.deepEqual(f.state.profile,before,'uncommitted state is not durable');
@@ -71,7 +71,6 @@ test('customization acknowledges the exact request only after commit, then publi
  assert.equal(f.state.profile.equipment.face,'face-taunt');
  assert.equal(f.state.profile.equipment.costume,'costume-thunder-chick');
  assert.deepEqual(f.state.profile.equipment.visibility,selected.visibility);
- assert.equal(f.state.profile.equipment.dyes?.hat,'coral');
  const publication=f.observerEvents.find(event=>event.type==='lobby');
  assert.equal(publication?.type,'lobby');
  if(publication?.type==='lobby')assert.deepEqual(publication.players.find(player=>player.id===before.id)?.equipment,f.state.profile.equipment);
@@ -122,7 +121,7 @@ test('battle and in-flight equipment guards preserve correlation without emittin
 
 test('legacy customization and unrelated profile/error replies do not gain a request ID',async()=>{
  const f=await fixture(),id=f.peer.profile.id;
- const commands:Command[]=[customization(f.peer.profile.equipment),{type:'equip',item:'face-taunt'},{type:'dye',slot:'hat',color:'coral'},{type:'equip',item:'missing'}];
+ const commands:Command[]=[customization(f.peer.profile.equipment),{type:'equip',item:'face-taunt'},{type:'equip',item:'missing'}];
  for(const command of commands){
   f.events.length=0;await f.game.command(id,command);
   const reply=f.events.find(event=>event.type==='profile'||event.type==='error');

@@ -593,3 +593,8 @@ html.mobile-landscape .shop-window .shop-pager > button { width: 28px; height: 2
 @media (prefers-reduced-motion: reduce) {
   .shop-window :is(.shop-offer, .shop-buy, .shop-tabs button) { transition: none; }
 }
+
+/* Quantidade do Ticket de Cor na confirmação. */
+.shop-window .shop-quantity { display: inline-flex; align-items: center; gap: 10px; margin-top: 6px; }
+.shop-window .shop-quantity > button { width: 36px; padding: 0; }
+.shop-window .shop-quantity output { min-width: 34px; font-size: 22px; font-weight: 900; text-align: center; color: var(--wood-ink); font-variant-numeric: tabular-nums; }

@@ -3,7 +3,9 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {createServer} from 'vite';
 
 // Measures every hair, hat and glasses item against the rig v1 zones (src/game/rig/anchors.ts),
-// then every hair × hat × glasses combination, every outfit's proportions and its prone combat body.
+// then every hair × hat × glasses combination, every outfit's proportions and its prone combat body,
+// and the Color Ticket zone of every piece (src/game/rig/recolorZones.ts): each must have one that changes
+// a visible share of the painting without swallowing the whole detail piece.
 // Report mode by default; --strict fails when any issue remains (phase 5 of docs/cosmetics-fit.md).
 // Optional: BROWSER_EXECUTABLE=/path/to/chromium, OUTPUT_DIR=test-results/cosmetics.
 const strict=process.argv.includes('--strict');
@@ -108,6 +110,34 @@ try{
    const bad=prone.at(-1).issues.length;ps.fillStyle=bad?'#ffb3ba':'#b8ffd6';ps.fillText(bad?`${bad} problema(s)`:'ok',6,y+ph/2+16);
   });
 
+  // Color tickets: every hair, hat, glasses and outfit has a recolor zone of sensible size.
+  const {RECOLOR_ZONES,RECOLOR_COVERAGE}=await import('/src/game/rig/recolorZones.ts');
+  const R=await import('/src/game/recolor.ts'),H=await import('/src/game/headwear.ts');
+  const portrait=(id,color)=>CATALOG[id].slot==='hat'?H.getWornHatPortrait(id,color):CATALOG[id].slot==='outfit'?A.getOutfitPortrait(id,color):A.getAccessoryPortrait(id,color);
+  const colorItems=[...hairs,...hats,...glasses,...outfits],recolor=[];
+  for(const id of colorItems){
+   const zone=RECOLOR_ZONES[id],art=portrait(id),issues=[];
+   if(!zone)issues.push({code:'no-color-zone',message:'Sem região de cor (RECOLOR_ZONES)',measured:0,limit:0});
+   const coverage=zone&&art?Math.round(R.zoneCoverage(art,id)*100)/100:0;
+   if(zone&&coverage<RECOLOR_COVERAGE.min)issues.push({code:'color-zone-small',message:`Região de cor cobre só ${Math.round(coverage*100)}% da peça`,measured:coverage,limit:RECOLOR_COVERAGE.min});
+   if(zone?.hue!==undefined&&coverage>RECOLOR_COVERAGE.max)issues.push({code:'color-zone-large',message:`Região de detalhe cobre ${Math.round(coverage*100)}% da peça`,measured:coverage,limit:RECOLOR_COVERAGE.max});
+   recolor.push({id,label:zone?.label??'—',coverage,issues});
+  }
+  const swatches=['#e8332f','#1fa94f','#2b3fb8','#f4f1ea','#2b2b33'],cw=150,colorSheet=document.createElement('canvas');
+  colorSheet.width=cw*(swatches.length+1)+170;colorSheet.height=(colorItems.length+2+outfits.length)*cw+30;const cs=colorSheet.getContext('2d');cs.fillStyle='#16233a';cs.fillRect(0,0,colorSheet.width,colorSheet.height);
+  cs.fillStyle='#fff';cs.font='bold 13px sans-serif';['original',...swatches].forEach((label,i)=>cs.fillText(label,170+i*cw+6,18));
+  const fitIn=(art,x,y)=>{if(!art)return;const k=Math.min((cw-10)/art.width,(cw-10)/art.height);cs.drawImage(art,x+(cw-art.width*k)/2,y+(cw-art.height*k)/2,art.width*k,art.height*k);};
+  colorItems.forEach((id,row)=>{const y=30+row*cw,result=recolor.find(item=>item.id===id);cs.fillStyle='#fff';cs.font='12px sans-serif';cs.fillText(CATALOG[id].name,6,y+cw/2-8);cs.fillStyle=result.issues.length?'#ffb3ba':'#b8ffd6';cs.fillText(result.issues.length?`${result.issues.length} problema(s)`:`${Math.round(result.coverage*100)}% muda`,6,y+cw/2+10);
+   [undefined,...swatches].forEach((color,i)=>{cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);fitIn(portrait(id,color),170+i*cw,y);});});
+  // Body and eye colors on the universal head (Ticket de Cor in the character settings).
+  const bodyRow=(row,label,options)=>{const y=30+row*cw;cs.fillStyle='#fff';cs.font='12px sans-serif';cs.fillText(label,6,y+cw/2);options.forEach((option,i)=>{const head=A.getFacePortrait('face-brave',option.skin,option.eyes);cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);if(head)cs.drawImage(head,380,150,520,520,170+i*cw,y,cw-4,cw-4);});};
+  bodyRow(colorItems.length,'Cor do corpo',[{},{skin:'#f8cfae'},{skin:'#b97a4f'},{skin:'#6a3b22'},{skin:'#c9dcf6'},{skin:'#cfe7c9'}]);
+  // Whole bodies: the outfit's painted arms and legs follow the skin color, its clothes stay.
+  const skins=[undefined,'#f8cfae','#b97a4f','#6a3b22','#c9dcf6','#cfe7c9'],bodyStart=colorItems.length+2;
+  outfits.forEach((outfit,row)=>{const y=30+(bodyStart+row)*cw;cs.fillStyle='#fff';cs.font='12px sans-serif';cs.fillText(`Corpo · ${CATALOG[outfit].name}`,6,y+cw/2);
+   skins.forEach((skin,i)=>{const cell=document.createElement('canvas');cell.width=cell.height=cw;const cc=cell.getContext('2d');V.drawAvatar(cc,{...eqOf({outfit,hair:'hair-undercut'}),skin},cw/2,cw-6,cw-12,1000,false,1,false);cs.fillStyle='#ffffff0d';cs.fillRect(170+i*cw,y,cw-4,cw-4);cs.drawImage(cell,170+i*cw,y);});});
+  bodyRow(colorItems.length+1,'Cor dos olhos',[{},{eyes:'#2f7fd8'},{eyes:'#1f9c6b'},{eyes:'#c43a3a'},{eyes:'#8a3fd6'},{eyes:'#8b8f99'}]);
+
   // Sheets: each item alone with its zone, and the hair × hat matrix with the sport glasses.
   const zoneSheet=document.createElement('canvas'),cell=240,perRow=6,all=[...hairs,...hats,...glasses];
   zoneSheet.width=perRow*cell;zoneSheet.height=Math.ceil(all.length/perRow)*cell;const zs=zoneSheet.getContext('2d');zs.fillStyle='#16233a';zs.fillRect(0,0,zoneSheet.width,zoneSheet.height);
@@ -124,7 +154,7 @@ try{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,prone,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,recolor,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -132,15 +162,16 @@ try{
 const {sheets,...data}=report;
 for(const [name,url] of Object.entries(sheets))await writeFile(`${output}/${name}.png`,Buffer.from(url.split(',')[1],'base64'));
 await writeFile(`${output}/report.json`,JSON.stringify(data,null,1));
-const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length);
+const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length),failingColors=data.recolor.filter(item=>item.issues.length);
 const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  `${data.counts.hairs} cabelos, ${data.counts.hats} chapéus, ${data.counts.glasses} óculos, ${data.counts.outfits} roupas; ${data.combinations.length} combinações de chapéu × cabelo, cada uma com todos os óculos.`,'',
  '## Peças isoladas','','| Peça | Classe | Largura | Problemas |','| --- | --- | --- | --- |',
  ...data.items.map(item=>`| ${item.id} | ${item.fit??'—'} | ${item.widthRatio}× | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Combinações com problema','',...(failingCombos.length?failingCombos.map(combo=>`- ${combo.hat} + ${combo.hair}: ${combo.issues.map(issue=>issue.message).join('; ')}`):['Nenhuma.']),'',
  '## Roupas','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
- '## Combate deitado','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.widthRatio}× | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
+ '## Combate deitado','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.widthRatio}× | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Ticket de Cor','','| Peça | O que muda | Área | Problemas |','| --- | --- | --- | --- |',...data.recolor.map(item=>`| ${item.id} | ${item.label} | ${Math.round(item.coverage*100)}% | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
-console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png`);
-if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length))process.exit(1);
+console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png`);
+if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingColors.length))process.exit(1);

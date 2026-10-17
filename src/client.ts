@@ -2,16 +2,18 @@ import {syncPublishedMaps} from './publishedMaps';
 import {useSyncExternalStore} from 'react';
 import type {CharacterGender,Equipment} from '../shared/catalog';
 import {CustomizationQueue} from './customization';
+import {equippedColors} from '../shared/colors';
+import type {BodyColorPart} from '../shared/colors';
 import type {CustomizationPatch} from './customization';
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityLoadout} from '../shared/abilities';
 import {AbilityLoadoutQueue} from './abilityLoadout';
 import {readRoomInvite} from './roomInvite';
 import {recoveredImpacts,shotClock} from './game/shotPlayback';
-import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult} from '../shared/protocol';
-export interface State {ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
+import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorChange,ColorResult} from '../shared/protocol';
+export interface State {ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
- state:State={ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,forgeResult:null,compositionResult:null,shopResult:null};
+ state:State={ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
  private listeners=new Set<()=>void>();private ws:WebSocket|null=null;private started=false;private retry=0;private reconnectTimer=0;private pingTimer=0;
  private loadoutTimer=0;
  private inviteHandled=false;
@@ -31,7 +33,13 @@ class Client {
    this.customizationQueue.cancel();this.update({error:'A conexão demorou. Conferindo seus equipamentos…'});this.ws?.close();
   },12000);
   this.send(command);
- },(customizationEquipment,customizationPending)=>this.update({customizationEquipment,customizationPending}));
+ },(equipment,customizationPending)=>{
+  // Optimistic outfits show each copy's own ticket color before the server confirms.
+  const profile=this.state.profile,customizationEquipment=equipment&&profile?{...equipment,colors:equippedColors(equipment,profile.itemColors)}:equipment;
+  this.update({customizationEquipment,customizationPending});
+ });
+ paint(changes:ColorChange[]){this.update({error:null,colorResult:null});this.send({type:'paint',changes});}
+ discard(item:string){this.update({error:null});this.send({type:'discard',item});}
  customize(patch:CustomizationPatch){
   if(!this.state.profile||this.state.battle||this.state.status!=='online'||this.ws?.readyState!==WebSocket.OPEN)return;
   this.update({error:null});this.customizationQueue.apply(patch);
@@ -64,6 +72,8 @@ class Client {
   case 'profile':this.update({profile:e.profile});if(e.requestId&&this.customizationQueue.matches(e.requestId)){clearTimeout(this.customizationTimer);this.customizationQueue.acknowledge(e.requestId);}if(e.requestId&&this.abilityLoadoutQueue.matches(e.requestId)){clearTimeout(this.loadoutTimer);this.abilityLoadoutQueue.acknowledge(e.requestId);}break;
   case 'shop-result':this.update({shopResult:e.result});break;
   case 'forge-result':this.update({forgeResult:e.result});break;
+  case 'color-result':this.update({colorResult:e.result});break;
+  case 'discard-result':this.update({discardResult:{item:e.item,at:Date.now()}});break;
   case 'composition-result':this.update({compositionResult:e.result});break;
   case 'lobby':this.update({players:e.players,online:e.online});break;
   case 'rooms':this.update({rooms:e.rooms});break;

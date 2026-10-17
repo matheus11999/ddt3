@@ -232,7 +232,7 @@ function visibleHeadEquipment(eq:Equipment):Equipment {
  * costume, body, weapon or aura. Uses the same registration and hair occlusion
  * passes as the full avatar, without waiting for any outfit artwork. */
 export function drawAvatarPortrait(c:CanvasRenderingContext2D,equipment:Equipment,x:number,y:number,size:number,facing=1){
- const eq=visibleHeadEquipment(equipment),head=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave');
+ const eq=visibleHeadEquipment(equipment),head=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes);
  const hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null;
  if(!head||hair&&(!hair.complete||!hair.naturalWidth))return;
  const covered=eq.hat!=='hat-none',tall=eq.hat==='hat-mage',frame=tall?640:covered?560:540,centerX=635,centerY=tall?310:covered?355:370;
