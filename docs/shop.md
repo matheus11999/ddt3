@@ -1,6 +1,6 @@
 # Loja da Brasa
 
-A loja abre pelo botão **Loja** da barra inferior da rua. Reutiliza a moldura compacta de `MenuFrame.css`, com provador estático e ampliado à esquerda e catálogo/carrinho à direita. No celular, o provador fica acima do catálogo e o conteúdo rola dentro da moldura.
+A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mochila e do ferreiro (17/10/2026): madeira laranja, painéis creme, provador estático à esquerda e vitrine à direita com cards horizontais em duas colunas, abas verticais de categoria, paginação de 10 itens e balcão com carrinho, total e **Comprar tudo**. Celular em paisagem mantém as duas colunas com rolagem interna; janela estreita empilha provador e vitrine. Layout e prompts de arte em `docs/shop-art-prompts.md`; prévia com `node scripts/preview-shop.mjs`.
 
 ## Catálogo e prévia
 
@@ -11,7 +11,7 @@ A loja abre pelo botão **Loja** da barra inferior da rua. Reutiliza a moldura c
 - Armas são vendidas sem fortalecimento (+0). O botão **Experimentar** monta o item no mesmo compositor usado pelo personagem. Roupas, cabelos e rostos podem ser combinados na prévia; **Restaurar visual** recupera o equipamento atual.
 - Experimentar não compra, equipa nem publica mudanças. Compras ficam na mochila para serem equipadas por seu fluxo normal.
 - Experimentar revela a peça escolhida no provador: uma roupa/rosto/cabelo/chapéu/óculos oculta a fantasia apenas na prévia; uma fantasia experimentada fica visível mesmo se a preferência salva estiver desligada. Restaurar recupera todas as preferências e equipamentos salvos.
-- Informações aparecem em tooltip por mouse, foco ou toque no botão de detalhes: raridade, descrição, atributos, destruição/ângulo das armas e permanência. Não há rodapé fixo de descrição de item.
+- Informações aparecem no card de informações da mochila (`InventoryTooltip`) por mouse, foco ou toque no ícone do item: classe, descrição, atributos com comparação, destruição/ângulo das armas e preço. Não há rodapé fixo de descrição de item.
 
 ## Carrinho e autoridade
 
