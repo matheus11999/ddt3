@@ -34,9 +34,13 @@ const BRONZE:Theme={glow:'#ff8a3d',core:'#ffe0c2',metal:['#ffd9a8','#d08a4a','#7
 type Motion='still'|'breathe'|'sway'|'bob'|'pulse';
 type Layer={name:string;motion:Motion;pivot?:[number,number];period?:number;amount?:number;phase?:number};
 type Fallback={kind:'podium'|'gate';portal:Portal}|{kind:'keeper';outfit:'surfer'|'executive';hat:string;facing:1|-1};
-export type Station={id:string;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];action?:LobbyAction;rank?:1|2|3;stand?:[number,number];glow?:Portal;shadows?:Shadow[];fallback:Fallback};
-/** Contact shadow where a station touches the floor: centre x/y, radius x/y, as fractions of the canvas. */
-type Shadow=[number,number,number,number];
+export type Station={id:string;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];action?:LobbyAction;rank?:1|2|3;stand?:[number,number];glow?:Portal;shadows?:Shadow[];noCast?:boolean;fallback:Fallback};
+/**
+ * Contact shadow where a station touches the floor: centre x/y, radius x/y, as fractions of the canvas, and an optional darkness (1 = default).
+ * Round, squat pieces (podiums, the arena platform) set `noCast`: a sheared outline of a
+ * cylinder trails off as a band, so they only get a contact shadow hugging the base.
+ */
+type Shadow=[number,number,number,number,number?];
 // Pivots were measured on Codex's layers (17/10): canvases are
 // 1400×1200 for keepers and 1200×1400 for the gate and podiums.
 export const LOBBY_STATIONS:Station[]=[
@@ -46,9 +50,9 @@ export const LOBBY_STATIONS:Station[]=[
   {name:'burro',motion:'breathe',period:3400},{name:'npc',motion:'breathe'}]},
  // All podium canvases share one scale, so they share one height; `stand` is the centre of each top.
  ...([[2,2040,616,[.5,.66],SILVER],[1,2304,608,[.5,.49],GOLD],[3,2568,620,[.5,.75],BRONZE]] as const).map(([rank,x,y,stand,theme]):Station=>({
-  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:300,rank,shadows:[[.5,.985,.4,.035]],stand:[stand[0],stand[1]],glow:{x,y:y-300*(1-stand[1])+40,scale:.8,theme},
+  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:300,rank,noCast:true,shadows:[[.5,.97,.5,.07,1.5],[.34,.95,.44,.07,1.1]],stand:[stand[0],stand[1]],glow:{x,y:y-300*(1-stand[1])+40,scale:.8,theme},
   fallback:{kind:'podium',portal:{x,y,scale:1,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'pulse'}]})),
- {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',shadows:[[.5,.985,.44,.04]],glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
+ {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',noCast:true,shadows:[[.5,.97,.52,.075,1.5],[.34,.95,.48,.075,1.1]],glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
   {name:'base',motion:'still'},{name:'asas',motion:'sway',pivot:[.5,.45],period:1700,amount:.03},{name:'calice',motion:'bob',period:2400,amount:8}]},
  {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:632,height:300,action:'forge',shadows:[[.5,.95,.5,.05],[.48,.99,.15,.025]],fallback:{kind:'keeper',outfit:'executive',hat:'hat-cap',facing:-1},layers:[
   {name:'barraca',motion:'still'},
@@ -60,9 +64,10 @@ const FLOOR_TOP=548,FLOOR_TILE=620,FLOOR_NEAR=.6,FLOOR_FAR=.28;
 /** Cast shadows lie on the floor squashed to this height and lean left by CAST_LEAN per unit of height. */
 const CAST_SQUASH=.22,CAST_LEAN=.55,CAST_PAD=.06;
 /** Soft oval shadow on the plaza floor, darkest under the middle. */
-function groundShadow(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number){
+function groundShadow(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,dark=1){
  c.save();c.translate(x,y);c.scale(1,ry/rx);
- const g=c.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,'rgba(60,40,20,.55)');g.addColorStop(.6,'rgba(60,40,20,.34)');g.addColorStop(1,'rgba(60,40,20,0)');
+ const a=(k:number)=>`rgba(55,36,18,${Math.min(1,k*dark)})`;
+ const g=c.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,a(.55));g.addColorStop(.6,a(.34));g.addColorStop(1,a(0));
  c.fillStyle=g;c.beginPath();c.arc(0,0,rx,0,Math.PI*2);c.fill();c.restore();
 }
 
@@ -457,9 +462,9 @@ export class LobbyWorld {
   }
   const h=station.height,w=h*base.naturalWidth/base.naturalHeight,left=station.x-w/2,top=station.y-h;
   const breath=(period=3000)=>1+Math.sin(t/period*Math.PI*2)*.012;
-  const cast=this.cast(station,parts);
+  const cast=station.noCast?null:this.cast(station,parts);
   if(cast){c.save();c.translate(station.x,station.y);c.transform(1,0,CAST_LEAN,CAST_SQUASH,0,0);c.globalAlpha=.5;c.drawImage(cast,-w/2-CAST_PAD*w,-h-CAST_PAD*h,w*(1+2*CAST_PAD),h*(1+2*CAST_PAD));c.restore();}
-  for(const [sx,sy,rx,ry] of station.shadows??[])groundShadow(c,left+sx*w,top+sy*h,rx*w,ry*h);
+  for(const [sx,sy,rx,ry,dark] of station.shadows??[])groundShadow(c,left+sx*w,top+sy*h,rx*w,ry*h,dark);
   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
   if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.glow?1:breath());c.drawImage(base,-w/2,-h,w,h);}
   else for(const {layer,image} of parts){
