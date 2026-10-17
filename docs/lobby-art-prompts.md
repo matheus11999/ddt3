@@ -28,6 +28,10 @@ Pedidos do usuário, em ordem: lobby parecido com a foto de referência de lobby
 - Novo NPC = uma pasta de camadas + uma linha em `LOBBY_STATIONS` (+ a ação em `App.tsx`).
 - Verificação: `node scripts/shot-lobby.mjs <pasta>` com Vite e servidor ligados (prévia, câmera andando com as setas, porta da Arena, caminhada até o Ferreiro).
 
+## Arte integrada (17/10, 03h)
+
+Codex entregou o panorama 9216×1728 e 28 camadas (montagens de referência ficaram só na pasta local, fora do Git). Pivôs e pontos de faísca medidos nas camadas e gravados em `LOBBY_STATIONS`; o martelo do ferreiro gira no cotovelo e bate na bigorna. Prancha de animação conferida quadro a quadro.
+
 ## Resolução
 
 Tela do jogo 1536×864, desenhada em até 2× (3072×1728). Panorama ideal **9216×1728** (três telas em 2×). Geradores não chegam nisso direto: gerar a parte central em 16:9, estender para os lados (outpaint) e ampliar 2× com upscaler. NPCs com canvas 1400×1200; pódios e portal 1200×1400.

@@ -32,30 +32,34 @@ const BRONZE:Theme={glow:'#ff8a3d',core:'#ffe0c2',metal:['#ffd9a8','#d08a4a','#7
  * Podiums carry `rank` and `stand`, the point on the canvas where the ranked
  * player's feet go (see LobbyWorld.podiums()).
  */
-type Motion='still'|'breathe'|'nod'|'swing'|'wave'|'sway'|'bob'|'blink'|'flicker';
+type Motion='still'|'breathe'|'nod'|'swing'|'wave'|'sway'|'bob'|'blink'|'flicker'|'pulse';
 type Layer={name:string;motion:Motion;pivot?:[number,number];period?:number;amount?:number;phase?:number};
 type Fallback={kind:'podium'|'gate';portal:Portal}|{kind:'keeper';outfit:'surfer'|'executive';hat:string;facing:1|-1};
 export type Station={id:string;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];action?:LobbyAction;rank?:1|2|3;stand?:[number,number];glow?:Portal;spark?:[number,number];fallback:Fallback};
 const STRIKE=1500;
+// Pivots and spark points were measured on Codex's layers (17/10): canvases are
+// 1400×1200 for keepers and 1200×1400 for the gate and podiums.
 export const LOBBY_STATIONS:Station[]=[
- {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:620,height:250,action:'shop',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-tide',facing:1},layers:[
-  {name:'barraca',motion:'still'},{name:'toldo',motion:'sway',pivot:[.5,.08],period:2600,amount:.012},
-  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.62,.48],period:1800,amount:.22},
-  {name:'cabeca',motion:'nod',pivot:[.55,.42]},{name:'olhos',motion:'blink'}]},
- {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:622,height:215,action:'storage',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-cap',facing:1},layers:[
-  {name:'burro',motion:'breathe',period:3400},{name:'rabo',motion:'sway',pivot:[.1,.55],period:900,amount:.25},{name:'orelhas',motion:'sway',pivot:[.32,.3],period:2600,amount:.08},
-  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.7,.5],period:1400,amount:.3},{name:'cabeca',motion:'nod',pivot:[.7,.45]},{name:'olhos',motion:'blink',phase:1300}]},
- ...([[2,2040,602,215,SILVER],[1,2304,592,265,GOLD],[3,2568,606,195,BRONZE]] as const).map(([rank,x,y,height,theme]):Station=>({
-  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height,rank,stand:[.5,.3],glow:{x,y,scale:height/250,theme},
-  fallback:{kind:'podium',portal:{x,y,scale:height/250,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'flicker',pivot:[.5,.3]}]})),
- {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:600,height:300,action:'arena',glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
-  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2400,amount:9},{name:'asas',motion:'sway',pivot:[.5,.3],period:1700,amount:.035}]},
- {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:630,height:265,action:'forge',spark:[.42,.62],fallback:{kind:'keeper',outfit:'executive',hat:'hat-cap',facing:-1},layers:[
-  {name:'barraca',motion:'still'},{name:'fogo',motion:'flicker',pivot:[.85,.6]},
-  {name:'corpo',motion:'breathe'},{name:'cabeca',motion:'nod',pivot:[.6,.36],period:STRIKE,amount:.04},{name:'braco',motion:'swing',pivot:[.62,.45],period:STRIKE},{name:'olhos',motion:'blink',phase:700}]},
+ {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:626,height:300,action:'shop',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-tide',facing:1},layers:[
+  {name:'barraca',motion:'still'},{name:'toldo',motion:'sway',pivot:[.5,.13],period:2600,amount:.01},
+  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.58,.67],period:1600,amount:.2},
+  {name:'cabeca',motion:'nod',pivot:[.5,.66],period:2800,amount:.035},{name:'olhos',motion:'blink'}]},
+ {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:628,height:240,action:'storage',fallback:{kind:'keeper',outfit:'surfer',hat:'hat-cap',facing:1},layers:[
+  {name:'burro',motion:'breathe',period:3400},{name:'rabo',motion:'sway',pivot:[.14,.74],period:900,amount:.22},{name:'orelhas',motion:'sway',pivot:[.43,.44],period:2600,amount:.06},
+  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.8,.56],period:1300,amount:.28},{name:'cabeca',motion:'nod',pivot:[.7,.5],period:2600,amount:.04},{name:'olhos',motion:'blink',phase:1300}]},
+ // All podium canvases share one scale, so they share one height; `stand` is the centre of each top.
+ ...([[2,2040,616,[.5,.66],SILVER],[1,2304,608,[.5,.49],GOLD],[3,2568,620,[.5,.75],BRONZE]] as const).map(([rank,x,y,stand,theme]):Station=>({
+  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:300,rank,stand:[stand[0],stand[1]],glow:{x,y:y-300*(1-stand[1])+40,scale:.8,theme},
+  fallback:{kind:'podium',portal:{x,y,scale:1,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'pulse'}]})),
+ {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
+  {name:'base',motion:'still'},{name:'asas',motion:'sway',pivot:[.5,.45],period:1700,amount:.03},{name:'calice',motion:'bob',period:2400,amount:8}]},
+ {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:632,height:300,action:'forge',spark:[.2,.67],fallback:{kind:'keeper',outfit:'executive',hat:'hat-cap',facing:-1},layers:[
+  {name:'barraca',motion:'still'},{name:'fogo',motion:'flicker',pivot:[.81,.63]},
+  {name:'corpo',motion:'breathe'},{name:'cabeca',motion:'nod',pivot:[.52,.55],period:STRIKE,amount:.03},{name:'braco',motion:'swing',pivot:[.42,.64],period:STRIKE},{name:'olhos',motion:'blink',phase:700}]},
 ];
-/** 0 at rest, raised slowly, then a fast strike; returns the arm angle. */
-function strike(t:number,period:number){const k=(t%period)/period;if(k<.55)return-.85*Math.sin(k/.55*Math.PI/2);if(k<.63)return-.85+(k-.55)/.08*1.0;return .15*(1-(k-.63)/.37);}
+/** Hammer arm, drawn raised: a small wind-up, a fast blow down onto the anvil, a short hold, then back. */
+const BLOW=.58;
+function strike(t:number,period:number){const k=(t%period)/period;if(k<.5)return .15*Math.sin(k/.5*Math.PI/2);if(k<BLOW)return .15-(k-.5)/(BLOW-.5)*1.05;if(k<.68)return -.9;return -.9*(1-(k-.68)/.32);}
 
 export interface LobbySprite {y:number;draw:(c:CanvasRenderingContext2D)=>void;}
 
@@ -373,9 +377,11 @@ export class LobbyWorld {
   });
  }
  drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null){
-  title(c,'Ranking PvP do dia',2304,268,26);
+  title(c,'Ranking PvP do dia',2304,196,28);
   for(const station of LOBBY_STATIONS){
-   const top=station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
+   const podium=station.rank?this.podiums().find(p=>p.rank===station.rank):undefined;
+   // Podium plaques float above the spot where the ranked player will stand.
+   const top=podium?podium.y-190:station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
    plaque(c,station.title,station.x,top+Math.sin(t/700+station.x)*3,station.id==='arena'||station.rank===1,hover===station.id);
   }
  }
@@ -407,17 +413,18 @@ export class LobbyWorld {
    if(layer.motion==='blink'&&(t+phase)%3600>130)continue;
    c.save();
    // Everything above the feet breathes with the body, so heads and arms stay attached.
-   if(layer.motion!=='still'&&layer.motion!=='bob'&&layer.motion!=='flicker'){c.translate(station.x,station.y);c.scale(1,breath(layer.motion==='breathe'?period:3000));c.translate(-station.x,-station.y);}
+   if(layer.motion!=='still'&&layer.motion!=='bob'&&layer.motion!=='flicker'&&layer.motion!=='pulse'){c.translate(station.x,station.y);c.scale(1,breath(layer.motion==='breathe'?period:3000));c.translate(-station.x,-station.y);}
    if(layer.motion==='nod'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.03));c.translate(-ax,-ay);}
    else if(layer.motion==='swing'){c.translate(ax,ay);c.rotate(strike(t,period));c.translate(-ax,-ay);}
    else if(layer.motion==='wave'||layer.motion==='sway'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.1));c.translate(-ax,-ay);}
    else if(layer.motion==='bob')c.translate(0,Math.sin((t+phase)/period*Math.PI*2)*(amount??6));
+   else if(layer.motion==='pulse'){c.globalCompositeOperation='lighter';c.globalAlpha=.55+Math.sin((t+phase)/700)*.35;}
    else if(layer.motion==='flicker'){const f=1+Math.sin(t/90)*.04+Math.sin(t/37)*.03;c.translate(ax,ay+h*.08);c.scale(1/f,f);c.translate(-ax,-ay-h*.08);c.globalAlpha=.9+Math.sin(t/60)*.1;}
    c.drawImage(image,left,top,w,h);c.restore();
   }
   c.restore();
   // Sparks fly from the anvil on each blow.
-  if(station.spark&&parts.some(({layer})=>layer.motion==='swing')){const k=((t%STRIKE)/STRIKE-.63)/.25;if(k>=0&&k<1){const sx=left+station.spark[0]*w,sy=top+station.spark[1]*h;c.save();c.globalCompositeOperation='lighter';for(let i=0;i<10;i++){const a=-Math.PI*(.15+.7*((i*37%10)/10)),d=k*(30+i*4);c.globalAlpha=1-k;c.fillStyle=i%2?'#ffe27a':'#ff9a3c';c.beginPath();c.arc(sx+Math.cos(a)*d,sy+Math.sin(a)*d+k*k*20,2.2,0,Math.PI*2);c.fill();}c.restore();}}
+  if(station.spark&&parts.some(({layer})=>layer.motion==='swing')){const k=((t%STRIKE)/STRIKE-BLOW)/.25;if(k>=0&&k<1){const sx=left+station.spark[0]*w,sy=top+station.spark[1]*h;c.save();c.globalCompositeOperation='lighter';for(let i=0;i<10;i++){const a=-Math.PI*(.15+.7*((i*37%10)/10)),d=k*(30+i*4);c.globalAlpha=1-k;c.fillStyle=i%2?'#ffe27a':'#ff9a3c';c.beginPath();c.arc(sx+Math.cos(a)*d,sy+Math.sin(a)*d+k*k*20,2.2,0,Math.PI*2);c.fill();}c.restore();}}
   if(station.glow)portalLight(c,station.glow,t,hover);
  }
  /** World coordinates in, interactive station out (podiums are not interactive yet). */
