@@ -148,7 +148,27 @@ test('shop purchase atomically deducts the server price and grants all selected 
  assert.equal(outcome.result.spent,540);assert.equal(outcome.profile.gold,460);
  assert.ok(outcome.profile.inventory.includes('volt')&&outcome.profile.inventory.includes('face-taunt'));
  assert.deepEqual(outcome.profile.equipment,before.equipment);assert.match(state.queries[1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'COMMIT');
- await assert.rejects(store.buy(before.id,['volt']),/já tem este item/);assert.equal(state.profile.gold,460);
+ const again=await store.buy(before.id,['volt']);assert.equal(again.profile.gold,100);assert.deepEqual(again.result.items,['volt']);
+ assert.ok(again.profile.inventory.includes('volt~2'));assert.equal(again.profile.upgrades['volt~2'],0);
+});
+test('repeat purchases become separate copies with their own forge level, compositions and equip state',async()=>{
+ const {store,state}=await database(0);state.profile.gold=2000;const id=state.profile.id,base=attributes(state.profile.equipment);
+ await store.buy(id,['ember']);await store.buy(id,['ember']);
+ assert.deepEqual(state.profile.inventory.filter(key=>key.startsWith('ember')),['ember','ember~2','ember~3']);
+ // Forging and composing the copy leaves the first ember untouched.
+ const forged=await store.forge(id,'ember~2',{'3':1});assert.equal(forged.result.level,1);assert.equal(forged.profile.upgrades.ember,0);assert.equal(forged.profile.upgrades['ember~2'],1);
+ const composed=await store.compose(id,'ember~2','attack-1');assert.equal(composed.result.value,10);assert.deepEqual(composed.profile.compositions,{'ember~2':{attack:10}});
+ assert.equal(composed.profile.equipment.upgrade,0);assert.equal(attributes(composed.profile.equipment).attack,base.attack);
+ // Wearing the copy brings its own level and bonus into combat; the first copy stays plain.
+ const worn=await store.saveEquipment(id,{...composed.profile.equipment,copies:{weapon:'ember~2'}});
+ assert.equal(worn.equipment.weapon,'ember');assert.deepEqual(worn.equipment.copies,{weapon:'ember~2'});assert.equal(worn.equipment.upgrade,1);
+ assert.deepEqual(worn.equipment.compositions,{ember:{attack:10}});
+ const plain=await store.saveEquipment(id,{...worn.equipment,copies:{}});assert.equal(plain.equipment.upgrade,0);assert.equal(plain.equipment.compositions,undefined);
+ await assert.rejects(store.saveEquipment(id,{...plain.equipment,copies:{weapon:'ember~9'}}),/cópia/);
+ // Copies survive a reload and a stale copy for another item is dropped.
+ const reloaded=normalizeProfile({...structuredClone(worn),equipment:{...worn.equipment,copies:{weapon:'ember~2',hat:'ember~3'}}});
+ assert.deepEqual(reloaded.equipment.copies,{weapon:'ember~2'});assert.equal(reloaded.upgrades['ember~2'],1);assert.deepEqual(reloaded.compositions['ember~2'],{attack:10});
+ assert.ok(!normalizeProfile({...structuredClone(worn),inventory:['volt~2']}).inventory.includes('volt~2'));
 });
 test('shop rejects duplicate, unavailable, owned or unaffordable carts without partial purchases',async()=>{
  const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>id!=='volt');state.profile.gold=10;

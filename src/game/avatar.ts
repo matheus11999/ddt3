@@ -59,11 +59,17 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
  c.restore();
 }
 
+/** Half the distance a planted foot slides back under the body, in avatar units.
+ * One stride cycle covers 4× this, so the cadence follows the walking speed. */
+const walkStep=(outfitPose:string)=>outfitPose==='surfer'?12:11;
+/** How far each foot's lane moves from the painted 3/4 spread toward the middle while walking. */
+const WALK_LANE_PULL=.75;
+
 function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
  const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}
- m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=outfitPose==='surfer'?42:36;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
- const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/150);
+ m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=walkStep(outfitPose)*4;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
+ const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/170);
  const poseTime=context.poseTime??time-m.poseAt,stride=Math.sin(m.phase),aiming=pose==='aim'||pose==='charge'||pose==='fire',recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,slope=clamp(context.slope??0,-.5,.5);
  let lean=slope*.55+stride*.025*m.walk,leftArm=-stride*.3*m.walk,rightArm=stride*.26*m.walk,bodyY=0,headTilt=-slope*.24;
  if(aiming){const elevation=(clamp(context.angle??45,5,90)-45)*Math.PI/180;leftArm-=.85+elevation*.55;rightArm-=.38+elevation*.45;lean+=.045;headTilt-=.025+elevation*.06;}
@@ -119,12 +125,12 @@ function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,contex
 
 export interface WalkingLegFrame {hip:[number,number];knee:[number,number];ankle:[number,number];footAngle:number;grounded:boolean;phase:number;}
 /** A planted foot moves backward exactly as far as the avatar advances; the other clears the floor. */
-export function sampleWalkingLeg(leg:WalkingLeg,phase:number,bodyY=3,lean=0,slope=0,step=10.5):WalkingLegFrame{
+export function sampleWalkingLeg(leg:WalkingLeg,phase:number,bodyY=3,lean=0,slope=0,step=10.5,shift=0):WalkingLegFrame{
  const p=((phase%(Math.PI*2))+Math.PI*2)%(Math.PI*2),grounded=p<Math.PI,t=grounded?p/Math.PI:(p-Math.PI)/Math.PI;
- const travel=grounded?step*(1-2*t):-step+2*step*t*t*(3-2*t),lift=grounded?0:Math.sin(t*Math.PI)**2*10;
- const hx=(leg.hip[0]-625)*AVATAR_UNIT,hy=(leg.hip[1]-1225)*AVATAR_UNIT;
+ const travel=grounded?step*(1-2*t):-step+2*step*t*t*(3-2*t),lift=grounded?0:Math.sin(t*Math.PI)**2*7;
+ const hx=(leg.hip[0]-625)*AVATAR_UNIT+shift,hy=(leg.hip[1]-1225)*AVATAR_UNIT;
  const hip:[number,number]=[hx*Math.cos(lean)-(hy+32)*Math.sin(lean),bodyY-32+hx*Math.sin(lean)+(hy+32)*Math.cos(lean)];
- const x=(leg.ankle[0]-625)*AVATAR_UNIT+travel,ankle:[number,number]=[x,(leg.ankle[1]-leg.groundY)*AVATAR_UNIT-lift+Math.tan(slope)*x];
+ const x=(leg.ankle[0]-625)*AVATAR_UNIT+shift+travel,ankle:[number,number]=[x,(leg.ankle[1]-leg.groundY)*AVATAR_UNIT-lift+Math.tan(slope)*x];
  const l1=Math.hypot(leg.knee[0]-leg.hip[0],leg.knee[1]-leg.hip[1])*AVATAR_UNIT,l2=Math.hypot(leg.ankle[0]-leg.knee[0],leg.ankle[1]-leg.knee[1])*AVATAR_UNIT;
  const dx=ankle[0]-hip[0],dy=ankle[1]-hip[1],raw=Math.hypot(dx,dy),distance=clamp(raw,.1,l1+l2-.05),ux=dx/raw,uy=dy/raw,a=(l1*l1-l2*l2+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,l1*l1-a*a));
  return {hip,knee:[hip[0]+ux*a+uy*height,hip[1]+uy*a-ux*height],ankle,footAngle:grounded?slope:Math.sin(t*Math.PI*2)*.17+slope,grounded,phase:p};
@@ -257,7 +263,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   c.save();c.translate(x,y);c.scale(height/160,height/160);
   if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);
   if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
-  const paint=(direction:number,opacity:number)=>{if(opacity<.01)return;c.save();c.globalAlpha*=opacity;c.scale(direction*(1-Math.sin(m.turn*Math.PI)*.12),1);
+  const paint=(direction:number)=>{c.save();turnPop(c,m.turn);c.scale(direction,1);
    // Menu cards keep the miniature weapon legible beside a costume. Combat
    // retains the original layering and authoritative muzzle placement.
    const paintWeapon=()=>{if(!weapon)return;c.save();if(!context.combat){const scale=clamp(context.weaponScale??1,.4,1.2);c.scale(context.weaponSide??1,1);c.translate(0,clamp(context.weaponVerticalOffset??0,-15,24));c.translate((context.weaponOffset??0)+27*160/112,-40*160/112);c.scale(scale,scale);c.translate(-27*160/112,40*160/112);}drawCombatWeapon(c,eq,time,context.angle??45,recoil,pose==='charge',context.power??0);c.restore();};
@@ -265,15 +271,15 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(!foregroundWeapon)paintWeapon();
    drawCostume(c,eq.costume,{pose,phase:m.phase,walk:m.walk,poseTime,angle:context.angle??45,power:context.power??0,slope,combat:context.combat??false,time});
    if(foregroundWeapon)paintWeapon();c.restore();};
-  const turn=m.turn*m.turn*(3-2*m.turn);if(turn<1)paint(m.previousFacing,1-turn);paint(m.facing,turn);c.restore();return;
+  paint(m.facing);c.restore();return;
  }
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat)return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
  const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
  c.save();c.translate(x,y);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
- const body=(direction:number,opacity:number)=>{
-  if(opacity<.01)return;c.save();c.globalAlpha*=opacity;c.scale(direction*(1-Math.sin(m.turn*Math.PI)*.12),1);
+ const body=(direction:number)=>{
+  c.save();turnPop(c,m.turn);c.scale(direction,1);
   if(context.combat&&rig.combat){
    const painted=rig.combat,crawl=walk,cycle=m.phase,stroke=Math.sin(cycle),breath=Math.sin(time/900)*.28*(1-crawl),hit=pose==='hit'?Math.exp(-Math.max(0,context.poseTime??0)/210):0;
    // Crawl: the chest surges forward on each stroke while the legs drag and
@@ -304,11 +310,15 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
    c.restore();c.restore();c.restore();return;
   }
-  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=(rig.outfitPose==='surfer'?10.5:9)*Math.max(.25,rawWalk);
+  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=walkStep(rig.outfitPose)*Math.max(.25,rawWalk);
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001){
    c.save();c.globalAlpha*=walkBlend;
-   const far=sampleWalkingLeg(rig.walking.far,m.phase+Math.PI,rootY,m.lean,slope,step),near=sampleWalkingLeg(rig.walking.near,m.phase,rootY,m.lean,slope,step);
+   // The painted stance spreads the legs for a 3/4 view. Walking from that spread
+   // makes one step a wide split and the next a scissor where the feet cross, so
+   // each whole leg (hip and foot) moves to a lane closer to the middle; a little depth stays.
+   const lanes=(rig.walking.near.ankle[0]+rig.walking.far.ankle[0])/2,shift=(leg:WalkingLeg)=>(lanes-leg.ankle[0])*AVATAR_UNIT*WALK_LANE_PULL*Math.min(1,rawWalk*1.4);
+   const far=sampleWalkingLeg(rig.walking.far,m.phase+Math.PI,rootY,m.lean,slope,step,shift(rig.walking.far)),near=sampleWalkingLeg(rig.walking.near,m.phase,rootY,m.lean,slope,step,shift(rig.walking.near));
    for(const frame of [far,near])if(frame.grounded)ellipse(c,frame.ankle[0]+2,Math.tan(slope)*frame.ankle[0]-.5,6,1.4,'#10213235');
    drawWalkingLeg(c,rig.walking.far,far);drawWalkingLeg(c,rig.walking.near,near);c.restore();
   }
@@ -327,5 +337,14 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    c.drawImage(w,-35,-46,82,82);c.restore();
   }}c.restore();c.restore();
  };
- const turn=m.turn*m.turn*(3-2*m.turn);if(turn<1)body(m.previousFacing,1-turn);body(m.facing,turn);c.restore();
+ body(m.facing);c.restore();
+}
+
+/** Turning around flips the whole figure at once, like DDTank, and sells the
+ * change of direction with a quick crouch and spring on the feet. Squeezing or
+ * cross-fading two mirrored copies reads as a sheet of paper turning over. */
+function turnPop(c:CanvasRenderingContext2D,turn:number){
+ if(turn>=1)return;
+ const dip=Math.sin(Math.min(1,turn/.45)*Math.PI)*(turn<.45?1:0),spring=turn>=.45?Math.sin((turn-.45)/.55*Math.PI):0;
+ c.translate(0,-3.2*spring);c.scale(1+.03*dip,1-.07*dip+.025*spring);
 }

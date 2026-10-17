@@ -53,7 +53,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Classes raiz: `.bag-window` (mochila), `.smith-window` (ferreiro), `.shop-window` (loja), `.pvp-hall` e `.pvp-room`.
 - Personagem: cabeça 30% maior (`HEAD_SCALE=1.3` em `src/game/rig/anchors.ts`); cabelo, chapéu e óculos seguem a cabeça. Chapéu mostra o mesmo penteado de sem chapéu, cortado pelo chapéu.
 - Combate deitado: arrasta ao andar, arma nas costas apontando a mira, só aparece na mão ao carregar/atirar; armas de arremesso (dinamite, tijolo) saem da mão.
-- Lobby "Praça Celeste": praça com 3 telas de largura (4608 px, `shared/lobby.ts`), câmera segue o jogador; os três "portais" são o pódio do ranking PvP diário. Prompts em `docs/lobby-art-prompts.md`; o Codex entrega imagens em `public/assets/lobby` e não edita o código do lobby.
+- Lobby "Praça Celeste": praça com 3 telas de largura (4608 px, `shared/lobby.ts`), câmera segue o jogador; os três "portais" são o pódio do ranking PvP diário: os 3 jogadores com mais vitórias no dia (horário de Brasília, partidas contra bot contam) aparecem em pé no pódio com a roupa equipada, nome e vitórias, sem o anel/halo de brilho atrás (`Store.dailyRanking`, evento `ranking`). Prompts em `docs/lobby-art-prompts.md`; o Codex entrega imagens em `public/assets/lobby` e não edita o código do lobby.
 
 ## Testes e prévias
 
@@ -65,9 +65,8 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Pendências para continuar
 
-- **Ranking PvP diário no servidor**: não existe; deve alimentar o pódio 1º/2º/3º do lobby com os avatares dos jogadores.
 - **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
-- **Comprar de novo item que já possui**: o usuário quer permitir. O servidor ainda bloqueia porque o inventário guarda um id único por item e os upgrades são indexados por id. Hoje (PR #22) o botão aparece e o servidor responde "Você já tem este item na mochila.". Falta decidir com ele: cópias reais no inventário ou manter o bloqueio.
+- Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
 - Lobby (17/10, tarde, aprovado): sem medalhas no topo; menu no canto inferior direito como no DDTank, ícones pintados grandes (`public/assets/ui/*-button.png`) sobre prateleira de madeira, sem nomes visíveis e sem teclas; sem "Como jogar" por enquanto. Chat transparente sobre a praça (texto com contorno, faixa de madeira escura para digitar). Cursor pintado `public/assets/ui/cursor.png` (32 px).

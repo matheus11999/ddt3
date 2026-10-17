@@ -32,7 +32,25 @@ export const DYES: {id:DyeId;name:string;color:string}[] = [
 ];
 export const VISIBILITY_SLOTS=['hat','glasses','costume'] as const;
 export type EquipmentVisibility=Partial<Record<typeof VISIBILITY_SLOTS[number],boolean>>;
-export type Equipment = Record<Slot, string> & {upgrade:number;compositions?:Compositions;dyes?:Partial<Record<DyeSlot,DyeId>>;visibility?:EquipmentVisibility};
+/** Which owned copy fills a slot when it is not the first one (the key of a repeated purchase). */
+export type EquipmentCopies=Partial<Record<Slot,string>>;
+export type Equipment = Record<Slot, string> & {upgrade:number;compositions?:Compositions;dyes?:Partial<Record<DyeSlot,DyeId>>;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
+/** Buying an item again adds a separate copy: the first keeps the item id, later ones are `id~2`, `id~3`… */
+export const COPY_SEPARATOR='~';
+export function copyBase(key:string):string {const at=key.indexOf(COPY_SEPARATOR);return at<0?key:key.slice(0,at);}
+export function isCopyKey(key:string):boolean {return /^[^~]+~[1-9]\d{0,3}$/.test(key)&&Number(key.slice(key.indexOf(COPY_SEPARATOR)+1))>=2;}
+export function nextCopyKey(inventory:readonly string[],id:string):string {
+ if(!inventory.includes(id))return id;
+ let n=2;while(inventory.includes(`${id}${COPY_SEPARATOR}${n}`))n++;return `${id}${COPY_SEPARATOR}${n}`;
+}
+/** The owned copy that fills a slot: its saved copy key, or the item id itself. */
+export function equippedCopy(equipment:Equipment,slot:Slot):string {const copy=equipment.copies?.[slot];return copy&&copyBase(copy)===equipment[slot]?copy:equipment[slot];}
+/** Compositions as the battle reads them (by item id), taken from the copies actually equipped. */
+export function equippedCompositions(equipment:Equipment,compositions:Compositions):Compositions {
+ const result:Compositions=Object.fromEntries(Object.entries(compositions).filter(([key])=>!key.includes(COPY_SEPARATOR)));
+ for(const slot of SLOTS){const copy=equipment.copies?.[slot];if(!copy||copyBase(copy)!==equipment[slot])continue;if(compositions[copy])result[equipment[slot]]=compositions[copy];else delete result[equipment[slot]];}
+ return result;
+}
 export function normalizeVisibility(value:unknown):Record<typeof VISIBILITY_SLOTS[number],boolean> {
  const input=value&&typeof value==='object'?value as Record<string,unknown>:{};
  return {hat:input.hat!==false,glasses:input.glasses!==false,costume:input.costume!==false};
