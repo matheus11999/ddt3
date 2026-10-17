@@ -46,7 +46,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
  const stats=attributes(preview),item=CATALOG[selected],unequip=unequipForGender(p.gender);
  const compatible=!!item&&canEquipItem(item,p.gender);
  const dyeable=compatible&&DYE_SLOTS.includes(item.slot as DyeSlot)&&item.visual?.variant!=='none';
- const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).map(i=>i.id),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
+ const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).map(i=>i.id),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
 
  useEffect(()=>{if(!previewFlash)return;const timer=setTimeout(()=>setPreviewFlash(null),650);return()=>clearTimeout(timer);},[previewFlash]);
