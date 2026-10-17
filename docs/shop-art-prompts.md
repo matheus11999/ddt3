@@ -1,6 +1,6 @@
 # Loja da Brasa — prompts de arte
 
-Loja redesenhada em 17/10/2026 no mesmo padrão da mochila e do ferreiro (`src/components/Shop.tsx`, `src/components/Shop.css`): moldura de madeira laranja, barra de título escura com título dourado em Cinzel, Nunito no conteúdo, painéis creme e faixa laranja com nível, nome e gênero. À esquerda fica o **provador** (personagem estático sobre o selo pintado da aura, restaurar visual por ícone, nome da peça experimentada numa faixa laranja, Poder na prévia e carteira). À direita fica a **vitrine**: coleções Masculino/Feminino/Unissex numa barra escura, busca creme, cards horizontais em duas colunas como no DDTank (ícone com o card de classe da mochila, nome, tipo, gênero, preço, Prévia e carrinho), abas verticais de categoria à direita da grade, paginação de 10 itens e o balcão escuro com carrinho, total e **Comprar tudo**. O card de informações é o `InventoryTooltip` da mochila, com o preço no rodapé.
+Loja redesenhada em 17/10/2026 no mesmo padrão da mochila e do ferreiro (`src/components/Shop.tsx`, `src/components/Shop.css`): moldura de madeira laranja, barra de título escura com título dourado em Cinzel, Nunito no conteúdo, painéis creme e faixa laranja com nível, nome e gênero. À esquerda fica o **provador** (personagem estático sobre o selo pintado da aura, restaurar visual por ícone, nome da peça experimentada numa faixa laranja e carteira). À direita fica a **vitrine**: busca creme, cards horizontais em duas colunas como no DDTank (ícone com o card de classe da mochila, nome, tipo, preço, Prévia e Comprar), abas verticais de categoria à direita da grade e paginação de 10 itens. Sem carrinho, sem Poder na prévia e só itens do gênero do personagem e unissex; Comprar abre uma confirmação em madeira. O card de informações é o `InventoryTooltip` da mochila, com o preço no rodapé.
 
 Hoje tudo é desenhado em CSS sobre os materiais de `WoodTheme.css`; as peças abaixo são opcionais e trocam só o fundo de áreas que já existem. Regras comuns iguais às de `docs/backpack-art-prompts.md`: cores vivas, contorno marrom limpo, volume pintado, sem texto, sem pastel lavado, sem cara de vetor, arte original no estilo do DDTank.
 
@@ -40,4 +40,4 @@ Uso: opcional, atrás do título "Loja da Brasa" na barra escura, com o título 
 node scripts/preview-shop.mjs   # BASE_URL, OUT, SIZES e CHROME_PATH opcionais
 ```
 
-Gera `test-results/shop-preview/` com catálogo, armas com o card de informações e carrinho em desktop (1536×864, 1280×720) e celular em paisagem (844×390, 667×375).
+Gera `test-results/shop-preview/` com catálogo, armas com o card de informações e a confirmação de compra em desktop (1536×864, 1280×720) e celular em paisagem (844×390, 667×375).

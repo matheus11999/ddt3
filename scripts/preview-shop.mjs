@@ -1,4 +1,4 @@
-// Prévia visual da loja (desktop e celular em paisagem): catálogo, dica do item e carrinho.
+// Prévia visual da loja (desktop e celular em paisagem): catálogo, dica do item e confirmação de compra.
 // Uso: node scripts/preview-shop.mjs  (BASE_URL, OUT, SIZES e CHROME_PATH opcionais)
 import {chromium} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
@@ -16,12 +16,11 @@ for(const {name,viewport,mobile} of sizes){
  await page.screenshot({path:`${output}/catalog-${name}.png`});
  await shop.getByRole('button',{name:'Armas',exact:true}).click();
  await shop.getByRole('button',{name:'Experimentar Tempestade',exact:true}).click();
- await shop.getByRole('button',{name:'Adicionar Tempestade ao carrinho',exact:true}).click();
  if(!mobile){await shop.getByRole('button',{name:'Ver informações de Tempestade',exact:true}).hover();await page.waitForTimeout(500);}
  await page.screenshot({path:`${output}/weapons-${name}.png`});
  await page.mouse.move(2,2);
- await shop.getByRole('button',{name:/^Ver carrinho/}).first().click();await page.waitForTimeout(500);
- await page.screenshot({path:`${output}/cart-${name}.png`});
+ await shop.getByRole('button',{name:'Comprar Tempestade',exact:true}).click();await page.waitForTimeout(400);
+ await page.screenshot({path:`${output}/confirm-${name}.png`});
  await context.close();
 }
 await browser.close();
