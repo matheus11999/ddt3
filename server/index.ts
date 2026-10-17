@@ -9,6 +9,7 @@ import {Game} from './game';
 import {AdminStore} from './adminStore';
 import {registerAdmin} from './admin';
 import {ReportStore} from './reports';
+import {LiveState,PostgresLive,RedisLive} from './liveState';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
 const app=Fastify({logger:true,bodyLimit:4096,trustProxy:process.env.BEHIND_PROXY==='true'?(_address:string,hop:number)=>hop===0:false});
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8097,http://127.0.0.1:8097,http://localhost:5177,http://127.0.0.1:5177').split(','));
@@ -26,6 +27,10 @@ app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},as
  reply.header('Cache-Control','no-store');return {profile};
 });
 const game=new Game(store,e=>app.log.error(e));await game.refreshRanking();
+// Rooms and matches survive restarts: hot copy in Redis, durable copy in Postgres (docs/live-state.md).
+const postgresLive=new PostgresLive(store.pool);await postgresLive.init();
+const live=new LiveState(game,[{backend:new RedisLive(redis),every:500},{backend:postgresLive,every:3000}],e=>app.log.error(e));
+const restored=await live.restore();if(restored.rooms||restored.matches)app.log.info(restored,'Restored rooms and matches');
 const connections=new Map<string,WebSocket>();
 // Admin panel (/admin) and the maps it publishes; clients reload the map list when told.
 const adminStore=new AdminStore(store.pool);await adminStore.init();
@@ -59,6 +64,7 @@ app.server.on('upgrade',async(req,socket,head)=>{
  }catch(e){app.log.error(e);socket.destroy();}
 });
 const tick=setInterval(()=>game.tick(),50);
+const saving=setInterval(()=>{void live.save().catch(e=>app.log.error(e));},500);
 const presence=setInterval(()=>{redis.set('brasa:shard:1:online',connections.size,'EX',25).catch(e=>app.log.error(e));for(const [ip,l]of upgradeLimit)if(Date.now()-l.time>60000)upgradeLimit.delete(ip);},10000);
 await app.listen({port:Number(process.env.PORT??4107),host:'0.0.0.0'});
-for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});
+for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});

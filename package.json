@@ -10,6 +10,7 @@
     "start": "tsx server/index.ts",
     "test": "tsx --test --import ./tests/fixtures/weapons.ts --import ./tests/fixtures/maps.ts tests/*.test.ts",
     "test:integration": "tsx tests/integration.ts",
+    "test:restart:integration": "tsx tests/restart.integration.ts",
     "test:load": "tsx tests/load.ts",
     "check": "tsc --noEmit",
     "test:maps:integration": "tsx tests/maps.integration.ts",
