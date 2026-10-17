@@ -103,7 +103,7 @@ test('one impact damages two nearby enemies independently and excludes a micro-s
  assert.ok(hits.every(hit=>hit.damage>0));
 });
 
-test('scheduled projectiles launch every240ms and a delayed launch sees an earlier terrain change',()=>{
+test('scheduled projectiles launch at the volley cadence and a delayed launch sees an earlier terrain change',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1};for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+50]=1;
  const order:number[]=[],results=volley(terrain,origin,[0,0],100,0,{...WEAPONS[0],gravity:0},[],(_,index)=>{order.push(index);if(index===0){terrain.fill(0);origin.y=150;}},[0,VOLLEY_CADENCE_MS]);
  assert.deepEqual(order,[0,1]);assert.equal(results[0].points[0][1],60);assert.equal(results[1].points[0][1],110);assert.equal(results[1].x,WORLD.width+80);assert.ok(results[0].flightTime<VOLLEY_CADENCE_MS);
@@ -134,7 +134,7 @@ test('repeated tools require the authoritative vigor budget and cannot mutate st
  const f=await fixture(),vigor=f.shooter.stamina;
  for(const boost of ['extra1','extra2'] as const)await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,['extra1','extra2']);assert.equal(f.shooter.stamina,vigor-220);
  const before=structuredClone(f.shooter);await f.game.command(f.shooter.id,{type:'boost',boost:'damage20'});assert.deepEqual(f.shooter,before);
- await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,240,480,720]);assert.ok(shot.projectiles[0].flightTime>720);
+ await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,1,2,3].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>3*VOLLEY_CADENCE_MS);
  const snapshot=structuredClone(f.match.state);await f.game.command(f.shooter.id,{type:'boost',boost:'damage50'});assert.deepEqual(f.match.state,snapshot);
  assert.equal(attributes(f.shooter.equipment).luck,105);
 });
