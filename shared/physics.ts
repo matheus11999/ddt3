@@ -79,7 +79,7 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  return moved?{x,y}:null;
 }
 /** A projectile that hits a fighter in full digs only this share of its crater, under the target's feet. */
-export const DIRECT_HIT_DIG=.45;
+export const DIRECT_HIT_DIG=.75;
 /** Where an impact removes terrain: under the target on a direct hit, else at the explosion. */
 export function impactDig(impact:{x:number;y:number;radius:number;dig?:{x:number;y:number;radius:number}}){return impact.dig??impact;}
 /** Broken ground is never a perfect circle: by default the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
