@@ -9,7 +9,8 @@ import {FLIGHT_AIM,weaponAimLimits} from '../shared/aim';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
-import {flightLanding,trajectory,volley,WORLD} from '../shared/physics';
+import {createTerrain,flightLanding,ground,terrainWidth,trajectory,volley,WORLD} from '../shared/physics';
+import {getMap} from '../shared/maps';
 import {createFall} from '../shared/fall';
 
 async function fixture(count=2){
@@ -128,6 +129,24 @@ test('flight teleports only at authoritative contact to clear supported ground, 
  f.game.tick(impact.at-.001);assert.equal(f.actor.x,origin);f.game.tick(impact.at);assert.notEqual(f.actor.x,origin);assert.equal(f.actor.y,600);assert.equal(f.actor.fall,undefined);assert.deepEqual(f.match.terrain,beforeTerrain);assert.deepEqual(f.match.state.players.map(player=>player.hp),beforeHP);assert.deepEqual(f.match.state.terrainMarks,undefined);
  assert.equal(f.events.get(f.actor.id)!.filter(event=>event.type==='ability-effect'&&event.ability==='flight').length,1);
  f.game.tick(f.match.resolveAt+1);assert.equal(f.match.state.turnId,f.enemy.id);assert.equal(f.actor.flightArmed,false);assert.deepEqual(f.actor.abilities,initialAbilities());
- assert.equal(flightLanding(new Uint8Array(WORLD.cols*WORLD.rows),{x:400,y:600}),null);assert.equal(flightLanding(f.match.terrain,{x:1600,y:600}),null);
- const solid=new Uint8Array(WORLD.cols*WORLD.rows).fill(1);assert.equal(flightLanding(solid,{x:400,y:600}),null);
+ assert.equal(flightLanding(f.match.terrain,{x:1600,y:600}),null);assert.equal(flightLanding(f.match.terrain,{x:400,y:WORLD.height}),null);
+});
+
+test('flight puts the fighter exactly where the plane touched and lets it fall from there',()=>{
+ const terrain=createTerrain('snow');
+ // Top of the lantern on the floating ledge between the bridges: stands right there.
+ assert.deepEqual(flightLanding(terrain,{x:1536,y:345}),{x:1536,y:345,fromY:339});
+ // Side of the lantern, flying right: set just outside it, then drops onto the ledge below.
+ const side=flightLanding(terrain,{x:1515,y:400,points:[[1490,398],[1510,400]]})!;assert.ok(side.x<1515&&side.x>1475,`x ${side.x}`);assert.equal(side.fromY,394);assert.ok(side.y>=417&&side.y<=430,`y ${side.y}`);
+ // Underside of the ledge, flying up: starts just below it and falls into the void.
+ const under=flightLanding(terrain,{x:1560,y:546,points:[[1550,560],[1560,546]]})!;assert.equal(under.x,1560);assert.ok(under.fromY>=540);assert.ok(under.y>WORLD.height);
+ // A plane that leaves the map leaves the shooter in place.
+ assert.equal(flightLanding(terrain,{x:1500,y:WORLD.height}),null);
+});
+
+test('flight that falls into the void kills the shooter',async()=>{
+ const f=await fixture();f.match.terrain.fill(0);f.match.terrain.fill(1,200*WORLD.cols,200*WORLD.cols+120);
+ await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
+ const impact=f.match.pendingImpacts![0];impact.mark.x=900;impact.mark.y=300;f.match.activeShot!.projectiles[0].points=[[880,310],[900,300]];
+ f.game.tick(impact.at);assert.equal(f.actor.x,900);assert.equal(f.actor.hp,0);assert.ok(f.actor.fall?.void);assert.ok(f.match.activeShot?.hits.some(hit=>hit.id===f.actor.id&&hit.kind==='fall'));
 });

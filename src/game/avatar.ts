@@ -282,7 +282,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  // Combat fighters lie along the ground under them, as in DDTank: the whole body
  // (weapon included) turns about the contact point by the ground angle.
  const tilt=context.combat&&rig.combat?slope:0;
- c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
+ c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else if(!context.combat)ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35'); // No contact shadow in combat: it read as a dark smear on slopes and in craters.
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);

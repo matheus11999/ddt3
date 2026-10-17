@@ -44,13 +44,38 @@ export function terrainMaterial(map:MapId,x:number,y:number):{material:MaterialI
 }
 export function solid(t:Uint8Array,x:number,y:number){const cols=terrainCols(t);if(x<0||x>=cols*3||y<0||y>=WORLD.height)return false;return t[Math.floor(y/3)*cols+Math.floor(x/3)]===1;}
 export function ground(t:Uint8Array,x:number,start=0){for(let y=Math.max(0,Math.floor(start/3)*3);y<WORLD.height;y+=3){if(solid(t,x,y))return y;}return WORLD.height+80;}
-/** A walk can climb a small ledge, but cannot start its ground search inside a wall. */
+/** One walk command moves this far, one pixel at a time, so every bump and dip on the way is felt. */
+export const WALK_STEP=8;
+/** Highest lip the feet can step onto in one pixel (about a knee): taller walls stop the walk. */
+export const WALK_STEP_UP=15;
+/** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 60°): a single Quebra-Tijolos crater is the steepest hole that can still be walked out of; deeper or stacked pits trap. */
+export const WALK_SLOPE_SPAN=12;
+export const WALK_MAX_RISE=21;
+/** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
+const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
+/**
+ * Walks up to WALK_STEP pixels along the ground. Going down follows the ground
+ * (a drop taller than a step ends the walk and the fighter falls); going up is
+ * limited by a knee-high lip and a maximum slope, so a steep crater traps its
+ * occupant instead of letting them hop out. Returns null when no pixel was walked.
+ */
 export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1|-1):{x:number;y:number}|null {
- const x=Math.max(30,Math.min(terrainWidth(t)-30,origin.x+direction*8)),y=ground(t,x,origin.y-21);
- if(y<origin.y-21||solid(t,x,y-WORLD.cell))return null;
- // Feet may follow small slopes; the torso/head need clearance across their width.
- for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=y-51;py<y-9;py+=WORLD.cell)if(solid(t,px,py))return null;
- return {x,y};
+ const min=30,max=terrainWidth(t)-30;let x=Math.max(min,Math.min(max,origin.x)),y=origin.y,moved=false;
+ for(let n=0;n<WALK_STEP;n++){
+  const nx=x+direction;if(nx<min||nx>max)break;
+  const top=y-WALK_STEP_UP;if(solid(t,nx,top))break;
+  const ny=ground(t,nx,top);
+  if(ny<y){
+   // Sustained slope: compare with the ground a span behind the new foot.
+   const behind=ground(t,nx-direction*WALK_SLOPE_SPAN,ny);if(behind<=WORLD.height&&behind-ny>WALK_MAX_RISE)break;
+  }
+  let blocked=false;
+  for(let px=0;px<=WALK_BODY_FRONT&&!blocked;px+=WORLD.cell)for(let py=ny-WALK_BODY_TOP;py<ny-WALK_BODY_WAIST;py+=WORLD.cell)if(solid(t,nx+direction*px,py)){blocked=true;break;}
+  if(blocked)break;
+  const drop=ny-y;x=nx;y=ny;moved=true;
+  if(drop>WALK_STEP_UP)break; // stepped off a ledge: the fall takes over
+ }
+ return moved?{x,y}:null;
 }
 /** A projectile that hits a fighter in full digs only this share of its crater, under the target's feet. */
 export const DIRECT_HIT_DIG=.45;
@@ -79,18 +104,19 @@ interface ProjectileOrigin {x:number;y:number;facing:number;}
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
 /** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
 export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
-/** Flight can only land near its first contact, with solid support and room for
- * the entire fighter. A miss or an enclosed wall leaves the shooter in place. */
-export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number},targets:ProjectileTarget[]=[]):{x:number;y:number}|null {
- const width=terrainWidth(terrain);if(impact.x<24||impact.x>width-24||impact.y<0||impact.y>=WORLD.height)return null;
- for(let distance=0;distance<=48;distance+=WORLD.cell)for(const direction of distance?[1,-1]:[1]){
-  const x=impact.x+distance*direction;if(x<24||x>width-24)continue;
-  const y=ground(terrain,x,impact.y-54);if(y>WORLD.height||Math.abs(y-impact.y)>54)continue;
-  if(targets.some(target=>target.hp>0&&Math.abs(target.x-x)<30&&Math.abs(target.y-y)<60))continue;
-  let clear=true;for(let px=x-12;px<=x+12&&clear;px+=WORLD.cell){if(Math.abs(ground(terrain,px,y-6)-y)>9){clear=false;break;}for(let py=y-63;py<y-3;py+=WORLD.cell)if(solid(terrain,px,py)){clear=false;break;}}
-  if(clear)return {x,y};
- }
- return null;
+/** Flight puts the fighter exactly where the plane touched. Against a wall it is set just outside the
+ * wall on the side the plane came from; against an underside, just below it. From there the fighter
+ * drops to the first ground under it (`y`), or into the void (`y` past the bottom) and dies.
+ * Only a plane that leaves the map leaves the shooter in place. */
+export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number;points?:number[][]}):{x:number;y:number;fromY:number}|null {
+ const width=terrainWidth(terrain);if(impact.x<0||impact.x>=width||impact.y<0||impact.y>=WORLD.height)return null;
+ const last=impact.points?.at(-1),before=impact.points?.at(-2),travel=last&&before&&last[0]!==before[0]?Math.sign(last[0]-before[0]):0;
+ const blocked=(x:number)=>{for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=impact.y-51;py<impact.y-6;py+=WORLD.cell)if(solid(terrain,px,py))return true;return false;};
+ let x=Math.max(24,Math.min(width-24,impact.x));
+ // Only a wall in the plane's way pushes the fighter back; under a ceiling it simply hangs below the contact.
+ if(travel&&solid(terrain,impact.x+travel*4,impact.y))for(let back=0;back<=36&&blocked(x);back+=WORLD.cell)x=Math.max(24,Math.min(width-24,impact.x-travel*back));
+ let fromY=impact.y-6;while(fromY<impact.y+6&&solid(terrain,x,fromY))fromY+=WORLD.cell;
+ return {x,y:ground(terrain,x,fromY),fromY:Math.min(fromY,impact.y)};
 }
 /** Points track the projectile center; x/y identify the contacted surface. */
 export interface TrajectoryResult {points:number[][];x:number;y:number;hitId?:string;hitQuality?:number;flightTime:number;}
