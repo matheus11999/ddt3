@@ -50,6 +50,6 @@ export function PowerOrb({charge,armed,disabled,onActivate}:{charge:number;armed
    <span className="combat-power-bubbles"><i/><i/><i/><i/></span>
   </span>
   <span className="combat-power-burst" aria-hidden="true"/>
-  <span className="combat-power-core"><strong>POWER</strong><small>{armed?'ATIVADO':full?'ATIVAR':`${Math.floor(level)}%`}</small></span>
+  <span className="combat-power-core"><strong>POW</strong></span>
  </button>;
 }
