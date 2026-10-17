@@ -10,6 +10,9 @@ export function terrainWidth(t:{length:number}){return terrainCols(t)*WORLD.cell
 /** Time dilation preserves the original arcs while making their travel 18% faster. */
 export const PROJECTILE_SPEED_SCALE=1.18;
 export const FIGHTER_HIT_RADIUS=22;
+/** A rival standing this close (horizontally) to the shooter shares its body: the shot
+ * passes through him until it leaves his hit circle. A little further aside, it hits. */
+export const FIGHTER_OVERLAP=16;
 interface TerrainTemplate {solid:Uint8Array;regions:Int16Array;definition:readonly MapRegion[];cols:number;}
 const templates=new Map<MapId,TerrainTemplate>();
 export function terrainTemplate(map:MapId=MAP_DEFAULT.id):TerrainTemplate {
@@ -176,10 +179,10 @@ function terrainContact(t:Uint8Array,x:number,y:number,dx:number,dy:number,radiu
  }
  return contact;
 }
-function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:number,radius:number,targets:ProjectileTarget[]):Contact|undefined {
+function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:number,radius:number,targets:ProjectileTarget[],ignored?:ReadonlySet<string>):Contact|undefined {
  let contact=terrainContact(terrain,x,y,dx,dy,radius);
  for(const target of targets){
-  if(target.hp<=0)continue;
+  if(target.hp<=0||ignored?.has(target.id))continue;
   const fraction=circleContact(x,y,dx,dy,target.x,target.y-31,FIGHTER_HIT_RADIUS+radius);
   if(fraction===undefined||(contact&&fraction>contact.fraction))continue;
   const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-(target.y-31),distance=Math.hypot(ox,oy);
@@ -200,21 +203,25 @@ export function leftArena(impact:{x:number;y:number},width:number=WORLD.width){r
 
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
-export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance):TrajectoryResult[] {
- const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined})),results:TrajectoryResult[]=new Array(angles.length);
+export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance,passOverlapping=true):TrajectoryResult[] {
+ const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined,ignored:new Set<string>()})),results:TrajectoryResult[]=new Array(angles.length);
  const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:(at-shot.launchAt)/PROJECTILE_SPEED_SCALE};results[index]=result;onImpact?.(result,index);};
  let time=0;
  while(shots.some(shot=>!shot.done)){
-  for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+1e-7){const rad=shot.angle*Math.PI/180;shot.x=origin.x+origin.facing*27;shot.y=origin.y-40;shot.vx=Math.cos(rad)*speed*origin.facing;shot.vy=-Math.sin(rad)*speed;shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextSample=time+1000/60;}
+  for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+1e-7){const rad=shot.angle*Math.PI/180;shot.x=origin.x+origin.facing*27;shot.y=origin.y-40;shot.vx=Math.cos(rad)*speed*origin.facing;shot.vy=-Math.sin(rad)*speed;shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextSample=time+1000/60;
+   if(passOverlapping)for(const target of targets)if(Math.abs(target.x-origin.x)<FIGHTER_OVERLAP&&Math.abs(target.y-origin.y)<FIGHTER_HIT_RADIUS*2&&insideTarget(shot,target,weapon.projectileRadius))shot.ignored.add(target.id);}
   const nextLaunch=Math.min(Infinity,...shots.filter(shot=>!shot.launched).map(shot=>shot.launchAt));
   if(!shots.some(shot=>shot.launched&&!shot.done)){time=nextLaunch;continue;}
   const duration=Math.min(step,nextLaunch-time);let elapsed=0;
   while(elapsed<duration-1e-9){
    const remaining=(duration-elapsed)/1000;let earliest:{index:number;contact:Contact}|undefined;
-   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;const contact=projectileContact(terrain,shot.x,shot.y,shot.vx*remaining,shot.vy*remaining,weapon.projectileRadius,targets);if(contact&&(!earliest||contact.fraction<earliest.contact.fraction))earliest={index,contact};}
+   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;const contact=projectileContact(terrain,shot.x,shot.y,shot.vx*remaining,shot.vy*remaining,weapon.projectileRadius,targets,shot.ignored);if(contact&&(!earliest||contact.fraction<earliest.contact.fraction))earliest={index,contact};}
    const advance=(duration-elapsed)*(earliest?.contact.fraction??1);
    for(const shot of shots)if(shot.launched&&!shot.done){shot.x+=shot.vx*advance/1000;shot.y+=shot.vy*advance/1000;}
-   elapsed+=advance;if(!earliest)break;finish(earliest.index,earliest.contact,time+elapsed);
+   elapsed+=advance;
+   // Once a shot has left an overlapping body, that body can be hit again (e.g. on the way down).
+   for(const shot of shots)for(const id of shot.ignored){const target=targets.find(target=>target.id===id);if(!target||!insideTarget(shot,target,weapon.projectileRadius))shot.ignored.delete(id);}
+   if(!earliest)break;finish(earliest.index,earliest.contact,time+elapsed);
   }
   time+=duration;
   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;
@@ -229,6 +236,7 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
  }
  return results;
 }
+function insideTarget(shot:{x:number;y:number},target:ProjectileTarget,radius:number){return Math.hypot(shot.x-target.x,shot.y-(target.y-31))<=FIGHTER_HIT_RADIUS+radius;}
 /** Acquires the nearest living enemy within HOMING_RADIUS and keeps that lock while it lives. */
 function homingTarget(shot:{x:number;y:number;lockId?:string},guidance:ProjectileGuidance):ProjectileTarget|undefined {
  const current=shot.lockId?guidance.targets.find(target=>target.id===shot.lockId&&target.hp>0):undefined;if(current)return current;
@@ -244,5 +252,5 @@ export function shatter(terrain:Uint8Array,origin:{x:number;y:number},count:numb
  const fragments=weapon.fragments;if(!fragments||count<1)return [];
  const angles=Array.from({length:count},(_,index)=>count===1?80:32+index*116/(count-1));
  const launch={x:origin.x-facing*27,y:origin.y+40-fragments.radius-2,facing};
- return volley(terrain,launch,angles,fragments.speed/9.8,wind*.5,{...weapon,projectileRadius:fragments.radius,gravity:fragments.gravity},targets,onImpact);
+ return volley(terrain,launch,angles,fragments.speed/9.8,wind*.5,{...weapon,projectileRadius:fragments.radius,gravity:fragments.gravity},targets,onImpact,[],undefined,false);
 }
