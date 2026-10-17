@@ -234,3 +234,21 @@ test('a direct hit still digs a little under the target, less than a shot on the
  assert.ok(dig.radius>0&&dig.radius<direct.impact.radius,'digs less than a ground shot');
  assert.ok(Math.abs(dig.radius-crater*.45)<1e-6);assert.ok(dig.y>direct.impact.y,'the hole is under the target, not in the air');
 });
+
+test('turning in place is free, works on the opponent turn and never moves anyone or changes the active aim',async()=>{
+ const f=await battleFixture(),s=f.match.state,active=s.players.find(p=>p.id===s.turnId)!,idle=s.players.find(p=>p.id!==s.turnId)!;
+ const activeAim={angle:active.aimAngle,slope:active.aimSlope,facing:active.facing,x:active.x},spot={x:idle.x,y:idle.y,stamina:idle.stamina};
+ idle.stamina=0;const direction=(idle.facing===1?-1:1) as 1|-1;
+ await f.game.command(idle.id,{type:'face',direction});
+ assert.equal(idle.facing,direction);assert.equal(idle.stamina,0);assert.equal(idle.x,spot.x);assert.equal(idle.y,spot.y);
+ assert.deepEqual({angle:active.aimAngle,slope:active.aimSlope,facing:active.facing,x:active.x},activeAim);
+ const seen=f.events.get(active.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!;assert.equal(seen.battle!.players.find(p=>p.id===idle.id)!.facing,direction);
+ assert.equal(errors(f.events.get(idle.id)!).length,0);
+});
+
+test('on your own turn the first press to the other side only turns, without spending stamina',async()=>{
+ const f=await battleFixture(),s=f.match.state,me=s.players.find(p=>p.id===s.turnId)!,x=me.x,stamina=me.stamina,direction=(me.facing===1?-1:1) as 1|-1;
+ await f.game.command(me.id,{type:'walk',direction});
+ assert.equal(me.facing,direction);assert.equal(me.x,x);assert.equal(me.stamina,stamina);
+ f.game.peers.get(me.id)!.lastWalk=0;await f.game.command(me.id,{type:'walk',direction});assert.notEqual(me.x,x);assert.equal(me.stamina,stamina-3);
+});
