@@ -33,16 +33,20 @@ export function AngleGauge({angle,minAngle,maxAngle,facing,slope}:{angle:number;
 }
 
 /** Combat Power orb. The server zeroes the charge when Power is armed; the
- * liquid keeps the previous level for one frame and then drains visibly. */
-export function PowerOrb({charge,armed,disabled,onActivate}:{charge:number;armed:boolean;disabled:boolean;onActivate:()=>void}){
- const level=Math.max(0,Math.min(100,armed?0:charge)),full=!armed&&level>=100;
+ * liquid keeps the previous level for one frame and then drains visibly.
+ * While it can't be used (`blocked`) a click shows why instead of doing nothing. */
+export function PowerOrb({charge,armed,blocked,onActivate}:{charge:number;armed:boolean;blocked?:string;onActivate:()=>void}){
+ const level=Math.max(0,Math.min(100,armed?0:charge)),full=!armed&&level>=100,ready=full&&!blocked;
  const [draining,setDraining]=useState(false),wasArmed=useRef(armed);
+ const [notice,setNotice]=useState<{text:string;key:number}|null>(null);
  useEffect(()=>{
   const started=armed&&!wasArmed.current;wasArmed.current=armed;
   if(!started)return;
   setDraining(true);const timer=setTimeout(()=>setDraining(false),1400);return()=>clearTimeout(timer);
  },[armed]);
- return <button type="button" className={`combat-power ${full?'power-full':''} ${armed?'power-armed':''} ${draining?'power-draining':''}`} style={{'--power-level':`${level}%`} as CSSProperties} disabled={disabled} aria-label={armed?'Power preparado':`Ativar Power, ${Math.floor(level)} de 100`} aria-pressed={armed} title="Acumule ao acertar e receber dano. Com 100, ative para fortalecer o próximo tiro. A carga é gasta na ativação; passar ou deixar o tempo acabar perde o tiro fortalecido." onClick={event=>{onActivate();if(event.detail>0)event.currentTarget.blur();}}>
+ useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(null),1800);return()=>clearTimeout(timer);},[notice]);
+ useEffect(()=>{if(!blocked)setNotice(null);},[blocked]);
+ return <button type="button" className={`combat-power ${full?'power-full':''} ${ready?'power-ready':''} ${armed?'power-armed':''} ${draining?'power-draining':''}`} style={{'--power-level':`${level}%`} as CSSProperties} aria-disabled={!!blocked} aria-label={armed?'Power preparado':`Ativar Power, ${Math.floor(level)} de 100`} aria-pressed={armed} title="Acumule ao acertar e receber dano. Com 100, ative na sua vez para fortalecer o próximo tiro. A carga é gasta na ativação; passar ou deixar o tempo acabar perde o tiro fortalecido." onClick={event=>{if(event.detail>0)event.currentTarget.blur();if(blocked){setNotice(current=>({text:blocked,key:(current?.key??0)+1}));return;}onActivate();}}>
   <span className="combat-power-rays" aria-hidden="true"/>
   <span className="combat-power-flames" aria-hidden="true"/>
   <span className="combat-power-glass" aria-hidden="true">
@@ -50,6 +54,30 @@ export function PowerOrb({charge,armed,disabled,onActivate}:{charge:number;armed
    <span className="combat-power-bubbles"><i/><i/><i/><i/></span>
   </span>
   <span className="combat-power-burst" aria-hidden="true"/>
-  <span className="combat-power-core"><strong>POW</strong></span>
+  <span className="combat-power-core"><strong>POW</strong>{!full&&!armed&&<small data-testid="power-charge">{Math.floor(level)}%</small>}</span>
+  {notice&&<span key={notice.key} className="combat-power-notice" role="status">{notice.text}</span>}
  </button>;
+}
+
+/** Wind reaches ±3.5 (server `wind()`); the arrow's motion grows with it. */
+const WIND_MAX=3.5;
+const windStrength=(wind:number)=>Math.min(1,Math.abs(wind)/WIND_MAX);
+function WindArrow({wind}:{wind:number}){
+ const k=windStrength(wind),calm=Math.abs(wind)<.05;
+ // A quiet drift (matheus, 17/10: the streaks were too loud): weak wind 1px every 2.6s, strong wind 4px every 1.4s.
+ const style={'--wind-amp':`${1+k*3}px`,'--wind-speed':`${2.6-k*1.2}s`} as CSSProperties;
+ return <span className={`wind-arrow ${wind<0?'wind-left':''} ${calm?'wind-calm':''}`} style={style} aria-hidden="true">
+  <svg viewBox="0 0 48 28"><path d="M3 9h22V3a1 1 0 0 1 1.6-.8l18.6 11a1.1 1.1 0 0 1 0 1.8L26.6 26a1 1 0 0 1-1.6-.8V19H3l5-5z" fill="url(#battle-wind-arrow)" stroke="#133954" strokeWidth="2" strokeLinejoin="round"/><path d="M10 11.5h14M29 8l9 5.5" fill="none" stroke="#fff8cc" strokeWidth="1.8" strokeLinecap="round"/></svg>
+ </span>;
+}
+/** Battle wind: no plate, outlined number, an arrow that drifts a little more the stronger the wind,
+ * and the wind of my last shot underneath (beside "Último" force it helps repeat a shot). */
+export function WindGauge({wind,last}:{wind:number;last:number|null}){
+ const direction=(value:number)=>Math.abs(value)<.05?'sem vento':value<0?'para a esquerda':'para a direita';
+ return <div className="wind-gauge" role="status" aria-label={`Vento ${Math.abs(wind).toFixed(1)} ${direction(wind)}${last===null?'':`; no seu último tiro ${Math.abs(last).toFixed(1)} ${direction(last)}`}`}>
+  <svg width="0" height="0" style={{position:'absolute'}} aria-hidden="true"><defs><linearGradient id="battle-wind-arrow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f3fcff"/><stop offset=".5" stopColor="#a0ebff"/><stop offset="1" stopColor="#319dd1"/></linearGradient></defs></svg>
+  <small className="wind-title">VENTO</small>
+  <div className={`wind-now ${wind<0?'wind-now-left':''}`}><strong data-testid="wind-value">{Math.abs(wind).toFixed(1)}</strong><WindArrow wind={wind}/></div>
+  {last!==null&&<div className="wind-last" data-testid="last-wind"><small>ÚLTIMO</small><b>{Math.abs(last).toFixed(1)}</b><WindArrow wind={last}/></div>}
+ </div>;
 }

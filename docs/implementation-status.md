@@ -332,3 +332,8 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Janela: arte nova (`picker-art.webp`) montada com os mapas e as formigas, dificuldades com degradê por cor, poder recomendado x poder do jogador; quadro da sala mostra a arte do estágio escolhido. Botão Convidar na sala. Barra da rainha saiu do topo: placa pequena embaixo dela. Objetivo abaixo do minimapa.
 - Evidência: `npm test` (296), `npm run check`, `npm run build`, `test:expedition:browser`, `test:rooms:browser`, `test:battle:browser`, `test:mobile:browser`; jogo rodando com os dois estágios (capturas em `test-results/expedition-live/`).
 - 17/10 (noite, 2): chão de cada estágio do formigueiro numa peça só (Codex, `chao.png`); quadro da sala com arte fixa pintada pelo Codex (`board.webp`), título 3D, selo do estágio e chances de drop (Pedra I, espaços livres para mais); `build:map` não avisa peça cortada pela borda da folha quando ela atravessa a borda do mapa.
+
+## Vento e POW no HUD de combate (17/10/2026)
+
+- Vento sem fundo: número com contorno, seta que empurra mais longe e mais rápido quanto mais forte o vento (1 a 3 rastros), e abaixo o vento do seu último tiro ("ÚLTIMO"), ao lado da força "Último" (`WindGauge` em `src/components/CombatGauges.tsx`).
+- POW: a ativação com 100 funcionava; o orbe não mostrava a carga e ignorava o clique sem dizer por quê. Agora mostra a carga em % e, quando não pode ser usado, o clique mostra o motivo (encher acertando/recebendo dano, só na sua vez, voo, +1/+2/Tridente). Carga em pontos inteiros (99,6 parecia cheio e ficava travado).

@@ -17,9 +17,9 @@ try{
   window.powerClient=client;window.commands=[];client.send=command=>{window.commands.push(command);if(command.type==='power'){const b=client.state.battle;client.update({battle:{...b,players:b.players.map(p=>p.id==='p0'?{...p,powerCharge:0,powerArmed:true}:p)}});}};
   ReactDOM.createRoot(document.getElementById('hud')).render(React.createElement(React.Fragment,null,React.createElement(Scene,{angle:45,onArena:()=>{},onForge:()=>{}}),React.createElement(BattleHud,{angle:45,setAngle:()=>{},blocked:false})));
  });
- await page.waitForSelector('.combat-power');await page.waitForTimeout(2200);await expect(page.getByRole('button',{name:'Ativar Power, 65 de 100'})).toBeDisabled();await page.screenshot({path:output+'/charging.png'});
+ await page.waitForSelector('.combat-power');await page.waitForTimeout(2200);await expect(page.getByRole('button',{name:'Ativar Power, 65 de 100'})).toHaveAttribute('aria-disabled','true');await page.screenshot({path:output+'/charging.png'});
  await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,players:c.state.battle.players.map(p=>p.id==='p0'?{...p,powerCharge:100}:p)}});});
- const button=page.getByRole('button',{name:'Ativar Power, 100 de 100'});await expect(button).toBeEnabled();await page.screenshot({path:output+'/ready.png'});await button.click();
+ const button=page.getByRole('button',{name:'Ativar Power, 100 de 100'});await expect(button).toHaveAttribute('aria-disabled','false');await page.screenshot({path:output+'/ready.png'});await button.click();
  await expect(page.getByRole('button',{name:'Power preparado'})).toHaveAttribute('aria-pressed','true');
  await page.keyboard.down('Space');await page.waitForTimeout(170);await page.keyboard.up('Space');await expect.poll(()=>page.evaluate(()=>window.commands.filter(c=>c.type==='fire').length)).toBe(1);
  await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,phase:'resolving',powerCutIn:{id:'cutin-visual',playerId:'p0',endsAt:Date.now()+1400}}});});await expect(page.getByRole('status',{name:'Faísca dispara Power'})).toHaveCount(1);await page.waitForTimeout(400);await page.screenshot({path:output+'/cut-in.png'});
