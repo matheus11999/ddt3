@@ -123,11 +123,12 @@ test('HP, Power and authoritative terrain remain unchanged until contact, includ
  const battle=resumed.filter((event):event is Extract<ServerEvent,{type:'battle'}>=>event.type==='battle').at(-1)!.battle!;assert.deepEqual(battle.activeShot!.impacted,[0]);assert.equal(battle.players[1].hp,hp);
 });
 
-test('a lethal hit announces defeat at impact rather than at fire, and critical roll is server-controlled',async()=>{
+test('a lethal hit kills at impact but the result waits for the shot to end, and critical roll is server-controlled',async()=>{
  for(const roll of [.99,0]){const f=await fixture(roll);f.target.hp=1;
   await f.game.command(f.shooter.id,{type:'fire',...f.aim});assert.equal(f.target.hp,1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.rewards,undefined);
-  const at=f.match.pendingImpacts![0].at;f.game.tick(at-.001);assert.equal(f.target.hp,1);f.game.tick(at);assert.equal(f.target.hp,0);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.winner,0);assert.ok(f.match.state.rewards);
-  const hit=impacts(f.events).flatMap(event=>event.hits).find(value=>value.id===f.target.id)!;assert.equal(hit.critical,roll===0);assert.equal(hit.damage,1,'effective HP loss never overcharges Power via overkill');
+  const at=f.match.pendingImpacts![0].at;f.game.tick(at-.001);assert.equal(f.target.hp,1);f.game.tick(at);assert.equal(f.target.hp,0);assert.equal(f.match.state.phase,'resolving','the shot finishes playing before the result');assert.equal(f.match.state.rewards,undefined);
+  f.game.tick(f.match.resolveAt);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.winner,0);assert.ok(f.match.state.rewards);
+  const hit=impacts(f.events).flatMap(event=>event.hits).find(value=>value.id===f.target.id)!;assert.equal(hit.critical,roll===0);assert.ok(hit.damage>1,'the number shows the real damage, not the HP that was left');
  }
 });
 

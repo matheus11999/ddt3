@@ -469,7 +469,8 @@ export class Game {
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
     const critical=criticalFromRoll(attributes(f.equipment).luck,this.criticalRoll()),damage=damageAtImpact(f.equipment,target.equipment,{attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
     if(damage<=0)continue;
-    target.hp=Math.max(0,target.hp-damage);hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
+    // Bodies stay hittable for the whole shot: a +1/+2 that lands after the kill still shows its real damage.
+    hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
    }
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
    pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),effect:w.effect,level:f.equipment.upgrade}});
@@ -503,20 +504,22 @@ export class Game {
     this.animateFall(shooter,landing.fromY,impact.at);if(shooter.fall)m.resolveAt=Math.max(m.resolveAt,shooter.fall.startedAt+shooter.fall.duration);
     adjustAimToTerrain(shooter,m.terrain);this.abilityEffect(m,{playerId:shooter.id,ability:'flight',x:landing.x,y:landing.fromY,at:impact.at});
    }
-   shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});if(!this.checkWin(m))this.broadcastBattle(m,true);return;
+   shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});this.broadcastBattle(m,true);return;
   }
   for(const planned of impact.hits){
-   const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.hp<=0)continue;
-   const damage=Math.min(target.hp,planned.damage);if(damage<=0)continue;target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
-   if(target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,damage,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);}
-   hits.push({...planned,damage,x:target.x,y:target.y-85});
+   // Hits are only planned on fighters alive when the shot left; one killed mid-shot keeps taking (and showing) full damage.
+   const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height||planned.damage<=0)continue;
+   const absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
+   if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
+   hits.push({...planned,x:target.x,y:target.y-85});
   }
   crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
   if(!impact.fragment)m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});
-  if(!this.checkWin(m))this.broadcastBattle(m,true);
+  // The match only ends in nextTurn, once every projectile of the shot has landed and settled.
+  this.broadcastBattle(m,true);
  }
  private animateFall(target:Fighter,fromY:number,at:number){
   const previous=target.fall,falling=previous&&at<previous.startedAt+previous.duration;
