@@ -2,7 +2,7 @@
 
 ## Mochila no padrão DDTank — 17/10/2026
 
-- Layout "Informações pessoais": cabeçalho laranja com nível, nome, vitórias e partidas; personagem estático sobre raios de sol com 4 slots de cada lado (2×2 em telas baixas) e arma embaixo; barra de XP e Poder; Ataque/Agilidade/Defesa/Sorte em pílulas e Dano/Armadura/Vida/Vigor em barras coloridas.
+- Layout "Informações pessoais": cabeçalho laranja com nível, nome, vitórias e partidas; personagem estático sobre o selo da aura do jogo (`aura-blue-sigil.png` abaixo de +5; selo da aura do Avatar a partir de +5) com 4 slots de cada lado (2×2 em telas baixas) e arma embaixo; barra de XP e Poder; Ataque/Agilidade/Defesa/Sorte em pílulas e Dano/Armadura/Vida/Vigor em barras coloridas.
 - Grade 7×6 com abas verticais (Tudo, Visuais, Armas, Pedras), busca e categoria no topo; rodapé com Moedas Brasa, total de pedras e botão Ferreiro.
 - Moldura continua fina e arredondada, só com paleta de madeira nesta janela (`bag-window`); estilos em `Backpack.css`. A loja ainda usa `inventory-window` e `Inventory.css`.
 - Evidência: `npm run check`, `npm test` (232), `test:mobile:browser` e `test:immediate:browser` passando; `test:customization:browser` passa toda a mochila e para no mesmo passo "Treinar" que já falha em `main`. Prévia em `docs/previews/backpack.png`; prompts de arte pendentes em `docs/backpack-art-prompts.md`.

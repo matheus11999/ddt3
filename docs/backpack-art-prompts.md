@@ -2,7 +2,7 @@
 
 Layout da mochila redesenhado em 17/10/2026 no padrão "Informações pessoais" do DDTank: prévia com slots nas laterais, atributos em pílulas creme e barras coloridas, grade de itens com abas verticais à direita e carteira com ações no rodapé (`src/components/Inventory.tsx`, `src/components/Backpack.css`).
 
-Hoje tudo é desenhado em CSS (madeira laranja, painéis creme, raios de sol atrás do personagem) e as silhuetas dos slots vazios e os ícones das abas usam ícones de linha. As peças abaixo substituem esses provisórios por arte pintada. Arte original no estilo do DDTank: nada copiado, sem logotipos, sem texto pintado.
+Atrás do personagem fica o selo pintado da aura do jogo (`aura-blue-sigil.png` girando devagar abaixo de +5; a partir de +5 o próprio Avatar desenha o selo verde, roxo ou dourado). O resto é desenhado em CSS (madeira laranja, painéis creme) e as silhuetas dos slots vazios e os ícones das abas usam ícones de linha. As peças abaixo substituem esses provisórios por arte pintada. Arte original no estilo do DDTank: nada copiado, sem logotipos, sem texto pintado.
 
 Regras comuns a todos os prompts:
 
@@ -20,17 +20,7 @@ Seamless tileable texture, 512x512, warm painted wood planks for a casual MMO ga
 
 Uso: substitui `--bag-grain` em `Backpack.css` (`background: url(...) repeat, linear-gradient(...)`).
 
-## 2. Brasão de raios atrás do personagem
-
-Arquivo: `public/assets/ui/bag-avatar-burst.png`, 768×768, transparente.
-
-```text
-Circular radiant sunburst emblem for a character preview in a chibi browser game inventory, centered, transparent background, alternating thick and thin rays in warm gold, tangerine and cream, a bright white-gold ring at about 45% radius with a soft inner glow, empty transparent center so a character can stand in front, a few tiny sparkle stars on the ring, painted game UI style with soft shading, vivid saturated colors, no text, no character.
-```
-
-Uso: substitui o `repeating-conic-gradient` de `.bag-sunburst`.
-
-## 3. Silhuetas dos slots vazios (atlas 3×3)
+## 2. Silhuetas dos slots vazios (atlas 3×3)
 
 Arquivo: `public/assets/ui/bag-slot-silhouettes.png`, 768×768 (células de 256×256), transparente.
 
@@ -40,7 +30,7 @@ Sprite sheet, 3x3 grid of 256x256 cells, transparent background, each cell one c
 
 Uso: trocar `SLOT_ICONS` (ícones de linha) por recortes do atlas, na ordem hair, hat, glasses, face, outfit, costume, wristband, bracelet, weapon.
 
-## 4. Ícones das abas verticais (atlas 4×1)
+## 3. Ícones das abas verticais (atlas 4×1)
 
 Arquivo: `public/assets/ui/bag-tab-icons.png`, 1024×256 (células de 256×256), transparente.
 

@@ -109,7 +109,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
     <div className="bag-stage">
      <div className="equipment-slots left">{LEFT_SLOTS.map(renderSlot)}</div>
      <div className="dressing-room" onDragOver={e=>{if(!locked&&e.dataTransfer.types.includes(ITEM_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={e=>{e.preventDefault();if(e.target===e.currentTarget||!(e.target as HTMLElement).closest('[data-slot]'))equipItem(e.dataTransfer.getData(ITEM_DRAG));setDragging(null);}}>
-      <i className="bag-sunburst" aria-hidden="true"/><Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
+      {preview.upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}<Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
       <button ref={optionsButton} className="avatar-options-toggle" aria-label="Exibição do personagem" aria-expanded={displayOptions} aria-controls="avatar-display-options" title="Exibição do personagem" onClick={()=>{setDisplayOptions(value=>!value);setTooltip(null);}}><Settings size={18}/></button>
       {displayOptions&&<div ref={optionsRef} id="avatar-display-options" className="avatar-display-options" role="dialog" aria-label="Exibição do personagem" onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setDisplayOptions(false);optionsButton.current?.focus();}}}>
        <header><strong>Exibição</strong><button aria-label="Fechar exibição" onClick={()=>{setDisplayOptions(false);optionsButton.current?.focus();}}><X size={16}/></button></header>
