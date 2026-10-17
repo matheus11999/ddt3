@@ -28,10 +28,10 @@ import './Backpack.css';
 
 const PAGE_SIZE=42;
 const ITEM_DRAG='application/x-brasa-item';
-const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face','ring'];
-const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
-const LOWER_SLOTS:Slot[]=['necklace','weapon','bubble'];
-const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair,ring:CircleDot,ring2:CircleDot,necklace:Medal,bubble:MessageCircle};
+export const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face','ring'];
+export const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
+export const LOWER_SLOTS:Slot[]=['necklace','weapon','bubble'];
+export const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair,ring:CircleDot,ring2:CircleDot,necklace:Medal,bubble:MessageCircle};
 const BAG_TABS:{id:string;name:string;Icon:LucideIcon}[]=[{id:'all',name:'Tudo',Icon:LayoutGrid},{id:'style',name:'Visuais',Icon:Shirt},{id:'weapons',name:'Armas',Icon:Swords},{id:'stones',name:'Pedras',Icon:Gem}];
 export type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
 function searchable(text:string){return text.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}

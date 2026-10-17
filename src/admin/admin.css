@@ -289,3 +289,42 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-picker-group h5 small{margin-left:auto;color:var(--faint)}
 
 @media (max-width:1440px){.adm-editor-bar .adm-btn-label{display:none}.adm-editor-bar .adm-btn{padding:0 10px}.adm-editor-bar{gap:6px}.adm-toolgroup{padding:0 3px}}
+
+/* Reports */
+.adm-card.alert b{color:var(--bad)}.adm-card.alert:after{background:linear-gradient(90deg,var(--bad),transparent)}.adm-card.alert .adm-card-icon{color:var(--bad)}
+.adm-reports{display:grid;gap:16px;align-items:start}
+.adm-reports.with-detail{grid-template-columns:minmax(320px,440px) minmax(0,1fr)}
+.adm-report-list{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.adm-report-list button{width:100%;display:grid;grid-template-columns:auto 1fr auto;grid-template-areas:'status name chat' 'reason reason reason' 'meta meta meta';gap:3px 10px;align-items:center;padding:11px 14px;border-radius:12px;border:1px solid var(--line);background:var(--panel);text-align:left;cursor:pointer}
+.adm-report-list button:hover{border-color:var(--line2);background:var(--panel2)}
+.adm-report-list button.on{border-color:#f2b54477;background:linear-gradient(90deg,#f2b5441a,var(--panel));box-shadow:inset 3px 0 0 var(--gold)}
+.adm-report-list .adm-status{grid-area:status}
+.adm-report-list b{grid-area:name;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:900}
+.adm-report-list b small,.adm-report-head h2 small{margin-left:7px;color:var(--faint);font-weight:700;font-size:12px}
+.adm-report-list em{grid-area:reason;font-style:normal;color:var(--gold2);font-weight:800;font-size:13.5px}
+.adm-report-meta{grid-area:meta;color:var(--faint);font-weight:700;font-size:12px}
+.adm-report-chat{grid-area:chat;display:inline-flex;align-items:center;gap:4px;color:var(--muted);font-weight:800;font-size:12px}
+.adm-report{display:grid;gap:14px;position:sticky;top:16px}
+.adm-report-head{display:flex;align-items:flex-start;gap:12px}
+.adm-report-head>div{flex:1;min-width:0}
+.adm-report-head>div>small{color:var(--faint);font-weight:700;font-size:12px}
+.adm-report-head h2{margin:2px 0 0;font:700 22px Cinzel,serif;color:var(--gold2)}
+.adm-report-facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin:0}
+.adm-report-facts div{padding:9px 12px;border-radius:10px;background:#ffffff06;border:1px solid var(--line)}
+.adm-report-facts dt{color:var(--faint);font-size:11.5px;font-weight:800}
+.adm-report-facts dd{margin:2px 0 0;font-weight:900}
+.adm-report-quote{margin:0;padding:10px 14px;border-left:3px solid var(--gold);border-radius:0 10px 10px 0;background:#f2b5440f;color:var(--text);font-style:italic}
+.adm-report-sub{display:flex;align-items:center;gap:8px;margin:4px 0 -4px;font-size:14.5px;font-weight:900}
+.adm-report-sub small{color:var(--faint);font-weight:700}
+.adm-report-log{list-style:none;margin:0;padding:6px;display:grid;gap:2px;max-height:420px;overflow:auto;border-radius:12px;background:#0d0b09;border:1px solid var(--line)}
+.adm-report-log li{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;padding:6px 8px;border-radius:8px}
+.adm-report-log li:nth-child(odd){background:#ffffff05}
+.adm-report-log time{color:var(--faint);font:700 12px ui-monospace,Menlo,monospace}
+.adm-report-log p{margin:0;overflow-wrap:anywhere}
+.adm-chat-channel{padding:1px 8px;border-radius:999px;font-size:11px;font-weight:900;background:#4aa8ff1c;color:#9fe2ff;white-space:nowrap}
+.adm-chat-channel.room{background:#ff7a2f1c;color:#ffcf8a}
+.adm-textarea{width:100%;resize:vertical;padding:9px 12px;border-radius:9px;border:1px solid var(--line2);background:#0d0b09;color:var(--text);font:inherit;outline:none}
+.adm-textarea:focus{border-color:var(--gold);box-shadow:0 0 0 3px #f2b5442a}
+.adm-report-actions{display:flex;justify-content:flex-end;gap:8px}
+.adm-report .adm-list a{color:var(--text);text-decoration:none}.adm-report .adm-list a:hover{color:var(--gold2)}
+@media (max-width:1100px){.adm-reports.with-detail{grid-template-columns:1fr}.adm-report{position:static}}

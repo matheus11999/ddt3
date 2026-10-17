@@ -38,7 +38,8 @@
     "test:loadout:integration": "tsx tests/ability-loadout.integration.ts",
     "test:loadout:browser": "node scripts/smoke-loadout.mjs",
     "test:immediate:browser": "node scripts/smoke-immediate-equipment.mjs",
-    "test:colors:browser": "node scripts/smoke-colors.mjs"
+    "test:colors:browser": "node scripts/smoke-colors.mjs",
+    "test:reports:browser": "node scripts/smoke-reports.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

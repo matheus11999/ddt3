@@ -10,6 +10,8 @@ import type {RoomMode} from './rooms';
 import {ABILITY_IDS} from './abilities';
 import type {AbilityId,AbilityEffect,AbilityLoadout} from './abilities';
 import type {FighterFall} from './fall';
+import {reportCommandSchema} from './reports';
+import type {PlayerInfo} from './reports';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
@@ -34,7 +36,7 @@ export interface TerrainMark {id:string;x:number;y:number;radius:number;roughnes
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
-export interface ChatLine {id:string;name:string;text:string;channel:'world'|'room';time:number;}
+export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:'world'|'room';time:number;}
 import {LOBBY_WALK} from './lobby';
 const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLowerCase());
 export const MAX_SHOP_QUANTITY=20;
@@ -53,6 +55,8 @@ export const stoneSelectionSchema=z.record(z.string().regex(/^[1-5]$/),z.number(
 export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('arena-presence'),open:z.boolean()}).strict(),
  z.object({type:z.literal('online-list')}).strict(),
+ z.object({type:z.literal('player-info'),playerId:z.string().uuid()}).strict(),
+ reportCommandSchema,
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
@@ -117,5 +121,7 @@ export type ServerEvent =
  | {type:'impact';shotId:string;projectileIndex:number;at:number;hits:ShotHit[]}
  | ({type:'ability-effect'} & AbilityEffect)
  | {type:'chat';message:ChatLine}
+ | {type:'player-info';info:PlayerInfo}
+ | {type:'report-result';playerId:string;name:string}
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};

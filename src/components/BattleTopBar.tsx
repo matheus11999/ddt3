@@ -6,11 +6,12 @@ import type {Battle,Fighter} from '../../shared/protocol';
 import {sceneView} from '../game/sceneView';
 import {Avatar} from './Avatar';
 import {LevelBadge} from './LevelBadge';
+import {playerMenuProps} from './PlayerActions';
 
 /** Full-body preview of the fighter whose turn it is, over the game's own aura seal
  * (top-left): the base sigil below +5, the Avatar's upgrade aura from +5, as in the backpack. */
 export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mine:boolean;resolving:boolean;ally:boolean}){
- return <section className={`active-portrait ${ally?'ally':'enemy'}`} aria-label={`Jogador da vez: ${fighter.name}`} data-fighter={fighter.id}>
+ return <section className={`active-portrait ${ally?'ally':'enemy'}`} aria-label={`Jogador da vez: ${fighter.name}`} data-fighter={fighter.id} {...playerMenuProps(fighter.bot?null:{id:fighter.id,name:fighter.name,context:'battle'})}>
   <div className="active-portrait-name">{fighter.name}</div>
   <div className="active-portrait-stage">
    {(fighter.equipment.upgrade??0)<5&&<i className="active-portrait-sigil" aria-hidden="true"/>}
@@ -28,7 +29,7 @@ export function FighterRoster({players,myTeam,turnId,side}:{players:Fighter[];my
  if(!team.length)return null;
  return <div className={`fighter-roster ${side}`} aria-label={side==='ally'?'Aliados':'Inimigos'}>
   {team.map(player=>{const ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
-   return <div key={player.id} className={`roster-card ${side} ${player.id===turnId?'active-fighter':''} ${player.hp<=0?'defeated-fighter':''}`} data-fighter={player.id} title={`${player.name} · ${player.hp}/${player.maxHp}`}>
+   return <div key={player.id} className={`roster-card ${side} ${player.id===turnId?'active-fighter':''} ${player.hp<=0?'defeated-fighter':''}`} data-fighter={player.id} title={`${player.name} · ${player.hp}/${player.maxHp}`} {...playerMenuProps(player.bot?null:{id:player.id,name:player.name,context:'battle'})}>
     <div className="roster-face"><Avatar equipment={player.equipment} size={46} portrait animated={false} weapon={false}/></div>
     <div className="roster-health" role="meter" aria-label={`Vida de ${player.name}`} aria-valuenow={player.hp} aria-valuemin={0} aria-valuemax={player.maxHp}><i style={{width:`${ratio*100}%`}}/></div>
    </div>;})}

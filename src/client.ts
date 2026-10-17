@@ -10,10 +10,14 @@ import type {AbilityEffect,AbilityLoadout} from '../shared/abilities';
 import {AbilityLoadoutQueue} from './abilityLoadout';
 import {readRoomInvite} from './roomInvite';
 import {recoveredImpacts,shotClock} from './game/shotPlayback';
+import type {PlayerInfo} from '../shared/reports';
+/** Right click on another player (portraits, plaza, rooms, online list, chat): the menu, then its window. */
+export type PlayerTarget={id:string;name:string;context:'lobby'|'hall'|'room'|'battle'|'chat'|'ranking'};
+export type PlayerPanel=(PlayerTarget&{kind:'menu';x:number;y:number})|(PlayerTarget&{kind:'info'|'report'})|null;
 import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorChange,ColorResult} from '../shared/protocol';
-export interface State {ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
+export interface State {playerPanel:PlayerPanel;playerInfo:PlayerInfo|null;reportResult:{playerId:string;name:string;at:number}|null;ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
- state:State={ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
+ state:State={playerPanel:null,playerInfo:null,reportResult:null,ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
  private listeners=new Set<()=>void>();private ws:WebSocket|null=null;private started=false;private retry=0;private reconnectTimer=0;private pingTimer=0;
  private loadoutTimer=0;
  private inviteHandled=false;
@@ -38,6 +42,16 @@ class Client {
   const profile=this.state.profile,customizationEquipment=equipment&&profile?{...equipment,colors:equippedColors(equipment,profile.itemColors)}:equipment;
   this.update({customizationEquipment,customizationPending});
  });
+ /** Opens the player menu at the pointer; bots and empty seats have none. */
+ openPlayerMenu(event:{clientX:number;clientY:number;preventDefault?:()=>void},target:PlayerTarget){
+  event.preventDefault?.();if(!this.state.profile||!/^[0-9a-f-]{36}$/i.test(target.id))return;
+  this.update({playerPanel:{...target,kind:'menu',x:event.clientX,y:event.clientY}});
+ }
+ openPlayerPanel(kind:'info'|'report',target:PlayerTarget){
+  this.update({playerPanel:{...target,kind},...(kind==='info'?{playerInfo:this.state.playerInfo?.id===target.id?this.state.playerInfo:null}:{reportResult:null})});
+  if(kind==='info')this.send({type:'player-info',playerId:target.id});
+ }
+ closePlayerPanel(){this.update({playerPanel:null});}
  paint(changes:ColorChange[]){this.update({error:null,colorResult:null});this.send({type:'paint',changes});}
  discard(item:string){this.update({error:null});this.send({type:'discard',item});}
  customize(patch:CustomizationPatch){
@@ -101,6 +115,8 @@ class Client {
    if(this.state.abilityEffects.some(effect=>effect.playerId===e.playerId&&effect.ability===e.ability&&effect.at===e.at))break;
    this.update({abilityEffects:[...this.state.abilityEffects.slice(-15),e]});break;
   }
+  case 'player-info':this.update({playerInfo:e.info});break;
+  case 'report-result':this.update({reportResult:{playerId:e.playerId,name:e.name,at:Date.now()}});break;
   case 'chat':this.update({chat:[...this.state.chat.slice(-79),e.message]});break;
   case 'error':if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
   case 'pong':this.update({latency:Date.now()-e.time,offset:e.serverTime-(e.time+Date.now())/2});break;
