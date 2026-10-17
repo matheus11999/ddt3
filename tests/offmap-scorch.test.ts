@@ -19,3 +19,15 @@ test('critical scorch holds, then fades back to the normal look', () => {
  assert.equal(scorchAmount(SCORCH_HOLD+SCORCH_FADE),0);
  assert.match(scorchFilter(1),/brightness\(0\.420\)/);
 });
+
+test('pain faces follow the hit kind and fighters blink and move the head now and then', async () => {
+ const {blinking,hitFace,idleHeadTilt,CRITICAL_FACE_MS,HURT_FACE_MS}=await import('../src/game/faceExpressions');
+ assert.equal(hitFace(100,false),'hurt');
+ assert.equal(hitFace(100,true),'critical');
+ assert.equal(hitFace(HURT_FACE_MS+1,false),undefined);
+ assert.equal(hitFace(CRITICAL_FACE_MS+1,true),undefined);
+ let closed=0,tilted=0;
+ for(let t=0;t<60000;t+=10){if(blinking(t,123))closed++;if(Math.abs(idleHeadTilt(t,123))>.01)tilted++;}
+ assert.ok(closed>0&&closed<6000/10,'blinks, but the eyes stay open most of the time');
+ assert.ok(tilted>0&&tilted<3000,'the head moves sometimes and rests most of the time');
+});
