@@ -45,3 +45,13 @@ Uso: trocar `BAG_TABS[].Icon` pelos recortes; o texto vertical da aba continua n
 1. Salvar os arquivos nos caminhos acima e registrar em `public/assets/ui/manifest.json`.
 2. Rodar `npm run check`, `npm test` e `npm run test:mobile:browser`.
 3. Conferir 1536×864, 1280×720 e celular em paisagem (844×390): as silhuetas precisam ler bem a 30 px e as abas a 19 px.
+
+## 4. Selos de aura repintados (opcional)
+
+O círculo de aura (+5 verde, +9 roxo, +12 dourado) agora é desenhado em camadas por `drawAura` (`src/game/avatar.ts`): brilho de fundo, selo principal, cópia interna girando ao contrário a partir de +9, raios de luz no +12, anel pulsante, gemas orbitando e partículas subindo. Para subir a qualidade da pintura, gerar os três selos novos no mesmo formato e substituir `public/assets/ui/aura-{green,purple,gold}-sigil.png`.
+
+Arquivos: 1024×1024, PNG transparente, centrado, ocupando 92% da imagem, simetria radial perfeita (o código gira a imagem).
+
+```text
+Single circular magic seal for a chibi browser artillery game character aura, 1024x1024, perfectly centered, transparent background, flat face-on view, radial symmetry with 8 main points. Two concentric thin glowing rings, an ornate band of curling filigree between them, eight sharp diamond-shaped spikes on the outer ring alternating long and short, tiny rune-like dots (no letters) evenly spaced, an open center (the inner 45% fully transparent so the character stays clear). Luminous neon line art with a bright white core and a saturated colored glow. COLOR: [emerald green #3ee87f | royal violet #b45cff | radiant gold #ffc93a]. Higher tiers more ornate: [simple | add a second inner star ring | add a third ring and small flame-like flares on every spike]. No text, no character, no background, no perspective, crisp edges.
+```
