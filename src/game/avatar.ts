@@ -59,10 +59,14 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
  c.restore();
 }
 
+/** Half the distance a planted foot slides back under the body, in avatar units.
+ * One stride cycle covers 4× this, so the cadence follows the walking speed. */
+const walkStep=(outfitPose:string)=>outfitPose==='surfer'?12:11;
+
 function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
  const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}
- m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=outfitPose==='surfer'?42:36;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
+ m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=walkStep(outfitPose)*4;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
  const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/170);
  const poseTime=context.poseTime??time-m.poseAt,stride=Math.sin(m.phase),aiming=pose==='aim'||pose==='charge'||pose==='fire',recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,slope=clamp(context.slope??0,-.5,.5);
  let lean=slope*.55+stride*.025*m.walk,leftArm=-stride*.3*m.walk,rightArm=stride*.26*m.walk,bodyY=0,headTilt=-slope*.24;
@@ -304,7 +308,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
    c.restore();c.restore();c.restore();return;
   }
-  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=(rig.outfitPose==='surfer'?10.5:9)*Math.max(.25,rawWalk);
+  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=walkStep(rig.outfitPose)*Math.max(.25,rawWalk);
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001){
    c.save();c.globalAlpha*=walkBlend;

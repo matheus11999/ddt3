@@ -12,7 +12,7 @@ try{
   const ids=['outfit-surfer','outfit-executive'];
   await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`])].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   const results=ids.map(id=>{
-   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?10.5:9;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
+   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?12:11;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
    for(let i=0;i<120;i++){
     const phase=i*Math.PI/60;let contacts=0;
     for(const [leg,offset] of [[rig.walking.near,0],[rig.walking.far,Math.PI]]){
