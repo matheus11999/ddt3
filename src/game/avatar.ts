@@ -62,6 +62,8 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
 /** Half the distance a planted foot slides back under the body, in avatar units.
  * One stride cycle covers 4× this, so the cadence follows the walking speed. */
 const walkStep=(outfitPose:string)=>outfitPose==='surfer'?12:11;
+/** How far each foot's lane moves from the painted 3/4 spread toward the middle while walking. */
+const WALK_LANE_PULL=.75;
 
 function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
@@ -123,12 +125,12 @@ function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,contex
 
 export interface WalkingLegFrame {hip:[number,number];knee:[number,number];ankle:[number,number];footAngle:number;grounded:boolean;phase:number;}
 /** A planted foot moves backward exactly as far as the avatar advances; the other clears the floor. */
-export function sampleWalkingLeg(leg:WalkingLeg,phase:number,bodyY=3,lean=0,slope=0,step=10.5):WalkingLegFrame{
+export function sampleWalkingLeg(leg:WalkingLeg,phase:number,bodyY=3,lean=0,slope=0,step=10.5,shift=0):WalkingLegFrame{
  const p=((phase%(Math.PI*2))+Math.PI*2)%(Math.PI*2),grounded=p<Math.PI,t=grounded?p/Math.PI:(p-Math.PI)/Math.PI;
- const travel=grounded?step*(1-2*t):-step+2*step*t*t*(3-2*t),lift=grounded?0:Math.sin(t*Math.PI)**2*10;
- const hx=(leg.hip[0]-625)*AVATAR_UNIT,hy=(leg.hip[1]-1225)*AVATAR_UNIT;
+ const travel=grounded?step*(1-2*t):-step+2*step*t*t*(3-2*t),lift=grounded?0:Math.sin(t*Math.PI)**2*7;
+ const hx=(leg.hip[0]-625)*AVATAR_UNIT+shift,hy=(leg.hip[1]-1225)*AVATAR_UNIT;
  const hip:[number,number]=[hx*Math.cos(lean)-(hy+32)*Math.sin(lean),bodyY-32+hx*Math.sin(lean)+(hy+32)*Math.cos(lean)];
- const x=(leg.ankle[0]-625)*AVATAR_UNIT+travel,ankle:[number,number]=[x,(leg.ankle[1]-leg.groundY)*AVATAR_UNIT-lift+Math.tan(slope)*x];
+ const x=(leg.ankle[0]-625)*AVATAR_UNIT+shift+travel,ankle:[number,number]=[x,(leg.ankle[1]-leg.groundY)*AVATAR_UNIT-lift+Math.tan(slope)*x];
  const l1=Math.hypot(leg.knee[0]-leg.hip[0],leg.knee[1]-leg.hip[1])*AVATAR_UNIT,l2=Math.hypot(leg.ankle[0]-leg.knee[0],leg.ankle[1]-leg.knee[1])*AVATAR_UNIT;
  const dx=ankle[0]-hip[0],dy=ankle[1]-hip[1],raw=Math.hypot(dx,dy),distance=clamp(raw,.1,l1+l2-.05),ux=dx/raw,uy=dy/raw,a=(l1*l1-l2*l2+distance*distance)/(2*distance),height=Math.sqrt(Math.max(0,l1*l1-a*a));
  return {hip,knee:[hip[0]+ux*a+uy*height,hip[1]+uy*a-ux*height],ankle,footAngle:grounded?slope:Math.sin(t*Math.PI*2)*.17+slope,grounded,phase:p};
@@ -312,7 +314,11 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001){
    c.save();c.globalAlpha*=walkBlend;
-   const far=sampleWalkingLeg(rig.walking.far,m.phase+Math.PI,rootY,m.lean,slope,step),near=sampleWalkingLeg(rig.walking.near,m.phase,rootY,m.lean,slope,step);
+   // The painted stance spreads the legs for a 3/4 view. Walking from that spread
+   // makes one step a wide split and the next a scissor where the feet cross, so
+   // each whole leg (hip and foot) moves to a lane closer to the middle; a little depth stays.
+   const lanes=(rig.walking.near.ankle[0]+rig.walking.far.ankle[0])/2,shift=(leg:WalkingLeg)=>(lanes-leg.ankle[0])*AVATAR_UNIT*WALK_LANE_PULL*Math.min(1,rawWalk*1.4);
+   const far=sampleWalkingLeg(rig.walking.far,m.phase+Math.PI,rootY,m.lean,slope,step,shift(rig.walking.far)),near=sampleWalkingLeg(rig.walking.near,m.phase,rootY,m.lean,slope,step,shift(rig.walking.near));
    for(const frame of [far,near])if(frame.grounded)ellipse(c,frame.ankle[0]+2,Math.tan(slope)*frame.ankle[0]-.5,6,1.4,'#10213235');
    drawWalkingLeg(c,rig.walking.far,far);drawWalkingLeg(c,rig.walking.near,near);c.restore();
   }
