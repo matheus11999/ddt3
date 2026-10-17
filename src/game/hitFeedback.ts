@@ -4,7 +4,8 @@ import type {WeaponEffectOptions} from './weaponEffects';
 export const HIT_FEEDBACK_DURATION=1200;
 /** Vertical gap between numbers stacked on the same fighter by one shot (one number per hit). */
 export const HIT_STACK_GAP=46;
-const W=320,H=150,CX=W/2,CY=H/2+6;
+// Padded so the longest spikes and their miter joins never touch the sprite edge.
+const W=440,H=200,CX=W/2,CY=H/2;
 const FONT='"Lilita One","Nunito",sans-serif';
 const textCache=new Map<string,HTMLCanvasElement>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -17,7 +18,7 @@ function fontReady(){try{return typeof document==='undefined'||!document.fonts||
 /** Red jagged starburst painted behind critical numbers, DDTank style. */
 function drawBurst(c:CanvasRenderingContext2D,rx:number,ry:number){
  const star=(scale:number)=>{c.beginPath();SPIKES.forEach((length,n)=>{const theta=n*Math.PI/SPIKES.length*2-Math.PI/2+.08,tip=n%2===0;const r=tip?length*scale:.62*scale;const px=Math.cos(theta)*rx*r,py=Math.sin(theta)*ry*r;if(n===0)c.moveTo(px,py);else c.lineTo(px,py);});c.closePath();};
- c.save();c.translate(CX,CY);c.lineJoin='miter';c.miterLimit=6;
+ c.save();c.translate(CX,CY);c.lineJoin='miter';c.miterLimit=4;
  star(1);c.lineWidth=7;c.strokeStyle='#3a0404';c.stroke();
  const fill=c.createRadialGradient(0,-ry*.15,4,0,0,rx*1.1);fill.addColorStop(0,'#ff6a3a');fill.addColorStop(.38,'#ec2414');fill.addColorStop(.8,'#b60b0b');fill.addColorStop(1,'#7c0505');
  c.fillStyle=fill;c.fill();
@@ -46,7 +47,7 @@ function textFor(hit:ShotHit){
  const art=document.createElement('canvas');art.width=W;art.height=H;const c=art.getContext('2d')!;
  c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
  const size=critical?50:42;
- if(critical){c.font=`${size}px ${FONT}`;const width=c.measureText(value).width;drawBurst(c,Math.min(W/2-8,width/2+30),54);}
+ if(critical){c.font=`${size}px ${FONT}`;const width=c.measureText(value).width;drawBurst(c,Math.min(160,width/2+30),54);}
  const label=kind==='graze'?'RASPÃO':kind==='fall'?'QUEDA':'';
  if(label&&!critical){c.font=`17px ${FONT}`;c.lineWidth=5;c.strokeStyle='#14233a';c.strokeText(label,CX,CY-38);c.fillStyle='#bfe4fa';c.fillText(label,CX,CY-38);}
  drawDigits(c,value,size,CY);
@@ -66,5 +67,5 @@ export function drawHitFeedback(c:CanvasRenderingContext2D,hit:ShotHit,age:numbe
  const scale=motion?1:entrance<1?.35+entrance*1.05:1.4-.4*settle-Math.sin(settle*Math.PI)*.06;
  const x=hit.x,y=hit.y-30-stack*HIT_STACK_GAP-(motion?0:Math.max(0,progress-.55)*40);
  c.save();c.translate(x,y);c.scale(scale,scale);if(critical&&!motion)c.rotate(-.06+.06*settle);c.globalAlpha*=fade*(motion?1:Math.min(1,entrance*1.6));
- c.drawImage(textFor(hit),-W/2,-H/2-6);c.restore();
+ c.drawImage(textFor(hit),-W/2,-H/2);c.restore();
 }
