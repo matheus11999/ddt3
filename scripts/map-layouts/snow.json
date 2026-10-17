@@ -33,7 +33,7 @@
    "sheet": "pecas",
    "piece": 4,
    "x": 1000,
-   "top": 500,
+   "top": 570,
    "scale": 1.2,
    "material": "earth",
    "destructible": true
@@ -105,7 +105,7 @@
    "sheet": "objetos",
    "piece": 0,
    "x": 790,
-   "top": 416,
+   "top": 486,
    "scale": 0.32,
    "material": "earth",
    "destructible": true
@@ -115,7 +115,7 @@
    "sheet": "objetos",
    "piece": 5,
    "x": 930,
-   "top": 425,
+   "top": 495,
    "scale": 0.32,
    "material": "earth",
    "destructible": true
@@ -125,7 +125,7 @@
    "sheet": "objetos",
    "piece": 7,
    "x": 1070,
-   "top": 409,
+   "top": 479,
    "scale": 0.32,
    "material": "earth",
    "destructible": true
@@ -135,7 +135,7 @@
    "sheet": "objetos",
    "piece": 2,
    "x": 1290,
-   "top": 393,
+   "top": 463,
    "scale": 0.32,
    "material": "earth",
    "destructible": true
