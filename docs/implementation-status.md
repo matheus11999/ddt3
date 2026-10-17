@@ -271,6 +271,8 @@ Sons do POW e da seleção de poderes (17/10/2026): `pow-activate-0[1-3].mp3` e 
 
 Tiro POW e seleção de poder v2 (17/10/2026): `pow-shot-0[1-3].mp3` tocam no disparo e `pow-impact-0[1-3].mp3` na explosão de todo tiro POW (`audio.play` com `powered`), no lugar do brilho sintetizado; projéteis simultâneos dividem uma deixa só (250 ms). `boost-select-0[1-3].mp3` foram refeitos mais ricos a pedido do usuário. Com o PR #31, armas que tiverem som próprio de disparo/impacto não passam por `audio.play`, então ficam sem a camada POW gravada.
 
+Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa: os osciladores sintetizados (seno, serra, quadrada) tocavam por cima das gravações. Agora, quando há gravação carregada, nenhum oscilador toca (disparo `launch-0[1-3]`, impacto, POW, clique `ui-click-0[1-3]`, sua vez `turn-yours-0[1-3]`). Todos os sons de POW e de seleção de poder foram refeitos com prompts de foley natural ("no synthesizer, no electronic, no sci-fi"); o ElevenLabs aceita no mínimo 0,5 s, então o clique é cortado para 0,3 s.
+
 ## Virada do personagem ao andar (17/10/2026)
 
 - Antes a virada misturava duas cópias espelhadas e semitransparentes e achatava o boneco na largura por 150 ms, o que parecia uma folha de papel girando. Agora o boneco troca de lado de uma vez, como no DDTank, com um agachamento curto e um pulinho nos pés (`turnPop` em `src/game/avatar.ts`). Vale para roupas, fantasias e combate.
