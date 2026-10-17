@@ -1,3 +1,4 @@
+import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -23,6 +24,7 @@ interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100;
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','fire','pass','reward-pick','rematch']);
 interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];}
+
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
  // Parties keep their identity throughout a match; opponents are never merged into a room.
@@ -348,12 +350,15 @@ export class Game {
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
   const b=BOOSTS.find(b=>b.id===id)!;
   if(id==='trident'&&f.boosts.includes(id))throw Error('O tridente já foi usado neste turno.');
+  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
+  const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.boosts.push(id);
  }
  private armPower(f:Fighter){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar Power.');
   if(f.powerArmed)throw Error('Power já está preparado para este tiro.');
   if((f.powerCharge??0)<POWER_MAX)throw Error('Acumule 100 de Power para ativar.');
+  const conflict=f.boosts.map(id=>powBoostConflict(f.equipment.weapon,id)).find(Boolean);if(conflict)throw Error(conflict);
   f.powerCharge=0;f.powerArmed=true;
  }
  private useAbility(m:Match,f:Fighter,ability:AbilityId){
@@ -392,7 +397,7 @@ export class Game {
   const w=weaponStats(WEAPONS.find(w=>w.id===f.equipment.weapon)!,f.equipment.upgrade);
   if(powered){w.crater*=POWER_CRATER_MULTIPLIER;w.blast*=POWER_BLAST_MULTIPLIER;}
   const homing=f.homingArmed;f.homingArmed=false;
-  const modifiers=shotModifiers(f.boosts),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
+  const modifiers=shotModifiers(boostsForShot(f.equipment.weapon,f.boosts,powered)),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
   const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{

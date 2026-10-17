@@ -69,11 +69,7 @@ export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
 export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; demolition?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; }
 export const WEAPONS: Weapon[] = [
- {id:'ember',name:'Dragão de Brasa',slot:'weapon',rarity:'epic',color:'#ff9b44',description:'Uma pequena fera. Uma enorme explosão.',attack:150,defense:55,agility:70,luck:85,damage:230,crater:66,blast:110,gravity:260,projectileRadius:6,effect:'fire',minAngle:15,maxAngle:85,hold:'hand'},
- {id:'volt',name:'Tempestade',slot:'weapon',rarity:'rare',color:'#80d9ff',description:'Um núcleo elétrico de precisão.',attack:100,defense:45,agility:120,luck:95,damage:215,crater:38,blast:94,gravity:220,projectileRadius:3,effect:'electric',minAngle:15,maxAngle:80,hold:'hand'},
- {id:'crystal',name:'Flor de Cristal',slot:'weapon',rarity:'legendary',color:'#d6a1ff',description:'Fragmentos arcanos que abrem caminho.',attack:110,defense:130,agility:55,luck:65,damage:220,crater:86,blast:102,gravity:290,projectileRadius:9,effect:'crystal',minAngle:20,maxAngle:85,hold:'hand'},
- {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:120,defense:85,agility:75,luck:80,damage:225,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85},
- {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'epic',color:'#d8432a',description:'Um fardo de tijolos que se estilhaça no impacto. Os cacos saltam e demolem até cristal, pedra e metal.',attack:125,defense:100,agility:55,luck:80,damage:200,crater:44,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.6,fragments:{count:[2,3,4,5],damage:.24,crater:17,blast:44,speed:235,radius:3,gravity:420}}
+ {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo se estilhaça no impacto e abre uma cratera pequena, até em cristal, pedra e metal.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:30,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.3}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
@@ -139,7 +135,9 @@ export function canEquipItem(item:Item|string,gender:CharacterGender):boolean {
 }
 export function isEmptyItem(item:Item|string):boolean {const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;return !!value&&value.id.endsWith('-none')&&value.visual?.variant==='none';}
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:'ember',hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
+/** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
+export const STARTER_WEAPON='brick';
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',outfit:'outfit-dancer',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
 }
@@ -153,7 +151,7 @@ export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
 export const CONTENT_VERSION=12;
-export const MAX_UPGRADE = 12;
+export const MAX_UPGRADE = 15;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
 export const SMITH_POSITION = {x:3640,y:640} as const;
@@ -166,7 +164,7 @@ export const STONES = [
 ] as const;
 export const STARTER_STONES:Record<string,number> = {'1':30,'2':20,'3':15,'4':10,'5':8};
 // Each entry is the material power needed for a 75% chance of the next level.
-export const UPGRADE_REQUIREMENTS = [1,2,4,6,9,13,19,28,40,58,82,115] as const;
+export const UPGRADE_REQUIREMENTS = [1,2,4,6,9,13,19,28,40,58,82,115,150,190,240] as const;
 export function upgradeChance(currentLevel:number,stones:Record<string,number>):number {
  if(!Number.isInteger(currentLevel)||currentLevel<0||currentLevel>=MAX_UPGRADE)return 0;
  let count=0,power=0;
@@ -190,17 +188,19 @@ export function itemAttributes(item:Item,level=0,composition:CompositionBonus={}
  for(const stat of COMPOSITION_STATS)stats[stat]+=composition[stat]??0;
  return stats;
 }
-export function weaponVisualStage(level:number):0|9|10|12 {
- if(level>=12)return 12;if(level>=10)return 10;if(level>=9)return 9;return 0;
+/** DDTank phases: one look for +0 to +9, then new art at +10, +12 and +15. */
+export function weaponVisualStage(level:number):0|10|12|15 {
+ if(level>=15)return 15;if(level>=12)return 12;if(level>=10)return 10;return 0;
 }
+/** Phase index 0–3: column of the effect atlas and tier of per-phase mechanics. */
+export function weaponPhaseTier(level:number):0|1|2|3 {const stage=weaponVisualStage(level);return stage===15?3:stage===12?2:stage===10?1:0;}
 export function weaponFragmentCount(weapon:Weapon,level:number,powered=false):number {
- if(!weapon.fragments)return 0;const stage=weaponVisualStage(level),tier=stage===12?3:stage===10?2:stage===9?1:0;
- return weapon.fragments.count[tier]+(powered?2:0);
+ if(!weapon.fragments)return 0;
+ return weapon.fragments.count[weaponPhaseTier(level)]+(powered?2:0);
 }
-export function weaponAssetPath(id:string,level=0):string {
- const stage=weaponVisualStage(level),suffix=stage===12?'':stage===10?'-awakened':stage===9?'-evolved':'-base';
- return `/assets/weapon-${id}${suffix}.png`;
-}
+/** Every weapon keeps its art in public/assets/weapons/<id>/ (contract: shared/weaponKit.ts). */
+export function weaponAssetPath(id:string,level=0):string {return `/assets/weapons/${id}/held-${weaponVisualStage(level)}.png`;}
+export function weaponIconPath(id:string,level=0):string {return `/assets/weapons/${id}/icon-${weaponVisualStage(level)}.png`;}
 export const BOOSTS = [
  {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'Adiciona 1 disparo · repetível · dano distribuído',key:'1'},
  {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'Adiciona 2 disparos · repetível · dano distribuído',key:'2'},
