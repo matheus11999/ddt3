@@ -24,18 +24,16 @@ try{
  }
  const finish=latest();assert.equal(finish.phase,'finished');assert.ok(finish.rewards.cards.every(c=>!c.prize));assert.equal(finish.rewards.deadline-finish.rewards.opensAt,5000);
  await expect(page.getByRole('dialog',{name:'EMPATE',exact:true})).toBeVisible();await expect(page.locator('.result-introduction')).toBeVisible();await expect(page.locator('.loot-card')).toHaveCount(0);await page.waitForTimeout(500);await page.screenshot({path:out+'/result-introduction.png'});
- await expect(page.locator('.loot-card')).toHaveCount(8,{timeout:4500});
- // The party returns to the room 2 s after the reveal, so check the landscape layout while the cards are open.
- await page.setViewportSize({width:844,height:390});await expect(page.locator('.rewards-mobile-shell')).toBeVisible();await expect(page.locator('.rewards-mobile-shell .loot-card')).toHaveCount(8);await page.screenshot({path:out+'/cards-landscape.png'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));await page.setViewportSize({width:1536,height:864});await expect(page.locator('.rewards-mobile-shell')).toHaveCount(0);
-await page.getByRole('button',{name:'Carta 3, livre',exact:true}).click();await wait(events,'battle',e=>e.battle?.rewards?.cards[2].playerId===me.id);
+ await expect(page.locator('.loot-card')).toHaveCount(8,{timeout:4500});await page.getByRole('button',{name:'Carta 3, livre',exact:true}).click();await wait(events,'battle',e=>e.battle?.rewards?.cards[2].playerId===me.id);
  let mark=otherEvents.length;socket.send(JSON.stringify({type:'reward-pick',card:2}));await wait(otherEvents,'error',e=>/já foi escolhida/.test(e.message),mark);
  assert.ok(latest().rewards.cards.every(c=>!c.prize));await page.screenshot({path:out+'/cards-selected.png'});
- // A reconnect keeps the reserved card without delaying the shared five-second window.
- await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('.loot-card-slot.mine')).toHaveCount(1);assert.equal(latest().rewards.deadline,finish.rewards.deadline);
+ // A reconnect keeps the reserved card without delaying the shared five-second window. The party returns to the
+ // room 2 s after the reveal, so the reveal itself is checked on the landscape phone layout.
+ await page.setViewportSize({width:844,height:390});await page.reload({waitUntil:'domcontentloaded'});await expect(page.locator('.rewards-mobile-shell .loot-card-slot.mine')).toHaveCount(1);assert.equal(latest().rewards.deadline,finish.rewards.deadline);
  const revealMark=events.length,otherReturnMark=otherEvents.length;socket.send(JSON.stringify({type:'reward-pick',card:5}));
  const final=(await wait(events,'battle',e=>e.battle?.rewards?.phase==='revealed'&&e.battle.rewards.saved,revealMark)).battle;
  assert.ok(final.rewards.revealedAt<finish.rewards.deadline,'all human choices reveal early');assert.equal(final.rewards.cards.filter(c=>c.prize).length,8,'all eight prizes reveal together');
- await expect(page.locator('.loot-card-slot.revealed')).toHaveCount(8);await expect(page.getByText('SEU PRÊMIO',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:/Jogar novamente|Voltar à praça|Voltar à sala/})).toHaveCount(0);await page.waitForTimeout(550);await page.screenshot({path:out+'/cards-revealed.png'});
+ await expect(page.locator('.loot-card-slot.revealed')).toHaveCount(8);await expect(page.getByText('SEU PRÊMIO',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:/Jogar novamente|Voltar à praça|Voltar à sala/})).toHaveCount(0);await page.waitForTimeout(550);await page.screenshot({path:out+'/cards-landscape.png'});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  await expect(page.locator('.party-room')).toBeVisible({timeout:6000});await wait(otherEvents,'room',e=>e.room?.id===otherRoom.id&&e.room.status==='waiting',otherReturnMark);assert.equal(events.filter(e=>e.type==='room'&&e.room).at(-1).room.id,room.id);assert.ok(!commands.some(c=>c.type==='leave'||c.type==='rematch'),'only server returns the party');
  const own=final.rewards.cards.find(c=>c.playerId===me.id).prize,rival=final.rewards.cards.find(c=>c.playerId===other.id).prize;
  const persisted=await context.request.post(base+'/api/session',{headers:{Origin:base}}),profile=(await persisted.json()).profile;
