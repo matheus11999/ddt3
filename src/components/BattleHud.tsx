@@ -3,13 +3,13 @@ import {powBoostConflict} from '../../shared/weaponKit';
 import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
-import {AngleGauge,PowerOrb} from './CombatGauges';
+import {AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {ExpeditionFoes,ExpeditionBanners} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {ChevronDown,ChevronUp,Wind,Zap} from 'lucide-react';
+import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
@@ -32,7 +32,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // With the paper plane armed the plane's wider envelope replaces the weapon's.
  const weapon=aimSource(me),aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
- const [power,setPower]=useState(MIN_POWER),[lastPower,setLastPower]=useState<number|null>(null);
+ const [power,setPower]=useState(MIN_POWER),[lastPower,setLastPower]=useState<number|null>(null),[lastWind,setLastWind]=useState<number|null>(null);
  const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false);
  const [submitted,setSubmitted]=useState<'shot'|'pass'|null>(null);
  const mine=b.turnId===me.id&&b.phase==='aiming';
@@ -46,7 +46,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
  const paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
- const live=useRef({canAct,canFace,angle,minAngle,maxAngle,me});live.current={canAct,canFace,angle,minAngle,maxAngle,me};
+ const live=useRef({canAct,canFace,angle,minAngle,maxAngle,me,wind:b.wind});live.current={canAct,canFace,angle,minAngle,maxAngle,me,wind:b.wind};
  const terrainAim=useRef<{battleId:string;slope:number}|null>(null);
  useLayoutEffect(()=>{
   const previous=terrainAim.current,newBattle=previous?.battleId!==b.id;
@@ -76,7 +76,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   if(!live.current.canAct||turnSubmitted.current)return;
   // A RAF update may already be queued when keyup arrives. Replace it with
   // the committed release value so the frozen meter agrees with the shot.
-  turnSubmitted.current=true;setSubmitted('shot');setPower(value);setLastPower(value);
+  turnSubmitted.current=true;setSubmitted('shot');setPower(value);setLastPower(value);setLastWind(live.current.wind);
   client.send({type:'fire',angle:live.current.angle,power:value});
  },[cancelCharge]);
  const passTurn=useCallback(()=>{
@@ -162,6 +162,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,setAngle]);
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
+ // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
+ const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
  const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
 
@@ -171,10 +173,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="ally"/>
    {instance?<ExpeditionFoes battle={b}/>:<FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>}
    <div className="battle-center-status">
-   <div className={`wind-pill ${Math.abs(b.wind)<.05?'calm-wind':''}`} role="status" aria-label={`Vento ${Math.abs(b.wind).toFixed(1)} para ${b.wind<0?'esquerda':'direita'}`}>
-    <Wind className="wind-symbol" size={18} aria-hidden="true"/><div className="wind-reading"><small>VENTO</small><strong>{Math.abs(b.wind).toFixed(1)}</strong></div>
-    <span className={`wind-direction ${b.wind<0?'wind-left':''}`} aria-hidden="true"><svg viewBox="0 0 64 30"><defs><linearGradient id="battle-wind-arrow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f3fcff"/><stop offset=".5" stopColor="#a0ebff"/><stop offset="1" stopColor="#319dd1"/></linearGradient></defs><path d="M4 9h34V3a1 1 0 0 1 2-1l20 12a1.2 1.2 0 0 1 0 2L40 28a1 1 0 0 1-2-1v-6H4l6-6z" fill="url(#battle-wind-arrow)" stroke="#133954" strokeWidth="2" strokeLinejoin="round"/><path d="M13 11h25M41 7l13 8" fill="none" stroke="#fff8cc" strokeWidth="2" strokeLinecap="round"/></svg></span>
-   </div>
+   <WindGauge wind={b.wind} last={lastWind}/>
    <div className={`turn-clock ${mine?'your-turn':''} ${seconds<=10&&b.phase==='aiming'?'urgent':''} ${seconds<=5&&b.phase==='aiming'?'critical-time':''}`}>
     <span>{b.phase==='finished'?'FINAL':monsterTurn?'MONSTROS':intro?'CHEGANDO':b.phase==='resolving'?'DISPARO':mine?'SUA VEZ':'AGUARDE'}</span>
     <b key={`${b.turnNumber}-${seconds}`} aria-label={b.phase==='aiming'?`${seconds} segundos`:undefined}><BattleText className="clock-face">{b.phase==='aiming'?String(seconds):b.phase==='finished'?'◆':'···'}</BattleText></b>
@@ -242,7 +241,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <div className="vigor-display"><span className="hud-bar-label">Energia</span><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/><b>{me.stamina}/{me.maxStamina}</b></div></div>
     <div className="vida-display"><span className="hud-bar-label">Vida</span><div className={`vida-bar ${me.hp/me.maxHp<=.25?'critical-health':''}`} role="meter" aria-label="Vida no console" aria-valuenow={me.hp} aria-valuemin={0} aria-valuemax={me.maxHp}><i style={{width:`${Math.max(0,me.hp/me.maxHp)*100}%`}}/><b>{me.hp.toLocaleString('pt-BR')}</b></div></div>
    </div>
-   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100||powerBlocked} onActivate={()=>client.send({type:'power'})}/>
+   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} blocked={powerOrbBlock} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}

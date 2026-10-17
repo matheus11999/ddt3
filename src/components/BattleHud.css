@@ -16,10 +16,6 @@
 .artillery-hud .mini-health{height:6px;margin:0;border-radius:4px;border:1px solid #05152d;background:#071b32;overflow:hidden}
 .artillery-hud .mini-health i{height:100%;display:block;transition:width .3s ease;background:linear-gradient(#99ffc3,#0ec879 55%,#087f6c)}
 .artillery-hud .fighter-hud.coral .mini-health i{background:linear-gradient(#ffcc79,#fd5764 55%,#b71552)}
-.artillery-hud .wind-pill{position:absolute;right:0;top:0;margin:0;min-width:124px;gap:7px;padding:7px 11px;border:1px solid #89b8de;border-radius:11px;background:linear-gradient(#244d78eb,#102a4cf5);box-shadow:inset 0 1px #bdedff55,0 3px #091a32;color:#bef5ff}
-.artillery-hud .wind-pill small{font-size:8px;letter-spacing:1.7px;color:#f5db91}
-.artillery-hud .wind-pill strong{font-size:20px;line-height:1.1;color:#fff0ba;text-shadow:0 2px #12314d}
-.artillery-hud .wind-pill strong>span{color:#69edff}
 .artillery-hud .turn-clock{width:154px;min-height:119px;padding:8px 8px 9px;border:2px solid #ffc75b;border-radius:17px 17px 39px 39px;background:linear-gradient(#303c79e8,#152249ed);box-shadow:inset 0 0 0 3px #08172f,inset 0 6px 15px #8eaff533,0 5px #13152f,0 7px 11px #020b2255;justify-self:center}
 .artillery-hud .turn-clock.your-turn{background:linear-gradient(#107f9bed,#163a68f0);box-shadow:inset 0 0 0 3px #082144,inset 0 6px 16px #5bfff13d,0 5px #082340,0 0 24px #36cffa44}
 .artillery-hud .turn-clock>span{font-size:10px;font-weight:900;letter-spacing:1.5px;color:#fff0b5;text-shadow:0 1px #091b3f}

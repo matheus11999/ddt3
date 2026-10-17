@@ -323,3 +323,8 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Turno da instância reaproveitável (`shared/instanceTurn.ts`): aventureiros por agilidade, depois todos os monstros juntos.
 - Estágios editáveis no `/admin` como mapas de instância, com lista de monstros e ninho.
 - Testes: `tests/expedition.test.ts` (turno, plano das formigas, fluxo completo com os dois estágios, rainha atirando e invocando) e `node scripts/smoke-expedition.mjs`. Detalhes em `docs/expeditions.md`.
+
+## Vento e POW no HUD de combate (17/10/2026)
+
+- Vento sem fundo: número com contorno, seta que empurra mais longe e mais rápido quanto mais forte o vento (1 a 3 rastros), e abaixo o vento do seu último tiro ("ÚLTIMO"), ao lado da força "Último" (`WindGauge` em `src/components/CombatGauges.tsx`).
+- POW: a ativação com 100 funcionava; o orbe não mostrava a carga e ignorava o clique sem dizer por quê. Agora mostra a carga em % e, quando não pode ser usado, o clique mostra o motivo (encher acertando/recebendo dano, só na sua vez, voo, +1/+2/Tridente). Carga em pontos inteiros (99,6 parecia cheio e ficava travado).
