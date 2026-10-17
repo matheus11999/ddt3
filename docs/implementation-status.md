@@ -6,7 +6,7 @@
 - Loja: Anel da Brasa (200), Anel da Maré (160), Colar Estelar (320) e Bolha Nuvem (150), com ícones SVG próprios. Anel e colar entram na composição.
 - Cards por classe: Comum, Normal (uncommon/rare), Épico e Lendário (`data-tier`), com gema no canto, brilho no épico e pulso no lendário. O ícone de sexo saiu da grade e só aparece no hover.
 - Hover refeito (`bag-tooltip`): cabeçalho com carta, tipo e sexo; faixa "Classe" com estrelas só para arma, roupa e chapéu (`CLASSED_SLOTS`); atributos em 2 colunas com ícones e diferença ▲/▼ contra o equipado; destruição/ângulo da arma.
-- `UpgradeTag` (SVG) é um brasão com número grande, asas de penas e faixa "FORÇA": até +4 cinza, +5 a +8 verde, +9 azul, +10 dourado, +11 dourado com rubi e +12 dourado com asas maiores, halo pulsante e brilhos. O hover não mostra mais "Equipado".
+- `UpgradeTag` (SVG) é um brasão de joia lapidada em moldura de metal, com o número e a faixa "FORÇA": até +4 cinza, +5 a +8 verde, +9 azul, +10 dourado com coroa, +11 com pontas laterais e rubis, +12 com explosão de luz girando, halo e brilhos. O hover não mostra mais "Equipado".
 - Evidência: `npm run check`, `npm test` (233), build, `test:mobile:browser` e `test:immediate:browser` passando; `test:customization:browser` para no mesmo passo "Treinar" de `main`; `verify:cosmetics` igual a `main`. Prévia em `docs/previews/backpack.png`.
 
 ## Mochila no padrão DDTank — 17/10/2026
