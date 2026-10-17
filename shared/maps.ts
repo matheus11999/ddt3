@@ -22,13 +22,13 @@ export interface MapDefinition {
   /** One large painted backdrop that replaces the procedural sky and midground layers; never collides. */
   background?:string};
 }
-export const MATERIALS:Record<MaterialId,{resistance:number;color:string;highlight:string;debris:string}>={
- earth:{resistance:1,color:'#a46c48',highlight:'#d9a16c',debris:'#b18455'},
- sand:{resistance:.72,color:'#d0aa69',highlight:'#f1d696',debris:'#e1c27c'},
- stone:{resistance:1.65,color:'#777c95',highlight:'#bdc0d0',debris:'#a4adc1'},
- ice:{resistance:.82,color:'#78bbd4',highlight:'#d1f5ff',debris:'#c7efff'},
- metal:{resistance:2.1,color:'#696d83',highlight:'#becbd7',debris:'#d8dcdf'},
- magic:{resistance:1.25,color:'#8778b8',highlight:'#d3b9f4',debris:'#c5a4ed'}
+export const MATERIALS:Record<MaterialId,{color:string;highlight:string;debris:string}>={
+ earth:{color:'#a46c48',highlight:'#d9a16c',debris:'#b18455'},
+ sand:{color:'#d0aa69',highlight:'#f1d696',debris:'#e1c27c'},
+ stone:{color:'#777c95',highlight:'#bdc0d0',debris:'#a4adc1'},
+ ice:{color:'#78bbd4',highlight:'#d1f5ff',debris:'#c7efff'},
+ metal:{color:'#696d83',highlight:'#becbd7',debris:'#d8dcdf'},
+ magic:{color:'#8778b8',highlight:'#d3b9f4',debris:'#c5a4ed'}
 };
 const layers=[{id:'sky',depth:.08,role:'Céu e horizonte'},{id:'landscape',depth:.22,role:'Paisagem distante'},{id:'near',depth:.55,role:'Ambiente próximo'},{id:'terrain',depth:1,role:'Terreno e colisão'},{id:'objects',depth:1,role:'Objetos e estruturas'},{id:'foreground',depth:1.12,role:'Primeiro plano'},{id:'atmosphere',depth:.85,role:'Partículas ambientais'}] as const;
 const polygon=(points:readonly Point[]):Shape=>({kind:'polygon',points});
