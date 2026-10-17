@@ -159,7 +159,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <b key={`${b.turnNumber}-${seconds}`} aria-label={b.phase==='aiming'?`${seconds} segundos`:undefined}><BattleText className="clock-face">{b.phase==='aiming'?String(seconds):b.phase==='finished'?'◆':'···'}</BattleText></b>
     <small>TURNO {b.turnNumber}</small>
    </div>
-   <button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>
+   {mine&&<button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>}
    </div>
    <Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>
   </div>
