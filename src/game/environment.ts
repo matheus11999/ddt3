@@ -3,7 +3,7 @@ import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
-const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,RIM_CELLS=2;
+const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,RIM_CELLS=2,SOFT_EDGE_GAIN=3;
 /** Art direction: dim only the distant/parallax painting, never the playfield. */
 export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
@@ -47,6 +47,15 @@ export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=
  c.translate(W/2,H/2);c.scale(zoom,zoom);c.translate(-W/2-(camera.x-W/2)*depth,-H/2-(camera.y-H/2)*depth);
 }
 
+/** 3px cells → a smooth shape at the terrain buffer's scale, only over the damaged box (in cells). Thresholding the
+ * bilinear upscale at half coverage turns cell stairs into diagonals (marching squares); a short ramp keeps ~1px of antialiasing. */
+function softCells(cells:HTMLCanvasElement,box:{x:number;y:number;width:number;height:number}):HTMLCanvasElement {
+ const k=WORLD.cell*TERRAIN_SCALE,out=makeCanvas(box.width*k,box.height*k),o=out.getContext('2d',{willReadFrequently:true})!;
+ smoothImages(o);o.drawImage(cells,box.x,box.y,box.width,box.height,0,0,out.width,out.height);
+ const image=o.getImageData(0,0,out.width,out.height),d=image.data;
+ for(let i=3;i<d.length;i+=4){const a=d[i];if(a&&a<255)d[i]=Math.max(0,Math.min(255,Math.round((a-128)*SOFT_EDGE_GAIN+128)));}
+ o.putImageData(image,0,0);return out;
+}
 /** The painted terrain with its own antialiased silhouette; only the cells the authoritative
  * simulation has dug out are cut away (collision was traced from this very painting by `npm run build:map`).
  * Masking the untouched outline by 3px cells too would chop its thin painted rim into stairs. */
@@ -54,25 +63,26 @@ export function paintTerrain(data:Uint8Array,map:MapId,worldArt:CanvasImageSourc
  const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map);
  const canvas=makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE),c=canvas.getContext('2d')!;c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(worldArt,0,0,W,H);
  const fracture=makeCanvas(COLS,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(COLS,WORLD.rows);let damaged=false;
- for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;}
+ let minX=COLS,minY=WORLD.rows,maxX=-1,maxY=-1;
+ for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;const x=i%COLS,y=(i-x)/COLS;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
  // The painted rim lies in the soft, non-colliding cells just outside the collision; cut it with the dug cells so no sliver floats over a crater.
  const cut=makeCanvas(COLS,WORLD.rows),cc=cut.getContext('2d')!,cutCells=cc.createImageData(COLS,WORLD.rows);
  if(damaged)for(let i=0;i<data.length;i++){if(!edge.data[i*4+3])continue;const x=i%COLS,y=(i-x)/COLS;cutCells.data[i*4+3]=255;
   for(let dy=-RIM_CELLS;dy<=RIM_CELLS;dy++)for(let dx=-RIM_CELLS;dx<=RIM_CELLS;dx++){const nx=x+dx,ny=y+dy,n=ny*COLS+nx;if(nx>=0&&ny>=0&&nx<COLS&&ny<WORLD.rows&&!template.solid[n])cutCells.data[n*4+3]=255;}}
- c.save();
  if(damaged){
-  // The 2x buffer filters the *same* 3px simulation cells, so a crater edge has fractional coverage; no collision byte changes.
-  fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);c.globalCompositeOperation='destination-out';c.drawImage(cut,0,0,W,H);c.globalCompositeOperation='source-atop';
-  // Generic broken edge, the same for every weapon: a short cool shade inside
-  // the cut and a thin light lip on the surviving cells, never a burnt halo.
-  c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(fracture,0,0,W,H);c.shadowBlur=0;
-  const lip=makeCanvas(COLS,WORLD.rows),lc=lip.getContext('2d')!,rim=lc.createImageData(COLS,WORLD.rows);
-  const removed=(i:number)=>i>=0&&i<data.length&&template.solid[i]===1&&!data[i];
-  for(let i=0;i<data.length;i++){if(!data[i])continue;const x=i%COLS;
-   if(removed(i-COLS)||(x>0&&removed(i-1))||(x<COLS-1&&removed(i+1))||removed(i+COLS)){rim.data[i*4]=rim.data[i*4+1]=rim.data[i*4+2]=255;rim.data[i*4+3]=removed(i-COLS)?210:120;}}
-  lc.putImageData(rim,0,0);c.drawImage(lip,0,0,W,H);
+  fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);
+  // Pad past the rim cells and the bilinear footprint so the box edge never shows.
+  const pad=RIM_CELLS+2,box={x:Math.max(0,minX-pad),y:Math.max(0,minY-pad),width:0,height:0};box.width=Math.min(COLS,maxX+pad+1)-box.x;box.height=Math.min(WORLD.rows,maxY+pad+1)-box.y;
+  const k=WORLD.cell*TERRAIN_SCALE,left=box.x*k,top=box.y*k,hole=softCells(cut,box),dug=softCells(fracture,box);
+  c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='destination-out';c.drawImage(hole,left,top);c.globalCompositeOperation='source-atop';
+  // Generic broken edge, the same for every weapon: a short cool shade inside the cut and a thin
+  // light lip on the crater floor, never a burnt halo. Only the shadows land: the shape itself is drawn off-canvas.
+  const away=canvas.width;c.shadowOffsetX=away;
+  c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(dug,left-away,top);
+  c.shadowColor='rgba(255,255,255,.7)';c.shadowBlur=1.2*TERRAIN_SCALE;c.shadowOffsetY=1.6*TERRAIN_SCALE;c.drawImage(dug,left-away,top);
+  c.restore();
  }
- c.restore();return canvas;
+ return canvas;
 }
 
 export class EnvironmentRenderer {
