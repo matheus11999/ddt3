@@ -206,8 +206,11 @@
 .smith-window .item-card.forge-socket[data-card-empty] { opacity: 1; }
 .smith-window .item-card.forge-socket > :is(.item-card-ornament, .item-card-gloss) { display: none; }
 .smith-window .item-card.forge-socket[data-tier]::after { display: none; }
-.smith-window .item-card.forge-socket.has-stone,
-.smith-window .composition-selected-stone.forge-socket:not([data-card-empty]) {
+/* O anel interno do card padrão é quadrado; no encaixe ele vira um aro redondo. */
+.smith-window .item-card.forge-socket[data-rarity][data-card-variant]::before { inset: 3px; border-color: #ffffff1f; border-radius: 50%; }
+.smith-window .item-card.forge-socket[data-rarity][data-card-variant]:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; border-radius: 50%; }
+.smith-window .item-card.forge-socket.has-stone[data-rarity][data-card-variant],
+.smith-window .composition-selected-stone.forge-socket[data-rarity][data-card-variant]:not([data-card-empty]) {
   border-color: #ffc45a;
   box-shadow: inset 0 3px 6px #000a, 0 0 0 2px #1a0c05, 0 0 14px #ff9a2e;
 }
