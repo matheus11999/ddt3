@@ -94,7 +94,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(matchId)stopEnvironmentAudio();environment=null;residues=null;matchId='';terrainSource='';shotId='';
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=[{...LOBBY_NPCS.storage,name:'',facing:1,equipment:{...DEFAULT_EQUIPMENT,hat:'hat-tide',outfit:'outfit-surfer'}},{...LOBBY_NPCS.forge,name:'',facing:-1,equipment:{...DEFAULT_EQUIPMENT,hat:'hat-cap',outfit:'outfit-executive'}}];
-    const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
+    const people=[...(lobby.painted?[]:npcs),...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
     const drawn=[...lobby.sprites(t,hover),...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);

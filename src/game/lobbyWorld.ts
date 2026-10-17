@@ -4,9 +4,11 @@
  * sky (static) → drifting clouds/sea shimmer → world (static) → waterfall,
  * airship, balloons → y-sorted props mixed with avatars → titles and motes.
  *
- * Painted replacements (optional, same 1536×864 frame): `/assets/lobby/sky.webp`
- * (opaque) and `/assets/lobby/world.webp` (transparent where the sky shows).
- * When a file is missing the procedural layer stays.
+ * Painted scene (optional): `/assets/lobby/plaza.webp`, one 16:9 illustration
+ * holding everything static, portals and keepers included. When it loads it
+ * replaces every procedural layer and the keeper avatars; only portal light,
+ * motes, labels and hotspots stay in code, so LOBBY_PORTALS/LOBBY_NPCS must be
+ * measured against the painting. Without the file the procedural plaza stays.
  */
 export const LOBBY_W=1536,LOBBY_H=864;
 export const LOBBY_WALK={minX:160,maxX:1400,minY:560,maxY:750} as const;
@@ -259,6 +261,14 @@ function portal(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean){
  for(const gx of [-30,0,30]){c.fillStyle=gx?theme.rune:'#ffffff';c.strokeStyle=INK;c.lineWidth=1.5;c.beginPath();c.moveTo(x+gx*s,cy+8*s);c.lineTo(x+gx*s+4*s,cy+13*s);c.lineTo(x+gx*s,cy+18*s);c.lineTo(x+gx*s-4*s,cy+13*s);c.closePath();c.fill();c.stroke();}
  c.restore();
 }
+/** Light only, laid over a painted portal: pulse, rising sparks and hover halo. */
+function portalLight(c:CanvasRenderingContext2D,p:Portal,t:number,hover:boolean){
+ const {x,y,scale:s,theme}=p;c.save();c.globalCompositeOperation='lighter';
+ const pulse=.55+Math.sin(t/420+x)*.2+(hover?.35:0),glow=c.createRadialGradient(x,y-70*s,4,x,y-70*s,110*s);
+ glow.addColorStop(0,theme.glow+'55');glow.addColorStop(1,theme.glow+'00');c.globalAlpha=pulse;c.fillStyle=glow;c.beginPath();c.arc(x,y-70*s,110*s,0,Math.PI*2);c.fill();
+ for(let i=0;i<9;i++){const k=(t/1700+i/9+x*.01)%1,px=x+Math.sin(i*2.3+t/500)*34*s*(1-k);c.fillStyle=theme.core;c.globalAlpha=(1-k)*.85;c.beginPath();c.arc(px,y-14*s-k*170*s,(2.4-k)*s+1,0,Math.PI*2);c.fill();}
+ c.restore();
+}
 function storageProps(c:CanvasRenderingContext2D){
  c.save();c.strokeStyle=INK;c.lineWidth=2.5;
  const crate=(x:number,y:number,w:number,h:number)=>{c.fillStyle=vgrad(c,y-h,y,['#d79a5e','#a8693c']);c.fillRect(x,y-h,w,h);c.strokeRect(x,y-h,w,h);c.strokeStyle='#6d4228';c.lineWidth=2;c.beginPath();c.moveTo(x+4,y-h+4);c.lineTo(x+w-4,y-4);c.moveTo(x+w-4,y-h+4);c.lineTo(x+4,y-4);c.stroke();c.strokeStyle=INK;c.lineWidth=2.5;};
@@ -286,15 +296,20 @@ function forgeProps(c:CanvasRenderingContext2D,t:number){
 }
 
 export class LobbyWorld {
- private sky:HTMLCanvasElement|HTMLImageElement;private world:HTMLCanvasElement|HTMLImageElement;
- private painted={sky:new Image(),world:new Image()};
+ private sky:HTMLCanvasElement;private world:HTMLCanvasElement;private plaza=new Image();
+ /** True once the painted scene has loaded; keepers are then part of the painting. */
+ painted=false;
  constructor(density=2){
   this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
-  this.painted.sky.onload=()=>{this.sky=this.painted.sky;};this.painted.world.onload=()=>{this.world=this.painted.world;};
-  this.painted.sky.src='/assets/lobby/sky.webp';this.painted.world.src='/assets/lobby/world.webp';
+  this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
  }
  private layer(density:number,paint:(c:CanvasRenderingContext2D)=>void){const canvas=document.createElement('canvas');canvas.width=LOBBY_W*density;canvas.height=LOBBY_H*density;const c=canvas.getContext('2d')!;c.scale(density,density);c.lineCap='round';c.lineJoin='round';paint(c);return canvas;}
  drawBack(c:CanvasRenderingContext2D,t:number){
+  if(this.painted){
+   // Cover-fit, so a 1672×941 export works as well as 1536×864.
+   const k=Math.max(LOBBY_W/this.plaza.naturalWidth,LOBBY_H/this.plaza.naturalHeight),w=this.plaza.naturalWidth*k,h=this.plaza.naturalHeight*k;
+   c.drawImage(this.plaza,(LOBBY_W-w)/2,(LOBBY_H-h)/2,w,h);return;
+  }
   c.drawImage(this.sky,0,0,LOBBY_W,LOBBY_H);
   for(let i=0;i<5;i++){const s=.9+(i%3)*.25,x=((i*347+t*(.006+i*.0015))%(LOBBY_W+400))-200;cloud(c,x,60+(i*53)%170,s,.92);}
   c.save();c.strokeStyle='#ffffffb0';c.lineWidth=2;for(let i=0;i<26;i++){const x=(i*61+t*.012*(i%2?1:-1)+LOBBY_W*4)%LOBBY_W,y=410+(i*13)%52,w=10+(i%4)*6;c.globalAlpha=.4+Math.sin(t/500+i)*.35;c.beginPath();c.moveTo(x,y);c.lineTo(x+w,y);c.stroke();}c.restore();
@@ -304,6 +319,7 @@ export class LobbyWorld {
  }
  /** Props that share the avatars' depth order. */
  sprites(t:number,hover:LobbyAction|null):LobbySprite[]{
+  if(this.painted)return LOBBY_PORTALS.map(p=>({y:p.y-30,draw:(c:CanvasRenderingContext2D)=>portalLight(c,p,t,hover===p.id)}));
   return [
    {y:500,draw:c=>lamp(c,214,524,t)},{y:500,draw:c=>lamp(c,1486,524,t)},
    ...LOBBY_PORTALS.map(p=>({y:p.y-30,draw:(c:CanvasRenderingContext2D)=>portal(c,p,t,hover===p.id)})),
@@ -311,7 +327,7 @@ export class LobbyWorld {
   ];
  }
  drawFront(c:CanvasRenderingContext2D,t:number,hover:LobbyAction|null){
-  title(c,'Ilha das Cascatas',420,240,22);title(c,'Praça Celeste',1290,372,34);
+  if(!this.painted){title(c,'Ilha das Cascatas',420,240,22);title(c,'Praça Celeste',1290,372,34);}
   for(const p of LOBBY_PORTALS)plaque(c,p.title,p.x,p.y-246*p.scale+Math.sin(t/700+p.x)*3,p.id==='arena',hover===p.id);
   for(const [action,npc,icon] of [['storage',LOBBY_NPCS.storage,'chest'],['forge',LOBBY_NPCS.forge,'hammer']] as const)npcTag(c,npc.name,npc.x,npc.y-164,icon,hover===action);
   for(let i=0;i<22;i++){const x=(i*137+t*.014)%LOBBY_W,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}

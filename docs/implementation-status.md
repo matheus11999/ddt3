@@ -4,7 +4,7 @@
 
 - Rua dos Aventureiros substituída pela Praça Celeste, no estilo de lobby clássico de artilharia: céu aberto, ilha flutuante com cascata, mar, templo, dirigível, balões e faixa de festival animados. Três portais na praça (Ateliê → loja, Arena e Treino → arena) e dois NPCs (Guarda-volumes → mochila, Ferreiro → forja). Ferreiro mudou para a direita: `SMITH_POSITION` agora é (1250, 630).
 - HUD do lobby: título central e placas Arena/Ferreiro trocados por medalhas de evento no topo direito (Arena, Ateliê, Missões com contador, Ferreiro) e um selo de canal sob o retrato. Painel de missões abre pela medalha Missões.
-- Fundo pintado por código como provisório; arte final entra salvando `public/assets/lobby/sky.webp` e `world.webp`. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
+- Fundo pintado por código é só reserva (usuário achou simples/infantil); a arte final é uma pintura única em `public/assets/lobby/plaza.webp`, que substitui o cenário e os NPCs-boneco. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
 
 ## Ajuste atual — contato e dano próximo
 
