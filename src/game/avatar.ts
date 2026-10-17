@@ -5,10 +5,11 @@ import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
 import {COSTUMES,drawCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
+import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
-export interface AvatarContext {pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;}
+export interface AvatarContext {pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
 export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;}
 export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0};}
 const sigils=new Map<number,HTMLCanvasElement>();
@@ -276,7 +277,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  }
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat)return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
- const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
+ const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,lively=context.seed!==undefined&&context.animated!==false&&(pose==='idle'||pose==='aim'||pose==='prone')?idleHeadTilt(time,context.seed)*(1-walk):0,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
  c.save();c.translate(x,y);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
@@ -305,8 +306,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    const arms=()=>{if(painted.arms)drawProneArms(c,painted,throwing,eq);};
    if(!throwing.front)arms();
    const neckX=(painted.neck[0]-625)*AVATAR_UNIT,neckY=(painted.neck[1]-1225)*AVATAR_UNIT;
-   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045-slope*.13+Math.sin(cycle*2)*.03*crawl);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
-   drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
+   c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045-slope*.13+Math.sin(cycle*2)*.03*crawl+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
+   drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
    if(throwing.front)arms();
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
    c.restore();c.restore();c.restore();return;
@@ -326,7 +327,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   c.save();c.translate(-24*lie,rootY+(rig.outfitPose==='surfer'?-8:14)*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
   if(walkBlend<.999){c.save();c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
   if(rig.walking&&walkBlend>.001){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
-  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular);c.restore();
+  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
   if(weapon){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;
    // Presentation-only placement never changes the body's facing or combat muzzle.

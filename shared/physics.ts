@@ -157,6 +157,9 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
  return contact;
 }
 
+/** A projectile that flew out of the arena (sides or bottom) ends past the world edge: no collision there. */
+export function leftArena(impact:{x:number;y:number},width:number=WORLD.width){return impact.x<0||impact.x>width||impact.y>=WORLD.height;}
+
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
 export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance):TrajectoryResult[] {

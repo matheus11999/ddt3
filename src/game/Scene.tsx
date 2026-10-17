@@ -2,7 +2,7 @@ import {useEffect,useRef} from 'react';
 import {client} from '../client';
 import type {Equipment} from '../../shared/catalog';
 import {DEFAULT_EQUIPMENT,WEAPONS} from '../../shared/catalog';
-import {createTerrain,ground,impactDig,unpackTerrain} from '../../shared/physics';
+import {createTerrain,ground,impactDig,leftArena,terrainWidth,unpackTerrain} from '../../shared/physics';
 import {getMap} from '../../shared/maps';
 import {createAvatarMotion,drawAvatar,heldMuzzle} from './avatar';
 import type {AvatarContext,AvatarMotion} from './avatar';
@@ -17,6 +17,8 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
+import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
+import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
@@ -40,12 +42,12 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
-  let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
+  let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let residues:TerrainResidues|null=null;
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
-   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
@@ -56,7 +58,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
    }
    if(b){
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}
@@ -69,7 +71,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded,b.phase==='finished');
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
-     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,effect:p.effect,level});}if(elapsed-impactTime(p)<700)playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
+     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
@@ -77,6 +79,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
+    // The latest hit on each fighter, timed at the projectile's arrival: it drives the pain face and,
+    // when critical, a short burn. Each new projectile restarts or ends it; kept past the shot's impact list.
+    for(const impact of state.impacts)for(const hit of impact.hits)if(!hit.hidden&&hit.damage>0){const last=hurtAt.get(hit.id);if(!last||impact.at>last.at||(impact.at===last.at&&hit.critical))hurtAt.set(hit.id,{at:impact.at,critical:hit.critical});}
     const myTeam=b.players.find(player=>player.id===state.profile?.id)?.team,plates:FighterPlate[]=[];
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
@@ -102,9 +107,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
      // The range band and needle pivot on the body, behind the avatar, as in DDTank.
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,f.aimSlope??0,aimAge,limits.minAngle,limits.maxAngle,'back');
-     c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;
-     const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined},falling||entity?.motion.pose==='fall');
-     c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
+     // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
+     const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
+     c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
+     const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||entity?.motion.pose==='fall');
+     c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle,'front');
     }
