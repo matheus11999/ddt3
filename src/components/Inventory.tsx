@@ -199,7 +199,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
   {item?<>
    <p className="bag-tip-desc">{item.description}</p>
    {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{values![key]}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
-   {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
+   {stats&&<div className="bag-tip-weapon"><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
    {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
