@@ -40,7 +40,7 @@ export interface CostumeAnimation {pose:AvatarPose;phase:number;walk:number;pose
 export function drawCostume(c:CanvasRenderingContext2D,id:string,animation:CostumeAnimation){
  const definition=COSTUMES[id];if(!definition)return;
  const {pose,phase,walk,poseTime,angle,combat,time}=animation;
- const stepping=walk>.12&&(pose==='walk'||pose==='idle'),cycle=((phase/(Math.PI*2))%1+1)%1;
+ const stepping=!combat&&walk>.12&&(pose==='walk'||pose==='idle'),cycle=((phase/(Math.PI*2))%1+1)%1;
  const index=stepping?([1,0,2,0][Math.floor(cycle*4)]):combat||['aim','charge','fire','hit','prone','defeat'].includes(pose)?3:0;
  const frame=getCostumeFrame(id,index);if(!frame)return;
  const scale=frame.scale*(combat?definition.combatHeight/definition.height:1),recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,hit=pose==='hit'?Math.exp(-Math.max(0,poseTime)/210):0;
@@ -50,8 +50,10 @@ export function drawCostume(c:CanvasRenderingContext2D,id:string,animation:Costu
  if(pose==='fall')rotation+=Math.sin(time/180)*.12;
  if(pose==='prone'){rotation+=.14;squash=.78;}
  if(pose==='victory'){rotation-=.035;y=-Math.abs(Math.sin(time/260))*5;}
+ // Combat keeps the prone painting and crawls it: a forward surge and a small rock per stroke.
+ let x=0;if(combat&&walk>.01){const stroke=Math.sin(phase);x=stroke*3*walk;y-=Math.abs(Math.cos(phase))*1.5*walk;rotation+=stroke*.035*walk;}
  if(pose==='defeat'){rotation+=.16;squash=.87;}
  // One opaque frame at each contact avoids ghost feet; all baselines stay on the same floor.
- c.save();c.translate(-recoil*3-hit*2,y);c.rotate(rotation);c.scale(scale,scale*squash);
+ c.save();c.translate(x-recoil*3-hit*2,y);c.rotate(rotation);c.scale(scale,scale*squash);
  c.drawImage(frame.canvas,-frame.anchor[0],-frame.anchor[1]);c.restore();
 }

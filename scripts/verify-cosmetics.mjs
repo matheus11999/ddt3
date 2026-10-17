@@ -3,7 +3,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 import {createServer} from 'vite';
 
 // Measures every hair, hat and glasses item against the rig v1 zones (src/game/rig/anchors.ts),
-// then every hair × hat × glasses combination and every outfit's proportions.
+// then every hair × hat × glasses combination, every outfit's proportions and its prone combat body.
 // Report mode by default; --strict fails when any issue remains (phase 5 of docs/cosmetics-fit.md).
 // Optional: BROWSER_EXECUTABLE=/path/to/chromium, OUTPUT_DIR=test-results/cosmetics.
 const strict=process.argv.includes('--strict');
@@ -31,7 +31,7 @@ try{
   });
   const outfits=ITEMS.filter(item=>item.slot==='outfit'&&A.PAINTED_OUTFITS[item.id]).map(item=>item.id);
   await Promise.all([...new Set(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png',
-   '/assets/outfits/combat-prone.png','/assets/outfits/shop-walking-legs.png','/assets/outfits/outfit-surfer-walk.png','/assets/outfits/outfit-executive-walk.png',
+   '/assets/outfits/combat-prone.png','/assets/weapon-ember-base.png','/assets/outfits/shop-walking-legs.png','/assets/outfits/outfit-surfer-walk.png','/assets/outfits/outfit-executive-walk.png',
    ...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
   // headwear.ts owns its atlas; wait for the same URL to be decoded.
   await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(new Error('Cannot load headwear atlas'));image.src='/assets/headwear-worn-atlas.png';});
@@ -87,6 +87,27 @@ try{
    bodies.push({...F.evaluateBody(outfit,headHeight/(feet-crown),(right-left+1)/HEAD_WIDTH),bounds});
   }
 
+  // Prone combat bodies: universal arms layer, hand point and body length (docs/prone-combat.md).
+  const V=await import('/src/game/avatar.ts'),prone=[];
+  const proneSheet=document.createElement('canvas'),pw=230,ph=200,poses=[['idle',0],['walk',0],['charge',0],['fire',30],['fire',120]];
+  proneSheet.width=pw*poses.length+130;proneSheet.height=Math.max(1,outfits.length)*ph+30;const ps=proneSheet.getContext('2d');ps.fillStyle='#16233a';ps.fillRect(0,0,proneSheet.width,proneSheet.height);
+  ps.fillStyle='#fff';ps.font='bold 13px sans-serif';poses.forEach(([pose,t],i)=>ps.fillText(`${pose}${t?` ${t}ms`:''}`,130+i*pw+8,18));
+  const alpha=part=>{const d=part.canvas.getContext('2d').getImageData(0,0,part.canvas.width,part.canvas.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>40)n++;return n;};
+  outfits.forEach((outfit,row)=>{
+   const combat=A.avatarRig(eqOf({outfit}))?.combat;
+   if(!combat?.arms||!combat.hand){prone.push({id:outfit,bounds:null,widthRatio:0,issues:[{code:'unregistered',message:'Corpo deitado sem camada de braços',measured:0,limit:0}]});return;}
+   const arms=alpha(combat.arms),armShare=arms/(arms+alpha(combat.torso)),parts=[combat.farLeg,combat.nearLeg,combat.torso,combat.arms];
+   const left=Math.min(...parts.map(p=>p.x)),right=Math.max(...parts.map(p=>p.x+p.width)),length=(right-left)/(HEAD_WIDTH*HEAD_SCALE);
+   const a=combat.arms,d=a.canvas.getContext('2d').getImageData(0,0,a.canvas.width,a.canvas.height).data,scale=a.canvas.width/a.width;let near=Infinity;
+   for(let y=0;y<a.canvas.height;y++)for(let x=0;x<a.canvas.width;x++)if(d[(y*a.canvas.width+x)*4+3]>40)near=Math.min(near,Math.hypot(a.x+x/scale-combat.hand[0],a.y+y/scale-combat.hand[1]));
+   prone.push(F.evaluateProne(outfit,armShare,length,near));
+   const y=30+row*ph;ps.fillStyle='#fff';ps.font='12px sans-serif';ps.fillText(CATALOG[outfit].name,6,y+ph/2);
+   poses.forEach(([pose,t],i)=>{const cell=document.createElement('canvas');cell.width=pw;cell.height=ph;const cc=cell.getContext('2d'),m=V.createAvatarMotion(1);
+    for(let f=0;f<24;f++){cc.clearRect(0,0,pw,ph);V.drawAvatar(cc,eqOf({outfit,hair:'hair-undercut'}),pw/2,ph-12,190,1000+f*16,pose==='walk',1,true,m,{combat:true,pose,angle:50,power:70,poseTime:t,movementDistance:pose==='walk'?1.2:0});}
+    ps.fillStyle='#ffffff0d';ps.fillRect(130+i*pw,y,pw-4,ph-4);ps.drawImage(cell,130+i*pw,y);});
+   const bad=prone.at(-1).issues.length;ps.fillStyle=bad?'#ffb3ba':'#b8ffd6';ps.fillText(bad?`${bad} problema(s)`:'ok',6,y+ph/2+16);
+  });
+
   // Sheets: each item alone with its zone, and the hair × hat matrix with the sport glasses.
   const zoneSheet=document.createElement('canvas'),cell=240,perRow=6,all=[...hairs,...hats,...glasses];
   zoneSheet.width=perRow*cell;zoneSheet.height=Math.ceil(all.length/perRow)*cell;const zs=zoneSheet.getContext('2d');zs.fillStyle='#16233a';zs.fillRect(0,0,zoneSheet.width,zoneSheet.height);
@@ -103,7 +124,7 @@ try{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -111,14 +132,15 @@ try{
 const {sheets,...data}=report;
 for(const [name,url] of Object.entries(sheets))await writeFile(`${output}/${name}.png`,Buffer.from(url.split(',')[1],'base64'));
 await writeFile(`${output}/report.json`,JSON.stringify(data,null,1));
-const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length);
+const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length);
 const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  `${data.counts.hairs} cabelos, ${data.counts.hats} chapéus, ${data.counts.glasses} óculos, ${data.counts.outfits} roupas; ${data.combinations.length} combinações de chapéu × cabelo, cada uma com todos os óculos.`,'',
  '## Peças isoladas','','| Peça | Classe | Largura | Problemas |','| --- | --- | --- | --- |',
  ...data.items.map(item=>`| ${item.id} | ${item.fit??'—'} | ${item.widthRatio}× | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Combinações com problema','',...(failingCombos.length?failingCombos.map(combo=>`- ${combo.hat} + ${combo.hair}: ${combo.issues.map(issue=>issue.message).join('; ')}`):['Nenhuma.']),'',
- '## Roupas','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
+ '## Roupas','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Combate deitado','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.widthRatio}× | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
-console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png`);
-if(strict&&(failingItems.length||failingCombos.length||failingBodies.length))process.exit(1);
+console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png`);
+if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length))process.exit(1);
