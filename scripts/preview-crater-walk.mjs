@@ -16,9 +16,9 @@ const frames=await page.evaluate(async()=>{
  const brick=WEAPONS.find(w=>w.id==='brick'),terrain=createTerrain('snow'),cx=1110;crater(terrain,cx,ground(terrain,cx),brick.crater,'snow',weaponRoughness(brick));
  const packed=btoa(String.fromCharCode(...packTerrain(terrain)));
  const profile=client.state.profile,stats=attributes(profile.equipment);
- // Path: walk right into the crater, keep pressing right against the far wall, then left against the near wall.
+ // Path: walk right into the crater, climb out on the far side, then walk back across it.
  let p={x:cx-70,y:ground(terrain,cx-70)},facing=1;const path=[{...p,facing}];
- for(const [dir,count] of [[1,22],[-1,12]])for(let n=0;n<count;n++){facing=dir;const next=walkPosition(terrain,p,dir);if(next)p=next;path.push({...p,facing});}
+ for(const [dir,count] of [[1,24],[-1,24]])for(let n=0;n<count;n++){facing=dir;const next=walkPosition(terrain,p,dir);if(next)p=next;path.push({...p,facing});}
  window.craterWalk={client,terrain,packed,profile,stats,path,terrainAimOffset,ground};return path.length;
 });
 for(let i=0;i<frames;i++){

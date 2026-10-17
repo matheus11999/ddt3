@@ -47,10 +47,10 @@ export function ground(t:Uint8Array,x:number,start=0){for(let y=Math.max(0,Math.
 /** One walk command moves this far, one pixel at a time, so every bump and dip on the way is felt. */
 export const WALK_STEP=8;
 /** Highest lip the feet can step onto in one pixel (about a knee): taller walls stop the walk. */
-export const WALK_STEP_UP=12;
-/** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 51°): a steeper wall, like the side of a Quebra-Tijolos crater, cannot be climbed. */
+export const WALK_STEP_UP=15;
+/** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 60°): a single Quebra-Tijolos crater is the steepest hole that can still be walked out of; deeper or stacked pits trap. */
 export const WALK_SLOPE_SPAN=12;
-export const WALK_MAX_RISE=15;
+export const WALK_MAX_RISE=21;
 /** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
 const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
 /**

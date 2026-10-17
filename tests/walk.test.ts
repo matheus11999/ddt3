@@ -17,13 +17,12 @@ test('a walk follows the ground pixel by pixel and never rises more than a step 
  }
 });
 
-test('a fighter walks into a single brick crater and cannot climb its steep wall back out',()=>{
+test('a single brick crater is the steepest hole a fighter can still walk into and out of',()=>{
  for(const x of centers){const t=flat();dig(t,x,SURFACE,BRICK_CRATER);
   for(const direction of [1,-1] as const){
    const path=walk(t,{x:x-direction*60,y:SURFACE},direction,30),end=path.at(-1)!;
    assert.ok(Math.max(...path.map(p=>p.y))>=SURFACE+18,`entered the crater at ${x}`);
-   assert.ok(end.y>SURFACE&&Math.abs(end.x-x)<BRICK_CRATER*1.1,`trapped at ${x} going ${direction}`);
-   const back=walk(t,end,-direction as 1|-1,30).at(-1)!;assert.ok(back.y>SURFACE&&Math.abs(back.x-x)<BRICK_CRATER*1.1,'the near wall traps too');
+   assert.ok(end.y===SURFACE&&Math.abs(end.x-x)>BRICK_CRATER*1.3,`climbed out at ${x} going ${direction}`);
   }
  }
 });
@@ -34,12 +33,14 @@ test('the shallow dent of a direct hit can still be walked out of',()=>{
  }
 });
 
-test('on Sonho Nevado a real Quebra-Tijolos crater traps the fighter who walks in',()=>{
- const brick=WEAPONS.find(weapon=>weapon.id==='brick')!,t=createTerrain('snow'),x=1110,surface=ground(t,x);
- assert.ok(crater(t,x,surface,brick.crater,'snow',weaponRoughness(brick))>0);
- const end=walk(t,{x:x-70,y:ground(t,x-70)},1,30).at(-1)!;
- assert.ok(end.y>surface&&Math.abs(end.x-x)<brick.crater*1.1,`trapped at ${end.x},${end.y}`);
- const back=walk(t,end,-1,30).at(-1)!;assert.ok(back.y>surface&&Math.abs(back.x-x)<brick.crater*1.1,`trapped going back at ${back.x},${back.y}`);
+test('on Sonho Nevado a fighter walks through a real Quebra-Tijolos crater but not out of two stacked ones',()=>{
+ const brick=WEAPONS.find(weapon=>weapon.id==='brick')!,x=1110,once=createTerrain('snow'),surface=ground(once,x);
+ assert.ok(crater(once,x,surface,brick.crater,'snow',weaponRoughness(brick))>0);
+ const through=walk(once,{x:x-70,y:ground(once,x-70)},1,30);
+ assert.ok(Math.max(...through.map(p=>p.y))>surface+12&&through.at(-1)!.x>x+brick.crater*1.3,'walked in and out');
+ const twice=createTerrain('snow');crater(twice,x,surface,brick.crater,'snow',weaponRoughness(brick));crater(twice,x,ground(twice,x),brick.crater,'snow',weaponRoughness(brick));
+ const end=walk(twice,{x:x-70,y:ground(twice,x-70)},1,30).at(-1)!;
+ assert.ok(end.y>surface&&Math.abs(end.x-x)<brick.crater*1.3,`trapped at ${end.x},${end.y}`);
 });
 
 test('stacked craters make an even deeper pit that also traps, in either direction',()=>{
