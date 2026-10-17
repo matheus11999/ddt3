@@ -84,11 +84,14 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      }
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
+     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
+     // The range band and needle pivot on the body, behind the avatar, as in DDTank.
+     if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,f.aimSlope??0,aimAge,limits.minAngle,limits.maxAngle,'back');
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined},falling||entity?.motion.pose==='fall');
      c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
-     if(f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished'){const weapon=WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,limits=weaponAimLimits(weapon,f.aimSlope??0);drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle);}
+     if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle,'front');
     }
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
