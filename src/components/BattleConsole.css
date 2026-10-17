@@ -187,8 +187,11 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .active-portrait-avatar{position:absolute;inset:-24px -10px -6px;display:grid;place-items:end center;pointer-events:none;filter:drop-shadow(0 3px 3px #0009)}
 .artillery-hud .active-portrait .level-badge{position:absolute;left:4px;bottom:4px}
 .artillery-hud .active-portrait-state{margin-top:0;padding:2px 10px;border-radius:10px;background:#0a0d18cc;border:1px solid color-mix(in srgb,var(--team) 70%,#fff);font:400 12px/1.2 var(--hud-font);letter-spacing:.5px;color:#fff;text-shadow:0 1px #000}
-.artillery-hud .fighter-roster{position:absolute;top:6px;right:calc(50% + 98px);display:flex;gap:6px}
-.artillery-hud .roster-card{display:flex;flex-direction:column;gap:3px;width:54px;padding:3px;border:2px solid #3aa8ff;border-radius:8px;background:linear-gradient(#1d3b6e,#0b1730);box-shadow:0 0 0 1px #0a0d18,0 3px 5px #0008}
+.artillery-hud .fighter-roster{position:absolute;top:6px;display:flex;gap:6px}
+/* Allies to the left of the wind panel, enemies to the right; rows shrink before reaching the portrait or the minimap. */
+.artillery-hud .fighter-roster.ally{right:calc(50% + 108px);max-width:calc(50% - 108px - 190px);justify-content:flex-end}
+.artillery-hud .fighter-roster.enemy{left:calc(50% + 108px);max-width:calc(50% - 108px - 240px)}
+.artillery-hud .roster-card{display:flex;flex-direction:column;gap:3px;flex:0 1 54px;min-width:36px;padding:3px;border:2px solid #3aa8ff;border-radius:8px;background:linear-gradient(#1d3b6e,#0b1730);box-shadow:0 0 0 1px #0a0d18,0 3px 5px #0008}
 .artillery-hud .roster-card.enemy{border-color:#ff4a5a;background:linear-gradient(#6a1830,#2a0812)}
 .artillery-hud .roster-card.active-fighter{border-color:#ffe36b;box-shadow:0 0 0 1px #0a0d18,0 0 12px #ffd24a99}
 .artillery-hud .roster-card.defeated-fighter{filter:grayscale(1) brightness(.6)}
@@ -205,7 +208,9 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .battle-minimap>canvas{display:block;width:216px;height:122px;border:1px solid #0a0d18;border-radius:4px;box-shadow:inset 0 0 0 1px #c8953f66}
 html.mobile-landscape .artillery-hud .battle-top{height:130px}
 html.mobile-landscape .artillery-hud .active-portrait{transform:scale(.72);transform-origin:top left}
-html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75);transform-origin:top right;right:calc(50% + 72px)}
+html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75)}
+html.mobile-landscape .artillery-hud .fighter-roster.ally{transform-origin:top right;right:calc(50% + 80px)}
+html.mobile-landscape .artillery-hud .fighter-roster.enemy{transform-origin:top left;left:calc(50% + 80px)}
 html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transform-origin:top right}
 @media(prefers-reduced-motion:reduce){.artillery-hud .active-portrait-sigil{animation:none}}
 
