@@ -70,7 +70,7 @@ Corte Horizonte, Corte Tempestade e Rabo de Cavalo Rubi passavam da cabeça (1,5
 
 ## Orelha na frente do cabelo (17/10/2026)
 
-O cabelo passava por cima da orelha. Agora `drawHeadLayers` redesenha a orelha da cabeça universal (`EAR_FRONT` em `anchors.ts`) logo depois do cabelo, descoberto ou coberto, e antes de óculos e chapéu. Todo cabelo contorna a orelha sem repintar a arte. Arte nova não deve pintar mechas sobre a orelha.
+O cabelo passava por cima da orelha. Agora cada arte de cabelo, descoberto ou coberto, é recortada pelo contorno exato da orelha (`EAR_FRONT` em `anchors.ts`, traçado no meio da linha pintada da cabeça universal) e ganha uma borda escura no corte, como no DDTank: a orelha da cabeça aparece por baixo e o cabelo a contorna com uma linha contínua, sem recorte quadrado. Arte nova não deve pintar mechas sobre a orelha.
 
 ## Fase 3: ajustes de código
 
