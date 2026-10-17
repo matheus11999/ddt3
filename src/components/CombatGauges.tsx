@@ -62,16 +62,15 @@ export function PowerOrb({charge,armed,blocked,onActivate}:{charge:number;armed:
 /** Wind reaches ±3.5 (server `wind()`); the arrow's motion grows with it. */
 const WIND_MAX=3.5;
 const windStrength=(wind:number)=>Math.min(1,Math.abs(wind)/WIND_MAX);
-function WindArrow({wind,small=false}:{wind:number;small?:boolean}){
+function WindArrow({wind}:{wind:number}){
  const k=windStrength(wind),calm=Math.abs(wind)<.05;
- // Weak wind: short, slow push and one streak; strong wind: long, fast push and three streaks.
- const style={'--wind-amp':`${(small?1:2)+k*(small?3:8)}px`,'--wind-speed':`${1.9-k*1.15}s`} as CSSProperties;
- return <span className={`wind-arrow ${wind<0?'wind-left':''} ${calm?'wind-calm':''}`} data-streaks={calm?0:k<.34?1:k<.67?2:3} style={style} aria-hidden="true">
-  <span className="wind-streaks"><i/><i/><i/></span>
+ // A quiet drift (matheus, 17/10: the streaks were too loud): weak wind 1px every 2.6s, strong wind 4px every 1.4s.
+ const style={'--wind-amp':`${1+k*3}px`,'--wind-speed':`${2.6-k*1.2}s`} as CSSProperties;
+ return <span className={`wind-arrow ${wind<0?'wind-left':''} ${calm?'wind-calm':''}`} style={style} aria-hidden="true">
   <svg viewBox="0 0 48 28"><path d="M3 9h22V3a1 1 0 0 1 1.6-.8l18.6 11a1.1 1.1 0 0 1 0 1.8L26.6 26a1 1 0 0 1-1.6-.8V19H3l5-5z" fill="url(#battle-wind-arrow)" stroke="#133954" strokeWidth="2" strokeLinejoin="round"/><path d="M10 11.5h14M29 8l9 5.5" fill="none" stroke="#fff8cc" strokeWidth="1.8" strokeLinecap="round"/></svg>
  </span>;
 }
-/** Battle wind: no plate, outlined number, an arrow that pushes harder the stronger the wind,
+/** Battle wind: no plate, outlined number, an arrow that drifts a little more the stronger the wind,
  * and the wind of my last shot underneath (beside "Último" force it helps repeat a shot). */
 export function WindGauge({wind,last}:{wind:number;last:number|null}){
  const direction=(value:number)=>Math.abs(value)<.05?'sem vento':value<0?'para a esquerda':'para a direita';
@@ -79,6 +78,6 @@ export function WindGauge({wind,last}:{wind:number;last:number|null}){
   <svg width="0" height="0" style={{position:'absolute'}} aria-hidden="true"><defs><linearGradient id="battle-wind-arrow" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f3fcff"/><stop offset=".5" stopColor="#a0ebff"/><stop offset="1" stopColor="#319dd1"/></linearGradient></defs></svg>
   <small className="wind-title">VENTO</small>
   <div className={`wind-now ${wind<0?'wind-now-left':''}`}><strong data-testid="wind-value">{Math.abs(wind).toFixed(1)}</strong><WindArrow wind={wind}/></div>
-  {last!==null&&<div className="wind-last" data-testid="last-wind"><small>ÚLTIMO</small><b>{Math.abs(last).toFixed(1)}</b><WindArrow wind={last} small/></div>}
+  {last!==null&&<div className="wind-last" data-testid="last-wind"><small>ÚLTIMO</small><b>{Math.abs(last).toFixed(1)}</b><WindArrow wind={last}/></div>}
  </div>;
 }

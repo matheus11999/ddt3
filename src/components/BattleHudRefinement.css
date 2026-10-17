@@ -34,10 +34,10 @@
 .artillery-hud .fighter-hud>span:last-child{font-size:10px}
 .artillery-hud .mini-health{height:4px;border:0}
 .artillery-hud .battle-center-status{display:flex;align-items:center;flex-direction:column;gap:8px;min-width:0}
-.artillery-hud .turn-clock,.artillery-hud .turn-clock.your-turn{width:128px;min-height:96px;padding:0;border:0;background:none;box-shadow:none}
-.artillery-hud .turn-clock>span{font-size:9px;letter-spacing:1.2px}
-.artillery-hud .turn-clock>b{font-size:63px;min-height:64px;margin:3px 0 1px}
-.artillery-hud .turn-clock>small{font-size:7px;letter-spacing:1.5px}
+.artillery-hud .turn-clock,.artillery-hud .turn-clock.your-turn{width:150px;min-height:114px;padding:0;border:0;background:none;box-shadow:none}
+.artillery-hud .turn-clock>span{font-size:11px;letter-spacing:1.2px}
+.artillery-hud .turn-clock>b{font-size:78px;min-height:80px;margin:3px 0 1px}
+.artillery-hud .turn-clock>small{font-size:9px;letter-spacing:1.5px}
 .artillery-hud .turn-label{top:178px;font-size:10px;padding:5px 14px;border-radius:13px;background:#172e46c9;border-color:#809cab80;box-shadow:0 2px 6px #07132533}
 .artillery-hud .turn-announcement{top:220px}
 .artillery-hud .boost-ready{left:-6px;top:-6px;width:auto;min-width:23px;height:20px;padding:0 4px;border-radius:7px;font-size:10px;background:linear-gradient(#fff1ad,#d9a13d);box-shadow:0 2px #1c2537}
@@ -75,9 +75,9 @@ html.mobile-landscape .artillery-hud .fighter-hud>span:last-child{font-size:7px;
 html.mobile-landscape .artillery-hud .fighter-hud .fighter-mini-turn{width:6px;min-width:6px;font-size:6px}
 html.mobile-landscape .artillery-hud .mini-health{height:3px}
 html.mobile-landscape .artillery-hud .battle-center-status{gap:4px}
-html.mobile-landscape .artillery-hud .turn-clock{width:78px;min-height:61px}
+html.mobile-landscape .artillery-hud .turn-clock{width:92px;min-height:72px}
 html.mobile-landscape .artillery-hud .turn-clock>span{font-size:6px;letter-spacing:.5px}
-html.mobile-landscape .artillery-hud .turn-clock>b{font-size:37px;min-height:39px;margin:1px 0}
+html.mobile-landscape .artillery-hud .turn-clock>b{font-size:46px;min-height:48px;margin:1px 0}
 html.mobile-landscape .artillery-hud .turn-clock>small{font-size:5px;letter-spacing:.8px}
 html.mobile-landscape .artillery-hud .turn-label{top:calc(111px / var(--game-scale));transform:translateX(-50%) scale(calc(1 / var(--game-scale)));transform-origin:top center;font-size:8px;padding:4px 10px;white-space:nowrap}
 html.mobile-landscape .artillery-hud .turn-announcement{top:calc(125px / var(--game-scale))}
