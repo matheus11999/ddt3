@@ -250,3 +250,7 @@ Smoke no frontend de produção passou após liberar cache de builds que havia e
 ### Quebra-Tijolos no checkout de desenvolvimento
 
 O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica produz cacos autoritativos após o impacto principal e aplica demolição adicional em materiais resistentes. A arte final gerada por `image_gen` substitui as seis pinturas provisórias: quatro estágios da arma, atlas de efeitos e resíduo. Prompts, medidas e prancha estão em [brick-weapon.md](brick-weapon.md). Os testes específicos de física e combate foram adaptados ao checkout atual; `npx tsx --test tests/physics.test.ts tests/game.test.ts` passou com 27 testes.
+
+### Áudio: primeiros sons gravados
+
+O impacto de todos os tiros agora toca duas camadas gravadas em `public/assets/audio/sfx/`: `impact-base.mp3` (grave, gerado pelo usuário) e `impact-crack.mp3` (estalo de médios, gerado pela API do ElevenLabs). As camadas tocam com tom sorteado entre ±5%; o som sintetizado da arma continua por cima, e o ruído sintetizado só toca enquanto os arquivos não carregaram. Plano completo e prompts em [audio-plan.md](audio-plan.md). A chave do ElevenLabs fica só no `.env` local (fora do git).
