@@ -91,3 +91,4 @@ place(card, 'ant-queen', 2600 - 2190, ground(card_ground, 2600) - CARD_TOP + 6, 
 darken_foot(card)
 card.convert('RGB').resize((768, 860), Image.LANCZOS).save('public/assets/expeditions/anthill/stage-2.webp', quality=88)
 print('gravado public/assets/expeditions/anthill/stage-1.webp e stage-2.webp')
+

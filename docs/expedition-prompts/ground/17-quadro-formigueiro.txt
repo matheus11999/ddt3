@@ -1,0 +1,7 @@
+Use the attached images as references: stage-1.webp (the current room card: three ants on the fallen log), ant-worker.png, ant-soldier.png, ant-brute.png (the three ant monsters, first frame of each strip), ant-queen.png (the queen, first frame) and cover.webp (the anthill mound).
+
+Paint a portrait key art (1024x1536) for the "Formigueiro" expedition card in a 2D painted DDTank style: thick dark outlines, rich volume, glossy highlights, warm saturated colours, soft painted light, no flat vector look, no "AI look".
+
+Scene: a sunny magical forest floor seen from low, slightly heroic angle. In the middle ground a huge fallen mossy tree trunk (same bark and moss as the reference log). On the trunk, the three ants from the references march forward toward the viewer, clearly readable and big: the green horned armoured warrior ant, the purple soldier ant with the leaf helmet and the red worker ant, each exactly like its reference design. Behind them, on the upper half, a big glowing anthill mound with a dark tunnel entrance (like the cover), golden light and amber crystals spilling out; in the tunnel's warm glow, the crowned red queen ant with her bow stands proudly on a rock above the entrance, smaller but clearly visible. Dandelion fluff, falling leaves, light rays through the trees, giant mushrooms on the sides.
+
+Keep the bottom 30% of the image calmer and darker (soft shadowed ground and moss) because the game writes the title and info over it. No text, no letters, no numbers, no logo, no frame or border.

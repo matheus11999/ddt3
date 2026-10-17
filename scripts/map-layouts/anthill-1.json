@@ -11,7 +11,8 @@
  "width": 3072,
  "sheets": {
   "pecas": "pecas.png",
-  "objetos": "objetos.png"
+  "objetos": "objetos.png",
+  "chao": "chao.png"
  },
  "spawns": [
   [
@@ -24,22 +25,12 @@
  ],
  "items": [
   {
-   "id": "log-right",
-   "sheet": "pecas",
+   "id": "ground",
+   "sheet": "chao",
    "piece": 0,
-   "x": 2302,
-   "top": 584,
-   "scale": 1.05,
-   "flip": false,
-   "destructible": false
-  },
-  {
-   "id": "log-left",
-   "sheet": "pecas",
-   "piece": 0,
-   "x": 750,
-   "top": 560,
-   "scale": 1.05,
+   "x": 1536,
+   "top": 576,
+   "scale": 2,
    "destructible": false
   },
   {

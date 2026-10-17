@@ -10,7 +10,8 @@
  "mirror": false,
  "width": 3072,
  "sheets": {
-  "pecas": "pecas.png"
+  "pecas": "pecas.png",
+  "chao": "chao.png"
  },
  "spawns": [
   [
@@ -23,37 +24,12 @@
  ],
  "items": [
   {
-   "id": "floor-left",
-   "sheet": "pecas",
+   "id": "ground",
+   "sheet": "chao",
    "piece": 0,
-   "x": 640,
-   "top": 600,
-   "destructible": false
-  },
-  {
-   "id": "floor-middle",
-   "sheet": "pecas",
-   "piece": 0,
-   "x": 1580,
-   "top": 612,
-   "flip": true,
-   "destructible": false
-  },
-  {
-   "id": "throne-step",
-   "sheet": "pecas",
-   "piece": 4,
-   "x": 2225,
-   "top": 596,
-   "scale": 1.0,
-   "destructible": false
-  },
-  {
-   "id": "queen-throne",
-   "sheet": "pecas",
-   "piece": 1,
-   "x": 2600,
-   "top": 340,
+   "x": 1536,
+   "top": 206,
+   "scale": 2,
    "destructible": false
   },
   {

@@ -331,6 +331,7 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Cada estágio volta para a sala; `room.expedition.stage` guarda o próximo; o líder pode escolher o estágio (provisório). Chegada das formigas e câmera nos dois lados só no estágio 1.
 - Janela: arte nova (`picker-art.webp`) montada com os mapas e as formigas, dificuldades com degradê por cor, poder recomendado x poder do jogador; quadro da sala mostra a arte do estágio escolhido. Botão Convidar na sala. Barra da rainha saiu do topo: placa pequena embaixo dela. Objetivo abaixo do minimapa.
 - Evidência: `npm test` (296), `npm run check`, `npm run build`, `test:expedition:browser`, `test:rooms:browser`, `test:battle:browser`, `test:mobile:browser`; jogo rodando com os dois estágios (capturas em `test-results/expedition-live/`).
+- 17/10 (noite, 2): chão de cada estágio do formigueiro numa peça só (Codex, `chao.png`); quadro da sala com arte fixa pintada pelo Codex (`board.webp`), título 3D, selo do estágio e chances de drop (Pedra I, espaços livres para mais); `build:map` não avisa peça cortada pela borda da folha quando ela atravessa a borda do mapa.
 
 ## Vento e POW no HUD de combate (17/10/2026)
 

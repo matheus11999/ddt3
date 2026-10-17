@@ -12,13 +12,30 @@
 .expedition-banner-call strong{font:900 clamp(17px,1.6vw,23px)/1.1 'Nunito',sans-serif;color:var(--wood-gold);text-shadow:0 2px #2c1004;animation:expedition-call 1.6s ease-in-out infinite}
 .expedition-banner-call span{font-size:13px;font-weight:700;color:#ffdca4}
 @keyframes expedition-call{50%{transform:scale(1.05);color:#fff1b8}}
-.expedition-banner-choice{padding-top:70px}
-.expedition-banner-choice>div{display:grid;justify-items:center;gap:2px}
-.expedition-banner-choice small{font:800 14px/1.2 'Nunito',sans-serif;color:#ffe2b0;text-shadow:0 1px 2px #000}
+/* Chosen expedition on the board: tall gradient, 3D title (same recipe as the battle texts), difficulty, drops. */
+.expedition-banner-choice{padding:120px 14px 14px;gap:8px;background:linear-gradient(transparent,#2c1004a6 22%,#2c1004e0 48%,#1a0802f7 75%)}
+.expedition-title{--face-top:#fffbd0;--face-middle:#ffd84a;--face-bottom:#f08a12;--text-edge:#7a3510;--text-depth:#5e2410;position:relative;display:inline-block;isolation:isolate;font:400 clamp(40px,4.2vw,62px)/1.02 'Lilita One','Nunito',sans-serif;white-space:nowrap;letter-spacing:.5px;filter:drop-shadow(0 6px 4px #0009)}
+.expedition-title::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:var(--text-depth);-webkit-text-stroke:6px #2a1006;paint-order:stroke fill;text-shadow:0 1px var(--text-depth),1px 2px var(--text-depth),1px 3px var(--text-depth),2px 4px var(--text-depth),2px 5px var(--text-depth),3px 6px var(--text-depth),3px 7px #1d0a04}
+.expedition-title>span{position:relative;display:block;background:linear-gradient(var(--face-top) 8%,var(--face-middle) 45%,var(--face-bottom) 84%);background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-stroke:1.4px var(--text-edge);paint-order:stroke fill}
+.expedition-banner-choice .expedition-difficulty-tag{margin-top:0}
+.expedition-stage-badge{position:absolute;top:12px;left:12px;display:grid;place-items:center;align-content:center;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc63d 38%,#d37812 72%,#8a430b);border:3px solid #5a2a08;box-shadow:inset 0 0 0 3px #ffe58a,inset 0 -4px 6px #8a430b,0 4px 8px #0009;color:#4a1d04;text-align:center;pointer-events:none}
+.expedition-stage-badge small{font:900 10px/1 'Nunito',sans-serif;letter-spacing:.6px;text-transform:uppercase}
+.expedition-stage-badge b{font:400 34px/.95 'Lilita One','Nunito',sans-serif;color:#fffbe6;-webkit-text-stroke:1.5px #6a2c06;paint-order:stroke fill;text-shadow:0 3px #6a2c06}
+.expedition-drops{display:grid;justify-items:center;gap:5px}
+.expedition-drops small{font:900 11px/1 'Nunito',sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#ffd36b;text-shadow:0 1px 2px #000}
+.expedition-drops ul{display:flex;gap:6px;margin:0;padding:0;list-style:none}
+.expedition-drops li{position:relative;display:grid;place-items:center;width:46px;height:46px;border-radius:9px;background:linear-gradient(#5a3214,#2c1406);border:2px solid #c8953f;box-shadow:inset 0 1px #ffe1a055,0 2px 4px #0008}
+.expedition-drops li img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 2px 2px #0008)}
+.expedition-drops li b{position:absolute;right:-4px;bottom:-6px;padding:1px 5px;border-radius:999px;background:#2a1006;border:1px solid #ffd36b;font:900 11px/1.2 'Nunito',sans-serif;color:#fff1c2}
+.expedition-drops li.is-empty{background:#2c140666;border:2px dashed #c8953f80;box-shadow:none}
+.expedition-detail .expedition-drops{justify-items:start}
+.expedition-detail .expedition-drops small{color:var(--wood-ink-soft);text-shadow:none}
+.expedition-detail .expedition-drops li.is-empty{background:#fff3d6;border-color:#d9a865}
+.expedition-cover .expedition-title{font-size:44px}
 .expedition-banner-choice strong{display:block;font:900 26px/1.1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #2c1004}
-.expedition-banner-choice span,.expedition-difficulty-tag{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;font:800 12px/1.4 'Nunito',sans-serif;color:#fff;background:#4c9b39;box-shadow:inset 0 -2px #2c6a1f,0 1px #0006;text-transform:uppercase;letter-spacing:.6px}
+.expedition-difficulty-tag{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;font:800 12px/1.4 'Nunito',sans-serif;color:#fff;background:#4c9b39;box-shadow:inset 0 -2px #2c6a1f,0 1px #0006;text-transform:uppercase;letter-spacing:.6px}
 [data-difficulty="normal"]{--difficulty:#3d82c9}[data-difficulty="hard"]{--difficulty:#c9572f}[data-difficulty="hero"]{--difficulty:#8a3fc0}
-.expedition-banner-choice span[data-difficulty]:not([data-difficulty="easy"]){background:var(--difficulty)}
+.expedition-difficulty-tag[data-difficulty]:not([data-difficulty="easy"]){background:var(--difficulty)}
 /* Where the banner is hidden (narrow screens), the side panel carries the same choice. */
 .pr-expedition-pick{display:none;width:100%;align-items:center;gap:8px;padding:6px 8px;border:2px solid var(--wood-edge);border-radius:10px;background:#fff8e8;color:var(--wood-ink);font:800 13px/1.2 'Nunito',sans-serif;text-align:left;cursor:var(--cursor-pointer,pointer)}
 .pr-expedition-pick img{width:44px;height:30px;object-fit:cover;border-radius:5px}
@@ -39,11 +56,11 @@ html.mobile-landscape .pr-expedition-pick{display:flex}
 .expedition-entry strong{display:block;font:800 15px/1.2 'Nunito',sans-serif}
 .expedition-entry small{font-size:12px;font-weight:700;color:var(--wood-ink-soft)}
 .expedition-entry.is-active{border-color:var(--wood-edge);background:linear-gradient(#ffeec4,#ffe0a0);box-shadow:0 2px 0 var(--wood-cream-deep)}
-.expedition-detail .wood-cream{display:grid;align-content:start;gap:10px}
-.expedition-cover{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--wood-edge);aspect-ratio:16/7;background:#2b4a6b}
+.expedition-detail .wood-cream{display:grid;align-content:start;grid-auto-rows:max-content;gap:10px}
+.expedition-cover{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--wood-edge);aspect-ratio:16/6;background:#2b4a6b}
 .expedition-cover img{width:100%;height:100%;object-fit:cover}
 .expedition-cover-caption{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 12px;background:linear-gradient(transparent,#2c1004b3 55%,#1d0a02e6)}
-.expedition-cover h3{margin:0;font:900 30px/1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #3b1806,0 0 10px #000a}
+.expedition-cover h3{margin:0;line-height:1;text-shadow:none}
 .expedition-cover-caption small{display:block;margin-top:4px;font:800 13px/1.2 'Nunito',sans-serif;color:#ffd99a;text-shadow:0 1px 2px #000}
 .expedition-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .expedition-power{flex:1;min-width:220px;display:flex;align-items:center;gap:12px;padding:7px 12px;border-radius:10px;background:linear-gradient(90deg,#ffe7a8,#fff6dc 70%,#fff6dc00);border:1px solid #e6b860;color:var(--wood-ink)}
