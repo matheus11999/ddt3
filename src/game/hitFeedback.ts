@@ -3,7 +3,9 @@ import type {WeaponEffectOptions} from './weaponEffects';
 
 export const HIT_FEEDBACK_DURATION=1200;
 /** Vertical gap between numbers stacked on the same fighter by one shot (one number per hit). */
-export const HIT_STACK_GAP=46;
+export const HIT_STACK_GAP=40;
+/** Numbers are drawn at this fraction of the sprite size so they don't cover the fighters. */
+const NUMBER_SCALE=.78;
 // Padded so the longest spikes and their miter joins never touch the sprite edge.
 const W=440,H=200,CX=W/2,CY=H/2;
 const FONT='"Lilita One","Nunito",sans-serif';
@@ -12,6 +14,9 @@ const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.mat
 const clamp=(n:number)=>Math.max(0,Math.min(1,n));
 // Fixed spike lengths so the critical burst keeps the same hand-cut silhouette every time.
 const SPIKES=[1,.78,1.12,.86,.95,1.18,.8,1.04,.9,1.15,.76,1.08,.93,1.2,.84,1.02,.88,1.1];
+
+/** Stable pseudo-random value in [0,1) per hit, so a number keeps its spot every frame but hits don't all land on the same spot. */
+function jitter(hit:ShotHit,salt:number){let h=2166136261^salt;for(const ch of `${hit.id}:${hit.projectileIndex}:${Math.round(hit.damage)}:${Math.round(hit.x)}:${Math.round(hit.y)}`){h^=ch.charCodeAt(0);h=Math.imul(h,16777619);}return ((h>>>0)%10000)/10000;}
 
 function fontReady(){try{return typeof document==='undefined'||!document.fonts||document.fonts.check(`40px ${FONT}`);}catch{return true;}}
 
@@ -65,7 +70,9 @@ export function drawHitFeedback(c:CanvasRenderingContext2D,hit:ShotHit,age:numbe
  // Pop in oversized, settle with a small bounce, hold, then drift up while fading.
  const entrance=clamp(age/(critical?170:130)),settle=clamp((age-(critical?170:130))/140),fade=1-clamp((progress-.7)/.3);
  const scale=motion?1:entrance<1?.35+entrance*1.05:1.4-.4*settle-Math.sin(settle*Math.PI)*.06;
- const x=hit.x,y=hit.y-30-stack*HIT_STACK_GAP-(motion?0:Math.max(0,progress-.55)*40);
- c.save();c.translate(x,y);c.scale(scale,scale);if(critical&&!motion)c.rotate(-.06+.06*settle);c.globalAlpha*=fade*(motion?1:Math.min(1,entrance*1.6));
+ // Each hit lands somewhere around the fighter's head and drifts a little sideways, instead of always on the same spot.
+ const offsetX=(jitter(hit,1)-.5)*70,offsetY=(jitter(hit,2)-.5)*8,drift=(jitter(hit,3)-.5)*24,tilt=(jitter(hit,4)-.5)*.14;
+ const x=hit.x+offsetX+(motion?0:drift*progress),y=hit.y-26+offsetY-stack*HIT_STACK_GAP-(motion?0:Math.max(0,progress-.55)*34);
+ c.save();c.translate(x,y);c.scale(scale*NUMBER_SCALE,scale*NUMBER_SCALE);c.rotate(motion?0:tilt+(critical?-.06+.06*settle:0));c.globalAlpha*=fade*(motion?1:Math.min(1,entrance*1.6));
  c.drawImage(textFor(hit),-W/2,-H/2);c.restore();
 }

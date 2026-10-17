@@ -214,3 +214,19 @@ html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transf
 .artillery-hud .fallen-banner{position:absolute;left:50%;bottom:28px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 26px 12px;border:1px solid #c9b48a66;border-radius:14px;background:linear-gradient(#1a2233e6,#0e1522f0);box-shadow:0 6px 18px #0008;transform:translateX(-50%);pointer-events:none;z-index:2;text-align:center}
 .artillery-hud .fallen-banner strong{font:900 22px "Cinzel","Nunito",serif;letter-spacing:.08em;color:#f3e2b4;text-shadow:0 2px 0 #3b2a14,0 0 10px #000a}
 .artillery-hud .fallen-banner span{font:800 13px "Nunito",sans-serif;color:#e8dcc0;letter-spacing:.02em}
+
+/* Prepared powers, shown live in the middle above the force ruler (DDTank style): one chip per use, in the order picked. */
+.artillery-hud .boost-queue{position:absolute;left:50%;bottom:122px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #c8953f99;border-radius:12px;background:linear-gradient(#1c2a48d9,#0d1426e0);box-shadow:inset 0 1px #ffe1a044,0 3px 8px #0008;pointer-events:none;z-index:5}
+.artillery-hud .queued-boost{position:relative;display:block;width:46px;height:46px;animation:queued-boost-in .22s cubic-bezier(.3,1.6,.5,1) both}
+.artillery-hud .queued-boost .boost-symbol-label>strong{font-size:22px;-webkit-text-stroke-width:2px}
+.artillery-hud .queued-boost .boost-shot-label>strong{font-size:19px}
+.artillery-hud .queued-boost .boost-symbol-label>strong>small{font-size:9px;-webkit-text-stroke-width:1.4px}
+.artillery-hud .queued-boost .boost-damage-label>i{top:11px;font-size:7px;-webkit-text-stroke-width:1px}
+.artillery-hud .queued-boost[data-boost="trident"] .boost-shot-label>strong{color:#168eff;text-shadow:1px 2px #103f96}
+@keyframes queued-boost-in{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+html.mobile-landscape .artillery-hud .boost-queue{bottom:96px;gap:4px;padding:3px 5px}
+html.mobile-landscape .artillery-hud .queued-boost{width:32px;height:32px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-symbol-label>strong{font-size:15px;-webkit-text-stroke-width:1.4px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-damage-label>i{top:7px;font-size:5px;-webkit-text-stroke-width:.7px}
+.artillery-hud.fighter-fallen .boost-queue,.artillery-hud.battle-finished .boost-queue{display:none}
+@media(prefers-reduced-motion:reduce){.artillery-hud .queued-boost{animation:none}}
