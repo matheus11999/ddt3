@@ -5,14 +5,16 @@ import {resolve} from 'node:path';
 import {WebSocket} from 'ws';
 import type {Command,Profile,ServerEvent} from '../shared/protocol';
 import {SMITH_POSITION} from '../shared/catalog';
+import type {CharacterGender} from '../shared/catalog';
+import {crater,unpackTerrain} from '../shared/physics';
 
 export const BASE_URL=process.env.BASE_URL??'http://127.0.0.1:8097';
 export const pause=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 type EventOf<T extends ServerEvent['type']>=Extract<ServerEvent,{type:T}>;
 export interface TestSession {profile:Profile;cookie:string;}
 
-export async function createSession():Promise<TestSession>{
- const response=await fetch(`${BASE_URL}/api/session`,{method:'POST',headers:{Origin:BASE_URL},signal:AbortSignal.timeout(10000)});
+export async function createSession(gender:CharacterGender='male'):Promise<TestSession>{
+ const response=await fetch(`${BASE_URL}/api/session`,{method:'POST',headers:{Origin:BASE_URL,'Content-Type':'application/json'},body:JSON.stringify({gender}),signal:AbortSignal.timeout(10000)});
  assert.equal(response.status,200,`session HTTP ${response.status}: ${await response.clone().text()}`);
  const header=response.headers.get('set-cookie')??'';assert.match(header,/HttpOnly/i);assert.match(header,/SameSite=Strict/i);
  const cookie=header.split(';')[0];assert.ok(cookie.startsWith('brasa_session='));
@@ -105,13 +107,13 @@ async function run(){
  const health=await fetch(`${BASE_URL}/api/health`,{signal:AbortSignal.timeout(10000)});assert.equal(health.status,200);assert.equal((await health.json() as {ok:boolean}).ok,true);
  const invalidOrigin=await fetch(`${BASE_URL}/api/session`,{method:'POST',headers:{Origin:'https://invalid.example'}});assert.equal(invalidOrigin.status,403);checks.push('HTTP origin rejection');
  try {
-  const sessions=await Promise.all([createSession(),createSession()]);
+  const sessions=await Promise.all([createSession('male'),createSession('female')]);
   clients.push(...sessions.map(session=>new TestClient(session)));await Promise.all(clients.map(client=>client.wait('welcome')));
   let [a,b]=clients;
   await a.request({type:'rename',name:`TEST-A-${a.profile.id.slice(0,8)}`},'profile');await b.request({type:'rename',name:`TEST-B-${b.profile.id.slice(0,8)}`},'profile');
-  await a.request({type:'shop-buy',items:['hat-cap','face-smile','face-taunt']},'shop-result');await b.request({type:'shop-buy',items:['face-serene','face-fierce']},'shop-result');
-  for(const item of ['hat-cap','face-smile','outfit-surfer'])await a.request({type:'equip',item},'profile');
-  assert.equal(a.profile.equipment.hat,'hat-cap');assert.equal(a.profile.equipment.face,'face-smile');checks.push('purchased equipment and starter cosmetics');
+  await a.request({type:'shop-buy',items:['face-taunt','face-fierce']},'shop-result');await b.request({type:'shop-buy',items:['face-serene']},'shop-result');
+  for(const item of ['hat-cap','face-taunt','outfit-surfer'])await a.request({type:'equip',item},'profile');
+  assert.equal(a.profile.equipment.hat,'hat-cap');assert.equal(a.profile.equipment.face,'face-taunt');checks.push('purchased equipment and compatible starter cosmetics');
   assert.match((await a.request({type:'forge',item:'ember',stones:{'1':1}},'error')).message,/Aproxime-se/);
   const invalidSelections:Record<string,number>[]=[{'1':-1},{'1':21},{'6':1}];
   for(const stones of invalidSelections)assert.equal((await a.request({type:'forge',item:'ember',stones},'error')).message,'Comando inválido.');
@@ -128,13 +130,13 @@ async function run(){
   const saved=await fetch(`${BASE_URL}/api/session`,{headers:{Cookie:a.session.cookie}});const persisted=(await saved.json() as {profile:Profile}).profile;
   assert.equal(persisted.compositions.ember.attack,10);assert.equal(persisted.equipment.upgrade,1);assert.equal(persisted.equipment.hat,'hat-cap');assert.equal(persisted.stones['2'],stonesBefore-1);checks.push('HTTP profile persistence');
   for(const face of ['face-brave','face-smile','face-serene','face-fierce','face-taunt']){
-   const owner=['face-serene','face-fierce'].includes(face)?b:a,observer=owner===a?b:a;
+   const owner=['face-smile','face-serene'].includes(face)?b:a,observer=owner===a?b:a;
    const observerMark=observer.sequence;await owner.request({type:'equip',item:face},'profile');
    await observer.wait('lobby',event=>event.players.some(player=>player.id===owner.profile.id&&player.equipment.face===face),observerMark);
    const response=await fetch(BASE_URL+'/api/session',{headers:{Cookie:owner.session.cookie}});const profile=(await response.json() as {profile:Profile}).profile;assert.equal(profile.equipment.face,face);
   }
   checks.push('five faces persist and broadcast to a second real WebSocket client');
-  const room=await a.request({type:'create',name:'TEST Integration',mode:'1v1',map:'sky'},'room',event=>!!event.room);
+  const room=await a.request({type:'create',name:'TEST Integration',practice:true,mode:'1v1',map:'sky'},'room',event=>!!event.room);
   const roomId=room.room!.id;await b.request({type:'join',roomId},'room',event=>event.room?.id===roomId);
   assert.match((await a.request({type:'forge',item:'ember',stones:{'1':1}},'error')).message,/ferreiro da praça/);
   assert.match((await a.request({type:'compose',item:'ember',stone:'attack-2'},'error')).message,/ferreiro da praça/);
@@ -146,13 +148,15 @@ async function run(){
   const initialVigor=battle.players.find(player=>player.id===shooter.profile.id)!.stamina;
   const boosted=await shooter.request({type:'boost',boost:'extra2'},'battle',event=>event.battle?.players.find(player=>player.id===shooter.profile.id)?.boosts.includes('extra2')??false);
   assert.equal(boosted.battle!.players.find(player=>player.id===shooter.profile.id)!.stamina,initialVigor-110);
-  assert.match((await shooter.request({type:'boost',boost:'extra2'},'error')).message,/já foi usada/);
   await shooter.request({type:'boost',boost:'trident'},'battle',event=>event.battle?.players.find(player=>player.id===shooter.profile.id)?.boosts.includes('trident')??false);
-  assert.match((await shooter.request({type:'boost',boost:'damage20'},'error')).message,/Vigor insuficiente/);checks.push('vigor costs duplicate tool rejection and overspend rejection');
+  assert.match((await shooter.request({type:'boost',boost:'trident'},'error')).message,/tridente já/);
+  assert.match((await shooter.request({type:'boost',boost:'damage20'},'error')).message,/Vigor insuficiente/);checks.push('vigor costs unique trident and overspend rejection');
   const shot=await shooter.request({type:'fire',angle:45,power:25},'shot');assert.equal(shot.shot.projectiles.length,9);assert.ok(shot.shot.projectiles.every(projectile=>projectile.points.length>1&&projectile.impact.radius>0));
   checks.push('nine authoritative projectiles from +2 and trident');
   const index=clients.indexOf(shooter);await shooter.close();const reconnected=new TestClient(shooter.session);clients[index]=reconnected;
-  const welcome=await reconnected.wait('welcome');assert.equal(welcome.battle?.id,battle.id);assert.ok(welcome.battle?.terrain);assert.notEqual(welcome.battle?.terrain,battle.terrain);assert.equal(welcome.profile.equipment.hat,shooter.profile.equipment.hat);checks.push('reconnect restores battle snapshot and destroyed terrain');
+  const welcome=await reconnected.wait('welcome');assert.equal(welcome.battle?.id,battle.id);assert.ok(welcome.battle?.terrain);assert.equal(welcome.battle?.activeShot?.id,shot.shot.id);
+  const restoredTerrain=unpackTerrain(Buffer.from(battle.terrain!,'base64'));for(const index of welcome.battle!.activeShot!.impacted){const projectile=shot.shot.projectiles[index];crater(restoredTerrain,projectile.impact.x,projectile.impact.y,projectile.impact.radius,battle.map);}assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),restoredTerrain);
+  assert.equal(welcome.profile.equipment.hat,shooter.profile.equipment.hat);checks.push('reconnect restores in-flight projectiles and only terrain impacts already applied');
   for(const client of clients)await client.request({type:'leave'},'room',event=>event.room===null);
   checks.push('rooms left cleanly');
   const database=verifyDatabaseForge();

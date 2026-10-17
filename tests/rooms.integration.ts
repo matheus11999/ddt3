@@ -16,7 +16,7 @@ async function run(){
  try{
   clients.push(...sessions.map(session=>new TestClient(session)));await Promise.all(clients.map(client=>client.wait('welcome')));
   for(const [i,client] of clients.entries())await client.request({type:'rename',name:`TEST-ROOM-${i}-${client.profile.id.slice(0,5)}`},'profile');
-  const host=clients[0],created=await host.request({type:'create',name:'TEST eight players',mode:'1v1',map:'celestial'},'room',event=>!!event.room);const roomId=created.room!.id;
+  const host=clients[0],created=await host.request({type:'create',practice:true,name:'TEST eight players',mode:'1v1',map:'celestial'},'room',event=>!!event.room);const roomId=created.room!.id;
   await clients[1].request({type:'join',roomId},'room',event=>event.room?.id===roomId);await clients[1].request({type:'ready'},'room',event=>!!event.room?.players.find(p=>p.id===clients[1].profile.id)?.ready);
   assert.match((await clients[1].request({type:'room-slot',slot:3,open:true},'error')).message,/líder/);
   let room=(await host.request({type:'room-slot',slot:3,open:true},'room',event=>event.room?.openSlots.includes(3)??false)).room!;
@@ -32,7 +32,7 @@ async function run(){
   assert.match((await clients[1].request({type:'kick',playerId:host.profile.id},'error')).message,/líder/);
   assert.match((await host.request({type:'kick',playerId:host.profile.id},'error')).message,/Sair da sala/);
   assert.match((await host.request({type:'kick',playerId:randomUUID()},'error')).message,/nesta sala/);
-  const otherRoom=(await clients[4].request({type:'create',name:'TEST isolated room',mode:'1v1',map:'garden'},'room',event=>!!event.room)).room!;
+  const otherRoom=(await clients[4].request({type:'create',practice:true,name:'TEST isolated room',mode:'1v1',map:'garden'},'room',event=>!!event.room)).room!;
   await clients[5].request({type:'join',roomId:otherRoom.id},'room',event=>event.room?.id===otherRoom.id);
   assert.match((await host.request({type:'kick',playerId:clients[5].profile.id},'error')).message,/nesta sala/);
   await clients[5].request({type:'leave'},'room',event=>event.room===null);await clients[4].request({type:'leave'},'room',event=>event.room===null);

@@ -1,0 +1,7 @@
+/* The lobby portrait is composed as a head, never a zoomed full-body canvas. */
+.player-hud .portrait-crop{position:absolute;inset:0;overflow:hidden;border-radius:50%}
+.player-hud .portrait-crop>canvas{display:block;position:absolute;inset:0;width:100%!important;height:100%!important;clip-path:none;transform:none;transform-origin:center;pointer-events:none}
+.player-hud .profile-level-badge{position:absolute;left:25px;bottom:-24px;z-index:3;opacity:1}
+.player-hud .profile-level-badge .level-badge{opacity:1;filter:drop-shadow(0 1px 1px #08131f)}
+.player-hud .profile-level-badge .level-badge-art{opacity:1}
+.player-hud .profile-level-badge .level-badge[data-tier="1"]{--level-art-filter:grayscale(1) brightness(1.08) contrast(1.08)}

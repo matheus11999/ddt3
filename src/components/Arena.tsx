@@ -1,139 +1,105 @@
-import {useEffect,useState} from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ArrowRight,Backpack,Bot,Check,ChevronRight,Crown,Flag,LockKeyhole,LogOut,MapPin,Plus,Search,Shield,Sparkles,Swords,UnlockKeyhole,Users,WifiOff,X} from 'lucide-react';
-import {attributes,CATALOG,MAPS} from '../../shared/catalog';
-import {getMap} from '../../shared/maps';
-import {ROOM_MODES,teamSize} from '../../shared/rooms';
-import type {MapId} from '../../shared/catalog';
-import type {RoomMode} from '../../shared/rooms';
+import {Bot,Check,Crown,Eye,LoaderCircle,LogOut,LockKeyhole,LockKeyholeOpen,Pencil,Shield,Swords,WifiOff,X} from 'lucide-react';
+import {normalizeAbilityLoadout} from '../../shared/abilities';
 import type {Seat} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
-import {ItemIcon} from './ItemIcon';
+import {AbilityPreparation} from './AbilitySlots';
 import {LevelBadge} from './LevelBadge';
-import {PowerIcon} from './PowerIcon';
-import './EnvironmentControls.css';
+import {RoomInvitations} from './RoomInvitations';
+import {RoomSpectators} from './RoomSpectators';
+import './ArenaTheme.css';
 import './Arena.css';
 
-const MAP_GUIDES={
- garden:'Flores gigantes, raízes e terra viva. Abra crateras e mude o rumo do duelo.',
- park:'Luzes de festa e pontes resistentes. Escolha entre o abrigo e o risco.',
- celestial:'Torres sobre as nuvens. Conquiste as pontes de uma fortaleza indestrutível.'
-};
-const MODE_NAMES:Record<RoomMode,string>={'1v1':'Duelo','2v2':'Duplas','3v3':'Trios','4v4':'Esquadrões'};
-const TEAM_NAMES=['Safira','Rubi'] as const;
 const SLOT_INDICES=[0,1,2,3] as const;
-const modeLabel=(mode:RoomMode)=>teamSize(mode)+' × '+teamSize(mode);
-function mapBehavior(id:MapId){const regions=getMap(id).regions;return regions.every(r=>r.destructible)?'Destrutível':regions.some(r=>r.destructible)?'Híbrido':'Indestrutível';}
-function MapArtwork({map,className=''}:{map:MapId;className?:string}){
- const definition=getMap(map);
- return <div className={'map-artwork '+definition.id+' '+className} aria-hidden="true" style={{background:'linear-gradient('+definition.lighting.sky+','+definition.lighting.horizon+')'}}><img className="map-render-thumbnail" src={'/assets/maps/'+definition.id+'-preview.png'} alt="" draggable={false}/></div>;
-}
-function useCompactArena(){
- const [compact,setCompact]=useState(()=>window.matchMedia('(max-width: 700px)').matches);
- useEffect(()=>{const media=window.matchMedia('(max-width: 700px)'),update=()=>setCompact(media.matches);media.addEventListener('change',update);return()=>media.removeEventListener('change',update);},[]);
- return compact;
+export {Arena} from './ArenaHall';
+
+function ArenaVip({active=false}:{active?:boolean}){
+ return <span className={`party-vip ${active?'vip-active':'vip-inactive'}`} role="img" aria-label={active?'VIP ativo':'VIP inativo'} title={active?'VIP ativo':'VIP inativo'}><Crown size={16} strokeWidth={1.8} aria-hidden="true"/></span>;
 }
 
-export function Arena({onClose,onPractice}:{onClose:()=>void;onPractice:()=>void}){
- const {rooms,profile}=useGame(),compact=useCompactArena();
- const [filter,setFilter]=useState<RoomMode|'all'>('all');
- const [query,setQuery]=useState(''),[creating,setCreating]=useState(false);
- const [name,setName]=useState('Sala de '+(profile?.name.slice(0,15)??'aventureiros'));
- const [mode,setMode]=useState<RoomMode>('1v1'),[map,setMap]=useState<MapId>('garden');
- const filtered=rooms.filter(room=>(filter==='all'||room.mode===filter)&&room.name.toLocaleLowerCase().includes(query.toLocaleLowerCase()));
- const available=rooms.filter(room=>room.status==='waiting'&&room.players.length<teamSize(room.mode)*2).length,selectedMap=getMap(map);
- const content=<section className={'arena-screen arena-redesign '+(compact?'compact-arena-screen ':'')+(creating?'creating-room':'')} aria-label="Arena de Brasa">
-  <header className="arena-screen-heading"><span className="arena-screen-crest"><Swords size={31}/></span><div><small>BRASA · SALÃO DOS DESAFIOS</small><h1>{creating?'Prepare sua batalha':'Arena de Brasa'}</h1></div><span className="arena-screen-presence"><Users size={16}/>{available} {available===1?'sala com vaga':'salas com vagas'}</span><button className="button quiet" onClick={onClose} aria-label="Sair da arena"><LogOut size={17}/><span>Voltar à rua</span></button></header>
-  {creating?<div className="arena-preparation-shell">
-   <form className="create-panel arena-create-panel arena-preparation" onSubmit={event=>{event.preventDefault();client.send({type:'create',name,mode,map});}}>
-    <div className="arena-preparation-map">
-     <header className="arena-map-chapter"><span><MapPin size={17}/>ESCOLHA O CAMPO DE BATALHA</span><small>TRÊS MUNDOS. INÚMERAS ESTRATÉGIAS.</small></header>
-     <div className={'arena-map-theatre '+selectedMap.id}><MapArtwork map={map}/><span className="arena-theatre-crest"><Swords size={33}/></span><div className="arena-theatre-title"><small>CAMPO DE BATALHA</small><h2>{selectedMap.name}</h2><span className="map-behavior">{mapBehavior(map)}</span><p>{MAP_GUIDES[selectedMap.id]}</p></div></div>
-     <div className="arena-map-choices" role="group" aria-label="Campo de batalha">{MAPS.map(option=><button type="button" key={option.id} onClick={()=>setMap(option.id)} aria-label={option.name+', '+mapBehavior(option.id)} aria-pressed={map===option.id} className={'arena-map-choice '+(map===option.id?'chosen ':'')+option.id}><MapArtwork map={option.id}/><span className="arena-map-choice-copy"><strong>{option.name}</strong><span className="map-behavior">{mapBehavior(option.id)}</span></span>{map===option.id&&<Check className="map-selected-check" size={18} aria-hidden="true"/>}</button>)}</div>
-    </div>
-    <aside className="arena-preparation-controls">
-     <header className="arena-create-heading"><div><small>SEU GRUPO DE AVENTUREIROS</small><h2>Nova sala</h2></div><button type="button" className="round-button" aria-label="Voltar à lista de salas" onClick={()=>setCreating(false)}><X size={19}/></button></header>
-     <label className="arena-name-field">Nome da sala<input autoFocus maxLength={24} minLength={2} pattern="[\p{L}\p{N} _!.\-]+" required value={name} onChange={event=>setName(event.target.value)}/></label>
-     <div className="arena-field-caption" id="arena-mode-label"><Swords size={15}/> Tamanho das equipes</div>
-     <div className="arena-mode-choices" role="group" aria-labelledby="arena-mode-label">{ROOM_MODES.map(value=><button type="button" key={value} aria-pressed={mode===value} className={mode===value?'chosen':''} onClick={()=>setMode(value)}><strong>{modeLabel(value)}</strong><span>{MODE_NAMES[value]}</span>{mode===value&&<Check size={15}/>}</button>)}</div>
-     <div className="arena-preparation-summary"><Shield size={28}/><div><strong>{MODE_NAMES[mode]} · {modeLabel(mode)}</strong><span>{teamSize(mode)*2} aventureiros entram. Uma equipe vence.</span></div></div>
-     <footer className="arena-create-footer"><button className="button quiet" type="button" onClick={()=>setCreating(false)}>Voltar</button><button className="button gold" type="submit">Criar sala <ArrowRight size={18}/></button></footer>
-    </aside>
-   </form>
-   <div className="arena-chat-pane arena-preparation-chat"><Chat/></div>
-  </div>:<>
-   <div className="arena-hall-banner"><div className="arena-hall-art"><MapArtwork map="celestial"/></div><span className="arena-hall-crest"><Swords size={38}/></span><div className="arena-hall-title"><span>O DESAFIO COMEÇA AQUI</span><h2>Sua próxima grande batalha.</h2><p>De um duelo de mira a um encontro entre esquadrões.</p></div><button className="button light" onClick={onPractice}><Bot size={19}/> Treinar com bot</button></div>
-   <div className="arena-hall-layout">
-    <div className="arena-hall-content">
-     <div className="arena-hall-toolbar"><nav className="arena-mode-filters" aria-label="Filtrar salas por modo"><button className={filter==='all'?'active':''} aria-pressed={filter==='all'} onClick={()=>setFilter('all')}>Todas</button>{ROOM_MODES.map(value=><button key={value} className={filter===value?'active':''} aria-pressed={filter===value} onClick={()=>setFilter(value)}>{modeLabel(value)}</button>)}</nav><label className="arena-room-search"><Search size={17}/><input aria-label="Buscar sala" placeholder="Encontre uma sala" value={query} onChange={event=>setQuery(event.target.value)}/></label></div>
-     <div className="arena-list-caption"><span><i className="green-dot"/> {available} {available===1?'sala com vaga':'salas com vagas'}</span><small>ATÉ 8 AVENTUREIROS</small></div>
-     <div className="arena-hall-rooms">
-      {filtered.length?filtered.map(room=>{const capacity=teamSize(room.mode)*2,full=room.players.length>=capacity,playing=room.status==='playing',owner=room.players.find(player=>player.id===room.hostId);return <button className={'arena-room-entry '+(playing?'playing':'')} key={room.id} onClick={()=>client.send({type:'join',roomId:room.id})} disabled={playing||full} aria-label={room.name+', '+modeLabel(room.mode)+', '+room.players.length+' de '+capacity+' jogadores, '+(playing?'em batalha':full?'sala completa':'entrar')}><div className="arena-entry-art"><MapArtwork map={room.map}/><strong>{modeLabel(room.mode)}</strong></div><div className="arena-entry-copy"><span className="arena-entry-map"><MapPin size={11}/>{getMap(room.map).name}</span><h3>{room.name}</h3><span className="arena-entry-owner"><Crown size={12}/>{owner?.name??'Sala de aventureiros'}</span><div className="arena-entry-status"><span className={playing?'is-playing':full?'is-full':'is-open'}>{playing?'Em batalha':full?'Completa':'Pode entrar'}</span><b><Users size={13}/>{room.players.length}<i>/{capacity}</i></b></div></div><ChevronRight className="arena-entry-arrow" size={20}/></button>;}):<div className="arena-hall-empty"><span><Swords size={44}/></span><h3>{query?'Nenhuma sala com esse nome':'Uma arena. Muitas histórias.'}</h3><p>{query?'Experimente outra busca.':'Convide sua equipe ou seja o primeiro a lançar o desafio.'}</p><button className="button gold" onClick={()=>setCreating(true)}><Plus size={18}/> Criar sala</button></div>}
-     </div>
-     <footer className="arena-hall-footer"><span><Shield size={17}/> Duelo, duplas, trios e esquadrões</span><button className="button gold" onClick={()=>setCreating(true)}><Plus size={18}/> Criar sala</button></footer>
-    </div>
-    <aside className="arena-social-rail"><div className="arena-featured-world"><MapArtwork map="garden"/><span><MapPin size={14}/> Mundos que mudam com cada disparo.</span></div><div className="arena-chat-pane"><Chat/></div></aside>
-   </div>
-  </>}
- </section>;
- return compact?createPortal(<div className="arena-screen-portal">{content}</div>,document.body):content;
-}
-
-function PlayerCard({seat,team,slot,open,hostId,mine,canConfigure,onOpen}:{seat:Seat|undefined;team:0|1;slot:number;open:boolean;hostId:string;mine:boolean;canConfigure:boolean;onOpen:()=>void}){
+function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
- const power=seat?attributes(seat.equipment).power:0;
- return <article className={'player-seat arena-player-card '+(seat?'occupied':open?'vacant':'locked')+(mine?' is-me':'')} data-team={team} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} aria-label={'Equipe '+TEAM_NAMES[team]+', posição '+(slot+1)+', '+(seat?.name??(open?'vaga aberta':'vaga fechada'))}>
-  {seat?<>
-   <header className="arena-player-name">{owner?<Crown size={15} aria-label="Dono da sala"/>:seat.bot?<Bot size={14}/>:<Shield size={13}/>}<strong title={seat.name}>{seat.name}</strong>{mine&&<small>VOCÊ</small>}{canConfigure&&!owner&&<button className="arena-kick-player" aria-label={'Expulsar '+seat.name} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
-   <LevelBadge level={seat.level} size={46} className="arena-player-level"/>
-   {owner&&<span className="arena-owner-ribbon">LÍDER</span>}
-   <div className="arena-player-portrait"><Avatar equipment={seat.equipment} size={204} facing={team===0?1:-1} showAura/></div>
-   <span className="arena-player-power" aria-label={'Poder '+power.toLocaleString('pt-BR')}><PowerIcon size={22}/><b>{power.toLocaleString('pt-BR')}</b></span>
-   <span className="arena-player-weapon" title={CATALOG[seat.equipment.weapon]?.name}><ItemIcon id={seat.equipment.weapon} upgrade={seat.equipment.upgrade} size={34}/>{seat.equipment.upgrade>0&&<b>+{seat.equipment.upgrade}</b>}</span>
-   <footer className={'arena-player-state '+(!seat.connected?'disconnected':ready?'ready':'preparing')}>{!seat.connected?<><WifiOff size={13}/> Reconectando…</>:ready?<><Check size={14}/> {seat.bot?'Bot pronto':'Pronto para a batalha'}</>:<><span className="arena-ready-dot"/> Preparando equipamentos</>}</footer>
+ return <article className={`arena-player-card party-player-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
+  {seat?<><header className="party-player-name"><div className="party-player-identity">{owner&&<Crown size={11} aria-label="Líder da sala"/>}<strong title={seat.name}>{seat.name}</strong>{!seat.connected&&<WifiOff size={11} aria-label="Reconectando"/>}</div>{canManage&&!owner&&<button className="party-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={14}/></button>}</header>
+   <div className="party-player-insignia"><LevelBadge level={seat.level} size={40}/><ArenaVip/></div>
+   <div className="party-player-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
+   {ready&&seat.connected&&<footer className="party-player-state ready" role="img" aria-label="Pronto" title="Pronto"><Check size={17} strokeWidth={3} aria-hidden="true"/></footer>}
   </>:<>
-   <span className="arena-slot-number">{String(slot+1).padStart(2,'0')}</span>
-   <div className="arena-vacant-emblem">{open?<Users size={36}/>:<LockKeyhole size={31}/>}</div>
-   <strong>{open?'Aguardando aventureiro':'Vaga fechada'}</strong>
-   <span className="arena-vacant-note">{open?'Esta equipe tem lugar para você.':'A batalha será em equipes menores.'}</span>
-   {!open&&canConfigure&&<button className="arena-open-slot" onClick={onOpen} aria-label={'Abrir posição '+(slot+1)+', equipe '+TEAM_NAMES[team]}><UnlockKeyhole size={13}/> Abrir vaga</button>}
+   <button type="button" className="party-slot-toggle" disabled={!canManage||slot===0} aria-label={`${open?'Fechar':'Abrir'} vaga ${slot+1}`} onClick={()=>client.send({type:'room-slot',slot,open:!open})}><span className="party-vacant-emblem" aria-hidden="true">{open?<LockKeyholeOpen size={48} strokeWidth={1.3}/>:<LockKeyhole size={48} strokeWidth={1.3}/>}</span></button>
   </>}
  </article>;
 }
 
+function PracticeConfirmation({size,onClose,onStart,enabled}:{size:number;onClose:()=>void;onStart:()=>void;enabled:boolean}){
+ const panel=useRef<HTMLDivElement>(null);
+ useEffect(()=>{
+  const previous=document.activeElement instanceof HTMLElement?document.activeElement:null;
+  panel.current?.querySelector<HTMLButtonElement>('button')?.focus();
+  const key=(event:KeyboardEvent)=>{
+   if(event.key==='Escape'){event.preventDefault();onClose();}
+   if(event.key==='Tab'){
+    const buttons=Array.from(panel.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')??[]),first=buttons[0],last=buttons[buttons.length-1];
+    if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus();}
+   }
+  };
+  document.addEventListener('keydown',key);return()=>{document.removeEventListener('keydown',key);previous?.focus();};
+ },[onClose]);
+ return <div className="party-practice-overlay" onClick={event=>{if(event.target===event.currentTarget)onClose();}}><div ref={panel} className="party-practice-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-title" aria-describedby="practice-detail"><span className="party-practice-emblem"><Bot size={38}/></span><h2 id="practice-title">Treinar com bots?</h2><p id="practice-detail">Duas equipes de {size} {size===1?'jogador':'jogadores'}. Os bots preenchem as vagas livres.</p><div><button type="button" className="button quiet arena-action arena-action--subtle" onClick={onClose}>Voltar</button><button type="button" className="button gold arena-action arena-action--primary" disabled={!enabled} onClick={onStart}><Swords size={18}/>Começar treino</button></div></div></div>;
+}
+
+function RoomName({id,name,editable}:{id:string;name:string;editable:boolean}){
+ const [editing,setEditing]=useState(false),[draft,setDraft]=useState(name);
+ const input=useRef<HTMLInputElement>(null),pencil=useRef<HTMLButtonElement>(null);
+ useEffect(()=>{setEditing(false);setDraft(name);},[id,name,editable]);
+ useEffect(()=>{if(editing){input.current?.focus();input.current?.select();}},[editing]);
+ const finish=()=>{setEditing(false);pencil.current?.focus();};
+ const save=()=>{const value=draft.trim();if(value.length<2||value.length>24)return;if(value!==name)client.send({type:'room-rename',name:value});finish();};
+ return <div className="party-room-name">{editing?<form className="party-rename-form" onSubmit={event=>{event.preventDefault();save();}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();finish();}}}><input ref={input} aria-label="Nome da sala" value={draft} maxLength={24} onChange={event=>setDraft(event.target.value)}/><button type="submit" aria-label="Confirmar nome da sala" disabled={draft.trim().length<2}><Check size={17}/></button><button type="button" aria-label="Cancelar alteração de nome" onClick={finish}><X size={16}/></button></form>:<><h1 title={name}>{name}</h1>{editable&&<button ref={pencil} className="party-rename-button" type="button" aria-label="Renomear sala" title="Renomear sala" onClick={()=>{setDraft(name);setEditing(true);}}><Pencil size={15}/></button>}</>}</div>;
+}
+
+function SearchInProgress({startedAt,offset,host,disabled,spectator=false}:{startedAt:number|undefined;offset:number;host:boolean;disabled:boolean;spectator?:boolean}){
+ const [now,setNow]=useState(Date.now());
+ useEffect(()=>{setNow(Date.now());const timer=window.setInterval(()=>setNow(Date.now()),500);return()=>clearInterval(timer);},[startedAt]);
+ const elapsed=Math.max(0,Math.floor((now+offset-(startedAt??now+offset))/1000)),time=`${String(Math.floor(elapsed/60)).padStart(2,'0')}:${String(elapsed%60).padStart(2,'0')}`;
+ return <button className="button arena-action party-search-action is-searching" aria-label={spectator?'Buscando partida':host?'Cancelar busca':'Voltar a preparar'} disabled={disabled||spectator} onClick={()=>client.send({type:host?'cancel-queue':'ready'})}><span className="party-search-progress"><LoaderCircle size={22}/><strong>Buscando</strong><time>{time}</time></span><small>{spectator?'Aguardando partida':'Toque para parar'}</small></button>;
+}
+
+type RoomMenu='mail'|'quests'|'guild';
+const ROOM_MENUS=[{id:'mail' as const,name:'Correio',art:'arena-mail.png'},{id:'quests' as const,name:'Missões',art:'arena-quests.png'},{id:'guild' as const,name:'Guilda',art:'arena-guild.png'}];
+function RoomMenus({equippedOnce,matches,onInventory,disabled,online,onLeave}:{equippedOnce:boolean;matches:number;onInventory:()=>void;disabled:boolean;online:boolean;onLeave:()=>void}){
+ const [open,setOpen]=useState<RoomMenu|null>(null),box=useRef<HTMLElement>(null),previous=useRef<HTMLButtonElement|null>(null);
+ useEffect(()=>{
+  if(!open)return;
+  const dismiss=(event:PointerEvent)=>{if(event.target instanceof Node&&!box.current?.contains(event.target))setOpen(null);};
+  const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'){setOpen(null);previous.current?.focus();}};
+  document.addEventListener('pointerdown',dismiss);document.addEventListener('keydown',escape);
+  return()=>{document.removeEventListener('pointerdown',dismiss);document.removeEventListener('keydown',escape);};
+ },[open]);
+ const menu=ROOM_MENUS.find(entry=>entry.id===open);
+ return <nav ref={box} className="party-room-actions party-bottom-actions" aria-label="Menus da sala"><button className="party-menu-button party-painted-menu" aria-label="Equipamentos" title="Equipamentos" disabled={disabled} onClick={()=>{setOpen(null);onInventory();}}><img src="/assets/ui/backpack-button.png" alt="" draggable={false}/></button>{ROOM_MENUS.map(entry=><button key={entry.id} className={`party-menu-button party-painted-menu ${open===entry.id?'active':''}`} aria-label={entry.name} title={entry.name} aria-expanded={open===entry.id} onClick={event=>{previous.current=event.currentTarget;setOpen(value=>value===entry.id?null:entry.id);}}><img src={`/assets/ui/${entry.art}`} alt="" draggable={false}/></button>)}<button className="party-menu-button party-leave-action" aria-label="Sair da sala" title="Sair da sala" disabled={!online} onClick={onLeave}><LogOut size={30}/></button>{menu&&<section className="party-menu-popover" role="dialog" aria-label={menu.name}><header><strong>{menu.name}</strong><button type="button" aria-label={`Fechar ${menu.name}`} onClick={()=>{setOpen(null);previous.current?.focus();}}><X size={17}/></button></header>{open==='quests'?<div className="party-quest-list"><button type="button" disabled={disabled} onClick={()=>{setOpen(null);onInventory();}}><span className={equippedOnce?'done':''}>{equippedOnce?<Check size={15}/>:'1'}</span><div><strong>Vista sua aventura</strong><small>Equipe um item na mochila</small></div></button><div><span className={matches>0?'done':''}>{matches>0?<Check size={15}/>:'2'}</span><div><strong>Entre na arena</strong><small>Conclua sua primeira batalha</small></div></div></div>:<p>Em breve</p>}</section>}</nav>;
+}
+
 export function RoomView({onInventory}:{onInventory:()=>void}){
- const {room,profile}=useGame(),compact=useCompactArena();
- const [visibleTeam,setVisibleTeam]=useState<0|1>(0);
- const ownTeam=room?.players.find(seat=>seat.id===profile?.id)?.team;
- useEffect(()=>{if(ownTeam!==undefined)setVisibleTeam(ownTeam);},[ownTeam,room?.id]);
+ const {room,profile,status,offset,abilityLoadoutDraft,abilityLoadoutPending}=useGame(),[confirmPractice,setConfirmPractice]=useState(false);
+ const closePractice=useCallback(()=>setConfirmPractice(false),[]);
+ useEffect(()=>{setConfirmPractice(false);},[room?.id,room?.status]);
  if(!room||!profile)return null;
- const host=room.hostId===profile.id,capacity=teamSize(room.mode)*2,me=room.players.find(seat=>seat.id===profile.id);
- const map=getMap(room.map),openSlots=room.openSlots,waiting=room.status==='waiting';
- const readyPlayers=room.players.filter(seat=>seat.connected&&(seat.ready||seat.id===room.hostId)).length;
- const vacancies=Math.max(0,capacity-room.players.length),allReady=room.players.length===capacity&&readyPlayers===capacity;
- const configure=(slot:number,open:boolean)=>client.send({type:'room-slot',slot,open});
- const status=vacancies>0?'Faltam '+vacancies+' '+(vacancies===1?'aventureiro':'aventureiros')+' para começar.':allReady?'Equipes prontas. A arena espera por vocês.':'Aguardando todos ficarem prontos.';
- const teamPanel=(team:0|1)=><section className={'arena-team arena-team-'+team} key={team} hidden={compact&&visibleTeam!==team} aria-label={'Equipe '+TEAM_NAMES[team]}><header className="arena-team-heading"><span><Flag size={16}/><strong>Equipe {TEAM_NAMES[team]}</strong></span><b>{room.players.filter(seat=>seat.team===team).length}<small>/{teamSize(room.mode)}</small></b></header><div className="arena-team-cards">{SLOT_INDICES.map(slot=><PlayerCard key={slot} seat={room.players.find(seat=>seat.team===team&&seat.slot===slot)} team={team} slot={slot} open={openSlots.includes(slot)} hostId={room.hostId} mine={room.players.some(seat=>seat.team===team&&seat.slot===slot&&seat.id===profile.id)} canConfigure={host&&waiting} onOpen={()=>configure(slot,true)}/>)}</div></section>;
- const content=<div className={'room-stage arena-room-stage fullscreen-room '+(compact?'compact-arena-room':'')}>
-  <div className="arena-room-backdrop"><MapArtwork map={room.map}/></div>
-  <header className="arena-room-heading"><button className="button quiet" aria-label="Sair da sala" onClick={()=>client.send({type:'leave'})}><LogOut size={16}/><span>Sair da sala</span></button><div><small>SALA DE BATALHA <i/> {MODE_NAMES[room.mode].toUpperCase()}</small><h1>{room.name}</h1></div><span className="arena-room-count"><Users size={18}/><strong>{room.players.length}<small>/{capacity}</small></strong><b>{modeLabel(room.mode)}</b></span></header>
-  {compact&&<nav className="arena-team-tabs" aria-label="Ver equipe">{([0,1] as const).map(team=><button key={team} className={'team-tab-'+team+(visibleTeam===team?' active':'')} aria-pressed={visibleTeam===team} onClick={()=>setVisibleTeam(team)}><Flag size={14}/>Equipe {TEAM_NAMES[team]}<span>{room.players.filter(seat=>seat.team===team).length}/{teamSize(room.mode)}</span></button>)}</nav>}
-  <div className="arena-room-body">
-   {teamPanel(0)}
-   <aside className="arena-room-center">
-    <div className="selected-map arena-selected-map"><MapArtwork map={room.map}/><span className="arena-map-seal"><Swords size={22}/></span><div><small>CAMPO DE BATALHA</small><strong>{map.name}</strong><span className={'arena-map-material '+map.id}><Shield size={12}/>{mapBehavior(room.map)}</span></div></div>
-    <p className="arena-room-map-guide">{MAP_GUIDES[map.id]}</p>
-    <div className="arena-room-settings"><div className="arena-room-format"><span>FORMATO DA BATALHA</span><strong>{modeLabel(room.mode)}</strong><small>{MODE_NAMES[room.mode]} · {capacity} aventureiros</small></div>
-    <div className="arena-slot-controls"><span>{host?'Vagas por equipe':'Vagas abertas por equipe'}</span><div>{SLOT_INDICES.map(slot=>{const open=openSlots.includes(slot),humanOccupied=room.players.some(seat=>seat.slot===slot&&!seat.bot);const disabled=!host||!waiting||slot===0||(open&&humanOccupied);const reason=slot===0?'A primeira posição permanece aberta.':!host?'Somente o líder pode alterar as vagas.':!waiting?'Aguarde o fim da batalha.':open&&humanOccupied?'Há um aventureiro nesta posição. A vaga precisa estar livre de jogadores nas duas equipes.':open?'Fechar nas duas equipes; bots desta posição serão removidos.':'Abrir esta posição nas duas equipes.';return <button key={slot} aria-label={(open?'Fechar':'Abrir')+' posição '+(slot+1)} aria-pressed={open} title={reason} disabled={disabled} className={open?'open':'closed'} onClick={()=>configure(slot,!open)}>{open?<Users size={16}/>:<LockKeyhole size={15}/>}<b>{slot+1}</b></button>;})}</div><small>{host?'Fechar remove os bots desta posição nas duas equipes.':'O líder escolhe o tamanho das equipes.'}</small></div>
-    </div><div className="arena-ready-summary"><span><Check size={16}/>{readyPlayers}/{capacity} prontos</span><div><i style={{width:readyPlayers/capacity*100+'%'}}/></div></div>
-    {!compact&&<div className="arena-chat-pane arena-room-chat"><Chat/></div>}
-   </aside>
-   {teamPanel(1)}
+ const host=room.hostId===profile.id,me=room.players.find(seat=>seat.id===profile.id),spectator=(room.spectators??[]).some(player=>player.id===profile.id),waiting=room.status==='waiting',searching=room.status==='searching',online=status==='online';
+ const members=room.players.filter(seat=>seat.team===(me?.team??0)),readyCount=members.filter(seat=>seat.connected&&(seat.ready||seat.id===room.hostId)).length,allReady=members.length>0&&readyCount===members.length;
+ const canManage=host&&waiting&&online,canStart=canManage&&allReady&&!abilityLoadoutPending,canQueue=canStart&&members.length===room.openSlots.length;
+ const message=searching?'':!online?'Reconectando à equipe…':spectator?'':allReady?(host?'':'Aguardando o líder.'):host?'Aguardando a equipe ficar pronta.':'Confirme quando estiver pronto.';
+ const controls=<div className="party-room-actions party-primary-actions"><RoomSpectators players={room.spectators??[]} openSlots={room.spectatorSlots??[]} canManage={host&&online} onToggle={(slot,open)=>client.send({type:'room-spectator-slot',slot,open})} onKick={playerId=>client.send({type:'spectator-kick',playerId})}/>{!spectator&&<div className="party-invite-row"><RoomInvitations roomId={room.id} disabled={!canManage||members.length===room.openSlots.length}/>{host&&<button type="button" className="button light arena-action arena-action--icon party-practice-action" aria-label="Treinar com bots" title="Treinar com bots" disabled={!canStart} onClick={()=>setConfirmPractice(true)}><Bot size={20}/></button>}</div>}{searching?<SearchInProgress startedAt={room.searchStartedAt} offset={offset} host={host} disabled={!online} spectator={spectator}/>:spectator?<div className="party-spectator-status" role="status"><Eye size={18}/><span>Assistindo à sala</span></div>:host?<button className="button gold arena-action arena-action--primary party-search-action" aria-label="Buscar partida" disabled={!canQueue} onClick={()=>client.send({type:'queue'})}><Swords size={24}/><span>Início</span></button>:<button className={`button arena-action ${me?.ready?'light':'gold arena-action--primary'} party-search-action`} disabled={!waiting||!online||!me?.connected||abilityLoadoutPending} onClick={()=>client.send({type:'ready'})}><Check size={20}/>{me?.ready?'Cancelar pronto':'Estou pronto'}</button>}</div>;
+ const content=<section className={`arena-room-stage compact-party-room party-room streamlined-room painted-room ${message?'has-status':''}`} aria-label={`Sala ${room.name}`}>
+  <div className="party-room-body compact-party-layout"><section className="party-team" aria-label="Sua equipe"><div className="party-team-cards">{SLOT_INDICES.map(slot=><PlayerCard key={slot} seat={members.find(member=>member.slot===slot)} slot={slot} open={room.openSlots.includes(slot)} hostId={room.hostId} mine={members.find(member=>member.slot===slot)?.id===profile.id} canManage={canManage}/>)}</div></section>
+   <div className="party-center-stage"><section className="party-pvp-banner" aria-label="Batalha PvP"><img src="/assets/ui/pvp-room-banner-v2.webp" alt="" draggable={false}/><h2 aria-label="Batalha PvP"><span aria-hidden="true">Batalha</span><strong aria-hidden="true" data-text="PvP">PvP</strong></h2><div className="party-pvp-caption"><h3>Junte-se ao campo de batalha</h3><p>Batalhas de até <strong>8 jogadores</strong></p><span>Mostre o seu poder e que vença o melhor</span></div></section></div>
+   <aside className="party-match-panel"><header className="party-heading"><div className="party-room-number" role="img" aria-label={`Sala ${room.number}`}><span>Sala</span><strong data-value={room.number}>{room.number}</strong></div><RoomName id={room.id} name={room.name} editable={canManage}/></header><AbilityPreparation loadout={abilityLoadoutDraft??normalizeAbilityLoadout(profile.abilityLoadout)} disabled={spectator||!waiting||!online} pending={abilityLoadoutPending} onChange={slots=>client.setAbilityLoadout(slots)}/>{controls}<RoomMenus equippedOnce={profile.equippedOnce} matches={profile.matches} onInventory={onInventory} disabled={!waiting||!online} online={online} onLeave={()=>client.send({type:'leave'})}/></aside>
+   <div className="party-chat arena-chat-pane"><Chat/></div>
   </div>
-  {compact&&<div className="arena-chat-pane arena-room-chat"><Chat/></div>}
-  <footer className="arena-room-footer"><div className="arena-room-status" role="status"><Sparkles size={18}/><span>{status}</span></div><div className="arena-room-actions"><button className="button light" onClick={onInventory}><Backpack size={17}/>Equipamentos</button>{host&&<button className="button light" disabled={!waiting||vacancies===0} onClick={()=>client.send({type:'bot'})}><Bot size={18}/>Adicionar bot</button>}{host?<button className="button gold arena-start-button" disabled={!waiting||!allReady} onClick={()=>client.send({type:'start'})}><Swords size={21}/>Iniciar batalha</button>:<button className={'button '+(me?.ready?'light':'gold')+' arena-start-button'} disabled={!waiting||!me?.connected} onClick={()=>client.send({type:'ready'})}><Check size={20}/>{me?.ready?'Cancelar pronto':'Estou pronto'}</button>}</div></footer>
- </div>;
- return compact?createPortal(<div className="arena-room-portal">{content}</div>,document.body):content;
+  {message&&<footer className="party-room-footer"><div className="party-room-status" role="status"><Shield size={15}/><span>{message}</span></div></footer>}
+  {confirmPractice&&<PracticeConfirmation size={room.openSlots.length} onClose={closePractice} enabled={canStart} onStart={()=>{client.send({type:'practice-start'});setConfirmPractice(false);}}/>}
+ </section>;
+ return createPortal(<div className="arena-room-portal arena-theme">{content}</div>,document.body);
 }

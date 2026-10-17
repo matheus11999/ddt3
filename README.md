@@ -4,6 +4,12 @@ Jogo de navegador de artilharia por turnos, com rua social, salas, terreno destr
 
 **Retomada local:** leia [o checkpoint e os comandos de execução](docs/local-handoff.md). A última entrega da cloud integra chapéus vestidos e variantes de cabelo sob cobertura, com prévia, compra e poses verificadas. Código e artes necessários acompanham o repositório.
 
+**Atualização local:** mochila/loja com personagens maiores e estáticos, lobby sem armas e molduras compactas. A arena agora reúne grupos de até quatro aliados em matchmaking por tamanho, com mapa sorteado pelo servidor. Veja [o contrato da fila](docs/matchmaking.md). Os seis visuais provisórios retirados estão listados em `AGENTS.md`; os rostos e demais peças pintadas foram preservados.
+
+O gênero é escolhido na criação e permanece fixo, com compatibilidade validada no servidor e seções Masculino, Feminino e Unissex na loja. A mochila tem um slot de **Fantasia** para trocar a aparência completa e uma engrenagem para exibir/ocultar chapéu, óculos e fantasia. Itens “Sem ...” são apenas estados vazios internos, sem cards. Veja [o contrato de personalização](docs/customization.md).
+
+No celular, o jogo funciona somente em **paisagem**. A tela em retrato pede para girar o aparelho; a sessão é mantida, sem recarregar. Os menus aproveitam a largura da tela com rolagem interna.
+
 ## Checkpoint — cenários, roupas e interface, 16/10/2026
 
 Esta etapa retoma os cenários e a personalização a pedido do usuário. Jardim, Parque e Fortaleza têm novas pinturas de ambiente e terreno, cores vivas e materiais distintos. Surfista da Maré, Executivo, Piloto Relâmpago e Dançarina Rubi têm poses base próprias. A loja reúne armas e cosméticos, incluindo cabelos e óculos novos. Menus usam fundos pintados e molduras com área interna reservada, incluindo mochila e ferreiro.
@@ -23,7 +29,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-Abra [http://127.0.0.1:8097](http://127.0.0.1:8097). A primeira abertura cria um aventureiro convidado. O estado dos serviços pode ser consultado em [api/health](http://127.0.0.1:8097/api/health).
+Abra [http://127.0.0.1:8097](http://127.0.0.1:8097). Na primeira abertura, escolha o gênero para criar seu aventureiro convidado. O estado dos serviços pode ser consultado em [api/health](http://127.0.0.1:8097/api/health).
 
 ```powershell
 docker compose logs -f server
@@ -32,30 +38,30 @@ docker compose down
 
 O último comando encerra os serviços e preserva o volume `brasa-data`, que contém os perfis. A configuração padrão publica somente o navegador em `127.0.0.1:8097`; PostgreSQL e Redis permanecem na rede interna do Compose.
 
-## Desenvolvimento
+## Desenvolvimento ao vivo
 
-Requer também Node.js 24 e npm no computador. Use o servidor Docker com o cliente Vite:
+A configuração de desenvolvimento usa **o mesmo endereço 8097** com Vite/HMR e reinício automático do backend. Node no computador é opcional:
 
 ```powershell
-npm ci
-docker compose -f compose.yaml -f compose.dev.yaml up -d --build server
-npm run dev
+docker compose -f compose.yaml -f compose.dev.yaml up -d --build
 ```
 
-Abra [http://127.0.0.1:5177](http://127.0.0.1:5177). O arquivo `compose.dev.yaml` publica o servidor em `127.0.0.1:4107`; o Vite encaminha `/api` e `/ws` para essa porta. Mudanças em `src/` têm atualização automática; mudanças em `server/` ou `shared/` exigem reconstruir o serviço `server` com o comando acima.
+Abra [o jogo ao vivo](http://127.0.0.1:8097/?dev=live). Arquivos de interface, arte e regras são montados do checkout. Salvar CSS/React atualiza a página automaticamente; salvar servidor/shared reinicia o processo. **Esse reinício encerra salas e batalhas em memória**, preservando perfis/recursos já confirmados no PostgreSQL. Não confundir com falta de atualização do navegador.
 
-`npm run build` verifica TypeScript e gera `dist/`. `npm run dev:server` oferece reinício automático para um backend executado diretamente no computador, desde que `DATABASE_URL` e `REDIS_URL` estejam definidos e acessíveis. O Compose padrão não publica essas duas dependências no host, e os scripts npm não carregam `.env` automaticamente.
+Para voltar ao build de produção: `docker compose up -d --build`. Ambos preservam o volume de dados. Não usar `down -v` para atualizar.
+
+Opcionalmente, com Node 24 e `npm ci`, `npm run dev` abre o cliente em 5177 usando o mesmo backend em 4107. `npm run build` verifica TypeScript e gera `dist/`. Alterações de dependências exigem reconstruir as imagens; código e assets não.
 
 ## Jogar
 
-- Clique no chão da rua para caminhar e veja outros jogadores no mesmo canal. Entre na arena para criar ou encontrar salas de 1×1 até 4×4; o líder pode adicionar bots, fechar vagas por equipe e remover ocupantes durante a espera.
-- Na batalha, use setas para andar e mirar; segure e solte Espaço para disparar. `1`–`7` selecionam ferramentas e `P` passa o turno.
-- `B` abre a mochila e `R` abre a arena. Clique, dê duplo clique ou arraste um item para experimentar; **Salvar** publica a combinação. **Restaurar** volta ao visual salvo. Slots atuais: arma, rosto completo, roupa completa, cabelo, chapéu, óculos, pulseira e bracelete. As duas joias não aparecem no corpo.
+- Clique no chão da rua para caminhar. Criar sala é imediato; o líder abre as vagas extras. Todas as vagas abertas precisam estar preenchidas/prontas para buscar PvP do mesmo tamanho. O servidor sorteia o mapa. Treinar com bots fica dentro da sala, com confirmação e equipes iguais. Após resultado/cartas, todos voltam automaticamente às mesmas salas.
+- Na batalha, use setas para andar e mirar; segure e solte Espaço para disparar. `1`–`7` usam ferramentas repetíveis conforme vigor (Tridente uma vez) e `P` passa. A inclinação do terreno altera o ângulo efetivo. Cura, mira assistida e invisibilidade têm um uso por partida; voo substitui o tiro por teleporte e bloqueia ferramentas/POWER. Dano e crítico acontecem só no impacto. Veja [combate](docs/combat-stats.md) e [habilidades](docs/abilities.md).
+- `B` abre a mochila e `R` abre a arena. Clique ou arraste um item compatível para equipar imediatamente; duplo clique no slot desequipa. Sem botão Salvar. Slots: arma, rosto completo, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete e fantasia. As duas joias não aparecem no corpo. A engrenagem controla imediatamente a exibição de chapéu, óculos e fantasia, preservando os equipamentos. Só o círculo gira na prévia; o personagem fica parado e sem arma ao lado. A loja mantém provador local com restauração por ícone.
 - Visite o ferreiro para fortalecer armas. Escolha a arma por clique ou arraste, adicione pedras e confira a chance antes de confirmar. A aba **Composição** aplica minerais de Ataque, Defesa, Agilidade e Armadura; exibe bônus, chance e custo de ouro.
 
-O nível máximo é **70**, com badges cinza (1–10), verde (11–20), azul (21–30), bronze (31–40) prata (41–50) e dourado (51–70). As bases acompanham a cor e a aura cresce a partir do nível 30, com mais camadas no 40, 50, 60 e 70. Há quatro armas com dano, gravidade, tamanho físico do projétil, cratera e efeitos próprios, três mapas em desenvolvimento, chat de mundo/sala, treino com bot e progressão persistente. Os estágios visuais das armas são **+0–8**, **+9**, **+10–11** e **+12**; as auras automáticas começam em **+5**, evoluem em **+9** e chegam ao estágio completo em **+12**. A aura luminosa do personagem aparece na mochila, perfil, cartas da arena e retrato do HUD/resultados. No combate o corpo é compacto, baixo, com a arma atrás. Os cenários e suas limitações estão em [maps-checkpoint.md](docs/maps-checkpoint.md).
+O nível máximo é **70**, com badges cinza (1–10), verde (11–20), azul (21–30), bronze (31–40) prata (41–50) e dourado (51–70). As bases acompanham a cor e a aura cresce a partir do nível 30, com mais camadas no 40, 50, 60 e 70. Há quatro armas com dano, gravidade, tamanho físico do projétil, cratera e efeitos próprios, três mapas em desenvolvimento, chat de mundo/sala, treino com bot e progressão persistente. Os estágios visuais das armas são **+0–8**, **+9**, **+10–11** e **+12**; as auras automáticas começam em **+5**, evoluem em **+9** e chegam ao estágio completo em **+12**. A aura luminosa aparece nas prévias e cartas da arena; o retrato do HUD mostra só a cabeça, sem aura. No combate o corpo é compacto, baixo, com a arma atrás. Os cenários e suas limitações estão em [maps-checkpoint.md](docs/maps-checkpoint.md).
 
-A Loja da Brasa oferece prévia de equipamentos, categorias, filtros de estilo e carrinho. Moedas Brasa usam o saldo existente de `gold`; compras são transacionais. Ao fim do PvP, cada jogador escolhe uma das oito cartas exclusivas; todas revelam seus prêmios após 15 segundos, com escolha automática para quem não selecionou.
+A Loja da Brasa oferece prévia de equipamentos, categorias, filtros de estilo e carrinho. Moedas Brasa usam o saldo existente de `gold`; compras são transacionais. Ao fim do PvP, cada jogador escolhe uma das oito cartas exclusivas; o resultado permanece 3 segundos, seguido de até 5 segundos para escolher. Todos escolherem antecipa a revelação; após 2 segundos e o pagamento, o grupo retorna à mesma sala. Quem não escolheu recebe uma carta automaticamente.
 
 ## Verificação
 

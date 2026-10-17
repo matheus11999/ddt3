@@ -1,3 +1,4 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
@@ -22,12 +23,12 @@ for(const path of requiredAtlases){
 }
 const output=process.env.OUTPUT_DIR??'test-results/headwear';
 await mkdir(output,{recursive:true});
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:{})});
+const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 try{
  const page=await browser.newPage({viewport:{width:1440,height:920},deviceScaleFactor:1});
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
- await page.goto(base.href,{waitUntil:'networkidle'});
+ await enterGame(page,base.href);await page.waitForLoadState('networkidle');
  // Confirm HTTP serves these exact files, rather than an old build or fallback HTML.
  for(const atlas of atlasEvidence){
   const response=await page.request.get(new URL(atlas.path,base).href);
@@ -49,7 +50,7 @@ try{
    image.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error(`Cannot load ${path}`));},{once:true});
   });
   const dependencies=[...new Set([
-   '/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/hair-wavy.png',
+   '/assets/character-base.png','/assets/hair-wavy.png',
    '/assets/outfit-surfer-body.png','/assets/outfit-executive-body.png',
    '/assets/outfits/outfit-surfer-walk.png','/assets/outfits/outfit-executive-walk.png','/assets/outfits/combat-prone.png',
    '/assets/outfits/shop-outfits.png','/assets/outfits/shop-walking-legs.png',
@@ -57,8 +58,8 @@ try{
    ...requiredAtlases,...ITEMS.filter(item=>['face','hair','hat','outfit'].includes(item.slot)).map(item=>item.visual?.asset).filter(Boolean)
   ])];
   await Promise.all(dependencies.map(load));
-  const hats=['hat-cap','hat-mage','hat-pilot','hat-knight','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
-  const hairs=['hair-undercut','hair-ponytail','hair-spiky','hair-wavy','hair-silver','hair-none'];
+  const hats=['hat-cap','hat-mage','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
+  const hairs=['hair-undercut','hair-ponytail','hair-wavy','hair-none'];
   const face=new URL(location.href).searchParams.get('face')??'face-brave';
   if(CATALOG[face]?.slot!=='face')throw new Error(`Unknown face: ${face}`);
   for(const id of [...hats,...hairs])if(!CATALOG[id])throw new Error(`Missing fixture item: ${id}`);
@@ -83,6 +84,7 @@ try{
     if(kind==='baseline'&&index>=hairs.length)continue;
     const hat=kind==='baseline'?'hat-none':hats[hatStart+(kind==='poses'?row:col)];
     const hair=kind==='baseline'?hairs[index]:kind==='poses'?hairs[(hatStart+row)%hairs.length]:hairs[hairStart+row];
+    if(!hat||!hair)continue;
     const outfit=kind==='poses'?(row?'outfit-dancer':'outfit-racer'):'outfit-surfer';
     const eq={...DEFAULT_EQUIPMENT,face,hat,hair,outfit,glasses:`glasses-${glasses}`};
     const rig=avatarRig(eq);
@@ -124,10 +126,10 @@ try{
    sheets.push(path);cases.push(...rendered);
   };
   await capture('baseline',{kind:'baseline'});
-  for(let hatStart=0;hatStart<8;hatStart+=4)for(let hairStart=0;hairStart<6;hairStart+=2){
-   await capture(`heads-hats-${hatStart+1}-${hatStart+4}-hairs-${hairStart+1}-${hairStart+2}`,{kind:'heads',hatStart,hairStart});
+  for(let hatStart=0;hatStart<setup.hats.length;hatStart+=4)for(let hairStart=0;hairStart<setup.hairs.length;hairStart+=2){
+   await capture(`heads-hats-${hatStart+1}-${Math.min(hatStart+4,setup.hats.length)}-hairs-${hairStart+1}-${Math.min(hairStart+2,setup.hairs.length)}`,{kind:'heads',hatStart,hairStart});
   }
-  for(let hatStart=0;hatStart<8;hatStart+=2)await capture(`poses-hats-${hatStart+1}-${hatStart+2}`,{kind:'poses',hatStart});
+  for(let hatStart=0;hatStart<setup.hats.length;hatStart+=2)await capture(`poses-hats-${hatStart+1}-${hatStart+2}`,{kind:'poses',hatStart});
  }
  assert.deepEqual(errors,[],'Browser errors while rendering headwear');
  const report={renderingChecksPassed:true,visualApproval:'pending-human-inspection',url:base.href,atlasEvidence,...setup,sheets,cases,errors};

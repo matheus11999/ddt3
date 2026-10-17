@@ -1,7 +1,11 @@
 import type {MapId, Weapon} from './catalog';
 import {canonicalMap,contains,getMap,MATERIALS} from './maps';
 import type {CanonicalMapId,MaterialId,MapRegion} from './maps';
+import {HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
+/** Time dilation preserves the original arcs while making their travel 18% faster. */
+export const PROJECTILE_SPEED_SCALE=1.18;
+export const FIGHTER_HIT_RADIUS=22;
 interface TerrainTemplate {solid:Uint8Array;regions:Int16Array;definition:readonly MapRegion[];}
 const templates=new Map<CanonicalMapId,TerrainTemplate>();
 export function terrainTemplate(map:MapId='garden'):TerrainTemplate {
@@ -41,13 +45,13 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  for(let px=x-9;px<=x+9;px+=WORLD.cell)for(let py=y-51;py<y-9;py+=WORLD.cell)if(solid(t,px,py))return null;
  return {x,y};
 }
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden'){
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden',demolition=0){
  const template=terrainTemplate(map);let removed=0;const extent=r/Math.sqrt(.72);
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-extent)/3));cx<Math.min(WORLD.cols,Math.ceil((x+extent)/3));cx++){
   const i=cy*WORLD.cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const radius=r/Math.sqrt(MATERIALS[region.material].resistance);
+  const resistance=MATERIALS[region.material].resistance,radius=r/Math.sqrt(resistance>1?1+(resistance-1)*(1-demolition):resistance);
   if((cx*3-x)**2+(cy*3-y)**2<=radius*radius){t[i]=0;removed++;}
  }
  return removed;
@@ -56,9 +60,23 @@ export function packTerrain(t:Uint8Array):Uint8Array{const b=new Uint8Array(Math
 export function unpackTerrain(b:Uint8Array){const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let i=0;i<t.length;i++)t[i]=(b[i>>3]>>(i%8))&1;return t;}
 interface ProjectileOrigin {x:number;y:number;facing:number;}
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
+export interface ProjectileGuidance {projectileIndex:number;targets:ProjectileTarget[];}
+/** Flight can only land near its first contact, with solid support and room for
+ * the entire fighter. A miss or an enclosed wall leaves the shooter in place. */
+export function flightLanding(terrain:Uint8Array,impact:{x:number;y:number},targets:ProjectileTarget[]=[]):{x:number;y:number}|null {
+ if(impact.x<24||impact.x>WORLD.width-24||impact.y<0||impact.y>=WORLD.height)return null;
+ for(let distance=0;distance<=48;distance+=WORLD.cell)for(const direction of distance?[1,-1]:[1]){
+  const x=impact.x+distance*direction;if(x<24||x>WORLD.width-24)continue;
+  const y=ground(terrain,x,impact.y-54);if(y>WORLD.height||Math.abs(y-impact.y)>54)continue;
+  if(targets.some(target=>target.hp>0&&Math.abs(target.x-x)<30&&Math.abs(target.y-y)<60))continue;
+  let clear=true;for(let px=x-12;px<=x+12&&clear;px+=WORLD.cell){if(Math.abs(ground(terrain,px,y-6)-y)>9){clear=false;break;}for(let py=y-63;py<y-3;py+=WORLD.cell)if(solid(terrain,px,py)){clear=false;break;}}
+  if(clear)return {x,y};
+ }
+ return null;
+}
 /** Points track the projectile center; x/y identify the contacted surface. */
-export interface TrajectoryResult {points:number[][];x:number;y:number;hitId?:string;flightTime:number;}
-interface Contact {fraction:number;x:number;y:number;centerX?:number;centerY?:number;hitId?:string;}
+export interface TrajectoryResult {points:number[][];x:number;y:number;hitId?:string;hitQuality?:number;flightTime:number;}
+interface Contact {fraction:number;x:number;y:number;centerX?:number;centerY?:number;hitId?:string;hitQuality?:number;}
 
 /** Earliest contact of a moving point and circle, including an exact tangent. */
 function circleContact(x:number,y:number,dx:number,dy:number,cx:number,cy:number,radius:number):number|undefined {
@@ -108,10 +126,12 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
  let contact=terrainContact(terrain,x,y,dx,dy,radius);
  for(const target of targets){
   if(target.hp<=0)continue;
-  const fraction=circleContact(x,y,dx,dy,target.x,target.y-31,24+radius);
+  const fraction=circleContact(x,y,dx,dy,target.x,target.y-31,FIGHTER_HIT_RADIUS+radius);
   if(fraction===undefined||(contact&&fraction>contact.fraction))continue;
   const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-(target.y-31),distance=Math.hypot(ox,oy);
-  contact={fraction,centerX,centerY,x:target.x+(distance?ox/distance*24:0),y:target.y-31+(distance?oy/distance*24:0),hitId:target.id};
+  const travel=Math.hypot(dx,dy),lineOffset=travel?Math.abs((target.x-x)*dy-(target.y-31-y)*dx)/travel:distance;
+  const hitQuality=Math.sqrt(Math.max(0,1-(lineOffset/(FIGHTER_HIT_RADIUS+radius))**2));
+  contact={fraction,centerX,centerY,x:target.x+(distance?ox/distance*FIGHTER_HIT_RADIUS:0),y:target.y-31+(distance?oy/distance*FIGHTER_HIT_RADIUS:0),hitId:target.id,hitQuality};
  }
  // Arena exits are also swept, keeping impact coordinates bounded at every velocity.
  for(const [value,delta,limit,exiting] of [[x,dx,-80,x+dx<-80],[x,dx,WORLD.width+80,x+dx>WORLD.width+80],[y,dy,WORLD.height+50,y+dy>WORLD.height+50]] as const){
@@ -123,28 +143,39 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
 
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
-export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
- const speed=power*9.8,shots=angles.map(angle=>{const rad=angle*Math.PI/180,x=origin.x+origin.facing*27,y=origin.y-40;return {x,y,vx:Math.cos(rad)*speed*origin.facing,vy:-Math.sin(rad)*speed,points:[[x,y]],active:true};}),results:TrajectoryResult[]=new Array(angles.length);
- const finish=(index:number,contact:Contact,flightTime:number)=>{const shot=shots[index];shot.active=false;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,flightTime};results[index]=result;onImpact?.(result,index);};
- for(let frame=0;frame<900&&shots.some(shot=>shot.active);frame++){
-  let elapsed=0;
-  while(true){
-   let earliest:{index:number;contact:Contact}|undefined;
-   for(let index=0;index<shots.length;index++){
-    const shot=shots[index];if(!shot.active)continue;const dx=shot.vx/120,dy=shot.vy/120,contact=projectileContact(terrain,shot.x+dx*elapsed,shot.y+dy*elapsed,dx*(1-elapsed),dy*(1-elapsed),weapon.projectileRadius,targets);
-    if(contact){contact.fraction=elapsed+contact.fraction*(1-elapsed);if(!earliest||contact.fraction<earliest.contact.fraction)earliest={index,contact};}
+export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance):TrajectoryResult[] {
+ const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0})),results:TrajectoryResult[]=new Array(angles.length);
+ const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:(at-shot.launchAt)/PROJECTILE_SPEED_SCALE};results[index]=result;onImpact?.(result,index);};
+ let time=0;
+ while(shots.some(shot=>!shot.done)){
+  for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+1e-7){const rad=shot.angle*Math.PI/180;shot.x=origin.x+origin.facing*27;shot.y=origin.y-40;shot.vx=Math.cos(rad)*speed*origin.facing;shot.vy=-Math.sin(rad)*speed;shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextSample=time+1000/60;}
+  const nextLaunch=Math.min(Infinity,...shots.filter(shot=>!shot.launched).map(shot=>shot.launchAt));
+  if(!shots.some(shot=>shot.launched&&!shot.done)){time=nextLaunch;continue;}
+  const duration=Math.min(step,nextLaunch-time);let elapsed=0;
+  while(elapsed<duration-1e-9){
+   const remaining=(duration-elapsed)/1000;let earliest:{index:number;contact:Contact}|undefined;
+   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;const contact=projectileContact(terrain,shot.x,shot.y,shot.vx*remaining,shot.vy*remaining,weapon.projectileRadius,targets);if(contact&&(!earliest||contact.fraction<earliest.contact.fraction))earliest={index,contact};}
+   const advance=(duration-elapsed)*(earliest?.contact.fraction??1);
+   for(const shot of shots)if(shot.launched&&!shot.done){shot.x+=shot.vx*advance/1000;shot.y+=shot.vy*advance/1000;}
+   elapsed+=advance;if(!earliest)break;finish(earliest.index,earliest.contact,time+elapsed);
+  }
+  time+=duration;
+  for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;shot.vx+=wind*7*duration/1000;shot.vy+=weapon.gravity*duration/1000;
+   if(guidance?.projectileIndex===index&&shot.vy>0){
+    const target=guidance.targets.filter(target=>target.hp>0&&target.y-31>=shot.y&&Math.hypot(target.x-shot.x,target.y-31-shot.y)<=HOMING_RADIUS).sort((a,b)=>Math.hypot(a.x-shot.x,a.y-31-shot.y)-Math.hypot(b.x-shot.x,b.y-31-shot.y))[0];
+    if(target){const speed=Math.hypot(shot.vx,shot.vy),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(target.y-31-shot.y,target.x-shot.x),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=HOMING_TURN_RATE*duration/1000,next=heading+Math.max(-limit,Math.min(limit,delta));shot.vx=Math.cos(next)*speed;shot.vy=Math.sin(next)*speed;}
    }
-   if(!earliest)break;
-   elapsed=earliest.contact.fraction;finish(earliest.index,earliest.contact,(frame+elapsed)*1000/120);
-  }
-  for(let index=0;index<shots.length;index++){
-   const shot=shots[index];if(!shot.active)continue;shot.x+=shot.vx/120;shot.y+=shot.vy/120;shot.vx+=wind*7/120;shot.vy+=weapon.gravity/120;
-   if((frame+1)%2===0)shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);
-   if(frame===899)finish(index,{x:shot.x,y:shot.y,fraction:1},7500);
-  }
+   if(time>=shot.nextSample-1e-7){shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);shot.nextSample+=1000/60;}if(time-shot.launchAt>=7500-1e-7)finish(index,{x:shot.x,y:shot.y,fraction:1},time);}
  }
  return results;
 }
 export function trajectory(terrain:Uint8Array,origin:ProjectileOrigin,angle:number,power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[]):TrajectoryResult {
  return volley(terrain,origin,[angle],power,wind,weapon,targets)[0];
+}
+/** Secondary brick chunks use the same swept collision physics as regular shots. */
+export function shatter(terrain:Uint8Array,origin:{x:number;y:number},count:number,facing:1|-1,weapon:Weapon,wind:number,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
+ const fragments=weapon.fragments;if(!fragments||count<1)return [];
+ const angles=Array.from({length:count},(_,index)=>count===1?80:32+index*116/(count-1));
+ const launch={x:origin.x-facing*27,y:origin.y+40-fragments.radius-2,facing};
+ return volley(terrain,launch,angles,fragments.speed/9.8,wind*.5,{...weapon,projectileRadius:fragments.radius,gravity:fragments.gravity},targets,onImpact);
 }

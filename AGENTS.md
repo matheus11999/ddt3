@@ -1,5 +1,26 @@
 # Orientação para agentes
 
+## Pedido local mais recente — desenvolvimento ao vivo e combate
+
+- Desenvolvimento atual em8097: `docker compose -f compose.yaml -f compose.dev.yaml up -d --build`, Vite/HMR e backend tsx watch com bind mounts. Salvar server/shared reinicia partidas/salas em memória; nunca reconstruir ou limpar banco para atualizar. Produção permanece `docker compose up -d --build`.
+- Regras atuais em `docs/combat-stats.md`, `docs/abilities.md`, `docs/matchmaking.md`: dano só no impacto, Sorte/crítico, splash curto, mira inclinada, cura/mira/invisibilidade e voo. Invisibilidade deve redigir dados por destinatário no servidor, inclusive reconexão; cliente não pode interpolar posições ocultas.
+- Criar sala imediato, vagas extras fechadas, líder abre; treino com confirmação dentro da sala e bots efêmeros equilibrados. Resultado3s → escolha5s (antecipa se todos escolheram) → cartas2s → mesmas salas após persistência, sem botões de rematch.
+- Invisibilidade: ícone de uma silhueta chibi simples parcialmente desaparecendo, sem bolha/água. Mira: alvo circular clássico. Novos grupos de invisibilidade são futuros, não implementados.
+- Mochila aplica equipamento, tintura e visibilidade imediatamente, com confirmação autoritativa e fila global correlacionada. Sem Salvar/Restaurar/lixeira; duplo clique no slot desequipa. Corpo estático, aura girando independentemente (`auraAnimated`), arma oculta na prévia e slots maiores/cards menores. Loja mantém provador local. Retrato do HUD do lobby usa só a cabeça universal, cabelo/chapéu/óculos visíveis, sem aura/corpo/arma/fantasia.
+- Mochila e loja: personagem maior e **estático** (`Avatar animated={false}`), sem controles de caminhada/mira/deitar. Manter redesenho por troca de equipamento e carregamento de assets. Slots da mochila maiores; restaurar visual somente por ícone acessível. Sem texto de convite para experimentar.
+- **Celular joga somente em paisagem.** Em retrato, apresentar a orientação para girar o aparelho e bloquear os controles; manter a sessão e o estado do servidor. Girar não recarrega a página nem dispara uma carga pendente. Menus em paisagem usam a largura disponível, rolagem interna e ações acessíveis mesmo com pouca altura. Não reintroduzir a versão jogável vertical por causa de screenshots históricos de 390×844.
+- Lobby: não desenhar armas nos jogadores nem nos NPCs. Combate e prévias de equipamentos continuam mostrando a arma. Cartas de jogadores da arena também usam personagem estático, sem flutuação.
+- Salas PvP são **grupos de até quatro aliados**. Não mostrar cartas de inimigos, seleção de mapa, seleção manual de modo, vagas espelhadas ou adicionar bots no PvP. Quantidade de integrantes define 1×1/2×2/3×3/4×4; o líder busca outro grupo do mesmo tamanho, com todos conectados e prontos. Servidor sorteia o mapa ao parear. Treino separado usa `practice:true`.
+- Fila `queue`/`cancel-queue`, cancelamento por saída/desconexão/equipamento/prontidão; preservar grupos de origem após combate. Não confundir fila por tamanho com ranking/MMR ou capacidade distribuída.
+- **Clarificação final sobre itens antigos:** preservar rostos pintados, Surfista, Executivo, cabelo Ondulado e chapéus redesenhados. Retirar somente `hat-pilot`, `hat-knight`, `hair-spiky`, `hair-silver`, `glasses-round` e `glasses-pilot`. A migração troca posses antigas por peças atuais, preservando recursos e composições compatíveis. Não remover todos os cosméticos anteriores à loja.
+- Gênero escolhido na criação e fixo no perfil; catálogo é a fonte da compatibilidade de rostos completos, roupas, chapéus e cabelos. Servidor impede compra/equipamento incompatível, incluindo customização e tintura. Loja tem Masculino, Feminino e Unissex separados. Perfis anteriores usam a roupa salva como referência, sem perder posses incompatíveis: apenas os itens equipados são ajustados.
+- Nove slots incluindo **Fantasia**, unissex, que substitui a aparência completa sem alterar atributos, gênero, arma ou hitbox. Preservar roupa e rosto subjacentes. Fantasias funcionam em todos os contextos; a prévia continua estática. Ler `docs/customization.md` e `docs/costume-art-prompts.md`.
+- Não mostrar itens “Sem ...” na mochila/loja. Sentinelas `*-none` existem apenas no contrato de desequipar; não são posses nem cards. Engrenagem na prévia abre opções para exibir chapéu, óculos e fantasia. `Equipment.visibility` é salvo/publicado junto da personalização e oculta só a aparência, preservando atributos.
+- Conteúdo 12 concede as duas fantasias iniciais uma única vez, além das migrações anteriores; preservar ouro, materiais e upgrades. Demais cosméticos da loja continuam comprados.
+- Menus usam a moldura fina e arredondada de `MenuFrame.css`; não reintroduzir a borda pintada ornamental de 40px. Formato aprovado pelo usuário, com cabeçalho e fundo coesos. A arena tem moldura e layout próprios coerentes com essa direção.
+
+Estas regras substituem instruções históricas conflitantes abaixo.
+
 ## Direção artística atual — pedido do usuário em 16/10/2026
 
 - Usar cores vivas, fantasiosas e contrastes claros, com pigmentos saturados, luz e materiais bem definidos. Evitar predominância de tons pastéis, aparência lavada, névoa leitosa e o acabamento genérico associado a imagens de IA.
@@ -49,13 +70,14 @@ O usuário pediu agentes especialistas. Use subagentes por domínio, em rodízio
 | `forge_ui` | `Inventory.*`, `Forge.*`, `ItemIcon.tsx`, `ItemCard.*`, `UpgradeBadge.*`; ícones, menus, interações |
 | `environment_engineer` | `shared/maps.ts`, física de mapas, `environment.ts`, assets/prompts de cenários; coordenar mudanças em `Scene.tsx` |
 | `weapon_vfx` | `weaponEffects.ts`, `audio.ts`, efeitos por família/estágio; sprites em coordenação com artista |
+| `costume_specialist` | Pinturas, manifesto e animação de fantasias completas; coordenar o slot/protocolo com integração e os ícones com UI |
 | `qa_integration` | Persistência/protocolo, navegador, capturas, poses e combinações, revisão das limitações |
 
 O agente `upgrade_server` também implementou fortalecimento/transações na primeira etapa. Os nomes são histórico de responsabilidades, não agentes que continuarão ativos na cloud. Não manter agentes editando após instrução de encerramento.
 
 ## Contratos
 
-- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira e bracelete. Joias invisíveis. Sem bolsa/acessórios/asas/anel ou olhos/boca separados.
+- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete e fantasia. Joias invisíveis; fantasia unissex substitui o visual completo. Sem bolsa/acessórios/asas/anel ou olhos/boca separados.
 - Roupa cobre do pescoço para baixo: mãos, calça e sapatos incluídos. Pose pode variar sem alterar a cabeça universal.
 - `ENABLE_MODULAR_APPEARANCE=false` é intencional para corpos incompletos. Rostos estão ativos independentemente desse flag.
 - Arte da arma: 0–8 / 9 / 10–11 / 12. Aura automática: 5 / 9 / 12. Pedras I–V sempre comuns.
@@ -67,4 +89,4 @@ O agente `upgrade_server` também implementou fortalecimento/transações na pri
 
 Use `npm run check`, `npm test`, `npm run build` e testes de integração pertinentes. Para rostos: `node scripts/verify-faces.mjs` com Vite e inspeção da prancha. Para mapas: `scripts/inspect-maps.mjs`.
 
-Após mudanças em `shared/`/`server/`, atualize o backend antes de testar o navegador. Documente evidências e pendências em `docs/implementation-status.md`; registre prompts e medidas dos assets. Não versionar segredos, `.env`, bancos, builds, `node_modules` ou resultados temporários. Nunca prometer milhares de jogadores a partir de um limite configurado.
+Após mudanças em `shared/`/`server/`, confirme o reinício e a saúde do backend antes de testar o navegador; em produção, reconstrua-o. Documente evidências e pendências em `docs/implementation-status.md`; registre prompts e medidas dos assets. Não versionar segredos, `.env`, bancos, builds, `node_modules` ou resultados temporários. Nunca prometer milhares de jogadores a partir de um limite configurado.

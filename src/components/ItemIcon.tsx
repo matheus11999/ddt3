@@ -1,9 +1,10 @@
 import {useEffect,useId,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
-import {CATALOG,weaponAssetPath,weaponVisualStage} from '../../shared/catalog';
+import {CATALOG,isEmptyItem,weaponAssetPath,weaponVisualStage} from '../../shared/catalog';
 import {getFacePortrait,getOutfitPortrait,getAccessoryPortrait,PAINTED_ACCESSORIES} from '../game/appearance';
 import {FACE_REGISTRATION} from '../game/faces';
 import {getWornHatPortrait,hasWornHat} from '../game/headwear';
+import {getCostumePortrait} from '../game/costumes';
 
 /** The icon and equipped face share the same composited painting and registration. */
 function FaceIcon({id,size}:{id:string;size:number}){
@@ -17,20 +18,21 @@ function FaceIcon({id,size}:{id:string;size:number}){
 }
 
 /** Complete outfit icons are composed from the exact equipped body painting. */
-function OutfitIcon({id,size,accessory=false,headwear=false}:{id:string;size:number;accessory?:boolean;headwear?:boolean}){
+function OutfitIcon({id,size,accessory=false,headwear=false,costume=false}:{id:string;size:number;accessory?:boolean;headwear?:boolean;costume?:boolean}){
  const ref=useRef<HTMLCanvasElement>(null);
  useEffect(()=>{
   const c=ref.current!.getContext('2d')!;
-  const draw=()=>{c.clearRect(0,0,160,160);const outfit=headwear?getWornHatPortrait(id):accessory?getAccessoryPortrait(id):getOutfitPortrait(id);if(outfit){const scale=Math.min(144/outfit.width,148/outfit.height);c.drawImage(outfit,(160-outfit.width*scale)/2,(160-outfit.height*scale)/2,outfit.width*scale,outfit.height*scale);}};
+  const draw=()=>{c.clearRect(0,0,160,160);const outfit=costume?getCostumePortrait(id):headwear?getWornHatPortrait(id):accessory?getAccessoryPortrait(id):getOutfitPortrait(id);if(outfit){const scale=Math.min(144/outfit.width,148/outfit.height);c.drawImage(outfit,(160-outfit.width*scale)/2,(160-outfit.height*scale)/2,outfit.width*scale,outfit.height*scale);}};
   draw();window.addEventListener('brasa-art-loaded',draw);return()=>window.removeEventListener('brasa-art-loaded',draw);
- },[id,accessory,headwear]);
+ },[id,accessory,headwear,costume]);
  return <canvas className="item-art" ref={ref} width={160} height={160} style={{width:size,height:size}} role="img" aria-label={CATALOG[id].name}/>;
 }
 
 /** Original item illustrations. Rarity chrome belongs to ItemCard. */
 export function ItemIcon({id,size=60,upgrade=0}:{id:string;size?:number;upgrade?:number}){
  const uid=useId().replace(/[^a-zA-Z0-9]/g,'');const [missing,setMissing]=useState<string|null>(null);
- const item=CATALOG[id];if(!item)return null;
+ const item=CATALOG[id];if(!item||isEmptyItem(item))return null;
+ if(item.slot==='costume')return <OutfitIcon id={id} size={size} costume/>;
  if(item.slot==='face')return <FaceIcon id={id} size={size}/>;
  if(hasWornHat(id))return <OutfitIcon id={id} size={size} headwear/>;
  if(PAINTED_ACCESSORIES[id])return <OutfitIcon id={id} size={size} accessory/>;

@@ -31,12 +31,9 @@ const region=(atlas:string,source:Rect,destination:Rect,clip?:readonly Point[]):
 const ACCESSORIES='/assets/shop-accessories.png',COVERED='/assets/hair-covered-atlas.png',HEADWEAR='/assets/headwear-worn-atlas.png';
 /** Hat contacts: the inner band's front and back edge in the atlas. Every hat sits on the same seat. */
 const hat=(source:Rect,from:readonly [Point,Point],clip?:readonly Point[]):ArtRegion=>({atlas:HEADWEAR,source,clip,pin:{from,to:HEAD_ANCHORS.hatSeat}});
-const coveredSpiky=region(COVERED,[170,48,540,440],[335,180,486,396]);
 
 /** Every visible hair, hat and glasses item. New items are added here, never as ad-hoc numbers in the renderer. */
 export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
- 'hair-spiky':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:onTemplate('/assets/hair-spiky.png'),covered:coveredSpiky},
- 'hair-silver':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:onTemplate('/assets/hair-spiky.png'),covered:coveredSpiky},
  'hair-wavy':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-wavy.png',[280,65,820,760],[349.9,100,600,556]),covered:region(COVERED,[850,48,585,470],[330,160,526.5,423])},
  'hair-undercut':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',
   worn:region(ACCESSORIES,[25,85,610,500],[288,2.3,666.2,548.6],[[25,85],[635,85],[635,375],[600,450],[600,585],[25,585]]),
@@ -44,19 +41,17 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hair-ponytail':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',
   worn:region(ACCESSORIES,[600,85,650,660],[217.4,2.3,728.9,736.7],[[640,85],[1250,85],[1250,745],[600,745],[600,450],[640,375]]),
   covered:region(COVERED,[835,535,620,475],[295,175,558,427.5])},
+ 'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],[288,25.8,674,533]),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
  'hat-cap':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([35,130,522,332],[[126,442],[485,330]])},
  'hat-thunder':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([560,130,490,320],[[600,423],[960,333]],[[560,130],[1050,130],[1050,398],[1020,430],[1020,450],[560,450]])},
  'hat-tide':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([1030,130,500,330],[[1065,440],[1410,358]],[[1070,130],[1530,130],[1530,460],[1030,460],[1030,430],[1065,390],[1070,350]])},
  'hat-ruby':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([45,560,485,330],[[150,860],[485,785]])},
  'hat-tropical':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([540,560,510,335],[[650,840],[945,760]],[[540,560],[1030,560],[1030,690],[1050,695],[1050,775],[1020,790],[1020,895],[540,895]])},
  'hat-mage':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([1035,480,495,410],[[1140,822],[1420,803]],[[1035,480],[1530,480],[1530,890],[1035,890],[1035,810],[1090,790],[1090,680],[1035,680]])},
- 'hat-pilot':{rig:RIG_VERSION,slot:'hat',fit:'hat-band',profile:'band',procedural:true},
- 'hat-knight':{rig:RIG_VERSION,slot:'hat',fit:'hat-helmet',profile:'helmet',procedural:true},
  // Optical centres of each lens land on the universal eye sockets.
  'glasses-sport':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:ACCESSORIES,source:[45,880,570,235],pin:{from:[[344,1014],[557,1042]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
  'glasses-cat':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:ACCESSORIES,source:[640,890,600,240],pin:{from:[[945,1018],[1155,1036]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
- 'glasses-round':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',procedural:true},
- 'glasses-pilot':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',procedural:true}
+ 'glasses-navigator':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-navigator.png',source:[29,483,1197,387],pin:{from:[[640,679],[1094,704]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
 };
 /** Hats with tight, wide or helmet profiles hide the uncovered hairstyle. */
 export const coversHair=(profile?:HeadProfile)=>profile==='tight'||profile==='wide'||profile==='helmet';

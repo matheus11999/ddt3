@@ -1,0 +1,13 @@
+.spectator-hud{position:fixed;inset:12px 16px;z-index:40;pointer-events:none;color:#e6edf3;display:grid;grid-template-columns:minmax(180px,320px) minmax(120px,1fr) minmax(180px,320px);gap:14px;align-items:start}
+.spectator-team{display:grid;gap:5px}.spectator-team.team-1{grid-column:3}
+.spectator-fighter{display:flex;align-items:center;gap:7px;padding:5px 9px 5px 5px;border:1px solid #8d9caf77;border-radius:13px;background:linear-gradient(130deg,#223d55ee,#11253deb);box-shadow:0 3px 8px #07152555}
+.spectator-fighter.current-turn{border-color:#f8d480;box-shadow:0 0 12px #f4ce6544,inset 0 0 10px #eac77818}.spectator-fighter.defeated{opacity:.55}
+.spectator-fighter>div{flex:1;min-width:0}.spectator-fighter strong{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;margin-bottom:4px}
+.spectator-health{height:16px;position:relative;overflow:hidden;border:1px solid #111e2c;border-radius:6px;background:#061a29}
+.spectator-health i{display:block;height:100%;background:linear-gradient(#86d596,#3b9e6c);transition:width .3s}.team-1 .spectator-health i{background:linear-gradient(#f18b82,#bc4358)}
+.spectator-health span{position:absolute;inset:0;text-align:center;font-size:10px;line-height:14px;text-shadow:0 1px 2px #102033;font-weight:800}
+.spectator-center{position:absolute;top:0;left:50%;transform:translateX(-50%);display:grid;justify-items:center;gap:5px;padding:8px 16px;border-radius:0 0 14px 14px;background:#152d43e8;border:1px solid #ae966466;max-width:240px;text-align:center}
+.spectator-center span,.spectator-center b{display:flex;align-items:center;gap:7px}.spectator-center span{color:#f0dba8;font-size:12px}.spectator-center small{font-size:11px}
+.spectator-leave{position:absolute;bottom:6px;right:0;pointer-events:auto;display:flex;align-items:center;gap:7px;padding:11px 17px;border:1px solid #c1a873;border-radius:12px;background:linear-gradient(#345169,#1c354e);color:#f3dfb9;box-shadow:0 3px #07192d}
+@media(max-width:1000px){.spectator-hud{inset:7px 9px;grid-template-columns:minmax(140px,210px) 1fr minmax(140px,210px);gap:8px}.spectator-fighter{padding:3px 5px;gap:4px}.spectator-fighter canvas{width:31px!important;height:31px!important}.spectator-fighter strong{font-size:10px;margin-bottom:2px}.spectator-center{padding:5px 8px;max-width:160px}.spectator-center small{font-size:9px}.spectator-health{height:13px}.spectator-health span{font-size:9px;line-height:11px}.spectator-leave{padding:8px 11px}}
+.spectator-artillery .result-announcement h1{font-size:76px}.spectator-artillery .loot-heading h1{font-size:48px}

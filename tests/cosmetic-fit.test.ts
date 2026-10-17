@@ -20,8 +20,8 @@ test('every visible hair, hat and glasses item declares a fit class',()=>{
 
 test('hair inside its zone passes; oversized hair reports width and height',()=>{
  const crown=HEAD_ANCHORS.crown[1];
- assert.deepEqual(evaluateItem('hair-spiky',rect(400,crown-60,Math.round(HEAD_WIDTH*1.3),200)).issues,[]);
- const codes=evaluateItem('hair-spiky',rect(300,crown-150,Math.round(HEAD_WIDTH*1.62),200)).issues.map(issue=>issue.code);
+ assert.deepEqual(evaluateItem('hair-undercut',rect(400,crown-60,Math.round(HEAD_WIDTH*1.3),200)).issues,[]);
+ const codes=evaluateItem('hair-undercut',rect(300,crown-150,Math.round(HEAD_WIDTH*1.62),200)).issues.map(issue=>issue.code);
  assert.deepEqual(codes.sort(),['height','width']);
 });
 
@@ -32,9 +32,9 @@ test('hair over the eyes is reported; hats may cover the brow',()=>{
  assert.ok(!evaluateItem('hat-cap',eyes).issues.some(issue=>issue.code==='keepout'));
 });
 
-test('template-painted pieces reaching the frame are reported; atlas pieces are not',()=>{
- assert.ok(evaluateItem('hair-spiky',rect(300,10,500,400)).issues.some(issue=>issue.code==='frame'));
+test('atlas pieces are placed by their pin, so the template frame does not apply',()=>{
  assert.ok(!evaluateItem('hat-mage',rect(300,0,500,400)).issues.some(issue=>issue.code==='frame'));
+ assert.ok(!evaluateItem('hair-undercut',rect(300,10,500,400)).issues.some(issue=>issue.code==='frame'));
 });
 
 test('unregistered items, hidden glasses and body proportions are reported',()=>{

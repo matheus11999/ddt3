@@ -1,0 +1,3 @@
+/* Server feedback stays above viewport menus, below the portrait-orientation gate. */
+body>.viewport-notice{position:fixed;z-index:5000;top:max(14px,env(safe-area-inset-top));bottom:auto;left:50%;transform:translateX(-50%);max-width:calc(100vw - 30px);white-space:normal;font-size:13px;padding:10px 15px}
+body>.viewport-notice.connection-notice{top:auto;bottom:max(14px,env(safe-area-inset-bottom))}

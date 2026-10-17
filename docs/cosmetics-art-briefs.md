@@ -14,17 +14,17 @@ Molde de referência para gerar ou pintar: `docs/templates/<classe>.png` (gerado
 
 ## Peças a repintar
 
+Cabelo Aventureiro, Lunar, Elmo do Guardião, Óculos de Voo e Óculos Redondos/Piloto foram retirados do catálogo na versão do Codex (17/10/2026) e saíram do manifesto.
+
 | Peça | Medida atual | Meta | O que mudar |
 | --- | --- | --- | --- |
-| Cabelo Aventureiro e Lunar (mesma arte) | 1,62× largura; 0,41× acima do crânio; franja toca o olho | ≤1,45×; ≤0,30× | Reduzir pontas laterais e o topete; franja termina acima da linha da sobrancelha |
+| Corte Horizonte | 1,61×; 0,37×; franja toca o olho (76 px) | ≤1,45×; ≤0,30× | Reduzir volume lateral e topete; franja acima da sobrancelha |
 | Corte Tempestade | 1,56×; 0,40× | ≤1,45×; ≤0,30× | Topete mais baixo, laterais raspadas mais justas; não cobrir o olho |
 | Rabo de Cavalo Rubi | 1,71×; 0,41×; cobre olhos (1.895 px) | ≤1,55×; ≤0,30× | Rabo vai para `back.png`, atrás do pescoço; franja abre sobre os olhos |
 | Cabelo Ondulado | desce 10 px além; franja sobre olhos | até y=640 | Encurtar 10 px na nuca; afastar mecha da franja do olho próximo |
 | Cabelos cobertos (Ondulado e Rabo) | franja sobre olhos sob bonés (até 2.178 px) | 0 px nos olhos | Repintar a franja das variantes cobertas acima dos olhos |
 | Chapéu Astral | aba desce até y=492 | até y=470 | Aba menos caída na frente; manter o cone |
 | Boné Relâmpago | aba cobre 31–38% da frente dos óculos | ≤30% | Aba 15–20 px mais alta ou mais curta |
-| Elmo do Guardião | desenho procedural; cobre olhos (1.397 px) | pintado; 0 px nos olhos | Pintar elmo no estilo do jogo, perfil Elmo, borda acima da sobrancelha |
-| Óculos de Voo | flutuam sobre cabelos volumosos | apoiados na faixa | Pintar os óculos e cinco variantes de cabelo achatado na linha da faixa (perfil Faixa) |
 | Óculos Gatinho | 0,99× a cabeça | 0,80–0,95× | Estreitar as pontas do gatinho; manter o centro das lentes |
 
 As roupas (Executivo e Dançarina com tronco 0,77–0,78× a cabeça) ficam para a fase 4.

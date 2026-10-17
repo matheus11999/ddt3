@@ -6,7 +6,7 @@ import {normalizeProfile,Store} from '../server/store';
 
 async function database(roll=999){
  const store=new Store(()=>roll);await store.pool.end();
- const state={profile:normalizeProfile({id:randomUUID(),name:'Ferreira',gold:500}),queries:[] as string[],connections:0,releases:0,failWrite:false};
+ const state={profile:normalizeProfile({id:randomUUID(),name:'Ferreira',gender:'male',gold:500}),queries:[] as string[],connections:0,releases:0,failWrite:false};
  let snapshot=structuredClone(state.profile);
  const client={
   async query(sql:string,values?:unknown[]){
@@ -68,14 +68,14 @@ test('database errors roll back the whole forge and release the locked connectio
 
 test('equipment persistence derives upgrade from the locked profile and validates every slot',async()=>{
  const {store,state}=await database();state.profile.upgrades.volt=6;
- const profile=await store.saveEquipment(state.profile.id,{...DEFAULT_EQUIPMENT,weapon:'volt',hat:'hat-cap',upgrade:12});
+ const profile=await store.saveEquipment(state.profile.id,{...state.profile.equipment,weapon:'volt',hat:'hat-cap',upgrade:12});
  assert.equal(profile.equipment.upgrade,6);assert.equal(profile.equippedOnce,true);assert.equal(profile.equipment.hat,'hat-cap');assert.match(state.queries[1],/FOR UPDATE$/);
  const before=structuredClone(state.profile);await assert.rejects(store.saveEquipment(state.profile.id,{...profile.equipment,face:'volt'}),/mochila/);assert.deepEqual(state.profile,before);
 });
 
 test('customization saves simultaneous facial, head and clothing layers with dyes atomically',async()=>{
- const {store,state}=await database();const before=structuredClone(state.profile);
- const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-round',face:'face-taunt',hair:'hair-wavy',outfit:'outfit-executive',dyes:{hat:'coral' as const,hair:'gold' as const,outfit:'violet' as const}};
+ const {store,state}=await database();state.profile.inventory.push('glasses-sport','hair-undercut');const before=structuredClone(state.profile);
+ const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',hair:'hair-undercut',outfit:'outfit-executive',dyes:{hat:'coral' as const,hair:'gold' as const,outfit:'violet' as const}};
  const saved=await store.saveEquipment(before.id,equipment);
  assert.deepEqual(saved.equipment,equipment);assert.deepEqual(saved.stones,before.stones);assert.deepEqual(saved.upgrades,before.upgrades);
  assert.equal(saved.equipment.wristband,before.equipment.wristband);assert.equal(saved.equipment.bracelet,before.equipment.bracelet);
@@ -143,12 +143,12 @@ test('composition rollback restores both currency and mineral on database failur
 });
 
 test('shop purchase atomically deducts the server price and grants all selected items without equipping',async()=>{
- const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>!['volt','face-smile'].includes(id));state.profile.gold=1000;
- const before=structuredClone(state.profile),outcome=await store.buy(before.id,['volt','face-smile']);
- assert.equal(outcome.result.spent,480);assert.equal(outcome.profile.gold,520);
- assert.ok(outcome.profile.inventory.includes('volt')&&outcome.profile.inventory.includes('face-smile'));
+ const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>!['volt','face-taunt'].includes(id));state.profile.gold=1000;
+ const before=structuredClone(state.profile),outcome=await store.buy(before.id,['volt','face-taunt']);
+ assert.equal(outcome.result.spent,540);assert.equal(outcome.profile.gold,460);
+ assert.ok(outcome.profile.inventory.includes('volt')&&outcome.profile.inventory.includes('face-taunt'));
  assert.deepEqual(outcome.profile.equipment,before.equipment);assert.match(state.queries[1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'COMMIT');
- await assert.rejects(store.buy(before.id,['volt']),/já possui/);assert.equal(state.profile.gold,520);
+ await assert.rejects(store.buy(before.id,['volt']),/já possui/);assert.equal(state.profile.gold,460);
 });
 test('shop rejects duplicate, unavailable, owned or unaffordable carts without partial purchases',async()=>{
  const {store,state}=await database();state.profile.inventory=state.profile.inventory.filter(id=>id!=='volt');state.profile.gold=10;

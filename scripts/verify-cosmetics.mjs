@@ -30,7 +30,7 @@ try{
    image.addEventListener('error',()=>{clearTimeout(timeout);reject(new Error(`Cannot load ${path}`));},{once:true});
   });
   const outfits=ITEMS.filter(item=>item.slot==='outfit'&&A.PAINTED_OUTFITS[item.id]).map(item=>item.id);
-  await Promise.all([...new Set(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png',
+  await Promise.all([...new Set(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png',
    '/assets/outfits/combat-prone.png','/assets/outfits/shop-walking-legs.png','/assets/outfits/outfit-surfer-walk.png','/assets/outfits/outfit-executive-walk.png',
    ...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
   // headwear.ts owns its atlas; wait for the same URL to be decoded.

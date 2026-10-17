@@ -22,7 +22,16 @@
     "test:rewards:browser": "node scripts/smoke-rewards.mjs",
     "test:shop:browser": "node scripts/smoke-shop.mjs",
     "test:power:integration": "tsx tests/power.integration.ts",
-    "verify:cosmetics": "node scripts/verify-cosmetics.mjs"
+    "verify:cosmetics": "node scripts/verify-cosmetics.mjs",
+    "test:matchmaking:integration": "tsx tests/matchmaking.integration.ts",
+    "test:gender:integration": "tsx tests/gender.integration.ts",
+    "test:customization:browser": "node scripts/smoke-customization.mjs",
+    "test:costumes": "node scripts/verify-costumes.mjs",
+    "test:mobile:browser": "node scripts/smoke-mobile-landscape.mjs",
+    "test:abilities:integration": "tsx tests/abilities.integration.ts",
+    "test:loadout:integration": "tsx tests/ability-loadout.integration.ts",
+    "test:loadout:browser": "node scripts/smoke-loadout.mjs",
+    "test:immediate:browser": "node scripts/smoke-immediate-equipment.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
