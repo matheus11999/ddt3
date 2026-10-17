@@ -4,7 +4,7 @@ O botão direito sobre outro jogador abre o menu do jogo com **Ver informações
 
 ## Ver informações
 
-- Janela só de leitura no mesmo layout do lado esquerdo da mochila: boneco com a aura, nível, vitórias e partidas, os 13 slots, Poder (o gearscore) e os oito atributos.
+- Janela só de leitura no mesmo layout do lado esquerdo da mochila: nível, nome e título sobre o boneco com a aura (sem vitórias, partidas ou "online"), os 13 slots, Poder (o gearscore) e os oito atributos. Ainda não há sistema de títulos: o título mostra Aventureiro, Aventureira ou Bot do jogo.
 - Passar o mouse num item mostra o mesmo `InventoryTooltip` da mochila (no celular, toque no item).
 - O servidor manda só o que está vestido (`PlayerInfo` em `shared/reports.ts`): nunca mochila, moedas ou pedras. Funciona com o jogador offline (pódio).
 

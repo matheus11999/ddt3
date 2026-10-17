@@ -23,6 +23,10 @@
   font-weight: 800;
 }
 .player-info-report {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 4;
   display: grid;
   place-items: center;
   flex: none;
@@ -36,7 +40,41 @@
   cursor: pointer;
 }
 .player-info-report:hover { filter: brightness(1.08); }
-.bag-window .player-info-winrate i { background: linear-gradient(#ffe08a, #f2a91f); }
+/* Sem cabeçalho: nome, nível e título ficam sobre o boneco, como no DDTank. */
+.bag-window .player-info-body .bag-profile { grid-template-rows: minmax(0, 1fr) auto auto; }
+.bag-window .player-info-power { grid-template-columns: minmax(0, 1fr); }
+.bag-window .player-info-power .combat-power { justify-content: center; }
+.player-info-plate {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 3;
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  max-width: 100%;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.player-info-plate > div { display: flex; align-items: center; gap: 6px; max-width: 100%; }
+.player-info-plate h2 {
+  margin: 0;
+  overflow: hidden;
+  color: #fff;
+  font: 900 24px/1.1 'Nunito', 'Trebuchet MS', sans-serif;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 2px 0 #5b2a0e, 0 0 3px #5b2a0e, 1px 1px 0 #5b2a0e, -1px -1px 0 #5b2a0e, 1px -1px 0 #5b2a0e, -1px 1px 0 #5b2a0e;
+}
+.player-info-plate small {
+  padding: 1px 12px;
+  border-radius: 999px;
+  background: linear-gradient(#8a4318, #5b2a0e);
+  box-shadow: inset 0 1px #ffc78a55, 0 1px #3b1806;
+  color: var(--bag-gold);
+  font: 800 12px/1.5 'Nunito', 'Trebuchet MS', sans-serif;
+  letter-spacing: .04em;
+}
 
 .player-report-layer { position: fixed; z-index: 10040; border-radius: 0; }
 .player-report { width: min(440px, 100%); }

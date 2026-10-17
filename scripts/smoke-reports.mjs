@@ -32,7 +32,7 @@ try{
  await a.page.screenshot({path:`${output}/menu-chat.png`});
  await menu.getByRole('menuitem',{name:'Ver informações'}).click();
  const info=a.page.getByRole('dialog',{name:'Informações do jogador'});await expect(info).toBeVisible();
- await expect(info.locator('.bag-identity h2')).toHaveText(b.profile.name);
+ await expect(info.locator('.player-info-plate h2')).toHaveText(b.profile.name);
  await expect(info.locator('.combat-power strong')).not.toBeEmpty();
  await a.page.waitForTimeout(900);await a.page.screenshot({path:`${output}/info.png`});
  await info.locator('[data-slot="weapon"]').hover();
@@ -62,10 +62,10 @@ try{
  await expect(a.page.getByRole('menu').getByRole('menuitem')).toHaveText(['Ver informações']);
  await a.page.keyboard.press('Escape');
  // Right click on someone walking in the plaza (the canvas): B walks to the left, A looks for B there.
- await b.page.locator('canvas.world-canvas').click({position:{x:420,y:730}});await a.page.waitForTimeout(3500);
+ await b.page.locator('canvas.world-canvas').click({position:{x:420,y:620}});await a.page.waitForTimeout(3500);
  let found=false;
  for(const x of [420,380,460,340,500,300,540]){
-  await a.page.locator('canvas.world-canvas').click({button:'right',position:{x,y:670}});
+  await a.page.locator('canvas.world-canvas').click({button:'right',position:{x,y:560}});
   const plaza=a.page.getByRole('menu');if(await plaza.count()){await expect(plaza).toHaveAccessibleName(b.profile.name);found=true;await a.page.screenshot({path:`${output}/menu-plaza.png`});await a.page.keyboard.press('Escape');break;}
  }
  assert.ok(found,'right click on a player in the plaza opens the player menu');
