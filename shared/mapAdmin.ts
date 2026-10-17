@@ -1,4 +1,5 @@
 import {z} from 'zod';
+import {MARKER_KINDS,MONSTER_KINDS} from './expeditions';
 
 /**
  * Maps edited in the admin panel (/admin). A save is a revision; publishing a revision
@@ -30,7 +31,9 @@ export const mapLayoutSchema=z.object({
  source:z.string().max(200).regex(/^[\w./-]+$/).optional(),
  background:z.union([z.string().max(120),z.array(z.string().max(120)).max(4)]),backgroundBlend:z.number().finite().min(0).max(2000).optional(),mid:z.string().max(120).optional(),
  mirror:z.boolean().optional(),width:z.number().int().min(1536).max(MAX_MAP_WIDTH).refine(w=>w%3===0,'A largura precisa ser múltipla de 3.').optional(),
- spawns:z.array(z.array(z.number().finite().min(0).max(MAX_MAP_WIDTH)).min(1).max(4)).length(2),
+ // Instance maps leave team 2 empty: the monsters come from `monsters`.
+ spawns:z.array(z.array(z.number().finite().min(0).max(MAX_MAP_WIDTH)).max(4)).length(2),
+ monsters:z.array(z.object({kind:z.enum([...MONSTER_KINDS,...MARKER_KINDS]),x:z.number().finite().min(0).max(MAX_MAP_WIDTH),y:z.number().finite().min(0).max(864).optional()}).strict()).max(40).optional(),
  items:z.array(layoutItemSchema).max(300),
  sheets:z.record(sheetName,z.string().max(120)).optional(),pieces:z.string().max(120).optional(),
 }).strict();
@@ -63,6 +66,8 @@ export const mapCreateSchema=z.object({id:z.string().regex(MAP_ID_PATTERN,'Use l
 export interface PublishedMap {
  id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;revision:number;base:string;
  width:number;spawns:[number[],number[]];regions:z.infer<typeof regionSchema>[];terrain:string;
+ /** Instance maps: monsters and markers (shared/expeditions.ts). */
+ monsters?:{kind:(typeof MONSTER_KINDS)[number]|(typeof MARKER_KINDS)[number];x:number;y?:number}[];
 }
 export interface PublishedLobby {id:string;kind:'lobby';name:string;revision:number;lobby:LobbyLayout;}
 export interface PublishedMaps {maps:PublishedMap[];lobby:PublishedLobby|null;}

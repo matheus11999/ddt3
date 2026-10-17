@@ -111,7 +111,8 @@ export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEF
 export function packTerrain(t:Uint8Array):Uint8Array{const b=new Uint8Array(Math.ceil(t.length/8));for(let i=0;i<t.length;i++)if(t[i])b[i>>3]|=1<<(i%8);return b;}
 export function unpackTerrain(b:Uint8Array){const t=new Uint8Array(b.length*8);for(let i=0;i<t.length;i++)t[i]=(b[i>>3]>>(i%8))&1;return t;}
 interface ProjectileOrigin {x:number;y:number;facing:number;}
-interface ProjectileTarget {id:string;x:number;y:number;hp:number;}
+/** Monsters bring their own body size; fighters use FIGHTER_HIT_RADIUS centred 31 px above the feet. */
+interface ProjectileTarget {id:string;x:number;y:number;hp:number;hitRadius?:number;hitHeight?:number;}
 /** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
 export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
 /** Flight puts the fighter exactly where the plane touched. Against a wall it is set just outside the
@@ -180,12 +181,13 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
  let contact=terrainContact(terrain,x,y,dx,dy,radius);
  for(const target of targets){
   if(target.hp<=0)continue;
-  const fraction=circleContact(x,y,dx,dy,target.x,target.y-31,FIGHTER_HIT_RADIUS+radius);
+  const body=target.hitRadius??FIGHTER_HIT_RADIUS,cy=target.y-(target.hitHeight??31);
+  const fraction=circleContact(x,y,dx,dy,target.x,cy,body+radius);
   if(fraction===undefined||(contact&&fraction>contact.fraction))continue;
-  const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-(target.y-31),distance=Math.hypot(ox,oy);
-  const travel=Math.hypot(dx,dy),lineOffset=travel?Math.abs((target.x-x)*dy-(target.y-31-y)*dx)/travel:distance;
-  const hitQuality=Math.sqrt(Math.max(0,1-(lineOffset/(FIGHTER_HIT_RADIUS+radius))**2));
-  contact={fraction,centerX,centerY,x:target.x+(distance?ox/distance*FIGHTER_HIT_RADIUS:0),y:target.y-31+(distance?oy/distance*FIGHTER_HIT_RADIUS:0),hitId:target.id,hitQuality};
+  const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-cy,distance=Math.hypot(ox,oy);
+  const travel=Math.hypot(dx,dy),lineOffset=travel?Math.abs((target.x-x)*dy-(cy-y)*dx)/travel:distance;
+  const hitQuality=Math.sqrt(Math.max(0,1-(lineOffset/(body+radius))**2));
+  contact={fraction,centerX,centerY,x:target.x+(distance?ox/distance*body:0),y:cy+(distance?oy/distance*body:0),hitId:target.id,hitQuality};
  }
  // Arena exits are also swept, keeping impact coordinates bounded at every velocity.
  for(const [value,delta,limit,exiting] of [[x,dx,-80,x+dx<-80],[x,dx,terrainWidth(terrain)+80,x+dx>terrainWidth(terrain)+80],[y,dy,WORLD.height+50,y+dy>WORLD.height+50]] as const){

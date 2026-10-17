@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {adminAccount,checkCredentials,LoginThrottle} from './adminAuth';
 import {AdminStore,ADMIN_SESSION_HOURS} from './adminStore';
 import type {StoredMap,StoredRevision} from './adminStore';
-import {applyMapOverride,contains,getMap,MAP_IDS,removeMapOverride} from '../shared/maps';
+import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,removeMapOverride} from '../shared/maps';
 import type {MapId,MapRegion} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
@@ -36,7 +36,11 @@ export function mapBlockers(layout:EditableLayout,regions:readonly MapRegion[]):
   if(s.col+s.cols>cols||s.row+s.rows>288)blockers.push(`${r.id}: colisão fora do mapa`);
   if(Buffer.from(s.bits,'base64').length!==Math.ceil(s.cols*s.rows/8))blockers.push(`${r.id}: colisão corrompida`);}
  if(blockers.length)return blockers;
- layout.spawns.forEach((team,t)=>{if(team.length!==4)blockers.push(`time ${t+1}: precisa de 4 spawns`);
+ const instance=layout.kind==='instance'||!!layout.monsters;
+ const floor=(x:number)=>{let y=0;while(y<864&&!regions.some(r=>contains(r.shape,x,y)))y+=3;return y;};
+ if(instance){if(!layout.monsters?.some(m=>m.kind!=='nest'))blockers.push('instância: coloque pelo menos um monstro');
+  for(const m of layout.monsters??[])if(m.y===undefined&&floor(m.x)>=864)blockers.push(`${m.kind} (x ${Math.round(m.x)}): sem chão`);}
+ layout.spawns.forEach((team,t)=>{if(instance?(t===0&&team.length!==4):team.length!==4)blockers.push(`time ${t+1}: precisa de 4 spawns`);
   team.forEach((x,slot)=>{let y=0;while(y<864&&!regions.some(r=>contains(r.shape,x,y)))y+=3;if(y>=864)blockers.push(`spawn time ${t+1} jogador ${slot+1}: sem chão`);if(x<0||x>width)blockers.push(`spawn time ${t+1} jogador ${slot+1}: fora do mapa`);});});
  return blockers;
 }
@@ -54,7 +58,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
    const data=revision.data;
    if(map.kind==='lobby'){next.lobby={id:map.id,kind:'lobby',name:data.name,revision:revision.id,lobby:data.lobby as LobbyLayout};continue;}
    const layout=data.layout as EditableLayout;
-   next.maps.push({id:map.id,kind:map.kind==='instance'?'instance':'pvp',name:data.name,subtitle:String(data.subtitle??''),enabled:data.enabled!==false,revision:revision.id,base:map.base,width:layout.width??1536,spawns:[layout.spawns[0],layout.spawns[1]],regions:data.regions as PublishedMaps['maps'][number]['regions'],terrain:terrainUrl(map.id,revision.id)});
+   next.maps.push({id:map.id,kind:map.kind==='instance'?'instance':'pvp',name:data.name,subtitle:String(data.subtitle??''),enabled:data.enabled!==false,revision:revision.id,base:map.base,width:layout.width??1536,spawns:[layout.spawns[0],layout.spawns[1]],regions:data.regions as PublishedMaps['maps'][number]['regions'],terrain:terrainUrl(map.id,revision.id),...(layout.monsters?{monsters:layout.monsters}:{})});
   }
   for(const old of published.maps)if(!next.maps.some(m=>m.id===old.id))removeMapOverride(old.id);
   for(const m of next.maps)applyMapOverride(m as Parameters<typeof applyMapOverride>[0]);
@@ -128,18 +132,19 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  });
 
  // ── Maps ──
- const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id);
+ const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id)||(INSTANCE_MAP_IDS as readonly string[]).includes(id);
+ const builtInKind=(id:string)=>id===LOBBY_MAP_ID?'lobby' as const:(INSTANCE_MAP_IDS as readonly string[]).includes(id)?'instance' as const:'pvp' as const;
  const summary=(id:string,row:(StoredMap&{draft?:StoredRevision['data']|null})|null):AdminMapSummary=>{
   const live=published.maps.find(m=>m.id===id),isLobby=id===LOBBY_MAP_ID,draft=row?.draft,original=!isLobby&&builtIn(id)?getMap(id as MapId):null;
   const layout=draft?.layout as EditableLayout|undefined;
-  return {id,kind:row?.kind??(isLobby?'lobby':'pvp'),name:draft?.name??original?.name??BUILT_IN_NAMES[id]??id,subtitle:String(draft?.subtitle??original?.subtitle??''),builtIn:builtIn(id),
+  return {id,kind:row?.kind??builtInKind(id),name:draft?.name??original?.name??BUILT_IN_NAMES[id]??id,subtitle:String(draft?.subtitle??original?.subtitle??''),builtIn:builtIn(id),
    enabled:live?.enabled??(draft?draft.enabled!==false:true),base:row?.base??id,draftRevision:row?.draftRevision??null,publishedRevision:row?.publishedRevision??null,updatedAt:row?.updatedAt??null,updatedBy:row?.updatedBy??null,
    preview:row?.draftRevision&&!isLobby?`/api/admin/maps/${id}/preview/${row.draftRevision}.png`:isLobby?'/assets/lobby/plaza.webp':`/assets/maps/${id}-preview.png`,
    width:isLobby?4608:layout?.width??original?.dimensions.width??1536};
  };
  app.get('/api/admin/maps',async(req,reply)=>{
   if(!await guard(req,reply))return;
-  const rows=await store.maps(),ids=[...MAP_IDS,LOBBY_MAP_ID,...rows.map(r=>r.id)];
+  const rows=await store.maps(),ids=[...MAP_IDS,...INSTANCE_MAP_IDS,LOBBY_MAP_ID,...rows.map(r=>r.id)];
   return {maps:[...new Set(ids)].map(id=>summary(id,rows.find(r=>r.id===id)??null))};
  });
  app.get<{Params:{id:string}}>('/api/admin/maps/:id',async(req,reply)=>{
@@ -173,7 +178,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   const save=parsed.data,row=await store.map(id);
   if((id===LOBBY_MAP_ID)!==(save.kind==='lobby'))return reply.code(400).send({error:'Só a Praça Celeste é um mapa de lobby por enquanto.'});
   // A map's kind is chosen when it is created and never changes (a PvP map does not become an instance, nor the reverse).
-  const kind=row?.kind??(builtIn(id)?(id===LOBBY_MAP_ID?'lobby':'pvp'):null);
+  const kind=row?.kind??(builtIn(id)?builtInKind(id):null);
   if(kind&&save.kind!==kind)return reply.code(400).send({error:`O tipo do mapa não muda depois de criado (este é ${MAP_KIND_NAMES[kind]}).`});
   const base=row?.base??(builtIn(id)?id:z.string().regex(MAP_ID_PATTERN).safeParse((req.query as Record<string,unknown>)?.base).data);
   if(!base)return reply.code(400).send({error:'Mapa novo precisa de um mapa de base.'});

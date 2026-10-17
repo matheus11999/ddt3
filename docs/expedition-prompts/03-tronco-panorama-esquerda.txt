@@ -1,0 +1,10 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the LEFT HALF of a single wide panoramic background (the right half will be painted next, so this image must NOT look complete or symmetrical on its own).
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look. Keep the painting quality of the attached estilo-fundo.png (approved background of the same game), but a completely different place.
+Map "Formigueiro, estágio 1": a giant sunny storybook FOREST seen from the side, scenery only (nobody stands on it).
+- Far layer (pale, hazy, warm golden light): a huge old tree with a big friendly sleepy FACE in its bark (closed eyes, big nose, smiling mouth) and long curled branches, around 35% from the left, like the tree in the attached ddtank-formigueiro.png reference; leafy canopy in warm yellow-green and amber; soft light rays.
+- Middle layer (a bit more saturated, still paler than the playable ground): round bushes, giant mushrooms with spotted caps, tall grass blades and ferns seen from an ant's point of view (everything is huge), a few dandelion puffs floating. Each element appears only once; nothing repeats.
+- Bottom 28%: soft green-amber haze getting darker deep green-brown at the very bottom (the pit players fall into). No ground, floor, ledge, log or platform in the lower 40%.
+- The RIGHT 20% of the image is only soft canopy light, haze and pale leaves: no tree, mushroom or distinct object touches the right edge (it will be blended into the right half).
+- Nothing important near the top 8% (it may be cropped).
+Readability: pale, low contrast, slightly hazy like distance, so the darker playable log drawn on top stands out clearly. No strong black outlines.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

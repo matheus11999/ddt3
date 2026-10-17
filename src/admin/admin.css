@@ -328,3 +328,9 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-report-actions{display:flex;justify-content:flex-end;gap:8px}
 .adm-report .adm-list a{color:var(--text);text-decoration:none}.adm-report .adm-list a:hover{color:var(--gold2)}
 @media (max-width:1100px){.adm-reports.with-detail{grid-template-columns:1fr}.adm-report{position:static}}
+.adm-monster-list{margin-top:8px}
+.adm-monster-list ol{display:grid;gap:4px;margin:0;padding:0;list-style:none;max-height:180px;overflow:auto}
+.adm-monster-list li button{display:flex;align-items:center;gap:8px;width:100%;padding:6px 9px;border-radius:8px;border:1px solid var(--line);background:transparent;color:inherit;font:700 12.5px/1.2 Nunito,sans-serif;text-align:left;cursor:pointer}
+.adm-monster-list li button small{margin-left:auto}
+.adm-monster-list li button.on{border-color:#ffd166;background:#ffd16622}
+.adm-monster-list .warn{color:#ff6b5a}
