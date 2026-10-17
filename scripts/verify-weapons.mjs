@@ -41,7 +41,15 @@ try{
    const canvas=new OffscreenCanvas(64,64),c=canvas.getContext('2d');c.drawImage(bitmap,x,y,w,h,0,0,64,64);
    const data=c.getImageData(0,0,64,64).data;let solid=0;for(let i=3;i<data.length;i+=4)if(data[i]>20)solid++;
    const small=new OffscreenCanvas(16,16),s=small.getContext('2d');s.drawImage(bitmap,x,y,w,h,0,0,16,16);
-   return {coverage:solid/4096,signature:Array.from(s.getImageData(0,0,16,16).data)};
+   // Style check at the source resolution: painted art has many colors and soft anti-aliased edges;
+   // pixel art and flat vector have few colors, hard alpha and runs of identical pixels.
+   // Calibrated on the former painted weapons (1300+ colors, 0.2-0.3% repeated, 0.6-2% soft edge) against
+   // pixelated (75-92% repeated) and posterized vector versions of the same art (12 colors, hard alpha).
+   const side=256,full=new OffscreenCanvas(side,side),f=full.getContext('2d');f.imageSmoothingEnabled=false;f.drawImage(bitmap,x,y,w,h,0,0,side,side);
+   const px=f.getImageData(0,0,side,side).data,colors=new Set();let opaque=0,soft=0,same=0,pairs=0;
+   for(let i=0;i<px.length;i+=4){const a=px[i+3];if(a>20){opaque++;colors.add((px[i]>>3)<<10|(px[i+1]>>3)<<5|px[i+2]>>3);if(a<235)soft++;if(i%(side*4)&&px[i-1]>20){pairs++;if(px[i]===px[i-4]&&px[i+1]===px[i-3]&&px[i+2]===px[i-2])same++;}}}
+   const style={colors:colors.size,softEdge:opaque?soft/opaque:0,flat:pairs?same/pairs:0};
+   return {coverage:solid/4096,signature:Array.from(s.getImageData(0,0,16,16).data),style};
   };
   const same=(a,b)=>{if(!a||!b)return false;let diff=0;for(let i=0;i<a.length;i++)diff+=Math.abs(a[i]-b[i]);return diff/a.length<4;};
   const thumb=(bitmap,x,y,w,h)=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=96;canvas.getContext('2d').drawImage(bitmap,x,y,w,h,0,0,96,96);return canvas.toDataURL();};
@@ -68,24 +76,20 @@ try{
       if(item.status==='ok'&&m.coverage<.01){item.status='falta';item.detail='Imagem ou célula vazia (transparente).';}
       else if(item.status==='ok'&&m.coverage>.97){item.status='aviso';item.detail='Sem transparência: o fundo precisa ser transparente.';}
       else if(item.status==='ok'&&same(previous[slot],m.signature)){item.status='falta';item.detail='Igual à fase anterior: cada fase precisa de arte própria.';}
+      else if(item.status==='ok'&&K.ATLAS_ROWS[slot]===undefined&&(m.style.colors<350||m.style.flat>.3||m.style.softEdge<.003)){item.status='falta';item.detail=`Fora do estilo da casa: parece pixel art ou vetor chapado (${m.style.colors} cores, ${Math.round(m.style.flat*100)}% pixels repetidos, ${(m.style.softEdge*100).toFixed(1)}% borda suave). Refaça com o prompt.`;}
+      item.style=m.style;
       previous[slot]=m.signature;
      }
      if(item.status!=='ok')entry.prompts.push(K.ATLAS_ROWS[slot]!==undefined
-      ?{key:'atlas',file:`atlas-efeitos.txt`,title:'Atlas de projétil, disparo e impacto (todas as fases)',kind:'imagem',text:K.artPrompt(weapon,kit,'atlas')}
-      :{key:`${slot}-${phase.stage}`,file:`${slot}-${phase.stage}.txt`,title:`${spec.label} ${phase.label}`,kind:'imagem',text:K.artPrompt(weapon,kit,slot,phase.stage)});
+      ?{key:'atlas',order:K.promptOrder('atlas'),file:`atlas-efeitos.txt`,title:'Atlas de projétil, disparo e impacto (todas as fases)',kind:'imagem',text:K.artPrompt(weapon,kit,'atlas')}
+      :{key:`${slot}-${phase.stage}`,order:K.promptOrder(slot,phase.stage),file:`${slot}-${phase.stage}.txt`,title:`${spec.label} ${phase.label}`,kind:'imagem',text:K.artPrompt(weapon,kit,slot,phase.stage)});
     }
    }
    {
-    const bitmap=await image(kit.terrain.path),item=add({group:'arma',slot:'terrain',label:K.WEAPON_ART_SLOTS.terrain.label,path:kit.terrain.path,status:'ok',detail:''});
-    if(!bitmap){item.status='falta';item.detail=`Arquivo não encontrado: public${kit.terrain.path}`;}
-    else{
-     const cell=kit.terrain.cell,cw=cell?bitmap.width/cell.cols:bitmap.width,ch=cell?bitmap.height/cell.rows:bitmap.height;
-     const region=cell?[(cell.index%cell.cols)*cw,Math.floor(cell.index/cell.cols)*ch,cw,ch]:[0,0,cw,ch];
-     const m=measure(bitmap,...region);item.coverage=Math.round(m.coverage*1000)/10;item.thumb=thumb(bitmap,...region);
-     if(m.coverage<.01){item.status='falta';item.detail='Marca vazia.';}
-     else if(cell){item.status='aviso';item.detail='Marca compartilhada num atlas da família; uma marca própria por arma fica mais única.';}
-    }
-    if(item.status!=='ok')entry.prompts.push({key:'terrain',file:'marca-cenario.txt',title:item.label,kind:'imagem',text:K.artPrompt(weapon,kit,'terrain')});
+    const path=K.weaponTerrainPath(kit.id),bitmap=await image(path),item=add({group:'arma',slot:'terrain',label:K.WEAPON_ART_SLOTS.terrain.label,path,status:'ok',detail:''});
+    if(!bitmap){item.status='falta';item.detail=`Arquivo não encontrado: public${path}`;}
+    else{const m=measure(bitmap,0,0,bitmap.width,bitmap.height);item.coverage=Math.round(m.coverage*1000)/10;item.thumb=thumb(bitmap,0,0,bitmap.width,bitmap.height);if(m.coverage<.01){item.status='falta';item.detail='Marca vazia.';}}
+    if(item.status!=='ok')entry.prompts.push({key:'terrain',order:K.promptOrder('terrain'),file:'marca-cenario.txt',title:item.label,kind:'imagem',text:K.artPrompt(weapon,kit,'terrain')});
    }
    for(const slot of Object.keys(K.WEAPON_SOUND_SLOTS)){
     const spec=K.WEAPON_SOUND_SLOTS[slot],item=add({group:'som',slot:`sound-${slot}`,label:spec.label,status:'padrão',detail:''});
@@ -98,13 +102,13 @@ try{
     }else if(declared){item.status='falta';item.detail=`Declarado em sounds, mas falta public${path}.`;}
     else{
      item.detail=slot==='flight'?'Sem som de voo; o jogo segue em silêncio durante o voo.':slot==='terrain'?'Sem som próprio; o som de colisão cobre a quebra do cenário.':`Usando o som padrão sintetizado da família "${weapon.effect}" (src/game/audio.ts) até chegar o único.`;
-     entry.prompts.push({key:`sound-${slot}`,file:`som-${slot}.txt`,title:spec.label,kind:'som',seconds:spec.seconds,path:item.path,text:K.soundPrompt(kit,slot)});
+     entry.prompts.push({key:`sound-${slot}`,order:20+Object.keys(K.WEAPON_SOUND_SLOTS).indexOf(slot),file:`som-${slot}.txt`,title:spec.label,kind:'som',seconds:spec.seconds,path:item.path,text:K.soundPrompt(kit,slot)});
     }
    }
    add(kit.powTrident
     ?{group:'regra',slot:'pow',label:'POW × Tridente',status:'ok',detail:K.POW_TRIDENT_LABELS[kit.powTrident]}
     :{group:'regra',slot:'pow',label:'POW × Tridente',status:'aviso',detail:'Regra não definida: o jogo usa "livre" (POW e Tridente combinam). Defina powTrident no kit.'});
-   const seen=new Set();entry.prompts=entry.prompts.filter(prompt=>!seen.has(prompt.key)&&seen.add(prompt.key));
+   const seen=new Set();entry.prompts=entry.prompts.filter(prompt=>!seen.has(prompt.key)&&seen.add(prompt.key)).sort((a,b)=>a.order-b.order);
   }
   // Visual sheet: one row per weapon, thumbnails per phase.
   const color={ok:'#2f9e44',falta:'#e03131','padrão':'#f08c00',aviso:'#f08c00'};
@@ -135,11 +139,11 @@ for(const weapon of report){
  lines.push('');
  if(weapon.prompts.length){
   await mkdir(`${output}/prompts/${weapon.id}`,{recursive:true});
-  for(const prompt of weapon.prompts)await writeFile(`${output}/prompts/${weapon.id}/${prompt.file}`,prompt.text+'\n');
+  for(const prompt of weapon.prompts)await writeFile(`${output}/prompts/${weapon.id}/${String(prompt.order).padStart(2,'0')}-${prompt.file}`,prompt.text+'\n');
  }
 }
-const prompts=['# Prompts das peças que faltam','','Imagens: cole no ChatGPT e salve no caminho indicado no fim do prompt. Sons: `node scripts/generate-weapon-sounds.mjs` usa a chave do ElevenLabs do `.env`, ou cole o texto no site do ElevenLabs (Sound Effects).',''];
-for(const weapon of report)for(const prompt of weapon.prompts)prompts.push(`## ${weapon.name} · ${prompt.title} (${prompt.kind})`,'',...(prompt.path?[`Salvar em \`public${prompt.path}\`, ${prompt.seconds}s.`,'']:[]),'```text',prompt.text,'```','');
+const prompts=['# Prompts das peças que faltam','','Gere **na ordem dos números**: cada peça usa as anteriores, já aprovadas, como imagem de referência (anexe no ChatGPT os arquivos listados em "Reference images"). Assim as quatro fases saem com o mesmo traço, luz e ângulo. Salve cada imagem no caminho indicado no fim do prompt e rode `npm run verify:weapons` de novo.','','Sons: `npm run sounds:weapons -- --weapon=<id>` usa a chave do ElevenLabs do `.env`, ou cole o texto no site do ElevenLabs (Sound Effects).',''];
+for(const weapon of report)for(const prompt of weapon.prompts)prompts.push(`## ${prompt.order}. ${weapon.name} · ${prompt.title} (${prompt.kind})`,'',...(prompt.path?[`Salvar em \`public${prompt.path}\`, ${prompt.seconds}s.`,'']:[]),'```text',prompt.text,'```','');
 await writeFile(`${output}/report.md`,lines.join('\n'));
 await writeFile(`${output}/prompts.md`,prompts.join('\n'));
 await writeFile(`${output}/report.json`,JSON.stringify(report,null,1));

@@ -40,10 +40,10 @@ test('successful upgrades increase only the selected weapon and publish its auth
  assert.equal(outcome.profile.stones['3'],14);assert.deepEqual(state.profile,outcome.profile);
 });
 
-test('guaranteed upgrades reach +12 and the cap rejects further attempts without consuming material',async()=>{
- const {store,state}=await database(999);state.profile.upgrades.ember=11;state.profile.stones['5']=20;
- const outcome=await store.forge(state.profile.id,'ember',{'5':10});
- assert.equal(outcome.result.chance,100);assert.equal(outcome.result.success,true);assert.equal(outcome.result.level,12);assert.equal(outcome.profile.equipment.upgrade,12);
+test('guaranteed upgrades reach +15 and the cap rejects further attempts without consuming material',async()=>{
+ const {store,state}=await database(999);state.profile.upgrades.ember=14;state.profile.stones['5']=20;
+ const outcome=await store.forge(state.profile.id,'ember',{'5':20});
+ assert.equal(outcome.result.chance,100);assert.equal(outcome.result.success,true);assert.equal(outcome.result.level,15);assert.equal(outcome.profile.equipment.upgrade,15);
  const before=structuredClone(state.profile);await assert.rejects(store.forge(state.profile.id,'ember',{'5':1}),/nível máximo/);
  assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,2);
 });

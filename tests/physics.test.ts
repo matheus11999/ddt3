@@ -149,8 +149,8 @@ test('dynamite uses its own physical footprint and destruction budget',()=>{
 test('the brick breaker shatters into a deterministic fan and demolishes hard material',()=>{
  const brick=WEAPONS.find(w=>w.id==='brick')!;
  assert.equal(brick.effect,'brick');assert.ok(brick.fragments);
- assert.deepEqual([0,8,9,10,11,12].map(level=>weaponFragmentCount(brick,level)),[2,2,3,4,4,5]);
- assert.equal(weaponFragmentCount(brick,12,true),7);assert.equal(weaponFragmentCount(WEAPONS[0],12,true),0);
+ assert.deepEqual([0,9,10,11,12,14,15].map(level=>weaponFragmentCount(brick,level)),[2,2,3,3,4,4,5]);
+ assert.equal(weaponFragmentCount(brick,15,true),7);assert.equal(weaponFragmentCount(WEAPONS[0],15,true),0);
  const terrain=createTerrain('garden'),x=700,surface=ground(terrain,x);
  const first=shatter(terrain,{x,y:surface-10},4,1,brick,0),again=shatter(createTerrain('garden'),{x,y:surface-10},4,1,brick,0);
  assert.deepEqual(first,again);assert.equal(first.length,4);

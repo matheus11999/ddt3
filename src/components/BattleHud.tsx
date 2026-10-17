@@ -1,5 +1,5 @@
 import {PowerCutIn} from './PowerCutIn';
-import {powTridentRule} from '../../shared/weaponKit';
+import {powBoostConflict} from '../../shared/weaponKit';
 import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
@@ -37,7 +37,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const fallen=me.hp<=0&&b.phase!=='finished';
  const canAct=mine&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
- const tridentBlocked=!!me.powerArmed&&powTridentRule(me.equipment.weapon)!=='livre';
+ const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
  const paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
@@ -80,7 +80,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[cancelCharge]);
  const useBoost=useCallback((id:BoostId)=>{
   const boost=BOOSTS.find(item=>item.id===id)!,fighter=live.current.me;
-  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||(id==='trident'&&(fighter.boosts.includes(id)||fighter.powerArmed&&powTridentRule(fighter.equipment.weapon)!=='livre'))||fighter.stamina<boost.cost)return;
+  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||(id==='trident'&&fighter.boosts.includes(id))||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||fighter.stamina<boost.cost)return;
   client.send({type:'boost',boost:id});
  },[]);
 
@@ -181,7 +181,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
-    const count=me.boosts.filter(id=>id===boost.id).length,selected=count>0,disabled=!canAct||me.flightArmed||(boost.id==='trident'&&(selected||tridentBlocked))||me.stamina<boost.cost;
+    const count=me.boosts.filter(id=>id===boost.id).length,selected=count>0,disabled=!canAct||me.flightArmed||(boost.id==='trident'&&selected)||powBlocks(boost.id)||me.stamina<boost.cost;
     const damage=boost.id.startsWith('damage'),symbol=boost.id==='trident'?'×3':boost.label;
     return <button type="button" key={boost.id} data-boost={boost.id} data-count={count} aria-label={`${boost.name}, ${boost.cost} vigor${count?`, ${count} ${count===1?'uso':'usos'}`:''}`} aria-pressed={selected} title={`${boost.name}\n${boost.detail}\n${boost.cost} de vigor${count?`\n${count} ${count===1?'uso preparado':'usos preparados'}`:''}`} className={`boost ${selected?'selected':''}`} disabled={disabled} onClick={event=>{useBoost(boost.id);if(event.detail>0)event.currentTarget.blur();}}>
      <span className="boost-painted-icon" aria-hidden="true" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
@@ -214,7 +214,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <div className="vigor-display"><span className="hud-bar-label">Energia</span><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/><b>{me.stamina}/{me.maxStamina}</b></div></div>
     <div className="vida-display"><span className="hud-bar-label">Vida</span><div className={`vida-bar ${me.hp/me.maxHp<=.25?'critical-health':''}`} role="meter" aria-label="Vida no console" aria-valuenow={me.hp} aria-valuemin={0} aria-valuemax={me.maxHp}><i style={{width:`${Math.max(0,me.hp/me.maxHp)*100}%`}}/><b>{me.hp.toLocaleString('pt-BR')}</b></div></div>
    </div>
-   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100||me.boosts.includes('trident')&&powTridentRule(me.equipment.weapon)!=='livre'} onActivate={()=>client.send({type:'power'})}/>
+   <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} disabled={!canAct||!!me.flightArmed||!!me.powerArmed||(me.powerCharge??0)<100||powerBlocked} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}

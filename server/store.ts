@@ -36,7 +36,6 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if((raw.contentVersion??0)<7&&(!raw.equipment?.outfit||!CATALOG[raw.equipment.outfit])){
   if(!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
  }
- if((raw.contentVersion??0)<9&&CATALOG.dynamite&&!inventory.includes('dynamite'))inventory.push('dynamite');
  // Replace owned prototypes, including the equipped variant, without refilling other purchases.
  const replacements=(raw.contentVersion??0)<10?RETIRED_COSMETIC_REPLACEMENTS:{};
  for(const id of raw.inventory??[]){const replacement=Object.hasOwn(replacements,id)?replacements[id]:undefined;if(replacement&&!inventory.includes(replacement))inventory.push(replacement);}

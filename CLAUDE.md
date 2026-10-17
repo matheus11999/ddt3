@@ -53,6 +53,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - **Componentes reaproveitados**: `InventoryTooltip` (exportado da mochila, prop `action`), cards de classe por `data-tier` (regras em `Backpack.css` com `:is(.bag-window, .smith-window, .shop-window)`), `UpgradeTag`, `LevelNumber`, `LevelBadge`, `VipBadge`, `Avatar` (`animated={false}` nas prévias). Se mudar card ou tooltip da mochila, confira ferreiro e loja.
 - Classes raiz: `.bag-window` (mochila), `.smith-window` (ferreiro), `.shop-window` (loja), `.pvp-hall` e `.pvp-room`.
 - Personagem: cabeça 30% maior (`HEAD_SCALE=1.3` em `src/game/rig/anchors.ts`); cabelo, chapéu e óculos seguem a cabeça. Chapéu mostra o mesmo penteado de sem chapéu, cortado pelo chapéu.
+- Armas: cada uma tem kit em `shared/weaponKit.ts` (fases +0 a +9, +10, +12, +15; ícone, arma na mão, atlas de efeitos, marca no cenário, sons, regra POW). Arte em `public/assets/weapons/<id>/`.
 - Combate deitado: arrasta ao andar, arma nas costas apontando a mira, só aparece na mão ao carregar/atirar; armas de arremesso (dinamite, tijolo) saem da mão.
 - Lobby "Praça Celeste": praça com 3 telas de largura (4608 px, `shared/lobby.ts`), câmera segue o jogador; os três "portais" são o pódio do ranking PvP diário: os 3 jogadores com mais vitórias no dia (horário de Brasília, partidas contra bot contam) aparecem em pé no pódio com a roupa equipada, nome e vitórias, sem o anel/halo de brilho atrás (`Store.dailyRanking`, evento `ranking`). Prompts em `docs/lobby-art-prompts.md`; o Codex entrega imagens em `public/assets/lobby` e não edita o código do lobby.
 
@@ -72,5 +73,5 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
 - Perguntas abertas: permitir itens de tiro junto com o voo; arte pintada pendente da loja (fundo do provador, ícones de categoria, placa) e do piso do lobby (`floor.webp`).
 - PR #1 (Quebra-Tijolos antigo) está obsoleto: a versão do Codex já está na `main`.
-- **Armas**: faltam os ícones por fase das 5 armas, todos os sons próprios e a regra POW × Tridente de cada arma (ver `npm run verify:weapons`).
+- **Armas** (17/10/2026): arsenal apagado para refazer do zero com fases +0/+10/+12/+15 (nível máx. 15). Só existe o Quebra-Tijolos, arma inicial de início/meio de jogo (85/95/85/85, cratera pequena, POW de projétil único), sem arte até o usuário gerar as peças pelos prompts de `npm run verify:weapons` (gerar na ordem numerada, com as anteriores como referência). Próximas armas: uma por vez, sempre pelo kit.
 - Registre evidências e pendências também em `docs/implementation-status.md`.

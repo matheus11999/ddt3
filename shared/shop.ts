@@ -4,7 +4,7 @@ import type {ItemGender} from './catalog';
 export interface ShopOffer {id:string;price:number;gender?:ItemGender;}
 export const MAX_SHOP_ITEMS=20;
 export const SHOP_OFFERS:readonly ShopOffer[]=[
- {id:'ember',price:420},{id:'volt',price:360},{id:'crystal',price:560},{id:'dynamite',price:480},{id:'brick',price:500},
+ {id:'brick',price:300},
  {id:'outfit-surfer',price:280},{id:'outfit-executive',price:340},
  {id:'outfit-racer',price:360},{id:'outfit-dancer',price:360},
  {id:'outfit-cartographer',price:360},

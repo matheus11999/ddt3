@@ -5,8 +5,9 @@
 
 - `shared/weaponKit.ts` descreve cada arma: o que lança e como evolui em cada fase, paleta, sons e regra POW × Tridente. `npm run verify:weapons` confere ícone, arma na mão, projétil, disparo e impacto por fase, marca no cenário, quatro sons e a regra, com prancha `sheet.png` e prompts prontos para ChatGPT/ElevenLabs (`docs/weapon-kit.md`).
 - Sons próprios por arma em `public/assets/audio/weapons/<id>/`; sem arquivo, toca o som sintetizado da família. `npm run sounds:weapons` gera os que faltam pelo ElevenLabs.
-- POW × Tridente aplicado no servidor e no HUD (`exclusivo`, `pow-tridente`); as 5 armas atuais seguem `livre` até o usuário decidir.
-- Primeiro relatório: 20 peças faltando (os 4 ícones de cada arma) e 29 provisórias (sons no padrão, marcas compartilhadas, regra indefinida). Teste: `tests/weapon-kit.test.ts`.
+- POW × Tridente aplicado no servidor e no HUD (`exclusivo`, `pow-tridente`, `pow-unico`).
+- Pedido do usuário no mesmo dia: fases como no DDTank (+0 a +9, +10, +12, +15; nível máximo 15, forja até +15) e arsenal apagado para refazer do zero. Ficou só o Quebra-Tijolos, arma inicial: 85/95/85/85, cratera 30 (cacos 10, demolição 30%), POW de projétil único, preço na loja 300. Arte antiga apagada (`public/assets/weapon-*.png`, `vfx/`); perfis com armas antigas recebem o Quebra-Tijolos.
+- Relatório: 21 peças faltando (4 ícones, 4 armas na mão, atlas, marca) e 4 sons no padrão. Prompts em ordem, cada um referenciando as peças anteriores. Teste: `tests/weapon-kit.test.ts`; armas antigas viraram dados de teste em `tests/fixtures/weapons.ts`.
 ## Ranking PvP do dia no pódio do lobby — 17/10/2026
 
 - Servidor: `Store.dailyRanking()` conta as vitórias do dia (fuso America/Sao_Paulo) na tabela `matches`; toda partida salva conta, inclusive treino contra bot. Empate: quem chegou primeiro. Top 3 com aparência equipada.

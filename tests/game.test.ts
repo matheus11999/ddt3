@@ -175,9 +175,9 @@ test('a brick shot sends authoritative shards after the main impact without muzz
  await f.game.command(player.id,{type:'fire',angle:45,power:30});
  const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
  const main=shot.projectiles.filter(p=>!p.fragment),shards=shot.projectiles.filter(p=>p.fragment);
- assert.equal(main.length,1);assert.equal(shards.length,4);
+ assert.equal(main.length,1);assert.equal(shards.length,3);
  const landed=main[0].delay+main[0].flightTime;
- for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.equal(shard.impact.demolition,.6);assert.ok(shard.delay+shard.flightTime<=shot.duration);}
+ for(const shard of shards){assert.equal(shard.effect,'brick');assert.equal(shard.delay,landed);assert.ok(shard.impact.radius<main[0].impact.radius);assert.equal(shard.impact.demolition,.3);assert.ok(shard.delay+shard.flightTime<=shot.duration);}
  assert.ok(shot.hits.every(h=>h.projectileIndex!==undefined&&h.projectileIndex<shot.projectiles.length));
  assert.equal(f.match.pendingImpacts?.filter(impact=>!impact.fragment).length,1,'only the main impact leaves a residue mark');
 });

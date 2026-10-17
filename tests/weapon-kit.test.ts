@@ -5,39 +5,56 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {ServerEvent} from '../shared/protocol';
-import {WEAPONS} from '../shared/catalog';
+import {CATALOG,STARTER_WEAPON,WEAPONS,weaponAssetPath,weaponIconPath,weaponVisualStage} from '../shared/catalog';
+import type {BoostId,Weapon} from '../shared/catalog';
 import {shotModifiers} from '../shared/combat';
-import {artPrompt,boostsForShot,PHASE_ART_SLOTS,powTridentRule,soundPrompt,WEAPON_KITS,WEAPON_PHASES,WEAPON_SOUND_SLOTS} from '../shared/weaponKit';
+import {artPrompt,boostsForShot,powBoostConflict,powTridentRule,promptOrder,soundPrompt,WEAPON_KITS,WEAPON_PHASES,WEAPON_SOUND_SLOTS} from '../shared/weaponKit';
 import type {PowTridentRule,WeaponSoundSlot} from '../shared/weaponKit';
 
-test('every weapon has a kit with a brief for every phase and sound',()=>{
- assert.deepEqual(Object.keys(WEAPON_KITS).sort(),WEAPONS.map(weapon=>weapon.id).sort());
- for(const weapon of WEAPONS){
-  const kit=WEAPON_KITS[weapon.id];assert.equal(kit.id,weapon.id);
+const kitWeapons=WEAPONS.filter(weapon=>WEAPON_KITS[weapon.id]);
+
+test('the rebuilt arsenal starts with the Quebra-Tijolos: starter, balanced, small craters, single-projectile POW',()=>{
+ assert.equal(STARTER_WEAPON,'brick');assert.ok(CATALOG.brick);
+ const brick=CATALOG.brick as Weapon;assert.deepEqual([brick.attack,brick.defense,brick.agility,brick.luck],[85,95,85,85]);
+ assert.ok(brick.crater<=30&&brick.fragments!.crater<=10);assert.equal(powTridentRule('brick'),'pow-unico');
+ assert.deepEqual(WEAPON_PHASES.map(phase=>phase.stage),[0,10,12,15]);
+ assert.deepEqual([0,9,10,11,12,14,15].map(weaponVisualStage),[0,0,10,10,12,12,15]);
+ assert.equal(weaponAssetPath('brick',12),'/assets/weapons/brick/held-12.png');assert.equal(weaponIconPath('brick',15),'/assets/weapons/brick/icon-15.png');
+});
+
+test('every kit has a brief for every phase and sound, and every real weapon has a kit',()=>{
+ for(const id of Object.keys(WEAPON_KITS))assert.ok(CATALOG[id]?.slot==='weapon',id);
+ assert.ok(kitWeapons.some(weapon=>weapon.id===STARTER_WEAPON));
+ for(const weapon of kitWeapons){
+  const kit=WEAPON_KITS[weapon.id];assert.equal(kit.id,weapon.id);assert.ok(kit.identity.length>20);
   for(const phase of WEAPON_PHASES)for(const field of ['held','projectile','muzzle','impact'] as const)assert.ok(kit.phases[phase.stage][field].length>5,`${weapon.id} ${phase.stage} ${field}`);
   for(const slot of Object.keys(WEAPON_SOUND_SLOTS) as WeaponSoundSlot[])assert.ok(kit.sound[slot].length>5);
  }
 });
 
-test('generated prompts name the weapon, the phase and where to save, and never ask for text',()=>{
- const weapon=WEAPONS.find(item=>item.id==='ember')!,kit=WEAPON_KITS.ember;
- for(const slot of Object.keys(PHASE_ART_SLOTS) as (keyof typeof PHASE_ART_SLOTS)[])for(const phase of WEAPON_PHASES){
-  const prompt=artPrompt(weapon,kit,slot==='icon'||slot==='held'?slot:'atlas',phase.stage);
-  assert.match(prompt,/Dragão de Brasa/);assert.match(prompt,/Save as public\/assets\//);assert.match(prompt,/No text/);
- }
- assert.match(artPrompt(weapon,kit,'icon',10),/icon-10\.png/);assert.match(artPrompt(weapon,kit,'held',10),/weapon-ember-awakened\.png/);
+test('generated prompts chain references in order, name where to save and never ask for text',()=>{
+ const weapon=CATALOG.brick as Weapon,kit=WEAPON_KITS.brick;
+ const first=artPrompt(weapon,kit,'icon',0);assert.match(first,/FIRST piece/);assert.match(first,/Save as public\/assets\/weapons\/brick\/icon-0\.png/);assert.match(first,/No text/);
+ assert.match(artPrompt(weapon,kit,'icon',12),/Reference images: public\/assets\/weapons\/brick\/icon-0\.png, public\/assets\/weapons\/brick\/icon-10\.png/);
+ assert.match(artPrompt(weapon,kit,'held',10),/Reference images: public\/assets\/weapons\/brick\/icon-10\.png, public\/assets\/weapons\/brick\/held-0\.png/);
+ assert.match(artPrompt(weapon,kit,'atlas'),/held-15\.png/);assert.match(artPrompt(weapon,kit,'terrain'),/terrain\.png/);
+ const order=[...WEAPON_PHASES.flatMap(phase=>[promptOrder('icon',phase.stage),promptOrder('held',phase.stage)]),promptOrder('atlas'),promptOrder('terrain')];
+ assert.deepEqual(order,[1,2,3,4,5,6,7,8,9,10]);
  assert.match(soundPrompt(kit,'impact'),/no music, no voice/);
 });
 
-test('POW × Tridente: undecided weapons stay free; pow-tridente adds the spread only on POW',()=>{
- assert.equal(powTridentRule('ember'),WEAPON_KITS.ember.powTrident??'livre');assert.equal(powTridentRule('unknown'),'livre');
- const saved=WEAPON_KITS.volt.powTrident;
+test('POW rules: pow-unico drops extra projectiles on POW, pow-tridente adds the spread, livre keeps both',()=>{
+ assert.equal(powTridentRule('unknown'),'livre');
+ assert.deepEqual(boostsForShot('brick',['trident','extra2','damage20'],true),['damage20']);
+ assert.deepEqual(boostsForShot('brick',['trident','damage20'],false),['trident','damage20']);
+ assert.match(powBoostConflict('brick','extra1')!,/projétil único/);assert.equal(powBoostConflict('brick','damage30'),undefined);
+ const saved=WEAPON_KITS.brick.powTrident;
  try{
-  WEAPON_KITS.volt.powTrident='pow-tridente';
-  assert.equal(shotModifiers(boostsForShot('volt',['damage20'],true)).spread.length,3);
-  assert.equal(shotModifiers(boostsForShot('volt',['damage20'],false)).spread.length,1);
-  assert.deepEqual(boostsForShot('volt',['trident'],true),['trident']);
- }finally{WEAPON_KITS.volt.powTrident=saved;}
+  WEAPON_KITS.brick.powTrident='pow-tridente';
+  assert.equal(shotModifiers(boostsForShot('brick',['damage20'],true)).spread.length,3);
+  assert.equal(shotModifiers(boostsForShot('brick',['damage20'],false)).spread.length,1);
+  WEAPON_KITS.brick.powTrident='livre';assert.equal(powBoostConflict('brick','trident'),undefined);
+ }finally{WEAPON_KITS.brick.powTrident=saved;}
 });
 
 async function fixture(){
@@ -52,14 +69,14 @@ async function fixture(){
 }
 const lastError=(events:ServerEvent[])=>events.filter(event=>event.type==='error').at(-1) as {message:string}|undefined;
 
-for(const [rule,message] of [['exclusivo',/não combina Power com Tridente/],['pow-tridente',/já dispara o Tridente/]] as [PowTridentRule,RegExp][])
- test(`server refuses POW with Tridente when the weapon rule is ${rule}`,async()=>{
-  const f=await fixture(),weapon=f.shooter.equipment.weapon,saved=WEAPON_KITS[weapon].powTrident;
+for(const [rule,boost,message] of [['exclusivo','trident',/não combina Power com Tridente/],['pow-tridente','trident',/já dispara o Tridente/],['pow-unico','extra1',/projétil único/]] as [PowTridentRule,BoostId,RegExp][])
+ test(`server refuses POW with ${boost} when the weapon rule is ${rule}`,async()=>{
+  const f=await fixture(),saved=WEAPON_KITS.brick.powTrident;
   try{
-   WEAPON_KITS[weapon].powTrident=rule;
+   WEAPON_KITS.brick.powTrident=rule;f.shooter.equipment.weapon='brick';
    f.shooter.powerCharge=100;await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,true);
-   await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.deepEqual(f.shooter.boosts,[]);assert.match(lastError(f.events)!.message,message);
-   const g=await fixture();await g.game.command(g.shooter.id,{type:'boost',boost:'trident'});g.shooter.powerCharge=100;
+   await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,[]);assert.match(lastError(f.events)!.message,message);
+   const g=await fixture();g.shooter.equipment.weapon='brick';await g.game.command(g.shooter.id,{type:'boost',boost});g.shooter.powerCharge=100;
    await g.game.command(g.shooter.id,{type:'power'});assert.equal(g.shooter.powerArmed,false);assert.match(lastError(g.events)!.message,message);
-  }finally{WEAPON_KITS[weapon].powTrident=saved;}
+  }finally{WEAPON_KITS.brick.powTrident=saved;}
  });

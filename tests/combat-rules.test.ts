@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {attributes,DEFAULT_EQUIPMENT,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,DEFAULT_EQUIPMENT,WEAPONS,weaponStats,MAX_UPGRADE} from '../shared/catalog';
 import {CRITICAL_CHANCE_CAP,criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {PROJECTILE_SPEED_SCALE,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent} from '../shared/protocol';
@@ -25,12 +25,13 @@ async function fixture(roll=.99){
 const impacts=(events:ServerEvent[])=>events.filter((event):event is Extract<ServerEvent,{type:'impact'}>=>event.type==='impact');
 
 test('all weapon families have equal four-stat budgets, distinct roles and bounded upgrades',()=>{
- const budgets=WEAPONS.map(weapon=>weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0));assert.deepEqual(budgets,[360,360,360,360,360]);
+ // Fixture families keep the former 360 budget; the starter Quebra-Tijolos is a balanced 350 for early and mid game.
+ const budgets=WEAPONS.map(weapon=>weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0));assert.deepEqual(budgets,[360,360,360,360,350]);
  const [ember,volt,crystal,dynamite]=WEAPONS;
  assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.attack)),ember.attack);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.defense)),crystal.defense);
  assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.agility)),volt.agility);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.luck??0)),volt.luck);
  assert.ok(Math.max(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)-Math.min(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)<=45);
- for(const weapon of WEAPONS){const max=weaponStats(weapon,12);assert.deepEqual(weaponStats(weapon,999),max);assert.equal(max.luck,weapon.luck);assert.equal(max.agility,weapon.agility);assert.equal(max.defense,weapon.defense);assert.ok(max.damage/weapon.damage<1.25);assert.equal(max.attack-weapon.attack,48);}
+ for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);assert.equal(max.luck,weapon.luck);assert.equal(max.agility,weapon.agility);assert.equal(max.defense,weapon.defense);assert.ok(max.damage/weapon.damage<1.31);assert.equal(max.attack-weapon.attack,MAX_UPGRADE*4);}
 });
 
 test('critical chance grows with luck, caps at30 percent, and uses an explicit server roll',()=>{
