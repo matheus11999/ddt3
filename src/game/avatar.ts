@@ -27,14 +27,34 @@ export function getUpgradeAura(level:number):HTMLCanvasElement|null{
 }
 export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
  const art=getUpgradeAura(level);if(!art)return;const reduced=motionPreference?.matches??false,t=reduced?0:time;
- const size=(level>=12?177:level>=9?163:151)*.92,period=level>=12?12000:level>=9?15000:18000,rotation=t/period*Math.PI*2;
- const pulse=1+Math.sin(t/1800)*.018,color=level>=12?'#ffde7a':level>=9?'#c399ff':'#71ed9b';
- c.save();c.translate(0,-85);c.rotate(rotation);c.scale(pulse,pulse);
- c.globalAlpha*=.86+Math.sin(t/1500)*.035;c.drawImage(art,-size/2,-size/2,size,size);
- const count=level>=12?7:level>=9?5:3;c.shadowColor=color;c.shadowBlur=4;
+ const tier=level>=12?2:level>=9?1:0,size=[168,182,198][tier],period=[18000,15000,12000][tier],rotation=t/period*Math.PI*2;
+ const color=['#71ed9b','#c399ff','#ffde7a'][tier],deep=['#16a24f','#7a2fd6','#f09a12'][tier],pulse=1+Math.sin(t/1800)*.022,r=size/2;
+ c.save();c.translate(0,-88);
+ // Soft bloom behind the sigil gives the ring depth on light and dark panels alike.
+ const bloom=c.createRadialGradient(0,0,r*.12,0,0,r*1.08);
+ bloom.addColorStop(0,color+'66');bloom.addColorStop(.55,deep+'2e');bloom.addColorStop(1,deep+'00');
+ c.save();c.globalAlpha*=.85+Math.sin(t/1300)*.1;c.fillStyle=bloom;c.beginPath();c.arc(0,0,r*1.08,0,Math.PI*2);c.fill();c.restore();
+ // Light shafts from +12 rotate slowly against the sigil.
+ if(tier===2){c.save();c.rotate(-rotation*.5);c.globalAlpha*=.22+Math.sin(t/900)*.06;
+  for(let i=0;i<12;i++){c.rotate(Math.PI/6);const beam=c.createLinearGradient(0,0,0,-r*1.15);beam.addColorStop(0,color+'00');beam.addColorStop(.35,color+'cc');beam.addColorStop(1,color+'00');c.fillStyle=beam;c.beginPath();c.moveTo(-r*.05,0);c.lineTo(0,-r*1.15);c.lineTo(r*.05,0);c.fill();}
+  c.restore();}
+ // Main sigil, then a smaller counter-rotating copy from +9 for a layered seal.
+ c.save();c.rotate(rotation);c.scale(pulse,pulse);c.shadowColor=color;c.shadowBlur=10;c.globalAlpha*=.88+Math.sin(t/1500)*.04;c.drawImage(art,-r,-r,size,size);c.restore();
+ if(tier>=1){c.save();c.rotate(-rotation*1.6);c.globalAlpha*=.5+Math.sin(t/1100)*.08;const inner=size*.58;c.drawImage(art,-inner/2,-inner/2,inner,inner);c.restore();}
+ // Pulsing ring of light just inside the sigil edge.
+ c.save();c.strokeStyle=color;c.lineWidth=1.4;c.shadowColor=color;c.shadowBlur=8;c.globalAlpha*=.35+Math.sin(t/700)*.2;c.beginPath();c.arc(0,0,r*(.86+Math.sin(t/1600)*.02),0,Math.PI*2);c.stroke();c.restore();
+ // Orbiting gems.
+ const count=[3,5,7][tier];c.save();c.shadowColor=color;c.shadowBlur=5;
  for(let i=0;i<count;i++){
-  const a=i*Math.PI*2/count-rotation*.38,r=size*(.44+(i%2)*.025),brightness=.72+Math.sin(t/700+i*1.7)*.18;
-  c.save();c.globalAlpha*=brightness;ellipse(c,Math.cos(a)*r,Math.sin(a)*r,i%3===0?1.35:.9,i%3===0?1.35:.9,color);c.restore();
+  const a=i*Math.PI*2/count-rotation*.38,orbit=r*(.9+(i%2)*.05),brightness=.72+Math.sin(t/700+i*1.7)*.18,dot=i%3===0?1.5:1;
+  c.save();c.globalAlpha*=brightness;ellipse(c,Math.cos(a)*orbit,Math.sin(a)*orbit,dot,dot,color);c.restore();
+ }
+ c.restore();
+ // Motes rise through the circle; deterministic per time so still frames stay stable.
+ const motes=[6,10,16][tier];
+ for(let i=0;i<motes;i++){
+  const seed=i*97.13,life=2600+(seed%900),phase=((t+seed*41)%life)/life,x=Math.sin(seed)*r*.7+Math.sin(t/900+seed)*3,y=r*.75-phase*r*1.6;
+  c.save();c.globalAlpha*=Math.sin(phase*Math.PI)*.85;c.shadowColor=color;c.shadowBlur=6;ellipse(c,x,y,1+(i%3)*.35,1+(i%3)*.35,i%4===0?'#ffffff':color);c.restore();
  }
  c.restore();
 }

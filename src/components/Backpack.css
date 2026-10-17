@@ -1,0 +1,780 @@
+/* Mochila no padrão "Informações pessoais" do DDTank: moldura de madeira laranja,
+   painéis creme, prévia com slots nas laterais, atributos em pílulas e barras,
+   grade de itens com abas verticais e carteira com ações no rodapé. Mantém o
+   formato fino e arredondado de MenuFrame.css; só muda a paleta desta janela. */
+.bag-window {
+  --bag-wood-light: #e8964a;
+  --bag-wood: #c66d2c;
+  --bag-wood-dark: #8a4318;
+  --bag-wood-deep: #5b2a0e;
+  --bag-cream: #fff5df;
+  --bag-cream-mid: #f7e4bd;
+  --bag-cream-deep: #ecd2a0;
+  --bag-edge: #d98f45;
+  --bag-ink: #5a2f12;
+  --bag-ink-soft: #95653e;
+  --bag-gold: #ffd36b;
+  --bag-grain: repeating-linear-gradient(92deg, #ffffff0a 0 2px, transparent 2px 11px, #0000000c 11px 12px, transparent 12px 23px);
+}
+
+/* ---------- Moldura ---------- */
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window[class] {
+  width: min(1320px, 100%);
+  height: min(860px, calc(100dvh - 32px));
+  border-color: #f2b56b;
+  background: var(--bag-grain), linear-gradient(160deg, var(--bag-wood-light), var(--bag-wood) 45%, var(--bag-wood-dark));
+  color: var(--bag-ink);
+  box-shadow: inset 0 1px #ffd9a8, inset 0 -3px #4d220a99, 0 0 0 3px #4a210a, 0 0 0 4px #f6c07a55, 0 22px 65px #1a0c04c0;
+}
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window[class] > .window-header {
+  height: 58px;
+  min-height: 58px;
+  border-color: #f0b06855;
+  border-bottom-color: #3b1806;
+  background: var(--bag-grain), linear-gradient(#7a3a14, #55250b);
+  box-shadow: inset 0 1px #ffc78a55, inset 0 -2px #2c110440, 0 2px #ffcf8f30;
+}
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window[class] > .window-header h1 {
+  color: var(--bag-gold);
+  text-shadow: 0 2px #2c1004, 0 0 12px #ffae4a55;
+}
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window[class] .close-button {
+  border-color: #f4bf75;
+  background: linear-gradient(#e2592f, #a92e14);
+  box-shadow: inset 0 1px #ffb08c, inset 0 -2px #6d1a08, 0 2px #3b1405;
+  color: #fff3dc;
+}
+
+/* Mesma tipografia do resto do jogo: Nunito arredondada e pesada no conteúdo,
+   Cinzel só no título da janela (cabeçalho compartilhado). */
+.bag-window .bag-layout,
+.bag-window .bag-layout :is(button, input, select, b, strong, small, dt, dd) {
+  font-family: 'Nunito', 'Trebuchet MS', sans-serif;
+}
+
+/* ---------- Estrutura ---------- */
+.bag-window .bag-layout.inventory-body {
+  display: grid;
+  grid-template-columns: minmax(0, 46fr) minmax(0, 54fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: 8px;
+  flex: 1;
+  height: auto;
+  min-height: 0;
+  margin-top: 7px;
+  padding: 0;
+  overflow: hidden;
+  background: none;
+}
+.bag-window .bag-profile,
+.bag-window .bag-pane {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 2px solid #f2b56b;
+  border-radius: 14px;
+  background: linear-gradient(#a85524, #87401a);
+  box-shadow: inset 0 1px #ffc98c88, inset 0 0 0 1px #5a280c, 0 2px #3e1a0788;
+}
+.bag-window .bag-profile {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 7px;
+  padding: 8px;
+}
+
+/* ---------- Cabeçalho do perfil ---------- */
+.bag-window .bag-profile-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  height: 56px;
+  padding: 0 12px 0 8px;
+  border: 1px solid #fff0c9;
+  border-radius: 10px;
+  background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c);
+  box-shadow: inset 0 1px #fff7d9, inset 0 -2px #c76413, 0 2px #5d290c66;
+}
+.bag-window .bag-identity { display: grid; min-width: 0; flex: 1; line-height: 1.1; }
+.bag-window .bag-identity small {
+  font-size: 11px;
+  font-weight: 800;
+  color: #8a3f0b;
+}
+.bag-window .bag-identity h2 {
+  margin: 0;
+  overflow: hidden;
+  font-size: 19px;
+  font-weight: 900;
+  color: #fff;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px #8a3a07, 0 0 3px #9a4508;
+}
+.bag-window .bag-identity .equipment-status { font-size: 10px; font-weight: 800; color: #7a3a0a; }
+.bag-window .bag-records { display: flex; gap: 6px; margin: 0; }
+.bag-window .bag-records div {
+  display: grid;
+  min-width: 70px;
+  padding: 3px 9px;
+  border-radius: 8px;
+  background: #fff4d7d9;
+  box-shadow: inset 0 1px 2px #b8641a55;
+  text-align: center;
+}
+.bag-window .bag-records dt { font-size: 10px; font-weight: 800; color: #9a4a12; }
+.bag-window .bag-records dd { margin: 0; font-size: 16px; font-weight: 900; color: var(--bag-ink); }
+
+/* ---------- Palco: slots + personagem ---------- */
+.bag-window .bag-stage {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 6px 10px;
+  min-height: 0;
+  padding: 10px 12px 8px;
+  border: 1px solid #fff7e4;
+  border-radius: 10px;
+  background:
+    radial-gradient(ellipse at 50% 42%, #fffdf6, transparent 62%),
+    linear-gradient(#fff8e8, var(--bag-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--bag-edge), inset 0 3px 10px #c47a3233;
+}
+.bag-window .bag-stage > .equipment-slots {
+  position: static;
+  display: grid;
+  grid-template-columns: 70px;
+  grid-auto-rows: 70px;
+  align-content: center;
+  gap: 14px;
+  height: auto;
+  margin: 0;
+  transform: none;
+}
+.bag-window .bag-stage > .equipment-slots.left { grid-column: 1; grid-row: 1; }
+.bag-window .bag-stage > .equipment-slots.right { grid-column: 3; grid-row: 1; }
+.bag-window .dressing-room {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: auto;
+  height: auto;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  overflow: visible;
+}
+/* Mesmo selo pintado da aura do jogo (aura-*-sigil). Abaixo de +5 mostra o selo
+   base; a partir de +5 o próprio Avatar desenha o selo verde/roxo/dourado. */
+.bag-window .bag-sigil {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(300px, 100%);
+  aspect-ratio: 1;
+  translate: -50% -54%;
+  background: url('/assets/ui/aura-blue-sigil.png') center / contain no-repeat;
+  filter: drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);
+  opacity: .9;
+  animation: bag-sigil-spin 40s linear infinite;
+  pointer-events: none;
+}
+@keyframes bag-sigil-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .bag-window .bag-sigil { animation: none; } }
+.bag-window .dressing-room > canvas {
+  position: relative;
+  z-index: 1;
+  width: auto !important;
+  height: min(340px, 100%) !important;
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin: -6px 0 0;
+  pointer-events: none;
+}
+.bag-window .avatar-options-toggle {
+  position: absolute;
+  right: 2px;
+  bottom: 4px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #fff2cf;
+  border-radius: 50%;
+  background: linear-gradient(#f9b55a, #d8711f);
+  box-shadow: inset 0 1px #ffe2ad, 0 2px #8b4416;
+  color: #fff;
+}
+.bag-window .avatar-options-toggle[aria-expanded="true"] { background: linear-gradient(#d8711f, #f9b55a); }
+.bag-window .avatar-display-options {
+  position: absolute;
+  right: 0;
+  bottom: 44px;
+  z-index: 20;
+  display: grid;
+  gap: 4px;
+  width: 200px;
+  padding: 10px;
+  border: 2px solid var(--bag-edge);
+  border-radius: 12px;
+  background: linear-gradient(#fffaf0, var(--bag-cream-mid));
+  box-shadow: 0 10px 26px #4a1f0866;
+  color: var(--bag-ink);
+}
+.bag-window .avatar-display-options header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 2px; }
+.bag-window .avatar-display-options header button { display: grid; place-items: center; width: 26px; height: 26px; border: 0; border-radius: 8px; background: #f2d4a2; color: var(--bag-ink); }
+.bag-window .avatar-display-options label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: #fff;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.bag-window .avatar-display-options label input { accent-color: #e57a22; width: 16px; height: 16px; }
+.bag-window .avatar-display-options label svg { display: none; }
+
+.bag-window .bag-stage-foot {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 80px;
+}
+.bag-window .bag-stage-foot > .appearance-actions { grid-column: 1; }
+.bag-window .bag-stage-foot > .equipment-slots.lower { grid-column: 2; }
+.bag-window .bag-stage-foot > .bag-stage-hint { grid-column: 3; }
+.bag-window .bag-stage-foot > .equipment-slots.lower {
+  position: static;
+  display: flex;
+  justify-content: center;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+}
+.bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 70px; height: 70px; }
+.bag-window .bag-stage-hint {
+  justify-self: end;
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--bag-ink-soft);
+}
+.bag-window .appearance-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: start;
+  margin: 0;
+  padding: 5px 8px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: inset 0 0 0 1px #e8b77a;
+  color: var(--bag-ink-soft);
+}
+.bag-window .appearance-actions[hidden] { display: none; }
+.bag-window .dye-swatches { display: flex; gap: 5px; }
+.bag-window .dye-swatch {
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  min-height: 22px;
+  padding: 0;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px #b0743a, 0 1px 2px #6b33106b;
+  color: #fff;
+}
+.bag-window .dye-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px #e5701b, 0 0 8px #ffb04b; }
+
+/* Slots equipados (cards com raridade) e vazios (creme com silhueta). */
+.bag-window .equipment-slots .item-card[data-rarity][data-card-variant] {
+  position: relative;
+  width: 70px;
+  height: 70px;
+  padding: 3px;
+  border-radius: 12px;
+  overflow: visible;
+}
+.bag-window .equipment-slots .item-card .item-art { width: 58px !important; height: 58px !important; }
+.bag-window .item-card[data-rarity][data-card-variant][data-card-empty] {
+  border: 2px solid #e0b077;
+  background: linear-gradient(#fbecd0, #f1d7aa);
+  box-shadow: inset 0 2px 5px #b4702c40, 0 1px #fffaf0;
+  opacity: 1;
+}
+.bag-window .item-card[data-card-empty] > .item-card-ornament,
+.bag-window .item-card[data-card-empty] > .item-card-gloss { display: none; }
+.bag-window .bag-slot-placeholder { position: relative; z-index: 1; width: 30px; height: 30px; color: #cf9a5c; opacity: .75; stroke-width: 1.6; }
+.bag-window .equipment-slot > .equipment-slot-label {
+  position: absolute;
+  left: 50%;
+  bottom: -13px;
+  z-index: 3;
+  width: max-content;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: #fff6e2;
+  box-shadow: 0 0 0 1px #e7b87d;
+  font-size: 9px;
+  font-weight: 900;
+  line-height: 13px;
+  color: var(--bag-ink-soft);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.bag-window .equipment-slot[data-card-empty] > .equipment-slot-label { background: #fbecd0; }
+
+/* ---------- Nível e poder ---------- */
+.bag-window .bag-progress {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.bag-window .bag-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 38px;
+  padding: 0 10px;
+  border-radius: 10px;
+  background: linear-gradient(#fff8e8, var(--bag-cream-mid));
+  box-shadow: inset 0 0 0 1px #fff, 0 0 0 1px #6b300d;
+}
+.bag-window .bag-level > span { font-size: 13px; font-weight: 800; color: #9a4a12; white-space: nowrap; }
+.bag-window .bag-level > span b { font-size: 18px; font-weight: 900; color: var(--bag-ink); }
+.bag-window .bag-xp {
+  position: relative;
+  flex: 1;
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #d9c29a;
+  box-shadow: inset 0 1px 3px #6b3a1466;
+}
+.bag-window .bag-xp i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(#ffe48a, #f6b21b 55%, #e09009);
+  box-shadow: inset 0 1px #fff6c8;
+}
+.bag-window .bag-xp small {
+  position: relative;
+  display: block;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 18px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 0 2px #6b3a14, 0 1px #6b3a14;
+}
+.bag-window .combat-power {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0 12px 0 8px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(#ffe9a6, #f8c34f);
+  box-shadow: inset 0 1px #fffbe6, 0 0 0 1px #6b300d;
+}
+.bag-window .combat-power > span { font-size: 13px; font-weight: 800; color: #8a3f0b; }
+.bag-window .combat-power > strong {
+  font-size: 23px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--bag-ink);
+  text-shadow: 0 1px #fff7d6;
+}
+
+/* ---------- Atributos: pílulas creme e barras coloridas ---------- */
+.bag-window .stat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr);
+  grid-template-rows: repeat(4, 27px);
+  grid-template-areas:
+    "attack agility damage"
+    "attack agility armor"
+    "defense luck hp"
+    "defense luck stamina";
+  gap: 6px 12px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--bag-grain), linear-gradient(#6a3514, #4c230a);
+  box-shadow: inset 0 2px 6px #2a0f0399, 0 1px #ffc98c55;
+}
+.bag-window .stat-grid > span {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 12px;
+  font-weight: 900;
+  color: #ffe9c4;
+  white-space: nowrap;
+}
+.bag-window .stat-grid > span > svg { flex: none; color: var(--bag-gold); }
+.bag-window .stat-grid > span > b { min-width: 0; margin: 0; justify-self: stretch; }
+.bag-window .stat-grid > [data-stat="attack"] { grid-area: attack; }
+.bag-window .stat-grid > [data-stat="agility"] { grid-area: agility; }
+.bag-window .stat-grid > [data-stat="defense"] { grid-area: defense; }
+.bag-window .stat-grid > [data-stat="luck"] { grid-area: luck; }
+.bag-window .stat-grid > [data-stat="damage"] { grid-area: damage; --bar: #ff9d2e; --bar-deep: #d0640c; }
+.bag-window .stat-grid > [data-stat="armor"] { grid-area: armor; --bar: #4aa6f2; --bar-deep: #1d66b8; }
+.bag-window .stat-grid > [data-stat="hp"] { grid-area: hp; --bar: #f2574a; --bar-deep: #b4231b; }
+.bag-window .stat-grid > [data-stat="stamina"] { grid-area: stamina; --bar: #6ccc4c; --bar-deep: #2f8d1f; }
+.bag-window .stat-grid > :is([data-stat="attack"], [data-stat="agility"], [data-stat="defense"], [data-stat="luck"]) {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: 1fr 1fr;
+  align-items: center;
+  column-gap: 5px;
+}
+.bag-window .stat-grid > :is([data-stat="attack"], [data-stat="agility"], [data-stat="defense"], [data-stat="luck"]) > b {
+  grid-column: 1 / -1;
+  display: block;
+  height: 26px;
+  border-radius: 8px;
+  background: linear-gradient(#fffdf5, #f5e3be);
+  box-shadow: inset 0 -2px #d9b880, 0 1px 2px #1d0a0288;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--bag-ink);
+  text-align: center;
+}
+.bag-window .stat-grid > :is([data-stat="damage"], [data-stat="armor"], [data-stat="hp"], [data-stat="stamina"]) {
+  display: grid;
+  grid-template-columns: 16px 70px minmax(0, 1fr);
+}
+.bag-window .stat-grid > :is([data-stat="damage"], [data-stat="armor"], [data-stat="hp"], [data-stat="stamina"]) > b {
+  height: 22px;
+  border-radius: 999px;
+  background: linear-gradient(color-mix(in srgb, var(--bar) 70%, #fff), var(--bar) 45%, var(--bar-deep));
+  box-shadow: inset 0 1px #ffffff99, 0 0 0 1px #2a0f03aa;
+  font-size: 13px;
+  line-height: 22px;
+  color: #fff;
+  text-align: center;
+  text-shadow: 0 1px 1px #0008, 0 0 2px #0006;
+}
+
+/* ---------- Mochila: barra, grade, abas verticais ---------- */
+.bag-window .bag-pane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto;
+  gap: 7px;
+  width: auto;
+  padding: 8px;
+  overflow: hidden;
+}
+.bag-window .bag-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.bag-window .bag-toolbar select,
+.bag-window .bag-toolbar label {
+  height: 36px;
+  border: 1px solid #fff0cf;
+  border-radius: 10px;
+  background: linear-gradient(#fffaf0, var(--bag-cream-mid));
+  box-shadow: inset 0 -2px #e0bb83, 0 1px #4d220a88;
+  color: var(--bag-ink);
+  font-weight: 800;
+}
+.bag-window .bag-toolbar select { width: 190px; padding: 0 10px; font-size: 13px; }
+.bag-window .bag-toolbar label { display: flex; align-items: center; gap: 7px; flex: 1; min-width: 0; padding: 0 10px; color: var(--bag-ink-soft); }
+.bag-window .bag-toolbar input { flex: 1; min-width: 0; border: 0; outline: 0; background: none; font: inherit; font-size: 13px; color: var(--bag-ink); }
+.bag-window .bag-toolbar input::placeholder { color: #b48a5e; }
+.bag-window .bag-toolbar .capacity {
+  flex: none;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #5b2a0e;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--bag-gold);
+}
+
+.bag-window .bag-shelf {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 54px;
+  grid-template-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+.bag-window .bag-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
+  gap: 7px;
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  padding: 10px;
+  overflow: auto;
+  border: 1px solid #fff7e4;
+  border-radius: 12px 0 12px 12px;
+  background: linear-gradient(#fff8e8, var(--bag-cream-mid));
+  box-shadow: inset 0 0 0 2px var(--bag-edge), inset 0 3px 10px #c47a3233;
+  scrollbar-width: thin;
+  scrollbar-color: #d38a43 transparent;
+}
+.bag-window .bag-grid .item-card[data-rarity][data-card-variant] {
+  width: auto;
+  height: auto;
+  aspect-ratio: 1;
+  padding: 3px;
+  border-radius: 11px;
+}
+.bag-window .bag-grid .item-card .item-art { width: 84% !important; height: 84% !important; max-width: 64px; max-height: 64px; object-fit: contain; }
+.bag-window .bag-grid .item-card[data-card-empty] { box-shadow: inset 0 2px 4px #b4702c33, 0 1px #fffaf0; }
+.bag-window .bag-grid .gender-locked { filter: grayscale(.55); opacity: .7; }
+.bag-window .bag-grid .equipped-mark {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 19px;
+  height: 19px;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  background: #3fae3a;
+  color: #fff;
+}
+.bag-window .inventory-item-gender { position: absolute; left: 3px; bottom: 3px; z-index: 3; }
+.bag-window .inventory-no-items {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-weight: 900;
+  color: var(--bag-ink-soft);
+  pointer-events: none;
+}
+
+.bag-window .bag-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  padding-top: 8px;
+}
+.bag-window .bag-tabs button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 72px;
+  padding: 8px 0;
+  border: 1px solid #f6c27e;
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+  background: var(--bag-grain), linear-gradient(90deg, #7a3a14, #9b4c1c);
+  box-shadow: inset 0 1px #ffc98c66, 2px 2px #3e1a0788;
+  color: #ffdca4;
+  cursor: pointer;
+  transition: background .15s, transform .15s;
+}
+.bag-window .bag-tabs button span {
+  font-size: 11px;
+  font-weight: 800;
+  text-shadow: 0 1px #3b1806;
+}
+.bag-window .bag-tabs button:hover { transform: translateX(2px); }
+.bag-window .bag-tabs button.active {
+  margin-left: -3px;
+  background: linear-gradient(90deg, var(--bag-cream-mid), #ffd28a);
+  border-color: #fff3d6;
+  color: #9a3d0a;
+  box-shadow: inset 0 1px #fff, inset 3px 0 0 var(--bag-edge), 2px 2px #3e1a0788;
+}
+.bag-window .bag-tabs button.active span { text-shadow: none; }
+
+.bag-window .inventory-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 30px;
+  padding: 0 60px 0 4px;
+  color: #ffe9c4;
+  font-size: 12px;
+  font-weight: 800;
+}
+.bag-window .inventory-pagination > div { display: flex; align-items: center; gap: 8px; }
+.bag-window .inventory-pagination > div > span { min-width: 44px; text-align: center; font-weight: 900; color: #fff; }
+.bag-window .inventory-pagination button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 28px;
+  min-height: 28px;
+  border: 1px solid #fff2c8;
+  border-radius: 8px;
+  background: linear-gradient(#ffe07a, #f2a91f);
+  box-shadow: inset 0 1px #fff7cf, 0 2px #7a3c0b;
+  color: #7a3608;
+}
+.bag-window .inventory-pagination button:disabled { filter: grayscale(.8); opacity: .5; }
+
+.bag-window .bag-footer {
+  position: static;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 0;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--bag-grain), linear-gradient(#6a3514, #4c230a);
+  box-shadow: inset 0 2px 6px #2a0f0399, 0 1px #ffc98c55;
+}
+.bag-window .bag-wallet { display: flex; gap: 8px; min-width: 0; }
+.bag-window .bag-wallet > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 120px;
+  height: 32px;
+  padding: 0 12px 0 6px;
+  border-radius: 999px;
+  background: linear-gradient(#fffdf5, #f5e3be);
+  box-shadow: inset 0 -2px #d9b880, 0 1px 2px #1d0a0288;
+}
+.bag-window .bag-wallet b { font-size: 15px; font-weight: 900; color: var(--bag-ink); }
+.bag-window .bag-wallet img { object-fit: contain; }
+.bag-window .bag-action {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 18px;
+  border: 1px solid #fff2c8;
+  border-radius: 10px;
+  background: linear-gradient(#ffe07a, #f2a91f 60%, #e48d12);
+  box-shadow: inset 0 1px #fff7cf, inset 0 -2px #c06d0a, 0 2px #2a0f03;
+  color: #6b2c05;
+  font-size: 14px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.bag-window .bag-action:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.bag-window .bag-action:disabled { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
+
+/* ---------- Telas menores ---------- */
+@media (max-width: 1180px) {
+  .bag-window .bag-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .bag-window .bag-records div { min-width: 58px; padding-inline: 6px; }
+}
+@media (max-height: 800px) {
+  .bag-window .bag-stage > .equipment-slots { grid-template-columns: 62px 62px; grid-auto-rows: 62px; gap: 16px 8px; }
+  .bag-window .bag-sigil { width: min(240px, 100%); }
+  .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
+  .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 62px; height: 62px; }
+  .bag-window .equipment-slots .item-card .item-art { width: 52px !important; height: 52px !important; }
+  .bag-window .bag-stage-foot { min-height: 66px; }
+}
+
+/* Janela estreita (desktop redimensionado): painéis empilhados com rolagem. */
+@media (max-width: 700px) {
+  html:not(.mobile-landscape) .bag-window .bag-layout.inventory-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; overscroll-behavior: contain; }
+  html:not(.mobile-landscape) .bag-window .bag-profile { grid-template-rows: auto 420px auto auto; min-height: auto; }
+  html:not(.mobile-landscape) .bag-window .bag-stage > .equipment-slots { grid-template-columns: 56px; grid-auto-rows: 56px; gap: 18px; }
+  html:not(.mobile-landscape) .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
+  html:not(.mobile-landscape) .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 56px; height: 56px; }
+  html:not(.mobile-landscape) .bag-window .equipment-slots .item-card .item-art { width: 48px !important; height: 48px !important; }
+  html:not(.mobile-landscape) .bag-window .bag-records { display: none; }
+  html:not(.mobile-landscape) .bag-window .bag-stage-hint { display: none; }
+  html:not(.mobile-landscape) .bag-window .bag-pane { grid-template-rows: auto 420px auto auto; min-height: auto; overflow: visible; }
+  html:not(.mobile-landscape) .bag-window .bag-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  html:not(.mobile-landscape) .bag-window .bag-toolbar select { width: 130px; }
+  html:not(.mobile-landscape) .bag-window .bag-toolbar .capacity { display: none; }
+  html:not(.mobile-landscape) .bag-window .stat-grid > :is([data-stat="damage"], [data-stat="armor"], [data-stat="hp"], [data-stat="stamina"]) { grid-template-columns: 14px 56px minmax(0, 1fr); }
+  html:not(.mobile-landscape) .bag-window .stat-grid > span { font-size: 10px; }
+}
+
+/* Celular em paisagem: duas colunas, rolagem interna e controles compactos. */
+html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window[class] { height: calc(100dvh - 16px); width: 100%; }
+html.mobile-landscape .bag-window .bag-layout.inventory-body { grid-template-columns: minmax(250px, 42%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
+html.mobile-landscape .bag-window .bag-profile { display: flex; flex-direction: column; gap: 5px; padding: 5px; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+html.mobile-landscape .bag-window .bag-profile-head { flex: none; height: 40px; gap: 6px; padding: 0 6px 0 4px; }
+html.mobile-landscape .bag-window .bag-profile-head > .level-badge { width: 30px !important; height: 30px !important; --level-size: 30px !important; font-size: 30px !important; }
+html.mobile-landscape .bag-window .bag-identity small { display: none; }
+html.mobile-landscape .bag-window .bag-identity h2 { font-size: 13px; }
+html.mobile-landscape .bag-window .bag-identity .equipment-status { font-size: 8px; }
+html.mobile-landscape .bag-window .bag-records { display: none; }
+html.mobile-landscape .bag-window .bag-stage { flex: none; gap: 4px 6px; padding: 6px; }
+html.mobile-landscape .bag-window .bag-stage > .equipment-slots { grid-template-columns: 44px; grid-template-rows: none; grid-auto-rows: 44px; gap: 13px; }
+html.mobile-landscape .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
+html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 44px; height: 44px; border-radius: 9px; padding: 2px; }
+html.mobile-landscape .bag-window .equipment-slots .item-card .item-art { width: 38px !important; height: 38px !important; }
+html.mobile-landscape .bag-window .bag-slot-placeholder { width: 20px; height: 20px; }
+html.mobile-landscape .bag-window .equipment-slot > .equipment-slot-label { font-size: 7px; line-height: 10px; bottom: -10px; }
+html.mobile-landscape .bag-window .bag-sigil { width: 180px; }
+html.mobile-landscape .bag-window .dressing-room > canvas { height: 190px !important; }
+html.mobile-landscape .bag-window .bag-stage-foot { min-height: 50px; gap: 4px; }
+html.mobile-landscape .bag-window .bag-stage-hint { display: none; }
+html.mobile-landscape .bag-window .dye-swatch { width: 18px; height: 18px; min-width: 18px; min-height: 18px; }
+html.mobile-landscape .bag-window .avatar-options-toggle { width: 30px; height: 30px; }
+html.mobile-landscape .bag-window .avatar-display-options { width: 180px; padding: 7px; }
+html.mobile-landscape .bag-window .avatar-display-options label { min-height: 28px; font-size: 11px; }
+html.mobile-landscape .bag-window .bag-progress { flex: none; gap: 5px; }
+html.mobile-landscape .bag-window .bag-level,
+html.mobile-landscape .bag-window .combat-power { height: 30px; min-height: 30px; }
+html.mobile-landscape .bag-window .combat-power > strong { font-size: 16px; }
+html.mobile-landscape .bag-window .stat-grid { flex: none; grid-template-rows: repeat(4, 22px); gap: 4px 8px; padding: 7px; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.3fr); }
+html.mobile-landscape .bag-window .stat-grid > span { font-size: 9px; }
+html.mobile-landscape .bag-window .stat-grid > span > svg { width: 11px; height: 11px; }
+html.mobile-landscape .bag-window .stat-grid > :is([data-stat="attack"], [data-stat="agility"], [data-stat="defense"], [data-stat="luck"]) > b { height: 20px; font-size: 12px; line-height: 20px; }
+html.mobile-landscape .bag-window .stat-grid > :is([data-stat="damage"], [data-stat="armor"], [data-stat="hp"], [data-stat="stamina"]) { grid-template-columns: 12px 48px minmax(0, 1fr); }
+html.mobile-landscape .bag-window .stat-grid > :is([data-stat="damage"], [data-stat="armor"], [data-stat="hp"], [data-stat="stamina"]) > b { height: 18px; font-size: 10px; line-height: 18px; }
+html.mobile-landscape .bag-window .bag-pane { gap: 5px; padding: 5px; }
+html.mobile-landscape .bag-window .bag-toolbar { gap: 5px; }
+html.mobile-landscape .bag-window .bag-toolbar select { width: 120px; height: 30px; font-size: 10px; }
+html.mobile-landscape .bag-window .bag-toolbar label { height: 30px; }
+html.mobile-landscape .bag-window .bag-toolbar input { font-size: 11px; }
+html.mobile-landscape .bag-window .bag-toolbar .capacity { display: none; }
+html.mobile-landscape .bag-window .bag-shelf { grid-template-columns: minmax(0, 1fr) 36px; }
+html.mobile-landscape .bag-window .bag-grid { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; padding: 6px; }
+html.mobile-landscape .bag-window .bag-tabs { gap: 3px; padding-top: 4px; }
+html.mobile-landscape .bag-window .bag-tabs button { min-height: 0; flex: 1; gap: 3px; padding: 5px 0; }
+html.mobile-landscape .bag-window .bag-tabs button svg { width: 15px; height: 15px; }
+html.mobile-landscape .bag-window .bag-tabs button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+html.mobile-landscape .bag-window .bag-tabs button { position: relative; justify-content: center; }
+html.mobile-landscape .bag-window .inventory-pagination { min-height: 24px; padding-right: 40px; font-size: 9px; }
+html.mobile-landscape .bag-window .inventory-pagination button { width: 28px; height: 22px; min-height: 22px; }
+html.mobile-landscape .bag-window .bag-footer { padding: 4px 6px; }
+html.mobile-landscape .bag-window .bag-wallet > span { min-width: 0; height: 26px; padding-right: 8px; }
+html.mobile-landscape .bag-window .bag-wallet b { font-size: 11px; }
+html.mobile-landscape .bag-window .bag-action { height: 30px; padding: 0 10px; font-size: 11px; }
