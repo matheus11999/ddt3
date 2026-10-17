@@ -3,7 +3,7 @@ import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
 import type {Weapon} from '../shared/catalog';
 import {expeditionStages,isMonsterKind,MONSTERS,partyHpScale} from '../shared/expeditions';
 import type {Difficulty,MonsterKind,StageDef} from '../shared/expeditions';
-import {INSTANCE_INTRO_MS} from '../shared/instanceTurn';
+import {stageIntroMs} from '../shared/instanceTurn';
 import {getMap} from '../shared/maps';
 import type {MapId} from '../shared/maps';
 import {ground,trajectory,WORLD} from '../shared/physics';
@@ -35,7 +35,7 @@ export function setupStage(seats:readonly Seat[],expedition:string,difficulty:Di
   if(MONSTERS[placement.kind].behavior==='queen')boss=monster.id;monsters.push(monster);
  }
  const order=[...players].sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility).map(p=>p.id);
- return {map,stage,fighters:[...players,...monsters],order,instance:{expedition,difficulty,stage:stageIndex+1,stageCount:stages.length,stageName:stage.name,round:1,introUntil:now+INSTANCE_INTRO_MS,...(boss?{boss}:{}),...(nest?{nest}:{})}};
+ return {map,stage,fighters:[...players,...monsters],order,instance:{expedition,difficulty,stage:stageIndex+1,stageCount:stages.length,stageName:stage.name,round:1,introUntil:now+stageIntroMs(stageIndex),...(boss?{boss}:{}),...(nest?{nest}:{})}};
 }
 
 export function stageDeck(stage:StageDef):CardPrize[]{return Array.from({length:stage.cards},()=>({...stage.prizes[randomInt(stage.prizes.length)]}));}
