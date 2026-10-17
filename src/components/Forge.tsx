@@ -3,7 +3,7 @@ import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {CSSProperties,DragEvent,FocusEvent,PointerEvent as ReactPointerEvent} from 'react';
 import {ArrowRight,Check,Gem,Hammer,LoaderCircle,Minus,Sparkles,Swords,X} from 'lucide-react';
-import {CATALOG,ITEMS,MAX_FORGE_STONES,MAX_UPGRADE,SLOT_NAMES,STONES,WEAPONS,upgradeChance} from '../../shared/catalog';
+import {CATALOG,copyBase,ITEMS,MAX_FORGE_STONES,MAX_UPGRADE,SLOT_NAMES,STONES,WEAPONS,upgradeChance} from '../../shared/catalog';
 import {COMPOSITION_STATS,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,COMPOSITION_STAT_NAMES,canCompose} from '../../shared/composition';
 import type {CompositionBonus,CompositionStat} from '../../shared/composition';
 import {CompositionIcon} from './CompositionIcon';
@@ -92,8 +92,8 @@ export function Forge({onClose}:{onClose:()=>void}){
  const [pending,setPending]=useState(false),[attempt,setAttempt]=useState<ForgeAttempt|null>(null),[dropTarget,setDropTarget]=useState<'weapon'|'stone'|null>(null);
  const [result,setResult]=useState<ForgeOutcome|null>(null),[localError,setLocalError]=useState<string|null>(null),[materialPulse,setMaterialPulse]=useState<{level:number;key:number}|null>(null);
  const submittedResult=useRef(state.forgeResult),submittedComposition=useRef(state.compositionResult),pendingRef=useRef(false),startedAt=useRef(0);
- const composing=mode==='compose',owned=(composing?ITEMS.filter(canCompose):WEAPONS).filter(item=>p.inventory.includes(item.id));
- const item=selected?CATALOG[selected]:null,stone=COMPOSITION_STONE_BY_ID[selectedStone];
+ const composing=mode==='compose',owned=(composing?ITEMS.filter(canCompose):WEAPONS).flatMap(item=>p.inventory.filter(key=>copyBase(key)===item.id).map(key=>({key,item})));
+ const item=selected?CATALOG[copyBase(selected)]:null,stone=COMPOSITION_STONE_BY_ID[selectedStone];
  const level=pending&&attempt?attempt.level:selected?(p.upgrades[selected]??0):0,stock=pending&&attempt?attempt.stock:p.stones,compositionStock=pending&&attempt?attempt.compositionStock:p.compositionStones??{};
  const bonus=pending&&attempt?attempt.bonus:p.compositions?.[selected]??{},stoneCount=Object.values(stones).reduce((sum,n)=>sum+n,0);
  const chance=pending&&attempt?attempt.chance:composing?stone?.chance??0:selected&&level<MAX_UPGRADE?upgradeChance(level,stones):0;
@@ -129,7 +129,7 @@ export function Forge({onClose}:{onClose:()=>void}){
   if(state.error||state.status!=='online'){pendingRef.current=false;setPending(false);setAttempt(null);setLocalError(state.error??'Conexão interrompida.');}
  },[pending,attempt,state.forgeResult,state.compositionResult,state.error,state.status,selected,selectedStone]);
  function changeMode(next:ForgeMode){if(locked||next===mode)return;setMode(next);setResult(null);setLocalError(null);setSelectedStone('');setStones({});if(next==='strengthen'&&item?.slot!=='weapon')setSelected('');audio.play('click');}
- function choose(id:string){if(locked||!owned.some(w=>w.id===id))return;setSelected(id);setResult(null);setLocalError(null);audio.play('click');}
+ function choose(id:string){if(locked||!owned.some(w=>w.key===id))return;setSelected(id);setResult(null);setLocalError(null);audio.play('click');}
  function chooseStone(id:string){if(locked||!(compositionStock[id]??0)||!COMPOSITION_STONE_BY_ID[id])return;setSelectedStone(id);setResult(null);setLocalError(null);audio.play('click');}
  function addStone(stoneLevel:number){
   if(locked||!STONES.some(s=>s.level===stoneLevel)||stoneCount>=MAX_FORGE_STONES||(stones[String(stoneLevel)]??0)>=(p.stones[String(stoneLevel)]??0))return;
@@ -187,7 +187,7 @@ export function Forge({onClose}:{onClose:()=>void}){
     <div className="smith-toolbar"><h2><Swords size={16}/>{composing?'Equipamentos':'Suas armas'}</h2><span className="capacity">{owned.length} {owned.length===1?'item':'itens'}</span></div>
     <div className="smith-shelf">
      <div className="smith-grid">
-      <div className={`forge-weapon-stock ${composing?'composition-equipment-stock':''}`}>{owned.map(w=>{const upgrade=pending&&selected===w.id?level:p.upgrades[w.id]??0;return <ItemCard key={w.id} rarity={w.rarity} selected={selected===w.id} className={`forge-stock-item ${selected===w.id?'selected':''}`} draggable={!locked} disabled={locked} onDragStart={e=>{e.dataTransfer.setData(ITEM_DRAG,w.id);e.dataTransfer.effectAllowed='copy';}} onDragEnd={()=>setDropTarget(null)} onClick={()=>choose(w.id)} aria-pressed={selected===w.id} aria-label={`${w.name}${w.slot==='weapon'?`, nível +${upgrade}`:''}. Clique para colocar na bigorna.`} aria-describedby={tooltip?.id===w.id?'item-tooltip':undefined} {...tipHandlers(w.id)}><ItemIcon id={w.id} size={64} upgrade={upgrade}/>{w.slot==='weapon'&&<UpgradeTag level={upgrade} className="bag-upgrade-tag"/>}{selected===w.id&&<span className="forge-chosen"><Check size={11}/></span>}</ItemCard>;})}{Array.from({length:fill(owned.length,3)},(_,i)=><ItemCardFrame key={`empty-${i}`} empty variant="slot" className={`smith-empty ${i>=fill(owned.length)?'smith-empty-extra':''}`} aria-hidden="true"/>)}</div>
+      <div className={`forge-weapon-stock ${composing?'composition-equipment-stock':''}`}>{owned.map(({key,item:w})=>{const upgrade=pending&&selected===key?level:p.upgrades[key]??0;return <ItemCard key={key} rarity={w.rarity} selected={selected===key} className={`forge-stock-item ${selected===key?'selected':''}`} draggable={!locked} disabled={locked} onDragStart={e=>{e.dataTransfer.setData(ITEM_DRAG,key);e.dataTransfer.effectAllowed='copy';}} onDragEnd={()=>setDropTarget(null)} onClick={()=>choose(key)} aria-pressed={selected===key} aria-label={`${w.name}${w.slot==='weapon'?`, nível +${upgrade}`:''}. Clique para colocar na bigorna.`} aria-describedby={tooltip?.id===key?'item-tooltip':undefined} {...tipHandlers(key)}><ItemIcon id={w.id} size={64} upgrade={upgrade}/>{w.slot==='weapon'&&<UpgradeTag level={upgrade} className="bag-upgrade-tag"/>}{selected===key&&<span className="forge-chosen"><Check size={11}/></span>}</ItemCard>;})}{Array.from({length:fill(owned.length,3)},(_,i)=><ItemCardFrame key={`empty-${i}`} empty variant="slot" className={`smith-empty ${i>=fill(owned.length)?'smith-empty-extra':''}`} aria-hidden="true"/>)}</div>
       <div className="smith-section-heading"><h3><Gem size={14}/>Materiais</h3><span>{composing?'Atributos · I a III':'Fortalecimento · I a V'}</span></div>
       {composing?<div className="composition-minerals">
        <div className="composition-attributes" role="group" aria-label="Atributo para composição">{COMPOSITION_STATS.map(stat=><button key={stat} className={mineralStat===stat?'active':''} aria-pressed={mineralStat===stat} disabled={locked} onClick={()=>{setMineralStat(stat);setSelectedStone('');setResult(null);}}><CompositionIcon stat={stat} size={22}/><span>{COMPOSITION_STAT_NAMES[stat]}</span></button>)}</div>
