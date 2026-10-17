@@ -2,6 +2,7 @@ import {SpectatorHud} from './components/SpectatorHud';
 import {Shop} from './components/Shop';
 import {IncomingRoomInvites} from './components/IncomingRoomInvites';
 import {CharacterCreation} from './components/CharacterCreation';
+import {PlayerActions} from './components/PlayerActions';
 import {MobileOrientationGate,useMobileOrientation} from './components/MobileOrientation';
 import {createPortal} from 'react-dom';
 import './components/Notifications.css';
@@ -23,6 +24,8 @@ export default function App(){
   else if(me&&!current.battle&&!current.room)client.send({type:'move',x:me.x,y:me.y});
   setHeadingToForge(false);
  },[orientation.portrait]);
+ // The player info and report windows hold the keyboard like any other window.
+ const playerWindow=!!state.playerPanel&&state.playerPanel.kind!=='menu';
  const close=useCallback(()=>{setPanel(null);setHeadingToForge(false);},[]);
  const openArena=useCallback(()=>{if(!client.state.room&&!client.state.battle)setPanel('arena');audio.play('click');},[]);
  const openInventory=useCallback(()=>{setPanel('inventory');audio.play('click');},[]);
@@ -34,8 +37,8 @@ export default function App(){
  useEffect(()=>{if(state.battle)setPanel(null);},[state.battle?.id]);
  useEffect(()=>{if(state.error){const t=setTimeout(()=>client.update({error:null}),4500);return()=>clearTimeout(t);}},[state.error]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room)setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
- return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel}/>
-  {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&<Hud onArena={openArena} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}</>):<div className="loading-screen"><div className="loading-emblem"><Flame size={62}/></div><h1>BRASA</h1><span>A aventura está chegando…</span><div className="loading-bar"/></div>}
+ return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
+  {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&<Hud onArena={openArena} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}</>):<div className="loading-screen"><div className="loading-emblem"><Flame size={62}/></div><h1>BRASA</h1><span>A aventura está chegando…</span><div className="loading-bar"/></div>}
   {state.needsCharacter&&!state.profile&&<CharacterCreation/>}
   {state.profile&&panel==='shop'&&<Shop onClose={close}/>}
   {state.profile&&panel==='inventory'&&<Inventory onClose={close} onForge={openForge}/>}{state.profile&&panel==='arena'&&!state.room&&<Arena onClose={close}/>} {state.profile&&panel==='forge'&&<Forge onClose={close} initial={forgeItem}/>}
@@ -45,5 +48,5 @@ export default function App(){
   {state.error&&createPortal(<div className="toast viewport-notice" role="alert">{state.error}<button aria-label="Fechar aviso" onClick={()=>client.update({error:null})}>×</button></div>,document.body)}
   {state.profile&&state.status!=='online'&&createPortal(<div className="connection-notice viewport-notice"><WifiOff size={18}/>{state.status==='replaced'?'Este aventureiro entrou em outra aba.':state.status==='connecting'?'Conectando…':'Conexão perdida. Reconectando…'}{state.status==='replaced'&&<button onClick={()=>location.reload()}>Voltar aqui</button>}</div>,document.body)}
   {!state.profile&&state.status==='offline'&&<button className="button gold retry-button" onClick={()=>client.retryNow()}>Tentar novamente</button>}
- </div><IncomingRoomInvites/><MobileOrientationGate visible={orientation.portrait}/></main>;
+ </div><IncomingRoomInvites/><PlayerActions/><MobileOrientationGate visible={orientation.portrait}/></main>;
 }

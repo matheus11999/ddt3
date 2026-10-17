@@ -1,9 +1,9 @@
 import {useEffect,useState} from 'react';
-import {Activity,Crown,RefreshCw,Swords,Trophy,UserPlus,Users,Wifi} from 'lucide-react';
+import {Activity,Crown,Flag,RefreshCw,Swords,Trophy,UserPlus,Users,Wifi} from 'lucide-react';
 import {api} from './api';
 import type {Stats} from './api';
 
-const ACTIONS:Record<string,string>={login:'Entrou no painel','login-failed':'Senha errada',logout:'Saiu do painel','map-save':'Salvou mapa','map-publish':'Publicou mapa','map-unpublish':'Voltou mapa ao original','map-create':'Criou mapa','map-delete':'Apagou mapa'};
+const ACTIONS:Record<string,string>={login:'Entrou no painel','login-failed':'Senha errada',logout:'Saiu do painel','map-save':'Salvou mapa','map-publish':'Publicou mapa','map-unpublish':'Voltou mapa ao original','map-create':'Criou mapa','map-delete':'Apagou mapa','report-status':'Mudou denúncia'};
 const time=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 
 export function Dashboard(){
@@ -18,6 +18,7 @@ export function Dashboard(){
   {icon:Activity,label:'Ativos hoje',value:stats.today.activePlayers,hint:'jogaram ao menos uma partida'},
   {icon:Swords,label:'Partidas hoje',value:stats.today.matches,hint:`${stats.today.botMatches} contra bot`},
   {icon:Trophy,label:'Vitórias hoje',value:stats.today.wins,hint:'somando todos os vencedores'},
+  {icon:Flag,label:'Denúncias abertas',value:stats.openReports??0,hint:'veja em Denúncias',tone:stats.openReports?'alert':undefined},
  ];
  return <section className="adm-page">
   <Header onRefresh={load}/>

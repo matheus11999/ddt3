@@ -151,7 +151,16 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }
    frame=requestAnimationFrame(render);
   };
-  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
+  // Right click on someone in the plaza (walkers and the podium) opens the player menu.
+  const contextMenu=(e:MouseEvent)=>{
+   e.preventDefault();if(blockedRef.current||state.battle||state.room)return;
+   const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
+   const candidates=[...state.players.map(p=>({id:p.id,name:p.name,key:p.id,size:134,context:'lobby' as const})),...state.ranking.map(entry=>({id:entry.id,name:entry.name,key:`podium-${entry.id}`,size:PODIUM_AVATAR,context:'ranking' as const}))];
+   let best:typeof candidates[number]|null=null,bestDistance=Infinity;
+   for(const candidate of candidates){const e=entities.get(candidate.key);if(!e)continue;const half=candidate.size*.32,top=e.y-candidate.size*1.12;if(x<e.x-half||x>e.x+half||y<top||y>e.y+8)continue;const d=Math.abs(x-e.x)+Math.abs(y-(e.y-candidate.size*.5));if(d<bestDistance){best=candidate;bestDistance=d;}}
+   if(best)client.openPlayerMenu(e,{id:best.id,name:best.name,context:best.context});
+  };
+  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room||e.button!==0)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
   const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hover((e.clientX-r.left)/r.width*W+Math.max(0,camX),(e.clientY-r.top)/r.height*H)?.id??null;el.style.cursor=hover?'pointer':'';};
@@ -164,7 +173,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',stopWalk);
   // Holding and dragging the battlefield looks around; letting go hands the camera back to the turn and the shot.
   const release=()=>{if(!drag)return;drag=null;sceneView.look=null;el.style.cursor='';};
-  el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);el.removeEventListener('pointerup',release);el.removeEventListener('pointercancel',release);sceneView.look=null;window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',stopWalk);};
+  el.addEventListener('contextmenu',contextMenu);el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('contextmenu',contextMenu);el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);el.removeEventListener('pointerup',release);el.removeEventListener('pointercancel',release);sceneView.look=null;window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',stopWalk);};
  },[]);
  return <canvas className="world-canvas" ref={canvas} width={1536} height={864} tabIndex={0} aria-label="Mundo do jogo. Clique na rua para caminhar. Na batalha, use as setas e segure Espaço para disparar."/>;
 }

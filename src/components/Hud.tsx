@@ -5,6 +5,7 @@ import {PowerIcon} from './PowerIcon';
 import {LevelBadge} from './LevelBadge';
 import {levelProgress} from '../../shared/progression';
 import {attributes} from '../../shared/catalog';import {client,useGame} from '../client';import {Avatar} from './Avatar';import {audio} from '../game/audio';
+import {playerMenuProps} from './PlayerActions';
 import './WoodTheme.css';
 import './Hud.css';
 type LobbyMenu='quests'|'mail'|'guild';
@@ -42,5 +43,5 @@ export function Hud({onArena,onInventory,onForge,onShop,onSettings}:{onArena:()=
  </>;
 }
 export function Chat(){const {chat,room}=useGame();const [text,setText]=useState(''),[channel,setChannel]=useState<'world'|'room'>('world');const end=useRef<HTMLDivElement>(null);useEffect(()=>{const list=end.current?.parentElement;if(list)list.scrollTop=list.scrollHeight;},[chat]);useEffect(()=>{setChannel(room?'room':'world');},[room?.id]);
- return <><div className="chat-tabs"><button className={channel==='world'?'active':''} onClick={()=>setChannel('world')}>Mundo</button><button disabled={!room} className={channel==='room'?'active':''} onClick={()=>setChannel('room')}>Sala</button></div><div className="chat-messages" aria-live="polite"><p className="system-message">Bem-vindo à rua de Brasa.</p>{chat.filter(m=>m.channel===channel).slice(-30).map(m=><p key={m.id}><strong>{m.name}:</strong> {m.text}</p>)}<div ref={end}/></div><form className="chat-input" onSubmit={e=>{e.preventDefault();if(text.trim()){client.send({type:'chat',text,channel});setText('');}}}><input aria-label="Mensagem de chat" maxLength={180} placeholder="Enter para conversar…" value={text} onChange={e=>setText(e.target.value)}/><button aria-label="Enviar mensagem"><Send size={14}/></button></form></>;
+ return <><div className="chat-tabs"><button className={channel==='world'?'active':''} onClick={()=>setChannel('world')}>Mundo</button><button disabled={!room} className={channel==='room'?'active':''} onClick={()=>setChannel('room')}>Sala</button></div><div className="chat-messages" aria-live="polite"><p className="system-message">Bem-vindo à rua de Brasa.</p>{chat.filter(m=>m.channel===channel).slice(-30).map(m=><p key={m.id}><strong {...playerMenuProps(m.playerId?{id:m.playerId,name:m.name,context:'chat'}:null)}>{m.name}:</strong> {m.text}</p>)}<div ref={end}/></div><form className="chat-input" onSubmit={e=>{e.preventDefault();if(text.trim()){client.send({type:'chat',text,channel});setText('');}}}><input aria-label="Mensagem de chat" maxLength={180} placeholder="Enter para conversar…" value={text} onChange={e=>setText(e.target.value)}/><button aria-label="Enviar mensagem"><Send size={14}/></button></form></>;
 }
