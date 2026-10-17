@@ -5,7 +5,7 @@ import {client,useGame} from '../client';
 import {arenaMatchTime,arenaRooms} from '../arenaHall';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
-import {LevelBadge} from './LevelBadge';
+import {LevelNumber} from './LevelNumber';
 import './ArenaTheme.css';
 import './ArenaHall.css';
 
@@ -48,7 +48,7 @@ export function Arena({onClose}:{onClose:()=>void}){
    <section className="hall-me wood-pane" aria-label="Meu personagem">
     <h2 className="hall-side-title wood-ribbon">Meu personagem</h2>
     <div className="hall-me-card wood-cream">
-     {profile&&<><div className="hall-me-head"><LevelBadge level={profile.level} size={34}/><strong title={profile.name}>{profile.name}</strong></div>
+     {profile&&<><div className="hall-me-head"><LevelNumber level={profile.level} size={26}/><strong title={profile.name}>{profile.name}</strong></div>
      <div className="hall-me-avatar"><Avatar equipment={profile.equipment} size={230} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={18} weaponVerticalOffset={10} groundedShadow/></div>
      <dl className="hall-me-stats"><div><dt><Trophy size={13}/>Vitórias</dt><dd>{profile.wins}</dd></div><div><dt><Swords size={13}/>Partidas</dt><dd>{profile.matches}</dd></div></dl></>}
     </div>
