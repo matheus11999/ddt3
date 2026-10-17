@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Salão PvP e sala no padrão da mochila — 17/10/2026
+
+- Salão PvP: moldura de madeira em tela cheia, barra de título com brasão, população e saída; salas em cartas creme (número, nome, líder, formato, vagas ocupadas, estado colorido e assistir) sobre área creme; conversa creme ao lado; botão Criar sala no rodapé.
+- Sala: título com número, nome editável, formato, estado e saída; cartas 4:5 com faixa laranja, selo da aura abaixo de +5 e estado Pronto/Líder/Preparando; faixa pintada da Batalha PvP no centro (some abaixo de 1180px); painel com ferramentas, espectadores, convite, treino, Início e menus. No celular em paisagem as quatro cartas ficam em linha e o painel rola por dentro.
+- Materiais em `WoodTheme.css` (tokens e classes `wood-*`); `ArenaTheme.css`, `RoomSpectators.css` e `RoomInvitations.css` passaram para `.pvp-room`. Regras antigas da arena em `MobileOrientation.css` removidas.
+- Evidência: `npm run check`, `npm test` (232), `smoke-arena-hall`, `smoke-rooms`, `smoke-spectators`, `smoke-room-invites`, `smoke-loadout` e `smoke-mobile-landscape` passando. Prévias em `docs/previews/pvp-*.png`.
+
 ## Mochila: anéis, colar, bolha, classes e selos de nível — 17/10/2026
 
 - 13 slots: entram Anel ×2 (`ring` e `ring2`, mesma família; um anel só ocupa um slot), Colar (`necklace`) e Bolha (`bubble`). Pulseira e Bracelete são os 2 slots de pulseira. Anéis ficam na base das colunas laterais (Anel à esquerda, Anel à direita); fileira inferior só Colar, Arma e Bolha. Joias e bolha são invisíveis no boneco; a bolha ainda é só cosmética (sem efeito no chat).
