@@ -1,6 +1,7 @@
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
 import {mkdir,writeFile} from 'node:fs/promises';
+import {startPractice} from './character-helpers.mjs';
 
 const base=process.env.BASE_URL??'http://127.0.0.1:5177';
 const output='test-results/customization';
@@ -97,8 +98,7 @@ try{
   assert.deepEqual((await female.profile()).equipment,shopSaved.equipment,'shop fitting never saves visibility or equipment');
   await shop.getByRole('button',{name:'Fechar',exact:true}).click();
   checks.push('Shop reveals fitted clothing beneath a costume and Restore recovers the saved appearance');
- await male.page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();
- await male.page.getByRole('button',{name:/Treinar/}).click();
+ await startPractice(male.page);
  await expect.poll(()=>male.events.some(event=>event.type==='battle'&&event.battle?.players.some(player=>player.id===initial.id&&player.equipment.costume==='costume-thunder-chick'&&player.equipment.visibility?.costume===true)),{timeout:15000}).toBe(true);
  await settle(male.page);await male.page.screenshot({path:`${output}/costume-combat.png`});
  checks.push('Real practice battle snapshot carries equipped costume and visibility');

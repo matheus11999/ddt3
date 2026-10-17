@@ -87,8 +87,8 @@ try{
  await observeChargeReleases(page);await page.screenshot({path:`${output}/hud.png`});
 
  let before=fires().length;
- const camera=page.getByRole('button',{name:'Aproximar cenário',exact:true});await camera.focus();await camera.press('Space');await assertNoFire(before,'Space on a focused camera control does not shoot');
- await page.getByRole('button',{name:'Restaurar câmera',exact:true}).click();await blurControl();
+ const control=page.getByRole('button',{name:'Aumentar ângulo',exact:true});await control.focus();await control.press('Space');await assertNoFire(before,'Space on a focused battle button does not shoot');
+ await blurControl();
  await page.keyboard.down('Space');await waitForCharge(page,20);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('Space');await assertNoFire(before,'window blur cancels a held charge');
 
  await blurControl();await page.keyboard.down('Space');await waitForCharge(page,20);await page.keyboard.press('b');
