@@ -164,7 +164,6 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>
   </div>
   {mine&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
-  {!mine&&b.phase!=='finished'&&<div className="turn-label">{b.powerCutIn?'POWER!':b.phase==='resolving'?'DISPARO EM VOO':`${turn?.name??'Oponente'} está mirando`}</div>}
 
   <aside className="battle-ability-tray" aria-label="Habilidades e voo">
    <AbilitySlots loadout={me.abilityLoadout} counts={me.abilities} active={activeAbilities} disabled={!canAct||!!me.flightArmed} unavailable={unavailableAbilities} onUse={ability=>{if(canAct&&!me.flightArmed)client.send({type:'ability',ability});}}/>
