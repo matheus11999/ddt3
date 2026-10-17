@@ -1,5 +1,8 @@
 # Efeitos de armas — 16/10/2026
 
+> **Obsoleto desde 17/10/2026.** As armas foram apagadas para serem refeitas pelo kit de arma (`docs/weapon-kit.md`). O código das famílias de efeito continua; a arte descrita aqui não existe mais.
+
+
 O renderer usa os quatro atlas existentes em `public/assets/vfx/`, preservando as identidades e os estágios 0–8 / 9 / 10–11 / 12. Nenhuma pintura original foi substituída. As imagens de energia recebem transparência e seis fases de dissolução em cache; partículas e curvas dão movimento entre essas fases.
 
 - **Brasa:** língua de fogo, duas trilhas oscilantes nos estágios altos, brasas e arcos ascendentes.
