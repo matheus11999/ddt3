@@ -16,7 +16,7 @@ export const FIXTURE_WEAPONS:Weapon[]=[
  {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:120,defense:85,agility:75,luck:80,damage:225,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85},
 ];
 /** The shard mechanic (`fragments`) has no real weapon today (matheus did not want shrapnel on the Quebra-Tijolos), so it is tested here, added to the arsenal only while a test needs it. */
-export const SHRAPNEL_FIXTURE:Weapon={id:'shrapnel',name:'Estilhaço de teste',slot:'weapon',rarity:'rare',color:'#d8432a',description:'Arma de teste com cacos.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:30,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.3,fragments:{count:[2,3,4,5],damage:.24,crater:10,blast:44,speed:235,radius:3,gravity:420}};
+export const SHRAPNEL_FIXTURE:Weapon={id:'shrapnel',name:'Estilhaço de teste',slot:'weapon',rarity:'rare',color:'#d8432a',description:'Arma de teste com cacos.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:30,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,fragments:{count:[2,3,4,5],damage:.24,crater:10,blast:44,speed:235,radius:3,gravity:420}};
 const prices:Record<string,number>={ember:420,volt:360,crystal:560,dynamite:480};
 // Same order as the former arsenal (brick last), which some tests destructure.
 WEAPONS.unshift(...FIXTURE_WEAPONS.filter(weapon=>!CATALOG[weapon.id]));ITEMS.unshift(...FIXTURE_WEAPONS.filter(weapon=>!CATALOG[weapon.id]));

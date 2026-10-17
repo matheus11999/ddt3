@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {MATERIALS} from '../shared/maps';
-import {crater,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_ROUGHNESS,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -12,14 +11,14 @@ test('terrain is deterministic, map-specific and round-trips its compact network
  assert.equal(solid(sky,-1,600),false);assert.equal(solid(sky,WORLD.width,600),false);
 });
 
-test('a crater removes only material inside its radius and opens a new landing surface',()=>{
+test('a crater removes only material inside its rough radius and opens a new landing surface',()=>{
  const terrain=createTerrain(),before=terrain.slice(),x=600,y=ground(terrain,x);
  crater(terrain,x,y,60);
  assert.equal(solid(terrain,x,y),false);assert.ok(ground(terrain,x,y)>=y+57);
  assert.equal(solid(terrain,x+66,y+60),solid(before,x+66,y+60));
  for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){
   assert.equal(terrain[cell],0);const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;
-  assert.ok(Math.hypot(cx-x,cy-y)<=60);
+  assert.ok(Math.hypot(cx-x,cy-y)<=60*(1+CRATER_ROUGHNESS));
  }
 });
 
@@ -147,7 +146,7 @@ test('dynamite uses its own physical footprint and destruction budget',()=>{
  assert.notEqual(dynamite.blast,dynamite.crater,'blast and terrain destruction have independent radii');
 });
 
-test('a shrapnel weapon shatters into a deterministic fan and demolishes hard material',()=>{
+test('a shrapnel weapon shatters into a deterministic fan',()=>{
  const brick=SHRAPNEL_FIXTURE;
  assert.equal(brick.effect,'brick');assert.ok(brick.fragments);
  assert.deepEqual([0,9,10,11,12,14,15].map(level=>weaponFragmentCount(brick,level)),[2,2,3,3,4,4,5]);
@@ -156,10 +155,16 @@ test('a shrapnel weapon shatters into a deterministic fan and demolishes hard ma
  const first=shatter(terrain,{x,y:surface-10},4,1,brick,0),again=shatter(createTerrain('garden'),{x,y:surface-10},4,1,brick,0);
  assert.deepEqual(first,again);assert.equal(first.length,4);
  for(const piece of first){assert.ok(piece.points.length>3,'a shard flies before landing');assert.ok(Math.abs(piece.x-x)<260,'shards stay near the main impact');}
- let hard:{map:'garden'|'park'|'celestial';x:number;y:number}|undefined;
- for(const map of ['garden','park','celestial'] as const){const template=terrainTemplate(map);for(let i=0;i<template.solid.length&&!hard;i++){const region=template.definition[template.regions[i]];if(region?.destructible&&MATERIALS[region.material].resistance>1)hard={map,x:(i%WORLD.cols)*3+1,y:Math.floor(i/WORLD.cols)*3+1};}}
- assert.ok(hard,'some map has destructible hard material');
- const plain=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map),demolished=crater(createTerrain(hard.map),hard.x,hard.y,30,hard.map,brick.demolition);
- assert.ok(demolished>plain,'brick demolition opens more stone than the same radius without it');
- const earth=createTerrain('garden');assert.equal(crater(earth.slice(),x,surface,30,'garden',.6),crater(earth.slice(),x,surface,30,'garden'),'soft ground is unchanged');
+});
+
+test('every destructible region breaks the same, whatever material it is drawn as',()=>{
+ for(const map of ['garden','park','celestial'] as const){
+  const template=terrainTemplate(map),radius=24;
+  for(const material of ['earth','stone','metal','magic'] as const){
+   const i=template.regions.findIndex((region,index)=>!!template.solid[index]&&!!template.definition[region]?.destructible&&template.definition[region]?.material===material);if(i<0)continue;
+   const x=(i%WORLD.cols)*3+1,y=Math.floor(i/WORLD.cols)*3+1,terrain=createTerrain(map),before=terrain.slice();crater(terrain,x,y,radius,map);
+   for(let cell=0;cell<terrain.length;cell++){const cx=cell%WORLD.cols,cy=Math.floor(cell/WORLD.cols);if(!before[cell]||!template.definition[template.regions[cell]]?.destructible)continue;
+    if((cx*3-x)**2+(cy*3-y)**2<=radius*radius)assert.equal(terrain[cell],0,`${map} ${material} keeps a cell inside the crater`);}
+  }
+ }
 });

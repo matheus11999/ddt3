@@ -24,7 +24,7 @@ export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomN
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
 export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;}
 export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};}
-export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;demolition?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;}
+export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number}};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;}
 export interface TerrainMark {id:string;x:number;y:number;radius:number;effect:Projectile['effect'];level:number;}
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
@@ -57,7 +57,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('forge'),item:z.string().min(1).max(48),stones:stoneSelectionSchema}).strict(),
  z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
  // Legacy mode/map are honored only by explicitly requested practice rooms.
- z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','sky','valley']).optional()}).strict(),
+ z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','snow','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
  z.object({type:z.literal('queue')}).strict(),z.object({type:z.literal('cancel-queue')}).strict(),
  z.object({type:z.literal('room-slot'),slot:z.number().int().min(1).max(3),open:z.boolean()}).strict(),

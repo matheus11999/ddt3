@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
-import {MAP_IDS,getMap,MATERIALS} from '../shared/maps';
+import {MAP_IDS,getMap} from '../shared/maps';
 import {crater,createTerrain,ground,packTerrain,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,walkPosition,WORLD} from '../shared/physics';
 import {WEAPONS} from '../shared/catalog';
 import {Game} from '../server/game';
@@ -9,11 +9,14 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
-test('three maps have seven depth layers and four balanced, supported mirrored spawns per team',()=>{
+test('every map has seven depth layers and four balanced, supported mirrored spawns per team',()=>{
  for(const id of MAP_IDS){const map=getMap(id),terrain=createTerrain(id);assert.equal(map.layers.length,7);assert.deepEqual(terrain,createTerrain(id));
-  assert.deepEqual(map.spawns.map(team=>team.slice(0,2)),[[260,395],[1276,1141]]);
+  const width=map.dimensions.width;assert.equal(terrain.length,width/WORLD.cell*WORLD.rows);
+  if(width===WORLD.width)assert.deepEqual(map.spawns.map(team=>team.slice(0,2)),[[260,395],[1276,1141]]);
+  // Two players start a good distance apart, never at opposite ends of a wide map.
+  const duel=map.spawns[1][0]-map.spawns[0][0];assert.ok(duel>=900&&duel<=1200,`${id} 1v1 distance ${duel}`);
   for(const team of map.spawns){assert.equal(team.length,4);const sorted=[...team].sort((a,b)=>a-b);for(let n=1;n<sorted.length;n++)assert.ok(sorted[n]-sorted[n-1]>=72,`${id} spawn separation`);}
-  for(let n=0;n<4;n++){const left=map.spawns[0][n],right=map.spawns[1][n],ly=ground(terrain,left),ry=ground(terrain,right);assert.equal(left+right,WORLD.width);assert.ok(Math.abs(ly-ry)<=3,`${id} spawn height`);assert.ok(ly<650&&ry<650);
+  for(let n=0;n<4;n++){const left=map.spawns[0][n],right=map.spawns[1][n],ly=ground(terrain,left),ry=ground(terrain,right);assert.equal(left+right,width);assert.ok(Math.abs(ly-ry)<=3,`${id} spawn height`);assert.ok(ly<650&&ry<650);
    for(const x of [left,right]){const y=ground(terrain,x);assert.ok(solid(terrain,x,y));for(const dx of [-12,0,12])for(const dy of [-50,-25,-12])assert.ok(!solid(terrain,x+dx,y+dy),`${id} clear spawn body at ${x}`);assert.ok(walkPosition(terrain,{x,y},-1));assert.ok(walkPosition(terrain,{x,y},1));}
   }
   assert.deepEqual(unpackTerrain(packTerrain(terrain)),terrain);
@@ -46,9 +49,8 @@ test('interactive containers block shots and their collision disappears with the
  crater(terrain,666,522,50,'park');assert.equal(solid(terrain,666,522),false);assert.equal(solid(terrain,666,552),true);
 });
 
-test('material resistance affects destruction size without modifying immutable regions',()=>{
- assert.ok(MATERIALS.sand.resistance<MATERIALS.earth.resistance);assert.ok(MATERIALS.stone.resistance>MATERIALS.earth.resistance);
- const terrain=createTerrain('garden');crater(terrain,420,738,20,'garden');assert.equal(solid(terrain,441,738),false);assert.equal(solid(terrain,447,738),true);
+test('craters do not modify immutable regions',()=>{
+ const terrain=createTerrain('garden');crater(terrain,420,738,24,'garden');assert.equal(solid(terrain,441,738),false);assert.equal(solid(terrain,447,738),true);
 });
 
 test('walking cannot enter tall containers and still climbs both park ramps',()=>{
