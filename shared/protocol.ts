@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import type {Equipment,BoostId,MapId,CharacterGender} from './catalog';
 import {CHARACTER_GENDERS,MAX_FORGE_STONES,SLOTS} from './catalog';
-import {BODY_COLOR_PARTS} from './colors';
+import {MAX_PAINT_CHANGES} from './colors';
 import type {BodyColorPart,BodyColors} from './colors';
 import type {BattleRewards} from './rewards';
 import type {CompositionStat,Compositions} from './composition';
@@ -11,7 +11,9 @@ import {ABILITY_IDS} from './abilities';
 import type {AbilityId,AbilityEffect,AbilityLoadout} from './abilities';
 import type {FighterFall} from './fall';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
-export interface ColorResult {target:string|BodyColorPart;color:string|null;tickets:number;}
+/** `target` is an item copy key, or `skin`/`eyes`. */
+export interface ColorChange {target:string;color:string|null;}
+export interface ColorResult {changes:ColorChange[];tickets:number;}
 export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
@@ -54,9 +56,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
- // One ticket per change; null goes back to the painted original colors.
- z.object({type:z.literal('recolor'),item:z.string().min(1).max(48),color:hexColor.nullable()}).strict(),
- z.object({type:z.literal('body-color'),part:z.enum(BODY_COLOR_PARTS),color:hexColor.nullable()}).strict(),
+ // Several pieces, skin and eyes at once; one ticket per real change; null goes back to the painted original colors.
+ z.object({type:z.literal('paint'),changes:z.array(z.object({target:z.string().min(1).max(48),color:hexColor.nullable()}).strict()).min(1).max(MAX_PAINT_CHANGES)}).strict(),
  z.object({type:z.literal('discard'),item:z.string().min(1).max(48)}).strict(),
  z.object({type:z.literal('customize'),selection:equipmentSelectionSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('ability-loadout'),slots:abilityLoadoutSchema,requestId:z.string().min(1).max(64).optional()}).strict(),

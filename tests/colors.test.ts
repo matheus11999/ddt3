@@ -40,26 +40,32 @@ test('profiles without the color system start with the starter tickets and no co
 
 test('recoloring a copy costs one ticket, follows the worn copy and refuses without tickets',async()=>{
  const {store,state}=await database();state.profile.inventory.push('hat-cap~2');
+ const recolor=(target:string,color:string|null)=>store.paint(state.profile.id,[{target,color}]);
  const tickets=state.profile.colorTickets;
- const outcome=await store.recolor(state.profile.id,'hat-cap~2','#2b3fb8');
+ const outcome=await recolor('hat-cap~2','#2b3fb8');
  assert.equal(outcome.profile.colorTickets,tickets-1);assert.equal(outcome.profile.itemColors['hat-cap~2'],'#2b3fb8');
  // The first copy is worn, so the equipment keeps its painted colors.
  assert.equal(outcome.profile.equipment.colors?.hat,undefined);
  const worn=await store.saveEquipment(state.profile.id,{...outcome.profile.equipment,copies:{hat:'hat-cap~2'}});
  assert.equal(worn.equipment.colors?.hat,'#2b3fb8');
- await assert.rejects(store.recolor(state.profile.id,'hat-cap~2','#2b3fb8'),/já está/);
- await assert.rejects(store.recolor(state.profile.id,'brick','#ff0000'),/visual/);
- await assert.rejects(store.recolor(state.profile.id,'hat-mage','#ff0000'),/visual/);
- const restored=await store.recolor(state.profile.id,'hat-cap~2',null);assert.equal(restored.profile.itemColors['hat-cap~2'],undefined);
+ await assert.rejects(recolor('hat-cap~2','#2b3fb8'),/Nada mudou/);
+ await assert.rejects(recolor('brick','#ff0000'),/visual/);
+ await assert.rejects(recolor('hat-mage','#ff0000'),/visual/);
+ const restored=await recolor('hat-cap~2',null);assert.equal(restored.profile.itemColors['hat-cap~2'],undefined);
  state.profile.colorTickets=0;const before=structuredClone(state.profile);
- await assert.rejects(store.recolor(state.profile.id,'hat-cap','#ff0000'),/Ticket de Cor/);assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');
+ await assert.rejects(recolor('hat-cap','#ff0000'),/Ticket de Cor/);assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');
 });
 
-test('skin and eye colors cost one ticket each and reach the equipment',async()=>{
- const {store,state}=await database(),tickets=state.profile.colorTickets;
- await store.bodyColor(state.profile.id,'skin','#8d5534');const outcome=await store.bodyColor(state.profile.id,'eyes','#2f7fd8');
- assert.equal(outcome.profile.colorTickets,tickets-2);assert.equal(outcome.profile.equipment.skin,'#8d5534');assert.equal(outcome.profile.equipment.eyes,'#2f7fd8');
- assert.deepEqual(outcome.result,{target:'eyes',color:'#2f7fd8',tickets:tickets-2});
+test('one paint request changes pieces, skin and eyes together, charging only real changes',async()=>{
+ const {store,state}=await database();state.profile.colorTickets=3;state.profile.inventory.push('hair-undercut');state.profile.itemColors={'hair-undercut':'#e8332f'};
+ const outcome=await store.paint(state.profile.id,[{target:'hat-cap',color:'#2b3fb8'},{target:'hair-undercut',color:'#e8332f'},{target:'skin',color:'#8d5534'},{target:'eyes',color:'#2f7fd8'}]);
+ // The hair already had that color, so three tickets pay for the three real changes.
+ assert.equal(outcome.profile.colorTickets,0);assert.deepEqual(outcome.result,{changes:[{target:'hat-cap',color:'#2b3fb8'},{target:'skin',color:'#8d5534'},{target:'eyes',color:'#2f7fd8'}],tickets:0});
+ assert.equal(outcome.profile.equipment.colors?.hat,'#2b3fb8');assert.equal(outcome.profile.equipment.skin,'#8d5534');assert.equal(outcome.profile.equipment.eyes,'#2f7fd8');
+ // Without a ticket for every change nothing is painted.
+ state.profile.colorTickets=1;const before=structuredClone(state.profile);
+ await assert.rejects(store.paint(state.profile.id,[{target:'hat-cap',color:null},{target:'skin',color:null}]),/2 Tickets de Cor/);assert.deepEqual(state.profile,before);
+ await assert.rejects(store.paint(state.profile.id,[{target:'skin',color:null},{target:'skin',color:'#ffffff'}]),/duas vezes/);
 });
 
 test('tickets are bought by quantity and equipment never by quantity',async()=>{

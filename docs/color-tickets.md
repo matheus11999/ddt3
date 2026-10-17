@@ -7,14 +7,16 @@
   - **Aprimorar**: armas e itens que aceitam composição; abre o Ferreiro com o item já carregado;
   - **Trocar cor**: cabelo, chapéu, óculos e roupa;
   - **Excluir**: pede confirmação. Fica desativado na última arma, roupa ou rosto.
-- **Trocar cor** abre uma janela com:
-  - a prévia do personagem com a peça;
-  - "Original" e 16 cores prontas;
-  - seletor RGB (paleta, controles R/G/B e HEX).
-- **Cor do corpo e dos olhos**: o botão ao lado do personagem na mochila abre a mesma janela, com as abas Corpo e Olhos.
+- **Trocar cor** abre uma janela única para pintar várias partes de uma vez:
+  - no topo ficam as peças vestidas (cabelo, chapéu, óculos, roupa; a peça clicada entra no lugar da vestida), o Corpo e os Olhos;
+  - cada parte mostra um ponto laranja quando tem cor nova, e Desfazer volta só aquela parte;
+  - a prévia mostra todas as cores juntas, sem círculo atrás;
+  - "Original", cores prontas e seletor RGB (paleta, controles R/G/B e HEX);
+  - **Aplicar tudo · N** envia tudo junto.
+- **Cor do corpo e dos olhos**: o botão ao lado do personagem na mochila abre a mesma janela já no Corpo.
   - Corpo: rosto, orelhas, braços e pernas.
   - Olhos: só a íris; o branco e o contorno ficam.
-- Cada troca gasta **1 Ticket de Cor**, inclusive voltar ao Original.
+- Cada parte que muda de verdade gasta **1 Ticket de Cor**, inclusive voltar ao Original.
   - Sem ticket, o botão Aplicar fica desativado e a janela manda comprar na loja.
   - Personagem novo (ou perfil antigo) começa com 3 tickets.
   - A loja vende o ticket por 60 moedas, com escolha de quantidade (até 20 por compra).
@@ -23,7 +25,8 @@
 ## Regras no servidor
 
 - O servidor decide tudo; o cliente só pede.
-  - `recolor {item,color|null}`, `body-color {part,color}` e `discard {item}`;
+  - `paint {changes:[{target,color|null}]}` (target = cópia do item, `skin` ou `eyes`; até 8) e `discard {item}`;
+  - `paint` é tudo ou nada: sem tickets para todas as trocas, nada muda; partes que não mudaram não são cobradas;
   - `shop-buy` com `quantity` para o ticket.
 - Cada ação roda numa transação com trava da linha do perfil (`Store.mutate`). Se faltar ticket, nada muda.
 - A cor é **por cópia**: `profile.itemColors['hat-cap~2']`.

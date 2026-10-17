@@ -1,6 +1,5 @@
 import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS,CONSUMABLE_OFFER_BY_ID,isConsumableOffer} from '../shared/shop';
-import {COLOR_SLOTS,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
-import type {BodyColorPart} from '../shared/colors';
+import {COLOR_SLOTS,isBodyColorPart,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
@@ -11,12 +10,12 @@ import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} fro
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
-import type {ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
+import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;recolor?(id:string,item:string,color:string|null):Promise<ColorOutcome>;bodyColor?(id:string,part:BodyColorPart,color:string|null):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
 export const RANKING_TIME_ZONE='America/Sao_Paulo';
 
@@ -203,28 +202,27 @@ export class Store implements ProfileStore {
    return {profile,result:{items:[...items],spent}};
   });
  }
- /** Paints one owned cosmetic copy (or restores its original colors) for one color ticket. */
- async recolor(id:string,item:string,color:string|null):Promise<ColorOutcome>{
+ /** Paints several owned cosmetic copies, the skin and the eyes in one go, one color ticket per real change.
+  * `null` restores the painted original. All or nothing: without enough tickets nothing changes. */
+ async paint(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>{
   return this.mutate(id,profile=>{
-   const base=CATALOG[copyBase(item)];
-   if(!base||!profile.inventory.includes(item)||!isColorSlot(base.slot)||isEmptyItem(base))throw Error('Escolha um visual da sua mochila que possa mudar de cor.');
-   if((profile.itemColors[item]??null)===color)throw Error('A peça já está com essa cor.');
-   if(profile.colorTickets<1)throw Error('Você precisa de um Ticket de Cor. Compre na loja.');
-   profile.colorTickets--;
-   if(color)profile.itemColors[item]=color;else delete profile.itemColors[item];
+   const applied:ColorChange[]=[],seen=new Set<string>();
+   for(const change of changes){
+    if(seen.has(change.target))throw Error('A mesma peça apareceu duas vezes.');seen.add(change.target);
+    if(isBodyColorPart(change.target)){if((profile.bodyColors[change.target]??null)!==change.color)applied.push(change);continue;}
+    const base=CATALOG[copyBase(change.target)];
+    if(!base||!profile.inventory.includes(change.target)||!isColorSlot(base.slot)||isEmptyItem(base))throw Error('Escolha um visual da sua mochila que possa mudar de cor.');
+    if((profile.itemColors[change.target]??null)!==change.color)applied.push(change);
+   }
+   if(!applied.length)throw Error('Nada mudou: escolha uma cor diferente da atual.');
+   if(profile.colorTickets<applied.length)throw Error(applied.length===1?'Você precisa de um Ticket de Cor. Compre na loja.':`Você precisa de ${applied.length} Tickets de Cor. Compre na loja.`);
+   profile.colorTickets-=applied.length;
+   for(const {target,color} of applied){
+    if(isBodyColorPart(target)){if(color)profile.bodyColors[target]=color;else delete profile.bodyColors[target];}
+    else if(color)profile.itemColors[target]=color;else delete profile.itemColors[target];
+   }
    refreshWorn(profile);
-   return {profile,result:{target:item,color,tickets:profile.colorTickets}};
-  });
- }
- /** Skin or eye color of the character, for one color ticket. */
- async bodyColor(id:string,part:BodyColorPart,color:string|null):Promise<ColorOutcome>{
-  return this.mutate(id,profile=>{
-   if((profile.bodyColors[part]??null)===color)throw Error('Seu personagem já está com essa cor.');
-   if(profile.colorTickets<1)throw Error('Você precisa de um Ticket de Cor. Compre na loja.');
-   profile.colorTickets--;
-   if(color)profile.bodyColors[part]=color;else delete profile.bodyColors[part];
-   refreshWorn(profile);
-   return {profile,result:{target:part,color,tickets:profile.colorTickets}};
+   return {profile,result:{changes:applied,tickets:profile.colorTickets}};
   });
  }
  /** Throws an owned copy away for good, with its forge level, compositions and color. */

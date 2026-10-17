@@ -40,28 +40,26 @@ try{
  await page.screenshot({path:`${output}/studio-preset.png`});
  await studio.getByRole('textbox',{name:'Código da cor'}).fill('#7a2bd6');await page.waitForTimeout(600);
  await page.screenshot({path:`${output}/studio-rgb.png`});
- await studio.getByRole('button',{name:/Aplicar/}).click();
+ // Several parts in one window: the outfit and the skin join the hat on the preview.
+ await studio.getByRole('button',{name:/^Roupa/}).click();await studio.getByRole('button',{name:'Cor #1fa94f'}).click();
+ await studio.getByRole('button',{name:/^Corpo/}).click();await studio.getByRole('button',{name:'Cor #8d5534'}).click();await page.waitForTimeout(600);
+ await expect(studio.locator('.color-part.edited')).toHaveCount(3);await expect(studio.getByRole('button',{name:/Aplicar tudo · 3/})).toBeEnabled();
+ await page.screenshot({path:`${output}/studio-multi.png`});
+ // Undo takes one part back without touching the others.
+ await studio.getByRole('button',{name:'Desfazer'}).click();await expect(studio.locator('.color-part.edited')).toHaveCount(2);
+ await studio.getByRole('button',{name:'Cor #8d5534'}).click();
+ await studio.getByRole('button',{name:/Aplicar tudo/}).click();
  await expect(studio).toHaveCount(0,{timeout:10000});
- let saved=await profile();assert.equal(saved.colorTickets,2);assert.equal(saved.itemColors['hat-cap'],'#7a2bd6');assert.equal(saved.equipment.colors.hat,'#7a2bd6');
+ let saved=await profile();assert.equal(saved.colorTickets,0);assert.equal(saved.itemColors['hat-cap'],'#7a2bd6');assert.equal(saved.equipment.colors.hat,'#7a2bd6');assert.equal(saved.equipment.colors.outfit,'#1fa94f');assert.equal(saved.equipment.skin,'#8d5534');
  await page.waitForTimeout(600);await page.screenshot({path:`${output}/bag-after-color.png`});
- // Body and eyes.
+ // Without enough tickets the window explains where to get them.
  await bag.getByRole('button',{name:'Cor do corpo e dos olhos'}).click();
- const body=page.getByRole('dialog',{name:'Cor do corpo'});await expect(body).toBeVisible();
- await body.getByRole('button',{name:'Cor #8d5534'}).click();await page.waitForTimeout(600);
- await page.screenshot({path:`${output}/studio-skin.png`});
- await body.getByRole('button',{name:/Aplicar/}).click();await expect(body).toHaveCount(0,{timeout:10000});
- await bag.getByRole('button',{name:'Cor do corpo e dos olhos'}).click();
- await page.getByRole('button',{name:'Olhos',exact:true}).click();
- const eyes=page.getByRole('dialog',{name:'Cor dos olhos'});await eyes.getByRole('button',{name:'Cor #2f7fd8'}).click();await page.waitForTimeout(600);
+ const body=page.getByRole('dialog',{name:'Trocar cor'});await expect(body).toBeVisible();
+ await body.getByRole('button',{name:/^Olhos/}).click();await body.getByRole('button',{name:'Cor #2f7fd8'}).click();await page.waitForTimeout(600);
  await page.screenshot({path:`${output}/studio-eyes.png`});
- await eyes.getByRole('button',{name:/Aplicar/}).click();await expect(eyes).toHaveCount(0,{timeout:10000});
- saved=await profile();assert.equal(saved.colorTickets,0);assert.equal(saved.equipment.skin,'#8d5534');assert.equal(saved.equipment.eyes,'#2f7fd8');
- await page.waitForTimeout(600);await page.screenshot({path:`${output}/bag-body.png`});
- // Without tickets the window explains where to get them.
- await hat.click({button:'right'});await page.getByRole('menuitem',{name:'Trocar cor'}).click();
- await expect(page.getByRole('dialog',{name:'Trocar cor'}).getByRole('button',{name:/Aplicar/})).toBeDisabled();
- await expect(page.getByRole('dialog',{name:'Trocar cor'})).toContainText('Compre Tickets de Cor na loja.');
- await page.getByRole('dialog',{name:'Trocar cor'}).getByRole('button',{name:'Cancelar'}).click();
+ await expect(body.getByRole('button',{name:/Aplicar tudo/})).toBeDisabled();
+ await expect(body).toContainText('Compre Tickets de Cor na loja.');
+ await body.getByRole('button',{name:'Cancelar'}).click();await expect(body).toHaveCount(0);
  // Discard asks first.
  const costume=bag.locator('.bag-grid').getByRole('button',{name:'Raposa Arcana',exact:true});
  await costume.click({button:'right'});await page.getByRole('menuitem',{name:'Excluir'}).click();

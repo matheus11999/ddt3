@@ -4,6 +4,9 @@ import type {Equipment} from './catalog';
 export const COLOR_SLOTS=['hat','outfit','hair','glasses'] as const;
 export type ColorSlot=typeof COLOR_SLOTS[number];
 export const BODY_COLOR_PARTS=['skin','eyes'] as const;
+export const isBodyColorPart=(value:string):value is BodyColorPart=>(BODY_COLOR_PARTS as readonly string[]).includes(value);
+/** Most changes one paint request may carry: four pieces, skin and eyes, with room to spare. */
+export const MAX_PAINT_CHANGES=8;
 export type BodyColorPart=typeof BODY_COLOR_PARTS[number];
 export type BodyColors=Partial<Record<BodyColorPart,string>>;
 export const BODY_COLOR_NAMES:Record<BodyColorPart,string>={skin:'Cor do corpo',eyes:'Cor dos olhos'};

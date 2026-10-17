@@ -179,16 +179,15 @@ export class Game {
      const outcome=await this.store.buy(id,c.items,c.quantity);p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'shop-result',result:outcome.result});break;
     }
-    case 'recolor':
-    case 'body-color':
+    case 'paint':
     case 'discard':{
      if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Mexa na mochila entre as batalhas.');
      if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
-     const store=this.store;if(!store.recolor||!store.bodyColor||!store.discard)throw Error('Indisponível no momento.');
+     const store=this.store;if(!store.paint||!store.discard)throw Error('Indisponível no momento.');
      this.profileChanges.add(id);
      try{
       if(c.type==='discard'){p.profile=await store.discard(id,c.item);this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'discard-result',item:c.item});}
-      else{const outcome=c.type==='recolor'?await store.recolor(id,c.item,c.color):await store.bodyColor(id,c.part,c.color);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'color-result',result:outcome.result});}
+      else{const outcome=await store.paint(id,c.changes);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'color-result',result:outcome.result});}
      }finally{this.profileChanges.delete(id);}
      // Other players see the new look right away, in the plaza and in the waiting room.
      if(p.roomId){const r=this.room(p);const seat=r.players.find(s=>s.id===id);if(seat)seat.equipment={...p.profile.equipment};this.broadcastRoom(r);}this.sendLobby(p.channel);return;

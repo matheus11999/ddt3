@@ -9,7 +9,7 @@ import type {AbilityEffect,AbilityLoadout} from '../shared/abilities';
 import {AbilityLoadoutQueue} from './abilityLoadout';
 import {readRoomInvite} from './roomInvite';
 import {recoveredImpacts,shotClock} from './game/shotPlayback';
-import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorResult} from '../shared/protocol';
+import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorChange,ColorResult} from '../shared/protocol';
 export interface State {ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
  state:State={ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
@@ -37,8 +37,7 @@ class Client {
   const profile=this.state.profile,customizationEquipment=equipment&&profile?{...equipment,colors:equippedColors(equipment,profile.itemColors)}:equipment;
   this.update({customizationEquipment,customizationPending});
  });
- recolor(item:string,color:string|null){this.update({error:null,colorResult:null});this.send({type:'recolor',item,color});}
- bodyColor(part:BodyColorPart,color:string|null){this.update({error:null,colorResult:null});this.send({type:'body-color',part,color});}
+ paint(changes:ColorChange[]){this.update({error:null,colorResult:null});this.send({type:'paint',changes});}
  discard(item:string){this.update({error:null});this.send({type:'discard',item});}
  customize(patch:CustomizationPatch){
   if(!this.state.profile||this.state.battle||this.state.status!=='online'||this.ws?.readyState!==WebSocket.OPEN)return;

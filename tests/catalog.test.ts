@@ -64,14 +64,15 @@ test('customization accepts all independent slots and rejects forged upgrades, m
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items}}).success,true);
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items,upgrade:12}}).success,false);
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items:{...items,weapon:undefined}}}).success,false);
- // Colors are never part of customization: they cost a Color Ticket (recolor command).
+ // Colors are never part of customization: they cost a Color Ticket (paint command).
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items,dyes:{hat:'coral'}}}).success,false);
  assert.equal(commandSchema.safeParse({type:'customize',selection:{items,colors:{hat:'#ffffff'}}}).success,false);
  assert.equal(commandSchema.safeParse({type:'dye',slot:'hat',color:'coral'}).success,false);
- assert.equal(commandSchema.safeParse({type:'recolor',item:'hat-cap',color:'#FFAA00'}).success,true);
- assert.equal(commandSchema.safeParse({type:'recolor',item:'hat-cap',color:'red'}).success,false);
- assert.equal(commandSchema.safeParse({type:'body-color',part:'eyes',color:null}).success,true);
- assert.equal(commandSchema.safeParse({type:'body-color',part:'hair',color:'#000000'}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[{target:'hat-cap',color:'#FFAA00'},{target:'skin',color:null}]}).success,true);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[{target:'hat-cap',color:'red'}]}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:[]}).success,false);
+ assert.equal(commandSchema.safeParse({type:'paint',changes:Array.from({length:9},(_,i)=>({target:`hat-cap~${i+2}`,color:null}))}).success,false);
+ assert.equal(commandSchema.safeParse({type:'recolor',item:'hat-cap',color:'#ffaa00'}).success,false);
 });
 
 test('content migration grants new starter layers once and never refills a removed owned item',()=>{
