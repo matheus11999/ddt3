@@ -67,3 +67,15 @@ test('players cannot report themselves or bots, and reasons are a fixed list',as
  assert.equal(commandSchema.safeParse({type:'report',playerId:randomUUID(),reason:'qualquer'}).success,false);
  assert.equal(commandSchema.safeParse({type:'report',playerId:randomUUID(),reason:'other',details:'x'.repeat(301)}).success,false);
 });
+
+test('bots in a room show their info but can never be reported',async()=>{
+ const {game,a,last}=fixture();
+ await game.command(a.id,{type:'create',practice:true,name:'Treino',mode:'1v1',map:'sky'});
+ await game.command(a.id,{type:'bot'});
+ const bot=game.rooms.get(game.peers.get(a.id)!.roomId!)!.players.find(seat=>seat.bot)!;
+ assert.equal(commandSchema.safeParse({type:'player-info',playerId:bot.id}).success,true);
+ await game.command(a.id,{type:'player-info',playerId:bot.id});
+ const info=(last(a.id,'player-info') as Extract<ServerEvent,{type:'player-info'}>).info;
+ assert.equal(info.bot,true);assert.equal(info.name,bot.name);assert.equal(info.equipment.weapon,bot.equipment.weapon);
+ assert.equal(commandSchema.safeParse({type:'report',playerId:bot.id,reason:'other'}).success,false);
+});

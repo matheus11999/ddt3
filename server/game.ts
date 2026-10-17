@@ -145,10 +145,17 @@ export class Game {
  }
  /** Read-only view of what a player wears (online or not), for the player info window. */
  private async playerInfo(playerId:string):Promise<PlayerInfo|null>{
+  if(playerId.startsWith('bot-'))return this.botInfo(playerId);
   const peer=this.peers.get(playerId),profile=peer?.profile??await this.store.getProfile(playerId);if(!profile)return null;
   const worn=[...new Set(SLOTS.map(slot=>equippedCopy(profile.equipment,slot)))];
   const pick=<T,>(source:Record<string,T>)=>Object.fromEntries(worn.filter(key=>Object.hasOwn(source,key)).map(key=>[key,source[key]]));
   return {id:profile.id,name:profile.name,level:profile.level,gender:profile.gender,wins:profile.wins,matches:profile.matches,online:!!peer?.connected,equipment:structuredClone(profile.equipment),upgrades:pick(profile.upgrades),compositions:pick(profile.compositions),itemColors:pick(profile.itemColors)};
+ }
+ /** A bot exists only in its room or match: what it wears there. */
+ private botInfo(id:string):PlayerInfo|null{
+  const seat=[...[...this.matches.values()].flatMap(m=>m.state.players),...[...this.rooms.values()].flatMap(r=>r.players)].find(s=>s.id===id&&s.bot);if(!seat)return null;
+  const equipment=structuredClone(seat.equipment);
+  return {id,name:seat.name,level:seat.level,gender:'male',wins:0,matches:0,online:true,bot:true,equipment,upgrades:{[equippedCopy(equipment,'weapon')]:equipment.upgrade??0},compositions:{},itemColors:{}};
  }
  async command(id:string,c:Command){
   const p=this.peers.get(id);if(!p||!p.connected)return;
