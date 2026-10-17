@@ -1,6 +1,6 @@
 # Mapas montados com peças pintadas
 
-Primeiro mapa feito assim: `snow` / Sonho Nevado (17/10/2026). Plano completo em `/mnt/project-files/mapas/plano-cenarios.md`.
+Primeiro mapa feito assim: `snow` / Sonho Nevado (17/10/2026). É o único mapa do jogo: os antigos (Jardim, Parque, Fortaleza) foram removidos e só existem como dados de teste em `tests/fixtures/maps.ts`. Plano completo em `/mnt/project-files/mapas/plano-cenarios.md`.
 
 ## Como funciona
 
