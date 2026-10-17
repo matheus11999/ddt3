@@ -1,0 +1,82 @@
+import {chromium,expect} from '@playwright/test';
+import assert from 'node:assert/strict';
+import {mkdir} from 'node:fs/promises';
+
+// Color Tickets and the backpack's right-click menu: menu, color window (preset + RGB), body and eye
+// colors, buying tickets and discarding with confirmation. Needs the game running (see CLAUDE.md).
+const base=process.env.BASE_URL??'http://127.0.0.1:5177',output=process.env.OUTPUT_DIR??'test-results/colors';
+await mkdir(output,{recursive:true});
+const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
+const errors=[];
+try{
+ const context=await browser.newContext({viewport:{width:1536,height:864}}),page=await context.newPage();
+ page.on('pageerror',error=>errors.push(error.message));
+ const profile=async()=>(await (await context.request.get(base+'/api/session')).json()).profile;
+ await page.goto(base,{waitUntil:'domcontentloaded'});
+ const creation=page.locator('.character-creation');await expect(creation).toBeVisible();
+ await creation.getByRole('button',{name:'Personagem masculino',exact:true}).click();
+ await creation.getByRole('button',{name:'Criar personagem',exact:true}).click();
+ await expect(page.locator('.bottom-dock')).toBeVisible({timeout:15000});
+ const start=await profile();assert.equal(start.colorTickets,3);
+ await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
+ const bag=page.getByRole('dialog',{name:'Mochila',exact:true});await expect(bag).toBeVisible();
+ await page.waitForTimeout(800);
+ await expect(bag.locator('.bag-grid').getByRole('button',{name:'Ticket de Cor'})).toBeVisible();
+ // Right click: our menu, never the browser's.
+ const hat=bag.locator('.bag-grid').getByRole('button',{name:'Boné do Explorador',exact:true});
+ await hat.click({button:'right'});
+ const menu=page.getByRole('menu',{name:'Boné do Explorador'});await expect(menu).toBeVisible();
+ await expect(menu.getByRole('menuitem')).toHaveText(['Remover','Aprimorar','Trocar cor','Excluir']);
+ await page.screenshot({path:`${output}/menu-hat.png`});
+ const weapon=bag.locator('.bag-grid').getByRole('button',{name:'Quebra-Tijolos',exact:true});
+ await weapon.click({button:'right'});
+ await expect(page.getByRole('menu',{name:'Quebra-Tijolos'}).getByRole('menuitem')).toHaveText(['Aprimorar','Excluir']);
+ await expect(page.getByRole('menu',{name:'Quebra-Tijolos'}).getByRole('menuitem',{name:'Excluir'})).toBeDisabled();
+ await page.screenshot({path:`${output}/menu-weapon.png`});
+ await page.keyboard.press('Escape');await expect(page.getByRole('menu')).toHaveCount(0);
+ await hat.click({button:'right'});await page.getByRole('menuitem',{name:'Trocar cor'}).click();
+ const studio=page.getByRole('dialog',{name:'Trocar cor'});await expect(studio).toBeVisible();
+ await studio.getByRole('button',{name:'Cor #e8332f'}).click();await page.waitForTimeout(600);
+ await page.screenshot({path:`${output}/studio-preset.png`});
+ await studio.getByRole('textbox',{name:'Código da cor'}).fill('#7a2bd6');await page.waitForTimeout(600);
+ await page.screenshot({path:`${output}/studio-rgb.png`});
+ await studio.getByRole('button',{name:/Aplicar/}).click();
+ await expect(studio).toHaveCount(0,{timeout:10000});
+ let saved=await profile();assert.equal(saved.colorTickets,2);assert.equal(saved.itemColors['hat-cap'],'#7a2bd6');assert.equal(saved.equipment.colors.hat,'#7a2bd6');
+ await page.waitForTimeout(600);await page.screenshot({path:`${output}/bag-after-color.png`});
+ // Body and eyes.
+ await bag.getByRole('button',{name:'Cor do corpo e dos olhos'}).click();
+ const body=page.getByRole('dialog',{name:'Cor do corpo'});await expect(body).toBeVisible();
+ await body.getByRole('button',{name:'Cor #8d5534'}).click();await page.waitForTimeout(600);
+ await page.screenshot({path:`${output}/studio-skin.png`});
+ await body.getByRole('button',{name:/Aplicar/}).click();await expect(body).toHaveCount(0,{timeout:10000});
+ await bag.getByRole('button',{name:'Cor do corpo e dos olhos'}).click();
+ await page.getByRole('button',{name:'Olhos',exact:true}).click();
+ const eyes=page.getByRole('dialog',{name:'Cor dos olhos'});await eyes.getByRole('button',{name:'Cor #2f7fd8'}).click();await page.waitForTimeout(600);
+ await page.screenshot({path:`${output}/studio-eyes.png`});
+ await eyes.getByRole('button',{name:/Aplicar/}).click();await expect(eyes).toHaveCount(0,{timeout:10000});
+ saved=await profile();assert.equal(saved.colorTickets,0);assert.equal(saved.equipment.skin,'#8d5534');assert.equal(saved.equipment.eyes,'#2f7fd8');
+ await page.waitForTimeout(600);await page.screenshot({path:`${output}/bag-body.png`});
+ // Without tickets the window explains where to get them.
+ await hat.click({button:'right'});await page.getByRole('menuitem',{name:'Trocar cor'}).click();
+ await expect(page.getByRole('dialog',{name:'Trocar cor'}).getByRole('button',{name:/Aplicar/})).toBeDisabled();
+ await expect(page.getByRole('dialog',{name:'Trocar cor'})).toContainText('Compre Tickets de Cor na loja.');
+ await page.getByRole('dialog',{name:'Trocar cor'}).getByRole('button',{name:'Cancelar'}).click();
+ // Discard asks first.
+ const costume=bag.locator('.bag-grid').getByRole('button',{name:'Raposa Arcana',exact:true});
+ await costume.click({button:'right'});await page.getByRole('menuitem',{name:'Excluir'}).click();
+ const confirm=page.getByRole('alertdialog',{name:'Excluir item'});await expect(confirm).toBeVisible();await page.screenshot({path:`${output}/discard-confirm.png`});
+ await confirm.getByRole('button',{name:'Excluir',exact:true}).click();await expect(confirm).toHaveCount(0,{timeout:10000});
+ saved=await profile();assert.ok(!saved.inventory.includes('costume-arcane-fox'));
+ await bag.getByRole('button',{name:'Fechar'}).first().click();
+ // Shop: tickets by quantity.
+ await page.locator('.bottom-dock').getByRole('button',{name:/Loja/}).click();
+ const shop=page.getByRole('dialog',{name:'Loja da Brasa'});await expect(shop).toBeVisible();
+ await shop.getByRole('button',{name:'Comprar Ticket de Cor'}).click();
+ await shop.getByRole('button',{name:'Mais'}).click();await shop.getByRole('button',{name:'Mais'}).click();
+ await page.screenshot({path:`${output}/shop-ticket.png`});
+ await shop.getByRole('button',{name:'Confirmar'}).click();await expect(shop).toContainText('3 Tickets de Cor guardados na mochila!',{timeout:10000});
+ saved=await profile();assert.equal(saved.colorTickets,3);
+ if(errors.length)throw Error(errors.join('; '));
+ console.log(`Cores e menu da mochila: ok · capturas em ${output}`);
+}finally{await browser.close();}

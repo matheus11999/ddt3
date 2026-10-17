@@ -63,10 +63,10 @@ async function run(){
    const opposite=gender==='male'?{face:'face-smile',outfit:'outfit-dancer',hat:'hat-ruby',hair:'hair-ponytail'}:{face:'face-brave',outfit:'outfit-surfer',hat:'hat-cap',hair:'hair-undercut'};
    for(const item of Object.values(opposite)){assert.ok(before.inventory.includes(item));assert.match((await client.request({type:'equip',item},'error')).message,/gênero/);}
    const items=Object.fromEntries(SLOTS.map(slot=>[slot,before.equipment[slot]])) as Record<typeof SLOTS[number],string>;
-   assert.match((await client.request({type:'customize',selection:{items:{...items,...opposite},dyes:{hat:'coral'}}},'error')).message,/gênero/);assert.deepEqual(await readProfile(sessions[index]),before);
-   await client.request({type:'dye',slot:'hat',color:'coral'},'profile');const dyed=await readProfile(sessions[index]);assert.equal(dyed.gender,gender);assert.equal(dyed.equipment.dyes?.hat,'coral');assert.equal(dyed.equipment.face,before.equipment.face);
+   assert.match((await client.request({type:'customize',selection:{items:{...items,...opposite}}},'error')).message,/gênero/);assert.deepEqual(await readProfile(sessions[index]),before);
+   await client.request({type:'recolor',item:before.equipment.hat,color:'#f24b64'},'profile');const dyed=await readProfile(sessions[index]);assert.equal(dyed.gender,gender);assert.equal(dyed.equipment.colors?.hat,'#f24b64');assert.equal(dyed.equipment.face,before.equipment.face);
   }
-  checks.push('owned opposite-gender face/outfit/hat/hair cannot equip, full customization rolls back, compatible dye remains valid after reconnect');
+  checks.push('owned opposite-gender face/outfit/hat/hair cannot equip, full customization rolls back, compatible ticket color remains valid after reconnect');
 
   for(const [index,client] of clients.entries()){
    const before=await readProfile(sessions[index]),costume=STARTER_COSTUMES[index];assert.ok(STARTER_COSTUMES.every(id=>before.inventory.includes(id)));assert.ok(before.inventory.every(id=>!isEmptyItem(id)));

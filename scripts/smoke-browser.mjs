@@ -45,12 +45,10 @@ try{
  await expect(bag.getByRole('button',{name:'Surfista da Maré',exact:true})).toBeVisible();await expect(bag.getByRole('button',{name:'Executivo',exact:true})).toBeVisible();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('hat');
  await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).click();
- await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
- await expect.poll(async()=>(await profile()).equipment.dyes?.hat,{timeout:15000}).toBe('coral');
+ await expect.poll(async()=>(await profile()).equipment.hat,{timeout:15000}).toBe('hat-cap');
  await expect(bag.locator('.equipment-status')).toHaveText('Visual equipado');
  await bag.locator('[data-slot="hat"]').dblclick();await expect.poll(async()=>(await profile()).equipment.hat).toBe('hat-none');
  await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).dragTo(bag.locator('[data-slot="hat"]'));
- await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('glasses');
  await bag.getByRole('button',{name:'Óculos Sprint',exact:true}).dblclick();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('face');
@@ -60,10 +58,10 @@ try{
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('bracelet');
  await bag.getByRole('button',{name:'Bracelete Solar',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('outfit');await bag.getByRole('button',{name:'Executivo',exact:true}).click();
- await expect.poll(async()=>(await profile()).equipment,{timeout:15000}).toMatchObject({hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',dyes:{hat:'coral'},wristband:'wristband-braid',bracelet:'bracelet-sun',outfit:'outfit-executive'});
+ await expect.poll(async()=>(await profile()).equipment,{timeout:15000}).toMatchObject({hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',wristband:'wristband-braid',bracelet:'bracelet-sun',outfit:'outfit-executive'});
  await expect(bag.locator('.equipment-status')).toHaveText('Visual equipado');
  const saved=await profile();
- assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-sport');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.dyes.hat,'coral');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
+ assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-sport');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
  assert.equal(saved.equipment.outfit,'outfit-executive');
  const savedAttack=Number(await bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b').innerText());
  const customizationCommands=commands.filter(c=>c.type==='customize');assert.ok(customizationCommands.length>0);assert.ok(customizationCommands.every(command=>events.some(event=>event.type==='profile'&&event.requestId===command.requestId)),'every equipment request has a persistence acknowledgement');
@@ -141,6 +139,6 @@ try{
  await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual(errors,[]);
  assert.deepEqual(events.filter(event=>event.type==='error'),[]);
- const report={ok:true,base,checks:['async scroll API cleanup regression','9 current slots','two owned outfits in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','immediate equipment and tint application','slot double-click removes equipment','drag equipment','simultaneous glasses and hat','server saved dyes jewelry and executive outfit','correlated persistence acknowledgements without Save/Restore/trash','static character and no pose controls','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
+ const report={ok:true,base,checks:['async scroll API cleanup regression','9 current slots','two owned outfits in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','immediate equipment and tint application','slot double-click removes equipment','drag equipment','simultaneous glasses and hat','server saved jewelry and executive outfit','correlated persistence acknowledgements without Save/Restore/trash','static character and no pose controls','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
  await writeFile('test-results/browser-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){await page.screenshot({path:'test-results/browser-failure.png'}).catch(()=>{});throw error;}finally{await browser.close();}

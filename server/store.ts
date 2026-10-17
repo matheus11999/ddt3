@@ -1,23 +1,26 @@
-import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS} from '../shared/shop';
+import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS,CONSUMABLE_OFFER_BY_ID,isConsumableOffer} from '../shared/shop';
+import {COLOR_SLOTS,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
+import type {BodyColorPart} from '../shared/colors';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,MAX_UPGRADE,normalizeDyes,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS} from '../shared/catalog';
+import {canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
-import type {CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
+import type {ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
-export interface ProfileStore {buy(id:string,items:string[]):Promise<ShopOutcome>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ColorOutcome {profile:Profile;result:ColorResult;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;recolor?(id:string,item:string,color:string|null):Promise<ColorOutcome>;bodyColor?(id:string,part:BodyColorPart,color:string|null):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
 export const RANKING_TIME_ZONE='America/Sao_Paulo';
 
-type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>};
+type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>&{dyes?:Record<string,string>}};
 const integer=(value:unknown,fallback=0,max=Number.MAX_SAFE_INTEGER)=>typeof value==='number'&&Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):fallback;
 
 const SHOP_ONLY_COSMETICS=new Set(['outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
@@ -62,14 +65,16 @@ export function normalizeProfile(raw:StoredProfile):Profile {
   if(!isEmptyItem(equipment[slot])&&!inventory.includes(equipment[slot]))inventory.push(equipment[slot]);
  }
  const copies=validCopies(raw.equipment?.copies,equipment,inventory);if(Object.keys(copies).length)equipment.copies=copies;
- equipment.upgrade=upgrades[equippedCopy(equipment,'weapon')]??0;
- equipment.dyes=normalizeDyes(raw.equipment?.dyes);
  equipment.visibility=normalizeVisibility(raw.equipment?.visibility);
- const worn=equippedCompositions(equipment,compositions);if(Object.keys(worn).length)equipment.compositions=worn;
+ const itemColors=normalizeItemColors(raw.itemColors,inventory);
+ // The retired free dyes become the ticket color of the copy that wore them.
+ if(raw.itemColors===undefined&&raw.equipment?.dyes)for(const slot of COLOR_SLOTS){const hex=LEGACY_DYE_COLORS[raw.equipment.dyes[slot]];const key=equippedCopy(equipment,slot);if(hex&&!isEmptyItem(key))itemColors[key]=hex;}
  const xp=integer(raw.xp);
  // Experience earned at the former cap immediately counts toward the new levels.
  const level=Math.max(normalizeLevel(integer(raw.level,1)),levelForXp(xp));
- return {id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout)};
+ const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
+  itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS)};
+ refreshWorn(profile);return profile;
 }
 
 /** Keeps only the copy keys that are owned and match the item in their slot. */
@@ -81,11 +86,18 @@ function validCopies(value:unknown,equipment:Record<Slot,string>,inventory:reado
  const seen=new Set<string>();for(const [slot,key] of Object.entries(result))if(seen.has(key))delete result[slot as Slot];else seen.add(key);
  return result;
 }
+/** Everything renderers and battles read from the equipment comes from the copies actually worn. */
 function refreshWorn(profile:Profile){
- profile.equipment.upgrade=profile.upgrades[equippedCopy(profile.equipment,'weapon')]??0;
- delete profile.equipment.compositions;
- const worn=equippedCompositions(profile.equipment,profile.compositions);if(Object.keys(worn).length)profile.equipment.compositions=worn;
+ const equipment=profile.equipment;
+ equipment.upgrade=profile.upgrades[equippedCopy(equipment,'weapon')]??0;
+ delete equipment.compositions;delete equipment.colors;delete equipment.skin;delete equipment.eyes;delete (equipment as {dyes?:unknown}).dyes;
+ const worn=equippedCompositions(equipment,profile.compositions);if(Object.keys(worn).length)equipment.compositions=worn;
+ const colors=equippedColors(equipment,profile.itemColors);if(Object.keys(colors).length)equipment.colors=colors;
+ if(profile.bodyColors.skin)equipment.skin=profile.bodyColors.skin;
+ if(profile.bodyColors.eyes)equipment.eyes=profile.bodyColors.eyes;
 }
+/** Item types the character always wears something of: the last owned one cannot be discarded. */
+const ALWAYS_WORN=new Set(['weapon','outfit','face']);
 
 export class Store implements ProfileStore {
  pool=new pg.Pool({connectionString:process.env.DATABASE_URL??'postgres://brasa:brasa_local@localhost:5447/brasa',max:12});
@@ -128,7 +140,7 @@ export class Store implements ProfileStore {
    const selected=Object.fromEntries((Object.keys(SLOT_NAMES) as Slot[]).map(slot=>[slot,equipment[slot]])) as Record<Slot,string>;
    const copies=validCopies(equipment.copies,selected,profile.inventory);
    if(Object.keys(equipment.copies??{}).some(slot=>!copies[slot as Slot]&&isCopyKey(String(equipment.copies?.[slot as Slot]))))throw Error('Esta cópia não está na sua mochila.');
-   profile.equipment={...selected,dyes:normalizeDyes(equipment.dyes),visibility:normalizeVisibility(visibility.data),upgrade:0,...(Object.keys(copies).length?{copies}:{})};
+   profile.equipment={...selected,visibility:normalizeVisibility(visibility.data),upgrade:0,...(Object.keys(copies).length?{copies}:{})};
    refreshWorn(profile);
    profile.equippedOnce=true;
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return profile;
@@ -172,21 +184,86 @@ export class Store implements ProfileStore {
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
- async buy(id:string,items:string[]):Promise<ShopOutcome>{
+ async buy(id:string,items:string[],quantity=1):Promise<ShopOutcome>{
   if(!Array.isArray(items)||items.length<1||items.length>MAX_SHOP_ITEMS||new Set(items).size!==items.length)throw Error('Confira os itens do carrinho.');
-  const offers=items.map(id=>Object.hasOwn(SHOP_OFFER_BY_ID,id)?SHOP_OFFER_BY_ID[id]:undefined);
+  if(!Number.isInteger(quantity)||quantity<1||quantity>20)throw Error('Escolha uma quantidade de 1 a 20.');
+  // Consumables (the color ticket) are bought alone and by quantity; equipment always one each.
+  const consumable=items.length===1&&isConsumableOffer(items[0])?CONSUMABLE_OFFER_BY_ID[items[0]]:undefined;
+  if(!consumable&&quantity!==1)throw Error('Só consumíveis são comprados em quantidade.');
+  const offers=consumable?[]:items.map(id=>Object.hasOwn(SHOP_OFFER_BY_ID,id)?SHOP_OFFER_BY_ID[id]:undefined);
   if(offers.some(offer=>!offer))throw Error('Um item não está disponível na loja.');
-  const spent=offers.reduce((total,offer)=>total+offer!.price,0);
+  const spent=consumable?consumable.price*quantity:offers.reduce((total,offer)=>total+offer!.price,0);
+  return this.mutate(id,profile=>{
+   if(!consumable&&items.some(item=>!canEquipItem(item,profile.gender)))throw Error('Este item não é compatível com o gênero do seu personagem.');
+   if(profile.gold<spent)throw Error('Moedas Brasa insuficientes para esta compra.');
+   profile.gold-=spent;
+   if(consumable){if(profile.colorTickets+quantity>MAX_COLOR_TICKETS)throw Error('Sua mochila já tem tickets demais.');profile.colorTickets+=quantity;return {profile,result:{items:[...items],spent,quantity}};}
+   // An item already owned arrives as a separate copy, with its own forge level and compositions.
+   for(const item of items){const key=nextCopyKey(profile.inventory,item);profile.inventory.push(key);if(key!==item&&WEAPONS.some(w=>w.id===item))profile.upgrades[key]=0;}
+   return {profile,result:{items:[...items],spent}};
+  });
+ }
+ /** Paints one owned cosmetic copy (or restores its original colors) for one color ticket. */
+ async recolor(id:string,item:string,color:string|null):Promise<ColorOutcome>{
+  return this.mutate(id,profile=>{
+   const base=CATALOG[copyBase(item)];
+   if(!base||!profile.inventory.includes(item)||!isColorSlot(base.slot)||isEmptyItem(base))throw Error('Escolha um visual da sua mochila que possa mudar de cor.');
+   if((profile.itemColors[item]??null)===color)throw Error('A peça já está com essa cor.');
+   if(profile.colorTickets<1)throw Error('Você precisa de um Ticket de Cor. Compre na loja.');
+   profile.colorTickets--;
+   if(color)profile.itemColors[item]=color;else delete profile.itemColors[item];
+   refreshWorn(profile);
+   return {profile,result:{target:item,color,tickets:profile.colorTickets}};
+  });
+ }
+ /** Skin or eye color of the character, for one color ticket. */
+ async bodyColor(id:string,part:BodyColorPart,color:string|null):Promise<ColorOutcome>{
+  return this.mutate(id,profile=>{
+   if((profile.bodyColors[part]??null)===color)throw Error('Seu personagem já está com essa cor.');
+   if(profile.colorTickets<1)throw Error('Você precisa de um Ticket de Cor. Compre na loja.');
+   profile.colorTickets--;
+   if(color)profile.bodyColors[part]=color;else delete profile.bodyColors[part];
+   refreshWorn(profile);
+   return {profile,result:{target:part,color,tickets:profile.colorTickets}};
+  });
+ }
+ /** Throws an owned copy away for good, with its forge level, compositions and color. */
+ async discard(id:string,item:string):Promise<Profile>{
+  return (await this.mutate(id,profile=>{
+   const base=CATALOG[copyBase(item)];
+   if(!base||!profile.inventory.includes(item))throw Error('Este item não está na sua mochila.');
+   const sameKind=profile.inventory.filter(key=>CATALOG[copyBase(key)]?.slot===base.slot&&canEquipItem(copyBase(key),profile.gender));
+   if(ALWAYS_WORN.has(base.slot)&&sameKind.length<=1)throw Error(`Você precisa ficar com pelo menos um item de ${SLOT_NAMES[base.slot].toLowerCase()}.`);
+   const equipment=profile.equipment,unequip=unequipForGender(profile.gender);
+   const worn=slotsForItem(base).filter(slot=>equippedCopy(equipment,slot)===item);
+   const forget=(key:string)=>{profile.inventory=profile.inventory.filter(owned=>owned!==key);delete profile.upgrades[key];delete profile.compositions[key];delete profile.itemColors[key];};
+   const copies=profile.inventory.filter(key=>isCopyKey(key)&&copyBase(key)===base.id);
+   if(item===base.id&&copies.length){
+    // The plain id must stay with a remaining copy: the newest copy moves into it.
+    const last=copies.sort((a,b)=>Number(a.split('~')[1])-Number(b.split('~')[1])).at(-1)!;
+    const move=<T,>(record:Record<string,T>)=>{if(Object.hasOwn(record,last))record[base.id]=record[last];else delete record[base.id];};
+    move(profile.upgrades);move(profile.compositions);move(profile.itemColors);
+    for(const slot of Object.keys(equipment.copies??{}) as Slot[])if(equipment.copies?.[slot]===last)delete equipment.copies[slot];
+    forget(last);
+   }else forget(item);
+   for(const slot of worn){
+    delete equipment.copies?.[slot];
+    const fallback=unequip[slot];
+    if(fallback&&isEmptyItem(fallback))equipment[slot]=fallback;
+    else{const other=profile.inventory.find(key=>CATALOG[copyBase(key)]?.slot===base.slot&&canEquipItem(copyBase(key),profile.gender)&&!slotsForItem(base).some(s=>s!==slot&&equippedCopy(equipment,s)===key));if(!other)throw Error('Não foi possível trocar o item equipado.');equipment[slot]=copyBase(other);if(isCopyKey(other))(equipment.copies??={})[slot]=other;}
+   }
+   if(equipment.copies&&!Object.keys(equipment.copies).length)delete equipment.copies;
+   refreshWorn(profile);
+   return {profile};
+  })).profile;
+ }
+ /** Reads, changes and saves one profile inside a row lock. */
+ private async mutate<T extends {profile:Profile}>(id:string,change:(profile:Profile)=>T):Promise<T>{
   const c=await this.pool.connect();try{
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
-   const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
-   if(items.some(item=>!canEquipItem(item,profile.gender)))throw Error('Este item não é compatível com o gênero do seu personagem.');
-   if(profile.gold<spent)throw Error('Moedas Brasa insuficientes para esta compra.');
-   // An item already owned arrives as a separate copy, with its own forge level and compositions.
-   profile.gold-=spent;for(const item of items){const key=nextCopyKey(profile.inventory,item);profile.inventory.push(key);if(key!==item&&WEAPONS.some(w=>w.id===item))profile.upgrades[key]=0;}
-   await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');
-   return {profile,result:{items:[...items],spent}};
+   const outcome=change(normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}));
+   await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,outcome.profile]);await c.query('COMMIT');return outcome;
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
  /**

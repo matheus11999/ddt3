@@ -212,6 +212,26 @@
   color: #fff;
 }
 .bag-window .avatar-options-toggle[aria-expanded="true"] { background: linear-gradient(#d8711f, #f9b55a); }
+/* Cor do corpo e dos olhos: ao lado da engrenagem de exibição. */
+.bag-window .avatar-body-color {
+  position: absolute;
+  right: 42px;
+  bottom: 4px;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #fff2cf;
+  border-radius: 50%;
+  background: linear-gradient(#f9b55a, #d8711f);
+  box-shadow: inset 0 1px #ffe2ad, 0 2px #8b4416;
+  color: #fff;
+}
+.bag-window .avatar-body-color:disabled { filter: saturate(.4); opacity: .6; }
+.bag-window .avatar-body-color-badge { position: absolute; right: 3px; bottom: 3px; padding: 1px; border-radius: 50%; background: #8a3f0b; }
+.bag-window .bag-tip-color { display: inline-block; width: 11px; height: 11px; margin-right: 6px; border: 1px solid #fff; border-radius: 3px; box-shadow: 0 0 0 1px #8a3f0b; vertical-align: -1px; }
+.bag-window .bag-layout { position: relative; }
 .bag-window .avatar-display-options {
   position: absolute;
   right: 0;
@@ -872,6 +892,7 @@ html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower { gap
 html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-rarity][data-card-variant] { width: 44px; height: 44px; }
 html.mobile-landscape .bag-window .dye-swatch { width: 18px; height: 18px; min-width: 18px; min-height: 18px; }
 html.mobile-landscape .bag-window .avatar-options-toggle { width: 30px; height: 30px; }
+html.mobile-landscape .bag-window .avatar-body-color { right: 36px; width: 30px; height: 30px; }
 html.mobile-landscape .bag-window .avatar-display-options { width: 180px; padding: 7px; }
 html.mobile-landscape .bag-window .avatar-display-options label { min-height: 28px; font-size: 11px; }
 html.mobile-landscape .bag-window .bag-progress { flex: none; gap: 5px; }

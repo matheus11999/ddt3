@@ -43,7 +43,7 @@ npm run verify:cosmetics            # relatório, não reprova
 npm run verify:cosmetics -- --strict # reprova se restar qualquer problema
 ```
 
-Inicia o Vite sozinho. `BROWSER_EXECUTABLE` aponta um Chromium específico; `OUTPUT_DIR` muda a pasta (padrão `test-results/cosmetics`). Gera `report.md`, `report.json`, `zones.png` (cada peça com sua zona: verde dentro, vermelho fora), `matrix.png` (chapéu × cabelo com Óculos Sprint) e `prone.png` (cada roupa deitada parada, arrastando, carregando e arremessando).
+Inicia o Vite sozinho. `BROWSER_EXECUTABLE` aponta um Chromium específico; `OUTPUT_DIR` muda a pasta (padrão `test-results/cosmetics`). Gera `report.md`, `report.json`, `colors.png` (cada peça em 6 cores e o corpo em 6 tons de pele e de olho, ver `docs/color-tickets.md`), `zones.png` (cada peça com sua zona: verde dentro, vermelho fora), `matrix.png` (chapéu × cabelo com Óculos Sprint) e `prone.png` (cada roupa deitada parada, arrastando, carregando e arremessando).
 
 Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos (cabelo sobre olhos/boca, frente dos óculos encoberta) e a proporção das roupas. Rostos continuam em `verify-faces.mjs`. A inspeção visual do usuário continua necessária: a ferramenta barra o que está fora da medida, não decide se a arte é bonita.
 
@@ -60,7 +60,8 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 1. Pintar a peça vestida sobre o molde de 1254 px, na mesma perspectiva 3/4, respeitando a zona da classe.
 2. Adicionar a entrada em `COSMETIC_MANIFEST` com `rig: RIG_VERSION`, classe, perfil (chapéus) e pin: chapéu nos dois pontos da faixa interna até `HEAD_ANCHORS.hatSeat`; óculos no centro das lentes até os olhos; cabelo pintado direto no molde usa `onTemplate`. Cabelo novo entrega também a variante `covered`.
 3. Adicionar o item ao catálogo. O teste `cosmetic-fit.test.ts` falha se faltar manifesto ou se o slot divergir.
-4. Rodar `npm run verify:cosmetics` e corrigir a arte até o item sair do relatório; depois inspecionar as pranchas.
+4. Adicionar a região de cor em `src/game/rig/recolorZones.ts` (peça inteira, ou a faixa de cor da parte principal). Ver `docs/color-tickets.md`.
+5. Rodar `npm run verify:cosmetics` e corrigir a arte até o item sair do relatório, inclusive a seção "Ticket de Cor"; depois inspecionar as pranchas, incluindo `colors.png`.
 
 Nenhum número novo vai para `appearance.ts` ou `headwear.ts`.
 

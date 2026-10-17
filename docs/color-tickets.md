@@ -1,0 +1,70 @@
+# Ticket de Cor, menu da mochila e Excluir
+
+## O que o jogador vê
+
+- **Botão direito na mochila** (grade e slots do personagem) abre o menu do jogo, nunca o do navegador:
+  - **Equipar** ou **Remover**;
+  - **Aprimorar**: armas e itens que aceitam composição; abre o Ferreiro com o item já carregado;
+  - **Trocar cor**: cabelo, chapéu, óculos e roupa;
+  - **Excluir**: pede confirmação. Fica desativado na última arma, roupa ou rosto.
+- **Trocar cor** abre uma janela com:
+  - a prévia do personagem com a peça;
+  - "Original" e 16 cores prontas;
+  - seletor RGB (paleta, controles R/G/B e HEX).
+- **Cor do corpo e dos olhos**: o botão ao lado do personagem na mochila abre a mesma janela, com as abas Corpo e Olhos.
+  - Corpo: rosto, orelhas, braços e pernas.
+  - Olhos: só a íris; o branco e o contorno ficam.
+- Cada troca gasta **1 Ticket de Cor**, inclusive voltar ao Original.
+  - Sem ticket, o botão Aplicar fica desativado e a janela manda comprar na loja.
+  - Personagem novo (ou perfil antigo) começa com 3 tickets.
+  - A loja vende o ticket por 60 moedas, com escolha de quantidade (até 20 por compra).
+  - A mochila mostra o ticket na grade com a quantidade, e o total junto das moedas.
+
+## Regras no servidor
+
+- O servidor decide tudo; o cliente só pede.
+  - `recolor {item,color|null}`, `body-color {part,color}` e `discard {item}`;
+  - `shop-buy` com `quantity` para o ticket.
+- Cada ação roda numa transação com trava da linha do perfil (`Store.mutate`). Se faltar ticket, nada muda.
+- A cor é **por cópia**: `profile.itemColors['hat-cap~2']`.
+  - O servidor calcula `equipment.colors`, `equipment.skin` e `equipment.eyes` a partir das cópias vestidas (`refreshWorn`).
+  - Trocar de cópia troca a cor.
+- Excluir apaga a cópia com forja, composição e cor.
+  - Ao excluir a peça base com cópias, a cópia mais nova passa a ser a base.
+  - A peça vestida volta para "sem item", ou para outra roupa ou rosto que o jogador tenha.
+- Recolor, cor do corpo e excluir ficam bloqueados durante a partida.
+- A tintura antiga e gratuita (`equipment.dyes`, 4 cores por slot) saiu.
+  - Perfis antigos migram para `itemColors` com as mesmas cores (`LEGACY_DYE_COLORS`).
+
+## Como a cor é pintada
+
+- `src/game/recolor.ts` repinta sobre a arte pintada, mantendo luz e sombra.
+  - A claridade média da região vai para a da cor nova; cada pixel mantém a distância dela, então dobras, contornos e brilhos continuam.
+- **Região de cor por peça** em `src/game/rig/recolorZones.ts`:
+  - Sem `hue`: muda a peça inteira (cabelos, Óculos Sprint e Gatinho).
+  - Com `hue`, `tolerance` e `minSaturation`: muda só a cor principal pintada. A aba, a estrela, as faixas, as penas, o dourado e as partes laranja ficam como estão.
+  - `label` é o texto que a janela mostra ("Muda: a copa do boné; a aba e a estrela ficam como estão").
+- Pele: multiplica a cor pintada pela razão entre a cor escolhida e a pele de referência (252,207,172), então a sombra acompanha qualquer tom.
+  - Nas roupas usa uma faixa estrita, para o short laranja e o forro salmão não virarem pele.
+- Olhos: só a íris, dentro das elipses `EYES` de `faceExpressions.ts`.
+
+## Cosmético novo
+
+- Todo cabelo, chapéu, óculos e roupa precisa de uma entrada em `RECOLOR_ZONES`.
+  - O teste `tests/colors.test.ts` falha sem ela.
+- `npm run verify:cosmetics` mede a região de cada peça:
+  - Uma região com `hue` precisa cobrir de 6% a 85% da peça pintada (`RECOLOR_COVERAGE`).
+  - Abaixo disso, a troca quase não aparece.
+  - Acima disso, a faixa pegou a peça toda ou a pele: use a peça inteira ou estreite a faixa.
+- O validador desenha `colors.png`:
+  - cada peça na cor original e em 5 cores;
+  - a cabeça em 6 tons de pele e 6 cores de olho;
+  - cada roupa em 6 tons de pele.
+- Confira na prancha se só a parte certa mudou.
+- Ao pintar a arte nova, deixe a parte que deve mudar de cor numa cor viva e única. Os detalhes que não mudam (metal, aba, enfeites) devem ficar em outra cor.
+
+## Testes
+
+- `tests/colors.test.ts` testa regiões, migração, cobrança, cópias, compra por quantidade e excluir.
+- `npm run test:colors:browser` roda o menu, a janela de cor, corpo e olhos, sem ticket, excluir e a compra na loja. As capturas ficam em `test-results/colors/`.
+- Arte do ticket: `public/assets/ui/color-ticket.png`, gerada pelo Codex. Os originais e o prompt estão em `/mnt/project-files/troca-de-cor/`.

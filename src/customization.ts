@@ -1,17 +1,16 @@
-import {DYE_SLOTS,normalizeVisibility,SLOTS} from '../shared/catalog';
-import type {DyeId,DyeSlot,Equipment,EquipmentVisibility,Slot} from '../shared/catalog';
+import {normalizeVisibility,SLOTS} from '../shared/catalog';
+import type {Equipment,EquipmentVisibility,Slot} from '../shared/catalog';
 import type {Command} from '../shared/protocol';
 
 export interface CustomizationPatch {
  items?:Partial<Record<Slot,string>>;
  /** The owned copy for a slot in `items` (omit for the first copy). */
  copies?:Partial<Record<Slot,string>>;
- dyes?:Partial<Record<DyeSlot,DyeId>>;
  visibility?:EquipmentVisibility;
 }
 type CustomizeCommand=Extract<Command,{type:'customize'}>;
 export function appearanceKey(equipment:Equipment){
- return JSON.stringify([SLOTS.map(slot=>equipment[slot]),SLOTS.map(slot=>equipment.copies?.[slot]??''),DYE_SLOTS.map(slot=>equipment.dyes?.[slot]??'original'),normalizeVisibility(equipment.visibility)]);
+ return JSON.stringify([SLOTS.map(slot=>equipment[slot]),SLOTS.map(slot=>equipment.copies?.[slot]??''),normalizeVisibility(equipment.visibility)]);
 }
 
 /** One transaction at a time. Later clicks merge into the latest desired appearance. */
@@ -24,7 +23,7 @@ export class CustomizationQueue {
   const base=this.desired??this.confirmed();
   // Changing a slot drops its old copy unless the patch names the new one.
   const copies={...base.copies};for(const slot of Object.keys(patch.items??{}) as Slot[]){delete copies[slot];const copy=patch.copies?.[slot];if(copy)copies[slot]=copy;}
-  this.desired={...base,...patch.items,copies,dyes:{...base.dyes,...patch.dyes},visibility:{...normalizeVisibility(base.visibility),...patch.visibility}};
+  this.desired={...base,...patch.items,copies,visibility:{...normalizeVisibility(base.visibility),...patch.visibility}};
   this.flush();
  }
  matches(requestId:string){return this.active?.requestId===requestId;}
@@ -43,6 +42,6 @@ export class CustomizationQueue {
   const next=this.desired,requestId=`appearance-${++this.sequence}`;
   this.active={requestId};
   this.publish(next,true);
-  this.send({type:'customize',requestId,selection:{items:Object.fromEntries(SLOTS.map(slot=>[slot,next[slot]])) as Record<Slot,string>,copies:{...next.copies},dyes:{...next.dyes},visibility:normalizeVisibility(next.visibility)}});
+  this.send({type:'customize',requestId,selection:{items:Object.fromEntries(SLOTS.map(slot=>[slot,next[slot]])) as Record<Slot,string>,copies:{...next.copies},visibility:normalizeVisibility(next.visibility)}});
  }
 }

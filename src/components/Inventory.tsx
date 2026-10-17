@@ -1,11 +1,15 @@
 import {RewardIcon} from './RewardIcon';
-import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
-import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
+import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {attributes,itemAttributes,CATALOG,DYES,DYE_SLOTS,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
-import type {CharacterGender,DyeId,DyeSlot,Equipment,Slot} from '../../shared/catalog';
+import {attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
+import type {CharacterGender,Equipment,Slot} from '../../shared/catalog';
+import {COLOR_TICKET,equippedColors} from '../../shared/colors';
+import {canCompose} from '../../shared/composition';
+import {BagContextMenu,ColorStudio,DiscardConfirm,MENU_ICONS,TicketIcon,canRecolor} from './ColorStudio';
+import type {BagMenuAction,ColorTarget} from './ColorStudio';
 import {levelProgress} from '../../shared/progression';
 import {COMPOSITION_STAT_NAMES} from '../../shared/composition';
 import type {Compositions,CompositionStat} from '../../shared/composition';
@@ -32,22 +36,22 @@ const BAG_TABS:{id:string;name:string;Icon:LucideIcon}[]=[{id:'all',name:'Tudo',
 export type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
 function searchable(text:string){return text.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 
-export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void}){
+export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:string)=>void}){
  const state=useGame(),p=state.profile!;
  const equipment=state.customizationEquipment??p.equipment,pending=state.customizationPending;
  const [tab,setTab]=useState('all'),[category,setCategory]=useState<Slot|'all'>('all'),[activeSlot,setActiveSlot]=useState<Slot|null>(null),[query,setQuery]=useState(''),[page,setPage]=useState(0);
  const [selected,setSelected]=useState(()=>equippedCopy(p.equipment,'weapon')),[dragging,setDragging]=useState<string|null>(null),[tooltip,setTooltip]=useState<Tip|null>(null);
  const [feedback,setFeedback]=useState<string|null>(null);
+ const [menu,setMenu]=useState<{x:number;y:number;key:string;slot?:Slot}|null>(null),[studio,setStudio]=useState<ColorTarget|null>(null),[discarding,setDiscarding]=useState<string|null>(null),[discardPending,setDiscardPending]=useState(false);
+ const discardSent=useRef<unknown>(null);
  const hold=useRef<{timer:ReturnType<typeof setTimeout>|null;x:number;y:number;triggered:boolean}>({timer:null,x:0,y:0,triggered:false}),touchUntil=useRef(0);
  const [previewFlash,setPreviewFlash]=useState<{id:string;key:number}|null>(null);
  const [displayOptions,setDisplayOptions]=useState(false),optionsRef=useRef<HTMLDivElement>(null),optionsButton=useRef<HTMLButtonElement>(null);
  const locked=!!state.battle||state.status!=='online';
- const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equippedCopy(equipment,'weapon')]??0,compositions:equippedCompositions(equipment,p.compositions)}),[equipment,p.upgrades,p.compositions]);
+ const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equippedCopy(equipment,'weapon')]??0,compositions:equippedCompositions(equipment,p.compositions),colors:equippedColors(equipment,p.itemColors),skin:p.bodyColors.skin,eyes:p.bodyColors.eyes}),[equipment,p.upgrades,p.compositions,p.itemColors,p.bodyColors]);
  const stats=attributes(preview),item=CATALOG[copyBase(selected)],unequip=unequipForGender(p.gender);
- const compatible=!!item&&canEquipItem(item,p.gender);
- const dyeable=compatible&&DYE_SLOTS.includes(item.slot as DyeSlot)&&item.visual?.variant!=='none';
  // Every owned copy is its own card (repeat purchases), listed right after the first one.
- const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).flatMap(i=>p.inventory.filter(key=>copyBase(key)===i.id)),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
+ const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).flatMap(i=>p.inventory.filter(key=>copyBase(key)===i.id)),...(tab==='all'&&category==='all'&&p.colorTickets>0&&searchable(COLOR_TICKET.name).includes(searchable(query))?[COLOR_TICKET.id]:[]),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
 
  useEffect(()=>{if(!previewFlash)return;const timer=setTimeout(()=>setPreviewFlash(null),650);return()=>clearTimeout(timer);},[previewFlash]);
@@ -71,10 +75,30 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
   const freed=Object.fromEntries(slotsForItem(next).filter(other=>other!==target&&equipment[other]===next.id).map(other=>[other,unequip[other]??next.id]));
   client.customize({items:{...freed,[target]:next.id},copies:isCopyKey(id)?{[target]:id}:{}});setPreviewFlash({id,key:Date.now()});setFeedback(null);audio.play('click');
  }
- function changeDye(color:DyeId){
-  if(locked||!dyeable)return;
-  client.customize({items:{[item.slot]:item.id},copies:isCopyKey(selected)?{[item.slot]:selected}:{},dyes:{[item.slot]:color}});setPreviewFlash({id:selected,key:Date.now()});setFeedback(null);audio.play('click');
+ useEffect(()=>{
+  if(!discardSent.current)return;const result=state.discardResult;
+  if(result&&result!==discardSent.current){const name=CATALOG[copyBase(result.item)]?.name??'Item';discardSent.current=null;setDiscardPending(false);setDiscarding(null);setFeedback(`${name} excluído da mochila.`);if(selected===result.item)setSelected(equippedCopy(p.equipment,'weapon'));return;}
+  if(state.error||state.status!=='online'){discardSent.current=null;setDiscardPending(false);setDiscarding(null);if(state.error)setFeedback(state.error);}
+ },[state.discardResult,state.error,state.status,selected,p.equipment]);
+ const closeStudio=useCallback(()=>setStudio(null),[]),studioDone=useCallback((message:string)=>{setStudio(null);setFeedback(message);},[]);
+ /** The game's menu replaces the browser's on every item, worn or in the bag. */
+ function openMenu(event:React.MouseEvent<HTMLElement>,key:string,slot?:Slot){
+  event.preventDefault();if(Date.now()<touchUntil.current)return;
+  const it=CATALOG[copyBase(key)];if(!it||isEmptyItem(it))return;
+  endTouchTip();setTooltip(null);setSelected(key);setMenu({x:event.clientX,y:event.clientY,key,slot});audio.play('click');
  }
+ function menuActions(key:string,slot?:Slot):BagMenuAction[]{
+  const it=CATALOG[copyBase(key)]!,worn=slotsForItem(it).find(s=>equippedCopy(equipment,s)===key),fits=canEquipItem(it,p.gender),actions:BagMenuAction[]=[];
+  const wornSlot=slot??worn,fallback=wornSlot?unequip[wornSlot]:undefined,removable=!!wornSlot&&!!fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback))&&equipment[wornSlot]!==fallback;
+  if(!worn)actions.push({id:'equip',label:'Equipar',icon:MENU_ICONS.equip,disabled:locked||!fits,title:fits?undefined:'Incompatível com este personagem',onSelect:()=>equipItem(key)});
+  else if(removable)actions.push({id:'unequip',label:'Remover',icon:MENU_ICONS.equip,disabled:locked,onSelect:()=>removeFromSlot(wornSlot!)});
+  if(it.slot==='weapon'||canCompose(it))actions.push({id:'forge',label:'Aprimorar',icon:MENU_ICONS.forge,disabled:!!state.room||pending,title:state.room?'Volte à praça para visitar o ferreiro':undefined,onSelect:()=>onForge(key)});
+  if(canRecolor(key)&&fits)actions.push({id:'color',label:'Trocar cor',icon:MENU_ICONS.color,disabled:locked,onSelect:()=>setStudio({kind:'item',key})});
+  const last=['weapon','outfit','face'].includes(it.slot)&&p.inventory.filter(other=>CATALOG[copyBase(other)]?.slot===it.slot&&canEquipItem(copyBase(other),p.gender)).length<=1;
+  actions.push({id:'discard',label:'Excluir',icon:MENU_ICONS.discard,danger:true,disabled:locked||last,title:last?`Você precisa ficar com pelo menos um item de ${SLOT_NAMES[it.slot].toLowerCase()}`:undefined,onSelect:()=>setDiscarding(key)});
+  return actions;
+ }
+ function confirmDiscard(){if(!discarding||locked)return;discardSent.current=state.discardResult??{};setDiscardPending(true);client.discard(discarding);audio.play('click');}
  function removeFromSlot(slot:Slot){const fallback=unequip[slot];if(!locked&&fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback)))equipItem(fallback,slot);}
  function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equippedCopy(equipment,slot));setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
  function showTip(id:string,anchor:HTMLElement,mode:Tip['mode']){if(dragging||mode!=='touch'&&Date.now()<touchUntil.current)return;setTooltip({id,anchor,mode});}
@@ -89,22 +113,22 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
   onMouseEnter:(event:React.MouseEvent<HTMLElement>)=>showTip(id,event.currentTarget,'hover'),onMouseLeave:()=>setTooltip(null),
   onFocus:(event:React.FocusEvent<HTMLElement>)=>showTip(id,event.currentTarget,'focus'),onBlur:()=>setTooltip(null),
   onPointerDown:(event:ReactPointerEvent<HTMLElement>)=>startTouchTip(id,event),onPointerUp:endTouchTip,onPointerCancel:()=>{endTouchTip();setTooltip(null);},onPointerMove:moveTouchTip,
-  onContextMenu:(event:React.MouseEvent<HTMLElement>)=>{if(Date.now()<touchUntil.current)event.preventDefault();}
+  onContextMenu:(event:React.MouseEvent<HTMLElement>)=>openMenu(event,id)
  };}
 
  const renderSlot=(slot:Slot)=>{
   const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
   return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===copy?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
-   {...(empty?{}:tooltipEvents(copy))}
+   {...(empty?{onContextMenu:(event:React.MouseEvent)=>event.preventDefault()}:{...tooltipEvents(copy),onContextMenu:(event:React.MouseEvent<HTMLElement>)=>openMenu(event,copy,slot)})}
    onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'copy':'none';}}}
    onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG),dropped=CATALOG[copyBase(id)];if(slotAccepts(slot,dropped))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[dropped?.slot]??'equipamento'}.`);}}>
-   {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
+   {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60} color={p.itemColors[copy]} skin={preview.skin} eyes={preview.eyes}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
  const progress=levelProgress(p.level,p.xp),stoneTotal=Object.values(p.stones).reduce((sum,count)=>sum+count,0);
 
- return <Modal title="Mochila" onClose={onClose} className="bag-window" viewport>
-  <div className="inventory-body bag-layout">
+ return <Modal title="Mochila" onClose={studio||discarding||menu?()=>{}:onClose} className="bag-window" viewport>
+  <div className="inventory-body bag-layout" onContextMenu={event=>event.preventDefault()}>
    <section className="bag-profile" aria-label="Informações pessoais">
     <header className="bag-profile-head">
      <LevelBadge level={p.level} size={42}/>
@@ -115,8 +139,8 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
      <div className="equipment-slots left">{LEFT_SLOTS.map(renderSlot)}</div>
      <div className="dressing-room" onDragOver={e=>{if(!locked&&e.dataTransfer.types.includes(ITEM_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={e=>{e.preventDefault();if(e.target===e.currentTarget||!(e.target as HTMLElement).closest('[data-slot]'))equipItem(e.dataTransfer.getData(ITEM_DRAG));setDragging(null);}}>
       {preview.upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}
-      <div className="appearance-actions" aria-label="Ajustar aparência" hidden={!dyeable}>{dyeable&&<><Palette size={15} aria-hidden="true"/><div className="dye-swatches" role="group" aria-label={`Cor de ${SLOT_NAMES[item.slot]}`}>{DYES.map(dye=><button key={dye.id} title={dye.name} aria-label={`Cor ${dye.name}`} aria-pressed={(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id} disabled={locked} className={`dye-swatch ${dye.id==='original'?'original':''}`} style={{backgroundColor:dye.color}} onClick={()=>changeDye(dye.id)}>{(equipment.dyes?.[item.slot as DyeSlot]??'original')===dye.id&&<Check size={13}/>}</button>)}</div></>}</div>
       <Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
+      <button className="avatar-body-color" aria-label="Cor do corpo e dos olhos" title="Cor do corpo e dos olhos" disabled={locked} onClick={()=>{setStudio({kind:'body',part:'skin'});setTooltip(null);audio.play('click');}}><PersonStanding size={18}/><Palette size={11} className="avatar-body-color-badge" aria-hidden="true"/></button>
       <button ref={optionsButton} className="avatar-options-toggle" aria-label="Exibição do personagem" aria-expanded={displayOptions} aria-controls="avatar-display-options" title="Exibição do personagem" onClick={()=>{setDisplayOptions(value=>!value);setTooltip(null);}}><Settings size={18}/></button>
       {displayOptions&&<div ref={optionsRef} id="avatar-display-options" className="avatar-display-options" role="dialog" aria-label="Exibição do personagem" onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();setDisplayOptions(false);optionsButton.current?.focus();}}}>
        <header><strong>Exibição</strong><button aria-label="Fechar exibição" onClick={()=>{setDisplayOptions(false);optionsButton.current?.focus();}}><X size={16}/></button></header>
@@ -144,31 +168,34 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
     <div className="bag-shelf">
      <div className="bag-grid">{Array.from({length:PAGE_SIZE},(_,index)=>{
       const id=visible[index];if(!id)return <ItemCardFrame variant="slot" empty className="bag-cell empty" key={`empty-${index}`}/>;
-      const it=CATALOG[copyBase(id)],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equippedCopy(equipment,slot)===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
-      return <ItemCard key={id} rarity={it?.rarity??stoneRarity(st?.level??1)} selected={id===selected} aria-label={it?.name??st?.name} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
+      const it=id===COLOR_TICKET.id?undefined:CATALOG[copyBase(id)],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equippedCopy(equipment,slot)===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
+      return <ItemCard key={id} rarity={it?.rarity??stoneRarity(st?.level??1)} selected={id===selected} aria-label={it?.name??st?.name??(id===COLOR_TICKET.id?COLOR_TICKET.name:undefined)} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
        onDragStart={e=>{if(genderLocked){e.preventDefault();return;}e.dataTransfer.setData(ITEM_DRAG,id);e.dataTransfer.effectAllowed='copy';setDragging(id);setTooltip(null);}} onDragEnd={()=>setDragging(null)}
        onClick={()=>equipItem(id)} {...tooltipEvents(id)}>
-       {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={it.id} upgrade={level} size={60}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
-       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it?.slot==='weapon'&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}
+       {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={it.id} upgrade={level} size={60} color={p.itemColors[id]} skin={preview.skin} eyes={preview.eyes}/>:id===COLOR_TICKET.id?<TicketIcon size={55}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
+       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it?.slot==='weapon'&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}{id===COLOR_TICKET.id&&<b className="slot-quantity">{p.colorTickets}</b>}
       </ItemCard>;
      })}{!entries.length&&<span className="inventory-no-items">Nenhum item encontrado</span>}</div>
      <nav className="bag-tabs" aria-label="Tipo de item">{BAG_TABS.map(({id,name,Icon})=><button key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setCategory('all');setActiveSlot(null);setPage(0);setTooltip(null);}}><Icon size={19} aria-hidden="true"/><span>{name}</span></button>)}</nav>
     </div>
     <div className="inventory-pagination"><span role="status" aria-live="polite">{feedback??''}</span><div><button aria-label="Página anterior" disabled={currentPage===0} onClick={()=>{setPage(currentPage-1);setTooltip(null);}}><ChevronLeft size={16}/></button><span>{currentPage+1} / {pages}</span><button aria-label="Próxima página" disabled={currentPage===pages-1} onClick={()=>{setPage(currentPage+1);setTooltip(null);}}><ChevronRight size={16}/></button></div></div>
     <footer className="bag-footer">
-     <div className="bag-wallet"><span title="Moedas Brasa"><RewardIcon size={18}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span title="Pedras de fortalecimento"><img src="/assets/stone-1.png" alt="" width={20} height={20}/><b>{stoneTotal.toLocaleString('pt-BR')}</b></span></div>
-     <button className="bag-action forge" disabled={!!state.room||pending} onClick={onForge} title="Ferreiro" aria-label="Abrir ferreiro"><Hammer size={16}/><span>Ferreiro</span></button>
+     <div className="bag-wallet"><span title="Moedas Brasa"><RewardIcon size={18}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span title="Pedras de fortalecimento"><img src="/assets/stone-1.png" alt="" width={20} height={20}/><b>{stoneTotal.toLocaleString('pt-BR')}</b></span><span title={COLOR_TICKET.name}><TicketIcon size={22}/><b>{p.colorTickets.toLocaleString('pt-BR')}</b></span></div>
+     <button className="bag-action forge" disabled={!!state.room||pending} onClick={()=>onForge()} title="Ferreiro" aria-label="Abrir ferreiro"><Hammer size={16}/><span>Ferreiro</span></button>
     </footer>
    </section>
   </div>
-  {tooltip&&createPortal(<InventoryTooltip tip={tooltip} gender={p.gender} equipment={preview} upgrades={p.upgrades} compositions={p.compositions}/>,document.body)}
+  {tooltip&&!menu&&createPortal(<InventoryTooltip tip={tooltip} gender={p.gender} equipment={preview} upgrades={p.upgrades} compositions={p.compositions} colors={p.itemColors} tickets={p.colorTickets}/>,document.body)}
+  {menu&&createPortal(<BagContextMenu x={menu.x} y={menu.y} title={CATALOG[copyBase(menu.key)]?.name??''} actions={menuActions(menu.key,menu.slot)} onClose={()=>setMenu(null)}/>,document.body)}
+  {studio&&<ColorStudio target={studio} equipment={preview} onClose={closeStudio} onDone={studioDone}/>}
+  {discarding&&<DiscardConfirm itemKey={discarding} pending={discardPending} onCancel={()=>{if(!discardPending)setDiscarding(null);}} onConfirm={confirmDiscard}/>}
  </Modal>;
 }
 
 const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
-export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean}){
- const {id,anchor}=tip,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
+export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false,colors={},tickets}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean;colors?:Record<string,string>;tickets?:number}){
+ const {id,anchor}=tip,ticket=id===COLOR_TICKET.id,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
  const equipped=!!item&&slotsForItem(item).some(slot=>equippedCopy(equipment,slot)===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
  const values=item?itemAttributes(item,level,compositions?.[id]):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
@@ -187,10 +214,10 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
  const composed=Object.entries(compositions?.[id]??{});
  return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
   <header className="bag-tip-head">
-   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
+   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level} color={colors[id]} skin={equipment.skin} eyes={equipment.eyes}/>:ticket?<TicketIcon size={50}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
    <div className="bag-tip-title">
-    <strong>{item?.name??stone?.name}</strong>
-    <small>{item?SLOT_NAMES[item.slot]:'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
+    <strong>{item?.name??stone?.name??(ticket?COLOR_TICKET.name:'')}</strong>
+    <small>{item?SLOT_NAMES[item.slot]:ticket?'Consumível':'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
     {item&&!hideGender&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
    </div>
    {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
@@ -203,6 +230,11 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
    {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
+   {colors[id]&&<div className="bag-tip-composed"><i className="bag-tip-color" style={{background:colors[id]}} aria-hidden="true"/>Cor personalizada</div>}
+  </>:ticket?<>
+   <p className="bag-tip-desc">{COLOR_TICKET.description}</p>
+   {tickets!==undefined&&<dl className="bag-tip-stats"><div><dt>Na mochila</dt><dd>{tickets}</dd></div></dl>}
+   <footer className="bag-tip-foot">{action??'Botão direito numa peça › Trocar cor'}</footer>
   </>:<>
    <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
    <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>
