@@ -65,15 +65,24 @@
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
 .pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
 .pvp-room .pr-card.vacant{grid-template-rows:30px minmax(0,1fr)}
-.pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:#fff8e866}
-.pvp-room .closed-slot .pr-card-vacant{border-color:#d9c3a1;background:#f3e6d055}
-.pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#c9771f}
+/* Vaga aberta: clara, dourada, com o "+" verde pulsando, convida a entrar. */
+.pvp-room .pr-card.open-slot{border-color:#ffc96b;background:radial-gradient(ellipse at 50% 45%,#fffef6 0,#fff4d6 55%,#fbe2ac 100%);box-shadow:inset 0 -3px #edc57f,0 0 0 2px #ffe3a066,0 3px #a75a2355,0 4px 14px #f0a23a40}
+.pvp-room .open-slot .pr-card-name--vacant{background:linear-gradient(#ffe39a,#f6c25a);color:#7a3a0a}
+.pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #f0b24f;border-radius:10px;background:radial-gradient(circle at 50% 42%,#fff9df 0 30%,transparent 70%)}
+.pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#fff}
 .pvp-room .party-slot-toggle:disabled{cursor:var(--cursor-arrow);opacity:1}
-.pvp-room .party-vacant-emblem{display:grid;place-items:center;width:66px;height:66px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffe9b8,#f7c573 70%);box-shadow:inset 0 -3px #d99a45,0 2px #a75a2344;color:#b4510f;transition:transform .15s}
-.pvp-room .closed-slot .party-vacant-emblem{background:radial-gradient(circle at 40% 30%,#f7ecd9,#dfc8a4 70%);box-shadow:inset 0 -3px #bf9f72;color:#9a7a55}
-.pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.06)}
+.pvp-room .party-vacant-emblem{position:relative;display:grid;place-items:center;width:70px;height:70px;border:3px solid #eaffd9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#a8f58a,#4cc152 60%,#25913a);box-shadow:inset 0 -4px #17702b,0 3px #0d4a1c55,0 0 0 6px #7ee36a33,0 0 18px #6fe35a66;color:#fff;filter:drop-shadow(0 1px #0d4a1c88);transition:transform .15s}
+.pvp-room .open-slot .party-vacant-emblem{animation:pr-open-pulse 2.2s ease-in-out infinite}
+.pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.07)}
 .pvp-room .party-slot-toggle:focus-visible{outline:3px solid #c25f12;outline-offset:-4px;border-radius:10px}
-.pvp-room .pr-vacant-caption{position:absolute;left:0;right:0;bottom:12%;font-size:13px;font-weight:900;color:var(--wood-ink-soft);text-align:center;pointer-events:none}
+.pvp-room .pr-vacant-caption{position:absolute;left:0;right:0;bottom:12%;font-size:14px;font-weight:900;color:#2f8a3c;text-align:center;pointer-events:none;text-shadow:0 1px #fff}
+@keyframes pr-open-pulse{0%,100%{box-shadow:inset 0 -4px #17702b,0 3px #0d4a1c55,0 0 0 4px #7ee36a33,0 0 12px #6fe35a55}50%{box-shadow:inset 0 -4px #17702b,0 3px #0d4a1c55,0 0 0 10px #7ee36a22,0 0 26px #6fe35a88}}
+/* Vaga fechada: madeira escura, listras apagadas e cadeado de ferro. */
+.pvp-room .pr-card.closed-slot{border-color:#6e3d1c;background:linear-gradient(#5b3218,#3f220f);box-shadow:inset 0 2px #ffffff14,inset 0 -3px #2a1407,0 3px #1d0a0255}
+.pvp-room .closed-slot .pr-card-name--vacant{border-bottom-color:#2a1407;background:linear-gradient(#6a3b1c,#4d2a12);color:#d6b48a}
+.pvp-room .closed-slot .pr-card-vacant{border:2px solid #2d1709;background:repeating-linear-gradient(135deg,#ffffff08 0 12px,transparent 12px 24px),#00000026;box-shadow:inset 0 2px 6px #0000005c}
+.pvp-room .closed-slot .party-vacant-emblem{border-color:#9b7a55;background:radial-gradient(circle at 40% 30%,#6f6a64,#3c3936 70%);box-shadow:inset 0 -3px #1f1d1b,0 2px #00000066;color:#e8b94e;filter:none}
+.pvp-room .closed-slot .pr-vacant-caption{color:#c7a57c;text-shadow:0 1px #1d0a02}
 
 /* ---------- Conversa ---------- */
 .pvp-room .pr-chat{min-width:0}
@@ -255,7 +264,7 @@ html.mobile-landscape .pvp-room .party-bottom-actions{gap:5px}
 html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}
 html.mobile-landscape .pvp-room .party-spectator-status{min-height:38px;font-size:12px}
 
-@media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important}.pvp-room .party-search-progress svg{animation:none}}
+@media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important;animation:none!important}.pvp-room .party-search-progress svg{animation:none}}
 /* Celular: ferramentas e espectadores rolam juntos; ações e menus ficam presos embaixo. */
 html.mobile-landscape .pvp-room .pr-side{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#f2b56b transparent}
 html.mobile-landscape .pvp-room .pr-side-scroll{flex:none;overflow:visible}
