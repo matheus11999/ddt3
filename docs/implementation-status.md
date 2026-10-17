@@ -252,5 +252,5 @@ Smoke no frontend de produção passou após liberar cache de builds que havia e
 O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica produz cacos autoritativos após o impacto principal e aplica demolição adicional em materiais resistentes. A arte final gerada por `image_gen` substitui as seis pinturas provisórias: quatro estágios da arma, atlas de efeitos e resíduo. Prompts, medidas e prancha estão em [brick-weapon.md](brick-weapon.md). Os testes específicos de física e combate foram adaptados ao checkout atual; `npx tsx --test tests/physics.test.ts tests/game.test.ts` passou com 27 testes.
 
 ## Lobby: menu inferior, chat e cursor (17/10/2026)
-- Medalhas do topo removidas; Missões, Correio e Guilda foram para a barra inferior (ícones pintados da sala PvP). Barra e chat em madeira (`Hud.css`). Cursor provisório `public/assets/ui/cursor.svg` em todo o jogo (`--cursor-arrow`).
-- Testes: check, test, build, `shot-lobby.mjs` e `test:mobile:browser` passaram na nuvem. Pendente: arte pintada dos 5 ícones e do cursor.
+- Medalhas do topo removidas; Missões, Correio e Guilda foram para a barra inferior (ícones pintados da sala PvP). Barra e chat em madeira (`Hud.css`). Cursor pintado `public/assets/ui/cursor.png` (32 px) em todo o jogo (`--cursor-arrow`).
+- Testes: check, test, build, `shot-lobby.mjs` e `test:mobile:browser` passaram na nuvem. Ícones de Arena, Loja, Ferreiro, Como jogar e Ajustes e o cursor foram gerados pelo Codex e integrados.

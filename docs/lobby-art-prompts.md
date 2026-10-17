@@ -70,7 +70,7 @@ Iluminação uniforme e plana: sem sombra projetada, sem vinheta, sem brilho for
 
 ## Menu inferior e cursor (17/10, tarde)
 
-O menu de medalhas do topo foi removido. A barra de baixo segue a sala PvP: madeira laranja, ladrilhos creme e os ícones pintados da sala (`backpack-button.png`, `arena-quests.png`, `arena-mail.png`, `arena-guild.png`). Arena, Loja, Ferreiro, Como jogar e Ajustes ainda usam um ícone de linha no mesmo ladrilho; quando a arte chegar, basta preencher `art` no array `buttons` de `src/components/Hud.tsx`. O cursor provisório é `public/assets/ui/cursor.svg` (seta dourada, ponta em 3,2); o pintado substitui em `--cursor-arrow` (`src/styles.css`).
+O menu de medalhas do topo foi removido. A barra de baixo segue a sala PvP: madeira laranja, ladrilhos creme e os ícones pintados da sala (`backpack-button.png`, `arena-quests.png`, `arena-mail.png`, `arena-guild.png`). Arena, Loja, Ferreiro, Como jogar e Ajustes usam `arena-button.png`, `shop-button.png`, `forge-button.png`, `help-button.png` e `settings-button.png`, gerados pelo Codex com os prompts abaixo (17/10, 15h). O cursor `public/assets/ui/cursor.png` é o original de 128 px reduzido para 32 px, ponta em 2,2 (`--cursor-arrow` em `src/styles.css`).
 
 ### Prompt dos ícones que faltam (ChatGPT)
 
