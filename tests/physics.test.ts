@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {crater,CRATER_ROUGHNESS,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_ROUGHNESS,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -175,4 +175,14 @@ test('the Quebra-Tijolos digs a rounder crater than the default jagged edge',()=
  const spread=(roughness:number)=>{const terrain=createTerrain(),before=terrain.slice(),x=600,y=ground(terrain,x)+40;crater(terrain,x,y,40,'garden',roughness);
   let far=0;for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;far=Math.max(far,Math.hypot(cx-x,cy-y));}return far;};
  assert.ok(spread(rough)<=40*(1+rough)+.01);assert.ok(spread(rough)<spread(CRATER_ROUGHNESS));
+});
+
+test('a direct hit digs a shallow bowl under the feet that shows past the body on both sides',()=>{
+ const brick=WEAPONS.find(weapon=>weapon.id==='brick')!,x=1040,t=createTerrain('snow'),feet=ground(t,x),hole=directHitDig(x,feet,brick.crater);
+ assert.equal(hole.radius,brick.crater*DIRECT_HIT_DIG,'shallower than a ground hit');
+ assert.ok(crater(t,hole.x,hole.y,hole.radius,'snow',weaponRoughness(brick),hole.stretch)>0);
+ // The fighter is about 70 px wide: the ground must open beyond its sides, not only right under it.
+ for(const side of [-1,1]){const edge=x+side*(DIRECT_HIT_HALF_WIDTH-6);assert.ok(ground(t,edge)>feet,`dug at ${edge}`);}
+ assert.ok(ground(t,x)-feet<=brick.crater*DIRECT_HIT_DIG+3,'no deeper than the share of the crater');
+ const wide=directHitDig(x,feet,80);assert.equal(wide.stretch,undefined,'a big crater is already wider than the body');
 });
