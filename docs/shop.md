@@ -1,6 +1,6 @@
 # Loja da Brasa
 
-A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mochila e do ferreiro (17/10/2026): madeira laranja, painéis creme, provador estático à esquerda com a carteira e vitrine à direita com cards horizontais em duas colunas, abas verticais de categoria e paginação de 10 itens. Sem carrinho e sem Poder na prévia (pedido do usuário). Celular em paisagem mantém as duas colunas com rolagem interna; janela estreita empilha provador e vitrine. Layout e prompts de arte em `docs/shop-art-prompts.md`; prévia com `node scripts/preview-shop.mjs`.
+A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mochila e do ferreiro (17/10/2026): madeira laranja, painéis creme, provador estático à esquerda com a carteira e vitrine à direita com cards horizontais em três colunas, abas verticais de categoria e paginação de 12 itens. Sem carrinho e sem Poder na prévia (pedido do usuário). Celular em paisagem mantém as três colunas com rolagem interna; janela estreita empilha provador e vitrine. Layout e prompts de arte em `docs/shop-art-prompts.md`; prévia com `node scripts/preview-shop.mjs`.
 
 ## Catálogo e prévia
 
@@ -15,7 +15,7 @@ A loja abre pelo botão **Loja** da barra inferior da rua. Segue o padrão da mo
 
 ## Compra e autoridade
 
-Cada card tem só **Comprar**; clicar no item veste a prévia (no celular o toque também abre as informações). Comprar abre uma confirmação com o item, o preço e o saldo depois da compra; só **Confirmar** envia o pedido. Itens já possuídos não mostram texto e continuam com **Comprar**. Saldo insuficiente deixa o preço em vermelho e desabilita Comprar.
+Cada card tem só o ícone de **Comprar** (sacola); clicar no item veste a prévia (no celular o toque também abre as informações). Comprar abre uma confirmação com o item, o preço e o saldo depois da compra; só **Confirmar** envia o pedido. Itens já possuídos não mostram texto e continuam com **Comprar**. Saldo insuficiente deixa o preço em vermelho e desabilita Comprar.
 
 O cliente envia `{type:'shop-buy',items:[id]}`, um item por compra. Preços, compatibilidade de gênero, posse, saldo e entrega são validados pelo servidor; esconder ou desabilitar um botão não é a proteção financeira. O retorno `shop-result` contém `items` e `spent`, acompanhado do perfil atualizado. A interface confirma a entrega observando a posse no perfil e mantém a compra bloqueada enquanto aguarda resposta. Não há débito otimista nem alteração local do inventário.
 

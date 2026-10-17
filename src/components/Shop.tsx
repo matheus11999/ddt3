@@ -23,7 +23,7 @@ import './Shop.css';
    Só aparecem itens do gênero do personagem e unissex; cada item é comprado
    direto no card, com confirmação, sem carrinho. */
 const CATEGORIES=[{id:'all',label:'Destaques',Icon:ShoppingBag},{id:'weapon',label:'Armas',Icon:Swords},{id:'outfit',label:'Roupas',Icon:Shirt},{id:'costume',label:'Fantasias',Icon:Sparkles},{id:'face',label:'Rostos',Icon:Smile},{id:'style',label:'Complementos',Icon:Glasses}] as const;
-const PAGE_SIZE=10;
+const PAGE_SIZE=12;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 type Category=typeof CATEGORIES[number]['id'];
 const money=(value:number)=>value.toLocaleString('pt-BR');
@@ -111,7 +111,7 @@ export function Shop({onClose}:{onClose:()=>void}){
        <div className="shop-offer-buy">
         <span className={`shop-price ${short?'short':''}`}><RewardIcon size={20}/>{money(price)}</span>
         <div className="shop-offer-actions">
-         <button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${item.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={15}/><span>Comprar</span></button>
+         <button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${item.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={17}/></button>
         </div>
        </div>
       </article>;})}
