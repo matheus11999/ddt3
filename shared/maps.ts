@@ -32,7 +32,7 @@ export const MATERIALS:Record<MaterialId,{color:string;highlight:string;debris:s
 };
 export const MAP_DEFINITIONS:Partial<Record<MapId,MapDefinition>>&Record<CanonicalMapId,MapDefinition>={
  snow:{id:'snow',name:'Sonho Nevado',subtitle:'Pontes de pedra nevadas · Destrutível',color:'#8fb8ff',
-  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1040,820,1250,385],[2032,2252,1822,2687]],
+  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1040,820,1190,385],[2032,2252,1882,2687]],
   lighting:{sky:'#5d6fb8',horizon:'#b9c4ee',ambient:'#dfe8ff'},audio:{ambience:'wind',impact:{earth:'dust'}},
   art:{background:'/assets/maps/snow/background.webp',terrain:'/assets/maps/snow/terrain-world.png'},
   regions:SNOW_REGIONS}
