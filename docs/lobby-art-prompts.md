@@ -2,6 +2,21 @@
 
 Pedido do usuário: o lobby deve ficar parecido com a foto de referência de lobby clássico de artilharia (céu ensolarado, ilhas flutuantes, praça com portais, NPCs ferreiro e guarda-volumes, ícones de evento no topo). Primeira versão desenhada por código foi recusada: "ficou simples, com cara de jogo infantil". **A versão final precisa ser uma pintura detalhada**, no nível de acabamento de jogo comercial; o desenho por código fica só como reserva enquanto a pintura não existe.
 
+## Estado atual (17/10/2026, 02h)
+
+O Codex gerou uma pintura aprovada pelo usuário (nível certo), mas com NPCs e portais pintados no cenário. Decisão do usuário: **cenário vazio + cada interação como sprite separado**, para poder adicionar NPCs no futuro. O código já suporta isso:
+
+- `public/assets/lobby/plaza.webp`: cenário vazio, sem portais nem NPCs.
+- Sprites PNG transparentes em `public/assets/lobby/`, registrados em `LOBBY_STATIONS` (`src/game/lobbyWorld.ts`): `npc-loja.png` (Ateliê → loja), `portal-treino.png` (Treino → arena), `portal-arena.png` (Arena PvP), `npc-armazem.png` (Guarda-volumes → mochila), `npc-ferreiro.png` (Ferreiro → forja). Cada entrada tem posição dos pés, altura na tela, placa, brilho ao passar o mouse e área de clique.
+- **Novo NPC no futuro** = um PNG transparente + uma linha em `LOBBY_STATIONS` (e a ação em `LobbyAction`/`App.tsx`). Deixar espaço livre na praça para isso.
+
+### Resolução
+
+O jogo usa o quadro 1536×864 e desenha o canvas em até 2× (3072×1728) em telas de alta densidade. Para ficar nítido:
+
+- Cenário: **3072×1728** (ou o maior 16:9 que o gerador aceitar e depois ampliar 2× com um upscaler de IA). Qualquer tamanho 16:9 funciona; o jogo ajusta.
+- Sprites: gerar com o **dobro** do tamanho em tela, por exemplo portal da arena ~600×700, NPCs ~700×600. Salvar WebP/PNG qualidade alta.
+
 ## Como a pintura entra no jogo
 
 Salvar uma única imagem 16:9 em `public/assets/lobby/plaza.webp` (1536×864 ou 1672×941). Quando o arquivo existe, `src/game/lobbyWorld.ts`:

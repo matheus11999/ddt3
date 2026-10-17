@@ -36,6 +36,19 @@ export const LOBBY_HOTSPOTS:LobbyHotspot[]=[
  {id:'forge',title:'Ferreiro',x:1340,y:596,box:[1262,440,1470,625]},
 ];
 
+/**
+ * Painted interaction sprites laid on the painted plaza: feet at (x, y), drawn
+ * `height` tall, each its own hotspot. Files live in /assets/lobby/.
+ */
+type Station={id:LobbyAction;title:string;file:string;x:number;y:number;height:number;portal?:Portal};
+export const LOBBY_STATIONS:Station[]=[
+ {id:'shop',title:'Ateliê',file:'npc-loja.png',x:205,y:612,height:250},
+ {id:'practice',title:'Treino',file:'portal-treino.png',x:480,y:588,height:225,portal:{id:'practice',title:'Treino',x:480,y:588,scale:.85,theme:GOLD}},
+ {id:'arena',title:'Arena PvP',file:'portal-arena.png',x:752,y:592,height:290,portal:{id:'arena',title:'Arena PvP',x:752,y:592,scale:1.05,theme:BLUE}},
+ {id:'storage',title:'Guarda-volumes',file:'npc-armazem.png',x:1060,y:614,height:215},
+ {id:'forge',title:'Ferreiro',file:'npc-ferreiro.png',x:1330,y:628,height:265},
+];
+
 export interface LobbySprite {y:number;draw:(c:CanvasRenderingContext2D)=>void;}
 
 /** Small deterministic generator, so the static plaza never shimmers between reloads. */
@@ -299,7 +312,9 @@ export class LobbyWorld {
  private sky:HTMLCanvasElement;private world:HTMLCanvasElement;private plaza=new Image();
  /** True once the painted scene has loaded; keepers are then part of the painting. */
  painted=false;
+ private art=new Map<LobbyAction,HTMLImageElement>();
  constructor(density=2){
+  for(const station of LOBBY_STATIONS){const image=new Image();image.src=`/assets/lobby/${station.file}`;this.art.set(station.id,image);}
   this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
   this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
  }
@@ -319,7 +334,7 @@ export class LobbyWorld {
  }
  /** Props that share the avatars' depth order. */
  sprites(t:number,hover:LobbyAction|null):LobbySprite[]{
-  if(this.painted)return LOBBY_PORTALS.map(p=>({y:p.y-30,draw:(c:CanvasRenderingContext2D)=>portalLight(c,p,t,hover===p.id)}));
+  if(this.painted)return LOBBY_STATIONS.map(station=>({y:station.y-24,draw:(c:CanvasRenderingContext2D)=>this.station(c,station,t,hover===station.id)}));
   return [
    {y:500,draw:c=>lamp(c,214,524,t)},{y:500,draw:c=>lamp(c,1486,524,t)},
    ...LOBBY_PORTALS.map(p=>({y:p.y-30,draw:(c:CanvasRenderingContext2D)=>portal(c,p,t,hover===p.id)})),
@@ -328,11 +343,30 @@ export class LobbyWorld {
  }
  drawFront(c:CanvasRenderingContext2D,t:number,hover:LobbyAction|null){
   if(!this.painted){title(c,'Ilha das Cascatas',420,240,22);title(c,'Praça Celeste',1290,372,34);}
-  for(const p of LOBBY_PORTALS)plaque(c,p.title,p.x,p.y-246*p.scale+Math.sin(t/700+p.x)*3,p.id==='arena',hover===p.id);
-  for(const [action,npc,icon] of [['storage',LOBBY_NPCS.storage,'chest'],['forge',LOBBY_NPCS.forge,'hammer']] as const)npcTag(c,npc.name,npc.x,npc.y-164,icon,hover===action);
+  if(this.painted)for(const station of LOBBY_STATIONS)plaque(c,station.title,station.x,station.y-station.height-20+Math.sin(t/700+station.x)*3,station.id==='arena',hover===station.id);
+  else{
+   for(const p of LOBBY_PORTALS)plaque(c,p.title,p.x,p.y-246*p.scale+Math.sin(t/700+p.x)*3,p.id==='arena',hover===p.id);
+   for(const [action,npc,icon] of [['storage',LOBBY_NPCS.storage,'chest'],['forge',LOBBY_NPCS.forge,'hammer']] as const)npcTag(c,npc.name,npc.x,npc.y-164,icon,hover===action);
+  }
   for(let i=0;i<22;i++){const x=(i*137+t*.014)%LOBBY_W,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}
  }
+ private box(station:Station):[number,number,number,number]{
+  const image=this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.85,half=station.height*ratio/2*.8;
+  return [station.x-half,station.y-station.height,station.x+half,station.y+12];
+ }
+ private station(c:CanvasRenderingContext2D,station:Station,t:number,hover:boolean){
+  const image=this.art.get(station.id)!;
+  if(image.complete&&image.naturalWidth){
+   const h=station.height,w=h*image.naturalWidth/image.naturalHeight,bob=station.portal?0:Math.sin(t/900+station.x)*1.2;
+   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';c.drawImage(image,station.x-w/2,station.y-h+bob,w,h);c.restore();
+  }
+  if(station.portal)portalLight(c,station.portal,t,hover);
+ }
  hit(x:number,y:number):LobbyAction|null{
+  if(this.painted){
+   for(const station of LOBBY_STATIONS){const [x0,y0,x1,y1]=this.box(station);if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return station.id;}
+   return null;
+  }
   for(const h of LOBBY_HOTSPOTS){const [x0,y0,x1,y1]=h.box;if(x>=x0&&x<=x1&&y>=y0&&y<=y1)return h.id;}
   return null;
  }

@@ -11,7 +11,7 @@ await page.screenshot({path:`${dir}/lobby.png`});
 const canvas=page.locator('.world-canvas'),box=await canvas.boundingBox(),at=(x,y)=>({x:x*box.width/1536,y:y*box.height/864});
 await page.locator('.lobby-event.quests').click({force:true});await expect(page.locator('.quest-panel')).toBeVisible();
 await page.screenshot({path:`${dir}/lobby-quests.png`});await page.locator('.lobby-event.quests').click({force:true});
-await canvas.click({position:at(690,420)});await expect(page.locator('.party-arena')).toBeVisible();
+await canvas.click({position:at(752,420)});await expect(page.locator('.party-arena')).toBeVisible();
 await page.keyboard.press('Escape');await expect(page.locator('.party-arena')).toHaveCount(0);
 await canvas.click({position:at(1330,520)});await expect(page.locator('.forge-window')).toBeVisible({timeout:15000});
 await page.screenshot({path:`${dir}/lobby-forge.png`});
