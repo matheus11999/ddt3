@@ -37,17 +37,37 @@ export const LOBBY_HOTSPOTS:LobbyHotspot[]=[
 ];
 
 /**
- * Painted interaction sprites laid on the painted plaza: feet at (x, y), drawn
- * `height` tall, each its own hotspot. Files live in /assets/lobby/.
+ * Animated stations on the painted plaza. Each one is a folder in
+ * /assets/lobby/<dir>/ of layers exported on the SAME transparent canvas
+ * (feet at the bottom centre), like PSD layers, drawn in order. Code moves each
+ * layer around its pivot (fractions of the canvas), cut-out style:
+ * breathe = whole-body breathing, nod = head, swing = hammer strike,
+ * wave = arm, sway = tail/ears/cloth, bob = floating chalice, blink = eyelids
+ * flashed briefly, flicker = fire. A missing layer is skipped; with no layer at
+ * all the single `<dir>.png` is drawn, gently breathing.
  */
-type Station={id:LobbyAction;title:string;file:string;x:number;y:number;height:number;portal?:Portal};
+type Motion='still'|'breathe'|'nod'|'swing'|'wave'|'sway'|'bob'|'blink'|'flicker';
+type Layer={name:string;motion:Motion;pivot?:[number,number];period?:number;amount?:number;phase?:number};
+type Station={id:LobbyAction;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];portal?:Portal;spark?:[number,number]};
+const STRIKE=1500;
 export const LOBBY_STATIONS:Station[]=[
- {id:'shop',title:'Ateliê',file:'npc-loja.png',x:205,y:612,height:250},
- {id:'practice',title:'Treino',file:'portal-treino.png',x:480,y:588,height:225,portal:{id:'practice',title:'Treino',x:480,y:588,scale:.85,theme:GOLD}},
- {id:'arena',title:'Arena PvP',file:'portal-arena.png',x:752,y:592,height:290,portal:{id:'arena',title:'Arena PvP',x:752,y:592,scale:1.05,theme:BLUE}},
- {id:'storage',title:'Guarda-volumes',file:'npc-armazem.png',x:1060,y:614,height:215},
- {id:'forge',title:'Ferreiro',file:'npc-ferreiro.png',x:1330,y:628,height:265},
+ {id:'shop',title:'Ateliê',dir:'npc-loja',x:205,y:612,height:250,layers:[
+  {name:'barraca',motion:'still'},{name:'toldo',motion:'sway',pivot:[.5,.08],period:2600,amount:.012},
+  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.62,.48],period:1800,amount:.22},
+  {name:'cabeca',motion:'nod',pivot:[.55,.42]},{name:'olhos',motion:'blink'}]},
+ {id:'practice',title:'Treino',dir:'portal-treino',x:480,y:588,height:225,portal:{id:'practice',title:'Treino',x:480,y:588,scale:.85,theme:GOLD},layers:[
+  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2200,amount:7}]},
+ {id:'arena',title:'Arena PvP',dir:'portal-arena',x:752,y:592,height:290,portal:{id:'arena',title:'Arena PvP',x:752,y:592,scale:1.05,theme:BLUE},layers:[
+  {name:'base',motion:'still'},{name:'calice',motion:'bob',period:2400,amount:9},{name:'asas',motion:'sway',pivot:[.5,.3],period:1700,amount:.035}]},
+ {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1060,y:614,height:215,layers:[
+  {name:'burro',motion:'breathe',period:3400},{name:'rabo',motion:'sway',pivot:[.1,.55],period:900,amount:.25},{name:'orelhas',motion:'sway',pivot:[.32,.3],period:2600,amount:.08},
+  {name:'corpo',motion:'breathe'},{name:'braco',motion:'wave',pivot:[.7,.5],period:1400,amount:.3},{name:'cabeca',motion:'nod',pivot:[.7,.45]},{name:'olhos',motion:'blink',phase:1300}]},
+ {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:1330,y:628,height:265,spark:[.42,.62],layers:[
+  {name:'barraca',motion:'still'},{name:'fogo',motion:'flicker',pivot:[.85,.6]},
+  {name:'corpo',motion:'breathe'},{name:'cabeca',motion:'nod',pivot:[.6,.36],period:STRIKE,amount:.04},{name:'braco',motion:'swing',pivot:[.62,.45],period:STRIKE},{name:'olhos',motion:'blink',phase:700}]},
 ];
+/** 0 at rest, raised slowly, then a fast strike; returns the arm angle. */
+function strike(t:number,period:number){const k=(t%period)/period;if(k<.55)return-.85*Math.sin(k/.55*Math.PI/2);if(k<.63)return-.85+(k-.55)/.08*1.0;return .15*(1-(k-.63)/.37);}
 
 export interface LobbySprite {y:number;draw:(c:CanvasRenderingContext2D)=>void;}
 
@@ -312,9 +332,12 @@ export class LobbyWorld {
  private sky:HTMLCanvasElement;private world:HTMLCanvasElement;private plaza=new Image();
  /** True once the painted scene has loaded; keepers are then part of the painting. */
  painted=false;
- private art=new Map<LobbyAction,HTMLImageElement>();
+ private art=new Map<LobbyAction,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();
  constructor(density=2){
-  for(const station of LOBBY_STATIONS){const image=new Image();image.src=`/assets/lobby/${station.file}`;this.art.set(station.id,image);}
+  for(const station of LOBBY_STATIONS){
+   const image=new Image();image.src=`/assets/lobby/${station.dir}.png`;this.art.set(station.id,image);
+   for(const layer of station.layers){const part=new Image();part.src=`/assets/lobby/${station.dir}/${layer.name}.png`;this.layers.set(`${station.dir}/${layer.name}`,part);}
+  }
   this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
   this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
  }
@@ -350,15 +373,35 @@ export class LobbyWorld {
   }
   for(let i=0;i<22;i++){const x=(i*137+t*.014)%LOBBY_W,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}
  }
+ private loaded(station:Station){return station.layers.map(layer=>({layer,image:this.layers.get(`${station.dir}/${layer.name}`)!})).filter(({image})=>image.complete&&image.naturalWidth>0);}
  private box(station:Station):[number,number,number,number]{
-  const image=this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.85,half=station.height*ratio/2*.8;
+  const image=this.loaded(station)[0]?.image??this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.85,half=station.height*ratio/2*.8;
   return [station.x-half,station.y-station.height,station.x+half,station.y+12];
  }
  private station(c:CanvasRenderingContext2D,station:Station,t:number,hover:boolean){
-  const image=this.art.get(station.id)!;
-  if(image.complete&&image.naturalWidth){
-   const h=station.height,w=h*image.naturalWidth/image.naturalHeight,bob=station.portal?0:Math.sin(t/900+station.x)*1.2;
-   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';c.drawImage(image,station.x-w/2,station.y-h+bob,w,h);c.restore();
+  const parts=this.loaded(station),single=this.art.get(station.id)!;
+  const base=parts[0]?.image??(single.complete&&single.naturalWidth?single:null);
+  if(base){
+   const h=station.height,w=h*base.naturalWidth/base.naturalHeight,left=station.x-w/2,top=station.y-h;
+   const breath=(period=3000,phase=0)=>1+Math.sin((t+phase)/period*Math.PI*2)*.012;
+   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
+   if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.portal?1:breath());c.drawImage(base,-w/2,-h,w,h);}
+   else for(const {layer,image} of parts){
+    const period=layer.period??3000,phase=(layer.phase??0)+station.x*3,amount=layer.amount,[px,py]=layer.pivot??[.5,1],ax=left+px*w,ay=top+py*h;
+    if(layer.motion==='blink'&&(t+phase)%3600>130)continue;
+    c.save();
+    // Everything above the feet breathes with the body, so heads and arms stay attached.
+    if(layer.motion!=='still'&&layer.motion!=='bob'&&layer.motion!=='flicker'){c.translate(station.x,station.y);c.scale(1,breath(layer.motion==='breathe'?period:3000));c.translate(-station.x,-station.y);}
+    if(layer.motion==='nod'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.03));c.translate(-ax,-ay);}
+    else if(layer.motion==='swing'){c.translate(ax,ay);c.rotate(strike(t,period));c.translate(-ax,-ay);}
+    else if(layer.motion==='wave'||layer.motion==='sway'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.1));c.translate(-ax,-ay);}
+    else if(layer.motion==='bob')c.translate(0,Math.sin((t+phase)/period*Math.PI*2)*(amount??6));
+    else if(layer.motion==='flicker'){const f=1+Math.sin(t/90)*.04+Math.sin(t/37)*.03;c.translate(ax,ay+h*.08);c.scale(1/f,f);c.translate(-ax,-ay-h*.08);c.globalAlpha=.9+Math.sin(t/60)*.1;}
+    c.drawImage(image,left,top,w,h);c.restore();
+   }
+   c.restore();
+   // Sparks fly from the anvil on each blow.
+   if(station.spark&&parts.some(({layer})=>layer.motion==='swing')){const k=((t%STRIKE)/STRIKE-.63)/.25;if(k>=0&&k<1){const sx=left+station.spark[0]*w,sy=top+station.spark[1]*h;c.save();c.globalCompositeOperation='lighter';for(let i=0;i<10;i++){const a=-Math.PI*(.15+.7*((i*37%10)/10)),d=k*(30+i*4);c.globalAlpha=1-k;c.fillStyle=i%2?'#ffe27a':'#ff9a3c';c.beginPath();c.arc(sx+Math.cos(a)*d,sy+Math.sin(a)*d+k*k*20,2.2,0,Math.PI*2);c.fill();}c.restore();}}
   }
   if(station.portal)portalLight(c,station.portal,t,hover);
  }

@@ -10,6 +10,20 @@ O Codex gerou uma pintura aprovada pelo usuário (nível certo), mas com NPCs e 
 - Sprites PNG transparentes em `public/assets/lobby/`, registrados em `LOBBY_STATIONS` (`src/game/lobbyWorld.ts`): `npc-loja.png` (Ateliê → loja), `portal-treino.png` (Treino → arena), `portal-arena.png` (Arena PvP), `npc-armazem.png` (Guarda-volumes → mochila), `npc-ferreiro.png` (Ferreiro → forja). Cada entrada tem posição dos pés, altura na tela, placa, brilho ao passar o mouse e área de clique.
 - **Novo NPC no futuro** = um PNG transparente + uma linha em `LOBBY_STATIONS` (e a ação em `LobbyAction`/`App.tsx`). Deixar espaço livre na praça para isso.
 
+### NPCs e portais animados (pedido do usuário: nada de PNG estático)
+
+Cada estação é uma pasta `public/assets/lobby/<pasta>/` com **camadas recortadas**, todas exportadas no MESMO canvas transparente (pés no centro da borda inferior), como camadas de um PSD. O código anima cada camada em volta de um pivô, no estilo recorte (cut-out) dos NPCs do DDTank:
+
+| Pasta | Camadas (ordem de desenho) | Animação |
+| --- | --- | --- |
+| `npc-ferreiro` | barraca, fogo, corpo, cabeca, braco (braço + martelo), olhos (pálpebras fechadas) | respira, martelada com faíscas na bigorna, cabeça acompanha, pisca, fogo tremula |
+| `npc-armazem` | burro, rabo, orelhas, corpo, braco, cabeca, olhos | burro respira e abana rabo/orelhas, NPC acena e pisca |
+| `npc-loja` | barraca, toldo, corpo, braco, cabeca, olhos | toldo balança, costureira acena e pisca |
+| `portal-arena` | base, calice, asas | cálice flutua, asas balançam, luz e faíscas por código |
+| `portal-treino` | base, calice | cálice flutua, luz por código |
+
+Pivôs ficam em `LOBBY_STATIONS` (frações do canvas) e são medidos quando as camadas chegarem. Camada que falta é ignorada.
+
 ### Resolução
 
 O jogo usa o quadro 1536×864 e desenha o canvas em até 2× (3072×1728) em telas de alta densidade. Para ficar nítido:
