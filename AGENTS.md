@@ -105,6 +105,6 @@ O agente `upgrade_server` também implementou fortalecimento/transações na pri
 
 ## Verificação e entrega
 
-Use `npm run check`, `npm test`, `npm run build` e testes de integração pertinentes. Para rostos: `node scripts/verify-faces.mjs` com Vite e inspeção da prancha. Para mapas: `scripts/inspect-maps.mjs`.
+Use `npm run check`, `npm test`, `npm run build` e testes de integração pertinentes. Para rostos: `node scripts/verify-faces.mjs` com Vite e inspeção da prancha. Para mapas: `scripts/inspect-maps.mjs` e, nos mapas de peças pintadas, `npm run build:map -- --map=<id>` sem AVISOs (`docs/maps-kit.md`).
 
 Após mudanças em `shared/`/`server/`, confirme o reinício e a saúde do backend antes de testar o navegador; em produção, reconstrua-o. Documente evidências e pendências em `docs/implementation-status.md`; registre prompts e medidas dos assets. Não versionar segredos, `.env`, bancos, builds, `node_modules` ou resultados temporários. Nunca prometer milhares de jogadores a partir de um limite configurado.
