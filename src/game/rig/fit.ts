@@ -1,10 +1,11 @@
-import {COSMETIC_FIT,FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS} from './anchors';
+import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS} from './anchors';
 import type {FitClass} from './anchors';
+import {COSMETIC_MANIFEST} from './manifest';
 
 /** Alpha coverage in template space: pixel (x,y) is template (x-originX, y-originY). */
 export interface FitMask {width:number;height:number;originX:number;originY:number;data:Uint8Array;}
 export interface Bounds {x:number;y:number;width:number;height:number;area:number;}
-export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered';message:string;measured:number;limit:number;}
+export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor';message:string;measured:number;limit:number;}
 export interface FitReport {id:string;fit?:FitClass;bounds:Bounds|null;widthRatio:number;issues:FitIssue[];}
 
 export function maskFromAlpha(rgba:Uint8ClampedArray,width:number,height:number,originX:number,originY:number,threshold=40):FitMask{
@@ -29,8 +30,15 @@ export function keepoutPixels(mask:FitMask):number{
 }
 const fmt=(n:number)=>Number(n.toFixed(2));
 /** Checks one cosmetic, drawn alone on the universal head, against its slot zone. */
+/** Pins must land on the universal anchors: hats on the hat seat, glasses on the eye sockets. */
+export function evaluatePin(id:string,tolerance=4):FitIssue|null{
+ const manifest=COSMETIC_MANIFEST[id],target=manifest?.slot==='hat'?HEAD_ANCHORS.hatSeat:manifest?.slot==='glasses'?[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]:null;
+ if(!manifest?.worn||!target)return null;
+ const offset=Math.round(Math.max(...manifest.worn.pin.to.map((point,index)=>Math.hypot(point[0]-target[index][0],point[1]-target[index][1]))));
+ return offset>tolerance?{code:'anchor',message:`Assento ${offset}px fora da âncora universal`,measured:offset,limit:tolerance}:null;
+}
 export function evaluateItem(id:string,mask:FitMask):FitReport{
- const fit=COSMETIC_FIT[id]?.fit,bounds=maskBounds(mask),issues:FitIssue[]=[];
+ const fit=COSMETIC_MANIFEST[id]?.fit,bounds=maskBounds(mask),issues:FitIssue[]=[];
  const widthRatio=bounds?fmt(bounds.width/HEAD_WIDTH):0;
  if(!fit){issues.push({code:'unregistered',message:'Item sem classe de encaixe registrada',measured:0,limit:0});return {id,bounds,widthRatio,issues};}
  if(!bounds)return {id,fit,bounds,widthRatio,issues};
@@ -45,6 +53,7 @@ export function evaluateItem(id:string,mask:FitMask):FitReport{
  const outside=Math.max(FRAME_MARGIN-bounds.x,FRAME_MARGIN-bounds.y,bounds.x+bounds.width-(size-FRAME_MARGIN),bounds.y+bounds.height-(size-FRAME_MARGIN));
  if(outside>0)issues.push({code:'frame',message:`Ultrapassa a margem do quadro de ${size}px em ${outside}px`,measured:outside,limit:0});
  if(zone.keepoutTolerance!==null){const covered=keepoutPixels(mask);if(covered>zone.keepoutTolerance)issues.push({code:'keepout',message:`Cobre olhos/boca em ${covered}px`,measured:covered,limit:zone.keepoutTolerance});}
+ const pin=evaluatePin(id);if(pin)issues.push(pin);
  return {id,fit,bounds,widthRatio,issues};
 }
 /** Paid glasses must stay visible under any hair and hat. */

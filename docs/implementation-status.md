@@ -26,7 +26,7 @@ O usuário ampliou o checkpoint de rostos para cenários, roupas, inventário, f
 
 ## Encaixe de cosméticos
 
-- Fase 1 do rig v1 (`docs/cosmetics-fit.md`): âncoras, zonas de tamanho por classe e `npm run verify:cosmetics` em modo relatório. Nenhuma mudança visual. Relatório inicial: 8 de 17 peças fora da zona, 49 de 54 combinações chapéu × cabelo com franja sobre os olhos ou óculos encobertos, Executivo e Dançarina com tronco mais estreito. Fases 2–5 aguardam autorização.
+- Fase 1 do rig v1 (`docs/cosmetics-fit.md`): âncoras, zonas de tamanho por classe e `npm run verify:cosmetics` em modo relatório. Nenhuma mudança visual. Relatório inicial: 8 de 17 peças fora da zona, 49 de 54 combinações chapéu × cabelo com franja sobre os olhos ou óculos encobertos, Executivo e Dançarina com tronco mais estreito. Fase 2: `COSMETIC_MANIFEST` e `drawPinned` substituem os ajustes manuais de cabelo, chapéu e óculos; 313 de 353 imagens de referência idênticas, o resto com diferença abaixo de meio pixel. Fases 3–5 aguardam autorização.
 
 ## Inventário, ferreiro e arena
 

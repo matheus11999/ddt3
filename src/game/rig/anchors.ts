@@ -59,13 +59,5 @@ export const FIT_ZONES:Readonly<Record<FitClass,FitZone>>={
 /** Transparent margin every painted layer keeps from the template frame. */
 export const FRAME_MARGIN=24;
 
-/** Phase 1 registry. Phase 2 moves these into per-item manifests. */
-export const COSMETIC_FIT:Readonly<Record<string,{fit:FitClass;profile?:HeadProfile}>>={
- 'hair-spiky':{fit:'hair-short'},'hair-silver':{fit:'hair-short'},'hair-wavy':{fit:'hair-short'},'hair-undercut':{fit:'hair-short'},'hair-ponytail':{fit:'hair-long'},
- 'hat-cap':{fit:'hat-tight',profile:'tight'},'hat-thunder':{fit:'hat-tight',profile:'tight'},'hat-tide':{fit:'hat-tight',profile:'tight'},'hat-ruby':{fit:'hat-tight',profile:'tight'},
- 'hat-tropical':{fit:'hat-wide',profile:'wide'},'hat-mage':{fit:'hat-wide',profile:'wide'},
- 'hat-pilot':{fit:'hat-band',profile:'band'},'hat-knight':{fit:'hat-helmet',profile:'helmet'},
- 'glasses-sport':{fit:'glasses'},'glasses-cat':{fit:'glasses'},'glasses-round':{fit:'glasses'},'glasses-pilot':{fit:'glasses'}
-};
 /** Standing body proportions shared by every outfit. */
 export const BODY_PROPORTIONS={headShare:[.42,.48] as const,shoulderWidth:[.85,1.05] as const};

@@ -1,8 +1,9 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {CATALOG,ITEMS} from '../shared/catalog';
-import {COSMETIC_FIT,HEAD_ANCHORS,HEAD_WIDTH} from '../src/game/rig/anchors';
-import {evaluateBody,evaluateGlassesVisibility,evaluateItem,keepoutPixels} from '../src/game/rig/fit';
+import {HEAD_ANCHORS,HEAD_WIDTH,RIG_VERSION} from '../src/game/rig/anchors';
+import {COSMETIC_MANIFEST} from '../src/game/rig/manifest';
+import {evaluateBody,evaluateGlassesVisibility,evaluateItem,evaluatePin,keepoutPixels} from '../src/game/rig/fit';
 import type {FitMask} from '../src/game/rig/fit';
 
 const SIZE=HEAD_ANCHORS.atlasSize;
@@ -13,8 +14,8 @@ function rect(x:number,y:number,width:number,height:number):FitMask{
 
 test('every visible hair, hat and glasses item declares a fit class',()=>{
  const visible=ITEMS.filter(item=>['hair','hat','glasses'].includes(item.slot)&&item.visual?.variant!=='none'&&!item.id.endsWith('-none'));
- for(const item of visible)assert.ok(COSMETIC_FIT[item.id],`${item.id} has no fit class`);
- for(const id of Object.keys(COSMETIC_FIT))assert.ok(CATALOG[id],`${id} is not in the catalog`);
+ for(const item of visible)assert.ok(COSMETIC_MANIFEST[item.id],`${item.id} has no fit class`);
+ for(const id of Object.keys(COSMETIC_MANIFEST))assert.ok(CATALOG[id],`${id} is not in the catalog`);
 });
 
 test('hair inside its zone passes; oversized hair reports width and height',()=>{
@@ -42,4 +43,22 @@ test('unregistered items, hidden glasses and body proportions are reported',()=>
  assert.equal(evaluateGlassesVisibility('glasses-sport',glasses,half)?.code,'hidden');
  assert.deepEqual(evaluateBody('outfit-test',.45,.95).issues,[]);
  assert.equal(evaluateBody('outfit-test',.55,.7).issues.length,2);
+});
+
+test('manifests target the current rig and painted art declares a pin inside its atlas region',()=>{
+ for(const [id,manifest] of Object.entries(COSMETIC_MANIFEST)){
+  assert.equal(manifest.rig,RIG_VERSION,`${id} was authored for another rig`);
+  assert.equal(manifest.slot,CATALOG[id].slot,`${id} slot differs from the catalog`);
+  assert.ok(manifest.procedural||manifest.worn,`${id} has neither painted art nor a procedural drawing`);
+  for(const region of [manifest.worn,manifest.covered])if(region){
+   const [a,b]=region.pin.from;assert.ok(Math.hypot(b[0]-a[0],b[1]-a[1])>0,`${id} pin points coincide`);
+   const [x,y,w,h]=region.source;for(const [px,py] of region.clip??[])assert.ok(px>=x&&py>=y&&px<=x+w&&py<=y+h,`${id} clip leaves its region`);
+  }
+ }
+});
+
+test('glasses sit on the eye sockets; legacy hat seats are reported until repainted',()=>{
+ assert.equal(evaluatePin('glasses-sport'),null);
+ assert.equal(evaluatePin('hat-tide')?.code,'anchor');
+ assert.equal(evaluatePin('hat-pilot'),null);
 });

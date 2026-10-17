@@ -2,6 +2,9 @@ import {composeUniversalHead,FACE_REGISTRATION} from './faces';
 import {CATALOG,DYES} from '../../shared/catalog';
 import type {DyeSlot,Equipment,ItemVisual,Slot} from '../../shared/catalog';
 import {drawWornHat,getHeadwearProfile} from './headwear';
+import {cutRegion,drawPinned} from './rig/draw';
+import {COSMETIC_MANIFEST,onTemplate} from './rig/manifest';
+import type {ArtRegion} from './rig/manifest';
 
 export const AVATAR_UNIT=160/1254;
 const SIZE=1254,RESOLUTION=.5;
@@ -155,34 +158,19 @@ export function getOutfitPortrait(id:string):HTMLCanvasElement|null {
  c.drawImage(image,crop[0],crop[1],crop[2],crop[3],(out.width-width)/2,(out.height-height)/2,width,height);
  outfitCache.set(id,out);return out;
 }
-export const PAINTED_ACCESSORIES:Readonly<Record<string,{source:[number,number,number,number];destination?:[number,number,number,number];clip?:readonly (readonly [number,number])[]}>>={
- 'hair-wavy':{source:[280,65,820,760],destination:[-35.1,-143.54,76.56,70.94]},
- 'hair-undercut':{source:[25,85,610,500],destination:[-43,-156,85,70],clip:[[0,0],[610,0],[610,290],[575,365],[575,500],[0,500]]},
- 'hair-ponytail':{source:[600,85,650,660],destination:[-52,-156,93,94],clip:[[40,0],[650,0],[650,660],[0,660],[0,365],[40,290]]},
- 'hat-thunder':{source:[20,110,635,425],clip:[[0,0],[635,0],[635,380],[610,380],[610,425],[0,425]]},
- 'hat-tide':{source:[630,110,624,490],clip:[[45,0],[624,0],[624,490],[0,490],[0,410],[45,370]]},
- 'hat-ruby':{source:[0,680,635,430],clip:[[0,0],[635,0],[635,330],[560,430],[0,430]]},
- 'hat-tropical':{source:[615,685,639,460],clip:[[90,0],[639,0],[639,460],[0,460],[0,390],[75,200]]},
- 'glasses-sport':{source:[45,880,570,235]},
- 'glasses-cat':{source:[640,890,600,240]}
-};
+/** Painted hair and glasses cut from an atlas; their inventory icons use the same region. */
+export const PAINTED_ACCESSORIES:Readonly<Record<string,ArtRegion>>=Object.fromEntries(Object.entries(COSMETIC_MANIFEST).flatMap(([id,manifest])=>manifest.slot!=='hat'&&manifest.worn&&manifest.worn.source[2]!==SIZE?[[id,manifest.worn]]:[]));
 export function getAccessoryPortrait(id:string,color?:string):HTMLCanvasElement|null {
- const registration=PAINTED_ACCESSORIES[id],path=CATALOG[id]?.visual?.asset;if(!registration||!path)return null;
- const img=asset(path);if(!img.complete||!img.naturalWidth)return null;const known=artCache.get(`portrait:${id}:${color??''}`);if(known)return known;
- const [x,y,w,h]=registration.source,out=canvas(w,h);const c=out.getContext('2d')!;if(registration.clip){c.beginPath();polygon(c,registration.clip);c.clip();}c.drawImage(img,x,y,w,h,0,0,w,h);if(color){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(color);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}artCache.set(`portrait:${id}:${color??''}`,out);return out;
+ const registration=PAINTED_ACCESSORIES[id];if(!registration)return null;
+ const img=asset(registration.atlas);if(!img.complete||!img.naturalWidth)return null;const known=artCache.get(`portrait:${id}:${color??''}`);if(known)return known;
+ const out=cutRegion(img,registration),c=out.getContext('2d',{willReadFrequently:true})!,[w,h]=[out.width,out.height];if(color){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(color);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}artCache.set(`portrait:${id}:${color??''}`,out);return out;
 }
-// Optical centers measured in each original atlas, not the bounds of the temples.
-// A similarity transform fits both eyes without stretching the painted lenses.
-const GLASSES_LENSES:Record<string,readonly[Point,Point]>={sport:[[344,1014],[557,1042]],cat:[[945,1018],[1155,1036]]};
 const headPoint=([x,y]:Point):Point=>[(x-625)*AVATAR_UNIT,(y-1225)*AVATAR_UNIT];
 const nearEye=headPoint(FACE_REGISTRATION.sockets.leftEye),farEye=headPoint(FACE_REGISTRATION.sockets.rightEye);
 function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number){layer(c,v,()=>{
- const registration=PAINTED_ACCESSORIES[`glasses-${v.variant}`],lenses=GLASSES_LENSES[v.variant];if(registration&&lenses&&v.asset){
-  const img=asset(v.asset);if(img.complete&&img.naturalWidth){
-   const [near,far]=lenses,dx=far[0]-near[0],dy=far[1]-near[1],tx=farEye[0]-nearEye[0],ty=farEye[1]-nearEye[1],scale=Math.hypot(tx,ty)/Math.hypot(dx,dy);
-   c.translate(...nearEye);c.rotate(Math.atan2(ty,tx)-Math.atan2(dy,dx));c.scale(scale,scale);
-   const [x,y,w,h]=registration.source;c.drawImage(img,x,y,w,h,x-near[0],y-near[1],w,h);
-  }return;
+ // The manifest pins each lens's optical centre to the universal eye sockets.
+ const registration=COSMETIC_MANIFEST[`glasses-${v.variant}`]?.worn;if(registration){
+  const img=asset(registration.atlas);if(img.complete&&img.naturalWidth)drawPinned(c,img,registration);return;
  }
  const pilot=v.variant==='pilot';c.strokeStyle=shade(v.color!,.5);c.lineWidth=pilot?2.2:1.35;const glass=c.createLinearGradient(0,-111,0,-88);glass.addColorStop(0,pilot?'#70b7cf80':'#e5fcff12');glass.addColorStop(1,'#72c6da16');
  for(const [x,y,rx,ry]of [[...nearEye,8.4,8.5],[...farEye,5.8,6.9]]){ellipse(c,x,y,rx,ry,glass,v.color);c.strokeStyle='#f6edc9';c.lineWidth=.65;c.beginPath();c.ellipse(x,y,rx-.8,ry-.8,0,Math.PI,Math.PI*1.7);c.stroke();}
@@ -194,21 +182,13 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
  else if(v.variant==='knight'){c.translate(-3,-116);c.scale(.85,.85);c.rotate(.025);ellipse(c,0,9,35,8,'#25313a44');c.fillStyle=material(c,v.color!);c.strokeStyle=shade(v.color!,.48);c.lineWidth=1.7;c.beginPath();c.moveTo(-36,9);c.quadraticCurveTo(-42,-43,0,-41);c.quadraticCurveTo(37,-42,36,9);c.lineTo(21,1);c.lineTo(1,-5);c.lineTo(-21,5);c.closePath();c.fill();c.stroke();c.strokeStyle='#eff9e0aa';c.lineWidth=1.5;c.beginPath();c.moveTo(-29,-10);c.quadraticCurveTo(-23,-34,2,-34);c.stroke();c.fillStyle='#b8555c';c.beginPath();c.moveTo(-5,-38);c.quadraticCurveTo(-17,-64,21,-57);c.quadraticCurveTo(6,-49,6,-38);c.fill();}
  });}
 function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual){
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered?.destination&&hair.asset){const img=getAccessoryPortrait(eq.hair,eq.hair==='hair-wavy'&&eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)c.drawImage(img,...registered.destination);return;}
- const originalHair=eq.hair==='hair-spiky'||eq.hair==='hair-wavy',dyed=eq.dyes?.hair&&eq.dyes.hair!=='original';const art=tintedArt(hair.asset??'/assets/hair-spiky.png',!originalHair||dyed?hair.color:undefined)??tintedArt('/assets/hair-spiky.png',dyed?hair.color:undefined);if(art)c.drawImage(art,-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160);
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.hair==='hair-wavy'&&eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,img,registered,true);return;}
+ const originalHair=eq.hair==='hair-spiky'||eq.hair==='hair-wavy',dyed=eq.dyes?.hair&&eq.dyes.hair!=='original';const art=tintedArt(hair.asset??'/assets/hair-spiky.png',!originalHair||dyed?hair.color:undefined)??tintedArt('/assets/hair-spiky.png',dyed?hair.color:undefined);
+ if(art)drawPinned(c,art,COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate('/assets/hair-spiky.png'),true);
 }
-/** Painted alternatives for covered heads. Coordinates are authored against the
- * same 1254px head template; no squashing of the uncovered hairstyle. */
-export const COVERED_HAIR:Readonly<Record<string,{source:readonly[number,number,number,number];destination:readonly[number,number,number,number]}>>={
- 'hair-spiky':{source:[170,48,540,440],destination:[335,180,486,396]},
- 'hair-silver':{source:[170,48,540,440],destination:[335,180,486,396]},
- 'hair-wavy':{source:[850,48,585,470],destination:[330,160,526.5,423]},
- 'hair-undercut':{source:[190,535,520,410],destination:[365,185,468,369]},
- 'hair-ponytail':{source:[835,535,620,475],destination:[295,175,558,427.5]}
-};
 function coveredHair(eq:Equipment,hair:ItemVisual){
- const registration=COVERED_HAIR[eq.hair];if(!registration)return null;
- const img=asset('/assets/hair-covered-atlas.png');if(!img.complete||!img.naturalWidth)return null;
+ const registration=COSMETIC_MANIFEST[eq.hair]?.covered;if(!registration)return null;
+ const img=asset(registration.atlas);if(!img.complete||!img.naturalWidth)return null;
  const dye=eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:eq.hair==='hair-silver'?hair.color:undefined;
  const key=`covered:${eq.hair}:${dye??'original'}`;let out=artCache.get(key);if(out)return out;
  const [x,y,w,h]=registration.source;out=canvas(w,h);const c=out.getContext('2d')!;c.drawImage(img,x,y,w,h,0,0,w,h);
@@ -216,14 +196,14 @@ function coveredHair(eq:Equipment,hair:ItemVisual){
  artCache.set(key,out);return out;
 }
 function drawCoveredHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual,front:boolean){
- const registration=COVERED_HAIR[eq.hair],art=coveredHair(eq,hair);if(!art||!registration)return;
+ const registration=COSMETIC_MANIFEST[eq.hair]?.covered,art=coveredHair(eq,hair);if(!art||!registration)return;
  c.save();
  if(front){
   // The nape and low ponytail belong behind the universal face/neck. Only the
   // authored fringe and temple area pass in front; the hat brim is drawn last.
   c.beginPath();polygon(c,[[425,130],[920,130],[920,515],[700,515],[600,470],[425,460]].map(p=>headPoint(p as [number,number])));c.clip();
  }
- const [x,y,w,h]=registration.destination;c.drawImage(art,(x-625)*AVATAR_UNIT,(y-1225)*AVATAR_UNIT,w*AVATAR_UNIT,h*AVATAR_UNIT);c.restore();
+ drawPinned(c,art,registration,true);c.restore();
 }
 /** Rear equipment follows exactly the head transform in standing and combat rigs. */
 export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time:number,_emotion:string,isModular:boolean){

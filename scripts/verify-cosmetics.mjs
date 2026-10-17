@@ -19,7 +19,8 @@ try{
  await page.goto(server.resolvedUrls.local[0],{waitUntil:'networkidle'});
  report=await page.evaluate(async()=>{
   const A=await import('/src/game/appearance.ts');
-  const {COSMETIC_FIT,FIT_ZONES,HEAD_ANCHORS,HEAD_WIDTH}=await import('/src/game/rig/anchors.ts');
+  const {FIT_ZONES,HEAD_ANCHORS,HEAD_WIDTH}=await import('/src/game/rig/anchors.ts');
+  const {COSMETIC_MANIFEST}=await import('/src/game/rig/manifest.ts');
   const F=await import('/src/game/rig/fit.ts');
   const {CATALOG,DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts');
   const load=path=>new Promise((resolve,reject)=>{
@@ -62,7 +63,7 @@ try{
    const base=layers(eqOf({hat})),withHair=layers(eqOf({hat,hair}));
    const issues=[];
    if(hair!=='hair-none'){
-    const zone=FIT_ZONES[COSMETIC_FIT[hair]?.fit];const covered=F.keepoutPixels(differs(withHair,base));
+    const zone=FIT_ZONES[COSMETIC_MANIFEST[hair]?.fit];const covered=F.keepoutPixels(differs(withHair,base));
     if(zone?.keepoutTolerance!=null&&covered>zone.keepoutTolerance)issues.push({code:'keepout',message:`Cabelo visível sobre olhos/boca em ${covered}px`,measured:covered,limit:zone.keepoutTolerance});
    }
    for(const id of glasses){
