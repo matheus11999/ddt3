@@ -112,7 +112,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(previous&&teleport&&teleport.at!==(previous.teleportedAt??0)){previous.x=f.x;previous.y=f.y;previous.lastX=f.x;previous.teleportedAt=teleport.at;}
      // HP and fall positions change only in the authoritative impact snapshot.
      const falling=!!f.fall&&serverNow<f.fall.startedAt+f.fall.duration,hold=b.phase==='resolving'&&!!shot,y=falling?fallPosition(f.fall!,serverNow):f.y,hp=f.hp;
-     if(hp<=0&&!falling){if(!fallenAt.has(f.id))fallenAt.set(f.id,t);const age=t-fallenAt.get(f.id)!-TOMBSTONE_DELAY;if(age>=0){const seen=entities.get(f.id);drawTombstone(c,seen?.x??f.x,f.y,age,f.facing);continue;}}else if(hp>0)fallenAt.delete(f.id);
+     // Killed by one projectile of a multi-shot: the stone drops on that impact, not after the rest land.
+     // Later hits dig under the body and it sinks with the crater as a stone, not as the avatar again.
+     if(hp<=0&&!f.fall?.void){if(!fallenAt.has(f.id))fallenAt.set(f.id,shot&&b.phase==='resolving'&&shot.projectiles.some((_,i)=>!shot.impacted.includes(i))?t-TOMBSTONE_DELAY:t);const age=t-fallenAt.get(f.id)!-TOMBSTONE_DELAY;if(age>=0){const seen=entities.get(f.id);drawTombstone(c,seen?.x??f.x,y,age,f.facing);continue;}}else if(hp>0)fallenAt.delete(f.id);
      const entity=entities.get(f.id),walking=entity&&Math.abs(f.x-entity.x)>.8;
      const slope=f.aimSlope!==undefined?-f.aimSlope*f.facing*Math.PI/180:Math.max(-.5,Math.min(.5,Math.atan2(ground(terrain,f.x+12,Math.max(0,y-40))-ground(terrain,f.x-12,Math.max(0,y-40)),24)));
      let pose:AvatarContext['pose']=walking?'walk':b.turnId===f.id&&b.phase==='aiming'?(f.charging?'charge':'aim'):'idle',poseTime=0;
