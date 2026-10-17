@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS} from '../shared/catalog';
-import {createTerrain,crater,ground,solid,walkPosition,WALK_STEP,WALK_STEP_UP,weaponRoughness,WORLD} from '../shared/physics';
+import {createTerrain,crater,DIRECT_HIT_DIG,ground,solid,walkPosition,WALK_STEP,WALK_STEP_UP,weaponRoughness,WORLD} from '../shared/physics';
 
 const COLS=512,SURFACE=600,BRICK_CRATER=22;
 function flat(){const t=new Uint8Array(COLS*WORLD.rows);for(let r=SURFACE/3;r<WORLD.rows;r++)t.fill(1,r*COLS,(r+1)*COLS);return t;}
@@ -28,7 +28,7 @@ test('a single brick crater is the steepest hole a fighter can still walk into a
 });
 
 test('the shallow dent of a direct hit can still be walked out of',()=>{
- for(const x of centers){const t=flat();dig(t,x,SURFACE,BRICK_CRATER*.45);
+ for(const x of centers){const t=flat();dig(t,x,SURFACE,BRICK_CRATER*DIRECT_HIT_DIG);
   const end=walk(t,{x,y:ground(t,x)},1,30).at(-1)!;assert.ok(end.x>x+20&&end.y===SURFACE,`left the dent at ${x}`);
  }
 });
