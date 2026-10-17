@@ -1,7 +1,7 @@
 import type {MapId, Weapon} from './catalog';
 import {canonicalMap,contains,getMap,MATERIALS} from './maps';
 import type {CanonicalMapId,MaterialId,MapRegion} from './maps';
-import {HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
+import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
 /** Time dilation preserves the original arcs while making their travel 18% faster. */
 export const PROJECTILE_SPEED_SCALE=1.18;
@@ -144,7 +144,7 @@ function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:num
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
 export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance):TrajectoryResult[] {
- const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0})),results:TrajectoryResult[]=new Array(angles.length);
+ const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined})),results:TrajectoryResult[]=new Array(angles.length);
  const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:(at-shot.launchAt)/PROJECTILE_SPEED_SCALE};results[index]=result;onImpact?.(result,index);};
  let time=0;
  while(shots.some(shot=>!shot.done)){
@@ -160,14 +160,24 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
    elapsed+=advance;if(!earliest)break;finish(earliest.index,earliest.contact,time+elapsed);
   }
   time+=duration;
-  for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;shot.vx+=wind*7*duration/1000;shot.vy+=weapon.gravity*duration/1000;
-   if(guidance?.projectileIndex===index&&shot.vy>0){
-    const target=guidance.targets.filter(target=>target.hp>0&&target.y-31>=shot.y&&Math.hypot(target.x-shot.x,target.y-31-shot.y)<=HOMING_RADIUS).sort((a,b)=>Math.hypot(a.x-shot.x,a.y-31-shot.y)-Math.hypot(b.x-shot.x,b.y-31-shot.y))[0];
-    if(target){const speed=Math.hypot(shot.vx,shot.vy),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(target.y-31-shot.y,target.x-shot.x),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=HOMING_TURN_RATE*duration/1000,next=heading+Math.max(-limit,Math.min(limit,delta));shot.vx=Math.cos(next)*speed;shot.vy=Math.sin(next)*speed;}
-   }
+  for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;
+   const locked=guidance?.projectileIndex===index?homingTarget(shot,guidance):undefined;
+   if(locked){
+    // Magnet lock: pure pursuit that ignores wind/gravity. The turn rate grows as the
+    // distance shrinks (turn radius <= half the distance), so it always closes in.
+    const dx=locked.x-shot.x,dy=locked.y-31-shot.y,distance=Math.max(1,Math.hypot(dx,dy)),speed=Math.max(HOMING_MIN_SPEED,Math.hypot(shot.vx,shot.vy)),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=Math.max(HOMING_TURN_RATE,2*speed/distance)*duration/1000,next=heading+Math.max(-limit,Math.min(limit,delta));
+    shot.vx=Math.cos(next)*speed;shot.vy=Math.sin(next)*speed;
+   }else{shot.vx+=wind*7*duration/1000;shot.vy+=weapon.gravity*duration/1000;}
    if(time>=shot.nextSample-1e-7){shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);shot.nextSample+=1000/60;}if(time-shot.launchAt>=7500-1e-7)finish(index,{x:shot.x,y:shot.y,fraction:1},time);}
  }
  return results;
+}
+/** Acquires the nearest living enemy within HOMING_RADIUS and keeps that lock while it lives. */
+function homingTarget(shot:{x:number;y:number;lockId?:string},guidance:ProjectileGuidance):ProjectileTarget|undefined {
+ const current=shot.lockId?guidance.targets.find(target=>target.id===shot.lockId&&target.hp>0):undefined;if(current)return current;
+ const distance=(target:ProjectileTarget)=>Math.hypot(target.x-shot.x,target.y-31-shot.y);
+ const target=guidance.targets.filter(target=>target.hp>0&&distance(target)<=HOMING_RADIUS).sort((a,b)=>distance(a)-distance(b))[0];
+ shot.lockId=target?.id;return target;
 }
 export function trajectory(terrain:Uint8Array,origin:ProjectileOrigin,angle:number,power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[]):TrajectoryResult {
  return volley(terrain,origin,[angle],power,wind,weapon,targets)[0];
