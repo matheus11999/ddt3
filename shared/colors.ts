@@ -20,10 +20,22 @@ const HEX=/^#[0-9a-f]{6}$/;
 export function isHexColor(value:unknown):value is string {return typeof value==='string'&&HEX.test(value);}
 export function normalizeHex(value:unknown):string|undefined {return typeof value==='string'&&HEX.test(value.toLowerCase())?value.toLowerCase():undefined;}
 
-/** Quick picks in the color window; any other color comes from the RGB picker. */
-export const COLOR_PRESETS=['#e8332f','#ff8a1f','#ffc93a','#2fb24f','#1f8fe8','#7a3fd6','#f2efe6','#2b2b33'] as const;
-export const SKIN_PRESETS=['#fde0c8','#f2c39c','#d99a6c','#b97a4f','#8d5534','#5a311c','#cfe7c9','#c9dcf6'] as const;
-export const EYE_PRESETS=['#7a4a1c','#2f7fd8','#1f9c6b','#8b8f99','#c43a3a','#8a3fd6','#e58a1f','#ffd23a'] as const;
+/** The only colors a ticket paints: mid-saturation tones that sit well on the painted art (strong neon colors
+ * looked wrong in game, so there is no free picker). Colors applied before this rule keep working. */
+export const COLOR_PALETTE=[{color:'#c8463d',name:'Vermelho'},{color:'#d9772f',name:'Laranja'},{color:'#d4a73a',name:'Mostarda'},{color:'#4f8a4a',name:'Verde'},{color:'#2f7f86',name:'Petróleo'},{color:'#3a6fb0',name:'Azul'},{color:'#2e3f73',name:'Marinho'},{color:'#6f4a9a',name:'Roxo'},{color:'#cf7a95',name:'Rosa'},{color:'#7a4e2f',name:'Marrom'},{color:'#3a3a42',name:'Grafite'},{color:'#eee8dc',name:'Branco'}] as const;
+export const COLOR_PRESETS=COLOR_PALETTE.map(entry=>entry.color);
+/** Skin is chosen only from these realistic tones; `null` is the painted skin. The server refuses any other color. */
+export const SKIN_TONES=[{color:null,name:'Clara'},{color:'#ffe9da',name:'Branca'},{color:'#dea47c',name:'Morena clara'},{color:'#b77b52',name:'Morena'},{color:'#875636',name:'Morena escura'},{color:'#5a3624',name:'Negra'}] as const;
+export const SKIN_PRESETS=SKIN_TONES.flatMap(tone=>tone.color?[tone.color]:[]);
+export const isSkinTone=(color:string|null)=>color===null||(SKIN_PRESETS as readonly string[]).includes(color);
+export const EYE_PALETTE=[{color:'#7a4a1c',name:'Castanho'},{color:'#3c2a1e',name:'Escuro'},{color:'#c08a2e',name:'Mel'},{color:'#4f8a4a',name:'Verde'},{color:'#3a78b8',name:'Azul'},{color:'#8a8f99',name:'Cinza'},{color:'#8a3a3a',name:'Rubi'},{color:'#6f4a9a',name:'Violeta'}] as const;
+export const EYE_PRESETS=EYE_PALETTE.map(entry=>entry.color);
+/** Whether a ticket may paint `color` on `target` (an item copy, `skin` or `eyes`); `null` is always the original. */
+export function isPaletteColor(target:string,color:string|null):boolean{
+ if(color===null)return true;
+ const list:readonly string[]=target==='skin'?SKIN_PRESETS:target==='eyes'?EYE_PRESETS:COLOR_PRESETS;
+ return list.includes(color);
+}
 
 /** Colors as renderers read them: from the copy worn in each color slot (repeat purchases keep their own). */
 export function equippedColors(equipment:Equipment,itemColors:Readonly<Record<string,string>>):Partial<Record<ColorSlot,string>> {

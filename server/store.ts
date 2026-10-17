@@ -1,5 +1,5 @@
 import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS,CONSUMABLE_OFFER_BY_ID,isConsumableOffer} from '../shared/shop';
-import {COLOR_SLOTS,isBodyColorPart,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
+import {COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
@@ -209,10 +209,17 @@ export class Store implements ProfileStore {
    const applied:ColorChange[]=[],seen=new Set<string>();
    for(const change of changes){
     if(seen.has(change.target))throw Error('A mesma peça apareceu duas vezes.');seen.add(change.target);
-    if(isBodyColorPart(change.target)){if((profile.bodyColors[change.target]??null)!==change.color)applied.push(change);continue;}
-    const base=CATALOG[copyBase(change.target)];
-    if(!base||!profile.inventory.includes(change.target)||!isColorSlot(base.slot)||isEmptyItem(base))throw Error('Escolha um visual da sua mochila que possa mudar de cor.');
-    if((profile.itemColors[change.target]??null)!==change.color)applied.push(change);
+    let now:string|null;
+    if(isBodyColorPart(change.target))now=profile.bodyColors[change.target]??null;
+    else{
+     const base=CATALOG[copyBase(change.target)];
+     if(!base||!profile.inventory.includes(change.target)||!isColorSlot(base.slot)||isEmptyItem(base))throw Error('Escolha um visual da sua mochila que possa mudar de cor.');
+     now=profile.itemColors[change.target]??null;
+    }
+    if(now===change.color)continue;
+    // Only the window's ready colors; a color painted before the palette existed stays until changed.
+    if(!isPaletteColor(change.target,change.color))throw Error('Escolha uma das cores prontas da janela.');
+    applied.push(change);
    }
    if(!applied.length)throw Error('Nada mudou: escolha uma cor diferente da atual.');
    if(profile.colorTickets<applied.length)throw Error(applied.length===1?'Você precisa de um Ticket de Cor. Compre na loja.':`Você precisa de ${applied.length} Tickets de Cor. Compre na loja.`);

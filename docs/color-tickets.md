@@ -11,7 +11,8 @@
   - no topo ficam as peças vestidas (cabelo, chapéu, óculos, roupa; a peça clicada entra no lugar da vestida), o Corpo e os Olhos;
   - cada parte mostra um ponto laranja quando tem cor nova, e Desfazer volta só aquela parte;
   - a prévia mostra todas as cores juntas, sem círculo atrás;
-  - "Original", cores prontas e seletor RGB (paleta, controles R/G/B e HEX);
+  - só cores prontas, sem seletor RGB (cores fortes demais ficavam feias no jogo): peças com "Original" e 12 tons suaves (`COLOR_PALETTE`), olhos com "Original" e 8 tons (`EYE_PALETTE`);
+  - no Corpo, só 6 tons de pele realistas (`SKIN_TONES`): Clara (a pele pintada), Branca, Morena clara, Morena, Morena escura e Negra;
   - **Aplicar tudo · N** envia tudo junto.
 - **Cor do corpo e dos olhos**: o botão ao lado do personagem na mochila abre a mesma janela já no Corpo.
   - Corpo: rosto, orelhas, braços e pernas.
@@ -27,6 +28,7 @@
 - O servidor decide tudo; o cliente só pede.
   - `paint {changes:[{target,color|null}]}` (target = cópia do item, `skin` ou `eyes`; até 8) e `discard {item}`;
   - `paint` é tudo ou nada: sem tickets para todas as trocas, nada muda; partes que não mudaram não são cobradas;
+  - `paint` só aceita as cores da paleta da parte (`isPaletteColor`); uma cor pintada antes da paleta continua até o jogador trocar;
   - `shop-buy` com `quantity` para o ticket.
 - Cada ação roda numa transação com trava da linha do perfil (`Store.mutate`). Se faltar ticket, nada muda.
 - A cor é **por cópia**: `profile.itemColors['hat-cap~2']`.
@@ -48,7 +50,9 @@
   - Com `hue`, `tolerance` e `minSaturation`: muda só a cor principal pintada. A aba, a estrela, as faixas, as penas, o dourado e as partes laranja ficam como estão.
   - `label` é o texto que a janela mostra ("Muda: a copa do boné; a aba e a estrela ficam como estão").
 - Pele: multiplica a cor pintada pela razão entre a cor escolhida e a pele de referência (252,207,172), então a sombra acompanha qualquer tom.
-  - Nas roupas usa uma faixa estrita, para o short laranja e o forro salmão não virarem pele.
+  - A pele pintada segue uma reta: azul/vermelho ≈ 1,2 × verde/vermelho − 0,3, do brilho até a sombra funda. Só muda o que está perto dessa reta.
+  - Só mudam regiões conectadas que têm brilho de pele; couro marrom, dourado e laranja perto da reta ficam como estão.
+  - A prancha `skins.png` do validador mostra cada roupa e cada rosto nos 6 tons; braços, pernas e rosto precisam ficar iguais.
 - Olhos: só a íris, dentro das elipses `EYES` de `faceExpressions.ts`.
 
 ## Cosmético novo

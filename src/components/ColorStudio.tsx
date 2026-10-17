@@ -3,7 +3,9 @@ import type {ReactNode} from 'react';
 import {Check,Eye,Hammer,LoaderCircle,Palette,PersonStanding,RotateCcw,Shirt,Trash2,Undo2,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES,copyBase,equippedCopy,isCopyKey,isEmptyItem,normalizeVisibility} from '../../shared/catalog';
 import type {Equipment} from '../../shared/catalog';
-import {BODY_COLOR_PARTS,COLOR_PRESETS,COLOR_TICKET,EYE_PRESETS,SKIN_PRESETS,isBodyColorPart,isColorSlot,normalizeHex} from '../../shared/colors';
+import {BODY_COLOR_PARTS,COLOR_PALETTE,COLOR_TICKET,EYE_PALETTE,SKIN_TONES,isBodyColorPart,isColorSlot} from '../../shared/colors';
+/** How the painted skin looks, for the first tone's swatch. */
+const SKIN_PAINTED='#fccfac';
 import type {BodyColorPart,ColorSlot} from '../../shared/colors';
 import {RECOLOR_ZONES} from '../game/rig/recolorZones';
 import {client,useGame} from '../client';
@@ -14,8 +16,6 @@ import {ItemIcon} from './ItemIcon';
 import './ColorStudio.css';
 
 export type ColorTarget={kind:'item';key:string}|{kind:'body';part:BodyColorPart};
-const hexToRgb=(hex:string)=>[1,3,5].map(i=>parseInt(hex.slice(i,i+2),16));
-const rgbToHex=(rgb:number[])=>'#'+rgb.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
 const PART_SLOTS=['hair','hat','glasses','outfit'] as const;
 
 export function TicketIcon({size=22}:{size?:number}){return <img className="color-ticket-icon" src={COLOR_TICKET.icon} alt="" aria-hidden="true" width={size} height={size} draggable={false}/>;}
@@ -27,7 +27,7 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
  const focusKey=initial.kind==='item'?initial.key:initial.part,focusSlot=initial.kind==='item'?CATALOG[copyBase(initial.key)]?.slot:undefined;
  // The pieces on the character (the one right-clicked replaces the worn one in its slot), then skin and eyes.
  const [parts]=useState(()=>[...PART_SLOTS.map(slot=>slot===focusSlot?focusKey:equippedCopy(equipment,slot)).filter(key=>canRecolor(key)),...BODY_COLOR_PARTS]);
- const [selected,setSelected]=useState(focusKey),[drafts,setDrafts]=useState<Record<string,string|null>>({}),[hexText,setHexText]=useState<string|null>(null),[pending,setPending]=useState(false);
+ const [selected,setSelected]=useState(focusKey),[drafts,setDrafts]=useState<Record<string,string|null>>({}),[pending,setPending]=useState(false);
  const sent=useRef<{result:typeof state.colorResult}|null>(null);
  const current=(key:string)=>(isBodyColorPart(key)?p.bodyColors[key]:p.itemColors[key])??null;
  const value=(key:string)=>key in drafts?drafts[key]:current(key);
@@ -41,10 +41,10 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
   if(state.error||state.status!=='online'){sent.current=null;setPending(false);}
  },[state.colorResult,state.error,state.status,onDone]);
  useEffect(()=>{const escape=(event:KeyboardEvent)=>{if(event.key==='Escape'&&!sent.current){event.preventDefault();event.stopPropagation();onClose();}};window.addEventListener('keydown',escape,true);return()=>window.removeEventListener('keydown',escape,true);},[onClose]);
- const draft=value(selected),shownHex=hexText??draft??'';
- function set(color:string|null,text?:string){setDrafts(old=>({...old,[selected]:color}));setHexText(text??null);}
+ const draft=value(selected);
+ function set(color:string|null){setDrafts(old=>({...old,[selected]:color}));}
  function pick(color:string|null){set(color);audio.play('click');}
- function select(key:string){setSelected(key);setHexText(null);audio.play('click');}
+ function select(key:string){setSelected(key);audio.play('click');}
  function apply(){if(!canApply)return;sent.current={result:state.colorResult};setPending(true);client.paint(changes);}
  // The preview wears every piece of the list with its draft color.
  const preview:Equipment=(()=>{
@@ -62,8 +62,9 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
   ?<ItemIcon id={equipment.face} size={size} skin={value('skin')??undefined} eyes={key==='eyes'?value('eyes')??undefined:equipment.eyes}/>
   :<ItemIcon id={copyBase(key)} size={size} color={value(key)??undefined}/>;
  const item=isBodyColorPart(selected)?null:CATALOG[copyBase(selected)],zone=item?RECOLOR_ZONES[item.id]:undefined;
- const presets=selected==='skin'?SKIN_PRESETS:selected==='eyes'?EYE_PRESETS:COLOR_PRESETS;
- const rgb=hexToRgb(draft??'#808080');
+ // Skin offers only its six tones (the first is the painted skin); pieces and eyes add "Original" to their palette.
+ const options:{color:string|null;name:string;swatch?:string}[]=selected==='skin'?SKIN_TONES.map(tone=>({color:tone.color,name:tone.name,swatch:tone.color??SKIN_PAINTED}))
+  :[{color:null,name:'Original'},...(selected==='eyes'?EYE_PALETTE:COLOR_PALETTE).map(entry=>({...entry,swatch:entry.color}))];
  const hint=locked&&!pending?'Troque as cores fora da batalha.':changes.length===0?'Escolha as cores e veja na prévia.':tickets<changes.length?`Você tem ${tickets} ${tickets===1?'ticket':'tickets'} e precisa de ${changes.length}. Compre Tickets de Cor na loja.`:`${changes.length} ${changes.length===1?'troca gasta 1 ticket':`trocas gastam ${changes.length} tickets`}.`;
  return <div className="color-studio-layer" onPointerDown={event=>{if(event.target===event.currentTarget&&!pending)onClose();}}>
   <section className="color-studio" role="dialog" aria-modal="true" aria-label="Trocar cor">
@@ -79,7 +80,7 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
        <small>{index?'Personagem':'Visual'}</small>
        <div>{group.map(key=>{const body=isBodyColorPart(key),base=body?null:CATALOG[copyBase(key)],label=body?(key==='skin'?'Corpo':'Olhos'):SLOT_NAMES[base!.slot],edited=value(key)!==current(key);
         return <button key={key} className={`color-part ${selected===key?'active':''} ${edited?'edited':''}`} aria-pressed={selected===key} aria-label={`${label}${base?`: ${base.name}`:''}${edited?' (cor nova)':''}`} title={base?.name??(key==='skin'?'Cor do corpo':'Cor dos olhos')} disabled={pending} onClick={()=>select(key)}>
-         <span className="color-part-art">{icon(key,50)}{edited&&<i className="color-part-dot" aria-hidden="true"/>}</span>
+         <span className="color-part-art">{icon(key,44)}{edited&&<i className="color-part-dot" aria-hidden="true"/>}</span>
          <span className="color-part-label">{label}</span>
         </button>;})}</div>
       </div>)}
@@ -89,23 +90,12 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
        {item?<><b>{item.name}</b><small>{zone?`Muda: ${zone.label.charAt(0).toLowerCase()}${zone.label.slice(1)}`:SLOT_NAMES[item.slot]}</small></>
         :<><b>{selected==='skin'?'Cor da pele do personagem':'Cor da íris'}</b><small>{selected==='skin'?'Rosto, orelhas, braços e pernas':'Só a íris muda; o branco e o contorno ficam'}</small></>}
       </div>
-      {draft!==current(selected)&&<button className="color-studio-undo" disabled={pending} onClick={()=>{setDrafts(old=>{const next={...old};delete next[selected];return next;});setHexText(null);audio.play('click');}}><Undo2 size={15}/>Desfazer</button>}
+      {draft!==current(selected)&&<button className="color-studio-undo" disabled={pending} onClick={()=>{setDrafts(old=>{const next={...old};delete next[selected];return next;});audio.play('click');}}><Undo2 size={15}/>Desfazer</button>}
      </div>
      <section className="color-studio-section">
-      <h3>Cores prontas</h3>
-      <div className="color-swatches" role="group" aria-label="Cores prontas">
-       <button className={`color-swatch original ${draft===null?'active':''}`} aria-pressed={draft===null} title="Cor original" aria-label="Cor original" disabled={pending} onClick={()=>pick(null)}><RotateCcw size={15}/></button>
-       {presets.map(color=><button key={color} className={`color-swatch ${draft===color?'active':''}`} style={{background:color}} aria-pressed={draft===color} title={color} aria-label={`Cor ${color}`} disabled={pending} onClick={()=>pick(color)}>{draft===color&&<Check size={14}/>}</button>)}
-      </div>
-     </section>
-     <section className="color-studio-section">
-      <h3>Cor personalizada</h3>
-      <div className="color-rgb" aria-label="Cor personalizada">
-       <label className="color-rgb-picker" title="Escolher qualquer cor" style={{background:draft??'#808080'}}><input type="color" value={draft??'#808080'} disabled={pending} onChange={event=>set(event.target.value)} aria-label="Seletor de cor"/><Palette size={18} aria-hidden="true"/></label>
-       <div className="color-rgb-sliders">
-        {(['R','G','B'] as const).map((label,index)=><label key={label} data-channel={label}><span>{label}</span><input type="range" min={0} max={255} value={rgb[index]} disabled={pending} aria-label={`Canal ${label}`} onChange={event=>{const next=[...rgb];next[index]=Number(event.target.value);set(rgbToHex(next));}}/><b>{rgb[index]}</b></label>)}
-       </div>
-       <label className="color-hex"><span>HEX</span><input value={shownHex} placeholder="#rrggbb" maxLength={7} spellCheck={false} disabled={pending} aria-label="Código da cor" onChange={event=>{const text=event.target.value.trim(),hex=normalizeHex(text.startsWith('#')?text:`#${text}`);if(hex)set(hex,text);else setHexText(text);}}/></label>
+      <h3>{selected==='skin'?'Tom de pele':'Cores prontas'}<span>{options.find(option=>option.color===draft)?.name??(draft?'Cor anterior':'')}</span></h3>
+      <div className="color-swatches" role="group" aria-label={selected==='skin'?'Tons de pele':'Cores prontas'}>
+       {options.map(option=><button key={option.color??'original'} className={`color-swatch ${option.color?'':'original'} ${draft===option.color?'active':''}`} style={option.swatch?{background:option.swatch}:undefined} aria-pressed={draft===option.color} title={option.name} aria-label={`Cor ${option.name}`} disabled={pending} onClick={()=>pick(option.color)}>{draft===option.color?<Check size={15}/>:option.color===null&&!option.swatch?<RotateCcw size={15}/>:null}</button>)}
       </div>
      </section>
     </div>

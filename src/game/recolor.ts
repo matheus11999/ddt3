@@ -55,19 +55,39 @@ export function zoneCoverage(canvas:Canvas,id:string):number{
 
 /** The painted skin of the universal head and bodies, measured on character-base.png. */
 const SKIN_REFERENCE=[252,207,172] as const;
-/** Skin is warm, with green and blue a steady fraction of red. Clothes in the same hue (orange
- * shorts, salmon lining) are more saturated, so outfits use the strict band. */
-function skinWeight(r:number,g:number,b:number,strict:boolean){
- if(r<70||r<g||g<b)return 0;const gr=g/r,br=b/r;
- return (strict?ramp(gr,.62,.7):ramp(gr,.48,.58))*(1-ramp(gr,.93,.99))*ramp(br,strict?.48:.3,strict?.56:.4)*(1-ramp(br,.86,.95));
+/** Painted skin keeps blue a steady function of green (both relative to red): b/r ≈ 1.2·g/r − 0.3, from the
+ * light highlights down to the deep shade (measured on character-base.png and the painted outfits). */
+function skinBand(r:number,g:number,b:number){
+ if(r<60||r<g||g<b)return 0;const gr=g/r,br=b/r,off=Math.abs(br-(1.2*gr-.3));
+ return ramp(gr,.42,.5)*(1-ramp(gr,.97,1))*(1-ramp(off,.08,.14));
 }
-/** Multiplies skin by target/reference, so light and shade keep their proportions on any tone. */
-export function tintSkin(canvas:Canvas,hex:string|undefined,strict:boolean,skip?:(x:number,y:number)=>boolean){
+/** Multiplies skin by target/reference, so light and shade keep their proportions on any tone.
+ * Only connected regions holding bright skin highlights change: brown leather, gold trims or an orange
+ * lining near the skin line stay as painted because nothing bright and skin-colored touches them. */
+export function tintSkin(canvas:Canvas,hex:string|undefined,_strict?:boolean,skip?:(x:number,y:number)=>boolean){
  if(!hex)return;const c=canvas.getContext('2d',{willReadFrequently:true})!,pixels=c.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;
+ const width=canvas.width,count=data.length/4,weights=new Float32Array(count),seeds=new Uint8Array(count);
+ for(let n=0,i=0;n<count;n++,i+=4){
+  if(data[i+3]<8||skip?.(n%width,Math.floor(n/width)))continue;
+  const r=data[i],g=data[i+1],b=data[i+2],w=skinBand(r,g,b);if(!w)continue;weights[n]=w;
+  if(r>200&&g/r>.72&&Math.abs(b/r-(1.2*g/r-.3))<.06)seeds[n]=1;
+ }
+ // Keep the connected regions (through the band) that hold enough highlight seeds.
+ const label=new Int32Array(count).fill(-1),keep:boolean[]=[],stack:number[]=[],minSeeds=Math.max(4,Math.round(count/40000));
+ for(let start=0;start<count;start++){
+  if(weights[start]<.15||label[start]!==-1)continue;
+  const id=keep.length;let found=0;label[start]=id;stack.push(start);
+  while(stack.length){const n=stack.pop()!;found+=seeds[n];const x=n%width;
+   for(const m of [x>0?n-1:-1,x<width-1?n+1:-1,n-width,n+width])if(m>=0&&m<count&&label[m]===-1&&weights[m]>=.15){label[m]=id;stack.push(m);}}
+  keep.push(found>=minSeeds);
+ }
  const target=hexRgb(hex),factor=target.map((value,i)=>value/SKIN_REFERENCE[i]);
- for(let i=0,n=0;i<data.length;i+=4,n++){
-  if(data[i+3]<8)continue;if(skip?.(n%canvas.width,Math.floor(n/canvas.width)))continue;
-  const w=skinWeight(data[i],data[i+1],data[i+2],strict);if(!w)continue;
+ for(let n=0,i=0;n<count;n++,i+=4){
+  let w=weights[n];if(!w)continue;
+  if(label[n]>=0){if(!keep[label[n]])continue;}
+  else{// Faint edge pixels below the region threshold follow their strongest kept neighbour.
+   const x=n%width,near=[x>0?n-1:-1,x<width-1?n+1:-1,n-width,n+width].some(m=>m>=0&&m<count&&label[m]>=0&&keep[label[m]]);if(!near)continue;}
+  w=Math.min(1,w*1.4);
   for(let k=0;k<3;k++)data[i+k]=data[i+k]*(1-w)+Math.min(255,data[i+k]*factor[k])*w;
  }
  c.putImageData(pixels,0,0);
