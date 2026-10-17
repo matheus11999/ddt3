@@ -34,7 +34,7 @@ try{
  const male=await create('male'),female=await create('female');
  checks.push('Both creation choices persist; accounts are isolated new guests');
  const bag=await bagFor(male),initial=await male.profile();
- await expect(bag.locator('[data-slot]')).toHaveCount(9);
+ await expect(bag.locator('[data-slot]')).toHaveCount(13);
  await expect(bag.getByRole('button',{name:/Salvar personalização|Restaurar visual|^Remover /})).toHaveCount(0);
  assert.ok(initial.inventory.includes('costume-thunder-chick')&&initial.inventory.includes('costume-arcane-fox'));
  assert.ok(initial.inventory.every(id=>!id.endsWith('-none')));

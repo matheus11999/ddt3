@@ -38,6 +38,7 @@ Estas regras substituem instruções históricas conflitantes abaixo.
 - Badges de nível: **1–10 inteiramente cinza, 11–20 verde, 21–30 azul, 31–40 bronze, 41–50 prata, 51–70 dourado**. Pedido mais recente amplia o limite para **70**. Atrás do badge, todas as faixas usam o mesmo padrão de raios de sol do nível 60, na cor da faixa e mais intenso a cada faixa (`level-badge-fx`, pedido de 17/10/2026); sem anéis ou círculos. Aura começa no 30, cresce continuamente e ganha camadas no 40, 50, 60 e 70, sempre na cor da faixa. Badges menores: 40px HUD, 42px mochila, 46px carta desktop/36px mobile; personagem da carta 204px/180px.
 - Cabeça dos bonecos 30% maior em todo lugar (pedido de 17/10/2026): `HEAD_SCALE=1.3` em `src/game/rig/anchors.ts`, aplicado no pivô do pescoço. Não compensar redimensionando cabelos, chapéus ou óculos; eles seguem a cabeça.
 - Combate usa corpo chibi reduzido, baixo sob a cabeça universal, preservando roupa e arma atrás do corpo. Fora do combate, preservar as poses base exclusivas.
+- Combate deitado (pedido de 17/10/2026): arrastar, arma nas costas apontando a mira e arremesso com as mãos valem para todas as roupas pelas camadas universais de `docs/prone-combat.md`. Roupa nova pinta o corpo deitado sobre `docs/templates/prone-body.png`; nunca adicionar coordenadas de braço por roupa.
 - Arena ocupa a área completa do jogo, com chat integrado e cartas verticais. Quatro vagas por equipe permitem 1×1 a 4×4. Apenas o dono fecha pares de vagas ou expulsa outros ocupantes durante a espera; servidor valida todas as ações.
 - Mochila e ferreiro compartilham moldura com área interna real. Detalhes de item somente em tooltip, nunca num rodapé permanente. Ferreiro tem Fortalecer e Composição funcionais; chance, custo e resultado são autoritativos.
 - Armas sem fortalecimento têm cores vivas e materiais legíveis, com desenho mais simples; nunca arte carbonizada/cinza por serem básicas. **Super começa em +9**, com fundo exclusivo no card, sem substituir a raridade. Cada arma possui projétil, impacto e resíduos próprios no terreno (dinamite deixa queimadura; sorvete é exemplo de futura arma).
@@ -82,7 +83,7 @@ O agente `upgrade_server` também implementou fortalecimento/transações na pri
 
 ## Contratos
 
-- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete e fantasia. Joias invisíveis; fantasia unissex substitui o visual completo. Sem bolsa/acessórios/asas/anel ou olhos/boca separados.
+- Slots: arma, rosto, roupa completa, cabelo, chapéu, óculos, pulseira, bracelete, fantasia, anel ×2 (`ring`/`ring2`, mesma família), colar e bolha. Joias, anéis, colar e bolha são invisíveis no boneco; fantasia unissex substitui o visual completo. Sem bolsa/asas ou olhos/boca separados. Classe (Comum/Normal/Épico/Lendário) só aparece no hover de arma, roupa e chapéu.
 - Roupa cobre do pescoço para baixo: mãos, calça e sapatos incluídos. Pose pode variar sem alterar a cabeça universal.
 - `ENABLE_MODULAR_APPEARANCE=false` é intencional para corpos incompletos. Rostos estão ativos independentemente desse flag.
 - Arte da arma: 0–8 / 9 / 10–11 / 12. Aura automática: 5 / 9 / 12. Pedras I–V sempre comuns.

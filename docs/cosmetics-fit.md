@@ -24,6 +24,7 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | `hat-helmet` | 1,30 | 0,70 | Até y=470; sem cobrir olhos/boca |
 | `glasses` | 0,80–0,95 | — | A partir de y=340; frente ≥70% visível (aba pode cobrir o topo do aro) |
 | Roupa | ombros 0,85–1,05 (cabeça de referência) | — | Cabeça = 47–53% da altura em pé, já com `HEAD_SCALE` |
+| Roupa deitada | corpo 1–1,8× a cabeça escalada | — | Braços 6–40% do tronco; mão sobre os punhos; ver `prone-combat.md` |
 
 Todo PNG mantém 24 px de margem transparente até a borda do quadro de 1254 px.
 
@@ -42,7 +43,7 @@ npm run verify:cosmetics            # relatório, não reprova
 npm run verify:cosmetics -- --strict # reprova se restar qualquer problema
 ```
 
-Inicia o Vite sozinho. `BROWSER_EXECUTABLE` aponta um Chromium específico; `OUTPUT_DIR` muda a pasta (padrão `test-results/cosmetics`). Gera `report.md`, `report.json`, `zones.png` (cada peça com sua zona: verde dentro, vermelho fora) e `matrix.png` (chapéu × cabelo com Óculos Sprint).
+Inicia o Vite sozinho. `BROWSER_EXECUTABLE` aponta um Chromium específico; `OUTPUT_DIR` muda a pasta (padrão `test-results/cosmetics`). Gera `report.md`, `report.json`, `zones.png` (cada peça com sua zona: verde dentro, vermelho fora), `matrix.png` (chapéu × cabelo com Óculos Sprint) e `prone.png` (cada roupa deitada parada, arrastando, carregando e arremessando).
 
 Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos (cabelo sobre olhos/boca, frente dos óculos encoberta) e a proporção das roupas. Rostos continuam em `verify-faces.mjs`. A inspeção visual do usuário continua necessária: a ferramenta barra o que está fora da medida, não decide se a arte é bonita.
 

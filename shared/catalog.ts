@@ -1,7 +1,24 @@
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
-export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume'] as const;
+export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
+/** Equipment slots that accept the items of another slot family (two rings share one item type). */
+export const SLOT_FAMILY:Partial<Record<Slot,Slot>>={ring2:'ring'};
+export function slotFamily(slot:Slot):Slot {return SLOT_FAMILY[slot]??slot;}
+export function slotAccepts(slot:Slot,item:Item|undefined):boolean {return !!item&&item.slot===slotFamily(slot);}
+/** Every equipment slot an item can occupy, in preference order. */
+export function slotsForItem(item:Item|undefined):Slot[] {return item?SLOTS.filter(slot=>slotFamily(slot)===item.slot):[];}
+/** One owned copy cannot fill both slots of a family (e.g. the same ring twice). */
+export function heldInSiblingSlot(equipment:Partial<Record<Slot,string>>,slot:Slot,id:string):boolean {
+ return !id.endsWith('-none')&&SLOTS.some(other=>other!==slot&&slotFamily(other)===slotFamily(slot)&&equipment[other]===id);
+}
+/** Where equipping an item lands: its current slot, else the first empty sibling, else the first slot. */
+export function targetSlotForItem(equipment:Partial<Record<Slot,string>>,item:Item):Slot {
+ const slots=slotsForItem(item);
+ return slots.find(slot=>equipment[slot]===item.id)??slots.find(slot=>String(equipment[slot]??'').endsWith('-none'))??slots[0]??item.slot;
+}
+/** Only these item types show a rarity class ("Comum", "Normal", "Épico", "Lendário") for now. */
+export const CLASSED_SLOTS:readonly Slot[]=['weapon','outfit','hat'];
 export const CHARACTER_GENDERS=['male','female'] as const;
 export type CharacterGender=typeof CHARACTER_GENDERS[number];
 export type ItemGender=CharacterGender|'unisex';
@@ -32,11 +49,11 @@ export interface ItemAttributes {attack:number;defense:number;agility:number;luc
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
 export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
-export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; demolition?:number; }
+export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; demolition?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; }
 export const WEAPONS: Weapon[] = [
- {id:'ember',name:'Dragão de Brasa',slot:'weapon',rarity:'epic',color:'#ff9b44',description:'Uma pequena fera. Uma enorme explosão.',attack:150,defense:55,agility:70,luck:85,damage:230,crater:66,blast:110,gravity:260,projectileRadius:6,effect:'fire',minAngle:15,maxAngle:85},
- {id:'volt',name:'Tempestade',slot:'weapon',rarity:'rare',color:'#80d9ff',description:'Um núcleo elétrico de precisão.',attack:100,defense:45,agility:120,luck:95,damage:215,crater:38,blast:94,gravity:220,projectileRadius:3,effect:'electric',minAngle:15,maxAngle:80},
- {id:'crystal',name:'Flor de Cristal',slot:'weapon',rarity:'legendary',color:'#d6a1ff',description:'Fragmentos arcanos que abrem caminho.',attack:110,defense:130,agility:55,luck:65,damage:220,crater:86,blast:102,gravity:290,projectileRadius:9,effect:'crystal',minAngle:20,maxAngle:85},
+ {id:'ember',name:'Dragão de Brasa',slot:'weapon',rarity:'epic',color:'#ff9b44',description:'Uma pequena fera. Uma enorme explosão.',attack:150,defense:55,agility:70,luck:85,damage:230,crater:66,blast:110,gravity:260,projectileRadius:6,effect:'fire',minAngle:15,maxAngle:85,hold:'hand'},
+ {id:'volt',name:'Tempestade',slot:'weapon',rarity:'rare',color:'#80d9ff',description:'Um núcleo elétrico de precisão.',attack:100,defense:45,agility:120,luck:95,damage:215,crater:38,blast:94,gravity:220,projectileRadius:3,effect:'electric',minAngle:15,maxAngle:80,hold:'hand'},
+ {id:'crystal',name:'Flor de Cristal',slot:'weapon',rarity:'legendary',color:'#d6a1ff',description:'Fragmentos arcanos que abrem caminho.',attack:110,defense:130,agility:55,luck:65,damage:220,crater:86,blast:102,gravity:290,projectileRadius:9,effect:'crystal',minAngle:20,maxAngle:85,hold:'hand'},
  {id:'dynamite',name:'Cesto de Pavio',slot:'weapon',rarity:'epic',color:'#ff553c',description:'Dinamites de pavio aceso. Uma chuva de faíscas e uma explosão de personalidade.',attack:120,defense:85,agility:75,luck:80,damage:225,crater:56,blast:118,gravity:310,projectileRadius:7,effect:'dynamite',minAngle:15,maxAngle:85},
  {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'epic',color:'#d8432a',description:'Um fardo de tijolos que se estilhaça no impacto. Os cacos saltam e demolem até cristal, pedra e metal.',attack:125,defense:100,agility:55,luck:80,damage:200,crater:44,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80,demolition:.6,fragments:{count:[2,3,4,5],damage:.24,crater:17,blast:44,speed:235,radius:3,gravity:420}}
 ];
@@ -73,6 +90,13 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('bracelet-none','Sem bracelete','bracelet','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('bracelet-sun','Bracelete Solar','bracelet','sun','#dfb861','rare',{visible:false}),attack:4,defense:14,agility:2,luck:4,armor:10},
  cosmetic('costume-none','Sem fantasia','costume','none','#bfb3a5','common',{visible:false}),
+ cosmetic('ring-none','Sem anel','ring','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('ring-ember','Anel da Brasa','ring','ember','#ff7a2e','rare',{visible:false}),description:'Aro dourado com uma brasa que nunca apaga.',attack:6,luck:6,agility:2,defense:0},
+ {...cosmetic('ring-tide','Anel da Maré','ring','tide','#18b9d6','uncommon',{visible:false}),description:'Prata polida com uma pérola azul do mar.',attack:2,defense:6,agility:4,luck:2},
+ cosmetic('necklace-none','Sem colar','necklace','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('necklace-star','Colar Estelar','necklace','star','#ffc93a','epic',{visible:false}),description:'Uma estrela cadente presa num cordão de ouro.',attack:6,defense:10,agility:4,luck:8,armor:6},
+ cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de fala fofinho em forma de nuvem.'},
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];
@@ -97,7 +121,7 @@ export function canEquipItem(item:Item|string,gender:CharacterGender):boolean {
 }
 export function isEmptyItem(item:Item|string):boolean {const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;return !!value&&value.id.endsWith('-none')&&value.visual?.variant==='none';}
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:'ember',hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',upgrade:0};
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:'ember',hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',outfit:'outfit-dancer',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
 }
@@ -107,8 +131,8 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
  'hair-spiky':'hair-undercut','hair-silver':'hair-ponytail',
  'glasses-round':'glasses-sport','glasses-pilot':'glasses-cat'
 };
-export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia'};
-export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none'};
+export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
+export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
 export const CONTENT_VERSION=12;
 export const MAX_UPGRADE = 12;
