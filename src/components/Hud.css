@@ -6,28 +6,8 @@
 .player-hud .profile-level-badge .level-badge-art{opacity:1}
 .player-hud .profile-level-badge .level-badge[data-tier="1"]{--level-art-filter:grayscale(1) brightness(1.08) contrast(1.08)}
 
-.game-frame>.channel-chip{position:absolute;top:116px;left:118px;z-index:4;display:flex;align-items:center;gap:6px;padding:3px 13px 4px 10px;border:1.5px solid var(--wood-rim);border-radius:0 0 11px 11px;background:var(--wood-grain),linear-gradient(var(--wood-bar),var(--wood-bar-deep));box-shadow:inset 0 1px #ffc77a44,0 0 0 1.5px #3a1605,0 3px 5px #1a0c0488;color:var(--wood-gold);font:900 11px Nunito,sans-serif;letter-spacing:.3px;text-shadow:0 1px #2c1004}
-.game-frame>.channel-chip svg{color:var(--wood-gold);filter:drop-shadow(0 1px #2c1004)}
-.game-frame>.channel-chip i{width:4px;height:4px;border-radius:50%;background:var(--wood-gold);box-shadow:0 1px #2c1004}
-
-/* Lobby player card in the wood style of the backpack and PvP room: the
-   portrait sits in a gold and wood ring over the game's painted gold aura,
-   and the details ride on an orange wood plank with a stitched inner edge. */
-.game-frame>button.player-hud{left:18px;top:16px;width:372px;height:104px;gap:0;filter:drop-shadow(0 4px 5px #1a0c0477)}
-.game-frame>button.player-hud .portrait{z-index:2;width:98px;height:98px;border:0;border-radius:50%;background:url(/assets/ui/aura-gold-sigil.png) center/128% no-repeat,radial-gradient(#ffe7b0,#f2a54a 48%,#a2501c 78%,#5b2a0e);box-shadow:0 0 0 3px #ffd36b,0 0 0 6px var(--wood-dark),0 0 0 8px #3a1605,inset 0 0 0 2px #fff0c466,inset 0 -8px 14px #5b2a0e88}
-.game-frame>button.player-hud .portrait:after{content:'';position:absolute;inset:-6px;border-radius:50%;border:1.5px dashed #ffd36b88;pointer-events:none}
-.game-frame>button.player-hud .profile-lines{position:relative;margin-left:-26px;padding:7px 14px 8px 36px;border:2px solid var(--wood-rim);border-left:0;border-radius:0 16px 16px 0;background:var(--wood-grain),linear-gradient(170deg,var(--wood-light),var(--wood) 48%,var(--wood-dark));box-shadow:inset 0 2px #ffd9a888,inset 0 -3px #4d220a99,0 0 0 2px #3a1605}
-.game-frame>button.player-hud .profile-lines:after{content:'';position:absolute;inset:4px 5px 4px 30px;border:1.5px dashed #ffe0a066;border-radius:0 11px 11px 0;pointer-events:none}
-.game-frame>button.player-hud .profile-name{flex-direction:row;align-items:center;gap:7px;margin-bottom:5px;padding-left:2px}
-.game-frame>button.player-hud .profile-name strong{max-width:190px;font:900 17px Nunito,sans-serif;color:#fff8e4;text-shadow:-1.5px 0 #4a1f08,1.5px 0 #4a1f08,0 -1.5px #4a1f08,0 2px #4a1f08,0 3px 3px #2c100488}
-.game-frame>button.player-hud .profile-name small{flex:none;padding:2px 7px 2px;border:1px solid #ffd36b99;border-radius:6px;background:linear-gradient(var(--wood-bar),var(--wood-bar-deep));color:var(--wood-gold);font:900 8px Nunito,sans-serif;letter-spacing:1.2px;box-shadow:inset 0 1px #ffc77a33}
-.game-frame>button.player-hud .resource-bar{height:17px;margin:4px 0;border:1.5px solid #3a1605;border-radius:9px;background:linear-gradient(#2a0f04,#4d220a);box-shadow:inset 0 2px 3px #000a,0 1px #ffd9a855}
-.game-frame>button.player-hud .resource-bar i{inset:2px;border-radius:7px;box-shadow:inset 0 1px #ffffff99,inset 0 -2px #0003}
-.game-frame>button.player-hud .resource-bar.health i{background:linear-gradient(#ff9a7c,#e8433a 48%,#b51f24)}
-.game-frame>button.player-hud .resource-bar.stamina i{background:linear-gradient(#9cf0ff,#2fa2e6 48%,#1964b4)}
-.game-frame>button.player-hud .resource-bar span{padding:0 9px;font:900 10px/14px Nunito,sans-serif;color:#fff;text-shadow:-1px 0 #3a1605,1px 0 #3a1605,0 -1px #3a1605,0 1px #3a1605}
-.game-frame>button.player-hud .resource-bar b{font-size:9px;letter-spacing:.6px}
-.game-frame>button.player-hud .profile-power{gap:5px;margin:4px 2px 0;font:400 16px 'Lilita One',Nunito,sans-serif;color:var(--wood-gold);letter-spacing:.4px;text-shadow:-1.5px 0 #4a1f08,1.5px 0 #4a1f08,0 -1.5px #4a1f08,0 2px #4a1f08}
+.game-frame>.channel-chip{position:absolute;top:118px;left:126px;display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;background:#10294bd9;border:1px solid #dfab4899;color:#ffe9a8;font:800 11px Nunito,sans-serif;letter-spacing:.3px}
+.game-frame>.channel-chip i{width:3px;height:3px;border-radius:50%;background:#ffd968}
 html.mobile-landscape .game-frame>.channel-chip{display:none}
 
 /* Praça Celeste: bottom menu in the PvP room's wood style, with the room's painted
