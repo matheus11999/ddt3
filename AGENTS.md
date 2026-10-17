@@ -23,6 +23,14 @@
 
 Leia primeiro `README.md`, `docs/implementation-status.md`, `docs/cloud-handoff.md` e `docs/continuation-prompt.md`. A instrução mais recente do usuário prevalece. O checkpoint inicial de rostos foi ampliado pelo pedido de cenários, roupas e interface. **Não retomar outras pendências automaticamente** ao apenas inspecionar ou publicar o projeto.
 
+## Regra obrigatória de cosméticos: validar antes e depois de gerar
+
+Pedido do usuário em 17/10/2026. Vale para qualquer IA ou agente que gere ou repinte cabelo, chapéu, óculos ou roupa. Contrato em `docs/cosmetics-fit.md`.
+
+1. **Antes de gerar:** rodar `npm run verify:cosmetics` e ler `test-results/cosmetics/report.md`. Usar como referência o molde da classe em `docs/templates/` (regerar com `node scripts/make-cosmetic-templates.mjs`) e o prompt-base de `docs/cosmetics-art-briefs.md`.
+2. **Gerar** a peça pintada sobre o molde de 1254 px, dentro da zona verde e sem cobrir olhos/boca. Registrar em `COSMETIC_MANIFEST` (`src/game/rig/manifest.ts`); nunca adicionar números de encaixe em `appearance.ts` ou `headwear.ts`.
+3. **Depois de gerar:** rodar `npm run verify:cosmetics` de novo. A peça só entra com zero problemas no relatório e `npm test` passando. Em seguida mostrar `zones.png` e `matrix.png` ao usuário: passar no validador não substitui a aprovação visual.
+
 ## Regra obrigatória de novos rostos
 
 Siga `docs/face-authoring-rules.md`. Todos os rostos devem ter exatamente o mesmo shape universal, tamanho, orientação e âncoras. Mudar a feição completa, nunca o contorno para acomodar cabelos. Ícones e avatar devem usar o mesmo compositor. Validar `scripts/verify-faces.mjs` e inspecionar o resultado montado antes de entregar. Não editar cada cabelo para compensar um rosto fora da medida.
