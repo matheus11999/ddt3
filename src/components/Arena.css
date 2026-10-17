@@ -65,6 +65,7 @@
 .pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
 .pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
+.pvp-room .pr-card.vacant{grid-template-rows:30px minmax(0,1fr)}
 .pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:#fff8e866}
 .pvp-room .closed-slot .pr-card-vacant{border-color:#d9c3a1;background:#f3e6d055}
 .pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#c9771f}
@@ -161,6 +162,19 @@
 .pvp-room .party-practice-dialog p{margin:0;font-size:14px;font-weight:700;color:var(--wood-ink-soft)}
 .pvp-room .party-practice-dialog>div{display:flex;gap:8px;margin-top:6px}
 
+/* ---------- Telas baixas (desktop): ferramentas mais compactas ---------- */
+@media(max-height:800px){
+ html:not(.mobile-landscape) .pvp-room .ability-preparation>header{margin-bottom:8px;padding:5px 10px}
+ html:not(.mobile-landscape) .pvp-room .preparation-slot{width:52px;height:52px}
+ html:not(.mobile-landscape) .pvp-room .preparation-choice{width:42px;height:42px;padding:3px}
+ html:not(.mobile-landscape) .pvp-room :is(.preparation-loadout,.preparation-catalog){gap:8px}
+ html:not(.mobile-landscape) .pvp-room .preparation-divider{margin:8px 12px 7px}
+ html:not(.mobile-landscape) .pvp-room .preparation-hint{margin-top:6px}
+ html:not(.mobile-landscape) .pvp-room .ability-preparation{padding-bottom:8px}
+ html:not(.mobile-landscape) .pvp-room .party-spectator-slot{height:36px}
+ html:not(.mobile-landscape) .pvp-room .party-search-action{min-height:50px}
+}
+
 /* ---------- Telas menores (desktop) ---------- */
 @media(max-width:1180px){
  html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:calc(var(--card-fit) * 2 + 52px) minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);grid-template-areas:"team chat side"}
@@ -194,6 +208,7 @@ html.mobile-landscape .pvp-room .pr-ready-count{height:21px;font-size:11px}
 html.mobile-landscape .pvp-room .pr-team-cards{padding:5px}
 html.mobile-landscape .pvp-room .pr-team-grid{--cols:4;--rows:1;--gap:6px}
 html.mobile-landscape .pvp-room .pr-card{grid-template-rows:22px minmax(0,1fr) 20px;border-radius:10px}
+html.mobile-landscape .pvp-room .pr-card.vacant{grid-template-rows:22px minmax(0,1fr)}
 html.mobile-landscape .pvp-room .pr-card-name{gap:3px;padding:0 4px;font-size:10px}
 html.mobile-landscape .pvp-room .pr-card-name>svg{width:10px;height:10px}
 html.mobile-landscape .pvp-room .pr-card-kick{top:2px;right:2px;width:18px;height:18px;border-radius:5px}
@@ -239,3 +254,8 @@ html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;paddin
 html.mobile-landscape .pvp-room .party-spectator-status{min-height:38px;font-size:12px}
 
 @media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important}.pvp-room .party-search-progress svg{animation:none}}
+/* Celular: ferramentas e espectadores rolam juntos; ações e menus ficam presos embaixo. */
+html.mobile-landscape .pvp-room .pr-side{overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#f2b56b transparent}
+html.mobile-landscape .pvp-room .pr-side-scroll{flex:none;overflow:visible}
+html.mobile-landscape .pvp-room .pr-actions{position:sticky;bottom:43px;z-index:3;margin-top:auto;padding-top:4px;background:#8e451c;box-shadow:0 -6px 8px -4px #3e1a0799}
+html.mobile-landscape .pvp-room .party-bottom-actions{position:sticky;bottom:0;z-index:3;padding-top:5px;background:#87401a}
