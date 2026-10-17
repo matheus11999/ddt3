@@ -190,6 +190,12 @@ function drawProneArms(c:CanvasRenderingContext2D,rig:CombatRig,swing:ProneThrow
  * from the tip: the muzzle sits ahead of the face, the fists hold the grip behind
  * it along the aim. In avatar units from the feet origin, facing right. */
 export const HELD_WEAPON={muzzle:[54,-48] as [number,number],scale:.6,grip:20};
+/** Where a held weapon's painted muzzle is, in world pixels from the fighter's feet, for an
+ * avatar drawn `size` tall. Visual only: the server still launches from x+27*facing, y-40. */
+export function heldMuzzle(weaponId:string,facing:number,size:number):[number,number]|null{
+ if(WEAPONS.find(item=>item.id===weaponId)?.hold!=='hand')return null;
+ return [HELD_WEAPON.muzzle[0]*size/160*(facing<0?-1:1),HELD_WEAPON.muzzle[1]*size/160];
+}
 function heldGrip(rig:CombatRig,angle:number,recoil:number):ProneThrow{
  const aim=clamp(angle,5,90)*Math.PI/180,dx=Math.cos(aim),dy=-Math.sin(aim),back=HELD_WEAPON.grip+recoil*4;
  const gx=HELD_WEAPON.muzzle[0]-dx*back,gy=HELD_WEAPON.muzzle[1]-dy*back+4,[px,py]=rig.arms!.pivot,sx=(px-625)*AVATAR_UNIT,sy=(py-1225)*AVATAR_UNIT;

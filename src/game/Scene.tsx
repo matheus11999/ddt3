@@ -3,7 +3,7 @@ import {client} from '../client';
 import type {Equipment} from '../../shared/catalog';
 import {DEFAULT_EQUIPMENT,WEAPONS} from '../../shared/catalog';
 import {createTerrain,ground,unpackTerrain} from '../../shared/physics';
-import {createAvatarMotion,drawAvatar} from './avatar';
+import {createAvatarMotion,drawAvatar,heldMuzzle} from './avatar';
 import type {AvatarContext,AvatarMotion} from './avatar';
 import {audio,startEnvironmentAudio,stopEnvironmentAudio} from './audio';
 import {TerrainResidues} from './terrainResidues';
@@ -83,8 +83,12 @@ export function Scene({angle,onArena,onForge,blocked=false}:{angle:number;onAren
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.kind==='flight'){if(age<flightTime(p))drawFlightProjectile(c,p,index,t,{quality:quality==='high'?'high':'low'});return;}
-      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)audio.play('shot',p.effect,level,p.powered);}const origin=p.points[0];drawMuzzle(c,origin?origin[0]-27*shooter.facing:shooter.x,origin?origin[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
-      if(age<flightTime(p))drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});else drawImpact(c,p,age-flightTime(p),level,p.impact.material,{quality:quality==='high'?'high':'low'});
+      // Held guns and wands: the flash and the first frames of the projectile start at the
+      // painted muzzle and ease onto the authoritative path. Drawing only; physics is unchanged.
+      const origin=p.points[0],seen=shooter&&!p.fragment?entities.get(shooter.id):undefined,muzzle=seen&&origin?heldMuzzle(shooter!.equipment.weapon,shooter!.facing,112):null;
+      const offset=muzzle&&origin?[seen!.x+muzzle[0]-origin[0],seen!.y+muzzle[1]-origin[1]]:[0,0],ease=1-Math.min(1,age/140)**2;
+      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)audio.play('shot',p.effect,level,p.powered);}drawMuzzle(c,origin?origin[0]+offset[0]-27*shooter.facing:shooter.x,origin?origin[1]+offset[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
+      if(age<flightTime(p)){c.save();c.translate(offset[0]*ease,offset[1]*ease);drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});c.restore();}else drawImpact(c,p,age-flightTime(p),level,p.impact.material,{quality:quality==='high'?'high':'low'});
      });
     }
     for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden)drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low'});}
