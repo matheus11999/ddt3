@@ -188,6 +188,16 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    })}
   </aside>
 
+  {me.boosts.length>0&&<div className="boost-queue" role="status" aria-label={`Poderes preparados: ${me.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name).join(', ')}`}>
+   {me.boosts.map((id,order)=>{
+    const index=BOOSTS.findIndex(item=>item.id===id),boost=BOOSTS[index],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
+    return <span key={order} className="queued-boost" data-boost={id} aria-hidden="true">
+     <span className="boost-painted-icon" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
+     <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`}>{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
+    </span>;
+   })}
+  </div>}
+
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
     <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
