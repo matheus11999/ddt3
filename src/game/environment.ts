@@ -79,6 +79,8 @@ const registeredTerrain=new WeakMap<HTMLImageElement,HTMLCanvasElement>();
 function registerTerrainArt(image:HTMLImageElement,map:MapId){
  const cached=registeredTerrain.get(image);if(cached)return cached;
  const raw=makeCanvas(W,H),rc=raw.getContext('2d',{willReadFrequently:true})!;rc.drawImage(image,0,0,W,H);
+ // Collision traced from this very painting (`npm run build:map`) already matches it pixel for pixel.
+ if(getMap(map).regions.every(region=>region.shape.kind==='cells')){registeredTerrain.set(image,raw);return raw;}
  const rgba=rc.getImageData(0,0,W,H).data,template=terrainTemplate(map),objects=new Set(getMap(map).objects.map(o=>o.region).filter(Boolean));
  let sourceLeft=W,sourceRight=0,targetLeft=W,targetRight=0;
  const top=new Float64Array(W).fill(H),bottom=new Float64Array(W);
