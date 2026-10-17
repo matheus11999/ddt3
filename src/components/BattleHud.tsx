@@ -1,13 +1,12 @@
 import {PowerCutIn} from './PowerCutIn';
-import {Avatar} from './Avatar';
-import {LevelBadge} from './LevelBadge';
 import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
 import {AngleGauge,PowerOrb} from './CombatGauges';
+import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {ChevronDown,ChevronUp,Wind,Zap,LogOut} from 'lucide-react';
+import {ChevronDown,ChevronUp,Wind,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
@@ -21,23 +20,10 @@ type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=5,MAX_POWER=100,CHARGE_MS=2600;
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
 
-function FighterPanel({fighter,others,opponent,turnId,resolving}:{fighter:Fighter;others:Fighter[];opponent:boolean;turnId:string;resolving:boolean}){
- const active=fighter.id===turnId,ratio=Math.max(0,Math.min(1,fighter.hp/fighter.maxHp));
- return <section className={`battle-player-panel ${opponent?'opponent-panel':'own-panel'} ${active?'active-fighter':''} ${fighter.hp<=0?'defeated-fighter':''}`} aria-label={opponent?'Oponente':'Seu personagem'} data-fighter={fighter.id}>
-  <div className="battle-player-portrait"><Avatar equipment={fighter.equipment} size={88} portrait animated={false} weapon={false}/><LevelBadge level={fighter.level} size={29}/>{active&&<span className="portrait-turn-point" aria-hidden="true"><ChevronDown size={19}/></span>}</div>
-  <div className="battle-player-vitals">
-   <div className="battle-player-heading"><strong className="battle-player-name">{fighter.name}</strong>{active&&<span className="fighter-turn-label" aria-label={`Turno de ${fighter.name}`}>{resolving?'DISPARANDO':opponent?'JOGANDO':'SUA VEZ'}</span>}</div>
-   <div className={`battle-health ${ratio<=.25?'critical-health':''}`} role="meter" aria-label={opponent?`Vida de ${fighter.name}`:'Sua vida'} aria-valuenow={fighter.hp} aria-valuemin={0} aria-valuemax={fighter.maxHp}><i className="health-trail" style={{width:`${ratio*100}%`}}/><i className="health-current" style={{width:`${ratio*100}%`}}/><span><b>HP</b>{fighter.hp.toLocaleString('pt-BR')}<small>/ {fighter.maxHp.toLocaleString('pt-BR')}</small></span></div>
-   <div className="battle-team-line"><span className="battle-player-team">{opponent?'OPONENTE':'VOCÊ'} · EQUIPE {fighter.team===0?'AZUL':'RUBRA'}</span>{fighter.hp<=0&&<span className="fighter-out">FORA DE COMBATE</span>}</div>
-   {others.map(player=><div className={`fighter-hud ${opponent?'coral':'blue'} ${player.id===turnId?'active-fighter':''}`} key={player.id} data-fighter={player.id}><span className="fighter-mini-turn" aria-hidden="true">{player.id===turnId?'▶':''}</span><div><strong>{player.name}</strong><div className="mini-health" role="meter" aria-label={`Vida de ${player.name}`} aria-valuenow={player.hp} aria-valuemin={0} aria-valuemax={player.maxHp}><i style={{width:`${Math.max(0,player.hp/player.maxHp)*100}%`}}/></div></div><span>{player.hp}</span></div>)}
-  </div>
- </section>;
-}
-
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
  const {battle,profile,offset,status}=useGame();
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
- const opponents=b.players.filter(player=>player.team!==me.team),opponent=turn?.team!==me.team&&turn?turn:opponents.find(player=>player.hp>0)??opponents[0];
+ const opponents=b.players.filter(player=>player.team!==me.team);
  // Limits remain authoritative equipment data; equipment itself is not part of the HUD.
  const weapon=WEAPONS.find(item=>item.id===me.equipment.weapon)!,aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
@@ -161,8 +147,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''}`} data-party-size={Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)}>
   <div className="battle-top">
-   <button className="round-button battle-exit" title="Sair da batalha" aria-label="Sair da batalha" onClick={()=>{cancelCharge();setExit(true);}}><LogOut size={20}/></button>
-   <FighterPanel fighter={me} others={b.players.filter(player=>player.team===me.team&&player.id!==me.id)} opponent={false} turnId={b.turnId} resolving={b.phase==='resolving'}/>
+   {turn&&<ActivePortrait fighter={turn} mine={turn.id===me.id} resolving={b.phase==='resolving'} ally={turn.team===me.team}/>}
+   <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId}/>
    <div className="battle-center-status">
    <div className={`wind-pill ${Math.abs(b.wind)<.05?'calm-wind':''}`} role="status" aria-label={`Vento ${Math.abs(b.wind).toFixed(1)} para ${b.wind<0?'esquerda':'direita'}`}>
     <Wind className="wind-symbol" size={18} aria-hidden="true"/><div className="wind-reading"><small>VENTO</small><strong>{Math.abs(b.wind).toFixed(1)}</strong></div>
@@ -175,7 +161,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    </div>
    <button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>
    </div>
-   {opponent&&<FighterPanel fighter={opponent} others={opponents.filter(player=>player.id!==opponent.id)} opponent turnId={b.turnId} resolving={b.phase==='resolving'}/>}
+   <Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>
   </div>
   {mine&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
   {!mine&&b.phase!=='finished'&&<div className="turn-label">{b.powerCutIn?'POWER!':b.phase==='resolving'?'DISPARO EM VOO':`${turn?.name??'Oponente'} está mirando`}</div>}
