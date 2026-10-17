@@ -17,6 +17,8 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
+import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
+import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
@@ -39,6 +41,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
  useEffect(()=>{
   const el=canvas.current!,c=el.getContext('2d')!;let frame=0;let state=client.state;
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}};
+  preloadMonsters();
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
@@ -72,9 +75,15 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded,b.phase==='finished');
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
-     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
+     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
+    // The monsters' shared turn has no fighter of its own: watch the queen while she aims, the nest while ants come out, else the walking monsters.
+    const monsterTurn=b.instance?.monsterTurn;
+    if(b.turnId===MONSTER_TURN_ID&&monsterTurn){const now=Date.now()+state.offset,queen=b.players.find(f=>f.id===b.instance!.boss&&f.hp>0),walkers=b.players.filter(f=>monsterTurn.moves.some(m=>m.id===f.id&&m.from[0]!==m.to[0]));
+     if(queen&&monsterTurn.arrowAt!==undefined&&now<monsterTurn.arrowAt+200&&now>monsterTurn.arrowAt-900){focusX=queen.x;focusY=queen.y-160;}
+     else if(b.instance!.nest&&monsterTurn.summons.some(s=>now>s.at-400&&now<s.at+700)){focusX=b.instance!.nest.x;focusY=b.instance!.nest.y-140;}
+     else if(walkers.length){focusX=walkers.reduce((n,f)=>n+f.x,0)/walkers.length;focusY=walkers[0].y-140;}}
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
@@ -88,6 +97,17 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
      if(f.hidden){entities.delete(f.id);continue;}
+     if(f.monster){
+      // Expedition monsters: painted strips moved along the server's timeline (walk-in, shared monster turn).
+      const falling=!!f.fall&&serverNow<f.fall.startedAt+f.fall.duration,view=monsterView(b,f,terrain,serverNow),summon=b.instance?.monsterTurn?.summons.find(s=>s.id===f.id);
+      const pending=!!summon&&f.hp<=0&&serverNow<summon.at+1500;if(!view.visible||(pending&&serverNow<summon!.at))continue;
+      let deathAge=-1;if(f.hp<=0&&!pending&&!falling){if(!fallenAt.has(f.id))fallenAt.set(f.id,t);deathAge=t-fallenAt.get(f.id)!;if(deathAge>MONSTER_DEATH_MS)continue;}else fallenAt.delete(f.id);
+      if(falling)view.y=fallPosition(f.fall!,serverNow);
+      const hurt=hurtAt.get(f.id),hurtAge=hurt?serverNow-hurt.at:-1,slope=f.monster==='ant-queen'||falling?0:Math.max(-.4,Math.min(.4,Math.atan2(ground(terrain,view.x+16,Math.max(0,view.y-40))-ground(terrain,view.x-16,Math.max(0,view.y-40)),32)));
+      drawMonster(c,f,view,slope,hurtAge,deathAge);
+      if(deathAge<0&&view.alpha>.5&&f.id!==b.instance?.boss)plates.push({fighter:f,x:view.x,y:monsterPlateY(f,view.y),ally:f.team===myTeam,active:false});
+      continue;
+     }
      const previous=entities.get(f.id),teleport=state.abilityEffects.filter(effect=>effect.playerId===f.id&&effect.ability==='flight').at(-1);
      if(previous&&teleport&&teleport.at!==(previous.teleportedAt??0)){previous.x=f.x;previous.y=f.y;previous.lastX=f.x;previous.teleportedAt=teleport.at;}
      // HP and fall positions change only in the authoritative impact snapshot.
@@ -121,6 +141,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     drawFighterPlates(c,plates,t);
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
+      if(p.monster==='arrow'){if(age<flightTime(p))drawArrow(c,p.points,index);else drawArrowImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}
       if(p.kind==='flight'){if(age<flightTime(p))drawFlightProjectile(c,p,index,t,{quality:quality==='high'?'high':'low'});return;}
       // Held guns and wands: the flash and the first frames of the projectile start at the
       // painted muzzle and ease onto the authoritative path. Drawing only; physics is unchanged.

@@ -18,6 +18,8 @@ export interface LayoutItem {
 export interface MapLayout {
  name:string;source?:string;background:string|string[];backgroundBlend?:number;mid?:string;mirror?:boolean;width?:number;
  spawns:number[][];items:LayoutItem[];sheets?:Record<string,string>;pieces?:string;
+ /** Instance maps: monsters and markers (`nest`); without y they stand on the ground under x. */
+ monsters?:{kind:string;x:number;y?:number}[];
  /** Editor fields, ignored by build:map. */
  subtitle?:string;kind?:string;
 }
@@ -29,7 +31,7 @@ export interface BuiltRegion {id:string;material:string;destructible:boolean;sol
 /** A problem the map maker must fix; `item` is the layout index it points at, when there is one. */
 /** Prop sheets: "objetos", or a sheet borrowed from another map's folder under a key like "garden-objetos". */
 export const isPropSheet=(sheet:string)=>/(^|-)objetos$/.test(sheet);
-export interface BuildWarning {text:string;item?:number;spawn?:[number,number];}
+export interface BuildWarning {text:string;item?:number;spawn?:[number,number];monster?:number;}
 export interface Assembly {
  width:number;world:HTMLCanvasElement;regions:BuiltRegion[];warnings:BuildWarning[];placed:PlacedItem[];
  /** First solid pixel row of each x column (height when none). */
@@ -146,6 +148,7 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
    if(g<y-24){warnings.push({text:`${name}: obstáculo a ${Math.abs(dx)} px (${y-g} px mais alto)`,spawn});break;}
    if(g>y+30){warnings.push({text:`${name}: beirada a ${Math.abs(dx)} px`,spawn});break;}}
  }));
+ (layout.monsters??[]).forEach((m,index)=>{if(m.y===undefined&&top(m.x)>=H)warnings.push({text:`monstro ${m.kind} (x ${Math.round(m.x)}): sem chão, cai no abismo`,monster:index});if(m.x<0||m.x>W)warnings.push({text:`monstro ${m.kind}: fora do mapa`,monster:index});});
  return {width:W,world,regions,warnings,placed,surface};
 }
 
@@ -188,10 +191,12 @@ export function collisionImage(whole:HTMLCanvasElement,regions:BuiltRegion[],spa
 }
 
 /** Each spawn numbered on the map (blue team 1, red team 2). */
-export function spawnsImage(whole:HTMLCanvasElement,surface:Int16Array,spawns:number[][]){
+export function spawnsImage(whole:HTMLCanvasElement,surface:Int16Array,spawns:number[][],monsters?:{kind:string;x:number;y?:number}[]){
  const out=canvas(whole.width,MAP_HEIGHT),c=ctx(out);c.drawImage(whole,0,0);c.font='bold 26px sans-serif';c.textAlign='center';
  spawns.forEach((team,t)=>team.forEach((x,slot)=>{const y=surface[Math.floor(x)]??MAP_HEIGHT;
   c.fillStyle=t?'#ff5050':'#4aa8ff';c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.roundRect(x-14,y-56,28,56,10);c.fill();c.stroke();
   c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=5;c.strokeText(String(slot+1),x,y-66);c.fillText(String(slot+1),x,y-66);}));
+ for(const m of monsters??[]){const y=m.y??surface[Math.floor(m.x)]??MAP_HEIGHT;c.fillStyle=m.kind==='nest'?'#c08a3a':'#b4291f';c.strokeStyle='#fff';c.lineWidth=3;c.beginPath();c.ellipse(m.x,y-18,22,18,0,0,Math.PI*2);c.fill();c.stroke();
+  const label=m.kind.replace('ant-','');c.fillStyle='#fff';c.strokeStyle='#000';c.lineWidth=5;c.font='bold 18px sans-serif';c.strokeText(label,m.x,y-44);c.fillText(label,m.x,y-44);}
  return out;
 }

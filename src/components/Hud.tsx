@@ -10,7 +10,7 @@ import './WoodTheme.css';
 import './Hud.css';
 type LobbyMenu='quests'|'mail'|'guild';
 const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',mail:'Correio',guild:'Guilda'};
-export function Hud({onArena,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
+export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onExpeditions:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
  const {profile,channel,room}=useGame();const p=profile!;const stats=attributes(p.equipment),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);
  const pendingQuests=Number(!p.equippedOnce)+Number(!p.matches);const [menu,setMenu]=useState<LobbyMenu|null>(null);const dock=useRef<HTMLElement>(null);
  useEffect(()=>{
@@ -24,6 +24,7 @@ export function Hud({onArena,onInventory,onForge,onShop,onSettings}:{onArena:()=
  // Painted icons in the PvP room menu style (prompts in docs/lobby-art-prompts.md).
  const buttons:{id:string;label:string;art:string;count?:number;action:()=>void;disabled?:boolean;pressed?:boolean}[]=[
   {id:'arena',label:'Arena',art:'arena-button.png',action:onArena},
+  {id:'expeditions',label:'Expedições',art:'expedition-button.png',action:onExpeditions},
   {id:'bag',label:'Mochila',art:'backpack-button.png',action:onInventory},
   {id:'shop',label:'Loja',art:'shop-button.png',action:onShop},
   {id:'forge',label:'Ferreiro',art:'forge-button.png',action:onForge,disabled:!!room},

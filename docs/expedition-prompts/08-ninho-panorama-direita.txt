@@ -1,0 +1,10 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the RIGHT HALF of a single wide panoramic background; the attached panorama-esquerda.png is the LEFT HALF already painted. Continue it seamlessly: same light, palette, haze and painting.
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading, rounded chibi cartoon shapes, clean soft dark outlines, rich vivid saturated colors, whimsical fairy-tale mood). Not pixel art, not vector flat, not 3D render, not anime, no washed-out pastel AI look.
+Map "Formigueiro, estágio 2", inside a giant anthill, the queen's royal chamber. Scenery only.
+- The LEFT 20% of this image continues the right edge of the left half: only soft cave haze and pale earth wall.
+- Far layer: the grand back wall of the throne room: a tall carved earth alcove with a big round royal window of amber light behind where the queen lives (empty, no creature), roots framing it like curtains, glowing mushrooms.
+- Middle layer: stacks of glowing eggs, leaf storage piles, a dripping honey cell. Do NOT repeat or mirror anything from the left half; every element appears only once.
+- Bottom 28%: same deep warm darkness getting very dark at the very bottom. No floor, ledge or platform in the lower 40%.
+- Nothing important near the top 8%.
+Readability: pale, low contrast like distance. No strong black outlines.
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

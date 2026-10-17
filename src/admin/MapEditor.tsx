@@ -12,6 +12,8 @@ import {status} from './MapList';
 import {folderNames,folderOf,loadSheet,pieceName,relativeFile,shippedLayout,sheetKind,SHEET_NAMES,sourceUrl} from './assets';
 import type {LibraryEntry,LibraryPiece} from './assets';
 import {PiecePicker} from './PiecePicker';
+import {MARKER_KINDS,MONSTER_KINDS,MONSTERS} from '../../shared/expeditions';
+import type {MonsterPlacement} from '../../shared/expeditions';
 
 const TEAM_COLORS=['#4aa8ff','#ff5a5a'];
 const SCREEN_WIDTH=1536,SNAP=8,MIN_ZOOM=.1,MAX_ZOOM=4;
@@ -21,13 +23,17 @@ const UI_KEY='brasa-admin-map-editor';
 const loadUi=():Ui=>{const fallback={left:true,right:true,snap:false,ruler:true,screen:false};try{return {...fallback,...JSON.parse(localStorage.getItem(UI_KEY)??'{}')};}catch{return fallback;}};
 const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
 
-type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|null;
+type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|{type:'monster';index:number}|null;
+/** Instance maps: names and sprites of the monsters the editor places (the nest is a marker, not a creature). */
+const MONSTER_LABELS:Record<string,string>={...Object.fromEntries(MONSTER_KINDS.map(kind=>[kind,MONSTERS[kind].name])),nest:'Ninho (saída das formigas)'};
+const monsterSprites=new Map<string,HTMLImageElement>();
+const monsterSprite=(kind:string,onLoad:()=>void)=>{const def=MONSTERS[kind as keyof typeof MONSTERS];if(!def)return null;let image=monsterSprites.get(kind);if(!image){image=new Image();image.onload=onLoad;image.src=def.sprite.src;monsterSprites.set(kind,image);}return image.complete&&image.naturalWidth?image:null;};
 interface Meta {name:string;subtitle:string;kind:'pvp'|'instance';enabled:boolean;}
 interface Doc {layout:MapLayout;meta:Meta;}
 /** A sheet of this layout (by its key in layout.sheets), with where it comes from and its piece names. */
 interface Sheet {name:string;pieces:LibraryPiece[];label:string;folder:string;foreign:boolean;names:Record<string,string[]>;sheet:string;}
 interface View {scale:number;x:number;y:number;}
-type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View};
+type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'monster';index:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View};
 
 type PieceSave=Extract<MapSave,{layout:unknown}>;
 const clone=<T,>(v:T):T=>structuredClone(v);
@@ -98,6 +104,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   let key=`${entry.folder.id}-${entry.sheet.sheet}`.slice(0,32),k=2;while(doc.layout.sheets?.[key]||key==='pieces')key=`${entry.folder.id}-${entry.sheet.sheet}`.slice(0,29)+`-${k++}`;
   const file=relativeFile(doc.layout.source??'',entry.folder.source,entry.sheet.file),described=await describeSheet(doc.layout.source,key,file);
   setSheets(s=>({...s,[key]:described}));addPiece(key,entry.n,{file,name:entry.name});setNotice(`Peça de “${entry.folder.name}” adicionada. A folha passa a fazer parte deste mapa.`);};
+ const addMonster=(kind:MonsterPlacement['kind'])=>{if(!doc)return;const index=doc.layout.monsters?.length??0,x=Math.round(-viewRef.current.x/viewRef.current.scale+(wrapRef.current?.clientWidth??800)/2/viewRef.current.scale);change(d=>{(d.layout.monsters??=[]).push({kind,x:Math.max(40,Math.min(W-40,x))});});setSelection({type:'monster',index});};
+ const removeMonster=(index:number)=>{change(d=>{d.layout.monsters!.splice(index,1);});setSelection(null);};
  const removeItem=(index:number)=>{change(d=>{d.layout.items.splice(index,1);});setSelection(null);};
  const duplicate=(index:number)=>{if(!doc)return;const source=doc.layout.items[index];let itemId=`${source.id}-copia`,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${source.id}-copia${k++}`;
   change(d=>{d.layout.items.splice(index+1,0,{...clone(source),id:itemId,x:source.x+40});});setSelection({type:'item',index:index+1});};
@@ -140,6 +148,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const surfaceAt=useCallback((x:number)=>built&&x>=0&&x<built.width?built.surface[Math.floor(x)]:MAP_HEIGHT,[built]);
  /** Build warnings per spawn ("t-slot"), shown on the capsule itself so a spawn lifted by a prop or over a hole is seen at once. */
  const spawnWarnings=useMemo(()=>{const m=new Map<string,string[]>();for(const w of built?.warnings??[])if(w.spawn){const k=`${w.spawn[0]}-${w.spawn[1]}`;m.set(k,[...(m.get(k)??[]),w.text.replace(/^spawn time \d jogador \d \(x \d+\): /,'')]);}return m;},[built]);
+ const monsterWarnings=useMemo(()=>new Set(built?.warnings.flatMap(w=>w.monster===undefined?[]:[w.monster])??[]),[built]);
  const hoverRef=useRef<{x:number;y:number}|null>(null);
 
  useEffect(()=>{
@@ -183,6 +192,15 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    c.font='900 20px Nunito, sans-serif';c.textAlign='center';c.lineWidth=5;c.strokeStyle='#000';c.strokeText(String(slot+1),0,-54);c.fillStyle='#fff';c.fillText(String(slot+1),0,-54);
    if(bad){c.fillStyle='#ff4a3a';c.beginPath();c.arc(15,-44,10,0,Math.PI*2);c.fill();c.fillStyle='#fff';c.font='900 15px Nunito, sans-serif';c.fillText('!',15,-39);}
    c.restore();}));
+  // Instance monsters and the nest, standing on the ground like in the game.
+  (doc.layout.monsters??[]).forEach((m,index)=>{const y=m.y??Math.min(surfaceAt(m.x),MAP_HEIGHT-4),sel=selection?.type==='monster'&&selection.index===index,bad=monsterWarnings.has(index),def=MONSTERS[m.kind as keyof typeof MONSTERS];
+   c.save();c.translate(m.x,y);
+   if(def){const image=monsterSprite(m.kind,()=>redraw(n=>n+1)),h=def.sprite.height;
+    if(image){const fw=image.naturalWidth/4,w=h*fw/image.naturalHeight;c.save();if(def.sprite.faces===1&&m.x>W/2||def.sprite.faces===-1&&m.x<W/2)c.scale(-1,1);c.drawImage(image,0,0,fw,image.naturalHeight,-w/2,-h*def.sprite.feet,w,h);c.restore();}
+    else{c.fillStyle='#c0392b';c.beginPath();c.ellipse(0,-h*.3,h*.45,h*.3,0,0,Math.PI*2);c.fill();}
+    if(sel||bad){c.strokeStyle=sel?'#ffd166':'#ff6b5a';c.lineWidth=3/v.scale;c.setLineDash([6/v.scale,4/v.scale]);c.strokeRect(-h*.6,-h,h*1.2,h+4);c.setLineDash([]);}}
+   else{c.scale(s,s);c.strokeStyle=sel?'#ffd166':bad?'#ff6b5a':'#e3a25a';c.lineWidth=sel?5:4;c.beginPath();c.ellipse(0,-18,26,18,0,0,Math.PI*2);c.stroke();c.font='900 14px Nunito, sans-serif';c.textAlign='center';c.lineWidth=4;c.strokeStyle='#000';c.strokeText('ninho',0,-44);c.fillStyle='#ffd9a8';c.fillText('ninho',0,-44);}
+   c.restore();});
   // One game screen around the cursor: what a player sees at once.
   if(ui.screen&&hoverRef.current){const left=Math.max(0,Math.min(W-SCREEN_WIDTH,hoverRef.current.x-SCREEN_WIDTH/2));c.strokeStyle='#7fd3ff';c.lineWidth=2/v.scale;c.setLineDash([12/v.scale,8/v.scale]);c.strokeRect(left,0,Math.min(SCREEN_WIDTH,W),MAP_HEIGHT);c.setLineDash([]);
    c.fillStyle='#7fd3ff';c.font=`800 ${13/v.scale}px Nunito, sans-serif`;c.textAlign='left';c.fillText('Tela do jogo',left+8/v.scale,18/v.scale);}
@@ -192,6 +210,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const toWorld=(e:{clientX:number;clientY:number})=>{const r=canvasRef.current!.getBoundingClientRect(),v=viewRef.current;return {x:(e.clientX-r.left-v.x)/v.scale,y:(e.clientY-r.top-v.y)/v.scale};};
  const hitSpawn=(x:number,y:number)=>{if(!doc)return null;const s=1/Math.max(.45,viewRef.current.scale);
   for(let t=1;t>=0;t--)for(let slot=doc.layout.spawns[t].length-1;slot>=0;slot--){const sx=doc.layout.spawns[t][slot],sy=Math.min(surfaceAt(sx),MAP_HEIGHT-4);if(Math.abs(x-sx)<=14*s&&y<=sy+6*s&&y>=sy-70*s)return {team:t,slot};}return null;};
+ const hitMonster=(x:number,y:number)=>{if(!doc)return null;const list=doc.layout.monsters??[];for(let n=list.length-1;n>=0;n--){const m=list[n],h=MONSTERS[m.kind as keyof typeof MONSTERS]?.sprite.height??60,my=m.y??Math.min(surfaceAt(m.x),MAP_HEIGHT-4);if(Math.abs(x-m.x)<=h*.55&&y<=my+8&&y>=my-h)return n;}return null;};
  const hitItem=(x:number,y:number)=>{for(let n=placed.length-1;n>=0;n--){const p=placed[n];if(!p.piece||p.locked||p.hidden||x<p.left||x>p.left+p.w||y<p.top||y>p.top+p.h)continue;
   const scale=p.item.scale??1,lx=Math.floor(((x-p.item.x)*(p.item.flip?-1:1)+p.w/2)/scale),ly=Math.floor((y-p.top)/scale);
   if(lx>=0&&ly>=0&&lx<p.piece.w&&ly<p.piece.h&&p.piece.alpha[(ly*p.piece.w+lx)*4+3]>60)return p;}return null;};
@@ -206,6 +225,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   const {x,y}=toWorld(e);
   if(e.button===1||e.button===2||e.altKey){dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};return;}
   const spawn=hitSpawn(x,y);if(spawn){setSelection({type:'spawn',...spawn});dragRef.current={kind:'spawn',...spawn,startX:x,origin:doc.layout.spawns[spawn.team][spawn.slot],moved:false};return;}
+  const monster=hitMonster(x,y);if(monster!==null){setSelection({type:'monster',index:monster});dragRef.current={kind:'monster',index:monster,startX:x,origin:doc.layout.monsters![monster].x,moved:false};return;}
   const item=hitItem(x,y);
   if(item){setSelection({type:'item',index:item.source});
    // A prop resting on the ground moves from where it is drawn, not from its stored drop height, so it never jumps into the sky.
@@ -222,6 +242,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
   const {x,y}=toWorld(e);
   if(drag.kind==='spawn'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
+  if(drag.kind==='monster'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{const m=d.layout.monsters![drag.index];m.x=nx;delete m.y;},!drag.moved);drag.moved=true;return;}
   let dx=x-drag.startX,dy=y-drag.startY;if(e.shiftKey){if(Math.abs(dx)>Math.abs(dy))dy=0;else dx=0;}
   if(drag.mirrored)dx=-dx;
   change(d=>{const item=d.layout.items[drag.index];item.x=snap(drag.origin.x+dx);item.top=snap(drag.origin.top+dy);},!drag.moved);drag.moved=true;
@@ -275,6 +296,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
     if(name&&!mod&&e.key.toLowerCase()==='h'){toggleIn(setHidden,name);return;}
    }
    if(selection?.type==='spawn'&&doc&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{d.layout.spawns[selection.team][selection.slot]=Math.max(0,Math.min(W,d.layout.spawns[selection.team][selection.slot]+step));});}
+   if(selection?.type==='monster'&&doc){if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeMonster(selection.index);return;}
+    if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{const m=d.layout.monsters![selection.index];m.x=Math.max(0,Math.min(W,m.x+step));});}}
    if(e.key==='Escape'){setSelection(null);setShowKeys(false);}
    if(mod||e.altKey)return;
    if(e.key==='+'||e.key==='='){zoomAt(viewRef.current.scale*1.25);return;}
@@ -342,6 +365,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
      <button className={`adm-layer-btn ${hidden.has(item.id)?'on':''}`} onClick={e=>{e.stopPropagation();toggleIn(setHidden,item.id);}} title={hidden.has(item.id)?'Mostrar ( H )':'Esconder só no editor ( H )'}>{hidden.has(item.id)?<EyeOff size={13}/>:<Eye size={13}/>}</button></li>)}</ol>}
    <div className="adm-spawn-list"><h4><Users size={15}/>Spawns</h4>{doc.layout.spawns.map((team,t)=><div key={t} className="adm-spawn-team"><span style={{color:TEAM_COLORS[t]}}>Time {t+1}</span>{team.map((x,slot)=><button key={slot} className={selection?.type==='spawn'&&selection.team===t&&selection.slot===slot?'on':''} style={{'--team':TEAM_COLORS[t]} as React.CSSProperties} onClick={()=>setSelection({type:'spawn',team:t,slot})} title={`x ${x}`}>{slot+1}</button>)}</div>)}
     <small>Posição 1 é a do 1x1. Arraste no mapa (só na horizontal; o pé fica no chão). O spawn fica sobre o que tiver colisão embaixo, inclusive objetos: com <b>!</b> vermelho, tire o objeto de baixo dele.</small></div>
+   {doc.meta.kind==='instance'&&<div className="adm-spawn-list adm-monster-list"><h4><ShieldAlert size={15}/>Monstros <small>{doc.layout.monsters?.length??0}</small></h4>
+    <ol>{(doc.layout.monsters??[]).map((m,n)=><li key={n}><button className={selection?.type==='monster'&&selection.index===n?'on':''} onClick={()=>setSelection({type:'monster',index:n})}>{MONSTER_LABELS[m.kind]??m.kind}<small>x {Math.round(m.x)}</small>{monsterWarnings.has(n)&&<AlertTriangle size={13} className="warn"/>}</button></li>)}</ol>
+    <label className="adm-field"><span>Adicionar</span><select value="" onChange={e=>{if(e.target.value)addMonster(e.target.value as MonsterPlacement['kind']);}}><option value="">Escolha um monstro…</option>{[...MONSTER_KINDS,...MARKER_KINDS].map(kind=><option key={kind} value={kind}>{MONSTER_LABELS[kind]}</option>)}</select></label>
+    <small>Os monstros entram andando pelas bordas do mapa até estes pontos. A rainha fica parada; o ninho é de onde ela manda formigas.</small></div>}
   </aside>
 
   <div className="adm-stage" ref={wrapRef}>
@@ -354,9 +381,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   <aside className="adm-editor-right">
    {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} width={W} locked={locked.has(selectedItem.id)} onLock={()=>toggleIn(setLocked,selectedItem.id)} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1}/>
    :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} problems={spawnWarnings.get(`${selection.team}-${selection.slot}`)??[]} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
+   :selection?.type==='monster'&&doc.layout.monsters?.[selection.index]?<MonsterInspector monster={doc.layout.monsters[selection.index] as MonsterPlacement} width={W} ground={surfaceAt(doc.layout.monsters[selection.index].x)} problems={(built?.warnings??[]).filter(w=>w.monster===selection.index).map(w=>w.text)} onChange={patch=>change(d=>{Object.assign(d.layout.monsters![selection.index],patch);})} onRemove={()=>removeMonster(selection.index)}/>
    :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onDelete={deleteMap}/>}
    <section className="adm-warnings"><h4>{warnings.length?<><AlertTriangle size={15}/>{warnings.length} {warnings.length===1?'aviso':'avisos'}</>:<><Eye size={15}/>Sem avisos</>}</h4>
-    {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
+    {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):w.monster!==undefined?setSelection({type:'monster',index:w.monster}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
     {built&&<small>{built.regions.length} regiões de colisão · {doc.layout.items.length} itens</small>}
    </section>
   </aside>
@@ -412,13 +440,25 @@ function SpawnInspector({doc,team,slot,width,ground,problems,onChange,onMirror}:
  </section>;
 }
 
+function MonsterInspector({monster,width,ground,problems,onChange,onRemove}:{monster:MonsterPlacement;width:number;ground:number;problems:string[];onChange:(patch:Partial<MonsterPlacement>)=>void;onRemove:()=>void}){
+ const def=MONSTERS[monster.kind as keyof typeof MONSTERS];
+ return <section className="adm-inspector">
+  <header><h3>{MONSTER_LABELS[monster.kind]??monster.kind}</h3><span><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
+  <label className="adm-field"><span>Tipo</span><select value={monster.kind} onChange={e=>onChange({kind:e.target.value as MonsterPlacement['kind']})}>{[...MONSTER_KINDS,...MARKER_KINDS].map(kind=><option key={kind} value={kind}>{MONSTER_LABELS[kind]}</option>)}</select></label>
+  <Num label="X" value={monster.x} min={0} max={width} onChange={v=>onChange({x:Math.round(Math.max(0,Math.min(width,v)))})}/>
+  <dl className="adm-facts"><dt>Chão em</dt><dd>{ground>=MAP_HEIGHT?'sem chão!':`y ${ground}`}</dd>{def&&<><dt>Vida (1 jogador)</dt><dd>{Math.round(def.hp*.925)}</dd><dt>Ataque</dt><dd>{def.attack}</dd>{def.behavior==='melee'?<><dt>Passo por turno</dt><dd>{def.stride} px</dd></>:<><dt>Como luta</dt><dd>flechas de longe e invoca formigas</dd></>}</>}</dl>
+  {problems.length>0&&<ul className="adm-spawn-problems">{problems.map(p=><li key={p}><AlertTriangle size={13}/>{p}</li>)}</ul>}
+  <p className="adm-hint">Arraste no mapa (só na horizontal; o pé fica no chão). Força e recompensas ficam em shared/expeditions.ts.</p>
+ </section>;
+}
+
 function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onDelete:()=>void}){
  const W=doc.layout.width??1536;
  return <section className="adm-inspector">
   <header><h3>Mapa</h3></header>
   <label className="adm-field"><span>Subtítulo</span><input value={doc.meta.subtitle} maxLength={80} placeholder="Aparece na tela de carregamento" onChange={e=>onChange(d=>{d.meta.subtitle=e.target.value;})}/></label>
   <div className="adm-field"><span>Tipo</span><span className={`adm-kind ${doc.meta.kind}`}>{MAP_KIND_NAMES[doc.meta.kind]}</span>
-   <small>{doc.meta.kind==='instance'?'Instâncias (dungeons) ficam guardadas; ainda não entram no jogo.':'Entra no sorteio das partidas PvP.'} O tipo é escolhido ao criar o mapa e não muda depois.</small></div>
+   <small>{doc.meta.kind==='instance'?'Estágio de expedição (Central de Expedições): não entra no sorteio PvP; os monstros ficam na lista da esquerda.':'Entra no sorteio das partidas PvP.'} O tipo é escolhido ao criar o mapa e não muda depois.</small></div>
   {doc.meta.kind==='pvp'&&<Toggle label="No sorteio PvP" hint="Desligue para tirar o mapa das partidas" value={doc.meta.enabled} onChange={v=>onChange(d=>{d.meta.enabled=v;})}/>}
   <label className="adm-field"><span>Largura</span><span className="adm-seg">{[1,1.5,2,2.5,3].map(k=><button key={k} type="button" className={W===1536*k?'on':''} onClick={()=>onChange(d=>{const old=d.layout.width??1536,next=1536*k,shift=(next-old)/2;d.layout.width=next;for(const it of d.layout.items)it.x+=shift;d.layout.spawns=d.layout.spawns.map(t=>t.map(x=>x+shift));})}>{k.toLocaleString('pt-BR')}</button>)}</span><small>Em telas de 1536 px; tudo se desloca para manter o centro. Altura fixa de 864.</small></label>
   <Toggle label="Espelhar para o outro time" hint="Cada item ganha uma cópia do outro lado" value={!!doc.layout.mirror} onChange={v=>onChange(d=>{d.layout.mirror=v;})}/>

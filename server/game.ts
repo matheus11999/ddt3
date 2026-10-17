@@ -21,12 +21,20 @@ import {createFall,fallPosition,fallVelocity} from '../shared/fall';
 import {REPORT_CHAT_WINDOW_MS} from '../shared/reports';
 import type {PlayerInfo,ReportChatLine} from '../shared/reports';
 import type {ReportSink} from './reports';
+import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
+import type {Difficulty,StageDef} from '../shared/expeditions';
+import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_END_MS,MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn} from '../shared/instanceTurn';
+import type {InstanceRound} from '../shared/instanceTurn';
+import {monsterDamage} from '../shared/combat';
+import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
 export interface Peer {profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
+/** An expedition run: its stages, the current round of the instance turn and the monster turn's timed events. */
+interface ExpeditionRun {expedition:string;difficulty:Difficulty;stages:readonly StageDef[];stage:number;order:string[];round:InstanceRound;events:{at:number;run:()=>void}[];won?:boolean;}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
-const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];}
+const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;}
 
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
@@ -77,7 +85,7 @@ export class Game {
  private room(p:Peer){const room=p.roomId?this.rooms.get(p.roomId):undefined;if(!room)throw Error('Entre em uma sala primeiro.');return room;}
  /** The caller's own living fighter while a match is aiming, whoever has the turn. */
  private fighter(p:Peer){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0||f.left)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
- private turn(p:Peer){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(Date.now()>m.state.deadline)throw Error('O tempo do turno terminou.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
+ private turn(p:Peer){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(m.state.instance&&Date.now()<m.state.instance.introUntil)throw Error('Aguarde os monstros chegarem.');if(Date.now()>m.state.deadline)throw Error('O tempo do turno terminou.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
  private seat(p:Peer,team:0|1,slot:number):Seat{return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:{...p.profile.equipment},abilityLoadout:normalizeAbilityLoadout(p.profile.abilityLoadout),ready:false,bot:false,team,slot,connected:true};}
  private vacantSeat(room:Room):{team:0|1;slot:number}{
   if(!room.practice){const slot=room.openSlots.find(index=>!room.players.some(p=>p.slot===index));if(slot===undefined)throw Error('Esta equipe está cheia. Peça ao líder para abrir outra vaga.');return {team:0,slot};}
@@ -236,10 +244,23 @@ export class Game {
      const practice=c.practice===true,mode=practice?(c.mode??'1v1'):'1v1';
      const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:c.name??`Sala de ${p.profile.name}`.slice(0,24),hostId:id,practice,mode,openSlots:practice?initialSlots(mode):[0],spectatorSlots:[],spectators:[],map:practice?canonicalMap(c.map??MAP_DEFAULT.id):MAP_DEFAULT.id,status:'waiting',players:[this.seat(p,0,0)]};this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
     }
+    case 'create-expedition':{
+     if(p.roomId)throw Error('Saia da sala atual antes de criar outra.');if(this.rooms.size>=200)throw Error('As salas estão cheias. Tente novamente em breve.');
+     const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:`Expedição de ${p.profile.name}`.slice(0,24),hostId:id,kind:'expedition',expedition:null,mode:'4v4',openSlots:[0,1,2,3],spectatorSlots:[],spectators:[],map:MAP_DEFAULT.id,status:'waiting',players:[this.seat(p,0,0)]};
+     this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
+    }
+    case 'expedition-select':{
+     const room=this.room(p);if(room.kind!=='expedition')throw Error('Escolha expedições numa sala da Central de Expedições.');
+     if(room.hostId!==id)throw Error('Somente o líder escolhe a expedição.');if(room.status!=='waiting')throw Error('Escolha a expedição entre as batalhas.');
+     const expedition=getExpedition(c.expedition);if(!expedition)throw Error('Expedição desconhecida.');
+     if(!expeditionStages(expedition.id,c.difficulty).length)throw Error('Esta dificuldade chega em breve.');
+     const low=room.players.find(player=>player.level<expedition.minLevel);if(low)throw Error(`${low.name} precisa do nível ${expedition.minLevel}.`);
+     room.expedition={id:expedition.id,difficulty:c.difficulty};room.players.forEach(player=>player.ready=false);this.broadcastRoom(room);break;
+    }
     case 'join':{
      this.join(p,c.roomId);break;
     }
-    case 'spectate':this.spectate(p,c.roomId);break;
+    case 'spectate':if(this.rooms.get(c.roomId)?.kind==='expedition')throw Error('Expedições não têm espectadores.');this.spectate(p,c.roomId);break;
     case 'room-spectator-slot':{
      const room=this.room(p);if(room.hostId!==id)throw Error('Somente o líder pode abrir lugares para espectadores.');
      if(c.slot!==0&&c.slot!==1)throw Error('Lugar de espectador inválido.');
@@ -281,14 +302,14 @@ export class Game {
     case 'leave':this.leave(p);break;
     case 'ready':{const r=this.room(p);if(r.status==='playing')throw Error('A partida já começou.');if(r.status==='searching'){this.cancelSearch(r);this.broadcastRoom(r);break;}if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');const s=r.players.find(x=>x.id===id)!;s.ready=!s.ready;this.broadcastRoom(r);break;}
     case 'bot':{
-     const r=this.room(p);if(r.hostId!==id||r.status!=='waiting')throw Error('Somente o líder pode adicionar um bot.');
+     const r=this.room(p);if(r.hostId!==id||r.status!=='waiting')throw Error('Somente o líder pode adicionar um bot.');if(r.kind==='expedition')throw Error('Expedições são só para aventureiros.');
      if(!r.practice)throw Error('Bots estão disponíveis somente no treino.');
      const {team,slot}=this.vacantSeat(r),n=r.players.filter(x=>x.bot).length;
      r.players.push({id:`bot-${randomUUID()}`,name:['Pipoca','Faísca','Fagulha'][n%3]+' · BOT',level:p.profile.level,equipment:{...DEFAULT_EQUIPMENT,weapon:WEAPONS[(n+1)%3].id},ready:true,bot:true,team,slot,connected:true});this.broadcastRoom(r);break;
     }
     case 'queue':this.queue(p);break;
     case 'cancel-queue':{const r=this.room(p);if(r.hostId!==id)throw Error('Somente o líder pode cancelar a busca.');if(r.status!=='searching')throw Error('A equipe não está buscando partida.');this.cancelSearch(r);this.broadcastRoom(r);break;}
-    case 'start':this.start(p);break;
+    case 'start':if(this.room(p).kind==='expedition')this.startExpedition(p);else this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
     case 'ability':{const {m,f}=this.turn(p);this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
     case 'flight':{const {m,f}=this.turn(p);if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
@@ -359,7 +380,7 @@ export class Game {
  private cancelSearch(r:Room){this.queueIds.delete(r.id);delete r.searchStartedAt;if(r.status==='searching'){r.status='waiting';r.players.forEach(s=>s.ready=false);this.roomsDirty=true;}}
  private queueEligible(r:Room){return !r.practice&&r.players.length===r.openSlots.length&&r.openSlots.length>=1&&r.openSlots.length<=MAX_PARTY_SIZE&&r.openSlots.every(slot=>r.players.filter(player=>player.slot===slot).length===1)&&r.players.every(s=>!s.bot&&s.connected&&(s.id===r.hostId||s.ready)&&!this.profileChanges.has(s.id)&&this.peers.get(s.id)?.connected&&this.peers.get(s.id)?.roomId===r.id);}
  private queue(p:Peer){
-  const r=this.room(p);if(r.hostId!==p.profile.id)throw Error('Somente o líder pode buscar partida.');if(r.practice)throw Error('O treino não usa a busca de partidas.');if(r.status!=='waiting')throw Error('A equipe já está buscando ou jogando.');
+  const r=this.room(p);if(r.kind==='expedition'){this.startExpedition(p);return;}if(r.hostId!==p.profile.id)throw Error('Somente o líder pode buscar partida.');if(r.practice)throw Error('O treino não usa a busca de partidas.');if(r.status!=='waiting')throw Error('A equipe já está buscando ou jogando.');
   if(!this.queueEligible(r))throw Error('Preencha todas as vagas abertas e aguarde todos ficarem conectados e prontos.');
   r.mode=modeForSlots(r.openSlots.length);r.status='searching';r.searchStartedAt=Date.now();this.queueIds.add(r.id);this.broadcastRoom(r);
   // Synchronous validation and reservation prevent simultaneous queues from consuming a party twice.
@@ -385,7 +406,7 @@ export class Game {
   this.launchMatch([r]);
  }
  private practiceStart(p:Peer){
-  const room=this.room(p);if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar o treino.');if(room.status!=='waiting')throw Error('Inicie o treino entre as partidas.');
+  const room=this.room(p);if(room.kind==='expedition')throw Error('Na expedição, use Iniciar.');if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar o treino.');if(room.status!=='waiting')throw Error('Inicie o treino entre as partidas.');
   if(room.practice){this.start(p);return;}
   if(room.players.some(player=>!player.connected||this.profileChanges.has(player.id)||!this.peers.get(player.id)?.connected))throw Error('Aguarde todos ficarem conectados.');
   const seats:Seat[]=room.players.map(player=>({...player,team:0}));let n=0;
@@ -403,6 +424,85 @@ export class Game {
   const key=this.matches.has(r.id)?randomUUID():r.id;
   const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+30000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.broadcastBattle(m,true);
+ }
+ private startExpedition(p:Peer){
+  const room=this.room(p);if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar a expedição.');if(room.status!=='waiting')throw Error('A expedição já começou.');
+  if(!room.expedition)throw Error('Escolha uma expedição primeiro.');
+  if(room.players.some(s=>!s.connected||this.profileChanges.has(s.id)||!this.peers.get(s.id)?.connected||(!s.ready&&s.id!==room.hostId)))throw Error('Aguarde todos ficarem prontos.');
+  this.launchExpedition(room,0);
+ }
+ /** Opens a stage: a new battle (new map) for the room's party; later stages reuse the same match. */
+ private launchExpedition(room:Room,stageIndex:number,previous?:Match){
+  const choice=room.expedition!,stages=expeditionStages(choice.id,choice.difficulty);
+  const seats=room.players.filter(seat=>!seat.bot&&(!previous||previous.state.players.some(f=>f.id===seat.id&&!f.left)));
+  if(!seats.length){if(previous)this.returnParties(previous);return;}
+  const terrain=createTerrain(stages[stageIndex].map as Battle['map']),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
+  setup.fighters.forEach(fighter=>{if(!fighter.monster)adjustAimToTerrain(fighter,terrain);});
+  const run:ExpeditionRun={expedition:choice.id,difficulty:choice.difficulty,stages,stage:stageIndex,order:setup.order,round:{round:1,acted:[]},events:[]};
+  const state:Battle={id:randomUUID(),roomId:room.id,map:setup.map,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
+  if(previous){const m=previous;delete m.rewardDeck;delete m.activeShot;delete m.pendingImpacts;delete m.pendingPower;delete m.retryRewardsAt;delete m.invisibilityActivated;m.savingRewards=false;m.state=state;m.terrain=terrain;m.instance=run;m.resolveAt=0;this.broadcastBattle(m,true);return;}
+  const key=this.matches.has(room.id)?randomUUID():room.id;
+  const m:Match={key,roomIds:[room.id],state,terrain,resolveAt:0,botAt:Infinity,createdAt:now,instance:run};
+  this.matches.set(key,m);this.queueIds.delete(room.id);room.status='playing';room.matchStartedAt=now;room.map=setup.map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);this.broadcastBattle(m,true);
+ }
+ /** Instance turn: each living adventurer once per round, then the monsters together (shared/instanceTurn.ts). */
+ private nextInstanceTurn(m:Match){
+  const run=m.instance!,s=m.state,withTerrain=s.phase==='resolving';
+  if(s.turnId===MONSTER_TURN_ID){run.round={round:run.round.round+1,acted:[]};delete s.instance!.monsterTurn;}
+  else{if(!run.round.acted.includes(s.turnId))run.round.acted.push(s.turnId);const outgoing=s.players.find(f=>f.id===s.turnId);if(outgoing&&(outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;}
+  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});
+  s.instance!.round=run.round.round;
+  const order=run.order.map(id=>s.players.find(f=>f.id===id)).filter((f):f is Fighter=>!!f),next=nextInstanceActor(order,run.round);
+  if(next.kind==='monsters'){this.startMonsterTurn(m);return;}
+  const f=s.players.find(player=>player.id===next.id)!;f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+30000;this.broadcastBattle(m,withTerrain);
+ }
+ /** The monsters' shared turn: everyone walks at once, those already beside an adventurer bite, the queen shoots and summons. */
+ private startMonsterTurn(m:Match){
+  const s=m.state,run=m.instance!,now=Date.now(),turnId=randomUUID();
+  s.turnId=MONSTER_TURN_ID;s.turnNumber++;s.phase='resolving';
+  // Invisible adventurers cannot be chased.
+  const plan=planMonsterTurn(m.terrain,s.players.filter(f=>f.team===1||!(f.invisibleTurns??0)));
+  for(const move of plan.moves){const f=s.players.find(x=>x.id===move.id);if(!f)continue;f.x=move.to[0];f.y=move.to[1];f.facing=move.facing;}
+  const walking=plan.moves.some(move=>move.from[0]!==move.to[0]);
+  let at=now+(walking?MONSTER_MOVE_MS:300)+MONSTER_BITE_WINDUP_MS,end=now+(walking?MONSTER_MOVE_MS:600);
+  const bites=plan.bites.map((bite,index)=>({...bite,at:at+index*110}));
+  bites.forEach((bite,index)=>{run.events.push({at:bite.at,run:()=>{
+   const monster=s.players.find(f=>f.id===bite.id),target=s.players.find(f=>f.id===bite.targetId);if(!monster||monster.hp<=0||!target||target.hp<=0||!monster.monster)return;
+   const damage=Math.min(target.hp,monsterDamage(MONSTERS[monster.monster].attack,target.equipment));target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
+   target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);
+   const hit:ShotHit={id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
+   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`bite:${turnId}`,projectileIndex:index,at:bite.at,hits:this.visibleHits(m,[hit],peer.profile.id)});
+   this.broadcastBattle(m);
+  }});});
+  if(bites.length){at=bites.at(-1)!.at+260;end=Math.max(end,at+MONSTER_ATTACK_MS-MONSTER_MOVE_MS);}
+  const queen=s.players.find(f=>f.id===s.instance!.boss&&f.hp>0),stage=run.stages[run.stage];let arrowAt:number|undefined;
+  if(queen){arrowAt=at;run.events.push({at:arrowAt,run:()=>this.queenArrow(m,queen.id)});at+=1700;end=Math.max(end,at);}
+  const summons:{id:string;at:number}[]=[];
+  if(queen&&stage.boss&&run.round.round%stage.boss.summonEvery===0){
+   const nest=s.instance!.nest??{x:queen.x-200,y:queen.y},alive=s.players.filter(f=>f.team===1&&f.hp>0&&f.id!==queen.id).length;
+   for(let n=0;n<Math.min(stage.boss.summonCount,stage.boss.summonLimit-alive);n++){
+    const kind=stage.boss.summonKinds[randomInt(stage.boss.summonKinds.length)],x=nest.x+(n?-1:1)*n*36,players=s.players.filter(f=>f.team===0&&!f.left).length;
+    const minion=monsterFighter(kind,x,ground(m.terrain,x,Math.max(0,nest.y-40)),queen.level,players,s.players.length,-1);minion.hp=0;
+    const summonAt=at+n*350;summons.push({id:minion.id,at:summonAt});s.players.push(minion);
+    // The ant exists from the start of the turn (so clients can preload it) but only comes alive when it leaves the nest.
+    run.events.push({at:summonAt,run:()=>{minion.hp=minion.maxHp;this.broadcastBattle(m);}});
+   }
+   if(summons.length){at=summons.at(-1)!.at+900;end=Math.max(end,at);}
+  }
+  s.instance!.monsterTurn={id:turnId,startedAt:now,moves:plan.moves,bites,summons,...(arrowAt?{arrowAt}:{})};
+  run.events.sort((a,b)=>a.at-b.at);m.resolveAt=end+MONSTER_TURN_END_MS;this.broadcastBattle(m);
+ }
+ private queenArrow(m:Match,queenId:string){
+  const s=m.state,queen=s.players.find(f=>f.id===queenId);if(!queen||queen.hp<=0||s.phase!=='resolving')return;
+  const aim=queenAim(m.terrain,queen,s.players.filter(f=>f.team===0),s.wind);if(!aim)return;
+  queen.facing=aim.facing;const startedAt=Date.now(),id=randomUUID(),result=trajectory(m.terrain,aim.origin,aim.angle,aim.power,s.wind,ARROW,s.players.filter(f=>f.team===0));
+  const hits:ShotHit[]=[];
+  for(const target of s.players){if(target.team!==0||target.hp<=0)continue;const exposure=impactExposure(target,result,ARROW.blast);if(exposure.attenuation<=0)continue;
+   hits.push({id:target.id,damage:monsterDamage(MONSTERS['ant-queen'].attack,target.equipment,exposure.attenuation),x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality});}
+  const shot:Shot={id,shooterId:queen.id,startedAt,duration:result.flightTime+450,hits:[],impacted:[],projectiles:[{points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0},effect:'brick',monster:'arrow'}]};
+  m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits,fragment:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:'brick',level:0}}];
+  m.resolveAt=Math.max(m.resolveAt,startedAt+shot.duration+MONSTER_TURN_END_MS);
+  for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
  }
  private wind(){return Math.round((Math.random()*2-1)*35)/10;}
  private boost(f:Fighter,id:BoostId){
@@ -467,7 +567,8 @@ export class Game {
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
-    const critical=criticalFromRoll(attributes(f.equipment).luck,this.criticalRoll()),damage=damageAtImpact(f.equipment,target.equipment,{attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
+    const critical=criticalFromRoll(attributes(f.equipment).luck,this.criticalRoll());let damage=damageAtImpact(f.equipment,target.equipment,{attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
+    if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
     if(damage<=0)continue;
     // Bodies stay hittable for the whole shot: a +1/+2 that lands after the kill still shows its real damage.
     hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
@@ -534,6 +635,7 @@ export class Game {
  }}
  private nextTurn(m:Match){
   if(this.checkWin(m))return;
+  if(m.instance){this.nextInstanceTurn(m);return;}
   const s=m.state,withTerrain=s.phase==='resolving';const index=s.players.findIndex(p=>p.id===s.turnId);let next=index;
   const outgoing=s.players[index];if((outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
   for(let n=1;n<=s.players.length;n++){const candidate=(index+n)%s.players.length;if(s.players[candidate].hp>0){next=candidate;break;}}
@@ -541,6 +643,7 @@ export class Game {
  }
  private checkWin(m:Match){
   if(m.state.phase==='finished')return true;
+  if(m.instance)return this.checkInstanceEnd(m);
   const teams=new Set(m.state.players.filter(p=>p.hp>0).map(p=>p.team));
   const exhausted=m.state.turnNumber>=80;
   if(teams.size>1&&!exhausted)return false;
@@ -553,6 +656,22 @@ export class Game {
   this.broadcastBattle(m,true);
   return true;
  }
+ /** A stage ends when every monster falls (or, with a boss, the queen), or when the whole party is down. */
+ private checkInstanceEnd(m:Match){
+  const s=m.state,run=m.instance!,boss=s.players.find(f=>f.id===s.instance?.boss);
+  const party=s.players.filter(f=>f.team===0&&f.hp>0&&!f.left).length,monsters=s.players.filter(f=>f.team===1&&f.hp>0).length;
+  const won=party>0&&(boss?boss.hp<=0:monsters===0),lost=party===0||s.turnNumber>=150;
+  if(!won&&!lost)return false;
+  // A pending monster turn cannot strike after the end.
+  run.events=[];delete m.pendingPower;delete m.pendingImpacts;delete s.powerCutIn;
+  if(won)for(const f of s.players)if(f.team===1&&f.hp>0){f.hp=0;}
+  s.players.forEach(f=>{f.powerArmed=false;f.flightArmed=false;f.homingArmed=false;});
+  s.phase='finished';s.winner=won?0:1;run.won=won;
+  const stage=run.stages[run.stage],cards=won?stage.cards:0;m.rewardDeck=won?stageDeck(stage):[];
+  const opensAt=Math.max(Date.now(),...s.players.map(player=>player.fall?player.fall.startedAt+player.fall.duration:0))+REWARD_RESULT_MS;
+  s.rewards={opensAt,deadline:opensAt+(cards?REWARD_PICK_MS:0),phase:'picking',saved:false,cards:Array.from({length:cards},(_,index)=>({index}))};
+  this.broadcastBattle(m,true);return true;
+ }
  private autoPick(m:Match,id:string){
   const cards=m.state.rewards!.cards;if(cards.some(card=>card.playerId===id))return;
   const free=cards.filter(card=>!card.playerId);if(free.length){const card=free[randomInt(free.length)];card.playerId=id;card.automatic=true;}
@@ -560,7 +679,7 @@ export class Game {
  private revealRewards(m:Match,now=Date.now()){
   const rewards=m.state.rewards!;
   if(rewards.phase==='revealed')return;
-  for(const player of m.state.players)if(!player.left)this.autoPick(m,player.id);
+  for(const player of m.state.players)if(!player.left&&!player.monster)this.autoPick(m,player.id);
   for(const card of rewards.cards)card.prize={...m.rewardDeck![card.index]};
   rewards.phase='revealed';rewards.revealedAt=now;this.broadcastBattle(m);this.saveRewards(m);
  }
@@ -570,9 +689,11 @@ export class Game {
   // Fallen fighters who stayed to watch keep their reward; those who left forfeit it.
   const humans=m.state.players.filter(p=>!p.bot&&!p.left),winners=humans.filter(p=>p.team===m.state.winner).map(p=>p.id);
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
-  this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses).then(async()=>{
+  const run=m.instance,award=run?.won?run.stages[run.stage].award:{coins:0,xp:0};
+  const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses);
+  saving.then(async()=>{
    for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat)seat.level=profile.level;}}}
-   rewards.saved=true;void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
+   rewards.saved=true;if(!run)void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
   }).catch(error=>{this.report(error);m.retryRewardsAt=Date.now()+2000;}).finally(()=>{m.savingRewards=false;});
  }
  /** Reloads the day's podium and tells everyone when it changed; also rolls over at midnight. */
@@ -606,8 +727,9 @@ export class Game {
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){
-   if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS)this.returnParties(m);this.cleanupMatch(m);}
+   if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS){const run=m.instance,room=this.rooms.get(m.roomIds[0]);if(run?.won&&run.stage+1<run.stages.length&&room&&this.matchForRoom(room.id)===m)this.launchExpedition(room,run.stage+1,m);else this.returnParties(m);}this.cleanupMatch(m);}
    if(m.pendingPower&&now>=m.pendingPower.at){const pending=m.pendingPower;delete m.pendingPower;delete m.state.powerCutIn;const shooter=m.state.players.find(f=>f.id===pending.playerId);if(shooter&&shooter.hp>0&&m.state.phase==='resolving')this.resolveFire(m,shooter,pending.angle,pending.power,true,now);else if(m.state.phase!=='finished')this.nextTurn(m);}
+   while(m.state.phase==='resolving'&&m.instance?.events.length&&m.instance.events[0].at<=now)m.instance.events.shift()!.run();
    while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}
    if(m.state.phase==='resolving'&&now>=m.resolveAt)this.nextTurn(m);
    else if(m.state.phase==='aiming'){

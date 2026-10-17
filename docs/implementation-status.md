@@ -315,3 +315,11 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Ver informações: janela no layout da mochila, só leitura, com tooltip dos itens, Poder e atributos.
 - Denunciar: motivo pronto e texto opcional; a denúncia leva o chat do denunciado dos últimos 30 minutos. Limite de 5 por hora e 1 por alvo a cada 30 minutos.
 - Painel `/admin/denuncias` com filtro por status, detalhe com o chat, anotação e resolver/descartar. Detalhes em `docs/player-reports.md`.
+
+## Central de Expedições (17/10/2026)
+
+- Botão Expedições no menu do lobby abre a Central: salas de até 4, quadro pintado que abre a escolha de expedição e dificuldade (só Fácil aberto).
+- Formigueiro: estágio 1 no tronco caído (6 formigas de 3 tipos, corpo a corpo) e estágio 2 na câmara da rainha (flechas de longe, formigas saindo do ninho). Cartas ao fim de cada estágio, mais e melhores na rainha.
+- Turno da instância reaproveitável (`shared/instanceTurn.ts`): aventureiros por agilidade, depois todos os monstros juntos.
+- Estágios editáveis no `/admin` como mapas de instância, com lista de monstros e ninho.
+- Testes: `tests/expedition.test.ts` (turno, plano das formigas, fluxo completo com os dois estágios, rainha atirando e invocando) e `node scripts/smoke-expedition.mjs`. Detalhes em `docs/expeditions.md`.

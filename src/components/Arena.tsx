@@ -13,13 +13,14 @@ import {VipBadge} from './VipBadge';
 import {LevelNumber} from './LevelNumber';
 import {RoomInvitations} from './RoomInvitations';
 import {RoomSpectators} from './RoomSpectators';
+import {ExpeditionRoom} from './ExpeditionRoom';
 import './ArenaTheme.css';
 import './Arena.css';
 
 const SLOT_INDICES=[0,1,2,3] as const;
 export {Arena} from './ArenaHall';
 
-function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
+export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
  return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} {...playerMenuProps(seat?{id:seat.id,name:seat.name,context:'room'}:null)} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
   {seat?<><header className="pr-card-name wood-ribbon"><strong title={seat.name}>{seat.name}</strong>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
@@ -54,7 +55,7 @@ function PracticeConfirmation({size,onClose,onStart,enabled}:{size:number;onClos
  return <div className="party-practice-overlay" onClick={event=>{if(event.target===event.currentTarget)onClose();}}><div ref={panel} className="party-practice-dialog" role="dialog" aria-modal="true" aria-labelledby="practice-title" aria-describedby="practice-detail"><span className="party-practice-emblem"><Bot size={38}/></span><h2 id="practice-title">Treinar com bots?</h2><p id="practice-detail">Duas equipes de {size} {size===1?'jogador':'jogadores'}. Os bots preenchem as vagas livres.</p><div><button type="button" className="button quiet arena-action arena-action--subtle" onClick={onClose}>Voltar</button><button type="button" className="button gold arena-action arena-action--primary" disabled={!enabled} onClick={onStart}><Swords size={18}/>Começar treino</button></div></div></div>;
 }
 
-function RoomName({id,name,editable}:{id:string;name:string;editable:boolean}){
+export function RoomName({id,name,editable}:{id:string;name:string;editable:boolean}){
  const [editing,setEditing]=useState(false),[draft,setDraft]=useState(name);
  const input=useRef<HTMLInputElement>(null),pencil=useRef<HTMLButtonElement>(null);
  useEffect(()=>{setEditing(false);setDraft(name);},[id,name,editable]);
@@ -73,7 +74,7 @@ function SearchInProgress({startedAt,offset,host,disabled,spectator=false}:{star
 
 type RoomMenu='mail'|'quests'|'guild';
 const ROOM_MENUS=[{id:'mail' as const,name:'Correio',art:'arena-mail.png'},{id:'quests' as const,name:'Missões',art:'arena-quests.png'},{id:'guild' as const,name:'Guilda',art:'arena-guild.png'}];
-function RoomMenus({equippedOnce,matches,onInventory,disabled}:{equippedOnce:boolean;matches:number;onInventory:()=>void;disabled:boolean}){
+export function RoomMenus({equippedOnce,matches,onInventory,disabled}:{equippedOnce:boolean;matches:number;onInventory:()=>void;disabled:boolean}){
  const [open,setOpen]=useState<RoomMenu|null>(null),box=useRef<HTMLElement>(null),previous=useRef<HTMLButtonElement|null>(null);
  useEffect(()=>{
   if(!open)return;
@@ -91,6 +92,7 @@ export function RoomView({onInventory}:{onInventory:()=>void}){
  const closePractice=useCallback(()=>setConfirmPractice(false),[]);
  useEffect(()=>{setConfirmPractice(false);},[room?.id,room?.status]);
  if(!room||!profile)return null;
+ if(room.kind==='expedition')return <ExpeditionRoom onInventory={onInventory}/>;
  const host=room.hostId===profile.id,me=room.players.find(seat=>seat.id===profile.id),spectator=(room.spectators??[]).some(player=>player.id===profile.id),waiting=room.status==='waiting',searching=room.status==='searching',online=status==='online';
  const members=room.players.filter(seat=>seat.team===(me?.team??0)),readyCount=members.filter(seat=>seat.connected&&(seat.ready||seat.id===room.hostId)).length,allReady=members.length>0&&readyCount===members.length;
  const canManage=host&&waiting&&online,canStart=canManage&&allReady&&!abilityLoadoutPending,canQueue=canStart&&members.length===room.openSlots.length;

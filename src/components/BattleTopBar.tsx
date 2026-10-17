@@ -65,8 +65,12 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
    c.drawImage(ground,0,0,MINI_W,MINI_H);
    const cam=sceneView.camera,hw=WORLD.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
    if(cam.zoom>1.02||worldWidth>WORLD.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
+   // Expeditions: the nest as a ring, the queen as a big gold-rimmed dot, ants as small ones.
+   const nest=b.instance?.nest;if(nest){c.beginPath();c.arc(nest.x*sx,(nest.y-10)*sy,4.5,0,Math.PI*2);c.strokeStyle='#e3a25a';c.lineWidth=2;c.stroke();}
    for(const player of b.players){
-    if(player.hidden||player.hp<=0)continue;const x=player.x*sx,y=(player.y-14)*sy,ally=player.team===team,active=player.id===b.turnId;
+    if(player.hidden||player.hp<=0)continue;
+    if(player.monster){const queen=player.id===b.instance?.boss,x=player.x*sx,y=(player.y-(queen?40:10))*sy;c.beginPath();c.arc(x,y,queen?5.5:2.6,0,Math.PI*2);c.fillStyle=queen?'#ff5a2a':'#ff3b3b';c.fill();c.lineWidth=queen?2:1;c.strokeStyle=queen?'#ffd36b':'#0b1426';c.stroke();continue;}
+    const x=player.x*sx,y=(player.y-14)*sy,ally=player.team===team,active=player.id===b.turnId;
     if(active){c.beginPath();c.arc(x,y,6+Math.sin(now/180)*1.2,0,Math.PI*2);c.strokeStyle='#fff3a0';c.lineWidth=1.5;c.stroke();}
     c.beginPath();c.arc(x,y,3.6,0,Math.PI*2);c.fillStyle=ally?'#3aa8ff':'#ff3b3b';c.fill();c.lineWidth=1.2;c.strokeStyle=player.id===id?'#ffe36b':'#0b1426';c.stroke();
    }
