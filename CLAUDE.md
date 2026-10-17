@@ -40,7 +40,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
   - Texto com aparência 3D estilo DDTank quando for destaque (ex.: SUCESSO!/FALHOU do Ferreiro em SVG extrudado com Lilita One).
   - Asas pintadas de `level-badge-backdrops.png` no `UpgradeTag`.
   - Nível na sala PvP como número com brilho na cor da faixa + estrelas (`LevelNumber`); escudo VIP pintado (`VipBadge`, `vip-badges.webp`).
-  - Números de dano empilhados por acerto; crítico com estrela vermelha simples desenhada em código atrás; intervalo de 380 ms entre tiros de rajada.
+  - Números de dano empilhados por acerto; crítico com estrela vermelha simples desenhada em código atrás; intervalo de 570 ms entre tiros de rajada (era 380; matheus pediu mais tempo em 17/10).
   - Aura do POW: pequena, quente e discreta.
   - NPCs do lobby como figura inteira que só respira; sombras desenhadas em código a partir do contorno.
 - **Rejeitado**
