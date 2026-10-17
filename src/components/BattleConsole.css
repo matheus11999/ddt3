@@ -53,7 +53,7 @@
 .artillery-hud .power-ticks>span:first-child{transform:none}
 .artillery-hud .power-ticks>span:last-child{transform:translateX(-100%)}
 .artillery-hud .power-track{--shot-power:0%;position:relative;height:20px;padding:0;border:2px solid #0a0d18;border-radius:4px;background:linear-gradient(#05070f,#161b2c);box-shadow:inset 0 3px 5px #000,0 0 0 1px #c8953f99;overflow:visible;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
-.artillery-hud .power-track[aria-disabled="true"]{cursor:default}
+.artillery-hud .power-track[aria-disabled="true"]{cursor:var(--cursor-arrow)}
 .artillery-hud .power-track>.power-fill{position:absolute;inset:1px;width:auto;height:auto;border-radius:2px;background:repeating-linear-gradient(120deg,#ffffff00 0 10px,#ffffff22 10px 14px),linear-gradient(#ffe07a,#ff9a24 30%,#f2541a 70%,#b8250f);clip-path:inset(0 calc(100% - var(--shot-power)) 0 0);box-shadow:none;transition:none}
 .artillery-hud .power-track>.power-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(#ffffff55,#ffffff10 40%,transparent 50%);pointer-events:none}
 .artillery-hud .power-track.charging>.power-fill::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(120deg,#fff3 0 8px,transparent 8px 18px);animation:power-stripes .45s linear infinite}
@@ -97,7 +97,7 @@
 .artillery-hud .battle-center-status .skip-button>kbd{padding:0 4px;border:1px solid #fff6;border-radius:4px;background:#0b1426aa;font:400 10px/14px var(--hud-font);color:#fff;text-shadow:none}
 
 /* Power orb: liquid charge that drains when activated */
-.artillery-hud .combat-power{--power-level:0%;position:absolute;right:6px;bottom:-4px;flex:none;display:grid;place-items:center;width:120px;height:120px;min-width:120px;margin:0;padding:0;border:4px solid #e2ae52;border-radius:50%;isolation:isolate;background:conic-gradient(from 200deg,#8a5a1c,#ffe08a,#b67a2a,#fff0b0,#8a5a1c);box-shadow:inset 0 0 0 2px #fff0bf55,0 0 0 2px #3b250d,0 4px 0 2px #06142a,0 6px 12px #000a;color:#e2eef6;pointer-events:auto;cursor:default;transition:filter .2s,transform .15s,box-shadow .3s}
+.artillery-hud .combat-power{--power-level:0%;position:absolute;right:6px;bottom:-4px;flex:none;display:grid;place-items:center;width:120px;height:120px;min-width:120px;margin:0;padding:0;border:4px solid #e2ae52;border-radius:50%;isolation:isolate;background:conic-gradient(from 200deg,#8a5a1c,#ffe08a,#b67a2a,#fff0b0,#8a5a1c);box-shadow:inset 0 0 0 2px #fff0bf55,0 0 0 2px #3b250d,0 4px 0 2px #06142a,0 6px 12px #000a;color:#e2eef6;pointer-events:auto;cursor:var(--cursor-arrow);transition:filter .2s,transform .15s,box-shadow .3s}
 .artillery-hud .combat-power:disabled{opacity:1;filter:none}
 .artillery-hud .combat-power-glass{position:absolute;inset:9px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 40%,#173659,#06111f);box-shadow:inset 0 4px 10px #000c}
 .artillery-hud .combat-power-liquid{position:absolute;left:-12%;right:-12%;bottom:0;height:var(--power-level);background:linear-gradient(#ff9a2a,#ff5a1c 35%,#d81e1a 75%,#8e0d14);box-shadow:inset 0 3px 0 #ffd06a,inset 0 -6px 10px #5a050a;transition:height .6s cubic-bezier(.3,.8,.4,1);animation:power-slosh 2.4s ease-in-out infinite}
@@ -121,7 +121,7 @@
 .artillery-hud .combat-power.power-full .combat-power-liquid>i{background-image:radial-gradient(ellipse 12px 8px at 12px 9px,#fff07a 98%,transparent 100%)}
 .artillery-hud .combat-power.power-full .combat-power-bubbles{opacity:1}
 .artillery-hud .combat-power.power-full .combat-power-rays{opacity:.9;animation:power-spin 5s linear infinite}
-.artillery-hud .combat-power.power-full:not(:disabled){cursor:pointer}
+.artillery-hud .combat-power.power-full:not(:disabled){cursor:var(--cursor-arrow)}
 .artillery-hud .combat-power.power-full:not(:disabled):hover{filter:brightness(1.12);transform:scale(1.04)}
 .artillery-hud .combat-power.power-full:not(:disabled):active{transform:scale(.97)}
 .artillery-hud .combat-power.power-armed .combat-power-liquid{transition:height 1.3s cubic-bezier(.45,.05,.55,.95)}
@@ -187,8 +187,11 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .active-portrait-avatar{position:absolute;inset:-24px -10px -6px;display:grid;place-items:end center;pointer-events:none;filter:drop-shadow(0 3px 3px #0009)}
 .artillery-hud .active-portrait .level-badge{position:absolute;left:4px;bottom:4px}
 .artillery-hud .active-portrait-state{margin-top:0;padding:2px 10px;border-radius:10px;background:#0a0d18cc;border:1px solid color-mix(in srgb,var(--team) 70%,#fff);font:400 12px/1.2 var(--hud-font);letter-spacing:.5px;color:#fff;text-shadow:0 1px #000}
-.artillery-hud .fighter-roster{position:absolute;top:6px;right:calc(50% + 98px);display:flex;gap:6px}
-.artillery-hud .roster-card{display:flex;flex-direction:column;gap:3px;width:54px;padding:3px;border:2px solid #3aa8ff;border-radius:8px;background:linear-gradient(#1d3b6e,#0b1730);box-shadow:0 0 0 1px #0a0d18,0 3px 5px #0008}
+.artillery-hud .fighter-roster{position:absolute;top:6px;display:flex;gap:6px}
+/* Allies to the left of the wind panel, enemies to the right; rows shrink before reaching the portrait or the minimap. */
+.artillery-hud .fighter-roster.ally{right:calc(50% + 108px);max-width:calc(50% - 108px - 190px);justify-content:flex-end}
+.artillery-hud .fighter-roster.enemy{left:calc(50% + 108px);max-width:calc(50% - 108px - 240px)}
+.artillery-hud .roster-card{display:flex;flex-direction:column;gap:3px;flex:0 1 54px;min-width:36px;padding:3px;border:2px solid #3aa8ff;border-radius:8px;background:linear-gradient(#1d3b6e,#0b1730);box-shadow:0 0 0 1px #0a0d18,0 3px 5px #0008}
 .artillery-hud .roster-card.enemy{border-color:#ff4a5a;background:linear-gradient(#6a1830,#2a0812)}
 .artillery-hud .roster-card.active-fighter{border-color:#ffe36b;box-shadow:0 0 0 1px #0a0d18,0 0 12px #ffd24a99}
 .artillery-hud .roster-card.defeated-fighter{filter:grayscale(1) brightness(.6)}
@@ -205,7 +208,9 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .battle-minimap>canvas{display:block;width:216px;height:122px;border:1px solid #0a0d18;border-radius:4px;box-shadow:inset 0 0 0 1px #c8953f66}
 html.mobile-landscape .artillery-hud .battle-top{height:130px}
 html.mobile-landscape .artillery-hud .active-portrait{transform:scale(.72);transform-origin:top left}
-html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75);transform-origin:top right;right:calc(50% + 72px)}
+html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75)}
+html.mobile-landscape .artillery-hud .fighter-roster.ally{transform-origin:top right;right:calc(50% + 80px)}
+html.mobile-landscape .artillery-hud .fighter-roster.enemy{transform-origin:top left;left:calc(50% + 80px)}
 html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transform-origin:top right}
 @media(prefers-reduced-motion:reduce){.artillery-hud .active-portrait-sigil{animation:none}}
 
@@ -214,3 +219,24 @@ html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transf
 .artillery-hud .fallen-banner{position:absolute;left:50%;bottom:28px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:10px 26px 12px;border:1px solid #c9b48a66;border-radius:14px;background:linear-gradient(#1a2233e6,#0e1522f0);box-shadow:0 6px 18px #0008;transform:translateX(-50%);pointer-events:none;z-index:2;text-align:center}
 .artillery-hud .fallen-banner strong{font:900 22px "Cinzel","Nunito",serif;letter-spacing:.08em;color:#f3e2b4;text-shadow:0 2px 0 #3b2a14,0 0 10px #000a}
 .artillery-hud .fallen-banner span{font:800 13px "Nunito",sans-serif;color:#e8dcc0;letter-spacing:.02em}
+
+/* Prepared powers, shown live in the middle above the force ruler (DDTank style): one chip per use, in the order picked. */
+.artillery-hud .boost-queue{position:absolute;left:50%;bottom:122px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #c8953f99;border-radius:12px;background:linear-gradient(#1c2a48d9,#0d1426e0);box-shadow:inset 0 1px #ffe1a044,0 3px 8px #0008;pointer-events:none;z-index:5}
+.artillery-hud .boost-queue-ally{border-color:#4fb8ffaa}
+.artillery-hud .boost-queue-enemy{border-color:#ff5a4aaa;background:linear-gradient(#3a1b26d9,#1a0d14e0)}
+.artillery-hud .boost-queue-owner{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-3px);white-space:nowrap;font:400 14px var(--hud-font);color:#fff;text-shadow:var(--hud-outline)}
+.artillery-hud .boost-queue-ally .boost-queue-owner{color:#bfe6ff}
+.artillery-hud .boost-queue-enemy .boost-queue-owner{color:#ffc2b8}
+.artillery-hud .queued-boost{position:relative;display:block;width:46px;height:46px;animation:queued-boost-in .22s cubic-bezier(.3,1.6,.5,1) both}
+.artillery-hud .queued-boost .boost-symbol-label>strong{font-size:22px;-webkit-text-stroke-width:2px}
+.artillery-hud .queued-boost .boost-shot-label>strong{font-size:19px}
+.artillery-hud .queued-boost .boost-symbol-label>strong>small{font-size:9px;-webkit-text-stroke-width:1.4px}
+.artillery-hud .queued-boost .boost-damage-label>i{top:11px;font-size:7px;-webkit-text-stroke-width:1px}
+.artillery-hud .queued-boost[data-boost="trident"] .boost-shot-label>strong{color:#168eff;text-shadow:1px 2px #103f96}
+@keyframes queued-boost-in{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
+html.mobile-landscape .artillery-hud .boost-queue{bottom:96px;gap:4px;padding:3px 5px}
+html.mobile-landscape .artillery-hud .queued-boost{width:32px;height:32px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-symbol-label>strong{font-size:15px;-webkit-text-stroke-width:1.4px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-damage-label>i{top:7px;font-size:5px;-webkit-text-stroke-width:.7px}
+.artillery-hud.fighter-fallen .boost-queue,.artillery-hud.battle-finished .boost-queue{display:none}
+@media(prefers-reduced-motion:reduce){.artillery-hud .queued-boost{animation:none}}

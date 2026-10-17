@@ -115,7 +115,7 @@ html.mobile-landscape .artillery-hud .boost-ready{min-width:18px;height:16px;fon
 .artillery-hud .flight-control>span{position:absolute;bottom:2px;left:0;right:0;text-align:center;font-size:8px;font-weight:900;letter-spacing:.5px;text-shadow:0 1px #071526}
 .artillery-hud .flight-control.flight-armed{border-color:#ffe399;background:radial-gradient(ellipse at top,#97723c,#58452b 75%);box-shadow:inset 0 0 0 2px #eac77a55,0 0 12px #ffcc5e66,0 3px #08192a}
 .artillery-hud .flight-control:not(:disabled):hover{filter:brightness(1.13)}
-.artillery-hud .flight-control:disabled{opacity:.48;cursor:default}
+.artillery-hud .flight-control:disabled{opacity:.48;cursor:var(--cursor-arrow)}
 .artillery-hud .flight-control:focus-visible{outline:2px solid #ffe3a1;outline-offset:4px}
 .artillery-hud.battle-finished .battle-ability-tray{display:none}
 html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(13px / var(--game-scale));bottom:calc((100px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom left;padding:6px;gap:6px;border-radius:12px;box-shadow:inset 0 1px #e3d6ad44,0 3px #061729}

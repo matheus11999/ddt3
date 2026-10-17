@@ -8,7 +8,7 @@
  width:100%;height:100%;margin:0;padding:8px;border-radius:0;overflow:hidden;isolation:isolate;
 }
 .pvp-room :is(button,input,strong,small,b,span,h2,h3,p,time){font-family:'Nunito','Trebuchet MS',sans-serif}
-.pvp-room button{cursor:pointer}
+.pvp-room button{cursor:var(--cursor-arrow)}
 
 /* ---------- Barra de título ---------- */
 .pvp-room .pr-titlebar{display:flex;align-items:center;gap:12px;min-width:0;padding:0 11px 0 9px}
@@ -68,7 +68,7 @@
 .pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:#fff8e866}
 .pvp-room .closed-slot .pr-card-vacant{border-color:#d9c3a1;background:#f3e6d055}
 .pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#c9771f}
-.pvp-room .party-slot-toggle:disabled{cursor:default;opacity:1}
+.pvp-room .party-slot-toggle:disabled{cursor:var(--cursor-arrow);opacity:1}
 .pvp-room .party-vacant-emblem{display:grid;place-items:center;width:66px;height:66px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffe9b8,#f7c573 70%);box-shadow:inset 0 -3px #d99a45,0 2px #a75a2344;color:#b4510f;transition:transform .15s}
 .pvp-room .closed-slot .party-vacant-emblem{background:radial-gradient(circle at 40% 30%,#f7ecd9,#dfc8a4 70%);box-shadow:inset 0 -3px #bf9f72;color:#9a7a55}
 .pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.06)}
@@ -140,7 +140,7 @@
 .pvp-room .party-menu-button{display:grid;place-items:center;width:54px;height:54px;padding:5px;border:2px solid #f2c88c;border-radius:14px;background:linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -3px #e2b77a,0 2px #3e1a0788;transition:transform .15s}
 .pvp-room .party-menu-button img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 1px #8a431855)}
 .pvp-room .party-menu-button:not(:disabled):hover,.pvp-room .party-menu-button.active{transform:translateY(-2px);border-color:#ffd36b}
-.pvp-room .party-menu-button:disabled{opacity:.55;cursor:default}
+.pvp-room .party-menu-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
 .pvp-room .party-menu-button:focus-visible{outline:3px solid #fff1c4;outline-offset:2px}
 .pvp-room .party-menu-popover{position:absolute;right:0;bottom:calc(100% + 8px);z-index:60;width:min(300px,calc(100vw - 24px));padding:0 0 10px;border:2px solid #f2b56b;border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden}
 .pvp-room .party-menu-popover>header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 12px;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);color:#fff;font-size:14px;text-shadow:0 1px #8a3a07}

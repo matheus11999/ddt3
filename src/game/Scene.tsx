@@ -12,7 +12,7 @@ import {applyDueImpacts} from './terrainPlayback';
 import {drawImpact,drawMuzzle,drawProjectile} from './weaponEffects';
 import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
-import {drawFighterIndicators} from './fighterIndicators';
+import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
@@ -22,6 +22,8 @@ import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnviron
 import {fallPosition} from '../../shared/fall';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
+/** Size of the ranked players on the lobby podium: 50% bigger than the 124 they started at. */
+const PODIUM_AVATAR=186;
 import {LOBBY_SPAWN} from '../../shared/lobby';
 import {chaseLobbyPosition} from './lobbyMotion';
 import type {LobbyAction} from './lobbyWorld';
@@ -74,6 +76,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
+    const myTeam=b.players.find(player=>player.id===state.profile?.id)?.team,plates:FighterPlate[]=[];
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
      if(f.hidden){entities.delete(f.id);continue;}
@@ -100,10 +103,12 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,f.aimSlope??0,aimAge,limits.minAngle,limits.maxAngle,'back');
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined},falling||entity?.motion.pose==='fall');
-     c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
+     c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle,'front');
     }
+    // Plates go on top of every fighter, stacked when neighbours stand close together.
+    drawFighterPlates(c,plates,t);
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.kind==='flight'){if(age<flightTime(p))drawFlightProjectile(c,p,index,t,{quality:quality==='high'?'high':'low'});return;}
@@ -124,10 +129,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat,outfit:`outfit-${k.outfit}`}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
-    // The day's top three stand on their podium, facing the middle; drawn just after the podium itself.
+    // The day's top three stand on their podium, half again the size of a walker in the plaza, facing the middle; drawn just after the podium itself.
     const podiums=lobby.podiums(),ranked=state.ranking.flatMap(entry=>{const spot=podiums.find(p=>p.rank===entry.rank);return spot?[{entry,spot}]:[];});
     lobby.occupied=new Set(ranked.map(({entry})=>entry.rank));
-    const champions=ranked.map(({entry,spot})=>({y:LOBBY_STATIONS.find(s=>s.rank===entry.rank)!.y-23,draw:()=>{avatar(`podium-${entry.id}`,`${entry.name} · ${entry.wins} ${entry.wins===1?'vitória':'vitórias'}`,entry.equipment,spot.x,spot.y,124,t,entry.rank===3?-1:1,{},true);}}));
+    const champions=ranked.map(({entry,spot})=>({y:LOBBY_STATIONS.find(s=>s.rank===entry.rank)!.y-23,draw:()=>{avatar(`podium-${entry.id}`,`${entry.name} · ${entry.wins} ${entry.wins===1?'vitória':'vitórias'}`,entry.equipment,spot.x,spot.y,PODIUM_AVATAR,t,entry.rank===3?-1:1,{},true);}}));
     const drawn=[...lobby.sprites(t,hover),...champions,...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing,{},false,true);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);

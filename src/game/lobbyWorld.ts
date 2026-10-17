@@ -421,12 +421,12 @@ export class LobbyWorld {
   });
  }
  drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null){
-  title(c,'Ranking PvP do dia',2304,196,28);
+  title(c,'Ranking PvP do dia',2304,150,28);
   for(const station of LOBBY_STATIONS){
    const podium=station.rank?this.podiums().find(p=>p.rank===station.rank):undefined;
-   // Podium plaques float above the spot where the ranked player will stand.
-   const top=podium?podium.y-(this.occupied.has(podium.rank)?214:190):station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
-   plaque(c,station.title,station.x,top+Math.sin(t/700+station.x)*3,station.id==='arena'||station.rank===1,hover===station.id);
+   // Plaques hold still above each station; podium plaques sit above where the ranked player stands.
+   const top=podium?podium.y-(this.occupied.has(podium.rank)?262:190):station.fallback.kind==='keeper'&&!this.hasArt(station)?station.y-170:station.y-station.height-20;
+   plaque(c,station.title,station.x,top,station.id==='arena'||station.rank===1,hover===station.id);
   }
  }
  /** Screen-space sparkle, drawn after the camera transform is undone. */

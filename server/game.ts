@@ -3,7 +3,7 @@ import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
-import {LOBBY_SPAWN,LOBBY_WALK_SPEED} from '../shared/lobby';
+import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
@@ -148,7 +148,7 @@ export class Game {
     case 'room-invite':this.invitePlayer(p,c.playerId);break;
     case 'room-invite-answer':this.answerInvitation(p,c.inviteId,c.accept);break;
     case 'ping':this.emit(p,{type:'pong',time:c.time,serverTime:Date.now()});return;
-    case 'move':if(!p.roomId){p.targetX=c.x;p.targetY=c.y;}return;
+    case 'move':if(!p.roomId){const target=lobbyFree(c.x,c.y);p.targetX=target.x;p.targetY=target.y;}return;
     case 'rename':if(p.roomId)throw Error('Volte à praça para mudar seu nome.');await this.store.rename(id,c.name);p.profile.name=c.name;this.emit(p,{type:'profile',profile:p.profile});this.sendLobby(p.channel);return;
     case 'ability-loadout':{
      const room=this.room(p);if(room.status!=='waiting')throw Error('Ajuste suas habilidades enquanto a sala aguarda.');
@@ -415,7 +415,7 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing?{projectileIndex:0,targets:homingTargets(simulated.state.players,shooter)}:undefined);
+  },delays,homing?{targets:homingTargets(simulated.state.players,shooter)}:undefined);
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
   const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){
@@ -531,7 +531,7 @@ export class Game {
   const channels=new Set<number>();
   for(const [id,p] of this.peers){
    if(!p.connected&&now-p.lastSeen>30000&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
-   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=Math.min(d,LOBBY_WALK_SPEED*dt);p.x+=dx/d*step;p.y+=dy/d*step;channels.add(p.channel);}}
+   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const next=lobbyStep(p,{x:p.targetX,y:p.targetY},LOBBY_WALK_SPEED*dt);p.x=next.x;p.y=next.y;channels.add(p.channel);}}
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){
