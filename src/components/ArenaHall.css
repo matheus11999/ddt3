@@ -29,9 +29,9 @@
 .pvp-hall .hall-search.is-open{flex:0 1 330px;padding-left:14px;background:linear-gradient(#fffdf5,#f5e3be);box-shadow:inset 0 -2px #d9b880,0 1px 2px #1d0a0288}
 .pvp-hall .hall-search input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:none;color:var(--wood-ink);font-size:14px;font-weight:800}
 .pvp-hall .hall-search input::placeholder{color:#b4895c}
-.pvp-hall .hall-search-trigger{display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0;border:1px solid #fff2c8;border-radius:50%;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 1px #fff7cf,inset 0 -2px #c06d0a,0 2px #2a0f03;color:#6b2c05;cursor:pointer}
+.pvp-hall .hall-search-trigger{display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0;border:1px solid #fff2c8;border-radius:50%;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 1px #fff7cf,inset 0 -2px #c06d0a,0 2px #2a0f03;color:#6b2c05;cursor:var(--cursor-arrow)}
 .pvp-hall .hall-search.is-open .hall-search-trigger{width:30px;height:30px;box-shadow:inset 0 -2px #c06d0a}
-.pvp-hall .hall-search-close{display:grid;place-items:center;flex:none;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f2d4a2;color:var(--wood-ink);cursor:pointer}
+.pvp-hall .hall-search-close{display:grid;place-items:center;flex:none;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f2d4a2;color:var(--wood-ink);cursor:var(--cursor-arrow)}
 .pvp-hall .hall-search :is(button,input):focus-visible{outline:2px solid #c25f12;outline-offset:2px}
 
 /* ---------- Lista de salas ---------- */
@@ -42,7 +42,7 @@
  position:relative;display:grid;grid-template-columns:50px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) 34px;align-items:center;column-gap:11px;
  width:100%;height:120px;padding:10px 12px 0 10px;border:2px solid #f2b56b;border-radius:14px;
  background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 1px #fff,inset 0 -3px #e9c991,0 3px #a75a2366,0 4px 10px #8a431833;
- color:var(--wood-ink);text-align:left;cursor:pointer;overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s;
+ color:var(--wood-ink);text-align:left;cursor:var(--cursor-arrow);overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s;
 }
 .pvp-hall .hall-room::before{content:'';position:absolute;inset:auto 0 0;height:34px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);pointer-events:none}
 .pvp-hall .hall-room.is-searching{--room-accent:#3d84d6;--room-accent-deep:#235aa0}
@@ -50,7 +50,7 @@
 .pvp-hall .hall-room.is-full{--room-accent:#a2856a;--room-accent-deep:#715a45}
 .pvp-hall .hall-room:not(:disabled):hover{transform:translateY(-2px);border-color:#ffcf86;box-shadow:inset 0 1px #fff,inset 0 -3px #e9c991,0 0 0 3px #ffb44f55,0 6px 14px #8a431844}
 .pvp-hall .hall-room:not(:disabled):active{transform:translateY(0)}
-.pvp-hall .hall-room:disabled{cursor:default;opacity:1;filter:none}
+.pvp-hall .hall-room:disabled{cursor:var(--cursor-arrow);opacity:1;filter:none}
 .pvp-hall .hall-room.is-full{background:linear-gradient(#fbf4e6,#f1e2c6)}
 .pvp-hall .hall-room.is-full :is(.hall-room-number,.hall-room-format){filter:saturate(.45)}
 .pvp-hall .hall-room:focus-visible{outline:3px solid #c25f12;outline-offset:3px}
@@ -70,9 +70,9 @@
 .pvp-hall .hall-room-status>i{width:8px;height:8px;border-radius:50%;background:#e9ffe9;box-shadow:0 0 6px #fff}
 .pvp-hall .hall-room.is-searching .hall-room-status svg{animation:hall-spin 1.2s linear infinite}
 .pvp-hall .hall-room-time{margin-left:3px;font-variant-numeric:tabular-nums}
-.pvp-hall .hall-spectate{position:absolute;bottom:3px;right:10px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #f2c88c;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b;cursor:pointer}
+.pvp-hall .hall-spectate{position:absolute;bottom:3px;right:10px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #f2c88c;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b;cursor:var(--cursor-arrow)}
 .pvp-hall .hall-spectate:not(:disabled):hover{filter:brightness(1.06)}
-.pvp-hall .hall-spectate:disabled{opacity:.4;cursor:default}
+.pvp-hall .hall-spectate:disabled{opacity:.4;cursor:var(--cursor-arrow)}
 .pvp-hall .hall-spectate:focus-visible{outline:2px solid #c25f12;outline-offset:2px}
 @keyframes hall-spin{to{rotate:360deg}}
 
@@ -85,13 +85,13 @@
 .pvp-hall .hall-bottom{grid-area:bottom;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;min-width:0;min-height:0}
 .pvp-hall .hall-chat{min-width:0;min-height:0}
 .pvp-hall .hall-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;min-height:0;padding:8px}
-.pvp-hall .hall-big{display:grid;grid-template-rows:minmax(0,1fr) auto;justify-items:center;align-items:center;gap:4px;width:clamp(112px,9vw,140px);height:100%;min-height:0;padding:10px 8px 9px;border:2px solid #fff0c4;border-radius:14px;background:linear-gradient(#ffe48a,#f4ae24 55%,#df8510);box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #2a0f03,0 6px 12px #1d0a0266;color:#fff;font:900 16px/1.1 'Nunito','Trebuchet MS',sans-serif;text-shadow:0 1px #8a3a07,0 0 3px #8a3a07;cursor:pointer;transition:filter .15s,transform .15s}
+.pvp-hall .hall-big{display:grid;grid-template-rows:minmax(0,1fr) auto;justify-items:center;align-items:center;gap:4px;width:clamp(112px,9vw,140px);height:100%;min-height:0;padding:10px 8px 9px;border:2px solid #fff0c4;border-radius:14px;background:linear-gradient(#ffe48a,#f4ae24 55%,#df8510);box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #2a0f03,0 6px 12px #1d0a0266;color:#fff;font:900 16px/1.1 'Nunito','Trebuchet MS',sans-serif;text-shadow:0 1px #8a3a07,0 0 3px #8a3a07;cursor:var(--cursor-arrow);transition:filter .15s,transform .15s}
 .pvp-hall .hall-quick{border-color:#d9ffd0;background:linear-gradient(#9cf07f,#47bd4f 55%,#25913a);box-shadow:inset 0 2px #e8ffd9,inset 0 -4px #17702b,0 3px #2a0f03,0 6px 12px #1d0a0266;text-shadow:0 1px #12541f,0 0 3px #12541f}
 .pvp-hall .hall-big-icon{display:grid;place-items:center;width:min(58px,100%);aspect-ratio:1;max-height:100%;border:2px solid #ffffffb0;border-radius:50%;background:#ffffff38;box-shadow:inset 0 -3px #0000001f}
 .pvp-hall .hall-big-icon svg{width:55%;height:55%;filter:drop-shadow(0 2px #0000004d)}
 .pvp-hall .hall-big:not(:disabled):hover{filter:brightness(1.06);transform:translateY(-1px)}
 .pvp-hall .hall-big:not(:disabled):active{transform:translateY(1px)}
-.pvp-hall .hall-big:disabled{cursor:default;filter:saturate(.3);opacity:.6}
+.pvp-hall .hall-big:disabled{cursor:var(--cursor-arrow);filter:saturate(.3);opacity:.6}
 .pvp-hall .hall-big:focus-visible{outline:3px solid #fff1c4;outline-offset:2px}
 
 /* ---------- Coluna direita: meu personagem e jogadores online ---------- */

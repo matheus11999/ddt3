@@ -8,7 +8,7 @@
  border:1px solid #fff3d6;border-radius:10px;background:linear-gradient(#fffaf0,#f3d9a9);
  color:#8a3f0b;font:900 13px/1.1 'Nunito','Trebuchet MS',sans-serif;text-shadow:none;
  box-shadow:inset 0 1px #fff,inset 0 -2px #d4a565,0 2px #3e1a0788;
- cursor:pointer;transition:filter .15s,transform .15s;
+ cursor:var(--cursor-arrow);transition:filter .15s,transform .15s;
 }
 :is(.arena-hall,.pvp-room) .arena-action--primary{
  border-color:#fff2c8;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);color:#6b2c05;
@@ -18,6 +18,6 @@
 :is(.arena-hall,.pvp-room) .arena-action--icon{width:var(--arena-action-height);height:var(--arena-action-height);padding:0;}
 :is(.arena-hall,.pvp-room) .arena-action:not(:disabled):hover{filter:brightness(1.05);transform:translateY(-1px);}
 :is(.arena-hall,.pvp-room) .arena-action:not(:disabled):active{transform:translateY(1px);}
-:is(.arena-hall,.pvp-room) .arena-action:disabled{cursor:default;filter:saturate(.35);opacity:.55;}
+:is(.arena-hall,.pvp-room) .arena-action:disabled{cursor:var(--cursor-arrow);filter:saturate(.35);opacity:.55;}
 :is(.arena-hall,.pvp-room) .arena-action:focus-visible{outline:3px solid #fff1c4;outline-offset:2px;}
 @media(prefers-reduced-motion:reduce){:is(.arena-hall,.pvp-room) .arena-action{transition:none;}}
