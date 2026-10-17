@@ -44,7 +44,7 @@ class Client {
  });
  /** Opens the player menu at the pointer; bots and empty seats have none. */
  openPlayerMenu(event:{clientX:number;clientY:number;preventDefault?:()=>void},target:PlayerTarget){
-  event.preventDefault?.();if(!this.state.profile||!/^[0-9a-f-]{36}$/i.test(target.id))return;
+  event.preventDefault?.();if(!this.state.profile||!/^(bot-)?[0-9a-f-]{36}$/i.test(target.id))return;
   this.update({playerPanel:{...target,kind:'menu',x:event.clientX,y:event.clientY}});
  }
  openPlayerPanel(kind:'info'|'report',target:PlayerTarget){
