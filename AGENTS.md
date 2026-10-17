@@ -1,5 +1,9 @@
 # Orientação para agentes
 
+## Objetivo do jogo — pedido do usuário em 17/10/2026
+
+O jogo deve ser **igual ao DDTank**: direção de arte, personalização e combate seguem o DDTank como referência principal. Antes de decidir arte, interface, cosméticos ou regras de combate, comparar com o DDTank e aproximar o resultado dele (proporções chibi, cabeça grande, cores vivas, molduras e menus, slots de roupa, combate por turnos com ângulo, força e vento, mapas destrutíveis). Assets, nomes e marcas proprietárias não são copiados: a arte é pintada de forma original no mesmo estilo.
+
 ## Pedido local mais recente — desenvolvimento ao vivo e combate
 
 - Desenvolvimento atual em8097: `docker compose -f compose.yaml -f compose.dev.yaml up -d --build`, Vite/HMR e backend tsx watch com bind mounts. Salvar server/shared reinicia partidas/salas em memória; nunca reconstruir ou limpar banco para atualizar. Produção permanece `docker compose up -d --build`.
