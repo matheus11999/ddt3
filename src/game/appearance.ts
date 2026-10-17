@@ -182,7 +182,7 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
  else if(v.variant==='knight'){c.translate(-3,-116);c.scale(.85,.85);c.rotate(.025);ellipse(c,0,9,35,8,'#25313a44');c.fillStyle=material(c,v.color!);c.strokeStyle=shade(v.color!,.48);c.lineWidth=1.7;c.beginPath();c.moveTo(-36,9);c.quadraticCurveTo(-42,-43,0,-41);c.quadraticCurveTo(37,-42,36,9);c.lineTo(21,1);c.lineTo(1,-5);c.lineTo(-21,5);c.closePath();c.fill();c.stroke();c.strokeStyle='#eff9e0aa';c.lineWidth=1.5;c.beginPath();c.moveTo(-29,-10);c.quadraticCurveTo(-23,-34,2,-34);c.stroke();c.fillStyle='#b8555c';c.beginPath();c.moveTo(-5,-38);c.quadraticCurveTo(-17,-64,21,-57);c.quadraticCurveTo(6,-49,6,-38);c.fill();}
  });}
 function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual){
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.hair==='hair-wavy'&&eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,img,registered,true);return;}
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,img,registered,true);return;}
  const originalHair=eq.hair==='hair-spiky'||eq.hair==='hair-wavy',dyed=eq.dyes?.hair&&eq.dyes.hair!=='original';const art=tintedArt(hair.asset??'/assets/hair-spiky.png',!originalHair||dyed?hair.color:undefined)??tintedArt('/assets/hair-spiky.png',dyed?hair.color:undefined);
  if(art)drawPinned(c,art,COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate('/assets/hair-spiky.png'),true);
 }
@@ -210,9 +210,10 @@ export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
  if(isModular&&hair.variant!=='none'&&!hat.hideHair&&getHeadwearProfile(eq)==='covered')layer(c,hair,()=>drawCoveredHair(c,eq,hair,false));
 }
+/** Front order: fringe, then glasses (a paid item always stays visible), then the hat brim. */
 export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean){
- drawGlasses(c,visual(eq,'glasses'),time);
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>getHeadwearProfile(eq)==='covered'?drawCoveredHair(c,eq,hair,true):drawHair(c,eq,hair));
+ drawGlasses(c,visual(eq,'glasses'),time);
  if(!drawWornHat(c,eq))drawHat(c,eq);
 }

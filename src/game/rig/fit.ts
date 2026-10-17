@@ -50,14 +50,16 @@ export function evaluateItem(id:string,mask:FitMask):FitReport{
  const bottom=bounds.y+bounds.height-1;
  if(bottom>zone.maxBottom)issues.push({code:'bottom',message:`Desce até y=${bottom}; limite y=${zone.maxBottom}`,measured:bottom,limit:zone.maxBottom});
  if(zone.minTop!==undefined&&bounds.y<zone.minTop)issues.push({code:'top',message:`Começa em y=${bounds.y}, acima da sobrancelha; limite y=${zone.minTop}`,measured:bounds.y,limit:zone.minTop});
- const outside=Math.max(FRAME_MARGIN-bounds.x,FRAME_MARGIN-bounds.y,bounds.x+bounds.width-(size-FRAME_MARGIN),bounds.y+bounds.height-(size-FRAME_MARGIN));
+ // Only art painted on the 1254px head template is clipped by its frame; atlas art is placed by its pin.
+ const onTemplate=COSMETIC_MANIFEST[id]?.worn?.source[2]===size;
+ const outside=!onTemplate?0:Math.max(FRAME_MARGIN-bounds.x,FRAME_MARGIN-bounds.y,bounds.x+bounds.width-(size-FRAME_MARGIN),bounds.y+bounds.height-(size-FRAME_MARGIN));
  if(outside>0)issues.push({code:'frame',message:`Ultrapassa a margem do quadro de ${size}px em ${outside}px`,measured:outside,limit:0});
  if(zone.keepoutTolerance!==null){const covered=keepoutPixels(mask);if(covered>zone.keepoutTolerance)issues.push({code:'keepout',message:`Cobre olhos/boca em ${covered}px`,measured:covered,limit:zone.keepoutTolerance});}
  const pin=evaluatePin(id);if(pin)issues.push(pin);
  return {id,fit,bounds,widthRatio,issues};
 }
 /** Paid glasses must stay visible under any hair and hat. */
-export function evaluateGlassesVisibility(id:string,alone:FitMask,visible:FitMask,minimum=.9):FitIssue|null{
+export function evaluateGlassesVisibility(id:string,alone:FitMask,visible:FitMask,minimum=.7):FitIssue|null{
  let total=0,shown=0;for(let i=0;i<alone.data.length;i++)if(alone.data[i]){total++;if(visible.data[i])shown++;}
  const share=total?fmt(shown/total):1;
  return share<minimum?{code:'hidden',message:`${id}: apenas ${Math.round(share*100)}% visível`,measured:share,limit:minimum}:null;

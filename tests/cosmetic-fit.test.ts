@@ -32,8 +32,9 @@ test('hair over the eyes is reported; hats may cover the brow',()=>{
  assert.ok(!evaluateItem('hat-cap',eyes).issues.some(issue=>issue.code==='keepout'));
 });
 
-test('pieces reaching the template frame are reported',()=>{
- assert.ok(evaluateItem('hat-mage',rect(300,0,500,400)).issues.some(issue=>issue.code==='frame'));
+test('template-painted pieces reaching the frame are reported; atlas pieces are not',()=>{
+ assert.ok(evaluateItem('hair-spiky',rect(300,10,500,400)).issues.some(issue=>issue.code==='frame'));
+ assert.ok(!evaluateItem('hat-mage',rect(300,0,500,400)).issues.some(issue=>issue.code==='frame'));
 });
 
 test('unregistered items, hidden glasses and body proportions are reported',()=>{
@@ -57,8 +58,6 @@ test('manifests target the current rig and painted art declares a pin inside its
  }
 });
 
-test('glasses sit on the eye sockets; legacy hat seats are reported until repainted',()=>{
- assert.equal(evaluatePin('glasses-sport'),null);
- assert.equal(evaluatePin('hat-tide')?.code,'anchor');
- assert.equal(evaluatePin('hat-pilot'),null);
+test('every pinned hat and glasses item lands on the universal anchors',()=>{
+ for(const [id,manifest] of Object.entries(COSMETIC_MANIFEST))if(manifest.slot!=='hair')assert.equal(evaluatePin(id),null,id);
 });

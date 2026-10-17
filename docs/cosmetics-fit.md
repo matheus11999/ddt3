@@ -22,7 +22,7 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | `hat-wide` | 1,75 | 0,90 | Até y=470 |
 | `hat-band` | 1,20 | 0,30 | Até y=420; sem cobrir olhos/boca |
 | `hat-helmet` | 1,30 | 0,70 | Até y=470; sem cobrir olhos/boca |
-| `glasses` | 0,80–0,95 | — | A partir de y=340; frente sempre ≥90% visível |
+| `glasses` | 0,80–0,95 | — | A partir de y=340; frente ≥70% visível (aba pode cobrir o topo do aro) |
 | Roupa | ombros 0,85–1,05 | — | Cabeça = 42–48% da altura em pé |
 
 Todo PNG mantém 24 px de margem transparente até a borda do quadro de 1254 px.
@@ -46,7 +46,7 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 
 1. **Medir** (feito): âncoras, zonas e verificador em modo relatório.
 2. **Migrar o renderer** (feito): registro único e `drawPinned`; ajustes em unidades de tela removidos. As camadas separadas e a máscara de abertura entram com a arte nova da fase 3.
-3. **Corrigir a arte**: repintar o que o relatório reprova; perfil Faixa para Óculos de Voo; Elmo pintado.
+3. **Corrigir a arte** (código feito, arte pendente): assento único dos chapéus, óculos entre a franja e a aba, tintura em todos os cabelos, moldes em `docs/templates/` e briefs em `cosmetics-art-briefs.md`. Falta repintar as peças listadas nos briefs.
 4. **Roupas**: escala única e âncoras por pose.
 5. **Travar**: `--strict` no fluxo de verificação, kit de criação e regra no AGENTS.md.
 
@@ -58,6 +58,16 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 4. Rodar `npm run verify:cosmetics` e corrigir a arte até o item sair do relatório; depois inspecionar as pranchas.
 
 Nenhum número novo vai para `appearance.ts` ou `headwear.ts`.
+
+## Fase 3: ajustes de código
+
+- Todos os chapéus pintados usam o mesmo assento (`HEAD_ANCHORS.hatSeat`); antes cada um tinha o seu, com até 23 px de diferença.
+- Ordem frontal: franja, óculos, chapéu. Óculos comprados nunca ficam sob a franja.
+- Corte Tempestade e Rabo de Cavalo passaram a aceitar tintura, como os demais.
+- O limite do quadro de 1254 px só vale para arte pintada no molde; arte em atlas é posicionada pelo pin e pode subir além dele.
+- Moldes de criação por classe em `docs/templates/`, gerados por `scripts/make-cosmetic-templates.mjs` a partir do rig atual.
+
+O que ainda reprova depende de arte nova; ver `cosmetics-art-briefs.md`. Não há corte ou deformação procedural para esconder peças grandes: isso trocaria um problema de encaixe por recortes visíveis.
 
 ## Migração (fase 2)
 
