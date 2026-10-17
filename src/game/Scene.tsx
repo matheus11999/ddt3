@@ -75,7 +75,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
-    updateCamera(camera,focusX,focusY);sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
+    const look=sceneView.look;
+    if(look&&(b.phase==='resolving'||b.turnNumber!==look.turn||(!look.dragging&&performance.now()>look.until)))sceneView.look=null;
+    else if(look){focusX=look.x;focusY=look.y;}
+    updateCamera(camera,focusX,focusY);if(sceneView.look?.dragging){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}

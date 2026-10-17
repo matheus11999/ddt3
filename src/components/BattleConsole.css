@@ -205,7 +205,7 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .battle-minimap>header>span{flex:1;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:400 13px/1 var(--hud-font);color:#fff;text-shadow:var(--hud-outline)}
 .artillery-hud .battle-minimap>header>small{font:400 12px/1 var(--hud-font);color:#ffd84a;text-shadow:var(--hud-outline)}
 .artillery-hud .battle-minimap .battle-exit{position:static;display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:1px solid #ffb0a0;border-radius:50%;background:linear-gradient(#ff6a5a,#b0101a);box-shadow:inset 0 1px #ffd6cc,0 1px #0008;color:#fff}
-.artillery-hud .battle-minimap>canvas{display:block;width:216px;height:122px;border:1px solid #0a0d18;border-radius:4px;box-shadow:inset 0 0 0 1px #c8953f66}
+.artillery-hud .battle-minimap>canvas{display:block;width:216px;height:auto;cursor:grab;touch-action:none;border:1px solid #0a0d18;border-radius:4px;box-shadow:inset 0 0 0 1px #c8953f66}
 html.mobile-landscape .artillery-hud .battle-top{height:130px}
 html.mobile-landscape .artillery-hud .active-portrait{transform:scale(.72);transform-origin:top left}
 html.mobile-landscape .artillery-hud .fighter-roster{transform:scale(.75)}

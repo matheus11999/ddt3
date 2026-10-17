@@ -70,8 +70,16 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
   };
   frame=requestAnimationFrame(draw);return()=>cancelAnimationFrame(frame);
  },[battle.map]);
+ // Drag (or click) on the minimap to look around the map, as in DDTank; the camera goes back to the turn by itself.
+ const look=(event:React.PointerEvent<HTMLCanvasElement>,dragging:boolean)=>{
+  const box=event.currentTarget.getBoundingClientRect(),x=(event.clientX-box.left)/box.width*worldWidth,y=(event.clientY-box.top)/box.height*WORLD.height;
+  sceneView.look={x,y,dragging,until:performance.now()+2500,turn:battle.turnNumber};
+ };
  return <section className="battle-minimap" aria-label="Minimapa">
   <header><span>{getMap(battle.map).name}</span><small>Turno {battle.turnNumber}</small><button type="button" className="battle-exit" title="Sair da batalha" aria-label="Sair da batalha" onClick={onExit}><LogOut size={14}/></button></header>
-  <canvas ref={canvas} width={MINI_W} height={MINI_H} aria-hidden="true"/>
+  <canvas ref={canvas} width={MINI_W} height={MINI_H} aria-hidden="true" title="Arraste para ver o mapa"
+   onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);look(event,true);}}
+   onPointerMove={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))look(event,true);}}
+   onPointerUp={event=>look(event,false)} onPointerCancel={event=>look(event,false)}/>
  </section>;
 }
