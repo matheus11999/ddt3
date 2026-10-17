@@ -56,7 +56,7 @@ export const LOBBY_STATIONS:Station[]=[
 ];
 
 /** Where the painted floor starts under the balustrade's curb; floor tile width, its depth at the bottom (fraction of width) and at the far edge (fraction of that). */
-const FLOOR_TOP=548,FLOOR_TILE=300,FLOOR_NEAR=.62,FLOOR_FAR=.3;
+const FLOOR_TOP=548,FLOOR_TILE=620,FLOOR_NEAR=.6,FLOOR_FAR=.28;
 /** Cast shadows lie on the floor squashed to this height and lean left by CAST_LEAN per unit of height. */
 const CAST_SQUASH=.22,CAST_LEAN=.55,CAST_PAD=.06;
 /** Soft oval shadow on the plaza floor, darkest under the middle. */
