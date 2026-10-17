@@ -35,6 +35,12 @@ Usa o mesmo montador do `npm run build:map` (`shared/mapBuilder.ts`): as peças 
 - Spawns: 4 por time, só na horizontal (o pé fica no chão); mostra a distância do 1x1 (ideal 900–1200), os avisos do spawn e espelha o time 1 no time 2.
 - **JSON** baixa o layout no formato de `scripts/map-layouts/<id>.json`, para levar a mudança para o repositório e rodar `npm run build:map`.
 
+### Assets dos mapas
+
+`/admin/assets` mostra todas as peças e fundos de todos os mapas, separados pela pasta de cada mapa (`public/assets/maps/<mapa>/source`), com busca por nome, pasta, tipo ou tamanho e o filtro Terreno / Objetos / Fundo. Cada peça diz em quais mapas e itens é usada. Os nomes vêm de `source/pieces.json` (`{"objetos": ["Boneco de neve", …]}`, na ordem das peças da folha); sem ele, a peça aparece como "Objetos 3". As pastas são as dos layouts em `scripts/map-layouts`.
+
+No editor, a aba **Peças** tem a mesma busca, começa em "Este mapa" e pode mostrar "Todas as pastas". Uma peça de outra pasta entra no layout como uma folha emprestada: `sheets` ganha uma chave como `garden-objetos` com caminho relativo (`../../garden/source/objetos.png`), que o `build:map` lê do mesmo jeito; nada é copiado. Folha com nome terminado em `objetos` conta como objeto nos avisos.
+
 ### Editor do lobby
 
 Desenha a praça com o próprio `LobbyWorld` do jogo. Move as estações (barracas, pódios, portal da arena, ferreiro) e muda a altura delas; move e redimensiona as pegadas no chão que os jogadores contornam (com "levar a pegada junto" ligado, a pegada acompanha a estação); move a entrada dos jogadores e os limites da área de caminhada. O ponto de usar o ferreiro anda junto com a barraca do ferreiro.

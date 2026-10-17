@@ -7,7 +7,7 @@ import type {MapId,MapRegion} from '../shared/maps';
 import {createTerrain,ground} from '../shared/physics';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK,lobbyFree} from '../shared/lobby';
 import {SMITH_POSITION} from '../shared/catalog';
-import {mapSaveSchema} from '../shared/mapAdmin';
+import {mapSaveSchema,relativeFile,sourceUrl} from '../shared/mapAdmin';
 
 test('admin passwords are salted scrypt hashes checked in constant time',async()=>{
  const hash=await hashPassword('uma-senha-longa');assert.match(hash,/^scrypt:[\w-]+:[\w-]+$/);assert.ok(!hash.includes('$'));
@@ -70,4 +70,12 @@ test('map saves are validated before they reach the database',()=>{
  assert.ok(!mapSaveSchema.safeParse({...base,layout:{...base.layout,width:1537}}).success);
  assert.ok(!mapSaveSchema.safeParse({...base,kind:'lobby'}).success);
  assert.ok(!mapSaveSchema.safeParse({...base,extra:1}).success);
+});
+
+test('a map can borrow a sheet from another map folder by a relative path',()=>{
+ const own='public/assets/maps/snow/source',file=relativeFile(own,'public/assets/maps/garden/source','objetos.png');
+ assert.equal(file,'../../garden/source/objetos.png');
+ assert.equal(sourceUrl(own,file),'/assets/maps/garden/source/objetos.png');
+ assert.equal(sourceUrl(own,'pecas.png'),'/assets/maps/snow/source/pecas.png');
+ assert.equal(sourceUrl(`${own}/`,'./pecas.png'),'/assets/maps/snow/source/pecas.png');
 });

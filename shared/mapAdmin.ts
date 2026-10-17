@@ -73,3 +73,14 @@ export interface AdminMapSummary {
  draftRevision:number|null;publishedRevision:number|null;updatedAt:string|null;updatedBy:string|null;preview:string;width:number;
 }
 export interface AdminRevision {id:number;createdAt:string;createdBy:string;note:string|null;published:boolean;warnings:number;}
+
+/** layout.source is a repository path; files under public/ are served from the site root. Paths may climb into another map's folder. */
+export function sourceUrl(source:string|undefined,file:string){
+ const parts:string[]=[];for(const part of `${(source??'').replace(/^public\//,'')}/${file}`.split('/')){if(!part||part==='.')continue;if(part==='..')parts.pop();else parts.push(part);}
+ return `/${parts.join('/')}`;
+}
+/** Relative path from one folder to a file in another, as stored in layout.sheets (build:map joins it with layout.source). */
+export function relativeFile(fromSource:string,toSource:string,file:string){
+ const a=fromSource.replace(/\/$/,'').split('/'),b=toSource.replace(/\/$/,'').split('/');let i=0;while(i<a.length&&i<b.length&&a[i]===b[i])i++;
+ return [...a.slice(i).map(()=>'..'),...b.slice(i),file].join('/');
+}
