@@ -20,51 +20,13 @@
  ],
  "items": [
   {
-   "id": "snow-bridge-left",
+   "id": "snow-bridge",
    "piece": 4,
-   "x": 250,
-   "top": 690,
-   "scale": 0.7,
-   "material": "earth",
-   "destructible": false
-  },
-  {
-   "id": "snow-bridge-center",
-   "piece": 6,
-   "x": 768,
-   "top": 715,
-   "scale": 0.7,
-   "material": "earth",
-   "destructible": false,
-   "mirror": false
-  },
-  {
-   "id": "snow-mound-left",
-   "piece": 0,
-   "x": 230,
-   "top": 572,
-   "scale": 0.7,
+   "x": 382,
+   "top": 480,
+   "scale": 1.2,
    "material": "earth",
    "destructible": true
-  },
-  {
-   "id": "snow-mound-inner",
-   "piece": 3,
-   "x": 432,
-   "top": 598,
-   "scale": 0.7,
-   "material": "earth",
-   "destructible": true
-  },
-  {
-   "id": "snow-mound-center",
-   "piece": 2,
-   "x": 768,
-   "top": 610,
-   "scale": 0.7,
-   "material": "earth",
-   "destructible": true,
-   "mirror": false
   }
  ]
 }
