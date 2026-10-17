@@ -27,11 +27,16 @@ import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_EN
 import type {InstanceRound} from '../shared/instanceTurn';
 import {monsterDamage} from '../shared/combat';
 import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
-export interface Peer {profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
+export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
 /** An expedition run: its stages, the current round of the instance turn and the monster turn's timed events. */
 interface ExpeditionRun {expedition:string;difficulty:Difficulty;stages:readonly StageDef[];stage:number;order:string[];round:InstanceRound;events:{at:number;run:()=>void}[];won?:boolean;}
+/** How long a dropped player keeps their place: the whole match while it runs (up to 5 min away), a bit longer after a restart. */
+const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
+/** A match as saved for a restart: plain JSON, without the terrain (saved apart, only when it changes) or the timed events of a shot. */
+export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpacts'|'activeShot'|'pendingPower'|'savingRewards'|'instance'>&{invisibilityActivated?:[string,number][];instance?:Omit<ExpeditionRun,'events'>};
+export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
 interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;}
@@ -52,7 +57,7 @@ export class Game {
   let p=this.peers.get(profile.id);
   // A session read may have started before a pending commit. The live peer owns
   // the authoritative profile; reconnecting must not restore an older snapshot.
-  if(p){p.send=send;p.connected=true;p.arenaOpen=false;p.lastSeen=Date.now();}
+  if(p){p.send=send;p.connected=true;p.arenaOpen=false;p.lastSeen=Date.now();if(p.restored){p.profile=profile;delete p.restored;}}
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
@@ -61,6 +66,58 @@ export class Game {
   this.sendLobby(p.channel);this.publishArenaPopulation();return p;
  }
  disconnect(id:string){const p=this.peers.get(id);if(!p)return;p.connected=false;p.arenaOpen=false;p.lastSeen=Date.now();if(p.roomId){const r=this.rooms.get(p.roomId);const s=r?.players.find(x=>x.id===id);if(s){s.connected=false;s.ready=false;}const observer=r?.spectators?.find(x=>x.id===id);if(observer)observer.connected=false;const fighter=this.matchForRoom(p.roomId)?.state.players.find(s=>s.id===id);if(fighter)fighter.connected=false;if(r){if(!observer)this.cancelSearch(r);this.broadcastRoom(r);}}this.pruneInvitations();this.sendLobby(p.channel);this.publishArenaPopulation();}
+ /** A fighter of a running match keeps their place while away (their turns just time out); anyone else has 30 s. */
+ private reconnectWindow(p:Peer){
+  const m=p.roomId?this.matchForRoom(p.roomId):undefined,fighter=m?.state.players.find(f=>f.id===p.profile.id);
+  if(m&&m.state.phase!=='finished'&&fighter&&!fighter.left)return MATCH_RECONNECT_MS;
+  return p.restored?RESTORED_RECONNECT_MS:RECONNECT_MS;
+ }
+ /** Everything a restart must keep: rooms, who sits where and each match as of its last stable moment.
+  * A match in the middle of a shot is left out (`stable:false`) so the saved copy stays at the start of that turn. */
+ savedState(now=Date.now()){
+  const game:SavedGame={savedAt:now,nextRoomNumber:this.nextRoomNumber,rooms:[...this.rooms.values()],roomMatches:[...this.roomMatches],
+   peers:[...this.peers.values()].filter(p=>p.roomId&&this.rooms.has(p.roomId)).map(p=>({id:p.profile.id,roomId:p.roomId!,channel:p.channel,profile:p.profile}))};
+  const matches=[...this.matches.values()].map(m=>{
+   if(m.state.phase==='resolving')return {key:m.key,stable:false as const};
+   const {terrain,invisibilityActivated,pendingImpacts:_impacts,activeShot:_shot,pendingPower:_power,savingRewards:_saving,instance,...rest}=m;
+   const match:SavedMatch={...rest,...(invisibilityActivated?{invisibilityActivated:[...invisibilityActivated]}:{}),...(instance?{instance:{...instance,events:undefined} as Omit<ExpeditionRun,'events'>}:{})};
+   return {key:m.key,stable:true as const,match,terrain,terrainTag:`${m.state.turnNumber}:${m.state.phase}`};
+  });
+  return {game,matches};
+ }
+ /** Brings a saved state back after a restart. Everyone starts disconnected and keeps their seat until they reconnect;
+  * the clocks continue from where they stopped, with at least 15 s left on the turn. */
+ restore(game:SavedGame,matches:{match:SavedMatch;terrain:Uint8Array}[],now=Date.now()){
+  const shift=Math.max(0,now-game.savedAt);
+  this.nextRoomNumber=Math.max(this.nextRoomNumber,game.nextRoomNumber);
+  for(const saved of matches){
+   const {invisibilityActivated,instance,...rest}=saved.match,s=rest.state;
+   const m:Match={...rest,terrain:saved.terrain,resolveAt:0,...(invisibilityActivated?{invisibilityActivated:new Map(invisibilityActivated)}:{}),...(instance?{instance:{...instance,events:[]}}:{})};
+   delete m.retryRewardsAt;delete s.powerCutIn;delete s.activeShot;delete s.terrain;
+   for(const f of s.players){if(!f.bot&&!f.monster)f.connected=false;f.charging=false;delete f.fall;}
+   if(s.phase==='aiming'){s.deadline=now+Math.min(30000,Math.max(15000,s.deadline-game.savedAt));m.botAt=now+2500;}
+   if(s.instance){s.instance.introUntil+=shift;delete s.instance.monsterTurn;}
+   if(s.rewards){if(s.rewards.opensAt!==undefined)s.rewards.opensAt+=shift;s.rewards.deadline+=shift;if(s.rewards.revealedAt!==undefined)s.rewards.revealedAt+=shift;}
+   this.matches.set(m.key,m);
+  }
+  for(const room of game.rooms){
+   for(const seat of room.players)if(!seat.bot){seat.connected=false;seat.ready=false;}
+   for(const spectator of room.spectators??[])spectator.connected=false;
+   if(room.status==='searching'){room.status='waiting';delete room.searchStartedAt;}
+   this.rooms.set(room.id,room);
+  }
+  for(const [roomId,key] of game.roomMatches)if(this.rooms.has(roomId)&&this.matches.has(key))this.roomMatches.set(roomId,key);
+  // A room whose match was not saved goes back to waiting instead of pointing at nothing.
+  for(const room of this.rooms.values())if(room.status==='playing'&&!this.roomMatches.has(room.id)){room.status='waiting';delete room.matchStartedAt;}
+  for(const saved of game.peers){
+   if(this.peers.has(saved.id)||!this.rooms.has(saved.roomId))continue;
+   this.peers.set(saved.id,{restored:true,profile:saved.profile,send:()=>{},connected:false,roomId:saved.roomId,arenaOpen:false,channel:saved.channel,x:LOBBY_SPAWN.x,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:now,lastWalk:0});
+  }
+  // Rooms nobody can come back to (no saved seat holder) are dropped.
+  for(const room of [...this.rooms.values()])if(!room.players.some(seat=>!seat.bot&&this.peers.get(seat.id)?.roomId===room.id)){this.rooms.delete(room.id);this.roomMatches.delete(room.id);}
+  for(const m of [...this.matches.values()])if(!m.roomIds.some(id=>this.roomMatches.get(id)===m.key)&&m.state.rewards?.saved)this.matches.delete(m.key);
+  this.roomsDirty=true;
+ }
  lobby(channel:number):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y}));}
  private emit(p:Peer,e:ServerEvent){if(p.connected)p.send(e);}
  private sendLobby(channel:number){const players=this.lobby(channel);const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId)this.emit(p,{type:'lobby',players,online});}
@@ -306,7 +363,7 @@ export class Game {
      const r=this.room(p);if(r.hostId!==id||r.status!=='waiting')throw Error('Somente o líder pode adicionar um bot.');if(r.kind==='expedition')throw Error('Expedições são só para aventureiros.');
      if(!r.practice)throw Error('Bots estão disponíveis somente no treino.');
      const {team,slot}=this.vacantSeat(r),n=r.players.filter(x=>x.bot).length;
-     r.players.push({id:`bot-${randomUUID()}`,name:['Pipoca','Faísca','Fagulha'][n%3]+' · BOT',level:p.profile.level,equipment:{...DEFAULT_EQUIPMENT,weapon:WEAPONS[(n+1)%3].id},ready:true,bot:true,team,slot,connected:true});this.broadcastRoom(r);break;
+     r.players.push({id:`bot-${randomUUID()}`,name:['Pipoca','Faísca','Fagulha'][n%3]+' · BOT',level:p.profile.level,equipment:{...DEFAULT_EQUIPMENT,weapon:WEAPONS[(n+1)%WEAPONS.length].id},ready:true,bot:true,team,slot,connected:true});this.broadcastRoom(r);break;
     }
     case 'queue':this.queue(p);break;
     case 'cancel-queue':{const r=this.room(p);if(r.hostId!==id)throw Error('Somente o líder pode cancelar a busca.');if(r.status!=='searching')throw Error('A equipe não está buscando partida.');this.cancelSearch(r);this.broadcastRoom(r);break;}
@@ -722,7 +779,7 @@ export class Game {
   const dt=Math.min(.15,(now-this.lastTick)/1000);this.lastTick=now;
   const channels=new Set<number>();
   for(const [id,p] of this.peers){
-   if(!p.connected&&now-p.lastSeen>30000&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
+   if(!p.connected&&now-p.lastSeen>this.reconnectWindow(p)&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
    if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const next=lobbyStep(p,{x:p.targetX,y:p.targetY},LOBBY_WALK_SPEED*dt);p.x=next.x;p.y=next.y;channels.add(p.channel);}}
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);

@@ -337,3 +337,10 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 
 - Vento sem fundo: número com contorno, seta que empurra mais longe e mais rápido quanto mais forte o vento (1 a 3 rastros), e abaixo o vento do seu último tiro ("ÚLTIMO"), ao lado da força "Último" (`WindGauge` em `src/components/CombatGauges.tsx`).
 - POW: a ativação com 100 funcionava; o orbe não mostrava a carga e ignorava o clique sem dizer por quê. Agora mostra a carga em % e, quando não pode ser usado, o clique mostra o motivo (encher acertando/recebendo dano, só na sua vez, voo, +1/+2/Tridente). Carga em pontos inteiros (99,6 parecia cheio e ficava travado).
+
+## Partidas sobrevivem a reinício e queda (17/10/2026)
+
+- Salas e partidas (PvP, treino, expedições) são gravadas no Redis (0,5 s) e no PostgreSQL (3 s, tabela `live_state`) e voltam quando o servidor sobe; o jogador reconecta direto na partida. Detalhes em `docs/live-state.md`.
+- Quem cai no meio de uma partida mantém o lugar enquanto ela durar (até 5 min fora), em vez de sair após 30 s.
+- Evidência: `tests/live-state.test.ts`; `npm run test:restart:integration` derruba o servidor real com SIGTERM e SIGKILL no meio de um treino e o jogador volta à mesma partida com a mesma vida.
+- Corrigido junto: adicionar bot na sala de treino quebrava com uma arma só no arsenal.
