@@ -31,7 +31,10 @@ test('a win against a bot puts the player on the lobby podium',async()=>{
  const roomId=game.peers.get(me.id)!.roomId!;await game.command(me.id,{type:'bot'});await game.command(me.id,{type:'start'});
  const match=game.matches.get(roomId)!;assert.ok(match.state.players.some(p=>p.bot));
  match.state.players.find(p=>p.bot)!.hp=0;await game.command(match.state.turnId,{type:'pass'});assert.equal(match.state.phase,'finished');
- match.state.rewards!.opensAt=Date.now()-1;await game.command(me.id,{type:'reward-pick',card:0});
+ // The bot already holds a random card; pick one that is still free.
+ const card=match.state.rewards!.cards.find(card=>!card.playerId)!.index;
+ match.state.rewards!.opensAt=Date.now()-1;await game.command(me.id,{type:'reward-pick',card});
+ assert.deepEqual(events.filter(e=>e.type==='error'),[]);
  await until(()=>events.some(e=>e.type==='ranking'));
  assert.equal(match.state.rewards!.saved,true);
  const update=events.filter((e):e is Extract<ServerEvent,{type:'ranking'}>=>e.type==='ranking').at(-1);
