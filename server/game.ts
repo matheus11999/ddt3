@@ -410,7 +410,7 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing?{projectileIndex:0,targets:homingTargets(simulated.state.players,shooter)}:undefined);
+  },delays,homing?{targets:homingTargets(simulated.state.players,shooter)}:undefined);
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
   const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){

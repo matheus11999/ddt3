@@ -222,6 +222,11 @@ html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transf
 
 /* Prepared powers, shown live in the middle above the force ruler (DDTank style): one chip per use, in the order picked. */
 .artillery-hud .boost-queue{position:absolute;left:50%;bottom:122px;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:5px 8px;border:1px solid #c8953f99;border-radius:12px;background:linear-gradient(#1c2a48d9,#0d1426e0);box-shadow:inset 0 1px #ffe1a044,0 3px 8px #0008;pointer-events:none;z-index:5}
+.artillery-hud .boost-queue-ally{border-color:#4fb8ffaa}
+.artillery-hud .boost-queue-enemy{border-color:#ff5a4aaa;background:linear-gradient(#3a1b26d9,#1a0d14e0)}
+.artillery-hud .boost-queue-owner{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-3px);white-space:nowrap;font:400 14px var(--hud-font);color:#fff;text-shadow:var(--hud-outline)}
+.artillery-hud .boost-queue-ally .boost-queue-owner{color:#bfe6ff}
+.artillery-hud .boost-queue-enemy .boost-queue-owner{color:#ffc2b8}
 .artillery-hud .queued-boost{position:relative;display:block;width:46px;height:46px;animation:queued-boost-in .22s cubic-bezier(.3,1.6,.5,1) both}
 .artillery-hud .queued-boost .boost-symbol-label>strong{font-size:22px;-webkit-text-stroke-width:2px}
 .artillery-hud .queued-boost .boost-shot-label>strong{font-size:19px}

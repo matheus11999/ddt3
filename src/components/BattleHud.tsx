@@ -179,7 +179,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
-    const count=me.boosts.filter(id=>id===boost.id).length,selected=count>0,disabled=!canAct||me.flightArmed||(boost.id==='trident'&&selected)||me.stamina<boost.cost;
+    const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(boost.id==='trident'&&selected)||me.stamina<boost.cost;
     const damage=boost.id.startsWith('damage'),symbol=boost.id==='trident'?'×3':boost.label;
     return <button type="button" key={boost.id} data-boost={boost.id} data-count={count} aria-label={`${boost.name}, ${boost.cost} vigor${count?`, ${count} ${count===1?'uso':'usos'}`:''}`} aria-pressed={selected} title={`${boost.name}\n${boost.detail}\n${boost.cost} de vigor${count?`\n${count} ${count===1?'uso preparado':'usos preparados'}`:''}`} className={`boost ${selected?'selected':''}`} disabled={disabled} onClick={event=>{useBoost(boost.id);if(event.detail>0)event.currentTarget.blur();}}>
      <span className="boost-painted-icon" aria-hidden="true" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
@@ -189,10 +189,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    })}
   </aside>
 
-  {me.boosts.length>0&&<div className="boost-queue" role="status" aria-label={`Poderes preparados: ${me.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name).join(', ')}`}>
-   {me.boosts.map((id,order)=>{
+  {/* Powers of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
+  {turn&&b.phase!=='finished'&&turn.boosts.length>0&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name).join(', ')}`}>
+   {turn.id!==me.id&&<span className="boost-queue-owner" aria-hidden="true">{turn.name}</span>}
+   {turn.boosts.map((id,order)=>{
     const index=BOOSTS.findIndex(item=>item.id===id),boost=BOOSTS[index],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
-    return <span key={order} className="queued-boost" data-boost={id} aria-hidden="true">
+    return <span key={`${turn.id}-${order}`} className="queued-boost" data-boost={id} aria-hidden="true">
      <span className="boost-painted-icon" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
      <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`}>{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
     </span>;
