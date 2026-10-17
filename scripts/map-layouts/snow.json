@@ -50,17 +50,6 @@
    "mirror": false
   },
   {
-   "id": "snow-wall",
-   "sheet": "pecas2",
-   "piece": 5,
-   "x": 1536,
-   "top": 730,
-   "scale": 0.6,
-   "material": "earth",
-   "destructible": true,
-   "mirror": false
-  },
-  {
    "id": "snow-tower",
    "sheet": "pecas2",
    "piece": 3,
@@ -75,10 +64,11 @@
    "sheet": "objetos",
    "piece": 1,
    "x": 255,
-   "top": 460,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true
   },
   {
    "id": "snow-crystals",
@@ -95,61 +85,76 @@
    "sheet": "objetos",
    "piece": 3,
    "x": 565,
-   "top": 514,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true,
+   "mirrorAs": {
+    "piece": 4
+   }
   },
   {
    "id": "snow-snowman",
    "sheet": "objetos",
    "piece": 0,
    "x": 790,
-   "top": 486,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true,
+   "mirrorAs": {
+    "piece": 6
+   }
   },
   {
    "id": "snow-barrel",
    "sheet": "objetos",
    "piece": 5,
    "x": 930,
-   "top": 495,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true
   },
   {
    "id": "snow-gifts",
    "sheet": "objetos",
    "piece": 7,
    "x": 1070,
-   "top": 479,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true,
+   "mirrorAs": {
+    "piece": 9
+   }
   },
   {
    "id": "snow-lamp",
    "sheet": "objetos",
    "piece": 2,
    "x": 1290,
-   "top": 463,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
-   "destructible": true
+   "destructible": true,
+   "rest": true
   },
   {
    "id": "snow-lantern",
    "sheet": "objetos",
    "piece": 8,
    "x": 1536,
-   "top": 345,
+   "top": 200,
    "scale": 0.32,
    "material": "earth",
    "destructible": true,
-   "mirror": false
+   "mirror": false,
+   "rest": true
   }
  ],
  "width": 3072,

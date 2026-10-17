@@ -280,20 +280,19 @@ export class EnvironmentRenderer {
   if(this.definition.id==='celestial')for(let i=0;i<count(2,3,4);i++)this.cloud(c,-100+((i*491+time*.012)%(W+400)),865+i%3*15,230,.62,1.12);
   c.restore();c.save();applyCamera(c,camera,.85);this.atmosphere(c,time);c.restore();
  }
- /** A single painted backdrop, cover-fitted to the bottom edge so its abyss sits under the playfield. It barely drifts with the camera. */
+ /** One painted backdrop, never tiled or repeated: fitted to the bottom edge so its abyss sits under the playfield.
+  * A wide panorama scrolls at the depth that shows it exactly once across the map; a narrow one barely drifts. */
  private drawBackdrop(c:CanvasRenderingContext2D,camera:CameraState){
-  const image=this.art,margin=48,depth=.1;if(!image.naturalWidth)return;
-  const travel=(this.width-W)*depth,layer=this.cached('backdrop',W+travel+margin*2,H+margin*2,ctx=>{const width=W+travel+margin*2,scale=Math.max(width/image.naturalWidth,(H+margin*2)/image.naturalHeight),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
-  c.save();applyCamera(c,camera,depth);c.drawImage(layer,-margin,-margin);c.restore();
-  const mid=this.mid;
-  if(mid?.naturalWidth){
-   // Painted mid-distance band, tiled across the world, between backdrop and terrain.
-   const midDepth=.5,height=H,width=mid.naturalWidth*height/mid.naturalHeight,tile=this.cached('mid',width,height,ctx=>{smoothImages(ctx);ctx.drawImage(mid,0,0,width,height);});
-   c.save();applyCamera(c,camera,midDepth);const view=cameraBounds(camera,midDepth);
-   // Every other copy is mirrored, so neighbouring edges always match.
-   for(let x=Math.floor(view.x/width)*width;x<view.x+view.width;x+=width){if(Math.round(x/width)%2){c.save();c.translate(x+width,MID_OFFSET);c.scale(-1,1);c.drawImage(tile,0,0);c.restore();}else c.drawImage(tile,x,MID_OFFSET);}c.restore();
-  }
+  this.drawOnce(c,camera,'backdrop',this.art,0);
+  const mid=this.mid;if(mid)this.drawOnce(c,camera,'mid',mid,MID_OFFSET);
   c.save();c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);c.restore();
+ }
+ private drawOnce(c:CanvasRenderingContext2D,camera:CameraState,key:string,image:HTMLImageElement,offset:number){
+  if(!image.naturalWidth)return;
+  const margin=48,span=this.width-W,fit=(H+margin*2)/image.naturalHeight,natural=image.naturalWidth*fit-W-margin*2;
+  const depth=span>0?Math.min(1,Math.max(.1,natural/span)):.1,travel=span*depth,width=W+travel+margin*2;
+  const layer=this.cached(key,width,H+margin*2,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
+  c.save();applyCamera(c,camera,depth);c.drawImage(layer,-margin,offset-margin);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
   c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,W,H);

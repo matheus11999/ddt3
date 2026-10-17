@@ -56,16 +56,28 @@ try{
   for(const [name,source] of Object.entries(sheets)){const result=await cut(source);sheetPieces[name]=result.pieces;sheetReports[name]=result.report;}
   const firstSheet=Object.keys(sheets)[0];
 
-  // 3. Place pieces. Each item may be mirrored around the centre for the other team.
-  const items=layout.items.flatMap(item=>layout.mirror&&item.mirror!==false?[item,{...item,id:`${item.id}-r`,x:W-item.x,flip:!item.flip}]:[item]);
+  // 3. Place pieces. Each item may be mirrored around the centre for the other team;
+  // `mirrorAs` swaps the mirrored copy for another piece so the two sides are not identical.
+  const items=layout.items.flatMap(item=>layout.mirror&&item.mirror!==false?[item,{...item,...item.mirrorAs,id:`${item.id}-r`,x:W-item.x,flip:!item.flip}]:[item]);
   const world=canvas(W,H),wc=world.getContext('2d');wc.imageSmoothingQuality='high';
-  const regions=[],warnings=[];
+  const ground=canvas(W,H),gc=ground.getContext('2d');
+  const regions=[],warnings=[],placed=[];
+  const opaque=(data,x,y)=>x>=0&&y>=0&&x<W&&y<H&&data[(y*W+x)*4+3]>128;
   for(const item of items){const sheet=item.sheet??firstSheet,list=sheetPieces[sheet]??[],piece=list[item.piece];if(!piece){warnings.push(`${sheet}: peça ${item.piece} não existe (${list.length} peças)`);continue;}
    if(piece.touchesEdge)warnings.push(`${sheet}: peça ${item.piece} encosta na borda da folha`);
-   if(item.solid===false){const scale=item.scale??1;wc.save();wc.translate(item.x,item.top);if(item.flip)wc.scale(-1,1);wc.drawImage(piece.canvas,-piece.w*scale/2,0,piece.w*scale,piece.h*scale);wc.restore();continue;}
-   const scale=item.scale??1,w=piece.w*scale,h=piece.h*scale,left=item.x-w/2,top=item.top;
-   const one=canvas(W,H),oc=one.getContext('2d');oc.imageSmoothingQuality='high';oc.save();oc.translate(item.x,top);if(item.flip)oc.scale(-1,1);oc.drawImage(piece.canvas,-w/2,0,w,h);oc.restore();
-   wc.drawImage(one,0,0);
+   const scale=item.scale??1,w=piece.w*scale,h=piece.h*scale,left=item.x-w/2;
+   const draw=(ctx,top)=>{ctx.save();ctx.translate(item.x,top);if(item.flip)ctx.scale(-1,1);ctx.drawImage(piece.canvas,-w/2,0,w,h);ctx.restore();};
+   // Props marked `rest` drop onto the terrain already placed below `top` (sinking a few px into the snow), so nothing floats.
+   let top=item.top;const ground0=gc.getImageData(0,0,W,H).data;
+   const probe=canvas(W,H),pc=probe.getContext('2d');draw(pc,0);const shape=pc.getImageData(0,0,W,H).data;
+   const feet=[];for(let x=Math.ceil(left+w*.2);x<left+w*.8;x+=3){let y=Math.floor(h);while(y>0&&!opaque(shape,x,y))y--;if(y>0)feet.push([x,y]);}
+   const surface=([x,foot])=>{for(let y=Math.max(0,Math.floor(item.top+foot));y<H;y++)if(opaque(ground0,x,y))return y-foot;return Infinity;};
+   if(item.rest){const tops=feet.map(surface).filter(Number.isFinite);if(tops.length)top=Math.min(...tops)+(item.sink??8);else warnings.push(`${item.id}: não achou chão abaixo para apoiar`);}
+   if(item.rest||sheet==='objetos'){const touching=feet.filter(([x,foot])=>[0,3,6,9].some(d=>opaque(ground0,x,Math.floor(top+foot+d)))).length;
+    if(touching<Math.max(1,feet.length*.15))warnings.push(`${item.id}: objeto flutuando (base sem chão embaixo)`);}
+   if(item.solid===false){draw(wc,top);continue;}
+   const one=canvas(W,H),oc=one.getContext('2d');oc.imageSmoothingQuality='high';draw(oc,top);
+   wc.drawImage(one,0,0);gc.drawImage(one,0,0);placed.push({id:item.id,left,right:left+w,top,bottom:top+h,sheet});
    const alpha=oc.getImageData(0,0,W,H).data,col=Math.max(0,Math.floor(left/CELL)),row=Math.max(0,Math.floor(top/CELL)),cols=Math.min(COLS,Math.ceil((left+w)/CELL))-col,rows=Math.min(ROWS,Math.ceil((top+h)/CELL))-row;
    const bits=new Uint8Array(Math.ceil(cols*rows/8));let solid=0;
    for(let y=0;y<rows;y++)for(let x=0;x<cols;x++){let sum=0;for(let dy=0;dy<CELL;dy++)for(let dx=0;dx<CELL;dx++)sum+=alpha[(((row+y)*CELL+dy)*W+(col+x)*CELL+dx)*4+3];
@@ -74,9 +86,28 @@ try{
    regions.push({id:item.id,material:item.material,destructible:item.destructible,solid,shape:{kind:'cells',col,row,cols,rows,bits:btoa(binary)}});
   }
 
+  // A big piece mostly covered from above by another piece is hidden under it (e.g. a gate under a bridge): it has no reason to be there.
+  for(const a of placed)if(a.sheet!=='objetos'){const covered=placed.filter(b=>b!==a&&b.sheet!=='objetos'&&b.bottom<a.top-10).reduce((n,b)=>n+Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left)),0);
+   if(covered>(a.right-a.left)*.5)warnings.push(`${a.id}: peça escondida embaixo de outra (${Math.round(100*covered/(a.right-a.left))}% coberta por cima); só faz sentido se tiver motivo`);}
+
   // 4. Backdrop, preview and the collision overlay used for review.
-  const bg=await load(background),backdrop=canvas(bg.width,bg.height);backdrop.getContext('2d').drawImage(bg,0,0);
+  // The backdrop is ONE image. Panels painted as left/right halves are joined with a soft crossfade
+  // (the prompts keep the seam strip to sky and fog); the seam report measures how well they match.
+  const panels=await Promise.all(background.map(load)),blend=layout.backgroundBlend??240,ph=panels[0].height;
+  const widths=panels.map(p=>p.width*ph/p.height),backdrop=canvas(Math.round(widths.reduce((a,b)=>a+b,0)-blend*(panels.length-1)),ph),bc=backdrop.getContext('2d');
+  const seams=[];let at=0;
+  panels.forEach((p,n)=>{const w=widths[n];
+   if(n){const piece=canvas(Math.ceil(w),ph),c=piece.getContext('2d');c.drawImage(p,0,0,w,ph);c.globalCompositeOperation='destination-in';
+    const fade=c.createLinearGradient(0,0,blend,0);fade.addColorStop(0,'rgba(0,0,0,0)');fade.addColorStop(1,'#000');c.fillStyle=fade;c.fillRect(0,0,w,ph);
+    const before=bc.getImageData(Math.round(at),0,8,ph).data,probe=canvas(8,ph),pr=probe.getContext('2d');pr.drawImage(p,0,0,8*p.height/ph,p.height,0,0,8,ph);const after=pr.getImageData(0,0,8,ph).data;
+    let diff=0;for(let i=0;i<before.length;i+=4)diff+=Math.abs(before[i]-after[i])+Math.abs(before[i+1]-after[i+1])+Math.abs(before[i+2]-after[i+2]);
+    seams.push(diff/(before.length/4)/3);bc.drawImage(piece,at,0);}
+   else bc.drawImage(p,0,0,w,ph);
+   at+=w-blend;});
+  seams.forEach((d,n)=>{if(d>28)warnings.push(`fundo: emenda ${n+1} com diferença média de cor ${d.toFixed(0)} (acima de 28 aparece); gere a metade de novo`);});
+  const bg=backdrop;
   const montage=canvas(W,H),mc=montage.getContext('2d'),scale=Math.max(W/bg.width,H/bg.height);
+  if(bg.width*H/bg.height<W*.8)warnings.push('fundo: imagem estreita para a largura do mapa; no jogo ela só desliza pouco, mas o mapa inteiro vai cortar o céu. Use um panorama (duas metades)');
   mc.drawImage(bg,(W-bg.width*scale)/2,H-bg.height*scale,bg.width*scale,bg.height*scale);mc.fillStyle='rgba(7,13,24,.14)';mc.fillRect(0,0,W,H);mc.drawImage(world,0,0);
   // The preview shows the whole world (minimap backdrop); the loading screen crops its centre.
   const preview=canvas(768,Math.round(432*1536/W));preview.getContext('2d').imageSmoothingQuality='high';preview.getContext('2d').drawImage(montage,0,0,preview.width,preview.height);
@@ -87,8 +118,8 @@ try{
   for(const team of layout.spawns)for(const x of team){cc.fillStyle='#ffe14a';cc.fillRect(x-2,0,4,H);}
   const midLayer=mid?unkey(await load(mid)).sc.toDataURL('image/webp',.9).split(',')[1]:null;
   const sizes=Object.fromEntries(Object.entries(sheetPieces).map(([name,list])=>[name,list.map(p=>`${p.w}x${p.h}`).join(' ')]));
-  return {sizes,warnings,pieces:Object.values(sheetPieces).reduce((n,list)=>n+list.length,0),regions,midLayer,sheetReports,world:png(world),backdrop:backdrop.toDataURL('image/webp',.9).split(',')[1],preview:png(preview),montage:png(montage),collision:png(collision)};
- },{layout,background:await dataUrl(layout.background),mid:layout.mid?await dataUrl(layout.mid):null,
+  return {seams,sizes,warnings,pieces:Object.values(sheetPieces).reduce((n,list)=>n+list.length,0),regions,midLayer,sheetReports,world:png(world),backdrop:backdrop.toDataURL('image/webp',.9).split(',')[1],preview:png(preview),montage:png(montage),collision:png(collision)};
+ },{layout,background:await Promise.all([layout.background].flat().map(dataUrl)),mid:layout.mid?await dataUrl(layout.mid):null,
   sheets:Object.fromEntries(await Promise.all(Object.entries(layout.sheets??{pieces:layout.pieces}).map(async([name,file])=>[name,await dataUrl(file)])))});
 }finally{await browser.close();}
 
@@ -102,4 +133,5 @@ await writeFile(generated,`// Generated by \`npm run build:map -- --map=${map}\`
 console.log(`${out.pieces} peças na folha; ${out.regions.length} regiões (${out.regions.map(r=>`${r.id}:${r.solid}`).join(', ')})`);
 for(const [name,size] of Object.entries(out.sizes))console.log(`${name}: ${size}`);
 for(const warning of out.warnings)console.warn(`AVISO: ${warning}`);
+if(out.seams.length)console.log(`Emendas do fundo (diferença média de cor, ideal < 28): ${out.seams.map(d=>d.toFixed(0)).join(', ')}`);
 console.log(`Relatório: ${report}/{montage,collision,sheet-*}.png`);
