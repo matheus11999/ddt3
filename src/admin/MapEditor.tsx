@@ -2,20 +2,17 @@ import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,AlignCenterVertical,ArrowDown,ArrowLeft,ArrowUp,Copy,Download,FlipHorizontal2,Grid3x3,History,Keyboard,Layers,Loader2,Lock,Magnet,Maximize,Monitor,PanelLeftClose,PanelLeftOpen,PanelRightClose,PanelRightOpen,Redo2,RotateCcw,Rocket,Ruler,Save,ShieldAlert,Trash2,Undo2,Unlock,Users,X,Eye,EyeOff,ZoomIn,ZoomOut} from 'lucide-react';
 import {api} from './api';
 import type {RevisionData} from './api';
-import {assemble,cutSheet,expandItems,loadImage,montage,preview,MAP_HEIGHT} from '../../shared/mapBuilder';
-import type {Assembly,LayoutItem,MapLayout,Piece} from '../../shared/mapBuilder';
+import {assemble,expandItems,loadImage,montage,preview,MAP_HEIGHT} from '../../shared/mapBuilder';
+import type {Assembly,LayoutItem,MapLayout} from '../../shared/mapBuilder';
 import {MAP_DEFINITIONS} from '../../shared/maps';
 import type {MapId} from '../../shared/maps';
 import {MAP_KIND_NAMES} from '../../shared/mapAdmin';
 import type {AdminMapSummary,AdminRevision,MapSave} from '../../shared/mapAdmin';
 import {status} from './MapList';
+import {folderNames,folderOf,loadSheet,pieceName,relativeFile,shippedLayout,sheetKind,SHEET_NAMES,sourceUrl} from './assets';
+import type {LibraryEntry,LibraryPiece} from './assets';
+import {PiecePicker} from './PiecePicker';
 
-/** Layouts shipped in the repository (scripts/map-layouts), the starting point of built-in maps. */
-const SHIPPED=import.meta.glob('../../scripts/map-layouts/*.json',{eager:true,import:'default'}) as Record<string,MapLayout>;
-const shippedLayout=(id:string)=>{const found=Object.entries(SHIPPED).find(([path])=>path.endsWith(`/${id}.json`));return found?structuredClone(found[1]):null;};
-/** layout.source is a repository path; files under public/ are served from the site root. */
-const sourceUrl=(layout:MapLayout,file:string)=>`/${(layout.source??'').replace(/^public\//,'').replace(/\/$/,'')}/${file}`;
-const SHEET_NAMES:Record<string,string>={pecas:'Terreno',pecas2:'Terreno 2',objetos:'Objetos'};
 const TEAM_COLORS=['#4aa8ff','#ff5a5a'];
 const SCREEN_WIDTH=1536,SNAP=8,MIN_ZOOM=.1,MAX_ZOOM=4;
 /** Editor preferences kept per browser: open sidebars and the drawing aids. */
@@ -27,7 +24,8 @@ const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shif
 type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|null;
 interface Meta {name:string;subtitle:string;kind:'pvp'|'instance';enabled:boolean;}
 interface Doc {layout:MapLayout;meta:Meta;}
-interface Sheet {name:string;pieces:(Piece&{alpha:Uint8ClampedArray;thumb:string})[];}
+/** A sheet of this layout (by its key in layout.sheets), with where it comes from and its piece names. */
+interface Sheet {name:string;pieces:LibraryPiece[];label:string;folder:string;foreign:boolean;names:Record<string,string[]>;sheet:string;}
 interface View {scale:number;x:number;y:number;}
 type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View};
 
@@ -40,7 +38,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const [doc,setDoc]=useState<Doc|null>(null),[sheets,setSheets]=useState<Record<string,Sheet>>({}),[backdrop,setBackdrop]=useState<HTMLImageElement|null>(null);
  const [selection,setSelection]=useState<Selection>(null),[built,setBuilt]=useState<Assembly|null>(null),[building,setBuilding]=useState(false);
  const [error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(''),[dirty,setDirty]=useState(false),[savedRevision,setSavedRevision]=useState<number|null>(null);
- const [overlay,setOverlay]=useState({collision:false,grid:false,centre:true,ghost:true}),[panel,setPanel]=useState<'pieces'|'layers'>('pieces'),[sheetTab,setSheetTab]=useState(''),[showHistory,setShowHistory]=useState(false),[confirm,setConfirm]=useState<null|{warnings:string[]}>(null);
+ const [overlay,setOverlay]=useState({collision:false,grid:false,centre:true,ghost:true}),[panel,setPanel]=useState<'pieces'|'layers'>('pieces'),[showHistory,setShowHistory]=useState(false),[confirm,setConfirm]=useState<null|{warnings:string[]}>(null);
  const [ui,setUi]=useState<Ui>(loadUi),[showKeys,setShowKeys]=useState(false);
  // Lock and hide only help while editing (by item name, per map in this browser); they are not part of the map.
  const [locked,setLocked]=useState<Set<string>>(()=>new Set()),[hidden,setHidden]=useState<Set<string>>(()=>new Set());
@@ -65,10 +63,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    const artId=(MAP_DEFINITIONS[id as MapId]?id:base) as MapId;
    loadImage(MAP_DEFINITIONS[artId]?.art.background??'/assets/maps/snow/background.webp').then(img=>live&&setBackdrop(img)).catch(()=>setError('Fundo do mapa não carregou.'));
    const entries=Object.entries(layout.sheets??{pieces:layout.pieces??''});
-   const cut=await Promise.all(entries.map(async([name,file])=>{const {pieces}=cutSheet(await loadImage(sourceUrl(layout!,file)));
-    return [name,{name,pieces:pieces.map(p=>{const thumb=document.createElement('canvas'),k=Math.min(1,120/Math.max(p.w,p.h));thumb.width=p.w*k;thumb.height=p.h*k;thumb.getContext('2d')!.drawImage(p.canvas,0,0,thumb.width,thumb.height);
-     return {...p,alpha:p.canvas.getContext('2d')!.getImageData(0,0,p.w,p.h).data,thumb:thumb.toDataURL()};})}] as const;}));
-   if(!live)return;setSheets(Object.fromEntries(cut));setSheetTab(entries[0]?.[0]??'');
+   const cut=await Promise.all(entries.map(async([name,file])=>[name,await describeSheet(layout!.source,name,file)] as const));
+   if(!live)return;setSheets(Object.fromEntries(cut));
   }catch(e){if(live)setError((e as Error).message);}
  })();return()=>{live=false;};},[id]);
 
@@ -91,10 +87,17 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const updateItem=(index:number,patch:Partial<LayoutItem>,record=true)=>change(d=>{Object.assign(d.layout.items[index],patch);for(const k of Object.keys(patch) as (keyof LayoutItem)[])if(patch[k]===undefined)delete d.layout.items[index][k];},record);
  const W=doc?.layout.width??1536;
 
- const addPiece=(sheet:string,piece:number)=>{if(!doc)return;const v=viewRef.current,canvas=canvasRef.current,centre=canvas?Math.round((canvas.clientWidth/2-v.x)/v.scale):W/2;
-  const object=sheet==='objetos',n=doc.layout.items.length,base=`${sheet}-${piece}`;let itemId=base,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${base}-${k++}`;
-  change(d=>{d.layout.items.push({id:itemId,sheet,piece,x:Math.max(0,Math.min(W,centre)),top:object?200:420,scale:object?.32:.9,material:'earth',destructible:true,...(object?{rest:true}:{}),...(Math.abs(centre-W/2)<60?{mirror:false}:{})});});
+ const addPiece=(sheet:string,piece:number,borrow?:{file:string;name?:string})=>{if(!doc)return;const v=viewRef.current,canvas=canvasRef.current,centre=canvas?Math.round((canvas.clientWidth/2-v.x)/v.scale):W/2;
+  const object=sheetKind(sheet)==='objeto',n=doc.layout.items.length,base=slug(borrow?.name??sheets[sheet]?.names[sheets[sheet].sheet]?.[piece]??`${sheet}-${piece}`);let itemId=base,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${base}-${k++}`;
+  change(d=>{if(borrow){if(!d.layout.sheets){d.layout.sheets={pieces:d.layout.pieces??''};delete d.layout.pieces;}d.layout.sheets[sheet]=borrow.file;}d.layout.items.push({id:itemId,sheet,piece,x:Math.max(0,Math.min(W,centre)),top:object?200:420,scale:object?.32:.9,material:'earth',destructible:true,...(object?{rest:true}:{}),...(Math.abs(centre-W/2)<60?{mirror:false}:{})});});
   setSelection({type:'item',index:n});};
+ /** A piece from the library: this layout's own sheet, or another folder's sheet borrowed under a new key. */
+ const pick=async(entry:LibraryEntry)=>{if(!doc)return;
+  const existing=Object.entries(doc.layout.sheets??{pieces:doc.layout.pieces??''}).find(([,file])=>sourceUrl(doc.layout.source,file)===entry.sheet.url)?.[0];
+  if(existing){addPiece(existing,entry.n);return;}
+  let key=`${entry.folder.id}-${entry.sheet.sheet}`.slice(0,32),k=2;while(doc.layout.sheets?.[key]||key==='pieces')key=`${entry.folder.id}-${entry.sheet.sheet}`.slice(0,29)+`-${k++}`;
+  const file=relativeFile(doc.layout.source??'',entry.folder.source,entry.sheet.file),described=await describeSheet(doc.layout.source,key,file);
+  setSheets(s=>({...s,[key]:described}));addPiece(key,entry.n,{file,name:entry.name});setNotice(`Peça de “${entry.folder.name}” adicionada. A folha passa a fazer parte deste mapa.`);};
  const removeItem=(index:number)=>{change(d=>{d.layout.items.splice(index,1);});setSelection(null);};
  const duplicate=(index:number)=>{if(!doc)return;const source=doc.layout.items[index];let itemId=`${source.id}-copia`,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${source.id}-copia${k++}`;
   change(d=>{d.layout.items.splice(index+1,0,{...clone(source),id:itemId,x:source.x+40});});setSelection({type:'item',index:index+1});};
@@ -290,7 +293,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  useEffect(()=>{if(!notice)return;const t=setTimeout(()=>setNotice(''),5000);return()=>clearTimeout(t);},[notice]);
 
  if(!doc)return <div className="adm-editor loading">{error?<div className="adm-editor-error"><p className="adm-error">{error}</p><button className="adm-btn" onClick={onBack}><ArrowLeft size={16}/>Voltar</button></div>:<><Loader2 className="adm-spin" size={34}/><p>Recortando as peças do mapa…</p></>}</div>;
- const selectedItem=selection?.type==='item'?doc.layout.items[selection.index]:null,sheetList=Object.values(sheets),s=summary?status({...summary,draftRevision:savedRevision}):null;
+ const selectedItem=selection?.type==='item'?doc.layout.items[selection.index]:null,s=summary?status({...summary,draftRevision:savedRevision}):null;
  const warnings=built?.warnings??[];
 
  return <div className={`adm-editor ${ui.left?'':'hide-left'} ${ui.right?'':'hide-right'}`}>
@@ -319,10 +322,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    </div>
    <span className="adm-spacer"/>
    {building&&<span className="adm-checking"><Loader2 className="adm-spin" size={14}/>Verificando</span>}
-   <button className="adm-btn ghost" onClick={()=>setShowHistory(v=>!v)}><History size={16}/>Histórico</button>
-   <button className="adm-btn ghost" onClick={exportJson} title="Baixar o layout para scripts/map-layouts e npm run build:map"><Download size={16}/>JSON</button>
-   <button className="adm-btn" onClick={()=>void save()} disabled={!!busy}><Save size={16}/>Salvar</button>
-   <button className="adm-btn gold" onClick={askPublish} disabled={!!busy}><Rocket size={16}/>Publicar</button>
+   <button className="adm-btn ghost" onClick={()=>setShowHistory(v=>!v)} aria-label="Histórico" title="Versões salvas"><History size={16}/><span className="adm-btn-label">Histórico</span></button>
+   <button className="adm-btn ghost" onClick={exportJson} aria-label="JSON" title="Baixar o layout para scripts/map-layouts e npm run build:map"><Download size={16}/><span className="adm-btn-label">JSON</span></button>
+   <button className="adm-btn" onClick={()=>void save()} disabled={!!busy} aria-label="Salvar" title="Salvar rascunho (Ctrl+S)"><Save size={16}/><span className="adm-btn-label">Salvar</span></button>
+   <button className="adm-btn gold" onClick={askPublish} disabled={!!busy} aria-label="Publicar" title="Pôr no jogo"><Rocket size={16}/><span className="adm-btn-label">Publicar</span></button>
    <div className="adm-toolgroup">
     <button className={`adm-icon ${showKeys?'on':''}`} onClick={()=>setShowKeys(v=>!v)} title="Atalhos ( ? )"><Keyboard size={17}/></button>
     <button className={`adm-icon ${ui.right?'on':''}`} onClick={()=>toggleUi('right')} title="Barra de propriedades ( ] )">{ui.right?<PanelRightClose size={17}/>:<PanelRightOpen size={17}/>}</button>
@@ -332,11 +335,9 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   <aside className="adm-editor-left">
    <div className="adm-tabs small"><button className={panel==='pieces'?'on':''} onClick={()=>setPanel('pieces')}>Peças</button><button className={panel==='layers'?'on':''} onClick={()=>setPanel('layers')}><Layers size={14}/>Itens <small>{doc.layout.items.length}</small></button></div>
    {panel==='pieces'?<>
-    <div className="adm-seg small">{sheetList.map(sh=><button key={sh.name} className={sheetTab===sh.name?'on':''} onClick={()=>setSheetTab(sh.name)}>{SHEET_NAMES[sh.name]??sh.name}</button>)}</div>
-    <p className="adm-hint">Clique numa peça para pôr no meio da tela. Objetos já caem no chão.</p>
-    <div className="adm-pieces">{sheets[sheetTab]?.pieces.map((p,n)=><button key={n} onClick={()=>addPiece(sheetTab,n)} title={`Peça ${n} · ${p.w}×${p.h}`}><img src={p.thumb} alt=""/><small>{n}</small></button>)}</div>
+    <PiecePicker source={doc.layout.source??''} onPick={e=>void pick(e)}/>
    </>:<ol className="adm-layers">{doc.layout.items.map((item,n)=><li key={`${item.id}-${n}`} className={selection?.type==='item'&&selection.index===n?'on':''} onClick={()=>setSelection({type:'item',index:n})}>
-     <img src={sheets[item.sheet??'']?.pieces[item.piece]?.thumb} alt="" style={hidden.has(item.id)?{opacity:.35}:undefined}/><span><b>{item.id}</b><small>{SHEET_NAMES[item.sheet??'']??item.sheet} · peça {item.piece}{doc.layout.mirror&&item.mirror!==false?' · espelhado':''}</small></span>{warnedItems.has(n)&&<AlertTriangle size={14} className="warn"/>}
+     <img src={sheets[item.sheet??'']?.pieces[item.piece]?.thumb} alt="" style={hidden.has(item.id)?{opacity:.35}:undefined}/><span><b>{item.id}</b><small>{sheets[item.sheet??'']?.label??item.sheet} · {pieceLabel(sheets[item.sheet??''],item.piece)}{doc.layout.mirror&&item.mirror!==false?' · espelhado':''}</small></span>{warnedItems.has(n)&&<AlertTriangle size={14} className="warn"/>}
      <button className={`adm-layer-btn ${locked.has(item.id)?'on':''}`} onClick={e=>{e.stopPropagation();toggleIn(setLocked,item.id);}} title={locked.has(item.id)?'Destravar ( L )':'Travar: não move pelo mapa ( L )'}>{locked.has(item.id)?<Lock size={13}/>:<Unlock size={13}/>}</button>
      <button className={`adm-layer-btn ${hidden.has(item.id)?'on':''}`} onClick={e=>{e.stopPropagation();toggleIn(setHidden,item.id);}} title={hidden.has(item.id)?'Mostrar ( H )':'Esconder só no editor ( H )'}>{hidden.has(item.id)?<EyeOff size={13}/>:<Eye size={13}/>}</button></li>)}</ol>}
    <div className="adm-spawn-list"><h4><Users size={15}/>Spawns</h4>{doc.layout.spawns.map((team,t)=><div key={t} className="adm-spawn-team"><span style={{color:TEAM_COLORS[t]}}>Time {t+1}</span>{team.map((x,slot)=><button key={slot} className={selection?.type==='spawn'&&selection.team===t&&selection.slot===slot?'on':''} style={{'--team':TEAM_COLORS[t]} as React.CSSProperties} onClick={()=>setSelection({type:'spawn',team:t,slot})} title={`x ${x}`}>{slot+1}</button>)}</div>)}
@@ -384,15 +385,15 @@ function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange
  return <section className="adm-inspector">
   <header><h3>{item.id}</h3><span><button className="adm-icon" onClick={()=>onMove(-1)} disabled={index===0} title="Desenhar antes (para trás)"><ArrowDown size={15}/></button><button className="adm-icon" onClick={()=>onMove(1)} disabled={index===last} title="Desenhar depois (para frente)"><ArrowUp size={15}/></button><button className={`adm-icon ${locked?'on':''}`} onClick={onLock} title={locked?'Destravar ( L )':'Travar: não move pelo mapa ( L )'}>{locked?<Lock size={15}/>:<Unlock size={15}/>}</button><button className="adm-icon" onClick={()=>onChange({x:width/2,mirror:mirrorMap?false:item.mirror})} title="Pôr no centro do mapa (sem cópia espelhada)"><AlignCenterVertical size={15}/></button><button className="adm-icon" onClick={onDuplicate} title="Duplicar (Ctrl+D)"><Copy size={15}/></button><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
   <div className="adm-piece-pick"><img src={pieces[item.piece]?.thumb} alt=""/><div>
-   <label className="adm-field"><span>Folha</span><select value={sheet} onChange={e=>onChange({sheet:e.target.value,piece:0})}>{Object.keys(sheets).map(k=><option key={k} value={k}>{SHEET_NAMES[k]??k}</option>)}</select></label>
-   <label className="adm-field"><span>Peça</span><select value={item.piece} onChange={e=>onChange({piece:Number(e.target.value)})}>{pieces.map((p,n)=><option key={n} value={n}>{n} · {p.w}×{p.h}</option>)}</select></label>
+   <label className="adm-field"><span>Folha</span><select value={sheet} onChange={e=>onChange({sheet:e.target.value,piece:0})}>{Object.values(sheets).map(sh=><option key={sh.name} value={sh.name}>{sh.foreign?`${sh.label} (${sh.folder})`:sh.label}</option>)}</select></label>
+   <label className="adm-field"><span>Peça</span><select value={item.piece} onChange={e=>onChange({piece:Number(e.target.value)})}>{pieces.map((p,n)=><option key={n} value={n}>{pieceLabel(sheets[sheet],n)} · {p.w}×{p.h}</option>)}</select></label>
   </div></div>
   <label className="adm-field"><span>Nome</span><input value={item.id} maxLength={48} onChange={e=>onChange({id:e.target.value.replace(/[^a-z0-9_-]/gi,'-')})}/></label>
   <div className="adm-pair"><Num label="X (centro)" value={item.x} onChange={v=>onChange({x:v})}/><Num label="Topo" value={item.top} onChange={v=>onChange({top:v})}/></div>
   <label className="adm-field"><span>Escala</span><span className="adm-range"><input type="range" min={.1} max={2} step={.01} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)},false)} onPointerUp={e=>onChange({scale:Number((e.target as HTMLInputElement).value)})}/><input type="number" step={.01} min={.05} max={4} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)||1})}/></span></label>
   <Toggle label="Virar" hint="Espelha a peça no lugar" value={!!item.flip} onChange={v=>onChange({flip:v||undefined})}/>
   {mirrorMap&&<Toggle label="Repetir no outro time" hint="Cópia espelhada do outro lado do centro" value={mirrored} onChange={v=>onChange({mirror:v?undefined:false})}/>}
-  {mirrored&&<label className="adm-field"><span>Peça do lado espelhado</span><select value={item.mirrorAs?.piece??-1} onChange={e=>{const v=Number(e.target.value);onChange({mirrorAs:v<0?undefined:{...item.mirrorAs,piece:v}});}}><option value={-1}>A mesma</option>{pieces.map((p,n)=><option key={n} value={n}>{n} · {p.w}×{p.h}</option>)}</select><small>Varia os dois lados para não ficarem iguais.</small></label>}
+  {mirrored&&<label className="adm-field"><span>Peça do lado espelhado</span><select value={item.mirrorAs?.piece??-1} onChange={e=>{const v=Number(e.target.value);onChange({mirrorAs:v<0?undefined:{...item.mirrorAs,piece:v}});}}><option value={-1}>A mesma</option>{pieces.map((p,n)=><option key={n} value={n}>{pieceLabel(sheets[sheet],n)} · {p.w}×{p.h}</option>)}</select><small>Varia os dois lados para não ficarem iguais.</small></label>}
   <Toggle label="Apoiar no chão" hint="Cai até o chão abaixo do topo" value={!!item.rest} onChange={v=>onChange({rest:v||undefined})}/>
   {item.rest&&<Num label="Afundar" value={item.sink??8} suffix="px" onChange={v=>onChange({sink:v})}/>}
   <Toggle label="Quebra com tiros" value={item.destructible!==false} onChange={v=>onChange({destructible:v})}/>
@@ -428,4 +429,13 @@ function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:s
    {summary&&!summary.builtIn&&<button className="adm-btn danger wide" onClick={onDelete}><Trash2 size={15}/>Apagar mapa</button>}
   </div>
  </section>;
+}
+
+const slug=(text:string)=>text.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,40)||'peca';
+const pieceLabel=(sheet:Sheet|undefined,n:number)=>sheet?pieceName(sheet.names,sheet.sheet,n):`peça ${n}`;
+/** Cuts one of the layout's sheets and finds which folder it belongs to (its own or a borrowed one) for labels and names. */
+async function describeSheet(source:string|undefined,name:string,file:string):Promise<Sheet>{
+ const url=sourceUrl(source,file),origin=folderOf(url),pieces=await loadSheet(url),names=origin?await folderNames(origin.folder):{};
+ const sheet=origin?.sheet.sheet??name,foreign=file.includes('..');
+ return {name,pieces,names,sheet,foreign,folder:origin?.folder.name??'',label:SHEET_NAMES[sheet]??sheet};
 }
