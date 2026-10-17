@@ -1,4 +1,6 @@
 import {composeUniversalHead,FACE_REGISTRATION} from './faces';
+import {clearFaceOverlays,faceOverlay,FACE_OVERLAY_RECT} from './faceExpressions';
+import type {FaceState} from './faceExpressions';
 import {CATALOG,DYES} from '../../shared/catalog';
 import type {DyeSlot,Equipment,ItemVisual,Slot} from '../../shared/catalog';
 import {drawWornHat,getHeadwearProfile} from './headwear';
@@ -11,7 +13,7 @@ export const AVATAR_UNIT=160/1254;
 const SIZE=1254,RESOLUTION=.5;
 const sources=new Map<string,HTMLImageElement>(),rigCache=new Map<string,AvatarRig>(),artCache=new Map<string,HTMLCanvasElement>(),faceCache=new Map<string,HTMLCanvasElement>(),outfitCache=new Map<string,HTMLCanvasElement>();
 const canvas=(w:number,h:number)=>{const el=document.createElement('canvas');el.width=Math.ceil(w);el.height=Math.ceil(h);return el;};
-export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=()=>{rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();window.dispatchEvent(new Event('brasa-art-loaded'));};sources.set(path,image);}return image;};
+export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=()=>{rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();clearFaceOverlays();window.dispatchEvent(new Event('brasa-art-loaded'));};sources.set(path,image);}return image;};
 const modular=asset('/assets/character-base.png');
 const modularDependencies=['/assets/shop-accessories.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png','/assets/outfit-surfer-body.png','/assets/outfit-executive-body.png'];
 export const ENABLE_MODULAR_APPEARANCE:boolean=false;
@@ -296,8 +298,15 @@ const HAT_TUCK=10,HAT_SOFT=4,HAT_NAPE:readonly Point[]=[[0,-45],[45,-38],[90,-18
 /** Past the band's front corner the cut curves down the far temple (forward, down), so side strands
  * start under the hat instead of in a flat line beside the brim. */
 const HAT_BROW:readonly Point[]=[[0,0],[30,25],[60,70],[85,140],[100,260]];
-export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean){
+/** Blink or pain face over the painted face, under hair and glasses; works for every face. */
+function drawFaceState(c:CanvasRenderingContext2D,eq:Equipment,state:FaceState){
+ const face=getFacePortrait(eq.face);if(!face)return;
+ const overlay=faceOverlay(eq.face,state,modular,face);if(!overlay)return;
+ const [x,y,w,h]=FACE_OVERLAY_RECT,[px,py]=headPoint([x,y]);c.drawImage(overlay,px,py,w*AVATAR_UNIT,h*AVATAR_UNIT);
+}
+export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean,face?:FaceState){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
+ if(isModular&&face)drawFaceState(c,eq,face);
  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>drawHair(c,eq,hair,getHeadwearProfile(eq)==='covered'));
  drawGlasses(c,visual(eq,'glasses'),time);
  if(!drawWornHat(c,eq))drawHat(c,eq);
