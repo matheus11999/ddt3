@@ -67,7 +67,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 - **Ranking PvP diário no servidor**: não existe; deve alimentar o pódio 1º/2º/3º do lobby com os avatares dos jogadores.
 - **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
-- **Comprar de novo item que já possui**: o usuário quer permitir. O servidor ainda bloqueia porque o inventário guarda um id único por item e os upgrades são indexados por id. Falta decidir com ele: cópias reais no inventário ou botão desabilitado.
+- **Comprar de novo item que já possui**: o usuário quer permitir. O servidor ainda bloqueia porque o inventário guarda um id único por item e os upgrades são indexados por id. Hoje (PR #22) o botão aparece e o servidor responde "Você já tem este item na mochila.". Falta decidir com ele: cópias reais no inventário ou manter o bloqueio.
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
 - Perguntas abertas: permitir itens de tiro junto com o voo; arte pintada pendente da loja (fundo do provador, ícones de categoria, placa) e do piso do lobby (`floor.webp`).
