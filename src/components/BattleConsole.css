@@ -1,0 +1,172 @@
+/* Combat console: angle gauge, force bar with ruler, Power orb and vigor.
+   Original art in the DDTank-like language: thick bevels, warm metal,
+   saturated gradients and readable numbers over a dark recessed well. */
+.artillery-hud .battle-console{height:122px;gap:16px;padding:9px 18px 9px 12px;border:2px solid #e2b866;border-radius:26px 26px 18px 18px;background:linear-gradient(#3b5d7c,#1d3b5a 16%,#122a46 62%,#0b1d34);box-shadow:inset 0 2px #fff1c288,inset 0 0 0 3px #0b1c33,inset 0 0 0 4px #7e6236aa,inset 0 -4px #06142a,0 0 0 2px #06142acc,0 6px 16px #030b1d99}
+.artillery-hud .battle-console::before{left:12%;right:12%;top:3px;height:2px;background:linear-gradient(90deg,transparent,#ffe9b066,transparent)}
+
+/* Angle gauge */
+.artillery-hud .angle-control{display:flex;align-items:center;gap:8px;width:auto;flex:none;padding-right:14px;border-right:1px solid #e3c47f2e}
+.artillery-hud .angle-gauge{position:relative;width:108px;height:108px;flex:none;margin-top:-14px}
+.artillery-hud .angle-gauge>svg{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 0 #06142a) drop-shadow(0 4px 6px #0008)}
+.angle-gauge-bezel{fill:#d9a648;stroke:#fff0b8;stroke-width:1.5}
+.angle-gauge-face{stroke:#5d4120;stroke-width:2.5}
+.angle-gauge-sweep{fill:#6fd3ff14}
+.angle-gauge-blocked{fill:none;stroke:#93303a88;stroke-width:5}
+.angle-gauge-range{fill:none;stroke:#56e08a;stroke-width:5;filter:drop-shadow(0 0 2px #7dff9e99)}
+.angle-gauge line{stroke:#9fbfd4;stroke-width:1;stroke-linecap:round}
+.angle-gauge line.major{stroke:#fff1c2;stroke-width:2}
+.angle-gauge text{font:900 7px 'Nunito',sans-serif;fill:#c8deeb;text-anchor:middle}
+.angle-gauge-needle{stroke:#6d1d12;stroke-width:1;stroke-linejoin:round;filter:drop-shadow(0 0 3px #ffb34599);transition:all .09s linear}
+.angle-gauge-hub{fill:#ffe08a;stroke:#7a4b17;stroke-width:1.6}
+.artillery-hud .angle-gauge-readout{position:absolute;left:50%;bottom:9px;padding:1px 6px 2px;border:1px solid #c9a65f99;border-radius:8px;background:linear-gradient(#03101fe6,#0b2340e6);box-shadow:inset 0 1px 3px #000c,0 1px #ffe9b033;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.artillery-hud .angle-gauge-readout>strong{font:900 22px/1 'Nunito',sans-serif;color:#fff27a;letter-spacing:-1px;font-variant-numeric:tabular-nums;text-shadow:0 2px #9a4a12,0 0 2px #2b1406,1px 0 #2b1406,-1px 0 #2b1406,0 4px 4px #0009}
+.artillery-hud .angle-gauge-readout>strong>small{font-size:13px;vertical-align:top}
+.artillery-hud .angle-gauge-readout>span{margin-top:1px;font:900 6px 'Nunito',sans-serif;letter-spacing:1px;color:#bfe2f3;white-space:nowrap}
+.artillery-hud .angle-buttons{display:flex;flex-direction:column;gap:7px}
+.artillery-hud .angle-buttons>button{display:grid;place-items:center;width:30px;height:32px;padding:0;border:1px solid #f1cf7f;border-radius:9px;background:linear-gradient(#ffd56a,#e3962d 55%,#b0601c);box-shadow:inset 0 1px #fff6cf,inset 0 -2px #8a4413,0 2px #3b1f0c;color:#5a2b0c;transition:filter .1s,transform .1s}
+.artillery-hud .angle-buttons>button:hover:not(:disabled){filter:brightness(1.12)}
+.artillery-hud .angle-buttons>button:active:not(:disabled){transform:translateY(1px)}
+.artillery-hud .angle-buttons>button:disabled{filter:saturate(.25) brightness(.7);opacity:.75}
+
+/* Force bar and ruler */
+.artillery-hud .power-controls{flex:1;min-width:0;max-width:780px;margin:0;padding:0 4px;position:relative}
+.artillery-hud .power-label{height:22px;display:flex;align-items:center;gap:10px;margin:0 0 4px}
+.artillery-hud .power-label>span:first-child{font:900 italic 13px 'Nunito',sans-serif;letter-spacing:1px;color:#ffd35e;text-shadow:0 2px #5b2a0d,1px 0 #2b1406,-1px 0 #2b1406}
+.artillery-hud .power-readout{display:flex;align-items:baseline;gap:4px;min-width:72px}
+.artillery-hud .power-readout>output{font:900 24px/1 'Nunito',sans-serif;color:#fff27a;font-variant-numeric:tabular-nums;text-shadow:0 2px #9a4a12,1px 0 #2b1406,-1px 0 #2b1406,0 -1px #2b1406}
+.artillery-hud .power-readout>small{font:800 9px 'Nunito',sans-serif;color:#b9d3ea}
+.artillery-hud .last-power-label{margin-left:auto;display:flex;align-items:center;gap:6px;font:900 8px 'Nunito',sans-serif;letter-spacing:.7px;color:#ffc6b8}
+.artillery-hud .last-power-label>output{min-width:20px;font:900 13px 'Nunito',sans-serif;color:#ff7a5c;text-shadow:0 1px #3a0d08}
+
+.artillery-hud .power-track{--shot-power:0%;position:relative;height:30px;padding:0;border:2px solid #f3d27e;border-radius:15px;background:linear-gradient(#030a18,#0c2039 60%,#12304f);box-shadow:inset 0 3px 6px #000c,inset 0 -1px #2c5476,0 0 0 2px #4d3214,0 0 0 3px #f7d88a55,0 3px 0 3px #06142a;overflow:visible;pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;cursor:crosshair}
+.artillery-hud .power-track[aria-disabled="true"]{cursor:default}
+.artillery-hud .power-track>.power-fill{position:absolute;inset:2px;width:auto;height:auto;border-radius:12px;background:linear-gradient(90deg,#3fd35a 0%,#b7ee3a 22%,#ffe23a 45%,#ffa41f 68%,#ff5a1c 86%,#e3172a 100%);clip-path:inset(0 calc(100% - var(--shot-power)) 0 0 round 12px);box-shadow:none;transition:none}
+.artillery-hud .power-track>.power-fill::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(#ffffff70,#ffffff1a 45%,transparent 50%,#0000002e);pointer-events:none}
+.artillery-hud .power-track.charging>.power-fill::before{content:'';position:absolute;inset:0;border-radius:inherit;background:repeating-linear-gradient(115deg,#ffffff38 0 8px,transparent 8px 18px);animation:power-stripes .45s linear infinite}
+.artillery-hud .power-segments{position:absolute;inset:2px;border-radius:12px;background:repeating-linear-gradient(90deg,transparent 0 calc(10% - 1px),#020a1866 calc(10% - 1px) 10%);pointer-events:none}
+.artillery-hud .power-gloss{position:absolute;left:8px;right:8px;top:3px;height:6px;border-radius:8px;background:linear-gradient(#ffffff40,transparent);pointer-events:none}
+.artillery-hud .power-cursor{position:absolute;top:-4px;bottom:-4px;width:4px;border-radius:2px;background:#fffbe0;box-shadow:0 0 8px 2px #fff3a6,0 0 0 1px #5a2b0c;transform:translateX(-50%);z-index:3;pointer-events:none}
+.artillery-hud .power-cursor::before{content:'';position:absolute;left:50%;top:-9px;width:0;height:0;transform:translateX(-50%);border:6px solid transparent;border-top:8px solid #fff1a6;border-bottom:0;filter:drop-shadow(0 1px 0 #5a2b0c)}
+.artillery-hud .power-track.charging .power-cursor{box-shadow:0 0 12px 4px #ffe36b,0 0 0 1px #5a2b0c}
+.artillery-hud .power-track.charging{border-color:#fff2b0;box-shadow:inset 0 3px 6px #000c,0 0 0 2px #7a4a14,0 0 0 3px #ffe08a88,0 3px 0 3px #06142a,0 0 18px 4px #ffb62e55}
+.artillery-hud .power-track.at-cap.charging>.power-fill{animation:power-cap-flash .32s ease-in-out infinite alternate}
+.artillery-hud .last-power-marker{position:absolute;top:-12px;bottom:-4px;width:0;border-left:2px dashed #ff6b4f;transform:translateX(-1px);z-index:2;pointer-events:none}
+.artillery-hud .last-power-marker::before{content:'';position:absolute;left:-7px;top:-2px;border:6px solid transparent;border-top:8px solid #ff5236;border-bottom:0;filter:drop-shadow(0 1px 0 #3a0d08)}
+.artillery-hud .last-power-marker>b{position:absolute;left:4px;top:-14px;padding:0 3px;border-radius:4px;background:#5a130c;font:900 8px/11px 'Nunito',sans-serif;color:#ffd3c8;display:none}
+
+.artillery-hud .power-ruler{position:relative;height:25px;margin:7px 0 0;border:1px solid #6f5326;border-radius:4px;background:linear-gradient(#fff4d2,#f1d9a2 55%,#d9b779);box-shadow:inset 0 1px #fffbe9,inset 0 -2px #b98d4e,0 2px #06142a;overflow:hidden}
+.artillery-hud .power-graduations{position:absolute;inset:0 2px;background:none}
+.artillery-hud .power-graduations>span{position:absolute;top:0;width:1px;height:5px;background:#5b3c18;transform:translateX(-50%)}
+.artillery-hud .power-graduations>span.medium{height:8px;background:#4a2e10}
+.artillery-hud .power-graduations>span.major{height:11px;width:2px;background:#2e1a06}
+.artillery-hud .power-ticks{position:absolute;left:4px;right:4px;top:auto;bottom:1px;height:12px;margin:0;padding:0;display:block;font:900 10px/12px 'Nunito',sans-serif;color:#3a230b}
+.artillery-hud .power-ticks>span{position:absolute;transform:translateX(-50%);min-width:0}
+.artillery-hud .power-ticks>span:first-child{transform:none}
+.artillery-hud .power-ticks>span:last-child{transform:translateX(-100%)}
+.artillery-hud .power-hint{display:flex;justify-content:center;align-items:center;gap:7px;height:14px;margin-top:3px;font:800 8px 'Nunito',sans-serif;letter-spacing:1px;color:#bcd3e4}
+.artillery-hud .power-hint>kbd{margin:0;padding:0 5px;border:1px solid #c9a65f88;border-radius:4px;background:#0a1d36;font-size:7px;color:#ffe3a0}
+.artillery-hud.is-charging .power-hint{color:#ffe49a}
+@keyframes power-stripes{to{background-position:22px 0}}
+@keyframes power-cap-flash{from{filter:brightness(1)}to{filter:brightness(1.35) saturate(1.2)}}
+
+/* Power orb: liquid charge that drains when activated */
+.artillery-hud .combat-power{--power-level:0%;position:relative;flex:none;display:grid;place-items:center;width:100px;height:100px;min-width:100px;margin-top:-10px;padding:0;border:3px solid #b98a3e;border-radius:50%;isolation:isolate;background:radial-gradient(circle at 50% 35%,#24476b,#0b1d34 72%);box-shadow:inset 0 0 0 2px #fff0bf55,0 0 0 2px #3b250d,0 4px 0 2px #06142a,0 6px 12px #000a;color:#e2eef6;pointer-events:auto;cursor:default;transition:filter .2s,transform .15s,box-shadow .3s}
+.artillery-hud .combat-power:disabled{opacity:1;filter:none}
+.artillery-hud .combat-power-glass{position:absolute;inset:5px;border-radius:50%;overflow:hidden;background:radial-gradient(circle at 50% 40%,#173659,#06111f);box-shadow:inset 0 4px 10px #000c}
+.artillery-hud .combat-power-liquid{position:absolute;left:-10%;right:-10%;bottom:0;height:var(--power-level);background:linear-gradient(#ffb02e,#ff5a1c 45%,#c4121f);transition:height .6s cubic-bezier(.3,.8,.4,1)}
+.artillery-hud .combat-power-liquid>i{position:absolute;left:0;top:-7px;width:200%;height:9px;background:radial-gradient(ellipse 12px 8px at 12px 9px,#ffb02e 98%,transparent 100%) 0 0/24px 9px repeat-x;animation:power-wave 1.6s linear infinite}
+.artillery-hud .combat-power-liquid>i+i{top:-5px;opacity:.55;background-image:radial-gradient(ellipse 14px 8px at 14px 9px,#ffd26a 98%,transparent 100%);background-size:28px 9px;animation-duration:2.3s;animation-direction:reverse}
+.artillery-hud .combat-power-bubbles{position:absolute;inset:0;opacity:0;transition:opacity .3s}
+.artillery-hud .combat-power-bubbles>i{position:absolute;bottom:4px;width:5px;height:5px;border-radius:50%;background:#fff3b0;box-shadow:0 0 4px #ffe36b;animation:power-bubble 1.5s ease-in infinite}
+.artillery-hud .combat-power-bubbles>i:nth-child(1){left:28%}.artillery-hud .combat-power-bubbles>i:nth-child(2){left:48%;animation-delay:.4s;width:4px;height:4px}.artillery-hud .combat-power-bubbles>i:nth-child(3){left:64%;animation-delay:.8s}.artillery-hud .combat-power-bubbles>i:nth-child(4){left:38%;animation-delay:1.1s;width:3px;height:3px}
+.artillery-hud .combat-power-glass::after{content:'';position:absolute;left:16%;top:8%;width:46%;height:26%;border-radius:50%;background:linear-gradient(#ffffff59,transparent);transform:rotate(-18deg)}
+.artillery-hud .combat-power-core{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:auto;height:auto;border:0;background:none;box-shadow:none;color:inherit}
+.artillery-hud .combat-power strong{font:900 italic 18px/1 'Nunito',sans-serif;letter-spacing:-.5px;color:#fff;text-shadow:0 2px #4a1706,1px 0 #4a1706,-1px 0 #4a1706,0 -1px #4a1706,0 0 8px #000a}
+.artillery-hud .combat-power small{margin-top:2px;font:900 10px 'Nunito',sans-serif;color:#fff4d6;text-shadow:0 1px #3a1205,1px 0 #3a1205,-1px 0 #3a1205}
+.artillery-hud .combat-power-rays,.artillery-hud .combat-power-flames,.artillery-hud .combat-power-burst{position:absolute;border-radius:50%;pointer-events:none;opacity:0}
+.artillery-hud .combat-power-rays{inset:-22px;z-index:-1;background:repeating-conic-gradient(#ffd45a 0 6deg,transparent 6deg 22deg);mask:radial-gradient(circle,transparent 46%,#000 50%,transparent 72%);-webkit-mask:radial-gradient(circle,transparent 46%,#000 50%,transparent 72%)}
+.artillery-hud .combat-power-flames{inset:-9px;z-index:-1;background:conic-gradient(from 0deg,#ff3d1a,#ffb02e,#ff3d1a 30%,#ffe36b 45%,#ff3d1a 60%,#ffb02e 80%,#ff3d1a);mask:radial-gradient(circle,transparent 60%,#000 64%,transparent 74%);-webkit-mask:radial-gradient(circle,transparent 60%,#000 64%,transparent 74%);filter:blur(1px)}
+.artillery-hud .combat-power-burst{inset:0;border:4px solid #ffe36b;box-shadow:0 0 18px #ffb02e}
+.artillery-hud .combat-power.power-full{border-color:#ffe28a;box-shadow:inset 0 0 0 2px #fff6d0aa,0 0 0 2px #6a3a0e,0 4px 0 2px #06142a,0 0 22px 6px #ffb02e88;animation:power-ready-pulse 1s ease-in-out infinite}
+.artillery-hud .combat-power.power-full .combat-power-liquid{background:linear-gradient(#fff07a,#ffb02e 40%,#ff5a1c)}
+.artillery-hud .combat-power.power-full .combat-power-liquid>i{background-image:radial-gradient(ellipse 12px 8px at 12px 9px,#fff07a 98%,transparent 100%)}
+.artillery-hud .combat-power.power-full .combat-power-bubbles{opacity:1}
+.artillery-hud .combat-power.power-full .combat-power-rays{opacity:.9;animation:power-spin 5s linear infinite}
+.artillery-hud .combat-power.power-full:not(:disabled){cursor:pointer}
+.artillery-hud .combat-power.power-full:not(:disabled):hover{filter:brightness(1.12);transform:scale(1.04)}
+.artillery-hud .combat-power.power-full:not(:disabled):active{transform:scale(.97)}
+.artillery-hud .combat-power.power-armed .combat-power-liquid{transition:height 1.3s cubic-bezier(.45,.05,.55,.95)}
+.artillery-hud .combat-power.power-armed .combat-power-liquid>i{opacity:0;transition:opacity .2s 1.15s}
+.artillery-hud .combat-power.power-draining .combat-power-burst{animation:power-burst .7s ease-out both}
+.artillery-hud .combat-power.power-armed{border-color:#ff9a3a;background:radial-gradient(circle at 50% 35%,#6b1a10,#2a0907 72%);box-shadow:inset 0 0 0 2px #ffcf8a88,0 0 0 2px #4a1406,0 4px 0 2px #06142a,0 0 26px 8px #ff4a1a77}
+.artillery-hud .combat-power.power-armed .combat-power-glass{background:radial-gradient(circle at 50% 45%,#ff7a2a55,#2a0705 70%)}
+.artillery-hud .combat-power.power-armed .combat-power-flames{opacity:1;animation:power-spin 1.2s linear infinite}
+.artillery-hud .combat-power.power-armed strong{color:#fff4c0}
+.artillery-hud .combat-power.power-armed small{color:#ffd36b;letter-spacing:.6px}
+.artillery-hud .combat-power:focus-visible{outline:3px solid #ecfaff;outline-offset:6px}
+@keyframes power-wave{to{transform:translateX(-50%)}}
+@keyframes power-bubble{0%{transform:translateY(0);opacity:0}20%{opacity:1}100%{transform:translateY(-62px);opacity:0}}
+@keyframes power-spin{to{transform:rotate(360deg)}}
+@keyframes power-ready-pulse{50%{box-shadow:inset 0 0 0 2px #fff6d0aa,0 0 0 2px #6a3a0e,0 4px 0 2px #06142a,0 0 32px 10px #ffc23aaa}}
+@keyframes power-burst{0%{opacity:1;transform:scale(.9)}100%{opacity:0;transform:scale(1.9)}}
+
+/* Vigor and pass */
+.artillery-hud .battle-actions{display:flex;flex-direction:column;gap:10px;width:156px;flex:none;padding-left:15px;border-left:1px solid #e3c47f2e}
+.artillery-hud .vigor-display{padding:7px 8px 8px;border:1px solid #6aa6c480;border-radius:10px;background:linear-gradient(#143a58cc,#0d2740e0);box-shadow:inset 0 1px #b8e6f533,0 2px #06142a}
+.artillery-hud .vigor-caption{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:5px;font:900 8px 'Nunito',sans-serif;letter-spacing:.6px;color:#bfe6f3}
+.artillery-hud .vigor-caption>span{display:flex;align-items:center;gap:3px}
+.artillery-hud .vigor-caption svg{color:#7ff0ff}
+.artillery-hud .vigor-caption strong{font-size:13px;font-variant-numeric:tabular-nums;color:#f0fbff}
+.artillery-hud .vigor-caption strong>small{font-size:8px;font-weight:700;color:#97c3d4}
+.artillery-hud .vigor-bar{position:relative;height:10px;margin:0;border:1px solid #041426;border-radius:5px;background:#05162a;box-shadow:0 1px #a6d0db33,inset 0 2px 3px #000a;overflow:hidden}
+.artillery-hud .vigor-bar>i{position:absolute;left:0;top:0;bottom:0;border-radius:4px;background:linear-gradient(#c9fbff,#45d8f0 40%,#1a86c4);box-shadow:inset 0 1px #f2ffff;transition:width .18s}
+.artillery-hud .skip-button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:30px;padding:3px;border:1px solid #9fd0ea;border-radius:10px;background:linear-gradient(#5aa2d6,#2f6ea6 50%,#1d4c7c);box-shadow:inset 0 1px #e2f6ff99,inset 0 -2px #143a62,0 2px #06142a;color:#f2fbff;font:900 9px 'Nunito',sans-serif;letter-spacing:.6px;text-shadow:0 1px #10304f}
+.artillery-hud .skip-button:hover:not(:disabled){filter:brightness(1.1)}
+.artillery-hud .skip-button:disabled{filter:saturate(.3) brightness(.75)}
+.artillery-hud .skip-button>kbd{margin-left:4px;padding:0 3px;border:1px solid #bfe2f566;border-radius:3px;background:#143a62;font-size:7px;color:#e2f3ff}
+
+/* Phones in landscape: the whole console is scaled by the game frame. */
+html.mobile-landscape .artillery-hud .battle-console{height:86px;gap:9px;padding:6px 11px 6px 8px}
+html.mobile-landscape .artillery-hud .angle-control{gap:4px;padding-right:6px}
+html.mobile-landscape .artillery-hud .angle-gauge{width:72px;height:72px;margin-top:-6px}
+html.mobile-landscape .artillery-hud .angle-gauge-readout{bottom:5px;padding:0 4px 1px;border-radius:5px}
+html.mobile-landscape .artillery-hud .angle-gauge-readout>strong{font-size:14px}
+html.mobile-landscape .artillery-hud .angle-gauge-readout>strong>small{font-size:9px}
+html.mobile-landscape .artillery-hud .angle-gauge-readout>span{font-size:4px;letter-spacing:.5px}
+html.mobile-landscape .artillery-hud .angle-buttons{gap:5px}
+html.mobile-landscape .artillery-hud .angle-buttons>button{width:22px;height:26px;border-radius:6px}
+html.mobile-landscape .artillery-hud .angle-buttons svg{width:17px;height:17px}
+html.mobile-landscape .artillery-hud .power-controls{max-width:none;padding:0 3px}
+html.mobile-landscape .artillery-hud .power-label{height:16px;gap:6px;margin-bottom:3px}
+html.mobile-landscape .artillery-hud .power-label>span:first-child{font-size:8px}
+html.mobile-landscape .artillery-hud .power-readout{min-width:42px}
+html.mobile-landscape .artillery-hud .power-readout>output{font-size:16px}
+html.mobile-landscape .artillery-hud .power-readout>small{font-size:6px}
+html.mobile-landscape .artillery-hud .last-power-label{font-size:6px;gap:3px}
+html.mobile-landscape .artillery-hud .last-power-label>output{font-size:9px}
+html.mobile-landscape .artillery-hud .power-track{height:24px;border-radius:12px}
+html.mobile-landscape .artillery-hud .power-ruler{height:18px;margin-top:5px}
+html.mobile-landscape .artillery-hud .power-graduations>span.major{height:8px}
+html.mobile-landscape .artillery-hud .power-graduations>span.medium{height:6px}
+html.mobile-landscape .artillery-hud .power-graduations>span.minor{display:none}
+html.mobile-landscape .artillery-hud .power-ticks{font-size:7px;line-height:9px;height:9px}
+html.mobile-landscape .artillery-hud .power-hint{display:none}
+html.mobile-landscape .artillery-hud .combat-power{width:66px;height:66px;min-width:66px;margin-top:-4px;border-width:2px}
+html.mobile-landscape .artillery-hud .combat-power strong{font-size:12px}
+html.mobile-landscape .artillery-hud .combat-power small{font-size:7px}
+html.mobile-landscape .artillery-hud .combat-power-rays{inset:-12px}
+html.mobile-landscape .artillery-hud .battle-actions{width:107px;padding-left:8px;gap:6px}
+html.mobile-landscape .artillery-hud .vigor-display{padding:5px 6px;border-radius:8px}
+html.mobile-landscape .artillery-hud .vigor-caption{font-size:5px;gap:3px;margin-bottom:4px}
+html.mobile-landscape .artillery-hud .vigor-caption svg{width:9px;height:9px}
+html.mobile-landscape .artillery-hud .vigor-caption strong{font-size:10px}
+html.mobile-landscape .artillery-hud .vigor-caption small{font-size:5px}
+html.mobile-landscape .artillery-hud .vigor-bar{height:7px}
+html.mobile-landscape .artillery-hud .skip-button{min-height:23px;gap:3px;padding:3px;border-radius:7px;font-size:6px}
+html.mobile-landscape .artillery-hud .skip-button svg{width:12px;height:12px}
+html.mobile-landscape .artillery-hud .skip-button kbd{display:none}
+
+@media(prefers-reduced-motion:reduce){
+ .artillery-hud .power-track.charging>.power-fill::before,.artillery-hud .power-track.at-cap.charging>.power-fill,.artillery-hud .combat-power-liquid>i,.artillery-hud .combat-power-bubbles>i,.artillery-hud .combat-power-rays,.artillery-hud .combat-power-flames,.artillery-hud .combat-power.power-full,.artillery-hud .combat-power-burst{animation:none!important}
+ .artillery-hud .combat-power-liquid,.artillery-hud .vigor-bar>i,.angle-gauge-needle{transition:none!important}
+}

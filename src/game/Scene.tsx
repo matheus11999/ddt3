@@ -13,6 +13,7 @@ import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
 import {drawFighterIndicators} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
+import {drawPowerArmed} from './powerArmedEffect';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -71,9 +72,10 @@ export function Scene({angle,onArena,onForge,blocked=false}:{angle:number;onAren
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=p?elapsed-impactTime(p):500;if(age>=0&&age<500){pose='hit';poseTime=age;}}
      }
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
+     const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined},falling||entity?.motion.pose==='fall');
-     c.restore();drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
+     c.restore();if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');drawFighterIndicators(c,f,e.x,e.y,f.team===b.players.find(player=>player.id===state.profile?.id)?.team,b.turnId===f.id&&b.phase==='aiming',t);
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished'){const weapon=WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,limits=weaponAimLimits(weapon,f.aimSlope??0);drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle);}
     }
