@@ -107,7 +107,9 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
   let top=item.top;const ground0=band(gc,left,left+w+1,H);
   const ph=Math.ceil(h)+1,probe=canvas(W,ph),pc=ctx(probe);draw(pc,0);const shape=band(pc,left,left+w+1,ph);
   const feet:[number,number][]=[];for(let x=Math.ceil(left+w*.2);x<left+w*.8;x+=3){let y=Math.floor(h);while(y>0&&!opaqueIn(shape,x,y))y--;if(y>0)feet.push([x,y]);}
-  const surface=([x,foot]:[number,number])=>{for(let y=Math.max(0,Math.floor(item.top+foot));y<H;y++)if(opaqueIn(ground0,x,y))return y-foot;return Infinity;};
+  // A foot that starts inside the ground (the editor drags props by where they are drawn) climbs to the surface instead.
+  const surface=([x,foot]:[number,number])=>{let y=Math.max(0,Math.floor(item.top+foot));if(opaqueIn(ground0,x,y)){while(y>0&&opaqueIn(ground0,x,y-1))y--;return y-foot;}
+   for(;y<H;y++)if(opaqueIn(ground0,x,y))return y-foot;return Infinity;};
   if(item.rest){const tops=feet.map(surface).filter(Number.isFinite);if(tops.length)top=Math.min(...tops)+(item.sink??8);else warnings.push({text:`${item.id}: não achou chão abaixo para apoiar`,item:source});}
   if(item.rest||sheet==='objetos'){const touching=feet.filter(([x,foot])=>[0,3,6,9].some(d=>opaqueIn(ground0,x,Math.floor(top+foot+d)))).length;
    if(touching<Math.max(1,feet.length*.15))warnings.push({text:`${item.id}: objeto flutuando (base sem chão embaixo)`,item:source});}

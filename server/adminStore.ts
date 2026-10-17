@@ -71,7 +71,7 @@ export class AdminStore {
   const c=await this.pool.connect();
   try{
    await c.query('BEGIN');
-   await c.query(`INSERT INTO game_maps(id,kind,base,updated_by) VALUES($1,$2,$3,$4) ON CONFLICT (id) DO UPDATE SET kind=EXCLUDED.kind,updated_at=now(),updated_by=EXCLUDED.updated_by`,[input.mapId,input.kind,input.base,input.username]);
+   await c.query(`INSERT INTO game_maps(id,kind,base,updated_by) VALUES($1,$2,$3,$4) ON CONFLICT (id) DO UPDATE SET updated_at=now(),updated_by=EXCLUDED.updated_by`,[input.mapId,input.kind,input.base,input.username]);
    const r=await c.query('INSERT INTO game_map_revisions(map_id,data,terrain,preview,note,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',[input.mapId,input.data,input.terrain,input.preview,input.note??null,input.username]);
    const id=Number(r.rows[0].id);
    await c.query('UPDATE game_maps SET draft_revision=$2 WHERE id=$1',[input.mapId,id]);
