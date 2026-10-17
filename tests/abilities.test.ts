@@ -5,6 +5,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {HIDDEN_POSITION,initialAbilities} from '../shared/abilities';
+import {FLIGHT_AIM,weaponAimLimits} from '../shared/aim';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
@@ -79,14 +80,28 @@ test('invisibility expires after three subsequent own turns, never on opponents 
  assert.equal(f.latest(f.enemy.id).players.find(player=>player.id===f.actor.id)!.hidden,undefined);assert.equal(f.actor.abilities!.invisibility,0);
 });
 
-test('flight cannot refund spent tools or combine with skills/Power and is cancelable before firing',async()=>{
+test('flight cannot refund spent tools or combine with shot tools, Power or homing and is cancelable before firing',async()=>{
  for(const action of ['boost','power','homing'] as const){const f=await fixture();
   if(action==='boost')await f.game.command(f.actor.id,{type:'boost',boost:'extra1'});else if(action==='power'){f.actor.powerCharge=100;await f.game.command(f.actor.id,{type:'power'});}else await f.game.command(f.actor.id,{type:'ability',ability:'homing'});
   const before=structuredClone(f.actor);await f.game.command(f.actor.id,{type:'flight',active:true});assert.deepEqual(f.actor,before);assert.match(f.error()!,/não combina/);
  }
  const f=await fixture();await f.game.command(f.actor.id,{type:'flight',active:true});const before=structuredClone(f.actor);
- for(const command of [{type:'boost',boost:'extra1'},{type:'power'},{type:'ability',ability:'heal'},{type:'walk',direction:1}] as const){await f.game.command(f.actor.id,command);assert.deepEqual(f.actor,before);}
+ for(const command of [{type:'boost',boost:'extra1'},{type:'power'},{type:'ability',ability:'homing'}] as const){await f.game.command(f.actor.id,command);assert.deepEqual(f.actor,before);}
  await f.game.command(f.actor.id,{type:'flight',active:false});assert.equal(f.actor.flightArmed,false);assert.deepEqual(f.actor.abilities,initialAbilities());await f.game.command(f.actor.id,{type:'boost',boost:'extra1'});assert.deepEqual(f.actor.boosts,['extra1']);
+});
+
+test('flight combines with walking, heal and invisibility in the same turn',async()=>{
+ const f=await fixture();f.actor.hp=f.actor.maxHp-200;await f.game.command(f.actor.id,{type:'flight',active:true});
+ const x=f.actor.x;await f.game.command(f.actor.id,{type:'walk',direction:1});assert.notEqual(f.actor.x,x);assert.equal(f.actor.flightArmed,true);
+ await f.game.command(f.actor.id,{type:'ability',ability:'heal'});assert.equal(f.actor.hp,f.actor.maxHp);
+ await f.game.command(f.actor.id,{type:'ability',ability:'invisibility'});assert.equal(f.actor.invisibleTurns,3);assert.equal(f.actor.flightArmed,true);
+});
+
+test('flight opens the whole 5–90° aim envelope and cancelling it restores the weapon limits',async()=>{
+ const f=await fixture(),weapon=WEAPONS.find(item=>item.id===f.actor.equipment.weapon)!,slope=f.actor.aimSlope??0,weaponMax=weaponAimLimits(weapon,slope).maxAngle,flightMax=weaponAimLimits(FLIGHT_AIM,slope).maxAngle;
+ assert.ok(flightMax>weaponMax,'the plane must reach steeper than the weapon');
+ await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'aim',angle:90,power:20,charging:false});assert.equal(f.actor.aimAngle,flightMax);
+ await f.game.command(f.actor.id,{type:'flight',active:false});assert.equal(f.actor.aimAngle,weaponMax);
 });
 
 test('flight teleports only at authoritative contact to clear supported ground, deals no damage and consumes the turn',async()=>{
