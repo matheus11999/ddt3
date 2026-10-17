@@ -33,6 +33,37 @@ function StrengtheningEffect(){
  </div>;
 }
 
+/** Letreiro de resultado no estilo do jogo: Lilita One em arco, contorno grosso e faixa por trás. */
+function OutcomeBanner({success}:{success:boolean}){
+ const id=success?'win':'fail',word=success?'SUCESSO!':'FALHOU';
+ const [light,mid,deep]=success?['#fff8c4','#ffd23a','#ff8414']:['#ffffff','#c3cbd6','#6b7686'];
+ const [ribbon,ribbonDeep]=success?['#e8402a','#9c1f12']:['#4b5563','#252b34'];
+ return <svg className="smith-outcome-banner" viewBox="0 0 420 170" role="img" aria-label={word}>
+  <defs>
+   <linearGradient id={`${id}-fill`} x1="0" y1="0" x2="0" y2="1"><stop offset=".08" stopColor={light}/><stop offset=".5" stopColor={mid}/><stop offset="1" stopColor={deep}/></linearGradient>
+   <linearGradient id={`${id}-ribbon`} x1="0" y1="0" x2="0" y2="1"><stop stopColor={ribbon}/><stop offset="1" stopColor={ribbonDeep}/></linearGradient>
+   <path id={`${id}-arc`} d={success?'M30 112 Q210 40 390 112':'M40 96 Q210 86 380 96'}/>
+  </defs>
+  <g className="smith-outcome-ribbon">
+   <path d="M24 118 2 136l30 4-10 22 52-22Z" fill={ribbonDeep}/><path d="M396 118l22 18-30 4 10 22-52-22Z" fill={ribbonDeep}/>
+   <path d="M48 108Q210 66 372 108l-8 40Q210 108 56 148Z" fill={`url(#${id}-ribbon)`} stroke="#2a0f05" strokeWidth="4" strokeLinejoin="round"/>
+   <path d="M60 116Q210 80 360 116" fill="none" stroke="#ffffff55" strokeWidth="3" strokeLinecap="round"/>
+  </g>
+  <text className="smith-outcome-word" fontFamily="'Lilita One','Nunito',sans-serif" fontSize={success?78:74} textAnchor="middle" letterSpacing="2">
+   <textPath href={`#${id}-arc`} startOffset="50%" fill="none" stroke="#2a0f05" strokeWidth="16" strokeLinejoin="round">{word}</textPath>
+  </text>
+  <text fontFamily="'Lilita One','Nunito',sans-serif" fontSize={success?78:74} textAnchor="middle" letterSpacing="2">
+   <textPath href={`#${id}-arc`} startOffset="50%" fill={`url(#${id}-fill)`} stroke="#fff" strokeWidth="3" paintOrder="stroke" strokeLinejoin="round">{word}</textPath>
+  </text>
+  {success&&<g fill="#fffbe0">{[[48,58,1],[372,52,.8],[300,22,.6],[118,24,.7]].map(([x,y,k],i)=><path key={i} className="smith-outcome-twinkle" style={{animationDelay:`${i*.18}s`}} transform={`translate(${x} ${y}) scale(${k})`} d="M0-14 4-4 14 0 4 4 0 14-4 4-14 0-4-4Z"/>)}</g>}
+ </svg>;
+}
+
+/** Estrelas douradas no sucesso; fumaça e lascas na falha. */
+function OutcomeBurst({success}:{success:boolean}){
+ return <div className={`smith-outcome-burst ${success?'stars':'smoke'}`} aria-hidden="true">{Array.from({length:success?14:8},(_,i)=><i key={i} style={{'--burst-angle':`${i*(360/(success?14:8))+(i%2)*9}deg`,'--burst-distance':`${(success?120:70)+(i%3)*34}px`,'--burst-delay':`${(i%4)*.04}s`} as CSSProperties}/>)}</div>;
+}
+
 function StoneIcon({level,size=54}:{level:number;size?:number}){
  const [missing,setMissing]=useState(false);
  const stone=STONES.find(s=>s.level===level)!;
@@ -138,7 +169,7 @@ export function Forge({onClose}:{onClose:()=>void}){
       <button className={`smith-action forge-submit ${pending?'pending':''} ${canForge?'is-ready':''}`} disabled={!canForge} aria-busy={pending} aria-describedby="forge-action-feedback" onClick={submit}>{pending?<LoaderCircle className="button-spinner" size={20}/>:composing?<Sparkles size={20}/>:<Hammer size={20}/>}{pending?composing?'Compondo…':'Fortalecendo…':composing?'Compor':level>=MAX_UPGRADE?'Nível máximo':'Fortalecer'}</button>
       <div id="forge-action-feedback" className={`forge-feedback ${localError?'is-error':guidance?'is-guidance':result?result.success?'is-success':'is-failure':''}`} role="status" aria-live="polite">{localError??(pending?'A forja está trabalhando…':result?result.mode==='compose'?'Pedra e ouro consumidos.':'Pedras consumidas.':guidance??(composing?`Custa ${stone?.cost??0} moedas. A pedra e o ouro são gastos mesmo se falhar.`:`${stoneCount} / ${MAX_FORGE_STONES} pedras. As pedras são gastas em cada tentativa.`))}</div>
      </div>
-     {result&&<div key={resultKey} className={`forge-outcome ${result.success?'success':'failure'}`} role="status" aria-live="polite"><strong>{result.success?'SUCESSO!':'FALHOU'}</strong>{result.mode==='strengthen'&&result.success?<UpgradeTag level={result.level!} size={110} className="smith-outcome-tag"/>:<span className="forge-outcome-level">{result.mode==='strengthen'?`Continua +${result.level}`:result.success?`${COMPOSITION_STAT_NAMES[result.stat!]} +${result.value}`:'Atributo anterior mantido'}</span>}</div>}
+     {result&&<div key={resultKey} className={`forge-outcome ${result.success?'success':'failure'}`} role="status" aria-live="polite"><OutcomeBurst success={result.success}/><OutcomeBanner success={result.success}/>{result.mode==='strengthen'&&result.success?<UpgradeTag level={result.level!} size={110} className="smith-outcome-tag"/>:<span className="forge-outcome-level">{result.mode==='strengthen'?`Continua +${result.level}`:result.success?`${COMPOSITION_STAT_NAMES[result.stat!]} +${result.value}`:'Atributo anterior mantido'}</span>}</div>}
     </div>
     {composing&&<div className="smith-console composition-current" aria-label="Composições aplicadas">{COMPOSITION_STATS.map(stat=><span key={stat} data-active={stone?.stat===stat||undefined}><CompositionIcon stat={stat} size={20}/><small>{COMPOSITION_STAT_NAMES[stat]}</small><b>+{item?bonus[stat]??0:0}</b></span>)}</div>}
    </section>
