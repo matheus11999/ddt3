@@ -26,7 +26,7 @@ Pedidos do usuário, em ordem: lobby parecido com a foto de referência de lobby
 - `LobbyWorld.podiums()` devolve onde ficam os pés do 1º, 2º e 3º colocados. Falta o servidor ter o ranking PvP do dia para desenhar os bonecos ali.
 - Camadas: barraca (parada) e NPC inteiro (respira) no MESMO canvas transparente, pés no centro da borda inferior. Portal e pódios ainda têm brilho, asas e emblema flutuando. Sem arte, o jogo usa um desenho provisório por código.
 - Sombras: cada estação projeta o próprio contorno no chão (achatado e inclinado para a esquerda, luz vinda da direita) e tem sombra de contato onde toca o piso (`shadows` em `LOBBY_STATIONS`).
-- Piso: se existir `public/assets/lobby/floor.webp`, o código cobre o piso pintado com essa textura em perspectiva a partir de y 548 (`FLOOR_TOP`). Sem o arquivo, fica o piso do panorama. O primeiro `floor.webp` do Codex (17/10, 1254×1254) não fechava a emenda lateral nas fileiras 1 e 3; o rejunte da borda foi completado por código.
+- Piso: se existir `public/assets/lobby/floor.webp`, o código cobre o piso pintado com essa textura em perspectiva a partir de y 548 (`FLOOR_TOP`). Sem o arquivo, fica o piso do panorama. O piso atual é o segundo do Codex (pedras irregulares cinza e bege, 17/10); o primeiro, de lajes retangulares, parecia parede de tijolo.
 - Novo NPC = uma pasta de camadas + uma linha em `LOBBY_STATIONS` (+ a ação em `App.tsx`).
 - Verificação: `node scripts/shot-lobby.mjs <pasta>` com Vite e servidor ligados (prévia, câmera andando com as setas, porta da Arena, caminhada até o Ferreiro).
 
