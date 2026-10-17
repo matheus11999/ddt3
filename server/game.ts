@@ -250,7 +250,7 @@ export class Game {
      const w=WEAPONS.find(w=>w.id===f.equipment.weapon)!;adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(w,f.aimSlope??0,c.angle);f.chargePower=c.power;f.charging=c.charging;this.broadcastBattle(m);break;
     }
     case 'walk':{
-     const {m,f}=this.turn(p);if(f.flightArmed)throw Error('Cancele o voo antes de andar.');if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();if(f.stamina<3)throw Error('Vigor insuficiente.');
+     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();if(f.stamina<3)throw Error('Vigor insuficiente.');
      f.facing=c.direction;const destination=walkPosition(m.terrain,f,c.direction);if(destination){const fromY=f.y;f.x=destination.x;f.y=destination.y;f.stamina-=3;if(f.y>WORLD.height){f.y=WORLD.height+150;f.hp=0;}this.animateFall(f,fromY,Date.now());}adjustAimToTerrain(f,m.terrain);if(!this.checkWin(m))this.broadcastBattle(m);break;
     }
     case 'fire':{const {m,f}=this.turn(p);const w=WEAPONS.find(w=>w.id===f.equipment.weapon)!;adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(w,f.aimSlope??0,c.angle),c.power);break;}
@@ -350,7 +350,8 @@ export class Game {
   f.powerCharge=0;f.powerArmed=true;
  }
  private useAbility(m:Match,f:Fighter,ability:AbilityId){
-  if(f.flightArmed)throw Error('Cancele o voo antes de usar habilidades.');
+  // Heal and invisibility act at once and combine with flight; homing guides a shot, which flight replaces.
+  if(f.flightArmed&&ability==='homing')throw Error('Cancele o voo antes de usar a mira assistida.');
   if(!normalizeAbilityLoadout(f.abilityLoadout).includes(ability))throw Error('Esta habilidade não está equipada.');
   f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');

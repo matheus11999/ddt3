@@ -28,7 +28,7 @@ Reconectar não substitui o perfil confirmado em memória por uma leitura antiga
 
 ## Ativar no próprio turno
 
-`ability {ability: 'heal' | 'homing' | 'invisibility'}` exige habilidade equipada, personagem vivo, no próprio turno, em fase `aiming` e antes do prazo. Cada habilidade selecionada começa com **um uso por partida**, em `Fighter.abilities`, e atualmente tem custo de vigor zero. A reserva é consumida na ativação válida. Habilidades são bloqueadas enquanto voo está armado. Durante uma queda ativa, todas as ações de turno também aguardam o pouso, sem consumir usos, vigor ou Power; ver [Quedas e relógio de combate](combat-stats.md#queda-depois-de-crateras-ou-caminhada).
+`ability {ability: 'heal' | 'homing' | 'invisibility'}` exige habilidade equipada, personagem vivo, no próprio turno, em fase `aiming` e antes do prazo. Cada habilidade selecionada começa com **um uso por partida**, em `Fighter.abilities`, e atualmente tem custo de vigor zero. A reserva é consumida na ativação válida. Com voo armado, só a mira assistida é bloqueada. Durante uma queda ativa, todas as ações de turno também aguardam o pouso, sem consumir usos, vigor ou Power; ver [Quedas e relógio de combate](combat-stats.md#queda-depois-de-crateras-ou-caminhada).
 
 | Habilidade | Regra atual |
 | --- | --- |
@@ -64,7 +64,7 @@ Renderers devem ignorar `hidden` e sentinelas, sem reconstruir posições a part
 
 Voo é um modo de disparo, separado das três habilidades de uso único: `flight {active: true | false}`. Atualmente não possui contador de usos por partida nem custo próprio de vigor. Só pode ser armado/desarmado pelo personagem vivo em seu turno válido.
 
-Armar voo é rejeitado quando já existem ferramentas de tiro, Power preparado ou mira assistida preparada. Enquanto está armado, andar, ativar ferramentas, Power ou habilidades é rejeitado. Mirar e escolher força continuam disponíveis; o próximo `fire` lança um único avião e encerra esse modo. Passar/encerrar o turno também limpa a preparação.
+Armar voo é rejeitado quando já existem ferramentas de tiro, Power preparado ou mira assistida preparada. Enquanto está armado, ferramentas de tiro, Power e mira assistida são rejeitados; andar, cura e invisibilidade continuam permitidos no mesmo turno (pedido do usuário em 17/10/2026). Mirar e escolher força continuam disponíveis; o próximo `fire` lança um único avião e encerra esse modo. Passar/encerrar o turno também limpa a preparação.
 
 O avião usa a trajetória autoritativa, a gravidade e os limites de mira da arma equipada, com raio de projétil 6. O projétil publica `kind: 'flight'`, `delay: 0`, `flightTime` e impacto com raio 0. Ele **não causa dano, não abre cratera e não recebe Power**.
 
