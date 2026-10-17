@@ -1,5 +1,5 @@
 .level-wreath{--wreath-ink:#4a4a4a;--wreath-light:#ffffff;position:relative;display:inline-block;flex:none;width:var(--wreath-size);height:calc(var(--wreath-size) * .625);background:url('/assets/ui/level-wreaths.webp') var(--wreath-x) var(--wreath-y)/300% 200% no-repeat;filter:drop-shadow(0 calc(var(--wreath-size) * .02) 0 #3b180866)}
-.level-wreath b{position:absolute;left:0;right:0;top:56%;transform:translateY(-50%) skewX(-8deg);text-align:center;font:italic 900 calc(var(--wreath-size) * .32)/1 'Nunito','Trebuchet MS',sans-serif;letter-spacing:-.02em;color:var(--wreath-light);-webkit-text-stroke:calc(var(--wreath-size) * .04) var(--wreath-ink);paint-order:stroke fill;text-shadow:0 calc(var(--wreath-size) * .03) 0 var(--wreath-ink)}
+.level-wreath b{position:absolute;left:0;right:0;top:47%;transform:translate(-.03em,-50%) skewX(-8deg);text-align:center;font:italic 900 calc(var(--wreath-size) * .27)/1 'Nunito','Trebuchet MS',sans-serif;letter-spacing:-.05em;color:var(--wreath-light);-webkit-text-stroke:calc(var(--wreath-size) * .036) var(--wreath-ink);paint-order:stroke fill;text-shadow:0 calc(var(--wreath-size) * .03) 0 var(--wreath-ink)}
 .level-wreath[data-tier="2"]{--wreath-ink:#1d6b1f;}
 .level-wreath[data-tier="3"]{--wreath-ink:#1555a8;}
 .level-wreath[data-tier="4"]{--wreath-ink:#8a3a0e;}
