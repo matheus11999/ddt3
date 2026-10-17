@@ -28,6 +28,11 @@ const SIZE=HEAD_ANCHORS.atlasSize;
 /** Art painted directly on the full 1254px head template. */
 export const onTemplate=(atlas:string):ArtRegion=>({atlas,source:[0,0,SIZE,SIZE],pin:pinFromRect([0,0,SIZE,SIZE],[0,0,SIZE,SIZE])});
 const region=(atlas:string,source:Rect,destination:Rect,clip?:readonly Point[]):ArtRegion=>({atlas,source,clip,pin:pinFromRect(source,destination)});
+/** Uniformly shrinks an oversized painted piece around the skull centre until it fits its zone.
+ * Stopgap for art painted too large; repainted art at the right size drops it.
+ * A pivot near the far eye keeps a fringe from sliding over the eyes as the piece narrows. */
+const skullCentre:Point=[(HEAD_ANCHORS.templeNear[0]+HEAD_ANCHORS.templeFar[0])/2,HEAD_ANCHORS.templeNear[1]];
+const shrink=([x,y,w,h]:Rect,k:number,[cx,cy]:Point=skullCentre):Rect=>[cx+(x-cx)*k,cy+(y-cy)*k,w*k,h*k];
 const ACCESSORIES='/assets/shop-accessories.png',COVERED='/assets/hair-covered-atlas.png',HEADWEAR='/assets/headwear-worn-atlas.png';
 /** Hat contacts: the inner band's front and back edge in the atlas. Every hat sits on the same seat. */
 const hat=(source:Rect,from:readonly [Point,Point],clip?:readonly Point[]):ArtRegion=>({atlas:HEADWEAR,source,clip,pin:{from,to:HEAD_ANCHORS.hatSeat}});
@@ -36,12 +41,12 @@ const hat=(source:Rect,from:readonly [Point,Point],clip?:readonly Point[]):ArtRe
 export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hair-wavy':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-wavy.png',[280,65,820,760],[349.9,100,600,556]),covered:region(COVERED,[850,48,585,470],[330,160,526.5,423])},
  'hair-undercut':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',
-  worn:region(ACCESSORIES,[25,85,610,500],[288,2.3,666.2,548.6],[[25,85],[635,85],[635,375],[600,450],[600,585],[25,585]]),
+  worn:region(ACCESSORIES,[25,85,610,500],shrink([288,2.3,666.2,548.6],.9),[[25,85],[635,85],[635,375],[600,450],[600,585],[25,585]]),
   covered:region(COVERED,[190,535,520,410],[365,185,468,369])},
  'hair-ponytail':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',
-  worn:region(ACCESSORIES,[600,85,650,660],[217.4,2.3,728.9,736.7],[[640,85],[1250,85],[1250,745],[600,745],[600,450],[640,375]]),
+  worn:region(ACCESSORIES,[600,85,650,660],shrink([217.4,2.3,728.9,736.7],.9),[[640,85],[1250,85],[1250,745],[600,745],[600,450],[640,375]]),
   covered:region(COVERED,[835,535,620,475],[295,175,558,427.5])},
- 'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],[288,25.8,674,533]),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
+ 'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],shrink([288,25.8,674,533],.9,[760,250])),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
  'hat-cap':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([35,130,522,332],[[126,442],[485,330]])},
  'hat-thunder':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([560,130,490,320],[[600,423],[960,333]],[[560,130],[1050,130],[1050,398],[1020,430],[1020,450],[560,450]])},
  'hat-tide':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([1030,130,500,330],[[1065,440],[1410,358]],[[1070,130],[1530,130],[1530,460],[1030,460],[1030,430],[1065,390],[1070,350]])},

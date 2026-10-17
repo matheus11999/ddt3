@@ -12,9 +12,10 @@
 
 /* ---------- Barra de título ---------- */
 .pvp-room .pr-titlebar{display:flex;align-items:center;gap:12px;min-width:0;padding:0 11px 0 9px}
-.pvp-room .party-room-number{display:grid;place-items:center;align-content:center;flex:none;width:48px;height:48px;border:2px solid #ffe2a6;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffd884,#e98a25 55%,#a9480f);box-shadow:inset 0 -3px #8a3a0a,0 2px #2c1004;color:#fff;text-shadow:0 1px #7a2d04;line-height:1}
-.pvp-room .party-room-number span{font-size:9px;font-weight:900;letter-spacing:.2px;color:#fff1cf}
-.pvp-room .party-room-number strong{font-size:20px;font-weight:900}
+.pvp-room .party-room-number{position:relative;display:flex;align-items:center;gap:7px;flex:none;height:50px;padding:0 16px 0 13px;border:2px solid #fff0b8;border-radius:14px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 18px #ffb44f88;color:#fff;line-height:1}
+.pvp-room .party-room-number::before{content:'';position:absolute;inset:3px;border:1px solid #fff6cf99;border-radius:10px;pointer-events:none}
+.pvp-room .party-room-number span{font-size:12px;font-weight:900;letter-spacing:.12em;text-transform:uppercase;color:#7a3a0a;text-shadow:0 1px #fff4c2}
+.pvp-room .party-room-number strong{min-width:24px;font-size:32px;font-weight:900;text-align:center;color:#fff;-webkit-text-stroke:2px #7a2d04;paint-order:stroke fill;text-shadow:0 2px 0 #4a1a04,0 0 10px #fff1b0}
 .pvp-room .party-room-name{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0}
 .pvp-room .party-room-name h1{min-width:0;margin:0;overflow:hidden;font:700 24px/1.15 'Cinzel',Georgia,serif;letter-spacing:.3px;color:var(--wood-gold);text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px #2c1004,0 0 12px #ffae4a55}
 .pvp-room .party-rename-button{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:1px solid #fff3d6;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565,0 2px #2c1004;color:#8a3f0b}
@@ -48,20 +49,18 @@
 /* ---------- Cartas dos aliados ---------- */
 .pvp-room .pr-card{position:relative;display:grid;grid-template-rows:30px minmax(0,1fr) 28px;min-width:0;min-height:0;border:2px solid #f2b56b;border-radius:13px;background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 -3px #e9c991,0 3px #a75a2355,0 4px 10px #8a431826;overflow:hidden}
 .pvp-room .pr-card.is-me{border-color:#ffd36b;box-shadow:inset 0 -3px #e9c991,0 0 0 3px #ffb44f66,0 4px 12px #c2610f44}
-.pvp-room .pr-card-name{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:0 8px;border-width:0 0 1px;border-radius:0;font-size:14px;font-weight:900}
+.pvp-room .pr-card-name{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;padding:0 8px;border-width:0 0 1px;border-radius:0;font-size:14px;font-weight:900}
 .pvp-room .pr-card-name strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .pvp-room .pr-card-name>svg{flex:none;filter:drop-shadow(0 1px #8a3a07)}
 .pvp-room .pr-card-name--vacant{border-bottom:1px solid #efcf9a;background:linear-gradient(#f7e2bb,#efd09c);color:var(--wood-ink-soft);font-size:13px;text-shadow:none}
-.pvp-room .pr-card-kick{position:absolute;top:4px;right:5px;display:grid;place-items:center;width:22px;height:22px;padding:0;border:1px solid #ffd2b8;border-radius:7px;background:linear-gradient(#e2592f,#a92e14);box-shadow:inset 0 -2px #6d1a08;color:#fff3dc}
+.pvp-room .pr-card-name strong{flex:1}
+.pvp-room .pr-card-kick{position:static;flex:none;display:grid;place-items:center;width:22px;height:22px;padding:0;border:1px solid #ffd2b8;border-radius:7px;background:linear-gradient(#e2592f,#a92e14);box-shadow:inset 0 -2px #6d1a08;color:#fff3dc}
 .pvp-room .pr-card-stage{position:relative;min-height:0;overflow:hidden;container-type:size;background:radial-gradient(ellipse at 50% 48%,#fffdf6,transparent 66%)}
 .pvp-room .pr-card-sigil{width:min(96cqw,96cqh);translate:-50% -52%}
 .pvp-room .pr-card-portrait{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:1}
 .pvp-room .pr-card-portrait>canvas{flex:none;width:auto!important;height:min(118cqh,110cqw)!important;max-width:none;aspect-ratio:1;margin-bottom:-2%;pointer-events:none}
-.pvp-room .pr-card-insignia{position:absolute;top:5px;left:6px;z-index:2;display:grid;justify-items:center;gap:2px}
-.pvp-room .party-vip{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff4d7e6;box-shadow:inset 0 1px 2px #b8641a55}
-.pvp-room .party-vip.vip-inactive{color:#c9a679}
-.pvp-room .party-vip.vip-active{color:#e58f1f}
-.pvp-room .party-vip svg{width:14px;height:14px}
+.pvp-room .pr-card-insignia{position:absolute;top:6px;right:6px;z-index:2;display:grid;justify-items:center;gap:0}
+.pvp-room .pr-host-tag{position:absolute;top:6px;left:7px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border:1px solid #fff0b8;border-radius:999px;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 -2px #c06d0a,0 1px #5b2a0e66;color:#fff;font-size:12px;font-style:italic;font-weight:900;white-space:nowrap;text-shadow:0 1px #8a3a07}
 .pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
 .pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
@@ -189,9 +188,10 @@
 /* ---------- Celular em paisagem ---------- */
 html.mobile-landscape .arena-room-portal .pvp-room{grid-template-rows:42px minmax(0,1fr);gap:5px;padding:max(5px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-width:1px}
 html.mobile-landscape .pvp-room .pr-titlebar{gap:7px;padding:0 4px 0 4px;border-radius:12px 12px 8px 8px}
-html.mobile-landscape .pvp-room .party-room-number{width:34px;height:34px;border-width:1px}
-html.mobile-landscape .pvp-room .party-room-number span{font-size:7px}
-html.mobile-landscape .pvp-room .party-room-number strong{font-size:14px}
+html.mobile-landscape .pvp-room .party-room-number{height:34px;gap:4px;padding:0 10px 0 8px;border-width:1px;border-radius:10px;box-shadow:inset 0 1px #fffbe0,inset 0 -2px #9a4a0a,0 0 0 1px #5b2a0e,0 0 10px #ffb44f88}
+html.mobile-landscape .pvp-room .party-room-number::before{inset:2px;border-radius:8px}
+html.mobile-landscape .pvp-room .party-room-number span{font-size:8px}
+html.mobile-landscape .pvp-room .party-room-number strong{min-width:16px;font-size:20px;-webkit-text-stroke:1.5px #7a2d04}
 html.mobile-landscape .pvp-room .party-room-name h1{font-size:16px}
 html.mobile-landscape .pvp-room .party-rename-button{width:26px;height:26px}
 html.mobile-landscape .pvp-room .party-rename-form{height:30px}
@@ -212,7 +212,9 @@ html.mobile-landscape .pvp-room .pr-card.vacant{grid-template-rows:22px minmax(0
 html.mobile-landscape .pvp-room .pr-card-name{gap:3px;padding:0 4px;font-size:10px}
 html.mobile-landscape .pvp-room .pr-card-name>svg{width:10px;height:10px}
 html.mobile-landscape .pvp-room .pr-card-kick{top:2px;right:2px;width:18px;height:18px;border-radius:5px}
-html.mobile-landscape .pvp-room .pr-card-insignia{top:2px;left:2px;transform:scale(.66);transform-origin:top left}
+html.mobile-landscape .pvp-room .pr-card-insignia{top:2px;right:2px;gap:2px;transform:scale(.62);transform-origin:top right}
+html.mobile-landscape .pvp-room .pr-host-tag{top:3px;left:3px;gap:2px;padding:2px 6px 2px 4px;font-size:8px}
+html.mobile-landscape .pvp-room .pr-host-tag svg{width:9px;height:9px}
 html.mobile-landscape .pvp-room .pr-card-state{gap:3px;font-size:9px}
 html.mobile-landscape .pvp-room .pr-card-state svg{width:11px;height:11px}
 html.mobile-landscape .pvp-room .pr-card-vacant{margin:4px;border-radius:8px}
