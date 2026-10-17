@@ -12,13 +12,12 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 
 /* Praça Celeste: bottom menu in the PvP room's wood style, with the room's painted
    menu icons on cream tiles. The game draws every label and counter. */
-.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:4px;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
+.game-frame>nav.bottom-dock.lobby-dock{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);display:flex;align-items:flex-end;gap:6px;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;z-index:5}
 .lobby-dock>.lobby-dock-button{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:76px;min-width:0;height:auto;padding:0;border:0;border-radius:0;background:none;box-shadow:none;color:#fff;transition:transform .15s}
 .lobby-dock>.lobby-dock-button:hover:not(:disabled),.lobby-dock>.lobby-dock-button.active{background:none;box-shadow:none;transform:translateY(-3px);filter:none}
-.lobby-dock-tile{position:relative;display:grid;place-items:center;width:60px;height:60px;padding:5px;border:2px solid #f2c88c;border-radius:15px;background:radial-gradient(ellipse at 50% 28%,#fffdf6,transparent 70%),linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -3px #e2b77a,0 0 0 2px #5a2a0c,0 4px 6px #2c100488;transition:border-color .15s,box-shadow .15s}
-.lobby-dock-tile img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 1px #8a431855);pointer-events:none}
-.lobby-dock>.lobby-dock-button:hover:not(:disabled) .lobby-dock-tile,.lobby-dock>.lobby-dock-button.active .lobby-dock-tile{border-color:var(--wood-gold);box-shadow:inset 0 -3px #e2b77a,0 2px #3e1a0788,0 0 0 2px #fff1c4aa,0 0 14px #ffd36b99}
-.lobby-dock>.lobby-dock-button.arena .lobby-dock-tile{background:radial-gradient(ellipse at 50% 28%,#fff6d0,transparent 70%),linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);border-color:#fff2c8;box-shadow:inset 0 1px #fff7cf,inset 0 -3px #c06d0a,0 2px #2a0f03}
+.lobby-dock-tile{position:relative;display:grid;place-items:center;width:68px;height:68px;padding:0;transition:transform .15s,filter .15s}
+.lobby-dock-tile img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 0 1px #3a1605) drop-shadow(0 4px 4px #2c100488);pointer-events:none}
+.lobby-dock>.lobby-dock-button:hover:not(:disabled) .lobby-dock-tile,.lobby-dock>.lobby-dock-button.active .lobby-dock-tile{transform:scale(1.08);filter:brightness(1.1) drop-shadow(0 0 6px #ffd36bcc)}
 .lobby-dock>.lobby-dock-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
 .lobby-dock>.lobby-dock-button:focus-visible{outline:none}.lobby-dock>.lobby-dock-button:focus-visible .lobby-dock-tile{outline:3px solid #fff1c4;outline-offset:2px}
 .lobby-dock-label{position:relative;z-index:1;font:900 12px/1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;color:var(--wood-gold);white-space:nowrap;text-shadow:1px 1px 0 #4a1d06,-1px 1px 0 #4a1d06,1px -1px 0 #4a1d06,-1px -1px 0 #4a1d06,0 2px 0 #4a1d06,0 0 4px #2c1004}
