@@ -20,8 +20,8 @@
 .pvp-hall .hall-population span{font-weight:800;color:var(--wood-ink-soft)}
 
 /* ---------- Corpo ---------- */
-.pvp-hall .hall-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(260px,24vw,360px);gap:8px;min-height:0}
-.pvp-hall .hall-rooms{display:grid;grid-template-rows:42px minmax(0,1fr) 56px;gap:7px;min-width:0;min-height:0;padding:8px}
+.pvp-hall .hall-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(270px,22vw,330px);grid-template-rows:minmax(0,1fr) clamp(150px,23vh,200px);grid-template-areas:"rooms side" "bottom side";gap:8px;min-height:0}
+.pvp-hall .hall-rooms{grid-area:rooms;display:grid;grid-template-rows:42px minmax(0,1fr);gap:7px;min-width:0;min-height:0;padding:8px}
 .pvp-hall .hall-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
 .pvp-hall .hall-tab{display:flex;align-items:center;gap:8px;height:100%;margin:0;padding:0 8px 0 14px;border-radius:10px;font-size:17px;font-weight:900}
 .pvp-hall .hall-tab b{display:grid;place-items:center;min-width:26px;height:24px;padding:0 7px;border-radius:999px;background:#fff4d7e6;box-shadow:inset 0 1px 2px #b8641a55;color:var(--wood-ink);font-size:13px;text-shadow:none}
@@ -81,22 +81,58 @@
 .pvp-hall .hall-empty h3{margin:8px 0 0;font-size:19px;font-weight:900;color:var(--wood-ink)}
 .pvp-hall .hall-empty p{margin:0;font-size:13px;font-weight:700}
 
-/* ---------- Rodapé ---------- */
-.pvp-hall .hall-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:0 6px 0 10px;border-radius:12px;background:#5b2a0e66;box-shadow:inset 0 1px 3px #2c110466}
-.pvp-hall .hall-actions p{margin:0;min-width:0;overflow:hidden;font-size:13px;font-weight:800;color:#ffe2b6;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px #3b1806}
-.pvp-hall .hall-create{min-width:170px;height:44px;font-size:16px}
+/* ---------- Faixa de baixo: conversa e botões grandes ---------- */
+.pvp-hall .hall-bottom{grid-area:bottom;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;min-width:0;min-height:0}
+.pvp-hall .hall-chat{min-width:0;min-height:0}
+.pvp-hall .hall-actions{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;min-height:0;padding:8px}
+.pvp-hall .hall-big{display:grid;grid-template-rows:minmax(0,1fr) auto;justify-items:center;align-items:center;gap:4px;width:clamp(112px,9vw,140px);height:100%;min-height:0;padding:10px 8px 9px;border:2px solid #fff0c4;border-radius:14px;background:linear-gradient(#ffe48a,#f4ae24 55%,#df8510);box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #2a0f03,0 6px 12px #1d0a0266;color:#fff;font:900 16px/1.1 'Nunito','Trebuchet MS',sans-serif;text-shadow:0 1px #8a3a07,0 0 3px #8a3a07;cursor:pointer;transition:filter .15s,transform .15s}
+.pvp-hall .hall-quick{border-color:#d9ffd0;background:linear-gradient(#9cf07f,#47bd4f 55%,#25913a);box-shadow:inset 0 2px #e8ffd9,inset 0 -4px #17702b,0 3px #2a0f03,0 6px 12px #1d0a0266;text-shadow:0 1px #12541f,0 0 3px #12541f}
+.pvp-hall .hall-big-icon{display:grid;place-items:center;width:min(58px,100%);aspect-ratio:1;max-height:100%;border:2px solid #ffffffb0;border-radius:50%;background:#ffffff38;box-shadow:inset 0 -3px #0000001f}
+.pvp-hall .hall-big-icon svg{width:55%;height:55%;filter:drop-shadow(0 2px #0000004d)}
+.pvp-hall .hall-big:not(:disabled):hover{filter:brightness(1.06);transform:translateY(-1px)}
+.pvp-hall .hall-big:not(:disabled):active{transform:translateY(1px)}
+.pvp-hall .hall-big:disabled{cursor:default;filter:saturate(.3);opacity:.6}
+.pvp-hall .hall-big:focus-visible{outline:3px solid #fff1c4;outline-offset:2px}
 
-/* ---------- Conversa ---------- */
-.pvp-hall .hall-chat{min-width:0}
+/* ---------- Coluna direita: meu personagem e jogadores online ---------- */
+.pvp-hall .hall-side{grid-area:side;display:grid;grid-template-rows:auto minmax(0,1fr);gap:8px;min-width:0;min-height:0}
+.pvp-hall :is(.hall-me,.hall-online){display:grid;gap:7px;min-height:0;padding:8px}
+.pvp-hall .hall-online{grid-template-rows:36px minmax(0,1fr)}
+.pvp-hall .hall-side-title{display:flex;align-items:center;gap:7px;height:36px;margin:0;white-space:nowrap;overflow:hidden;padding:0 8px 0 13px;border-radius:10px;font-size:15px;font-weight:900}
+.pvp-hall .hall-side-title b{display:grid;place-items:center;min-width:26px;height:22px;margin-left:auto;padding:0 7px;border-radius:999px;background:#fff4d7e6;color:var(--wood-ink);font-size:12px;text-shadow:none}
+.pvp-hall .hall-me-card{display:grid;grid-template-rows:auto minmax(0,1fr) auto;min-height:0;padding:8px 10px 10px;overflow:hidden}
+.pvp-hall .hall-me-head{display:flex;align-items:center;gap:8px;min-width:0}
+.pvp-hall .hall-me-head strong{min-width:0;overflow:hidden;font-size:16px;font-weight:900;color:var(--wood-ink);text-overflow:ellipsis;white-space:nowrap}
+.pvp-hall .hall-me-avatar{display:grid;place-items:center;height:clamp(140px,25vh,220px);overflow:hidden}
+.pvp-hall .hall-me-avatar>*{flex:none;transform:scale(var(--me-scale,1))}
+.pvp-hall .hall-me-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin:0}
+.pvp-hall .hall-me-stats>div{display:flex;align-items:center;justify-content:space-between;gap:6px;min-width:0;height:30px;padding:0 9px;border-radius:9px;background:linear-gradient(#7a3a14,#5a280c);box-shadow:inset 0 1px #ffc78a55}
+.pvp-hall .hall-me-stats dt{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#ffd99a}
+.pvp-hall .hall-me-stats dd{margin:0;font-size:15px;font-weight:900;color:#fff4d4}
+.pvp-hall .hall-online-list{display:grid;align-content:start;min-height:0;padding:4px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d98f45 transparent}
+.pvp-hall .hall-online-row{display:grid;grid-template-columns:44px minmax(0,1fr) 46px;align-items:center;gap:6px;height:30px;padding:0 6px;border-radius:7px}
+.pvp-hall .hall-online-row:nth-child(even){background:#f6dfb466}
+.pvp-hall .hall-online-row.is-me{background:#ffd27a80;box-shadow:inset 0 0 0 1px #e9a447}
+.pvp-hall .hall-online-headrow{position:sticky;top:-4px;z-index:1;height:26px;background:#f3d29a!important;font-size:11px;font-weight:900;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.03em}
+.pvp-hall .hall-online-headrow span:last-child,.pvp-hall .hall-online-gender{text-align:center}
+.pvp-hall .hall-online-level{justify-self:start;min-width:34px;padding:2px 5px;border-radius:7px;background:linear-gradient(#a8a8a8,#6f6f6f);box-shadow:inset 0 1px #ffffff80,0 1px #00000040;color:#fff;font-size:13px;font-weight:900;font-style:italic;text-align:center;-webkit-text-stroke:2px #3a3a3a;paint-order:stroke fill}
+.pvp-hall .hall-online-level[data-tier="2"]{background:linear-gradient(#7fe07a,#2f9b3d);-webkit-text-stroke-color:#13501f}
+.pvp-hall .hall-online-level[data-tier="3"]{background:linear-gradient(#6cc2ff,#2364c8);-webkit-text-stroke-color:#0f2f66}
+.pvp-hall .hall-online-level[data-tier="4"]{background:linear-gradient(#f1b47c,#b0612b);-webkit-text-stroke-color:#5a2e12}
+.pvp-hall .hall-online-level[data-tier="5"]{background:linear-gradient(#c49cff,#7443c9);-webkit-text-stroke-color:#38176e}
+.pvp-hall .hall-online-level[data-tier="6"]{background:linear-gradient(#ffe57a,#f09a14);-webkit-text-stroke-color:#7a3207}
+.pvp-hall .hall-online-name{min-width:0;overflow:hidden;font-size:13px;font-weight:800;color:var(--wood-ink);text-overflow:ellipsis;white-space:nowrap}
+.pvp-hall .hall-online-gender{justify-self:center;display:grid;place-items:center;width:22px;height:22px;border:1px solid #ffffffb0;border-radius:50%;background:linear-gradient(#69b4ff,#2a6fd6);box-shadow:inset 0 -2px #1c4f9e,0 1px #00000033;color:#fff;font:900 15px/1 Arial,sans-serif}
+.pvp-hall .hall-online-gender.is-female{background:linear-gradient(#ff8cc0,#e0408a);box-shadow:inset 0 -2px #a82462,0 1px #00000033}
 
 /* ---------- Telas menores ---------- */
 @media(max-width:900px){
- .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) 240px}
- .pvp-hall .hall-actions p{display:none}
- .pvp-hall .hall-actions{justify-content:flex-end}
+ .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) 230px}
+ .pvp-hall .hall-big{width:100px;font-size:14px}
 }
 @media(max-width:640px){
- .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 190px}
+ .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 190px;grid-template-areas:"rooms" "bottom"}
+ .pvp-hall .hall-side{display:none}
  .pvp-hall .hall-population span{display:none}
 }
 
@@ -109,8 +145,8 @@ html.mobile-landscape .pvp-hall .wood-title{font-size:18px}
 html.mobile-landscape .pvp-hall .hall-population{height:26px;font-size:10px}
 html.mobile-landscape .pvp-hall .hall-population strong{font-size:14px}
 html.mobile-landscape .pvp-hall .hall-back{width:34px;height:34px;border-radius:10px}
-html.mobile-landscape .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) clamp(190px,28vw,250px);grid-template-rows:minmax(0,1fr);gap:5px}
-html.mobile-landscape .pvp-hall .hall-rooms{grid-template-rows:34px minmax(0,1fr) 44px;gap:5px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) clamp(170px,24vw,220px);grid-template-rows:minmax(0,1fr) 108px;gap:5px}
+html.mobile-landscape .pvp-hall .hall-rooms{grid-template-rows:34px minmax(0,1fr);gap:5px;padding:5px;border-radius:12px}
 html.mobile-landscape .pvp-hall .hall-tab{font-size:14px;padding-left:10px}
 html.mobile-landscape .pvp-hall .hall-search{height:32px}
 html.mobile-landscape .pvp-hall .hall-search-trigger{width:32px;height:32px}
@@ -128,13 +164,30 @@ html.mobile-landscape .pvp-hall .hall-room-seats i{width:12px;height:12px}
 html.mobile-landscape .pvp-hall .hall-room-status{padding:2px 8px;font-size:10px}
 html.mobile-landscape .pvp-hall .hall-spectate{bottom:2px;right:7px;width:24px;height:24px}
 html.mobile-landscape .pvp-hall .hall-room-foot{padding-right:28px}
-html.mobile-landscape .pvp-hall .hall-actions{justify-content:flex-end;padding:0 4px}
-html.mobile-landscape .pvp-hall .hall-actions p{display:none}
-html.mobile-landscape .pvp-hall .hall-create{min-width:140px;height:36px;font-size:14px}
-html.mobile-landscape .pvp-hall .wood-chat{grid-template-rows:28px minmax(0,1fr) 32px;gap:4px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-bottom{gap:5px}
+html.mobile-landscape .pvp-hall .hall-actions{gap:5px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-big{width:78px;padding:5px 4px;border-radius:11px;font-size:11px}
+html.mobile-landscape .pvp-hall .hall-big-icon{width:34px;border-width:1px}
+html.mobile-landscape .pvp-hall .hall-side{gap:5px}
+html.mobile-landscape .pvp-hall :is(.hall-me,.hall-online){gap:4px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-me .hall-side-title,html.mobile-landscape .pvp-hall .hall-me-avatar{display:none}
+html.mobile-landscape .pvp-hall .hall-me-card{grid-template-rows:auto auto;gap:4px;padding:5px 6px}
+html.mobile-landscape .pvp-hall .hall-me-head strong{font-size:12px}
+html.mobile-landscape .pvp-hall .hall-me-stats>div{height:22px;padding:0 6px}
+html.mobile-landscape .pvp-hall .hall-me-stats dt{font-size:9px}
+html.mobile-landscape .pvp-hall .hall-me-stats dt svg{display:none}
+html.mobile-landscape .pvp-hall .hall-me-stats dd{font-size:12px}
+html.mobile-landscape .pvp-hall .hall-online{grid-template-rows:28px minmax(0,1fr)}
+html.mobile-landscape .pvp-hall .hall-side-title{height:28px;padding-left:9px;font-size:12px}
+html.mobile-landscape .pvp-hall .hall-online-row{grid-template-columns:34px minmax(0,1fr) 40px;gap:4px;height:24px;padding:0 3px}
+html.mobile-landscape .pvp-hall .hall-online-headrow{height:20px;font-size:9px}
+html.mobile-landscape .pvp-hall .hall-online-level{min-width:28px;padding:1px 3px;font-size:11px}
+html.mobile-landscape .pvp-hall .hall-online-name{font-size:11px}
+html.mobile-landscape .pvp-hall .hall-online-gender{width:18px;height:18px;font-size:12px}
+html.mobile-landscape .pvp-hall .wood-chat{grid-template-rows:24px minmax(0,1fr) 28px;gap:3px;padding:4px;border-radius:12px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-tabs>button{min-width:0;padding:0 10px;font-size:11px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-messages{padding:5px 7px;font-size:11px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-input>input{font-size:12px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-input>button{width:26px;height:26px}
 
-@media(prefers-reduced-motion:reduce){.pvp-hall .hall-room{transition:none}.pvp-hall .hall-room.is-searching .hall-room-status svg{animation:none}}
+@media(prefers-reduced-motion:reduce){.pvp-hall :is(.hall-room,.hall-big){transition:none}.pvp-hall .hall-room.is-searching .hall-room-status svg{animation:none}}

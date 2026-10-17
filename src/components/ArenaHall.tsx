@@ -1,20 +1,25 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Clock3,Crown,Eye,LoaderCircle,LockKeyhole,Plus,Search,Swords,Users,X} from 'lucide-react';
+import {Clock3,Crown,Eye,LoaderCircle,LockKeyhole,Plus,Search,Swords,Trophy,Users,X,Zap} from 'lucide-react';
 import {client,useGame} from '../client';
 import {arenaMatchTime,arenaRooms} from '../arenaHall';
 import {Chat} from './Hud';
+import {Avatar} from './Avatar';
+import {LevelNumber} from './LevelNumber';
 import './ArenaTheme.css';
 import './ArenaHall.css';
 
 export function Arena({onClose}:{onClose:()=>void}){
- const {rooms,status,arenaOnline,offset}=useGame();
+ const {rooms,status,arenaOnline,offset,profile,onlinePlayers,onlineTotal}=useGame();
  const [query,setQuery]=useState(''),[searchOpen,setSearchOpen]=useState(false),[now,setNow]=useState(Date.now);
  const input=useRef<HTMLInputElement>(null),searchButton=useRef<HTMLButtonElement>(null);
  const visible=arenaRooms(rooms,query),online=status==='online',playing=visible.some(room=>room.status==='playing');
  useEffect(()=>{if(!online)return;client.send({type:'arena-presence',open:true});return()=>{if(client.state.status==='online')client.send({type:'arena-presence',open:false});};},[online]);
+ // The online list is a snapshot: refresh it while the hall is open.
+ useEffect(()=>{if(!online)return;const refresh=()=>client.send({type:'online-list'});refresh();const timer=window.setInterval(refresh,10000);return()=>clearInterval(timer);},[online]);
  useEffect(()=>{if(!playing)return;setNow(Date.now());const timer=window.setInterval(()=>setNow(Date.now()),1000);return()=>clearInterval(timer);},[playing]);
  useEffect(()=>{if(searchOpen)input.current?.focus();},[searchOpen]);
+ const quick=visible.find(room=>room.status==='waiting'&&room.players.length<room.openSlots.length);
  const closeSearch=()=>{setQuery('');setSearchOpen(false);searchButton.current?.focus();};
  const content=<section className="arena-screen party-arena arena-hall pvp-hall wood-window" aria-label="Salão PvP">
   <header className="hall-header wood-titlebar"><span className="hall-crest" aria-hidden="true"><Swords size={24}/></span><h1 className="wood-title">Salão PvP</h1><div className="hall-population wood-pill" aria-label={`${arenaOnline} jogadores na arena`}><Users size={16}/><strong>{arenaOnline}</strong><span>na arena</span></div><button className="hall-back wood-close" type="button" aria-label="Sair da arena" title="Voltar à praça" onClick={onClose}><X size={23}/></button></header>
@@ -32,8 +37,30 @@ export function Arena({onClose}:{onClose:()=>void}){
      </button><button type="button" className="hall-spectate" aria-label={`Assistir ${room.name}`} title={watchAvailable?'Assistir à sala':'Sem vaga para espectadores'} disabled={!watchAvailable} onClick={()=>client.send({type:'spectate',roomId:room.id})}><Eye size={15}/></button></div>;
     }):<div className="hall-empty"><Swords size={44} aria-hidden="true"/><h3>{query?'Nenhuma sala encontrada':'Nenhuma sala criada'}</h3><p>{query?'Tente outro nome.':'Crie uma sala e chame a sua equipe.'}</p></div>}
    </div>
-   <footer className="hall-actions"><p>Grupos de 1 a 4 aliados. O tamanho da equipe define o duelo.</p><button type="button" className="hall-create wood-button" disabled={!online} onClick={()=>client.send({type:'create'})}><Plus size={20}/><span>Criar sala</span></button></footer>
-  </section><aside className="hall-chat wood-pane wood-chat" aria-label="Conversa da arena"><Chat/></aside></div>
+
+  </section>
+  <div className="hall-bottom"><aside className="hall-chat wood-pane wood-chat" aria-label="Conversa da arena"><Chat/></aside>
+   <nav className="hall-actions wood-pane" aria-label="Ações do salão">
+    <button type="button" className="hall-big hall-create" disabled={!online} onClick={()=>client.send({type:'create'})}><span className="hall-big-icon"><Plus size={30}/></span><span>Criar sala</span></button>
+    <button type="button" className="hall-big hall-quick" disabled={!online||!quick} title={quick?`Entrar na sala ${quick.number}`:'Nenhuma sala com vaga'} onClick={()=>quick&&client.send({type:'join',roomId:quick.id})}><span className="hall-big-icon"><Zap size={30}/></span><span>Entrar rápido</span></button>
+   </nav></div>
+  <aside className="hall-side" aria-label="Informações do jogador">
+   <section className="hall-me wood-pane" aria-label="Meu personagem">
+    <h2 className="hall-side-title wood-ribbon">Meu personagem</h2>
+    <div className="hall-me-card wood-cream">
+     {profile&&<><div className="hall-me-head"><LevelNumber level={profile.level} size={26}/><strong title={profile.name}>{profile.name}</strong></div>
+     <div className="hall-me-avatar"><Avatar equipment={profile.equipment} size={230} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={18} weaponVerticalOffset={10} groundedShadow/></div>
+     <dl className="hall-me-stats"><div><dt><Trophy size={13}/>Vitórias</dt><dd>{profile.wins}</dd></div><div><dt><Swords size={13}/>Partidas</dt><dd>{profile.matches}</dd></div></dl></>}
+    </div>
+   </section>
+   <section className="hall-online wood-pane" aria-label="Jogadores online">
+    <h2 className="hall-side-title wood-ribbon"><Users size={15} aria-hidden="true"/>Jogadores online<b>{onlineTotal}</b></h2>
+    <div className="hall-online-list wood-cream" role="table" aria-label="Lista de jogadores online">
+     <div className="hall-online-row hall-online-headrow" role="row"><span role="columnheader">Nível</span><span role="columnheader">Nome</span><span role="columnheader">Gênero</span></div>
+     {onlinePlayers.map(player=><div key={player.id} role="row" className={`hall-online-row ${player.id===profile?.id?'is-me':''}`}><span role="cell" className="hall-online-level" data-tier={Math.min(6,Math.floor((player.level-1)/10)+1)}>{player.level}</span><span role="cell" className="hall-online-name" title={player.name}>{player.name}</span><span role="cell" className={`hall-online-gender is-${player.gender}`} aria-label={player.gender==='female'?'Feminino':'Masculino'}>{player.gender==="female"?"♀":"♂"}</span></div>)}
+    </div>
+   </section>
+  </aside></div>
  </section>;
  return createPortal(<div className="arena-hall-portal">{content}</div>,document.body);
 }
