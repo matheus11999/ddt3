@@ -1,6 +1,6 @@
 # Combate deitado: arrastar, arma nas costas e arremesso
 
-Pedido do usuário em 17/10/2026: no combate os jogadores ficam deitados como no DDTank, se arrastam ao andar, a arma fica atrás do jogador e a mão arremessa o projétil. Tudo precisa funcionar igual em todas as roupas.
+Pedido do usuário em 17/10/2026: no combate os jogadores ficam deitados como no DDTank, se arrastam ao andar, a arma fica atrás do jogador e a mão arremessa o projétil. Tudo precisa funcionar igual em todas as roupas. Complemento do mesmo dia: armas de fogo e varinhas são tiradas das costas, seguradas na mão e disparam pela ponta; dinamite, tijolos e outras armas de arremesso continuam no arremesso com a mão.
 
 ## Como funciona
 
@@ -21,7 +21,10 @@ A caixa dos braços é calculada pelo alfa do tronco de cada roupa, então uma r
 - **Mirar**: braços levemente erguidos.
 - **Carregar**: braços sobem para trás da cabeça segurando o projétil, que brilha na cor da arma.
 - **Disparar**: os braços chicoteiam para frente na direção da mira (o projétil sai em t=0), com um rastro na cor da arma, e descem de volta ao chão em ~350 ms. No disparo os braços passam à frente da cabeça.
-- **Arma**: desenhada nas costas (`PRONE_WEAPON`), atrás do corpo e da cabeça, apontando para o ângulo de mira e acompanhando o impulso do arrasto. A física e o ponto de saída do servidor (`x + 27 × facing, y − 40`) não mudam.
+- **Arma**: desenhada nas costas (`PRONE_WEAPON`), atrás do corpo e da cabeça, apontando para o ângulo de mira e acompanhando o impulso do arrasto.
+- **Armas seguradas** (`hold:'hand'` no catálogo: Dragão de Brasa, Tempestade e Flor de Cristal): ao mirar, a arma sai das costas num arco sobre o ombro e vai para as mãos; os braços seguram o cabo atrás da boca da arma, que fica à frente do rosto (`HELD_WEAPON`) e aponta para a mira. Carregar brilha na própria arma; disparar dá o recuo. Ao voltar a parar ou andar, a arma volta para as costas. Uma arma nova segurada só precisa de `hold:'hand'`.
+- **Armas arremessadas** (sem `hold`): continuam nas costas e o projétil sai pelo arremesso das mãos.
+- A física e o ponto de saída do servidor (`x + 27 × facing, y − 40`) não mudam. A boca da arma segurada fica cerca de 10 px à frente desse ponto para não cobrir o rosto; o clarão do disparo cobre a diferença. Alinhar exatamente exigiria mover o ponto de saída no servidor, o que muda trajetórias e colisão com paredes finas.
 
 ## Validação
 
