@@ -1,4 +1,4 @@
-import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS} from './anchors';
+import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS,PRONE_PROPORTIONS} from './anchors';
 import type {FitClass} from './anchors';
 import {COSMETIC_MANIFEST} from './manifest';
 
@@ -69,4 +69,13 @@ export function evaluateBody(id:string,headShare:number,shoulderWidth:number):Fi
  if(headShare<minShare||headShare>maxShare)issues.push({code:'proportion',message:`Cabeça ocupa ${Math.round(headShare*100)}% da altura; faixa ${minShare*100}–${maxShare*100}%`,measured:fmt(headShare),limit:headShare<minShare?minShare:maxShare});
  if(shoulderWidth<minWidth||shoulderWidth>maxWidth)issues.push({code:'proportion',message:`Ombros com ${fmt(shoulderWidth)}× a cabeça; faixa ${minWidth}–${maxWidth}×`,measured:fmt(shoulderWidth),limit:shoulderWidth<minWidth?minWidth:maxWidth});
  return {id,bounds:null,widthRatio:fmt(shoulderWidth),issues};
+}
+/** Prone combat body: the universal arms layer must hold the fists, the hand point
+ * must sit on them, and the body must stay long enough to read as lying down. */
+export function evaluateProne(id:string,armShare:number,length:number,handDistance:number):FitReport{
+ const issues:FitIssue[]=[],[minArms,maxArms]=PRONE_PROPORTIONS.armShare,[minLength,maxLength]=PRONE_PROPORTIONS.length;
+ if(armShare<minArms||armShare>maxArms)issues.push({code:'proportion',message:`Braços deitados com ${Math.round(armShare*100)}% do tronco; faixa ${minArms*100}–${maxArms*100}%`,measured:fmt(armShare),limit:armShare<minArms?minArms:maxArms});
+ if(length<minLength||length>maxLength)issues.push({code:'proportion',message:`Corpo deitado com ${fmt(length)}× a cabeça; faixa ${minLength}–${maxLength}×`,measured:fmt(length),limit:length<minLength?minLength:maxLength});
+ if(handDistance>PRONE_PROPORTIONS.handReach)issues.push({code:'anchor',message:`Ponto da mão a ${Math.round(handDistance)}px do punho pintado; limite ${PRONE_PROPORTIONS.handReach}px`,measured:Math.round(handDistance),limit:PRONE_PROPORTIONS.handReach});
+ return {id,bounds:null,widthRatio:fmt(length),issues};
 }

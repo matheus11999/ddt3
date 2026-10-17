@@ -65,3 +65,8 @@ export const HEAD_SCALE=1.3;
 /** Standing body proportions shared by every outfit, measured with HEAD_SCALE applied.
  * Shoulder width compares the body art with the unscaled reference head (HEAD_WIDTH). */
 export const BODY_PROPORTIONS={headShare:[.47,.53] as const,shoulderWidth:[.85,1.05] as const};
+/** Combat prone body shared by every outfit (docs/prone-combat.md). armShare is the
+ * fraction of the prone torso lifted into the universal arms layer; length is the
+ * body from feet to fists against the head at HEAD_SCALE; the hand point must
+ * land on painted fist pixels so the projectile glow and throw arc start there. */
+export const PRONE_PROPORTIONS={armShare:[.06,.4] as const,length:[1,1.8] as const,handReach:40};

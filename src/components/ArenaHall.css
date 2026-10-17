@@ -1,45 +1,140 @@
-.arena-hall-portal{position:fixed;inset:0;z-index:70;display:grid;min-width:0;min-height:0;background:#0e192a}
-.arena-screen.party-arena.arena-hall{position:relative;inset:auto;display:grid;grid-template-rows:82px minmax(0,1fr);gap:16px;width:100%;height:100%;min-width:0;min-height:0;padding:17px;border:2px solid #6f715f;border-radius:0;background:radial-gradient(ellipse at 15% 0,#365a783b,transparent 55%),var(--arena-texture),linear-gradient(135deg,#16283f,#0f1c30 70%);background-size:auto,512px,auto;box-shadow:inset 0 0 0 3px #081424,inset 0 0 0 4px #c7b48321;color:var(--arena-text);isolation:isolate;overflow:hidden}
-.hall-header{position:relative;display:flex;align-items:center;gap:17px;min-width:0;padding:10px 19px;border:1px solid #83909c4d;border-radius:15px 15px 7px 7px;background:linear-gradient(110deg,#253c55b3,#14253ae6);box-shadow:inset 0 1px #a7bed52b,0 5px 12px #020a162e}
-.hall-header::after{content:'';position:absolute;bottom:-1px;left:21px;right:21px;height:1px;background:linear-gradient(90deg,#d0b781,transparent 54%,#d0b78155);pointer-events:none}
-.hall-header h1{font:700 31px 'Cinzel',Georgia,serif;color:var(--arena-title);letter-spacing:1px;margin:0;text-shadow:0 2px #09162c}
-.hall-crest{display:grid;place-items:center;width:53px;height:53px;flex:none;border-radius:50%;border:1px solid #c5ac75;background:radial-gradient(circle at 35% 25%,#3e5b72,#15273d 68%);box-shadow:inset 0 0 0 4px #20344c,inset 0 0 0 5px #b79d6161,0 3px 5px #060f1c80;color:#d9c391}.hall-crest svg{width:28px;height:28px;filter:drop-shadow(0 2px #071326)}
-.hall-population{display:flex;align-items:center;gap:8px;margin-left:auto;white-space:nowrap;color:var(--arena-muted);font-size:12px}.hall-population svg{color:#a6b9c8}.hall-population strong{font-size:24px;color:#e8e0c9;font-variant-numeric:tabular-nums}.hall-population span{margin-top:3px}.hall-back{margin-left:17px}
-.hall-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,29%);gap:17px;min-width:0;min-height:0}
-.hall-rooms{position:relative;display:flex;flex-direction:column;min-height:0;min-width:0;padding:16px;border:1px solid #667e964f;border-radius:13px;background:linear-gradient(#23395145,#0c1b2a40);box-shadow:inset 0 1px #a0b9cc1a,0 5px 13px #030d182e}
-.hall-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:41px;flex:none;margin-bottom:16px;padding:0 1px 12px;border-bottom:1px solid #8094a733}.hall-toolbar h2{position:relative;margin:0;padding-left:15px;font:700 17px 'Cinzel',Georgia,serif;color:#dac69e;letter-spacing:.3px}.hall-toolbar h2::before{content:'';position:absolute;left:0;top:7px;width:5px;height:5px;transform:rotate(45deg);border:1px solid #b59c6b;background:#ceb68155}
-.hall-search{display:flex;align-items:center;justify-content:flex-end;gap:3px;min-width:0;max-width:65%}.arena-hall .hall-search .arena-action{--arena-action-height:32px;--arena-action-size:11px;border-radius:8px;padding:6px}.hall-search.is-open{border:1px solid #7c96af80;border-radius:9px;padding:2px;background:#0e2034;box-shadow:inset 0 1px 5px #020c1859}.hall-search.is-open .arena-action{background:transparent;border-color:transparent;box-shadow:none;color:#b5c8da}.hall-search input{width:185px;max-width:100%;min-width:0;border:0;border-radius:0;box-shadow:none;background:transparent;color:#dae6f1;padding:6px 8px;font-size:12px;outline:none}.hall-search input::placeholder{color:#7f95ae}.arena-hall .hall-search .hall-search-close{width:25px}
-.hall-room-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(290px,100%),1fr));grid-auto-rows:max-content;gap:15px;align-content:start;overflow:auto;min-height:0;min-width:0;flex:1;scrollbar-width:thin;scrollbar-color:#7990a5 #0b1c2d;padding:3px 5px 8px 2px}
-.hall-room-wrap{position:relative;min-width:0;width:100%;max-width:380px;height:148px}
-.hall-room-wrap .hall-room-name{padding-right:93px}
-.hall-spectate{position:absolute;top:7px;right:9px;z-index:2;display:flex;align-items:center;justify-content:center;gap:5px;height:27px;padding:4px 7px;border:1px solid #d8bd7f88;border-radius:7px;background:linear-gradient(#4a6277,#2a4158);box-shadow:inset 0 1px #d8dec044;color:#f1e3bb;font-size:10px;font-weight:800}
-.hall-spectate:disabled{opacity:.4;cursor:default;filter:saturate(.4)}
-.hall-spectate:focus-visible{outline:2px solid var(--arena-focus);outline-offset:2px}
-.hall-room{position:relative;display:flex;align-items:center;gap:15px;width:100%;max-width:380px;min-width:0;height:148px;padding:53px 18px 15px;border:1px solid #c4b187;border-radius:13px;background:radial-gradient(ellipse at top left,#fffdf5,#eeeae0);color:var(--arena-ink);box-shadow:inset 0 0 0 3px #fcf6e3,inset 0 0 0 4px #c6b38c70,0 4px 10px #020b1966;text-align:left;transition:transform .16s,box-shadow .16s;overflow:hidden;cursor:pointer}
-.hall-room::before{content:'';position:absolute;inset:6px;border:1px solid #9d845333;border-radius:9px;pointer-events:none}.hall-room::after{content:'';position:absolute;bottom:11px;right:11px;width:5px;height:5px;border-right:1px solid #bfa36c;border-bottom:1px solid #bfa36c;border-radius:0 0 3px}
-.hall-room:not(:disabled):hover{transform:translateY(-2px);box-shadow:inset 0 0 0 3px #fff7df,inset 0 0 0 4px #c6b38c80,0 0 0 1px #dac28a,0 7px 17px #020b197d}.hall-room:disabled{opacity:1;cursor:default}.hall-room:focus-visible{outline:2px solid var(--arena-focus);outline-offset:3px}
-.hall-room-name{position:absolute;top:0;left:0;right:0;height:40px;padding:10px 16px;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border-bottom:1px solid #ae946164;background:linear-gradient(110deg,#2a425c,#192d46);color:#f2e5c8;font-size:14px;font-weight:800;text-shadow:0 1px #0c1729;box-shadow:inset 0 1px #c1d3df2b}
-.hall-room-format{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;flex:none;width:64px;height:77px;border:1px solid #9eaeaf;border-radius:10px;background:radial-gradient(ellipse at top,#e5eced,#b9c7cc);box-shadow:inset 0 1px #ffffffc9,inset 0 0 0 3px #e1e6df66,0 2px 4px #53647729;color:#526c7f}.hall-room-format svg{width:24px;height:24px;filter:drop-shadow(0 1px #fff)}.hall-room-format b{display:flex;align-items:center;gap:4px;font-size:23px;font-variant-numeric:tabular-nums;text-shadow:0 1px #fff}.hall-room-format small{font-size:12px;font-weight:600;color:#8c9a9f}
-.hall-room-info{display:flex;flex-direction:column;gap:13px;min-width:0;flex:1}.hall-room-owner{display:flex;align-items:center;gap:6px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;color:#8d8577;font-size:11px}.hall-room-owner svg{flex:none;color:#aa9368}.hall-room-status{display:flex;align-items:center;gap:5px;min-width:0;color:#6a856f;font-size:11px;font-weight:800;flex-wrap:wrap}.hall-room-status i{width:6px;height:6px;border-radius:50%;background:#7f9d85;box-shadow:0 0 0 3px #89a6901f}.hall-room.is-searching .hall-room-status{color:#9b854f}.hall-room.is-searching .hall-room-status svg{animation:hall-search-spin 1.4s linear infinite}.hall-room.is-playing .hall-room-status{color:#7087a0}.hall-room.is-full .hall-room-status{color:#a19b90}.hall-room-time{margin-left:auto;font-size:11px;font-variant-numeric:tabular-nums;white-space:nowrap;color:#6c7b89}.hall-room-arrow{flex:none;width:14px;color:#9f8b60}
-.hall-actions{position:relative;display:flex;justify-content:flex-end;flex:none;padding:15px 2px 1px;margin-top:12px;border-top:1px solid #8094a733}.hall-actions::before{content:'';position:absolute;top:-1px;left:0;width:80px;height:1px;background:linear-gradient(90deg,#c8b17c,transparent)}.arena-hall .hall-create{--arena-action-height:45px;--arena-action-size:14px;min-width:178px;padding:9px 22px}
-.hall-empty{grid-column:1/-1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:15px;min-height:235px;color:#7e91a9;text-align:center}.hall-empty>svg{opacity:.55}.hall-empty h3{font:700 18px 'Cinzel',Georgia,serif;margin:0;color:#a9b6c5}
-.hall-chat{display:grid;grid-template-rows:43px minmax(0,1fr)42px;gap:10px;min-width:0;min-height:0;padding:13px;border:1px solid #72829a70;border-radius:13px;background:linear-gradient(145deg,#1d324acc,#102137e6);box-shadow:inset 0 1px #bbcbd52b,inset 0 0 0 4px #0c1c2b26,0 5px 13px #020b192e}
-.hall-chat .chat-tabs{display:flex;align-items:stretch;gap:10px;height:43px;min-height:0;min-width:0;padding:0 2px;border-bottom:1px solid #a8b6c02e;background:none}.hall-chat .chat-tabs button{position:relative;padding:7px 15px;color:#8195ad;font-size:12px;font-weight:800;background:transparent;border:0;border-bottom:2px solid transparent;border-radius:0;box-shadow:none}.hall-chat .chat-tabs button.active{color:#e6d6b1;border-bottom-color:#c8af78;background:linear-gradient(transparent,#b8a26b0f)}
-.hall-chat .chat-messages{min-height:0;max-height:none;height:auto;overflow:auto;scrollbar-width:thin;padding:7px 4px;line-height:1.75;font-size:12px;color:#b4c4d6}.hall-chat .chat-messages strong{color:#d9c49a}.hall-chat .chat-messages .system-message{color:#8298b0}
-.hall-chat .chat-input{position:static;display:flex;align-items:center;height:100%;min-height:0;gap:5px;min-width:0;padding:4px 6px;border:1px solid #71869b70;border-radius:9px;background:#0b1b2e;box-shadow:inset 0 1px 5px #010b172e}.hall-chat .chat-input input{flex:1;min-width:0;width:0;height:31px;border:0;background:transparent;box-shadow:none;padding:5px;font-size:11px;color:#dce8f2}.hall-chat .chat-input input::placeholder{color:#778da6}.hall-chat .chat-input button{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:5px;border:1px solid #9c916760;border-radius:6px;background:linear-gradient(#385169,#233b52);color:#d6c596;box-shadow:inset 0 1px #8ea6b333}
-@keyframes hall-search-spin{to{transform:rotate(360deg)}}
-@media(max-width:1050px){.hall-body{grid-template-columns:minmax(0,1fr)250px}.hall-room-list{grid-template-columns:repeat(auto-fill,minmax(min(270px,100%),1fr))}}
-@media(max-width:710px){.arena-screen.party-arena.arena-hall{padding:11px;gap:11px;grid-template-rows:67px minmax(0,1fr)}.hall-body{grid-template-columns:minmax(0,1fr)170px;gap:10px}.hall-rooms{padding:10px}.hall-room-list{grid-template-columns:1fr}.hall-room{gap:11px;padding-left:13px;padding-right:13px}.hall-room-format{width:54px}.hall-search{max-width:80%}.hall-header{padding:8px 12px;gap:10px}.hall-header h1{font-size:25px}.hall-crest{width:43px;height:43px}.hall-population{gap:5px;font-size:10px}.hall-population strong{font-size:22px}.hall-back{margin-left:7px}.arena-hall .hall-back{padding:7px 10px;--arena-action-size:11px}.hall-room-name{font-size:13px}.hall-room-owner{font-size:10px}.hall-room-status{font-size:10px}.hall-room-arrow{display:none}.hall-chat{padding:8px;gap:7px}.hall-chat .chat-tabs{gap:5px}.hall-chat .chat-tabs button{padding:5px 8px;font-size:10px}.hall-chat .chat-messages{font-size:10px;padding:3px}.hall-chat .chat-input input{font-size:10px}.hall-chat .chat-input{padding:4px}.hall-chat .chat-input button{width:25px;padding:3px}}
-html.mobile-landscape .arena-hall-portal{padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-html.mobile-landscape .arena-screen.party-arena.arena-hall{padding:6px;gap:7px;grid-template-rows:44px minmax(0,1fr);border-width:1px}
-html.mobile-landscape .hall-header{padding:4px 9px;gap:8px;border-radius:10px 10px 5px 5px}html.mobile-landscape .hall-header::after{left:10px;right:10px}html.mobile-landscape .hall-crest{width:29px;height:29px}html.mobile-landscape .hall-crest svg{width:17px}html.mobile-landscape .hall-header h1{font-size:19px}html.mobile-landscape .hall-population{font-size:9px;gap:5px}html.mobile-landscape .hall-population svg{width:13px}html.mobile-landscape .hall-population strong{font-size:17px}html.mobile-landscape .arena-hall .hall-back{--arena-action-height:29px;--arena-action-size:9px;padding:5px 8px;margin-left:6px;border-radius:7px}html.mobile-landscape .hall-back svg{width:13px}
-html.mobile-landscape .hall-body{grid-template-columns:minmax(0,1fr)27%;gap:7px}html.mobile-landscape .hall-rooms{padding:8px;border-radius:9px}html.mobile-landscape .hall-toolbar{min-height:29px;margin-bottom:7px;padding:0 1px 5px;gap:5px}html.mobile-landscape .hall-toolbar h2{font-size:12px;padding-left:11px}html.mobile-landscape .hall-toolbar h2::before{top:4px;width:4px;height:4px}html.mobile-landscape .arena-hall .hall-search .arena-action{--arena-action-height:26px;padding:4px;border-radius:6px}html.mobile-landscape .hall-search input{width:140px;padding:3px 4px;font-size:10px}html.mobile-landscape .hall-search{max-width:70%}
-html.mobile-landscape .hall-room-list{grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:9px;padding:2px 3px 5px 1px}html.mobile-landscape .hall-room{max-width:none;height:109px;padding:39px 11px 10px;gap:10px;border-radius:10px}html.mobile-landscape .hall-room::before{inset:5px;border-radius:6px}html.mobile-landscape .hall-room-name{height:29px;padding:7px 11px;font-size:11px}html.mobile-landscape .hall-room-format{width:44px;height:57px;gap:3px;border-radius:7px}html.mobile-landscape .hall-room-format svg{width:18px;height:18px}html.mobile-landscape .hall-room-format b{font-size:17px;gap:3px}html.mobile-landscape .hall-room-format small{font-size:9px}html.mobile-landscape .hall-room-info{gap:8px}html.mobile-landscape .hall-room-owner{font-size:9px;gap:3px}html.mobile-landscape .hall-room-owner svg{width:9px}html.mobile-landscape .hall-room-status{font-size:9px;gap:3px}html.mobile-landscape .hall-room-status svg{width:10px}html.mobile-landscape .hall-room-time{font-size:9px}html.mobile-landscape .hall-room-arrow{display:none}
-html.mobile-landscape .hall-actions{padding:7px 1px 1px;margin-top:6px}html.mobile-landscape .arena-hall .hall-create{--arena-action-height:31px;--arena-action-size:11px;min-width:126px;padding:5px 11px;border-radius:7px;gap:6px}html.mobile-landscape .hall-create svg{width:16px}html.mobile-landscape .hall-empty{min-height:130px;gap:9px}html.mobile-landscape .hall-empty>svg{width:30px;height:30px}html.mobile-landscape .hall-empty h3{font-size:14px}
-html.mobile-landscape .hall-chat{padding:6px;gap:4px;grid-template-rows:28px minmax(0,1fr)30px;border-radius:9px}html.mobile-landscape .hall-chat .chat-tabs{height:28px;gap:4px}html.mobile-landscape .hall-chat .chat-tabs button{font-size:9px;padding:4px 7px}html.mobile-landscape .hall-chat .chat-messages{font-size:9px;padding:2px}html.mobile-landscape .hall-chat .chat-input{padding:2px 3px;border-radius:6px}html.mobile-landscape .hall-chat .chat-input input{height:23px;font-size:9px;padding:2px}html.mobile-landscape .hall-chat .chat-input button{width:23px;height:23px;padding:2px}
-@media(prefers-reduced-motion:reduce){.hall-room{transition:none}.hall-room.is-searching .hall-room-status svg{animation:none}}
-html.mobile-landscape .hall-room-wrap{max-width:none;height:109px}
-html.mobile-landscape .hall-room-wrap .hall-room-name{padding-right:70px}
-html.mobile-landscape .hall-spectate{top:4px;right:6px;height:22px;padding:3px 5px;gap:3px;border-radius:5px;font-size:8px}
-html.mobile-landscape .hall-spectate>svg{width:12px;height:12px}
+/* Salão PvP no padrão da mochila: moldura de madeira laranja em tela cheia,
+   barra de título escura, lista de salas em área creme e conversa ao lado.
+   Materiais em WoodTheme.css; botões compartilhados em ArenaTheme.css. */
+.arena-hall-portal{position:fixed;inset:0;z-index:30;overflow:hidden;background:#2a1406}
+.arena-hall-portal .pvp-hall{
+ position:absolute;inset:0;display:grid;grid-template-rows:62px minmax(0,1fr);gap:8px;
+ width:100%;height:100%;margin:0;padding:8px;border-radius:0;overflow:hidden;isolation:isolate;
+}
+.pvp-hall :is(button,input,strong,small,b,span,h2,h3,p){font-family:'Nunito','Trebuchet MS',sans-serif}
+.pvp-hall .wood-title{font-family:'Cinzel',Georgia,serif}
 
+/* ---------- Barra de título ---------- */
+.pvp-hall .hall-header{display:flex;align-items:center;gap:12px;min-width:0;padding:0 11px 0 9px}
+.pvp-hall .hall-crest{display:grid;place-items:center;flex:none;width:42px;height:42px;border:2px solid #ffe2a6;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffd884,#e98a25 55%,#a9480f);box-shadow:inset 0 -3px #8a3a0a,0 2px #2c1004;color:#fff8e4;filter:drop-shadow(0 0 6px #ffae4a66)}
+.pvp-hall .hall-crest svg{filter:drop-shadow(0 1px #7a2d04)}
+.pvp-hall .hall-header h1{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.pvp-hall .hall-population{height:32px;padding:0 13px 0 10px;font-size:12px}
+.pvp-hall .hall-population svg{color:#c25f12}
+.pvp-hall .hall-population strong{font-size:17px;color:var(--wood-ink)}
+.pvp-hall .hall-population span{font-weight:800;color:var(--wood-ink-soft)}
+
+/* ---------- Corpo ---------- */
+.pvp-hall .hall-body{display:grid;grid-template-columns:minmax(0,1fr) clamp(260px,24vw,360px);gap:8px;min-height:0}
+.pvp-hall .hall-rooms{display:grid;grid-template-rows:42px minmax(0,1fr) 56px;gap:7px;min-width:0;min-height:0;padding:8px}
+.pvp-hall .hall-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0}
+.pvp-hall .hall-tab{display:flex;align-items:center;gap:8px;height:100%;margin:0;padding:0 8px 0 14px;border-radius:10px;font-size:17px;font-weight:900}
+.pvp-hall .hall-tab b{display:grid;place-items:center;min-width:26px;height:24px;padding:0 7px;border-radius:999px;background:#fff4d7e6;box-shadow:inset 0 1px 2px #b8641a55;color:var(--wood-ink);font-size:13px;text-shadow:none}
+.pvp-hall .hall-search{display:flex;align-items:center;gap:4px;height:36px;min-width:0;padding:0 3px;border-radius:999px}
+.pvp-hall .hall-search.is-open{flex:0 1 330px;padding-left:14px;background:linear-gradient(#fffdf5,#f5e3be);box-shadow:inset 0 -2px #d9b880,0 1px 2px #1d0a0288}
+.pvp-hall .hall-search input{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:none;color:var(--wood-ink);font-size:14px;font-weight:800}
+.pvp-hall .hall-search input::placeholder{color:#b4895c}
+.pvp-hall .hall-search-trigger{display:grid;place-items:center;flex:none;width:36px;height:36px;padding:0;border:1px solid #fff2c8;border-radius:50%;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 1px #fff7cf,inset 0 -2px #c06d0a,0 2px #2a0f03;color:#6b2c05;cursor:pointer}
+.pvp-hall .hall-search.is-open .hall-search-trigger{width:30px;height:30px;box-shadow:inset 0 -2px #c06d0a}
+.pvp-hall .hall-search-close{display:grid;place-items:center;flex:none;width:26px;height:26px;padding:0;border:0;border-radius:50%;background:#f2d4a2;color:var(--wood-ink);cursor:pointer}
+.pvp-hall .hall-search :is(button,input):focus-visible{outline:2px solid #c25f12;outline-offset:2px}
+
+/* ---------- Lista de salas ---------- */
+.pvp-hall .hall-room-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(280px,100%),1fr));grid-auto-rows:120px;align-content:start;gap:12px;min-height:0;padding:14px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d98f45 transparent}
+.pvp-hall .hall-room-wrap{position:relative;min-width:0;max-width:380px}
+.pvp-hall .hall-room{
+ --room-accent:#3aa35f;--room-accent-deep:#227544;
+ position:relative;display:grid;grid-template-columns:50px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) 34px;align-items:center;column-gap:11px;
+ width:100%;height:120px;padding:10px 12px 0 10px;border:2px solid #f2b56b;border-radius:14px;
+ background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 1px #fff,inset 0 -3px #e9c991,0 3px #a75a2366,0 4px 10px #8a431833;
+ color:var(--wood-ink);text-align:left;cursor:pointer;overflow:hidden;transition:transform .15s,box-shadow .15s,border-color .15s;
+}
+.pvp-hall .hall-room::before{content:'';position:absolute;inset:auto 0 0;height:34px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);pointer-events:none}
+.pvp-hall .hall-room.is-searching{--room-accent:#3d84d6;--room-accent-deep:#235aa0}
+.pvp-hall .hall-room.is-playing{--room-accent:#e0532c;--room-accent-deep:#a32f12}
+.pvp-hall .hall-room.is-full{--room-accent:#a2856a;--room-accent-deep:#715a45}
+.pvp-hall .hall-room:not(:disabled):hover{transform:translateY(-2px);border-color:#ffcf86;box-shadow:inset 0 1px #fff,inset 0 -3px #e9c991,0 0 0 3px #ffb44f55,0 6px 14px #8a431844}
+.pvp-hall .hall-room:not(:disabled):active{transform:translateY(0)}
+.pvp-hall .hall-room:disabled{cursor:default;opacity:1;filter:none}
+.pvp-hall .hall-room.is-full{background:linear-gradient(#fbf4e6,#f1e2c6)}
+.pvp-hall .hall-room.is-full :is(.hall-room-number,.hall-room-format){filter:saturate(.45)}
+.pvp-hall .hall-room:focus-visible{outline:3px solid #c25f12;outline-offset:3px}
+.pvp-hall .hall-room-number{grid-row:1;display:grid;place-items:center;width:50px;height:50px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffd47a,#f39a2c 55%,#c9661a);box-shadow:inset 0 -3px #a8500f,0 2px #8a431855;color:#fff;font-size:20px;font-weight:900;text-shadow:0 1px #8a3a07,0 0 3px #9a4508}
+.pvp-hall .hall-room-main{grid-row:1;display:grid;gap:4px;min-width:0}
+.pvp-hall .hall-room-name{overflow:hidden;font-size:16px;font-weight:900;line-height:1.15;text-overflow:ellipsis;white-space:nowrap;color:var(--wood-ink)}
+.pvp-hall .hall-room-owner{display:flex;align-items:center;gap:5px;min-width:0;overflow:hidden;font-size:12px;font-weight:800;color:var(--wood-ink-soft);white-space:nowrap;text-overflow:ellipsis}
+.pvp-hall .hall-room-owner svg{flex:none;color:#e58f1f}
+.pvp-hall .hall-room-format{grid-row:1;display:grid;justify-items:center;gap:1px;min-width:54px;padding:5px 8px 4px;border:1px solid #fff2c8;border-radius:10px;background:linear-gradient(#7a3a14,#55250b);box-shadow:inset 0 1px #ffc78a55,0 2px #3e1a0766;color:var(--wood-gold)}
+.pvp-hall .hall-room-format b{font-size:19px;font-weight:900;line-height:1;color:#fff4d4;text-shadow:0 1px #2c1004}
+.pvp-hall .hall-room-format small{margin:0 1px;font-size:12px;color:var(--wood-gold)}
+.pvp-hall .hall-room-foot{position:relative;z-index:1;grid-column:1/-1;grid-row:2;display:flex;align-items:center;gap:10px;min-width:0;height:100%;padding-right:34px}
+.pvp-hall .hall-room-seats{display:flex;gap:4px;flex:none}
+.pvp-hall .hall-room-seats i{width:16px;height:16px;border:2px solid #d9a868;border-radius:50%;background:#fff8e8;box-shadow:inset 0 1px 2px #b8641a44}
+.pvp-hall .hall-room-seats i.taken{border-color:#fff0c9;background:radial-gradient(circle at 40% 35%,#ffd47a,#f39a2c 60%,#c9661a);box-shadow:0 1px #8a431866}
+.pvp-hall .hall-room-status{display:flex;align-items:center;gap:5px;min-width:0;margin-left:auto;padding:3px 10px;border-radius:999px;background:var(--room-accent);box-shadow:inset 0 -2px var(--room-accent-deep);color:#fff;font-size:12px;font-weight:900;white-space:nowrap;text-shadow:0 1px var(--room-accent-deep)}
+.pvp-hall .hall-room-status>i{width:8px;height:8px;border-radius:50%;background:#e9ffe9;box-shadow:0 0 6px #fff}
+.pvp-hall .hall-room.is-searching .hall-room-status svg{animation:hall-spin 1.2s linear infinite}
+.pvp-hall .hall-room-time{margin-left:3px;font-variant-numeric:tabular-nums}
+.pvp-hall .hall-spectate{position:absolute;bottom:3px;right:10px;z-index:2;display:grid;place-items:center;width:28px;height:28px;padding:0;border:1px solid #f2c88c;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b;cursor:pointer}
+.pvp-hall .hall-spectate:not(:disabled):hover{filter:brightness(1.06)}
+.pvp-hall .hall-spectate:disabled{opacity:.4;cursor:default}
+.pvp-hall .hall-spectate:focus-visible{outline:2px solid #c25f12;outline-offset:2px}
+@keyframes hall-spin{to{rotate:360deg}}
+
+.pvp-hall .hall-empty{grid-column:1/-1;align-self:center;display:grid;justify-items:center;gap:4px;padding:60px 20px;color:var(--wood-ink-soft);text-align:center}
+.pvp-hall .hall-empty svg{color:#e2a55c}
+.pvp-hall .hall-empty h3{margin:8px 0 0;font-size:19px;font-weight:900;color:var(--wood-ink)}
+.pvp-hall .hall-empty p{margin:0;font-size:13px;font-weight:700}
+
+/* ---------- Rodapé ---------- */
+.pvp-hall .hall-actions{display:flex;align-items:center;justify-content:space-between;gap:12px;min-width:0;padding:0 6px 0 10px;border-radius:12px;background:#5b2a0e66;box-shadow:inset 0 1px 3px #2c110466}
+.pvp-hall .hall-actions p{margin:0;min-width:0;overflow:hidden;font-size:13px;font-weight:800;color:#ffe2b6;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px #3b1806}
+.pvp-hall .hall-create{min-width:170px;height:44px;font-size:16px}
+
+/* ---------- Conversa ---------- */
+.pvp-hall .hall-chat{min-width:0}
+
+/* ---------- Telas menores ---------- */
+@media(max-width:900px){
+ .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) 240px}
+ .pvp-hall .hall-actions p{display:none}
+ .pvp-hall .hall-actions{justify-content:flex-end}
+}
+@media(max-width:640px){
+ .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 190px}
+ .pvp-hall .hall-population span{display:none}
+}
+
+/* Celular em paisagem: altura curta, tudo compacto e tocável. */
+html.mobile-landscape .arena-hall-portal .pvp-hall{grid-template-rows:42px minmax(0,1fr);gap:5px;padding:max(5px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-width:1px}
+html.mobile-landscape .pvp-hall .hall-header{gap:8px;padding:0 5px 0 5px;border-radius:12px 12px 8px 8px}
+html.mobile-landscape .pvp-hall .hall-crest{width:30px;height:30px;border-width:1px}
+html.mobile-landscape .pvp-hall .hall-crest svg{width:17px;height:17px}
+html.mobile-landscape .pvp-hall .wood-title{font-size:18px}
+html.mobile-landscape .pvp-hall .hall-population{height:26px;font-size:10px}
+html.mobile-landscape .pvp-hall .hall-population strong{font-size:14px}
+html.mobile-landscape .pvp-hall .hall-back{width:34px;height:34px;border-radius:10px}
+html.mobile-landscape .pvp-hall .hall-body{grid-template-columns:minmax(0,1fr) clamp(190px,28vw,250px);grid-template-rows:minmax(0,1fr);gap:5px}
+html.mobile-landscape .pvp-hall .hall-rooms{grid-template-rows:34px minmax(0,1fr) 44px;gap:5px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-tab{font-size:14px;padding-left:10px}
+html.mobile-landscape .pvp-hall .hall-search{height:32px}
+html.mobile-landscape .pvp-hall .hall-search-trigger{width:32px;height:32px}
+html.mobile-landscape .pvp-hall .hall-room-list{grid-template-columns:repeat(auto-fill,minmax(min(220px,100%),1fr));grid-auto-rows:92px;gap:7px;padding:8px}
+html.mobile-landscape .pvp-hall .hall-room-wrap{max-width:none}
+html.mobile-landscape .pvp-hall .hall-room{grid-template-columns:38px minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) 28px;column-gap:8px;height:92px;padding:6px 8px 0 7px;border-radius:12px}
+html.mobile-landscape .pvp-hall .hall-room::before{height:28px}
+html.mobile-landscape .pvp-hall .hall-room-number{width:38px;height:38px;font-size:16px}
+html.mobile-landscape .pvp-hall .hall-room-name{font-size:13px}
+html.mobile-landscape .pvp-hall .hall-room-owner{font-size:10px}
+html.mobile-landscape .pvp-hall .hall-room-format{min-width:44px;padding:3px 6px}
+html.mobile-landscape .pvp-hall .hall-room-format svg{width:14px;height:14px}
+html.mobile-landscape .pvp-hall .hall-room-format b{font-size:15px}
+html.mobile-landscape .pvp-hall .hall-room-seats i{width:12px;height:12px}
+html.mobile-landscape .pvp-hall .hall-room-status{padding:2px 8px;font-size:10px}
+html.mobile-landscape .pvp-hall .hall-spectate{bottom:2px;right:7px;width:24px;height:24px}
+html.mobile-landscape .pvp-hall .hall-room-foot{padding-right:28px}
+html.mobile-landscape .pvp-hall .hall-actions{justify-content:flex-end;padding:0 4px}
+html.mobile-landscape .pvp-hall .hall-actions p{display:none}
+html.mobile-landscape .pvp-hall .hall-create{min-width:140px;height:36px;font-size:14px}
+html.mobile-landscape .pvp-hall .wood-chat{grid-template-rows:28px minmax(0,1fr) 32px;gap:4px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-hall .wood-chat .chat-tabs>button{min-width:0;padding:0 10px;font-size:11px}
+html.mobile-landscape .pvp-hall .wood-chat .chat-messages{padding:5px 7px;font-size:11px}
+html.mobile-landscape .pvp-hall .wood-chat .chat-input>input{font-size:12px}
+html.mobile-landscape .pvp-hall .wood-chat .chat-input>button{width:26px;height:26px}
+
+@media(prefers-reduced-motion:reduce){.pvp-hall .hall-room{transition:none}.pvp-hall .hall-room.is-searching .hall-room-status svg{animation:none}}
