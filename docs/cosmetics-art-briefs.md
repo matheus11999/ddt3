@@ -36,7 +36,7 @@ Usar o molde da classe como imagem de referência, junto com a arte atual da pe�
 ### Cabelo
 
 ```text
-Pintar SOMENTE o cabelo [NOME E DESCRIÇÃO] sobre a cabeça-molde fornecida do jogo, no mesmo canvas 1254×1254, mesma posição, escala e perspectiva três quartos para a direita. O cabelo deve caber inteiro dentro do retângulo verde do molde: largura máxima [1,45|1,55]× a cabeça e no máximo 0,30× acima do topo do crânio. Franja termina acima da linha azul da sobrancelha e nunca cobre as áreas vermelhas dos olhos e da boca. Seguir o contorno do crânio, sem flutuar acima dele. Pintura chibi refinada, contorno castanho, volume e brilho de mechas, cores vivas e saturadas, iluminação superior esquerda. Entregar duas camadas em PNG RGBA com transparência real: traseira (nuca e mechas atrás da cabeça) e frontal (franja e têmporas). Sem rosto, pele, chapéu, texto, fundo ou guias do molde.
+Pintar SOMENTE o cabelo [NOME E DESCRIÇÃO] sobre a cabeça-molde fornecida do jogo, no mesmo canvas 1254×1254, mesma posição, escala e perspectiva três quartos para a direita. O cabelo deve caber inteiro dentro do retângulo verde do molde: largura máxima [1,45|1,55]× a cabeça e no máximo 0,30× acima do topo do crânio. Franja termina acima da linha azul da sobrancelha e nunca cobre as áreas vermelhas dos olhos e da boca. Seguir o contorno do crânio, sem flutuar acima dele. Contornar a orelha por trás, sem mechas sobre ela. Pintura chibi refinada, contorno castanho, volume e brilho de mechas, cores vivas e saturadas, iluminação superior esquerda. Entregar duas camadas em PNG RGBA com transparência real: traseira (nuca e mechas atrás da cabeça) e frontal (franja e têmporas). Sem rosto, pele, chapéu, texto, fundo ou guias do molde.
 ```
 
 ### Chapéu

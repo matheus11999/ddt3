@@ -166,7 +166,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
 
 const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
-export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string}){
+export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean}){
  const {id,anchor}=tip,level=upgrades[id]??0,item=CATALOG[id],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===id),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
  const equipped=!!item&&slotsForItem(item).some(slot=>equipment[slot]===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
@@ -189,7 +189,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
    <div className="bag-tip-title">
     <strong>{item?.name??stone?.name}</strong>
     <small>{item?SLOT_NAMES[item.slot]:'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
-    {item&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
+    {item&&!hideGender&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
    </div>
    {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
   </header>
@@ -200,7 +200,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
    {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
-   {(action||!compatible||!equipped)&&<footer className={`bag-tip-foot ${action?'':!compatible?'blocked':''}`}>{action??(!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar')}</footer>}
+   {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
   </>:<>
    <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
    <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>

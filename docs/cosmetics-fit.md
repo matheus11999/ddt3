@@ -64,6 +64,14 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 
 Nenhum número novo vai para `appearance.ts` ou `headwear.ts`.
 
+## Redução provisória (17/10/2026)
+
+Corte Horizonte, Corte Tempestade e Rabo de Cavalo Rubi passavam da cabeça (1,56–1,71× de largura). `shrink(..., .9)` em `manifest.ts` reduz cada um a 90% em volta do centro do crânio (o Horizonte gira perto do olho distante para a franja não descer sobre os olhos). Agora cabem na largura; sobra uma pequena altura extra e a franja sobre os olhos, que só a arte nova corrige. Quando a arte repintada chegar, remover o `shrink` da peça.
+
+## Orelha na frente do cabelo (17/10/2026)
+
+O cabelo passava por cima da orelha. Agora cada arte de cabelo, descoberto ou coberto, é recortada pelo contorno exato da orelha (`EAR_FRONT` em `anchors.ts`, traçado no meio da linha pintada da cabeça universal) e ganha uma borda escura no corte, como no DDTank: a orelha da cabeça aparece por baixo e o cabelo a contorna com uma linha contínua, sem recorte quadrado. Arte nova não deve pintar mechas sobre a orelha.
+
 ## Fase 3: ajustes de código
 
 - Todos os chapéus pintados usam o mesmo assento (`HEAD_ANCHORS.hatSeat`); antes cada um tinha o seu, com até 23 px de diferença.
