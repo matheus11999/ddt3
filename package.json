@@ -24,6 +24,7 @@
     "test:power:integration": "tsx tests/power.integration.ts",
     "verify:cosmetics": "node scripts/verify-cosmetics.mjs",
     "verify:weapons": "node scripts/verify-weapons.mjs",
+    "split:weapon-sheet": "node scripts/split-weapon-sheet.mjs",
     "sounds:weapons": "node scripts/generate-weapon-sounds.mjs",
     "test:matchmaking:integration": "tsx tests/matchmaking.integration.ts",
     "test:gender:integration": "tsx tests/gender.integration.ts",

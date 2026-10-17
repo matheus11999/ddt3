@@ -108,6 +108,8 @@ try{
    add(kit.powTrident
     ?{group:'regra',slot:'pow',label:'POW × Tridente',status:'ok',detail:K.POW_TRIDENT_LABELS[kit.powTrident]}
     :{group:'regra',slot:'pow',label:'POW × Tridente',status:'aviso',detail:'Regra não definida: o jogo usa "livre" (POW e Tridente combinam). Defina powTrident no kit.'});
+   // All four looks in one image, cut by split-weapon-sheet: offered while any icon or held art is missing.
+   if(entry.prompts.some(prompt=>/^(icon|held)-/.test(prompt.key)))entry.prompts.push({key:'sheet',order:0,file:'prancha-fases.txt',title:'Prancha com as 4 fases (ícone e arma na mão)',kind:'imagem',text:K.phasesSheetPrompt(weapon,kit)});
    const seen=new Set();entry.prompts=entry.prompts.filter(prompt=>!seen.has(prompt.key)&&seen.add(prompt.key)).sort((a,b)=>a.order-b.order);
   }
   // Visual sheet: one row per weapon, thumbnails per phase.

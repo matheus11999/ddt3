@@ -37,6 +37,8 @@ O servidor aplica a regra (`server/game.ts`, `powBoostConflict`): Power armado r
 
 1. Rodar `npm run verify:weapons` (`--weapon=<id>` para uma só). Saída em `test-results/weapons/`: `report.md`, `sheet.png` (prancha com cada peça) e `prompts.md`.
 2. Imagens: colar os prompts de `prompts.md` no ChatGPT **na ordem numerada** (ícone +0, arma +0, ícone +10…). A partir do segundo, anexar as imagens listadas em "Reference images": é isso que mantém o mesmo traço, luz e ângulo entre as fases. Cada prompt diz o tamanho e onde salvar. A IA pinta a forma; nada de texto ou número na imagem.
+   Atalho (prompt `00-prancha-fases.txt`): as 4 fases numa só imagem 2×2 (+0, +10 / +12, +15), o que mantém o mesmo estilo e faz o recipiente **e os tijolos** evoluírem juntos. Depois `npm run split:weapon-sheet -- --weapon=<id> prancha.png` corta em `held-<fase>.png` (1254) e `icon-<fase>.png` (512); `--only=12,15` salva só algumas fases.
+   Cada fase tem `ammo` no kit: a munição dentro do recipiente, que é o mesmo objeto que voa. Ela muda de fase para fase, como o recipiente. O recipiente é sempre algo que uma pessoa carrega.
 3. Sons: `npm run sounds:weapons -- --weapon=<id>` gera os que faltam no ElevenLabs com a chave do `.env` local (`ELEVENLABS_API_KEY`, nunca no git), ou colar o texto no site. Depois acrescentar o slot em `sounds` do kit.
 4. Rodar o validador de novo e mostrar `sheet.png` ao usuário. Passar no validador não é aprovação visual.
 

@@ -8,7 +8,7 @@ import type {ServerEvent} from '../shared/protocol';
 import {CATALOG,STARTER_WEAPON,WEAPONS,weaponAssetPath,weaponIconPath,weaponVisualStage} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {shotModifiers} from '../shared/combat';
-import {artPrompt,boostsForShot,powBoostConflict,powTridentRule,promptOrder,soundPrompt,WEAPON_KITS,WEAPON_PHASES,WEAPON_SOUND_SLOTS} from '../shared/weaponKit';
+import {artPrompt,phasesSheetPrompt,boostsForShot,powBoostConflict,powTridentRule,promptOrder,soundPrompt,WEAPON_KITS,WEAPON_PHASES,WEAPON_SOUND_SLOTS} from '../shared/weaponKit';
 import type {PowTridentRule,WeaponSoundSlot} from '../shared/weaponKit';
 
 const kitWeapons=WEAPONS.filter(weapon=>WEAPON_KITS[weapon.id]);
@@ -80,3 +80,13 @@ for(const [rule,boost,message] of [['exclusivo','trident',/não combina Power co
    await g.game.command(g.shooter.id,{type:'power'});assert.equal(g.shooter.powerArmed,false);assert.match(lastError(g.events)!.message,message);
   }finally{WEAPON_KITS.brick.powTrident=saved;}
  });
+
+test('each phase has its own ammo, and the all-phases sheet asks for the four looks at once',()=>{
+ const kit=WEAPON_KITS.brick,ammo=WEAPON_PHASES.map(p=>kit.phases[p.stage].ammo);
+ assert.equal(new Set(ammo).size,WEAPON_PHASES.length);
+ const brick=WEAPONS.find(w=>w.id==='brick')!;
+ assert.match(artPrompt(brick,kit,'icon',12),new RegExp(kit.phases[12].ammo.slice(0,20)));
+ const sheet=phasesSheetPrompt(brick,kit);
+ for(const value of ammo)assert.ok(sheet.includes(value));
+ assert.match(sheet,/2×2/);
+});
