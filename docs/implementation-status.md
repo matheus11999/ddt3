@@ -262,6 +262,8 @@ O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica p
 
 O impacto de todos os tiros agora toca duas camadas gravadas em `public/assets/audio/sfx/`: `impact-base.mp3` (grave, gerado pelo usuário) e `impact-crack.mp3` (estalo de médios, gerado pela API do ElevenLabs). As camadas tocam com tom sorteado entre ±5%; o som sintetizado da arma continua por cima, e o ruído sintetizado só toca enquanto os arquivos não carregaram. Plano completo e prompts em [audio-plan.md](audio-plan.md). A chave do ElevenLabs fica só no `.env` local (fora do git).
 
+Sons do POW e da seleção de poderes (17/10/2026): `pow-activate-0[1-3].mp3` e `boost-select-0[1-3].mp3`, gerados pela API do ElevenLabs no PC do usuário e normalizados. `Scene.tsx` toca a deixa quando o servidor confirma mais um poder selecionado ou o POW armado do próprio jogador (`audio.cue`), sorteando uma das três variações.
+
 ## Virada do personagem ao andar (17/10/2026)
 
 - Antes a virada misturava duas cópias espelhadas e semitransparentes e achatava o boneco na largura por 150 ms, o que parecia uma folha de papel girando. Agora o boneco troca de lado de uma vez, como no DDTank, com um agachamento curto e um pulinho nos pés (`turnPop` em `src/game/avatar.ts`). Vale para roupas, fantasias e combate.
