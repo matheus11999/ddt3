@@ -82,7 +82,7 @@ export interface ExpeditionDef {
 }
 export const EXPEDITIONS:readonly ExpeditionDef[]=[
  {id:'anthill',name:'Formigueiro',subtitle:'Tronco caído e a câmara da rainha',cover:'/assets/expeditions/anthill/cover.webp',minLevel:1,
-  art:'/assets/expeditions/anthill/picker-art.webp',board:'/assets/expeditions/anthill/stage-1.webp',drops:[{kind:'stone',level:1}],recommendedPower:{easy:3000,normal:6000,hard:12000,hero:20000},
+  art:'/assets/expeditions/anthill/picker-art.webp',board:'/assets/expeditions/anthill/board.webp',drops:[{kind:'stone',level:1}],recommendedPower:{easy:3000,normal:6000,hard:12000,hero:20000},
   description:'Formigas cercam o tronco caído. Derrote todas e enfrente a Rainha Formiga dentro do formigueiro.',
   stages:{easy:[
    {map:'anthill-1',name:'O tronco caído',art:'/assets/expeditions/anthill/stage-1.webp',objective:'Derrotar todas as formigas',cards:4,award:{coins:20,xp:40},prizes:[
