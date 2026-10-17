@@ -3,7 +3,7 @@ import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
-const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60;
+const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,RIM_CELLS=2;
 /** Art direction: dim only the distant/parallax painting, never the playfield. */
 export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
@@ -47,23 +47,25 @@ export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=
  c.translate(W/2,H/2);c.scale(zoom,zoom);c.translate(-W/2-(camera.x-W/2)*depth,-H/2-(camera.y-H/2)*depth);
 }
 
-/** The painted terrain, masked by exactly the same cells the authoritative simulation uses
- * (its collision was traced from this very painting by `npm run build:map`). */
+/** The painted terrain with its own antialiased silhouette; only the cells the authoritative
+ * simulation has dug out are cut away (collision was traced from this very painting by `npm run build:map`).
+ * Masking the untouched outline by 3px cells too would chop its thin painted rim into stairs. */
 export function paintTerrain(data:Uint8Array,map:MapId,worldArt:CanvasImageSource):HTMLCanvasElement {
- const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map),small=makeCanvas(COLS,WORLD.rows);
- const s=small.getContext('2d')!,pixels=s.createImageData(COLS,WORLD.rows);
- for(let i=0;i<data.length;i++)if(data[i])pixels.data[i*4+3]=255;
- s.putImageData(pixels,0,0);
- // A 2x coverage buffer filters the *same* 3px simulation cells. It affects only
- // fractional edge coverage; no collision or replay byte changes.
- const canvas=makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE),c=canvas.getContext('2d')!;c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(small,0,0,W,H);
- c.save();c.globalCompositeOperation='source-atop';c.drawImage(worldArt,0,0,W,H);
+ const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map);
+ const canvas=makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE),c=canvas.getContext('2d')!;c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(worldArt,0,0,W,H);
  const fracture=makeCanvas(COLS,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(COLS,WORLD.rows);let damaged=false;
  for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;}
+ // The painted rim lies in the soft, non-colliding cells just outside the collision; cut it with the dug cells so no sliver floats over a crater.
+ const cut=makeCanvas(COLS,WORLD.rows),cc=cut.getContext('2d')!,cutCells=cc.createImageData(COLS,WORLD.rows);
+ if(damaged)for(let i=0;i<data.length;i++){if(!edge.data[i*4+3])continue;const x=i%COLS,y=(i-x)/COLS;cutCells.data[i*4+3]=255;
+  for(let dy=-RIM_CELLS;dy<=RIM_CELLS;dy++)for(let dx=-RIM_CELLS;dx<=RIM_CELLS;dx++){const nx=x+dx,ny=y+dy,n=ny*COLS+nx;if(nx>=0&&ny>=0&&nx<COLS&&ny<WORLD.rows&&!template.solid[n])cutCells.data[n*4+3]=255;}}
+ c.save();
  if(damaged){
+  // The 2x buffer filters the *same* 3px simulation cells, so a crater edge has fractional coverage; no collision byte changes.
+  fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);c.globalCompositeOperation='destination-out';c.drawImage(cut,0,0,W,H);c.globalCompositeOperation='source-atop';
   // Generic broken edge, the same for every weapon: a short cool shade inside
   // the cut and a thin light lip on the surviving cells, never a burnt halo.
-  fc.putImageData(edge,0,0);c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(fracture,0,0,W,H);c.shadowBlur=0;
+  c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(fracture,0,0,W,H);c.shadowBlur=0;
   const lip=makeCanvas(COLS,WORLD.rows),lc=lip.getContext('2d')!,rim=lc.createImageData(COLS,WORLD.rows);
   const removed=(i:number)=>i>=0&&i<data.length&&template.solid[i]===1&&!data[i];
   for(let i=0;i<data.length;i++){if(!data[i])continue;const x=i%COLS;
@@ -104,10 +106,15 @@ export class EnvironmentRenderer {
   this.camera=camera;
   // High-quality resizing belongs in the caches. Bilinear presentation keeps
   // their antialiased coverage while avoiding a costly bicubic pass every frame.
-  smoothImages(c,'low');if(!this.isReady()){this.drawLoading(c);return;}
-  this.drawOnce(c,camera,'backdrop',this.background,0);
-  if(this.mid)this.drawOnce(c,camera,'mid',this.mid,MID_OFFSET);
-  c.save();c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);c.restore();
+  // Scoped: fighters drawn after this are downscaled ~4x and need mipmapped 'high' filtering, or their edges stair-step.
+  c.save();smoothImages(c,'low');
+  if(!this.isReady())this.drawLoading(c);
+  else{
+   this.drawOnce(c,camera,'backdrop',this.background,0);
+   if(this.mid)this.drawOnce(c,camera,'mid',this.mid,MID_OFFSET);
+   c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);
+  }
+  c.restore();
  }
  drawTerrain(c:CanvasRenderingContext2D,_time:number){
   if(!this.isReady())return;
