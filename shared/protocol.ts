@@ -76,6 +76,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('flight'),active:z.boolean()}).strict(),
  z.object({type:z.literal('boost'),boost:z.enum(['extra1','extra2','trident','damage50','damage40','damage30','damage20'])}),
  z.object({type:z.literal('walk'),direction:z.union([z.literal(-1),z.literal(1)])}),
+ z.object({type:z.literal('face'),direction:z.union([z.literal(-1),z.literal(1)])}).strict(),
  z.object({type:z.literal('aim'),angle:finite(5,90),power:finite(0,100),charging:z.boolean()}).strict(),
  z.object({type:z.literal('fire'),angle:finite(5,90),power:finite(5,100)}),
  z.object({type:z.literal('reward-pick'),card:z.number().int().min(0).max(7)}).strict(),
