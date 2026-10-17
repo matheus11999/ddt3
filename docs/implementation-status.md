@@ -259,7 +259,7 @@ Smoke no frontend de produção passou após liberar cache de builds que havia e
 O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica produz cacos autoritativos após o impacto principal e aplica demolição adicional em materiais resistentes. A arte final gerada por `image_gen` substitui as seis pinturas provisórias: quatro estágios da arma, atlas de efeitos e resíduo. Prompts, medidas e prancha estão em [brick-weapon.md](brick-weapon.md). Os testes específicos de física e combate foram adaptados ao checkout atual; `npx tsx --test tests/physics.test.ts tests/game.test.ts` passou com 27 testes.
 
 ## Lobby: menu inferior, chat e cursor (17/10/2026)
-- Medalhas do topo removidas. Menu no canto inferior direito como no DDTank: ícones pintados grandes (`public/assets/ui/*-button.png`, sala PvP + gerados pelo Codex) sobre prateleira de madeira, sem nomes visíveis nem teclas; "Como jogar" fora por enquanto. Chat transparente com texto contornado e faixa de madeira para digitar (`Hud.css`). Cursor pintado `public/assets/ui/cursor.png` (32 px, `--cursor-arrow`).
+- Medalhas do topo removidas. Menu no canto inferior direito como no DDTank: ícones pintados grandes (`public/assets/ui/*-button.png`, sala PvP + gerados pelo Codex) numa tábua de madeira flutuante (ícones de 52 px), sem nomes visíveis nem teclas; "Como jogar" fora por enquanto. Chat transparente com texto contornado e faixa de madeira para digitar (`Hud.css`). Cursor pintado `public/assets/ui/cursor.png` (32 px, `--cursor-arrow`).
 - Testes: check, test, build, `shot-lobby.mjs` e `test:mobile:browser` passaram na nuvem.
 
 ### Áudio: primeiros sons gravados
@@ -267,6 +267,8 @@ O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica p
 O impacto de todos os tiros agora toca duas camadas gravadas em `public/assets/audio/sfx/`: `impact-base.mp3` (grave, gerado pelo usuário) e `impact-crack.mp3` (estalo de médios, gerado pela API do ElevenLabs). As camadas tocam com tom sorteado entre ±5%; o som sintetizado da arma continua por cima, e o ruído sintetizado só toca enquanto os arquivos não carregaram. Plano completo e prompts em [audio-plan.md](audio-plan.md). A chave do ElevenLabs fica só no `.env` local (fora do git).
 
 Sons do POW e da seleção de poderes (17/10/2026): `pow-activate-0[1-3].mp3` e `boost-select-0[1-3].mp3`, gerados pela API do ElevenLabs no PC do usuário e normalizados. `Scene.tsx` toca a deixa quando o servidor confirma mais um poder selecionado ou o POW armado do próprio jogador (`audio.cue`), sorteando uma das três variações.
+
+Tiro POW e seleção de poder v2 (17/10/2026): `pow-shot-0[1-3].mp3` tocam no disparo e `pow-impact-0[1-3].mp3` na explosão de todo tiro POW (`audio.play` com `powered`), no lugar do brilho sintetizado; projéteis simultâneos dividem uma deixa só (250 ms). `boost-select-0[1-3].mp3` foram refeitos mais ricos a pedido do usuário. Com o PR #31, armas que tiverem som próprio de disparo/impacto não passam por `audio.play`, então ficam sem a camada POW gravada.
 
 ## Virada do personagem ao andar (17/10/2026)
 
