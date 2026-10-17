@@ -13,8 +13,9 @@ export const FIGHTER_HIT_RADIUS=22;
 interface TerrainTemplate {solid:Uint8Array;regions:Int16Array;definition:readonly MapRegion[];cols:number;}
 const templates=new Map<MapId,TerrainTemplate>();
 export function terrainTemplate(map:MapId=MAP_DEFAULT.id):TerrainTemplate {
- const id=canonicalMap(map),cached=templates.get(id);if(cached)return cached;
- const def=getMap(id),definition=def.regions,cols=def.dimensions.width/WORLD.cell,solid=new Uint8Array(cols*WORLD.rows),regions=new Int16Array(solid.length).fill(-1);
+ // A map published from the admin panel brings new regions: rebuild its template.
+ const id=canonicalMap(map),def=getMap(id),cached=templates.get(id);if(cached&&cached.definition===def.regions)return cached;
+ const definition=def.regions,cols=def.dimensions.width/WORLD.cell,solid=new Uint8Array(cols*WORLD.rows),regions=new Int16Array(solid.length).fill(-1);
  // Scan-convert polygons once per row, not once per cell: large illustrated contours
  // remain cheap to initialise on both the server and lower-powered browsers.
  for(let r=0;r<definition.length;r++){
