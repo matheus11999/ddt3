@@ -10,7 +10,7 @@ import {ChevronDown,ChevronUp,Wind,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
-import {clampAimAngle,weaponAimLimits} from '../../shared/aim';
+import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
 import type {Fighter} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import './BattleHud.css';
@@ -25,7 +25,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
  const opponents=b.players.filter(player=>player.team!==me.team);
  // Limits remain authoritative equipment data; equipment itself is not part of the HUD.
- const weapon=WEAPONS.find(item=>item.id===me.equipment.weapon)!,aimSlope=me.aimSlope??0;
+ // With the paper plane armed the plane's wider envelope replaces the weapon's.
+ const weapon=aimSource(me),aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
  const [power,setPower]=useState(MIN_POWER),[lastPower,setLastPower]=useState<number|null>(null);
  const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false);

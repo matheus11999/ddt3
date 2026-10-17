@@ -64,7 +64,7 @@ Renderers devem ignorar `hidden` e sentinelas, sem reconstruir posições a part
 
 Voo é um modo de disparo, separado das três habilidades de uso único: `flight {active: true | false}`. Atualmente não possui contador de usos por partida nem custo próprio de vigor. Só pode ser armado/desarmado pelo personagem vivo em seu turno válido.
 
-Armar voo é rejeitado quando já existem ferramentas de tiro, Power preparado ou mira assistida preparada. Enquanto está armado, ferramentas de tiro, Power e mira assistida são rejeitados; andar, cura e invisibilidade continuam permitidos no mesmo turno (pedido do usuário em 17/10/2026). Mirar e escolher força continuam disponíveis; o próximo `fire` lança um único avião e encerra esse modo. Passar/encerrar o turno também limpa a preparação.
+Armar voo é rejeitado quando já existem ferramentas de tiro, Power preparado ou mira assistida preparada. Enquanto está armado, ferramentas de tiro, Power e mira assistida são rejeitados; andar, cura e invisibilidade continuam permitidos no mesmo turno (pedido do usuário em 17/10/2026). Com o voo armado, a mira usa a faixa inteira de 5–90° (`FLIGHT_AIM` em `shared/aim.ts`) no lugar dos limites da arma; ao cancelar o voo, o ângulo volta a ser limitado pela arma. Mirar e escolher força continuam disponíveis; o próximo `fire` lança um único avião e encerra esse modo. Passar/encerrar o turno também limpa a preparação.
 
 O avião usa a trajetória autoritativa, a gravidade e os limites de mira da arma equipada, com raio de projétil 6. O projétil publica `kind: 'flight'`, `delay: 0`, `flightTime` e impacto com raio 0. Ele **não causa dano, não abre cratera e não recebe Power**.
 

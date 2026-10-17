@@ -18,7 +18,7 @@ import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
-import {weaponAimLimits} from '../../shared/aim';
+import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {LobbyWorld,LOBBY_WALK} from './lobbyWorld';
 import {LOBBY_SPAWN} from '../../shared/lobby';
 import type {LobbyAction} from './lobbyWorld';
@@ -84,7 +84,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      }
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
-     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
+     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
      // The range band and needle pivot on the body, behind the avatar, as in DDTank.
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,f.aimSlope??0,aimAge,limits.minAngle,limits.maxAngle,'back');
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;

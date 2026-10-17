@@ -5,6 +5,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {HIDDEN_POSITION,initialAbilities} from '../shared/abilities';
+import {FLIGHT_AIM,weaponAimLimits} from '../shared/aim';
 import {WEAPONS} from '../shared/catalog';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
@@ -94,6 +95,13 @@ test('flight combines with walking, heal and invisibility in the same turn',asyn
  const x=f.actor.x;await f.game.command(f.actor.id,{type:'walk',direction:1});assert.notEqual(f.actor.x,x);assert.equal(f.actor.flightArmed,true);
  await f.game.command(f.actor.id,{type:'ability',ability:'heal'});assert.equal(f.actor.hp,f.actor.maxHp);
  await f.game.command(f.actor.id,{type:'ability',ability:'invisibility'});assert.equal(f.actor.invisibleTurns,3);assert.equal(f.actor.flightArmed,true);
+});
+
+test('flight opens the whole 5–90° aim envelope and cancelling it restores the weapon limits',async()=>{
+ const f=await fixture(),weapon=WEAPONS.find(item=>item.id===f.actor.equipment.weapon)!,slope=f.actor.aimSlope??0,weaponMax=weaponAimLimits(weapon,slope).maxAngle,flightMax=weaponAimLimits(FLIGHT_AIM,slope).maxAngle;
+ assert.ok(flightMax>weaponMax,'the plane must reach steeper than the weapon');
+ await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'aim',angle:90,power:20,charging:false});assert.equal(f.actor.aimAngle,flightMax);
+ await f.game.command(f.actor.id,{type:'flight',active:false});assert.equal(f.actor.aimAngle,weaponMax);
 });
 
 test('flight teleports only at authoritative contact to clear supported ground, deals no damage and consumes the turn',async()=>{
