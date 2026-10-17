@@ -43,6 +43,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
+  let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
   let residues:TerrainResidues|null=null;
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
@@ -75,7 +76,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
-    updateCamera(camera,focusX,focusY);sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
+    const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
+    updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
@@ -149,10 +151,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }
    frame=requestAnimationFrame(render);
   };
-  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0)el.focus({preventScroll:true});return;}if(state.room)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
+  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
-  const pointerMove=(e:PointerEvent)=>{if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hover((e.clientX-r.left)/r.width*W+Math.max(0,camX),(e.clientY-r.top)/r.height*H)?.id??null;el.style.cursor=hover?'pointer':'';};
+  const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hover((e.clientX-r.left)/r.width*W+Math.max(0,camX),(e.clientY-r.top)/r.height*H)?.id??null;el.style.cursor=hover?'pointer':'';};
   // Arrow keys / A-D walk sideways along the plaza; releasing stops where the player is.
   const typing=(e:KeyboardEvent)=>['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName);
   const keyDir=(e:KeyboardEvent)=>['arrowleft','a'].includes(e.key.toLowerCase())?-1:['arrowright','d'].includes(e.key.toLowerCase())?1:0;
@@ -160,7 +162,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e);if(!dir||dir!==walkDir)return;walkDir=0;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
   const stopWalk=()=>{walkDir=0;};
   window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',stopWalk);
-  el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',stopWalk);};
+  // Holding and dragging the battlefield looks around; letting go hands the camera back to the turn and the shot.
+  const release=()=>{if(!drag)return;drag=null;sceneView.look=null;el.style.cursor='';};
+  el.addEventListener('pointerdown',pointer);el.addEventListener('pointermove',pointerMove);el.addEventListener('pointerup',release);el.addEventListener('pointercancel',release);frame=requestAnimationFrame(render);return()=>{unsubscribe();sizeObserver.disconnect();window.removeEventListener('resize',resizeCanvas);cancelAnimationFrame(frame);stopEnvironmentAudio();el.removeEventListener('pointerdown',pointer);el.removeEventListener('pointermove',pointerMove);el.removeEventListener('pointerup',release);el.removeEventListener('pointercancel',release);sceneView.look=null;window.removeEventListener('keydown',keyDown);window.removeEventListener('keyup',keyUp);window.removeEventListener('blur',stopWalk);};
  },[]);
  return <canvas className="world-canvas" ref={canvas} width={1536} height={864} tabIndex={0} aria-label="Mundo do jogo. Clique na rua para caminhar. Na batalha, use as setas e segure Espaço para disparar."/>;
 }
