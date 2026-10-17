@@ -69,6 +69,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
+- Lobby (17/10, tarde, aprovado): sem medalhas no topo; menu no canto inferior direito como no DDTank, ícones pintados grandes (`public/assets/ui/*-button.png`) sobre prateleira de madeira, sem nomes visíveis e sem teclas; sem "Como jogar" por enquanto. Chat transparente sobre a praça (texto com contorno, faixa de madeira escura para digitar). Cursor pintado `public/assets/ui/cursor.png` (32 px).
 - Perguntas abertas: permitir itens de tiro junto com o voo; arte pintada pendente da loja (fundo do provador, ícones de categoria, placa) e do piso do lobby (`floor.webp`).
 - PR #1 (Quebra-Tijolos antigo) está obsoleto: a versão do Codex já está na `main`.
 - Registre evidências e pendências também em `docs/implementation-status.md`.

@@ -8,7 +8,7 @@
 .pvp-room .party-spectator-symbol{display:grid;place-items:center;flex:none;width:24px;height:24px}
 .pvp-room .party-spectator-slot>strong{flex:1;min-width:0;overflow:hidden;font-size:12px;font-weight:900;color:var(--wood-ink);text-overflow:ellipsis;white-space:nowrap}
 .pvp-room .party-spectator-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:none;color:inherit}
-.pvp-room .party-spectator-toggle:disabled{opacity:1;cursor:default}
+.pvp-room .party-spectator-toggle:disabled{opacity:1;cursor:var(--cursor-arrow)}
 .pvp-room .party-spectator-toggle:focus-visible{outline:3px solid #c25f12;outline-offset:1px;border-radius:9px}
 .pvp-room .party-spectator-kick{display:grid;place-items:center;flex:none;width:20px;height:20px;padding:0;border:1px solid #ffd2b8;border-radius:6px;background:linear-gradient(#e2592f,#a92e14);color:#fff3dc}
 html.mobile-landscape .pvp-room .party-spectators>header{margin-bottom:5px;padding:3px 8px;font-size:11px}

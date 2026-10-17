@@ -34,8 +34,8 @@
 .shop-window .shop-layout :is(button, input, b, strong, small, h2) {
   font-family: 'Nunito', 'Trebuchet MS', sans-serif;
 }
-.shop-window button { cursor: pointer; }
-.shop-window button:disabled { cursor: default; }
+.shop-window button { cursor:var(--cursor-arrow); }
+.shop-window button:disabled { cursor:var(--cursor-arrow); }
 .shop-window :is(button, input):focus-visible { outline: 3px solid #fff1c4; outline-offset: 2px; }
 
 /* ---------- Estrutura ---------- */
@@ -252,7 +252,7 @@
   border-radius: 12px;
   background: linear-gradient(#fffdf7, #fbecd0);
   box-shadow: inset 0 1px #fff, inset 0 -2px #ecd2a0, 0 2px #c4813d55;
-  cursor: pointer;
+  cursor:var(--cursor-arrow);
   transition: box-shadow .15s, border-color .15s, transform .15s;
 }
 .shop-window .shop-offer:hover { border-color: #f0a24a; transform: translateY(-1px); }
