@@ -1,25 +1,20 @@
-.compact-party-room .party-spectators{width:100%;min-width:0}
-.compact-party-room .party-spectators>header{display:flex;justify-content:center;align-items:center;gap:6px;margin-bottom:7px;color:#afbfcc;font-size:11px;font-weight:800}
-.compact-party-room .party-spectator-seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
-.compact-party-room .party-spectator-slot{position:relative;display:flex;align-items:center;gap:7px;min-width:0;height:49px;padding:6px 9px;border:1px solid #9e967164;border-radius:10px;background:linear-gradient(#20374e,#152b42);box-shadow:inset 0 1px #b1c2d426,inset 0 -2px #07192b55;color:#b8c8d4}
-.compact-party-room .party-spectator-slot.closed{background:linear-gradient(#13283b,#0e2032);border-color:#75869450;color:#8396a5}
-.compact-party-room .party-spectator-slot.open{border-color:#a9b8b064;color:#adcbc9}
-.compact-party-room .party-spectator-symbol{display:grid;place-items:center;flex:none;width:25px;height:25px;color:#b6c8d7}
-.compact-party-room .party-spectator-slot>strong{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:#ede1bf}
-.compact-party-room .party-spectator-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:none;box-shadow:none;color:inherit;transform:none;filter:none;transition:none}
-.compact-party-room .party-spectator-toggle:hover,.compact-party-room .party-spectator-toggle:active{background:none;box-shadow:none;transform:none;filter:none}
-.compact-party-room .party-spectator-toggle:disabled{opacity:1;cursor:default}
-.compact-party-room .party-spectator-kick{display:grid;place-items:center;flex:none;width:19px;height:19px;padding:2px;border:1px solid #d7b88977;border-radius:5px;background:linear-gradient(145deg,#a45160,#6e2c43);color:#fff2df}
-.compact-party-room .party-spectator-status{display:flex;justify-content:center;align-items:center;gap:8px;height:55px;border:1px solid #8b9cad44;border-radius:10px;background:#142b4188;color:#b9cbd9;font-size:13px;font-weight:800}
-html.mobile-landscape .compact-party-room .party-spectators>header{gap:4px;margin-bottom:3px;font-size:7px}
-html.mobile-landscape .compact-party-room .party-spectators>header>svg{width:10px;height:10px}
-html.mobile-landscape .compact-party-room .party-spectator-seats{gap:5px}
-html.mobile-landscape .compact-party-room .party-spectator-slot{height:28px;padding:4px 5px;gap:4px;border-radius:6px}
-html.mobile-landscape .compact-party-room .party-spectator-symbol{width:15px;height:15px}
-html.mobile-landscape .compact-party-room .party-spectator-symbol>svg{width:14px;height:14px}
-html.mobile-landscape .compact-party-room .party-spectator-slot>strong{font-size:8px}
-html.mobile-landscape .compact-party-room .party-spectator-toggle>svg{width:17px;height:17px}
-html.mobile-landscape .compact-party-room .party-spectator-kick{width:14px;height:14px;padding:1px;border-radius:4px}
-html.mobile-landscape .compact-party-room .party-spectator-kick>svg{width:10px;height:10px}
-html.mobile-landscape .compact-party-room .party-spectator-status{height:33px;gap:5px;font-size:9px}
-html.mobile-landscape .compact-party-room .party-spectator-status>svg{width:13px;height:13px}
+/* Vagas de espectador da sala PvP, no painel creme do padrão da mochila. */
+.pvp-room .party-spectators{width:100%;min-width:0}
+.pvp-room .party-spectators>header{display:flex;align-items:center;gap:6px;margin:0 0 9px;padding:6px 12px;border-bottom:1px solid #fff0c9;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);box-shadow:inset 0 -2px #c76413;color:#fff;font-size:14px;font-weight:900;text-shadow:0 1px #8a3a07}
+.pvp-room .party-spectator-seats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0 9px}
+.pvp-room .party-spectator-slot{position:relative;display:flex;align-items:center;gap:6px;min-width:0;height:42px;padding:5px 8px;border:2px solid #f2c88c;border-radius:10px;background:linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -2px #e2b77a;color:#b4510f}
+.pvp-room .party-spectator-slot.closed{border-style:dashed;border-color:#d9c3a1;background:#f7ead199;box-shadow:none;color:#9a7a55}
+.pvp-room .party-spectator-slot.open{border-style:dashed;border-color:#e2b77a;background:#fff8e8;box-shadow:none}
+.pvp-room .party-spectator-symbol{display:grid;place-items:center;flex:none;width:24px;height:24px}
+.pvp-room .party-spectator-slot>strong{flex:1;min-width:0;overflow:hidden;font-size:12px;font-weight:900;color:var(--wood-ink);text-overflow:ellipsis;white-space:nowrap}
+.pvp-room .party-spectator-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0;border:0;background:none;color:inherit}
+.pvp-room .party-spectator-toggle:disabled{opacity:1;cursor:default}
+.pvp-room .party-spectator-toggle:focus-visible{outline:3px solid #c25f12;outline-offset:1px;border-radius:9px}
+.pvp-room .party-spectator-kick{display:grid;place-items:center;flex:none;width:20px;height:20px;padding:0;border:1px solid #ffd2b8;border-radius:6px;background:linear-gradient(#e2592f,#a92e14);color:#fff3dc}
+html.mobile-landscape .pvp-room .party-spectators>header{margin-bottom:5px;padding:3px 8px;font-size:11px}
+html.mobile-landscape .pvp-room .party-spectators>header svg{width:12px;height:12px}
+html.mobile-landscape .pvp-room .party-spectator-seats{gap:5px;padding:0 6px}
+html.mobile-landscape .pvp-room .party-spectator-slot{height:30px;padding:3px 5px;gap:4px;border-radius:8px}
+html.mobile-landscape .pvp-room .party-spectator-slot>strong{font-size:10px}
+html.mobile-landscape .pvp-room .party-spectator-symbol svg,html.mobile-landscape .pvp-room .party-spectator-toggle svg{width:16px;height:16px}
+html.mobile-landscape .pvp-room .party-spectator-kick{width:16px;height:16px}

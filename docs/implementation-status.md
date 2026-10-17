@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Salão PvP e sala no padrão da mochila — 17/10/2026
+
+- Salão PvP: moldura de madeira em tela cheia, barra de título com brasão, população e saída; salas em cartas creme (número, nome, líder, formato, vagas ocupadas, estado colorido e assistir) sobre área creme; conversa creme ao lado; botão Criar sala no rodapé.
+- Sala: título com número, nome editável, formato, estado e saída; cartas 4:5 com faixa laranja, selo da aura abaixo de +5 e estado Pronto/Líder/Preparando; faixa pintada da Batalha PvP no centro (some abaixo de 1180px); painel com ferramentas, espectadores, convite, treino, Início e menus. No celular em paisagem as quatro cartas ficam em linha e o painel rola por dentro.
+- Materiais em `WoodTheme.css` (tokens e classes `wood-*`); `ArenaTheme.css`, `RoomSpectators.css` e `RoomInvitations.css` passaram para `.pvp-room`. Regras antigas da arena em `MobileOrientation.css` removidas.
+- Evidência: `npm run check`, `npm test` (232), `smoke-arena-hall`, `smoke-rooms`, `smoke-spectators`, `smoke-room-invites`, `smoke-loadout` e `smoke-mobile-landscape` passando. Prévias em `docs/previews/pvp-*.png`.
+
 ## Mochila no padrão DDTank — 17/10/2026
 
 - Layout "Informações pessoais": cabeçalho laranja com nível, nome, vitórias e partidas; personagem estático sobre o selo da aura do jogo (`aura-blue-sigil.png` abaixo de +5; selo da aura do Avatar a partir de +5) com 4 slots de cada lado (2×2 em telas baixas) e arma embaixo; barra de XP e Poder; Ataque/Agilidade/Defesa/Sorte em pílulas e Dano/Armadura/Vida/Vigor em barras coloridas.

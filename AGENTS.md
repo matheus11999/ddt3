@@ -23,6 +23,7 @@ O jogo deve ser **igual ao DDTank**: direção de arte, personalização e comba
 - Não mostrar itens “Sem ...” na mochila/loja. Sentinelas `*-none` existem apenas no contrato de desequipar; não são posses nem cards. Engrenagem na prévia abre opções para exibir chapéu, óculos e fantasia. `Equipment.visibility` é salvo/publicado junto da personalização e oculta só a aparência, preservando atributos.
 - Conteúdo 12 concede as duas fantasias iniciais uma única vez, além das migrações anteriores; preservar ouro, materiais e upgrades. Demais cosméticos da loja continuam comprados.
 - Menus usam a moldura fina e arredondada de `MenuFrame.css`; não reintroduzir a borda pintada ornamental de 40px. Formato aprovado pelo usuário, com cabeçalho e fundo coesos. A arena tem moldura e layout próprios coerentes com essa direção.
+- Salão PvP e sala de espera seguem o padrão da mochila (pedido de 17/10/2026): moldura de madeira laranja, barra de título escura com título dourado, painéis creme, cartas 4:5 com faixa laranja e o selo da aura atrás do personagem. Materiais compartilhados em `src/components/WoodTheme.css`; prompts em `docs/pvp-arena-art-prompts.md`; prévia com `node scripts/preview-arena.mjs`.
 
 Estas regras substituem instruções históricas conflitantes abaixo.
 

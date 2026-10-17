@@ -1,230 +1,238 @@
-/* Arena room only. Shared materials and buttons are defined in ArenaTheme.css.
-   The viewport portal is independent of the canvas render scale. */
-.arena-room-portal{position:fixed;inset:0;z-index:30;width:100%;height:100%;overflow:hidden;background:#101e35}
-.arena-room-portal .arena-room-stage.party-room.compact-party-room{position:absolute;inset:0;display:grid;grid-template-rows:minmax(0,1fr);gap:12px;width:100%;height:100%;min-width:0;min-height:0;max-width:none;max-height:none;margin:0;padding:16px;transform:none;border:2px solid #a99a6d;border-radius:0;background:radial-gradient(ellipse at 45% 0,#42608155,transparent 65%),var(--arena-texture) center/384px,var(--arena-panel);box-shadow:inset 0 0 0 4px #071322,inset 0 0 0 5px #b5a57135;color:#eddfb9;overflow:hidden;isolation:isolate}
-.arena-room-portal .arena-room-stage.party-room.compact-party-room.has-status{--party-layout-reserve:298px;grid-template-rows:minmax(0,1fr)28px}
-.compact-party-room .party-heading{display:flex;align-items:center;min-width:0;width:100%;gap:12px;padding:10px 12px;border:1px solid #b9aa7e77;border-radius:10px;background:linear-gradient(100deg,#263d58,#15283e);box-shadow:inset 0 1px #f1dda82b,0 3px 6px #040c1840}
-.compact-party-room .party-room-number{display:flex;flex:none;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-width:78px;padding-right:16px;border-right:1px solid #c7b88842;color:#c6d6e5}.compact-party-room .party-room-number>span{font-size:14px;font-weight:800}.compact-party-room .party-room-number>strong{position:relative;isolation:isolate;font:900 58px/.95 Nunito,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:-.04em;color:transparent;background:linear-gradient(180deg,#fffbe2 5%,#ffe2a3 42%,#e3fafb 47%,#86bdce 91%);background-clip:text;-webkit-background-clip:text;-webkit-text-stroke:.7px #fff2ba;filter:drop-shadow(0 4px 3px #06122299)}
-.compact-party-room .party-room-name{display:flex;align-items:center;min-width:0;max-width:100%;gap:8px}
-.compact-party-room .party-room-number>strong::before{content:attr(data-value);position:absolute;inset:0;z-index:-1;color:#37546a;-webkit-text-stroke:1px #b9a170;text-shadow:0 1px #86734e,0 2px #415d6f,0 3px #122a40}
-.compact-party-room .party-room-number>strong::after{content:attr(data-value);position:absolute;inset:0;z-index:1;background-image:inherit;background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-stroke:inherit}
-.compact-party-room .party-room-name>h1{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin:0;color:#f1e3bb;font:900 16px/1.2 'Nunito',sans-serif;text-shadow:0 2px #07152a;letter-spacing:0}
-.compact-party-room .party-rename-button{display:grid;place-items:center;flex:none;width:29px;height:29px;padding:5px;border:0;border-radius:7px;background:transparent;color:#dacb9d}
-.compact-party-room .party-rename-button:hover{background:#ecd9981c;color:#fff3ce}
-.compact-party-room .party-rename-form{display:flex;align-items:center;gap:5px;min-width:0}
-.compact-party-room .party-rename-form>input{width:290px;max-width:100%;min-width:0;height:31px;padding:4px 9px;border:1px solid #c2b17b;border-radius:7px;background:#f0e6cb;color:#26384d;font-size:14px;box-shadow:inset 0 2px #12243f24}
-.compact-party-room .party-rename-form>button{display:grid;place-items:center;flex:none;width:29px;height:29px;border:1px solid #c8b986;border-radius:7px;background:#314961;color:#f9edc8}
-.compact-party-room button:focus-visible,.compact-party-room input:focus-visible{outline:2px solid #fff2bd;outline-offset:3px}
-.compact-party-room .compact-party-layout{--party-formation-height:min(calc((100dvw - 64px)*.5125),calc((100dvh - var(--party-layout-reserve,270px))*.9));--party-team-track:calc((var(--party-formation-height)*.8 - 56px)/5);display:grid;grid-template-columns:repeat(5,minmax(0,var(--party-team-track))) repeat(4,minmax(0,.9fr)) repeat(3,minmax(0,1fr));grid-template-rows:var(--party-formation-height) minmax(0,1fr);gap:14px;min-width:0;min-height:0;padding:0;overflow:visible}
-.compact-party-room .party-team{grid-column:1/6;grid-row:1;display:grid;align-items:stretch;justify-items:stretch;container-type:size;min-width:0;min-height:0;padding:0;border:0;background:none;box-shadow:none;overflow:visible}
-.compact-party-room .party-team-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:10px;width:100%;height:100%;min-width:0;min-height:0;align-items:stretch;margin:0}
-.compact-party-room .party-player-card,.compact-party-room .party-player-card.vacant{position:relative;display:block;container-type:inline-size;width:100%;height:100%;min-width:0;min-height:0;max-width:none;max-height:none;aspect-ratio:4/5;border:0;border-radius:12px;background:none;box-shadow:0 4px 8px #030b1855;overflow:hidden;isolation:isolate;filter:none}
-.compact-party-room .party-player-card::before{content:'';position:absolute;inset:0;z-index:-1;border:solid transparent;border-width:28px 7px 7px;border-image-source:url('/assets/ui/arena-player-card-v2.png');border-image-slice:116 20 20 20 fill;border-image-width:28px 7px 7px;border-image-repeat:stretch;border-radius:0;background:none;pointer-events:none}
-.compact-party-room .party-player-card.closed-slot::before{filter:saturate(.6) brightness(.76)}
-/* The card has a real header area; the portrait cannot enter it. */
-.compact-party-room .party-player-name{position:absolute;left:7px;right:7px;top:2px;height:25px;min-height:0;display:flex;align-items:center;gap:5px;padding:0 5px;border:0;border-radius:0;background:none;box-shadow:none;color:#f7e9c3;z-index:3}
-.compact-party-room .party-player-identity{display:flex;align-items:center;gap:4px;min-width:0;flex:1}
-.compact-party-room .party-player-identity>strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:clamp(13px,6.4cqw,15px);font-weight:900;color:#fff0c9;text-shadow:0 2px #071522}
-.compact-party-room .party-player-identity>svg{width:12px;height:12px;flex:none;color:#d9bd7d}
-.compact-party-room .party-kick{display:grid;place-items:center;flex:none;width:20px;height:20px;padding:2px;border:1px solid #d7b8899c;border-radius:6px;background:linear-gradient(145deg,#b65965,#6e2c43);color:#fff2df;box-shadow:inset 0 1px #f6b8ad66,0 1px #07121f77}
-.compact-party-room .party-kick>svg{width:14px;height:14px}
-.compact-party-room .party-player-insignia{position:absolute;right:6%;top:15%;z-index:3;display:flex;flex-direction:column;align-items:center;gap:5px;pointer-events:none}
-.compact-party-room .party-player-insignia>.level-badge{width:40px!important;height:40px!important;--level-size:40px!important;font-size:40px!important}
-.compact-party-room .party-vip{display:grid;place-items:center;width:23px;height:20px;color:#899196;filter:drop-shadow(0 1px #fff8e288)}
-.compact-party-room .party-vip>svg{width:19px;height:19px}
-.compact-party-room .party-vip.vip-active{color:#cfa549;filter:drop-shadow(0 0 3px #f7cf5d66)}
-.compact-party-room .party-player-portrait{position:absolute;left:0;right:0;top:13%;bottom:6%;display:flex;align-items:center;justify-content:center;pointer-events:none;overflow:visible;transform:translateY(-12px)}
-.compact-party-room .party-player-portrait>canvas{display:block;flex:none;width:min(265px,113.4cqw)!important;height:min(265px,113.4cqw)!important;max-width:none;max-height:none;margin:0;transform:none;animation:none;filter:drop-shadow(0 2px 2px #5a4d3e42)}
-.compact-party-room .party-player-state.ready{position:absolute;left:calc(50% - 15px);right:auto;bottom:5%;display:grid;place-items:center;width:30px;height:30px;padding:0;border:2px solid #cbb77d;border-radius:50%;background:radial-gradient(circle at 35% 25%,#758d7f,#2e5956 70%);box-shadow:inset 0 1px #fff2c87d,inset 0 0 0 2px #192f352e,0 2px 3px #142f3b44;color:#fff0bd}
-.compact-party-room .party-player-state.ready>svg{width:18px;height:18px;filter:drop-shadow(0 1px #163f39)}
-.compact-party-room .party-slot-toggle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;width:100%;height:100%;padding:28px 9px 8px;border:0;background:none;box-shadow:none;color:#677284}
-.compact-party-room .party-slot-toggle:disabled{cursor:default;opacity:1}
-.compact-party-room .party-slot-toggle,.compact-party-room .party-slot-toggle:hover,.compact-party-room .party-slot-toggle:active{background:none;box-shadow:none;filter:none;transform:none;transition:none}
-.compact-party-room .party-vacant-emblem{display:grid;place-items:center;width:72px;height:72px;color:#7c8d995c;transition:none}
-.compact-party-room .party-vacant-emblem>svg{width:52px;height:52px;filter:drop-shadow(0 1px #fff7df)}
-.compact-party-room .closed-slot .party-vacant-emblem{color:#536779aa}
-.compact-party-room .open-slot .party-vacant-emblem{color:#6b929c9c}
-.compact-party-room .party-center-stage{grid-column:6/10;grid-row:1/3;container-type:inline-size;display:grid;grid-template-rows:minmax(0,1fr);gap:0;min-width:0;min-height:0}
-.compact-party-room .party-pvp-banner{position:relative;container-type:inline-size;place-self:stretch;width:100%;height:100%;min-width:0;min-height:0;border:2px solid #b7a277;border-radius:15px;background:#1a3047;box-shadow:0 0 0 3px #08182b66,inset 0 0 0 2px #d8c79144,0 8px 15px #030e2055;overflow:hidden;isolation:isolate}
-.compact-party-room .party-pvp-banner>img{display:block;width:100%;height:100%;object-fit:cover;object-position:center 48%;pointer-events:none}
-.compact-party-room .party-pvp-banner::after{content:'';position:absolute;inset:0;border:2px solid #e3ce9f77;border-radius:12px;pointer-events:none;background:linear-gradient(#0d284f40,transparent 32% 65%,#0b1a2d55)}
-.compact-party-room .party-pvp-banner h2{position:absolute;top:5%;left:4%;right:4%;z-index:2;display:flex;flex-direction:column;align-items:center;gap:1px;margin:0;text-align:center;letter-spacing:0;filter:drop-shadow(0 4px 5px #07132566)}
-.compact-party-room .party-pvp-banner h2>span{font:900 clamp(21px,6cqw,35px)/1 'Cinzel',serif;letter-spacing:.1em;color:#fff3ce;-webkit-text-stroke:1px #183552;paint-order:stroke fill;text-shadow:0 2px #142f4e}
-.compact-party-room .party-pvp-banner h2 strong{position:relative;isolation:isolate;font:900 clamp(50px,16cqw,90px)/1 'Cinzel',serif;letter-spacing:-.045em;color:transparent;background:linear-gradient(180deg,#fffce5 5%,#ffe9a7 38%,#bb762f 42%,#ffd885 48%,#ffe4a1 65%,#e7a548 96%);background-clip:text;-webkit-background-clip:text;-webkit-text-stroke:1px #fff0ba;filter:drop-shadow(0 5px 3px #071b3566)}
-.compact-party-room .party-pvp-banner h2 strong::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:#a46a2d;-webkit-text-stroke:2px #6b4728;text-shadow:0 1px #d09a48,0 2px #bd8239,0 3px #a76b2c,0 4px #8b5528,0 5px #6d4023,0 6px #4d3023,0 8px #102b43}
-.compact-party-room .party-pvp-banner h2 strong::after{content:attr(data-text);position:absolute;inset:0;z-index:1;background-image:inherit;background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-stroke:inherit}
-.compact-party-room .party-pvp-caption{position:absolute;z-index:1;left:0;right:0;bottom:0;display:flex;flex-direction:column;align-items:center;gap:11px;padding:140px 18px 32px;background:linear-gradient(0deg,#081b32fc 0%,#0c2941f0 46%,#0c2941b8 70%,transparent 100%);text-align:center;color:#f7eccd;text-shadow:0 2px 3px #061426}
-.compact-party-room .party-pvp-caption::before{content:'';width:64px;height:2px;margin-bottom:3px;background:linear-gradient(90deg,transparent,#e9cc8d,transparent);box-shadow:0 2px 8px #f4c77744}
-.compact-party-room .party-pvp-caption h3{margin:0;font:900 clamp(17px,5.5cqw,31px)/1.2 'Nunito',sans-serif;color:#f7e9c2}
-.compact-party-room .party-pvp-caption p{margin:0;font:700 clamp(15px,4cqw,22px)/1.3 'Nunito',sans-serif;color:#e2e9eb}
-.compact-party-room .party-pvp-caption p strong{color:#ffe0a0;font-weight:900}
-.compact-party-room .party-pvp-caption>span{font-size:clamp(12px,3.2cqw,18px);line-height:1.35;color:#bfcfdd}
-.compact-party-room .party-match-panel{grid-column:10/13;grid-row:1/3;container-type:inline-size;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,1fr) auto auto;align-items:stretch;gap:12px;min-width:0;min-height:0;padding:0;background:none}
-.compact-party-room .ability-preparation{display:flex;flex-direction:column;justify-content:space-evenly;width:100%;max-width:none;min-height:0;height:auto;padding:17px 15px;border:1px solid #c0ad7a99;border-radius:15px;background:linear-gradient(135deg,#30475e66,#14253d77),var(--arena-texture) center/256px,var(--arena-panel);box-shadow:inset 0 1px #f8e4ac44,inset 0 0 0 4px #07152933,0 6px 12px #020d1c55;color:#ebdfc1}
-.compact-party-room .ability-preparation::before{inset:6px;border:1px solid #b6a67b33;border-radius:10px;background:none}
-.compact-party-room .ability-preparation>header{gap:5px;margin:0 0 19px;padding:4px 0 13px;border-bottom:1px solid #b6a36f55}
-.compact-party-room .ability-preparation h2{margin:0;font:900 19px 'Nunito',sans-serif;color:#f4e6bc;text-shadow:0 2px #071527;letter-spacing:0}
-.compact-party-room .preparation-state{font-size:10px;min-height:12px;color:#b8c6d2}
-.compact-party-room .preparation-loadout{gap:16px}.compact-party-room .preparation-catalog{display:grid;grid-template-columns:repeat(4,56px);justify-content:center;gap:10px}
-.compact-party-room .preparation-choice{width:56px;height:56px;padding:3px;border:1px solid #8194a555;border-radius:10px;background:linear-gradient(#1d354b,#14293f);box-shadow:inset 0 1px #d7c28b22,0 2px #07182b44}.compact-party-room .preparation-choice.preparation-future{opacity:.52;border-color:#60798a66;background:linear-gradient(#12263b,#1a3045);box-shadow:inset 0 2px 5px #05132366;cursor:default}
-.compact-party-room .preparation-choice img{filter:drop-shadow(0 3px 2px #050f2066)}
-.compact-party-room .preparation-choice.chosen::after{border:2px solid #d7be7e;border-radius:12px;box-shadow:0 0 0 2px #fff0b822;background:#ffdf9f12}
-.compact-party-room .preparation-divider{margin:17px 0 12px;gap:8px;color:#baac8b}
-.compact-party-room .preparation-divider i{background:linear-gradient(90deg,transparent,#b6a47888)}
-.compact-party-room .preparation-divider span{font-size:14px;letter-spacing:.1px;font-weight:900}
-.compact-party-room .preparation-slot{width:72px;height:72px;padding:5px;border:1px solid #c4b184;border-radius:11px;background:linear-gradient(#11243b,#243e55);box-shadow:inset 0 3px 6px #06112299,0 1px #d7c99566,0 0 0 3px #091a2c44;color:#d8d9c5}
-.compact-party-room .preparation-slot.empty{border-color:#7d929b;background:linear-gradient(#172d43,#263e52);box-shadow:inset 0 3px 5px #08182988,0 1px #c8b89144;color:#91a6b1}
-.compact-party-room .preparation-slot-number{top:3px;left:4px;font-size:8px;color:#eee1b4;text-shadow:0 1px #09172b}
-.compact-party-room .preparation-slot.empty .preparation-slot-number{color:#94aaba;text-shadow:none}
-.compact-party-room .preparation-slot.drag-over{border-color:#fff2bf;box-shadow:0 0 0 3px #b99e65,0 0 15px #e0c77855}
-.compact-party-room .preparation-hint{min-height:12px;margin:13px 0 0;font-size:9px;color:#bbc9d4}
-.compact-party-room .compact-party-layout>.party-chat{grid-column:1/6;grid-row:2;position:relative;display:grid;grid-template-rows:28px minmax(0,1fr)33px;width:auto;height:auto;min-width:0;min-height:0;padding:7px 9px;border:1px solid #b1a47788;border-radius:12px;background:linear-gradient(#10243cec,#0b1c30f5);box-shadow:inset 0 1px #c8d8e533,inset 0 0 0 4px #020f2033,0 4px 8px #040b1855;text-align:left;overflow:hidden}
-.compact-party-room .party-chat .chat-tabs{position:relative;inset:auto;grid-row:1;display:flex;align-items:stretch;gap:5px;width:auto;height:auto;min-height:0;padding:0;border-bottom:1px solid #b5a27366;transform:none;background:none;z-index:1}
-.compact-party-room .party-chat .chat-tabs>button{height:auto;min-height:0;max-height:100%;margin:0;padding:2px 15px;border:1px solid #8293a16b;border-bottom:0;border-radius:7px 7px 0 0;background:#20374d;color:#bdcbd6;font-size:11px;line-height:1;transform:none}
-.compact-party-room .party-chat .chat-tabs>button.active{border-color:#c8b27e;background:linear-gradient(#496076,#2b4258);color:#fff1c8}
-.compact-party-room .party-chat .chat-messages{position:relative;inset:auto;grid-row:2;width:auto;height:auto;min-height:0;max-height:100%;margin:0;padding:5px;overflow:auto;transform:none;font-size:11px;line-height:1.45;color:#d5e2ea;scrollbar-width:thin;z-index:0}
-.compact-party-room .party-chat .chat-messages strong{color:#ead49b}
-.compact-party-room .party-chat .chat-messages .system-message{color:#bdcbd5}
-.compact-party-room .party-chat .chat-input{position:relative;inset:auto;grid-row:3;display:flex;align-items:center;gap:5px;width:auto;height:100%;min-height:0;min-width:0;margin-top:2px;padding:1px 5px;border:1px solid #8195a477;border-radius:7px;background:#07192c;box-shadow:inset 0 2px #040e1c66;transform:none}
-.compact-party-room .party-chat .chat-input>input{flex:1;min-width:0;height:26px;margin:0;padding:3px 5px;border:0;background:none;box-shadow:none;font-size:11px;color:#f4e9cd}
-.compact-party-room .party-chat .chat-input>button{display:grid;place-items:center;flex:none;width:27px;height:26px;padding:3px;border:1px solid #b0a27e88;border-radius:6px;background:linear-gradient(#496078,#2b435b);color:#eee0b6}
-.compact-party-room .party-chat .chat-input>button>svg{width:16px;height:16px}
-.compact-party-room .party-room-actions{display:flex;align-items:center;gap:9px;min-width:0;flex:none}
-.compact-party-room .party-primary-actions{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto;align-items:stretch;justify-content:stretch;width:100%;gap:10px;margin-top:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
-.compact-party-room .party-invite-row{grid-column:1;grid-row:auto;justify-content:center;display:flex;align-items:stretch;gap:8px;min-height:40px}
-.compact-party-room .party-invite-wrap{position:relative;display:flex;flex:1;min-width:0;max-width:145px}
-.compact-party-room .party-invite-action{width:100%;height:40px;min-width:0;white-space:nowrap;font-size:13px}
-.compact-party-room .party-practice-action{width:44px;min-width:44px;height:40px;flex:none;padding:7px}
-.compact-party-room .party-primary-actions>.party-search-action{grid-column:1;grid-row:auto;width:100%;min-width:0;min-height:66px;height:66px;flex:none;border-radius:13px;font-size:23px;gap:10px}
-.compact-party-room .party-primary-actions>.party-search-action:not(.gold){font-size:14px}
-.compact-party-room .party-room-footer{display:flex;align-items:center;justify-content:space-between;gap:9px;min-width:0;min-height:0;padding:3px 10px;border:1px solid #b1a37377;border-radius:9px;background:linear-gradient(#2b4058,#182c42);box-shadow:inset 0 1px #e6dab033}
-.compact-party-room .party-room-status{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;color:#c4d1da}
-.compact-party-room .party-room-status>svg{width:14px;height:14px;flex:none;color:#d2bb88}
-.compact-party-room .party-bottom-actions{position:relative;align-self:end;display:flex;align-items:center;justify-content:center;width:100%;gap:clamp(6px,3cqw,24px);padding:0;border:0;background:none;box-shadow:none}
-.compact-party-room .party-menu-button{display:grid;place-items:center;flex:none;width:clamp(32px,10cqw,54px);height:clamp(32px,10cqw,54px);padding:4px;border:1px solid #bea87766;border-radius:13px;background:linear-gradient(140deg,#39536bbb,#142c45cc);box-shadow:inset 0 1px #e9d59e33,0 3px 5px #040c1944;color:#e6d5a3;transition:filter .13s,transform .13s}
-.compact-party-room .party-menu-button:hover:not(:disabled){filter:brightness(1.17);transform:translateY(-2px)}
-.compact-party-room .party-menu-button:active:not(:disabled){transform:translateY(1px)}
-.compact-party-room .party-menu-button:disabled{opacity:.5;cursor:default}
-.compact-party-room .party-bottom-actions>.party-painted-menu{width:clamp(32px,11cqw,62px);height:clamp(32px,10.5cqw,58px);padding:0;border:0;background:none;box-shadow:none}
-.compact-party-room .party-painted-menu>img{width:clamp(32px,10.5cqw,57px);height:clamp(32px,10.5cqw,57px);object-fit:contain;pointer-events:none;filter:drop-shadow(0 3px 3px #040f2488)}
-.compact-party-room .party-menu-button>svg{width:31px;height:31px;filter:drop-shadow(0 2px #0a1d2f)}
-.compact-party-room .party-practice-overlay{position:absolute;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:#050e20b5;backdrop-filter:blur(3px)}
-.compact-party-room .party-practice-dialog{width:min(390px,100%);padding:25px;border:1px solid #cab886;border-radius:17px;background:linear-gradient(#30475e,#172d43);box-shadow:inset 0 1px #f1dfa255,0 15px 35px #02091588;text-align:center;color:#e6ddc2}
-.compact-party-room .party-practice-emblem{display:grid;place-items:center;width:57px;height:57px;margin:0 auto 15px;border:1px solid #baa875;border-radius:16px;background:linear-gradient(#52677a,#344b62);color:#f4dfac;box-shadow:inset 0 1px #f7e2ab44}
-.compact-party-room .party-practice-dialog h2{margin:0 0 11px;font:900 23px 'Nunito',sans-serif;color:#f1e3bb;text-shadow:0 2px #0c1b2d}
-.compact-party-room .party-practice-dialog p{margin:0 0 20px;font-size:12px;line-height:1.5;color:#bfcdd7}
-.compact-party-room .party-practice-dialog>div{display:flex;justify-content:center;gap:10px}
-.compact-party-room .party-practice-dialog .button{min-height:39px;padding:8px 12px;font-size:12px}
-@media(max-width:1150px) and (min-width:761px){html:not(.mobile-landscape) .compact-party-room .compact-party-layout{--party-team-track:calc((var(--party-formation-height)*.8 - 48px)/5);gap:12px}html:not(.mobile-landscape) .compact-party-room .preparation-choice{width:46px;height:46px}html:not(.mobile-landscape) .compact-party-room .preparation-catalog{grid-template-columns:repeat(4,46px)}html:not(.mobile-landscape) .compact-party-room .preparation-slot{width:59px;height:59px}html:not(.mobile-landscape) .compact-party-room .preparation-catalog,html:not(.mobile-landscape) .compact-party-room .preparation-loadout{gap:8px}html:not(.mobile-landscape) .compact-party-room .ability-preparation{padding:18px 9px}html:not(.mobile-landscape) .compact-party-room .party-player-insignia>.level-badge{width:36px!important;height:36px!important;--level-size:36px!important;font-size:36px!important}}
-/* Narrow desktop windows scroll the room body, never the outer game canvas. */
-@media(max-width:760px){html:not(.mobile-landscape) .arena-room-portal .arena-room-stage.party-room.compact-party-room{grid-template-rows:minmax(0,1fr);padding:9px;gap:8px}html:not(.mobile-landscape) .compact-party-room .compact-party-layout{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:min(550px,calc((100vw - 34px) * 1.25)) 720px 180px;gap:12px;overflow:auto;padding:0 5px 3px 0}html:not(.mobile-landscape) .compact-party-room .party-team{grid-column:1/3;grid-row:1}html:not(.mobile-landscape) .compact-party-room .party-team-cards{width:min(100cqw,80cqh);height:100%;justify-self:center}html:not(.mobile-landscape) .compact-party-room .party-center-stage{grid-column:1;grid-row:2;gap:12px}html:not(.mobile-landscape) .compact-party-room .party-pvp-banner{width:100%;height:100%}html:not(.mobile-landscape) .compact-party-room .party-match-panel{grid-column:2;grid-row:2;gap:8px}html:not(.mobile-landscape) .compact-party-room .ability-preparation{min-height:270px;padding:14px 8px}html:not(.mobile-landscape) .compact-party-room .ability-preparation h2{font-size:18px}html:not(.mobile-landscape) .compact-party-room .preparation-choice{width:37px;height:37px}html:not(.mobile-landscape) .compact-party-room .preparation-catalog{grid-template-columns:repeat(4,37px)}html:not(.mobile-landscape) .compact-party-room .preparation-slot{width:46px;height:46px}html:not(.mobile-landscape) .compact-party-room .preparation-catalog,html:not(.mobile-landscape) .compact-party-room .preparation-loadout{gap:8px}html:not(.mobile-landscape) .compact-party-room .compact-party-layout>.party-chat{grid-column:1/3;grid-row:3}html:not(.mobile-landscape) .compact-party-room .party-primary-actions{width:100%}html:not(.mobile-landscape) .compact-party-room .party-bottom-actions{flex-wrap:wrap;gap:8px}html:not(.mobile-landscape) .compact-party-room .party-bottom-actions>.party-painted-menu{width:40px;height:40px}html:not(.mobile-landscape) .compact-party-room .party-painted-menu>img{width:40px;height:40px}html:not(.mobile-landscape) .compact-party-room .party-menu-button{width:40px;height:40px}html:not(.mobile-landscape) .compact-party-room .party-room-name>h1{font-size:13px}html:not(.mobile-landscape) .compact-party-room .party-room-number{min-width:40px;padding-right:7px}html:not(.mobile-landscape) .compact-party-room .party-room-number>strong{font-size:36px}html:not(.mobile-landscape) .compact-party-room .party-room-status{font-size:9px;max-width:68%}}
-/* A mobile session only plays in landscape. Geometry here follows real CSS pixels. */
-html.mobile-landscape .arena-room-portal .arena-room-stage.party-room.compact-party-room{padding:max(5px,env(safe-area-inset-top)) max(6px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(6px,env(safe-area-inset-left));grid-template-rows:minmax(0,1fr);gap:5px;border-width:1px}
-html.mobile-landscape .arena-room-portal .arena-room-stage.party-room.compact-party-room.has-status{--party-layout-reserve:142px;grid-template-rows:minmax(0,1fr)21px}
-html.mobile-landscape .compact-party-room .party-heading{padding:1px 6px;gap:5px;border-radius:7px}
-html.mobile-landscape .compact-party-room .party-room-name>h1{font-size:9px}html.mobile-landscape .compact-party-room .party-room-number{min-width:31px;padding-right:5px;gap:1px}html.mobile-landscape .compact-party-room .party-room-number>span{font-size:6px}html.mobile-landscape .compact-party-room .party-room-number>strong{font-size:28px;-webkit-text-stroke-width:.4px}
-html.mobile-landscape .compact-party-room .party-rename-button{width:22px;height:22px;padding:4px}
-html.mobile-landscape .compact-party-room .party-rename-button>svg{width:12px;height:12px}
-html.mobile-landscape .compact-party-room .party-rename-form>input{width:180px;height:23px;font-size:10px}
-html.mobile-landscape .compact-party-room .party-rename-form>button{width:23px;height:23px}
-html.mobile-landscape .compact-party-room .compact-party-layout{--party-formation-height:min(calc((100dvw - 28px)*.5125),calc(100dvh - var(--party-layout-reserve,116px)));--party-team-track:calc((var(--party-formation-height)*.8 - 24px)/5);grid-template-columns:repeat(5,minmax(0,var(--party-team-track))) repeat(4,minmax(0,1fr)) repeat(3,minmax(0,.8fr));grid-template-rows:var(--party-formation-height) minmax(0,1fr);gap:6px;overflow:visible;padding:0}
-html.mobile-landscape .compact-party-room .party-team{place-items:stretch;padding:0;overflow:visible}html.mobile-landscape .compact-party-room .party-match-panel{display:grid;justify-content:stretch;gap:5px}html.mobile-landscape .compact-party-room .party-team-cards{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));width:100%;height:100%;gap:5px}
-html.mobile-landscape .compact-party-room .party-player-card{border-radius:7px}html.mobile-landscape .compact-party-room .party-player-card::before{border-width:19px 4px 4px;border-image-width:19px 4px 4px}
-html.mobile-landscape .compact-party-room .party-player-name{left:4px;right:4px;top:1px;height:17px;min-height:0;padding:0 3px;gap:2px;border-bottom-width:1px;border-radius:4px 4px 1px 1px}
-html.mobile-landscape .compact-party-room .party-player-identity{gap:2px}
-html.mobile-landscape .compact-party-room .party-player-identity>strong{font-size:9px;text-shadow:0 1px #071522}
-html.mobile-landscape .compact-party-room .party-player-identity>svg{width:8px;height:8px}
-html.mobile-landscape .compact-party-room .party-kick{width:14px;height:14px;padding:1px;border-radius:4px}
-html.mobile-landscape .compact-party-room .party-kick>svg{width:10px;height:10px}
-html.mobile-landscape .compact-party-room .party-player-insignia{right:5%;top:18%;gap:2px}
-html.mobile-landscape .compact-party-room .party-player-insignia>.level-badge{width:25px!important;height:25px!important;--level-size:25px!important;font-size:25px!important}
-html.mobile-landscape .compact-party-room .party-vip{width:15px;height:13px}html.mobile-landscape .compact-party-room .party-vip>svg{width:13px;height:13px}
-html.mobile-landscape .compact-party-room .party-player-portrait{top:16%;bottom:5%;left:0;right:0;transform:translateY(-5px)}
-html.mobile-landscape .compact-party-room .party-player-portrait>canvas{width:108cqw!important;height:108cqw!important}
-html.mobile-landscape .compact-party-room .party-player-state.ready{width:18px;height:18px;left:calc(50% - 9px);right:auto;bottom:5%;border-width:1px}
-html.mobile-landscape .compact-party-room .party-player-state.ready>svg{width:11px;height:11px}
-html.mobile-landscape .compact-party-room .party-slot-toggle{gap:0;padding:19px 5px 4px}
-html.mobile-landscape .compact-party-room .party-vacant-emblem{width:40px;height:40px}html.mobile-landscape .compact-party-room .party-vacant-emblem>svg{width:29px;height:29px}
-html.mobile-landscape .compact-party-room .party-center-stage{gap:0}
-html.mobile-landscape .compact-party-room .party-pvp-banner{place-self:stretch;width:100%;height:100%;max-height:100%;border-width:1px;border-radius:9px}
-html.mobile-landscape .compact-party-room .party-pvp-banner::after{border-width:1px;border-radius:8px}
-html.mobile-landscape .compact-party-room .party-pvp-banner h2{top:5%;gap:0}
-html.mobile-landscape .compact-party-room .party-pvp-banner h2>span{font-size:clamp(15px,7cqw,21px);-webkit-text-stroke-width:.6px}
-html.mobile-landscape .compact-party-room .party-pvp-banner h2 strong{font-size:clamp(35px,17cqw,49px);-webkit-text-stroke-width:.6px}
-html.mobile-landscape .compact-party-room .party-pvp-banner h2 strong::before{-webkit-text-stroke-width:1px;text-shadow:0 1px #bd8239,0 2px #8b5528,0 3px #6d4023,0 4px #102b43}
-html.mobile-landscape .compact-party-room .party-pvp-caption{gap:5px;padding:64px 8px 15px}
-html.mobile-landscape .compact-party-room .party-pvp-caption::before{width:34px;height:1px;margin-bottom:1px}
-html.mobile-landscape .compact-party-room .party-pvp-caption h3{font-size:clamp(12px,5.8cqw,17px)}
-html.mobile-landscape .compact-party-room .party-pvp-caption p{font-size:clamp(11px,4.8cqw,14px)}
-html.mobile-landscape .compact-party-room .party-pvp-caption>span{font-size:clamp(9px,4cqw,11px)}
-html.mobile-landscape .compact-party-room .ability-preparation{max-width:none;min-height:0;height:auto;padding:7px;border-radius:9px}
-html.mobile-landscape .compact-party-room .ability-preparation::before{inset:3px;border-radius:6px}
-html.mobile-landscape .compact-party-room .ability-preparation>header{gap:2px;margin-bottom:3px;padding:1px 0 2px}
-html.mobile-landscape .compact-party-room .ability-preparation h2{font-size:10px}
-html.mobile-landscape .compact-party-room .preparation-state{font-size:7px;min-height:8px}
-html.mobile-landscape .compact-party-room .preparation-loadout{gap:8px}html.mobile-landscape .compact-party-room .preparation-catalog{grid-template-columns:repeat(4,31px);gap:5px}
-html.mobile-landscape .compact-party-room .preparation-choice{width:31px;height:31px;padding:1px;border-radius:7px}
-html.mobile-landscape .compact-party-room .preparation-choice.chosen::after{border-width:1px;border-radius:7px}
-html.mobile-landscape .compact-party-room .preparation-divider{margin:4px 0 3px;gap:5px}
-html.mobile-landscape .compact-party-room .preparation-divider span{font-size:9px;letter-spacing:0}
-html.mobile-landscape .compact-party-room .preparation-slot{width:40px;height:40px;padding:3px;border-radius:7px}
-html.mobile-landscape .compact-party-room .preparation-slot-number{font-size:5px;top:2px;left:3px}
-html.mobile-landscape .compact-party-room .preparation-hint{position:absolute;width:1px;height:1px;padding:0;margin:-1px;min-height:0;overflow:hidden;clip-path:inset(50%)}
-html.mobile-landscape .compact-party-room .compact-party-layout>.party-chat{grid-template-rows:17px minmax(0,1fr)22px;padding:3px 5px;border-radius:7px}
-html.mobile-landscape .compact-party-room .party-chat .chat-tabs{height:100%;max-height:100%;min-height:0}
-html.mobile-landscape .compact-party-room .party-chat .chat-tabs>button{height:100%;max-height:100%;min-height:0;padding:1px 8px;border-radius:4px 4px 0 0;font-size:7px;line-height:1}
-html.mobile-landscape .compact-party-room .party-chat .chat-messages{padding:2px 3px;font-size:8px;line-height:1.35}
-html.mobile-landscape .compact-party-room .party-chat .chat-input{margin-top:1px;padding:0 3px;border-radius:4px}
-html.mobile-landscape .compact-party-room .party-chat .chat-input>input{height:18px;padding:1px 3px;font-size:8px}
-html.mobile-landscape .compact-party-room .party-chat .chat-input>button{width:21px;height:18px;padding:1px;border-radius:4px}
-html.mobile-landscape .compact-party-room .party-chat .chat-input>button>svg{width:12px;height:12px}
-html.mobile-landscape .compact-party-room .party-primary-actions{grid-template-columns:minmax(0,1fr);grid-template-rows:auto;min-height:0;width:100%;padding:0;gap:5px}
-html.mobile-landscape .compact-party-room .party-invite-row{gap:5px;min-height:25px}
-html.mobile-landscape .compact-party-room .party-invite-action{height:25px;min-height:25px;min-width:0;padding:3px 6px;border-radius:6px;font-size:9px;gap:4px}
-html.mobile-landscape .compact-party-room .party-invite-action>svg{width:13px;height:13px}
-html.mobile-landscape .compact-party-room .party-practice-action{width:29px;min-width:29px;height:25px;min-height:25px;padding:3px;border-radius:6px}
-html.mobile-landscape .compact-party-room .party-practice-action>svg{width:15px;height:15px}
-html.mobile-landscape .compact-party-room .party-primary-actions>.party-search-action{height:37px;min-height:37px;max-height:none;padding:4px;border-radius:8px;font-size:15px;gap:6px}
-html.mobile-landscape .compact-party-room .party-primary-actions>.party-search-action:not(.gold){font-size:9px}
-html.mobile-landscape .compact-party-room .party-primary-actions>.party-search-action>svg{width:18px;height:18px}
-html.mobile-landscape .compact-party-room .party-room-footer{padding:1px 6px;gap:5px;border-radius:6px}
-html.mobile-landscape .compact-party-room .party-room-status{max-width:74%;font-size:7px;gap:4px}
-html.mobile-landscape .compact-party-room .party-room-status>svg{width:10px;height:10px}
-html.mobile-landscape .compact-party-room .party-bottom-actions{gap:4px;align-self:end}html.mobile-landscape .compact-party-room .party-menu-button{width:min(32px,calc((100cqw - 16px)/5));height:min(32px,calc((100cqw - 16px)/5));padding:4px;border-radius:8px}html.mobile-landscape .compact-party-room .party-bottom-actions>.party-painted-menu{width:min(32px,calc((100cqw - 16px)/5));height:min(32px,calc((100cqw - 16px)/5));padding:0}html.mobile-landscape .compact-party-room .party-painted-menu>img{width:100%;height:100%}html.mobile-landscape .compact-party-room .party-menu-button>svg{width:23px;height:23px}
-html.mobile-landscape .compact-party-room .party-practice-dialog{width:340px;padding:18px}
-html.mobile-landscape .compact-party-room .party-practice-emblem{width:43px;height:43px;margin-bottom:10px}
-html.mobile-landscape .compact-party-room .party-practice-emblem>svg{width:28px;height:28px}
-html.mobile-landscape .compact-party-room .party-practice-dialog h2{font-size:18px}
-html.mobile-landscape .compact-party-room .party-practice-dialog p{font-size:10px;margin-bottom:14px}
-html.mobile-landscape .compact-party-room .party-practice-dialog .button{min-height:32px;padding:5px 10px;font-size:10px}
-@media(max-width:750px){html.mobile-landscape .compact-party-room .compact-party-layout{grid-template-rows:var(--party-formation-height) minmax(0,1fr)}html.mobile-landscape .compact-party-room .party-pvp-banner{width:100%;height:100%}html.mobile-landscape .compact-party-room .preparation-choice{width:29px;height:29px}html.mobile-landscape .compact-party-room .preparation-catalog{grid-template-columns:repeat(4,29px)}html.mobile-landscape .compact-party-room .preparation-slot{width:38px;height:38px}html.mobile-landscape .compact-party-room .preparation-catalog,html.mobile-landscape .compact-party-room .preparation-loadout{gap:6px}}
-.compact-party-room .party-search-action.is-searching{position:relative;display:flex;flex-direction:column;gap:5px;overflow:hidden;border-color:#cbb176;background:linear-gradient(110deg,#283f58,#3f5e72,#253d57);color:#f2e4bc;box-shadow:inset 0 1px #e6d29c55,0 0 0 2px #a28a5422,0 4px 9px #020c1b77}
-.compact-party-room .party-search-action.is-searching::before{content:'';position:absolute;inset:-25% -60%;background:linear-gradient(110deg,transparent 38%,#e4d39515 48%,transparent 58%);animation:party-search-shimmer 3s ease-in-out infinite;pointer-events:none}
-.compact-party-room .party-search-progress{position:relative;display:flex;align-items:center;justify-content:center;gap:10px;font-size:19px}
-.compact-party-room .party-search-progress>svg{flex:none;animation:party-search-spin 1.4s linear infinite}
-.compact-party-room .party-search-progress>time{font:900 22px/1 Nunito,sans-serif;font-variant-numeric:tabular-nums;color:#ffe7a6}
-.compact-party-room .party-search-action.is-searching>small{position:relative;font-size:11px;color:#c4d3df;font-weight:700}
-.compact-party-room .party-menu-button.active{filter:brightness(1.2);transform:translateY(-2px)}
-.compact-party-room .party-menu-popover{position:absolute;right:8px;bottom:calc(100% + 12px);z-index:76;width:300px;max-width:calc(100vw - 28px);padding:13px;border:1px solid #c9b47e;border-radius:13px;background:linear-gradient(#293f57,#142a42);box-shadow:inset 0 1px #eddda744,0 9px 24px #020a17b3;color:#eadfbe}
-.compact-party-room .party-menu-popover>header{display:flex;align-items:center;justify-content:space-between;padding-bottom:8px;border-bottom:1px solid #c6ad7055;font-size:14px}
-.compact-party-room .party-menu-popover>header>button{display:grid;place-items:center;width:26px;height:26px;padding:4px;border:0;border-radius:6px;background:#f4dfab0d;color:#d9c69c}
-.compact-party-room .party-menu-popover>p{margin:22px 0;text-align:center;color:#bdcbd6;font-size:13px}
-.compact-party-room .party-quest-list{display:grid;gap:5px;margin-top:8px}
-.compact-party-room .party-quest-list>button,.compact-party-room .party-quest-list>div{display:flex;align-items:center;gap:10px;width:100%;padding:10px 4px;border:0;background:none;color:#e9dfbf;text-align:left}
-.compact-party-room .party-quest-list>button:disabled{opacity:.65}
-.compact-party-room .party-quest-list>button>span,.compact-party-room .party-quest-list>div>span{display:grid;place-items:center;flex:none;width:25px;height:25px;border:1px solid #b6a46e77;border-radius:50%;background:#13263b;color:#dacba0;font-size:11px}
-.compact-party-room .party-quest-list .done{background:#2d6255;color:#f7e7af}
-.compact-party-room .party-quest-list strong{display:block;font-size:12px}
-.compact-party-room .party-quest-list small{display:block;margin-top:3px;color:#b9c9d6;font-size:10px}
-html.mobile-landscape .compact-party-room .party-search-action.is-searching{gap:2px}
-html.mobile-landscape .compact-party-room .party-search-progress{gap:5px;font-size:11px}
-html.mobile-landscape .compact-party-room .party-search-progress>svg{width:14px;height:14px}
-html.mobile-landscape .compact-party-room .party-search-progress>time{font-size:14px}
-html.mobile-landscape .compact-party-room .party-search-action.is-searching>small{font-size:7px}
-html.mobile-landscape .compact-party-room .party-menu-popover{width:260px;padding:9px;bottom:calc(100% + 8px)}
-html.mobile-landscape .compact-party-room .party-menu-popover>header{font-size:11px;padding-bottom:5px}
-html.mobile-landscape .compact-party-room .party-quest-list strong{font-size:10px}
-html.mobile-landscape .compact-party-room .party-quest-list small{font-size:8px}
-@keyframes party-search-spin{to{transform:rotate(360deg)}}
-@keyframes party-search-shimmer{0%,100%{transform:translateX(-25%)}60%{transform:translateX(25%)}}
-@media(prefers-reduced-motion:reduce){.compact-party-room button{transition:none!important}.compact-party-room .party-search-action.is-searching::before,.compact-party-room .party-search-progress>svg{animation:none}}
+/* Sala PvP no padrão da mochila: moldura de madeira laranja em tela cheia,
+   cartas creme com faixa laranja e o selo da aura atrás de cada personagem,
+   faixa pintada da Batalha PvP no centro e painel de preparação à direita.
+   Materiais em WoodTheme.css; botões compartilhados em ArenaTheme.css. */
+.arena-room-portal{position:fixed;inset:0;z-index:30;overflow:hidden;background:#2a1406}
+.arena-room-portal .pvp-room{
+ position:absolute;inset:0;display:grid;grid-template-rows:62px minmax(0,1fr);gap:8px;
+ width:100%;height:100%;margin:0;padding:8px;border-radius:0;overflow:hidden;isolation:isolate;
+}
+.pvp-room :is(button,input,strong,small,b,span,h2,h3,p,time){font-family:'Nunito','Trebuchet MS',sans-serif}
+.pvp-room button{cursor:pointer}
+
+/* ---------- Barra de título ---------- */
+.pvp-room .pr-titlebar{display:flex;align-items:center;gap:12px;min-width:0;padding:0 11px 0 9px}
+.pvp-room .party-room-number{display:grid;place-items:center;align-content:center;flex:none;width:48px;height:48px;border:2px solid #ffe2a6;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffd884,#e98a25 55%,#a9480f);box-shadow:inset 0 -3px #8a3a0a,0 2px #2c1004;color:#fff;text-shadow:0 1px #7a2d04;line-height:1}
+.pvp-room .party-room-number span{font-size:9px;font-weight:900;letter-spacing:.2px;color:#fff1cf}
+.pvp-room .party-room-number strong{font-size:20px;font-weight:900}
+.pvp-room .party-room-name{display:flex;align-items:center;gap:8px;flex:0 1 auto;min-width:0}
+.pvp-room .party-room-name h1{min-width:0;margin:0;overflow:hidden;font:700 24px/1.15 'Cinzel',Georgia,serif;letter-spacing:.3px;color:var(--wood-gold);text-overflow:ellipsis;white-space:nowrap;text-shadow:0 2px #2c1004,0 0 12px #ffae4a55}
+.pvp-room .party-rename-button{display:grid;place-items:center;flex:none;width:30px;height:30px;padding:0;border:1px solid #fff3d6;border-radius:50%;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565,0 2px #2c1004;color:#8a3f0b}
+.pvp-room .party-rename-form{display:flex;align-items:center;gap:5px;height:36px;padding:0 4px 0 12px;border-radius:999px;background:linear-gradient(#fffdf5,#f5e3be);box-shadow:inset 0 -2px #d9b880,0 0 0 2px #fff1c4}
+.pvp-room .party-rename-form input{width:min(260px,32vw);min-width:0;height:100%;padding:0;border:0;outline:0;background:none;color:var(--wood-ink);font-size:16px;font-weight:900}
+.pvp-room .party-rename-form button{display:grid;place-items:center;width:28px;height:28px;padding:0;border:0;border-radius:50%;background:#f2d4a2;color:var(--wood-ink)}
+.pvp-room .party-rename-form button[type=submit]{background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);color:#6b2c05}
+.pvp-room .party-rename-form button:disabled{opacity:.5}
+.pvp-room .pr-format{flex:none;height:30px;margin-left:auto;padding:0 12px 0 9px;font-size:15px}
+.pvp-room .pr-format svg{color:#c25f12}
+.pvp-room .pr-room-state{flex:none;padding:5px 12px;border-radius:999px;background:#3aa35f;box-shadow:inset 0 -2px #227544;color:#fff;font-size:12px;font-weight:900;text-shadow:0 1px #227544;white-space:nowrap}
+.pvp-room .pr-room-state.is-searching{background:#3d84d6;box-shadow:inset 0 -2px #235aa0;text-shadow:0 1px #235aa0}
+
+/* ---------- Corpo ---------- */
+.pvp-room .pr-body{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(220px,.72fr) clamp(300px,23vw,350px);gap:8px;min-width:0;min-height:0}
+.pvp-room .pr-main{display:grid;grid-template-rows:minmax(0,1fr) clamp(140px,22vh,190px);gap:8px;min-width:0;min-height:0}
+.pvp-room .pr-team{display:grid;grid-template-rows:34px minmax(0,1fr);gap:7px;min-width:0;min-height:0;padding:7px}
+.pvp-room .pr-pane-title{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.pvp-room .pr-pane-title h2{display:flex;align-items:center;gap:7px;height:100%;margin:0;padding:0 14px 0 11px;border-radius:9px;font-size:15px;font-weight:900}
+.pvp-room .pr-ready-count{height:28px;padding:0 11px 0 9px;font-size:14px}
+.pvp-room .pr-ready-count svg{color:#2f8a55}
+/* Cartas em moldura 4:5, do maior tamanho que cabe (até 310px de largura). */
+.pvp-room .pr-team-cards{display:grid;place-items:center;min-height:0;padding:10px;container-type:size}
+.pvp-room .pr-team-grid{--cols:2;--rows:2;--gap:12px;--card-w:min(310px,calc((100cqh - var(--gap) * (var(--rows) - 1)) / var(--rows) * .8),calc((100cqw - var(--gap) * (var(--cols) - 1)) / var(--cols)));display:grid;grid-template-columns:repeat(var(--cols),var(--card-w));grid-auto-rows:calc(var(--card-w) * 1.25);gap:var(--gap)}
+
+/* ---------- Cartas dos aliados ---------- */
+.pvp-room .pr-card{position:relative;display:grid;grid-template-rows:30px minmax(0,1fr) 28px;min-width:0;min-height:0;border:2px solid #f2b56b;border-radius:13px;background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 -3px #e9c991,0 3px #a75a2355,0 4px 10px #8a431826;overflow:hidden}
+.pvp-room .pr-card.is-me{border-color:#ffd36b;box-shadow:inset 0 -3px #e9c991,0 0 0 3px #ffb44f66,0 4px 12px #c2610f44}
+.pvp-room .pr-card-name{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:0 8px;border-width:0 0 1px;border-radius:0;font-size:14px;font-weight:900}
+.pvp-room .pr-card-name strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvp-room .pr-card-name>svg{flex:none;filter:drop-shadow(0 1px #8a3a07)}
+.pvp-room .pr-card-name--vacant{border-bottom:1px solid #efcf9a;background:linear-gradient(#f7e2bb,#efd09c);color:var(--wood-ink-soft);font-size:13px;text-shadow:none}
+.pvp-room .pr-card-kick{position:absolute;top:4px;right:5px;display:grid;place-items:center;width:22px;height:22px;padding:0;border:1px solid #ffd2b8;border-radius:7px;background:linear-gradient(#e2592f,#a92e14);box-shadow:inset 0 -2px #6d1a08;color:#fff3dc}
+.pvp-room .pr-card-stage{position:relative;min-height:0;overflow:hidden;container-type:size;background:radial-gradient(ellipse at 50% 48%,#fffdf6,transparent 66%)}
+.pvp-room .pr-card-sigil{width:min(96cqw,96cqh);translate:-50% -52%}
+.pvp-room .pr-card-portrait{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:1}
+.pvp-room .pr-card-portrait>canvas{flex:none;width:auto!important;height:min(118cqh,110cqw)!important;max-width:none;aspect-ratio:1;margin-bottom:-2%;pointer-events:none}
+.pvp-room .pr-card-insignia{position:absolute;top:5px;left:6px;z-index:2;display:grid;justify-items:center;gap:2px}
+.pvp-room .party-vip{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#fff4d7e6;box-shadow:inset 0 1px 2px #b8641a55}
+.pvp-room .party-vip.vip-inactive{color:#c9a679}
+.pvp-room .party-vip.vip-active{color:#e58f1f}
+.pvp-room .party-vip svg{width:14px;height:14px}
+.pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
+.pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
+.pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
+.pvp-room .pr-card-vacant{display:grid;place-items:center;margin:8px;border:2px dashed #e2b77a;border-radius:10px;background:#fff8e866}
+.pvp-room .closed-slot .pr-card-vacant{border-color:#d9c3a1;background:#f3e6d055}
+.pvp-room .party-slot-toggle{position:absolute;inset:0;display:grid;place-items:center;width:100%;height:100%;padding:0 0 18px;border:0;background:none;color:#c9771f}
+.pvp-room .party-slot-toggle:disabled{cursor:default;opacity:1}
+.pvp-room .party-vacant-emblem{display:grid;place-items:center;width:66px;height:66px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffe9b8,#f7c573 70%);box-shadow:inset 0 -3px #d99a45,0 2px #a75a2344;color:#b4510f;transition:transform .15s}
+.pvp-room .closed-slot .party-vacant-emblem{background:radial-gradient(circle at 40% 30%,#f7ecd9,#dfc8a4 70%);box-shadow:inset 0 -3px #bf9f72;color:#9a7a55}
+.pvp-room .party-slot-toggle:not(:disabled):hover .party-vacant-emblem{transform:scale(1.06)}
+.pvp-room .party-slot-toggle:focus-visible{outline:3px solid #c25f12;outline-offset:-4px;border-radius:10px}
+.pvp-room .pr-vacant-caption{position:absolute;left:0;right:0;bottom:12%;font-size:13px;font-weight:900;color:var(--wood-ink-soft);text-align:center;pointer-events:none}
+
+/* ---------- Conversa ---------- */
+.pvp-room .pr-chat{min-width:0}
+
+/* ---------- Faixa pintada da Batalha PvP ---------- */
+.pvp-room .pr-banner{min-width:0;min-height:0;padding:6px}
+.pvp-room .pr-banner-art{position:relative;height:100%;overflow:hidden;border:2px solid #fff0c9;border-radius:10px;background:#2b4a6b;box-shadow:inset 0 0 0 1px #d98f45}
+.pvp-room .pr-banner-art>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 40%}
+.pvp-room .pr-banner-art>h2{position:absolute;top:4%;left:0;right:0;display:grid;justify-items:center;margin:0;line-height:.9;text-align:center;pointer-events:none}
+.pvp-room .pr-banner-art>h2 span{font:700 clamp(22px,2.6vw,36px)/1 'Cinzel',Georgia,serif;letter-spacing:2px;color:#fff1cf;text-shadow:0 2px #5b2a0e,0 0 10px #2c1004aa}
+.pvp-room .pr-banner-art>h2 strong{font:900 clamp(48px,6vw,86px)/1 'Cinzel',Georgia,serif;letter-spacing:1px;background:linear-gradient(#fff6c9,#ffd36b 45%,#e48d12 70%,#ffd36b);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:1px #7a3a14;filter:drop-shadow(0 3px #5b2a0e) drop-shadow(0 0 10px #ffae4a88)}
+.pvp-room .party-pvp-caption{position:absolute;left:0;right:0;bottom:0;display:grid;justify-items:center;gap:4px;padding:40px 14px 16px;background:linear-gradient(transparent,#3b1806d9 45%,#2c1004f2);text-align:center}
+.pvp-room .party-pvp-caption h3{margin:0;font-size:clamp(16px,1.5vw,22px);font-weight:900;color:#ffd36b;text-shadow:0 2px #2c1004}
+.pvp-room .party-pvp-caption p{margin:0;font-size:14px;font-weight:800;color:#fff1cf}
+.pvp-room .party-pvp-caption p strong{color:#ffd36b}
+.pvp-room .party-pvp-caption span{font-size:12px;font-weight:700;color:#ffdca4cc}
+
+/* ---------- Painel de preparação ---------- */
+.pvp-room .pr-side{display:flex;flex-direction:column;gap:8px;min-width:0;min-height:0;padding:8px}
+.pvp-room .pr-side-scroll{display:flex;flex-direction:column;gap:8px;flex:1;min-height:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#f2b56b transparent}
+.pvp-room .ability-preparation{flex:none;padding:0 0 12px;border:1px solid #fff7e4;border-radius:10px;background:linear-gradient(#fff8e8,var(--wood-cream-mid));box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 3px 10px #c47a3233;overflow:hidden}
+.pvp-room .ability-preparation::before{display:none}
+.pvp-room .ability-preparation>header{display:flex;flex-flow:row wrap;align-items:center;justify-content:space-between;gap:4px 8px;margin:0 0 12px;padding:7px 12px;border-bottom:1px solid #fff0c9;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);box-shadow:inset 0 -2px #c76413}
+.pvp-room .ability-preparation h2{margin:0;white-space:nowrap;font:900 15px/1.1 'Nunito',sans-serif;letter-spacing:0;color:#fff;text-shadow:0 1px #8a3a07,0 0 3px #9a4508}
+.pvp-room .preparation-state{min-height:0;white-space:nowrap;padding:2px 8px;border-radius:999px;background:#fff4d7e6;color:#8a3f0b;font-size:11px;font-weight:800}
+.pvp-room .preparation-loadout,.pvp-room .preparation-catalog{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;padding:0 10px}
+.pvp-room .preparation-slot{width:62px;height:62px;padding:5px;border:2px solid #68b8e5;border-radius:12px;background:radial-gradient(ellipse at 50% 35%,#5aa6dd,#367db3 55%,#1b3f69);box-shadow:inset 0 1px #d3f4ff99,inset 0 -3px #173451,0 2px #8a431855;color:#d3f4ff}
+.pvp-room .preparation-slot.empty{border:2px dashed #e2b77a;background:#fff8e8;box-shadow:inset 0 1px 3px #b8641a33;color:#c9771f}
+.pvp-room .preparation-slot-number{top:3px;left:5px;font-size:10px;color:#e8f6ff;text-shadow:0 1px #173451}
+.pvp-room .preparation-slot.empty .preparation-slot-number{color:#c9771f;text-shadow:none}
+.pvp-room .preparation-slot.can-place{border-color:#f39a2c;box-shadow:0 0 0 3px #ffd36b88}
+.pvp-room .preparation-slot.drag-over{border-color:#fff1ba;box-shadow:0 0 0 3px #f39a2c,0 0 16px #ffb44f88}
+.pvp-room .preparation-divider{margin:12px 12px 10px;color:var(--wood-ink-soft)}
+.pvp-room .preparation-divider span{font-size:11px;font-weight:900;letter-spacing:.2px}
+.pvp-room .preparation-divider i{background:linear-gradient(90deg,transparent,#d98f45)}
+.pvp-room .preparation-choice{width:50px;height:50px;padding:4px;border:2px solid #f2c88c;border-radius:11px;background:linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -2px #e2b77a,0 1px #a75a2333}
+.pvp-room .preparation-choice.preparation-future{border-style:dashed;background:#f7ead199;box-shadow:none;opacity:.7}
+.pvp-room .preparation-choice.chosen::after{inset:-2px;border:2px solid #e48d12;border-radius:11px;box-shadow:0 0 0 3px #ffd36b99;background:none}
+.pvp-room .preparation-choice:focus-visible,.pvp-room .preparation-slot:focus-visible{outline:3px solid #c25f12;outline-offset:2px}
+.pvp-room .preparation-hint{margin:10px 0 0;min-height:0;font-size:11px;font-weight:800;color:var(--wood-ink-soft)}
+
+.pvp-room .pr-actions{display:flex;flex-direction:column;gap:7px;flex:none}
+.pvp-room .pr-hint{display:flex;align-items:center;justify-content:center;gap:6px;margin:0;padding:6px 10px;border-radius:10px;background:#5b2a0e66;color:#ffe2b6;font-size:12px;font-weight:800;text-align:center;text-shadow:0 1px #3b1806}
+.pvp-room .pr-invite-row{display:flex;gap:7px}
+.pvp-room .party-invite-wrap{position:relative;flex:1;min-width:0}
+.pvp-room .arena-action.party-invite-action{width:100%;border-color:#fff3d6;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 1px #fff,inset 0 -2px #d4a565,0 2px #3e1a0788;color:#8a3f0b;text-shadow:none}
+.pvp-room .arena-action.party-practice-action{border-color:#fff3d6;background:linear-gradient(#fffaf0,#f3d9a9);color:#8a3f0b}
+.pvp-room .wood-button.party-search-action:disabled{opacity:.7;filter:saturate(.7)}
+.pvp-room .party-search-action{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:58px;height:auto;margin:0;border-radius:14px;font-size:21px}
+.pvp-room .party-search-action.wood-quiet{font-size:17px}
+.pvp-room .party-search-action.is-searching{flex-direction:column;gap:2px;padding:6px;border:1px solid #d3f4ff;background:linear-gradient(#7cc0f0,#3d84d6 60%,#235aa0);box-shadow:inset 0 1px #d3f4ff,inset 0 -3px #173451,0 2px #2a0f03;color:#fff;font:900 16px/1 'Nunito',sans-serif;text-shadow:0 1px #173451}
+.pvp-room .party-search-progress{display:flex;align-items:center;gap:8px}
+.pvp-room .party-search-progress svg{animation:hall-spin 1.2s linear infinite}
+.pvp-room .party-search-progress time{font-variant-numeric:tabular-nums}
+.pvp-room .party-search-action.is-searching small{font-size:11px;font-weight:800;color:#e8f6ff}
+.pvp-room .party-search-action.is-searching:disabled{opacity:.85}
+@keyframes hall-spin{to{rotate:360deg}}
+
+.pvp-room .party-spectators{flex:none;padding:0 0 9px;border:1px solid #fff7e4;border-radius:10px;background:linear-gradient(#fff8e8,var(--wood-cream-mid));box-shadow:inset 0 0 0 2px var(--wood-edge);overflow:hidden}
+.pvp-room .party-spectator-status{display:flex;align-items:center;justify-content:center;gap:8px;min-height:52px;border-radius:12px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -2px #d4a565;color:#8a3f0b;font-size:15px;font-weight:900}
+
+/* Menus da sala: mesmos ícones pintados do jogo em botões creme */
+.pvp-room .party-bottom-actions{position:relative;display:flex;justify-content:center;gap:8px;flex:none}
+.pvp-room .party-menu-button{display:grid;place-items:center;width:54px;height:54px;padding:5px;border:2px solid #f2c88c;border-radius:14px;background:linear-gradient(#fffaf0,#f5dfb3);box-shadow:inset 0 -3px #e2b77a,0 2px #3e1a0788;transition:transform .15s}
+.pvp-room .party-menu-button img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 1px #8a431855)}
+.pvp-room .party-menu-button:not(:disabled):hover,.pvp-room .party-menu-button.active{transform:translateY(-2px);border-color:#ffd36b}
+.pvp-room .party-menu-button:disabled{opacity:.55;cursor:default}
+.pvp-room .party-menu-button:focus-visible{outline:3px solid #fff1c4;outline-offset:2px}
+.pvp-room .party-menu-popover{position:absolute;right:0;bottom:calc(100% + 8px);z-index:60;width:min(300px,calc(100vw - 24px));padding:0 0 10px;border:2px solid #f2b56b;border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden}
+.pvp-room .party-menu-popover>header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 12px;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);color:#fff;font-size:14px;text-shadow:0 1px #8a3a07}
+.pvp-room .party-menu-popover>header button{display:grid;place-items:center;width:26px;height:26px;padding:0;border:0;border-radius:8px;background:#fff4d7;color:var(--wood-ink)}
+.pvp-room .party-menu-popover>p{margin:14px 12px 4px;font-size:13px;font-weight:800;color:var(--wood-ink-soft);text-align:center}
+.pvp-room .party-quest-list{display:grid;gap:6px;padding:10px 10px 0}
+.pvp-room .party-quest-list>:is(button,div){display:flex;align-items:center;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:10px;background:#fff;box-shadow:inset 0 -2px #ecd2a0;color:var(--wood-ink);text-align:left}
+.pvp-room .party-quest-list>:is(button,div)>span{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:#f5dfb3;color:#8a3f0b;font-weight:900}
+.pvp-room .party-quest-list>:is(button,div)>span.done{background:#3aa35f;color:#fff}
+.pvp-room .party-quest-list strong{display:block;font-size:13px}
+.pvp-room .party-quest-list small{font-size:11px;font-weight:700;color:var(--wood-ink-soft)}
+
+/* Confirmação do treino */
+.pvp-room .party-practice-overlay{position:absolute;inset:0;z-index:90;display:grid;place-items:center;padding:16px;background:#2a1406aa}
+.pvp-room .party-practice-dialog{display:grid;justify-items:center;gap:10px;width:min(380px,100%);padding:22px 22px 18px;border:2px solid #f2b56b;border-radius:18px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 0 0 3px #4a210a,0 20px 50px #1a0c04c0;color:var(--wood-ink);text-align:center}
+.pvp-room .party-practice-emblem{display:grid;place-items:center;width:64px;height:64px;border:2px solid #fff0c9;border-radius:50%;background:radial-gradient(circle at 40% 30%,#ffd47a,#f39a2c 55%,#c9661a);box-shadow:inset 0 -3px #a8500f;color:#fff}
+.pvp-room .party-practice-dialog h2{margin:0;font:700 22px 'Cinzel',Georgia,serif;color:#9a3d0a}
+.pvp-room .party-practice-dialog p{margin:0;font-size:14px;font-weight:700;color:var(--wood-ink-soft)}
+.pvp-room .party-practice-dialog>div{display:flex;gap:8px;margin-top:6px}
+
+/* ---------- Telas menores (desktop) ---------- */
+@media(max-width:1180px){
+ html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:minmax(0,1fr) 320px}
+ html:not(.mobile-landscape) .pvp-room .pr-banner{display:none}
+}
+@media(max-width:760px){
+ html:not(.mobile-landscape) .arena-room-portal .pvp-room{grid-template-rows:56px minmax(0,1fr);overflow:auto}
+ html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:minmax(0,1fr);grid-auto-rows:auto}
+ html:not(.mobile-landscape) .pvp-room .pr-main{grid-template-rows:minmax(420px,62vh) 170px}
+ html:not(.mobile-landscape) .pvp-room :is(.pr-format,.pr-room-state){display:none}
+}
+
+/* ---------- Celular em paisagem ---------- */
+html.mobile-landscape .arena-room-portal .pvp-room{grid-template-rows:42px minmax(0,1fr);gap:5px;padding:max(5px,env(safe-area-inset-top)) max(5px,env(safe-area-inset-right)) max(5px,env(safe-area-inset-bottom)) max(5px,env(safe-area-inset-left));border-width:1px}
+html.mobile-landscape .pvp-room .pr-titlebar{gap:7px;padding:0 4px 0 4px;border-radius:12px 12px 8px 8px}
+html.mobile-landscape .pvp-room .party-room-number{width:34px;height:34px;border-width:1px}
+html.mobile-landscape .pvp-room .party-room-number span{font-size:7px}
+html.mobile-landscape .pvp-room .party-room-number strong{font-size:14px}
+html.mobile-landscape .pvp-room .party-room-name h1{font-size:16px}
+html.mobile-landscape .pvp-room .party-rename-button{width:26px;height:26px}
+html.mobile-landscape .pvp-room .party-rename-form{height:30px}
+html.mobile-landscape .pvp-room .party-rename-form input{font-size:13px}
+html.mobile-landscape .pvp-room .pr-format{height:24px;font-size:12px}
+html.mobile-landscape .pvp-room .pr-room-state{padding:3px 9px;font-size:10px}
+html.mobile-landscape .pvp-room .pr-leave{width:34px;height:34px;border-radius:10px}
+html.mobile-landscape .pvp-room .pr-body{grid-template-columns:minmax(0,1fr) clamp(214px,31vw,290px);gap:5px}
+html.mobile-landscape .pvp-room .pr-banner{display:none}
+html.mobile-landscape .pvp-room .pr-main{grid-template-rows:minmax(0,1fr) clamp(78px,24vh,120px);gap:5px}
+html.mobile-landscape .pvp-room .pr-team{grid-template-rows:24px minmax(0,1fr);gap:4px;padding:4px;border-radius:12px}
+html.mobile-landscape .pvp-room .pr-pane-title h2{padding:0 10px 0 8px;border-radius:7px;font-size:11px}
+html.mobile-landscape .pvp-room .pr-pane-title h2 svg{width:12px;height:12px}
+html.mobile-landscape .pvp-room .pr-ready-count{height:21px;font-size:11px}
+html.mobile-landscape .pvp-room .pr-team-cards{padding:5px}
+html.mobile-landscape .pvp-room .pr-team-grid{--cols:4;--rows:1;--gap:6px}
+html.mobile-landscape .pvp-room .pr-card{grid-template-rows:22px minmax(0,1fr) 20px;border-radius:10px}
+html.mobile-landscape .pvp-room .pr-card-name{gap:3px;padding:0 4px;font-size:10px}
+html.mobile-landscape .pvp-room .pr-card-name>svg{width:10px;height:10px}
+html.mobile-landscape .pvp-room .pr-card-kick{top:2px;right:2px;width:18px;height:18px;border-radius:5px}
+html.mobile-landscape .pvp-room .pr-card-insignia{top:2px;left:2px;transform:scale(.66);transform-origin:top left}
+html.mobile-landscape .pvp-room .pr-card-state{gap:3px;font-size:9px}
+html.mobile-landscape .pvp-room .pr-card-state svg{width:11px;height:11px}
+html.mobile-landscape .pvp-room .pr-card-vacant{margin:4px;border-radius:8px}
+html.mobile-landscape .pvp-room .party-vacant-emblem{width:40px;height:40px}
+html.mobile-landscape .pvp-room .party-vacant-emblem svg{width:22px;height:22px}
+html.mobile-landscape .pvp-room .party-slot-toggle{padding-bottom:12px}
+html.mobile-landscape .pvp-room .pr-vacant-caption{bottom:8%;font-size:9px}
+html.mobile-landscape .pvp-room .wood-chat{grid-template-rows:22px minmax(0,1fr) 28px;gap:3px;padding:4px;border-radius:12px}
+html.mobile-landscape .pvp-room .wood-chat .chat-tabs>button{min-width:0;padding:0 9px;font-size:10px}
+html.mobile-landscape .pvp-room .wood-chat .chat-messages{padding:3px 6px;font-size:10px;line-height:1.35}
+html.mobile-landscape .pvp-room .wood-chat .chat-input>input{font-size:11px}
+html.mobile-landscape .pvp-room .wood-chat .chat-input>button{width:24px;height:24px}
+html.mobile-landscape .pvp-room .pr-side{gap:5px;padding:5px;border-radius:12px}
+html.mobile-landscape .pvp-room .pr-side-scroll{gap:5px}
+html.mobile-landscape .pvp-room .ability-preparation{padding-bottom:6px}
+html.mobile-landscape .pvp-room .ability-preparation>header{margin-bottom:6px;padding:4px 8px}
+html.mobile-landscape .pvp-room .ability-preparation h2{font-size:12px}
+html.mobile-landscape .pvp-room .preparation-state{font-size:9px;padding:1px 6px}
+html.mobile-landscape .pvp-room :is(.preparation-loadout,.preparation-catalog){gap:6px;padding:0 6px}
+html.mobile-landscape .pvp-room .preparation-slot{width:42px;height:42px;padding:3px;border-radius:9px}
+html.mobile-landscape .pvp-room .preparation-slot-number{font-size:8px;top:1px;left:3px}
+html.mobile-landscape .pvp-room .preparation-choice{width:34px;height:34px;padding:2px;border-radius:8px}
+html.mobile-landscape .pvp-room .preparation-divider{margin:6px 8px 5px}
+html.mobile-landscape .pvp-room .preparation-divider span{font-size:9px}
+html.mobile-landscape .pvp-room .preparation-hint{margin-top:5px;font-size:9px}
+html.mobile-landscape .pvp-room .pr-actions{gap:4px}
+html.mobile-landscape .pvp-room .pr-hint{padding:3px 6px;font-size:9px}
+html.mobile-landscape .pvp-room .pr-hint svg{width:11px;height:11px}
+html.mobile-landscape .pvp-room .pr-invite-row{gap:4px}
+html.mobile-landscape .pvp-room .arena-action{--arena-action-height:32px;font-size:11px;padding:0 10px}
+html.mobile-landscape .pvp-room .arena-action--icon{padding:0}
+html.mobile-landscape .pvp-room .party-search-action{min-height:42px;border-radius:11px;font-size:16px}
+html.mobile-landscape .pvp-room .party-search-action svg{width:18px;height:18px}
+html.mobile-landscape .pvp-room .party-search-action.wood-quiet{font-size:13px}
+html.mobile-landscape .pvp-room .party-search-action.is-searching{font-size:13px}
+html.mobile-landscape .pvp-room .party-search-action.is-searching small{font-size:9px}
+html.mobile-landscape .pvp-room .party-bottom-actions{gap:5px}
+html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}
+html.mobile-landscape .pvp-room .party-spectator-status{min-height:38px;font-size:12px}
+
+@media(prefers-reduced-motion:reduce){.pvp-room :is(button,.party-vacant-emblem){transition:none!important}.pvp-room .party-search-progress svg{animation:none}}
