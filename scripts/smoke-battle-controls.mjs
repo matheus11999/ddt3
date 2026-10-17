@@ -1,3 +1,4 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium,expect} from '@playwright/test';
 import {WebSocket} from 'ws';
 import assert from 'node:assert/strict';
@@ -9,6 +10,16 @@ await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1536,height:864},hasTouch:true});
 const page=await context.newPage(),commands=[],events=[],errors=[],checks=[],shots=[];
+// Deterministic practice setup uses the real game socket. Everything asserted
+// after launch is exercised through the rendered battle HUD and server events.
+await context.addInitScript(()=>{
+ const Native=window.WebSocket;
+ window.WebSocket=class extends Native {constructor(...args){super(...args);if(new URL(String(args[0]),location.href).pathname==='/ws')window.__battleTestSocket=this;}};
+});
+const send=command=>page.evaluate(command=>{
+ const socket=window.__battleTestSocket;if(!socket||socket.readyState!==WebSocket.OPEN)throw Error('The game WebSocket is not connected');
+ socket.send(JSON.stringify(command));
+},command);
 let partner,profile;
 page.on('pageerror',error=>errors.push(error.message));
 page.on('websocket',socket=>{
@@ -21,7 +32,7 @@ async function waitEvent(journal,type,predicate=()=>true,after=0,timeout=15000){
  return journal.slice(after).find(event=>event.type===type&&predicate(event));
 }
 async function connectPartner(){
- const response=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base},signal:AbortSignal.timeout(10000)});assert.equal(response.status,200);
+ const response=await fetch(base+'/api/session',{method:'POST',headers:{Origin:base,'Content-Type':'application/json'},body:JSON.stringify({gender:'male'}),signal:AbortSignal.timeout(10000)});assert.equal(response.status,200);
  const cookie=response.headers.get('set-cookie')?.split(';')[0];assert.ok(cookie);
  const {profile}=await response.json(),journal=[];
  const socket=new WebSocket(base.replace(/^http/,'ws')+'/ws',{origin:base,headers:{Cookie:cookie},handshakeTimeout:10000});
@@ -64,13 +75,12 @@ async function returnTurn(shot,mark){
 }
 
 try{
- await page.goto(base,{waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
+ await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
  profile=(await waitEvent(events,'welcome')).profile;partner=await connectPartner();
- await page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();await page.getByRole('button',{name:'Criar sala',exact:true}).last().click();
- const form=page.locator('.create-panel');await form.getByLabel('Nome da sala').fill('TEST Charge controls');await form.getByRole('button',{name:'Fortaleza Celestial, Indestrutível',exact:true}).click();
- let mark=events.length;await form.getByRole('button',{name:'Criar sala',exact:true}).click();const room=(await waitEvent(events,'room',event=>!!event.room,mark)).room;
+ let mark=events.length;await send({type:'create',practice:true,name:'TEST Charge controls',mode:'1v1',map:'celestial'});const room=(await waitEvent(events,'room',event=>!!event.room,mark)).room;
+ assert.equal(room.practice,true);assert.equal(room.map,'celestial');assert.equal(room.mode,'1v1');
  await partner.request({type:'join',roomId:room.id},'room',event=>event.room?.id===room.id);await partner.request({type:'ready'},'room',event=>event.room?.players.some(p=>p.id===partner.profile.id&&p.ready));
- mark=events.length;await page.getByRole('button',{name:'Iniciar batalha',exact:true}).click();await waitEvent(events,'battle',event=>event.battle?.turnId===profile.id,mark);
+ mark=events.length;await send({type:'start'});await waitEvent(events,'battle',event=>event.battle?.turnId===profile.id,mark);
  const meter=page.getByRole('meter',{name:'Força do disparo',exact:true}),charge=page.getByRole('meter',{name:'Força do disparo',exact:true});
  await expect(meter).toHaveAttribute('aria-valuemin','5');await expect(meter).toHaveAttribute('aria-valuemax','100');await expect(charge).toHaveAttribute('aria-disabled','false');
  await expect(page.getByRole('slider',{name:'Força do disparo'})).toHaveCount(0);await expect(page.locator('.battle-console')).not.toContainText('ARMA EQUIPADA');
@@ -102,7 +112,7 @@ try{
  await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();await partner.request({type:'leave'},'room',event=>event.room===null);
  await animationFrames(page);await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual(errors,[]);assert.deepEqual(events.filter(event=>event.type==='error'),[]);assert.deepEqual(partner.events.filter(event=>event.type==='error'),[]);
- const report={ok:true,base,checks,shots,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+ const report={ok:true,base,setup:'practice-protocol',map:'celestial',coverage:'real battle HUD inputs and authoritative shot events; arena matchmaking UI is verified separately',checks,shots,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){
  await page.screenshot({path:`${output}/failure.png`}).catch(()=>{});await writeFile(`${output}/failure.json`,JSON.stringify({error:String(error),errors,commands,serverErrors:events.filter(event=>event.type==='error')},null,2));throw error;
 }finally{

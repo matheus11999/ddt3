@@ -9,10 +9,10 @@ import type {ServerEvent} from '../shared/protocol';
 import {chargeFromDamage,POWER_CUT_IN_MS} from '../shared/power';
 
 async function fixture(){
- const events:ServerEvent[]=[],store={getProfile:async()=>null,finishMatch:async()=>{}} as unknown as ProfileStore,game=new Game(store);
+ const events:ServerEvent[]=[],store={getProfile:async()=>null,finishMatch:async()=>{}} as unknown as ProfileStore,game=new Game(store,()=>{},()=>.99);
  const players=['Power Um','Power Dois'].map(name=>normalizeProfile({id:randomUUID(),name}));
  for(const player of players)game.connect(player,event=>events.push(structuredClone(event)));
- await game.command(players[0].id,{type:'create',name:'Power teste',mode:'1v1',map:'garden'});
+ await game.command(players[0].id,{type:'create',practice:true,name:'Power teste',mode:'1v1',map:'garden'});
  const roomId=game.peers.get(players[0].id)!.roomId!;
  await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
  const match=game.matches.get(roomId)!,shooter=match.state.players.find(p=>p.id===match.state.turnId)!,target=match.state.players.find(p=>p.id!==shooter.id)!;
@@ -74,7 +74,9 @@ test('Power deals greater actual enemy damage and charges both combatants withou
   await f.game.command(f.shooter.id,{type:'fire',angle:25,power:20});
   if(powered)f.game.tick(f.match.state.powerCutIn!.endsAt);
   const shot=f.events.find(e=>e.type==='shot');assert.ok(shot&&shot.type==='shot');
-  const damage=shot.shot.hits.filter(h=>h.id===f.target.id).reduce((sum,h)=>sum+h.damage,0);
+  assert.equal(shot.shot.hits.length,0);assert.equal(f.shooter.powerCharge,0);assert.equal(f.target.powerCharge,0);
+  f.game.tick(f.match.resolveAt+1);
+  const damage=f.events.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact').flatMap(e=>e.hits).filter(h=>h.id===f.target.id).reduce((sum,h)=>sum+h.damage,0)/2;
   assert.ok(damage>0);assert.ok((f.shooter.powerCharge??0)>0);assert.ok((f.target.powerCharge??0)>(f.shooter.powerCharge??0));
   assert.equal(f.shooter.equipment.upgrade,0);
   return {damage,shot:shot.shot};

@@ -2,8 +2,11 @@ import {useEffect,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 import {X} from 'lucide-react';
+import './MenuFrame.css';
+import {useMobileOrientation} from './MobileOrientation';
 export function Modal({title,subtitle,children,onClose,className='',viewport=false}:{title:string;subtitle?:string;children:ReactNode;onClose:()=>void;className?:string;viewport?:boolean}){
  const ref=useRef<HTMLDivElement>(null);
+ const {mobile}=useMobileOrientation();
  const [compact,setCompact]=useState(()=>window.matchMedia('(max-width: 700px)').matches);
  useEffect(()=>{const media=window.matchMedia('(max-width: 700px)'),change=()=>setCompact(media.matches);media.addEventListener('change',change);return()=>media.removeEventListener('change',change);},[]);
  useEffect(()=>{
@@ -20,6 +23,6 @@ export function Modal({title,subtitle,children,onClose,className='',viewport=fal
   element?.addEventListener('keydown',trap);
   return()=>{element?.removeEventListener('keydown',trap);if(previous?.isConnected)previous.focus();};
  },[onClose,compact]);
- const content=<div className="modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)onClose();}}><div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={`game-window ${className}`}><header className="window-header"><div><h1>{title}</h1>{subtitle&&<span>{subtitle}</span>}</div><button className="close-button" aria-label="Fechar" onClick={onClose}><X size={23}/></button></header>{children}</div></div>;
- return compact||viewport?createPortal(<div className={`compact-modal-layer ${viewport?'inventory-modal-layer':''}`}>{content}</div>,document.body):content;
+ const content=<div className="modal-backdrop" onPointerDown={e=>{if(e.target===e.currentTarget)onClose();}}><div ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={`game-window menu-frame ${className}`}><header className="window-header"><div><h1>{title}</h1>{subtitle&&<span>{subtitle}</span>}</div><button className="close-button" aria-label="Fechar" onClick={onClose}><X size={23}/></button></header>{children}</div></div>;
+ return compact||viewport||mobile?createPortal(<div className={`compact-modal-layer ${viewport?'inventory-modal-layer':''}`}>{content}</div>,document.body):content;
 }

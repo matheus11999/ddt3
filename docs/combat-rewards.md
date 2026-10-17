@@ -1,32 +1,41 @@
-# Controles e recompensas de batalha
+# Resultado e recompensas de batalha
 
-Revisão de 16/10/2026. Régua com 101 traços: marcas menores a cada ponto, intermediárias a cada 5 e principais numeradas a cada 10. Segurar Espaço ou tocar/segurar a régua carrega; soltar dispara exatamente o número já pintado. Chegar a 100 espera a soltura. Botões separados de carregar/andar foram removidos; setas do teclado continuam para movimento e ângulo. Timer sem placa de fundo, alerta a partir de 10 segundos e destaque adicional nos últimos 5. Retrato próprio, nome e HP ficam no alto à esquerda.
+Contrato local vigente em 16/10/2026. O estado, o relógio, as reservas e o pagamento pertencem ao servidor; a interface apresenta as transições sem decidir prêmios ou encerrar a partida.
 
-## Cartas
+## Sequência
 
-- O cenário continua visível atrás do resultado translúcido. Personagem ao lado da seleção e texto em relevo de vitória, derrota ou empate.
-- Oito cartas, uma escolha permanente por participante. `reward-pick` só aceita índice inteiro 0–7 e nenhuma informação de prêmio.
-- Seleção é síncrona no servidor antes de qualquer operação assíncrona: duas conexões não podem reservar a mesma carta.
-- **Todas as cartas escolhidas revelam juntas após 15 segundos**, inclusive a carta própria. Antes do prazo, os eventos e reconexões contêm apenas índice/dono, nunca o prêmio secreto.
-- Bots reservam cartas livres. Ao fim do prazo, participantes sem escolha recebem uma carta livre automaticamente; nenhuma escolha existente é substituída.
-- Resultado base e bônus são salvos juntos pela transação idempotente de `finishMatch`, usando o ID da partida como chave. Uma repetição não duplica moeda ou XP. Falhas temporárias são tentadas novamente e bloqueiam a revanche enquanto o saldo não é confirmado.
-- Mesmo quando todos saem, a partida permanece em memória até concluir o pagamento. Como o próprio combate, uma rodada ainda pendente não é retomada após reinício do processo; persistência/recuperação de partidas em andamento é uma etapa futura.
+1. Se a eliminação envolver queda, o personagem conclui o percurso visual de gravidade antes do anúncio. HP e resultado já são autoritativos; isso não abre uma janela de ação adicional.
+2. Vitória, derrota ou empate aparece centralizado por **3 segundos**, com texto em relevo, luz e entrada suave. Não há botão de revanche ou de voltar.
+3. Surgem **oito cartas** com entrada escalonada. A escolha dura até **5 segundos** e termina antes se todos os humanos escolherem. A carta própria recebe destaque dourado e identificação.
+4. Todos os oito prêmios revelam juntos. Após pelo menos **2 segundos**, e somente com pagamento confirmado, a apresentação sai e os jogadores retornam às **mesmas salas**, preservando nome, ID e vagas abertas.
+
+Os tempos vêm de REWARD_RESULT_MS, REWARD_PICK_MS e REWARD_RETURN_MS em shared/rewards.ts. opensAt inclui a conclusão da queda; o cliente aguarda opensAt − REWARD_RESULT_MS antes do anúncio. Deadline é opensAt + REWARD_PICK_MS. revealedAt marca a revelação real, inclusive antecipada.
+
+## Reserva e pagamento
+
+- reward-pick aceita somente índice inteiro0–7, depois de opensAt e antes do prazo. Um jogador reserva uma carta, sem troca; duas pessoas não podem reservar a mesma carta. A reserva é síncrona antes de gravações assíncronas.
+- Reconexão antes da revelação recebe apenas índices/donos, nunca prêmios secretos. Bots e humanos sem escolha recebem automaticamente uma carta livre.
+- O deck inteiro é revelado, mas somente cartas reservadas concedem bônus. finishMatch grava resultado e bônus numa transação idempotente identificada pela partida. Repetição não duplica moeda/XP.
+- Falha temporária tenta novamente; o retorno aguarda rewards.saved. A partida pendente continua em memória mesmo se todos saírem, até concluir o pagamento. Reinício do processo ainda não recupera batalhas em andamento.
+- Bots de treino não permanecem na sala. Humanos voltam sem prontidão e decidem uma nova busca na preparação; o comando legado rematch não antecipa os tempos nem o pagamento.
+
+## Apresentação
+
+As cartas flutuam sobre o campo de batalha, sem o painel azul grande ou coluna de personagem das versões anteriores. Frente marfim, verso navy com constelação e aro ouro/bronze; números dos prêmios escuros e ícones centralizados menores. Seleção própria sobe levemente, recebe contorno/luz e rótulo. Entrada, virada e saída respeitam prefers-reduced-motion.
+
+Atlas ativo: public/assets/ui/reward-cards-refined.png,768×512, duas células384×512, proporção3:4. Verso à esquerda, frente à direita. Textos, donos e valores são DOM. Prêmios usam reward-icons.png. Prompts/medidas e materiais estão em [arena-art-prompts.md](arena-art-prompts.md).
 
 ## Economia provisória
 
-Moedas Brasa reutilizam `Profile.gold`, sem criar um saldo paralelo. Vitória: 80 moedas + 120 XP; demais resultados: 25 moedas + 50 XP. Carta extra sorteada pelo servidor: 40/60/80/100/150 moedas ou 40/60/100 XP. Valores e probabilidades ainda estão sujeitos ao balanceamento solicitado pelo usuário. A moeda é usada no HUD, mochila, ferreiro, loja e resultados.
+Moedas Brasa usam Profile.gold. Vitória concede80 moedas e120XP; demais resultados25 moedas e50XP. Carta adiciona40/60/80/100/150 moedas ou40/60/100XP, sorteadas no servidor. Balanceamento ainda provisório.
 
-## Arte
+## Verificação
 
-`public/assets/ui/reward-cards.png`: atlas RGBA 1536×1024, duas colunas iguais (costas/frente), moldura bronze discreta, tecido azul e relevo. A versão ornamentada RPG e a versão de plástico cartunesco foram rejeitadas e não são usadas. A última revisão busca textura e volume contidos. Texto, número da carta e nome do dono são DOM, não pintados no atlas.
+- scripts/smoke-rewards.mjs: PvP real, bloqueio antecipado, reserva exclusiva, prêmios ocultos na reconexão, revelação antecipada, pagamento PostgreSQL e retorno automático das duas salas.
+- tests/fall.test.ts: resultado espera saída do personagem, gravidade contínua/reconexão e privacidade do invisível.
+- scripts/verify-battle-readability.mjs: corpo em posições intermediárias, sem tela de resultado durante queda; número de dano sem sinal negativo.
+- Capturas visuais em test-results/rewards/ e fixtures da revisão atual; resultados temporários não são assets de produção.
 
-`reward-icons.png`: atlas RGBA 1774×887, moeda dourada com chama original e estrela azul de XP. Nenhum asset DDTank foi copiado.
+### Acabamento vigente das cartas
 
-Prompt final das cartas: “Restrained tactile painted online artillery game finish; thinner brushed bronze rim, gently bevelled edges, tight corner radius, subdued highlights, fine-grain material texture. Back deep navy fabric with faint diamond pattern and copper flame seal; front matching bronze rim and clean dark petrol-blue interior. No jewels, filigree or lettering; two identical cards in equal cells, transparent outside.”
-
-## Evidência
-
-- `scripts/smoke-battle-controls.mjs`: teclado/toque, cancelamento, valor enviado igual ao mostrado, força 100 sem disparo automático.
-- `scripts/smoke-rewards.mjs`: PvP real até fim, escolha concorrente rejeitada, cartas ocultas, reconexão, revelação conjunta, pagamento PostgreSQL e revanche.
-- Unitários: exclusividade, prazo, autoescolha, abandono, retry, prêmio e progressão atômicos.
-- Capturas em `test-results/rewards/` e `test-results/battle-controls/`.
+A revisão visual de16/10 mantém o atlas pintado navy/ouro e frente marfim, remove as cascatas antigas de CSS e usa a textura safira também no contador. Brilho discreto no verso, entrada escalonada, borda dupla dourada na escolha própria e prêmios menores centralizados. Sem modal grande nem botões de saída manual. `scripts/smoke-rewards.mjs` passou em8097 após a revisão, incluindo pagamento real e retorno automático.

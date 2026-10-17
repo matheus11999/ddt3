@@ -10,9 +10,9 @@ import type {Battle,ServerEvent,Shot} from '../shared/protocol';
 function shotFor(map:MapId='garden',id='playback',offset=0):Shot {
  const terrain=createTerrain(map);
  const projectiles=[{x:650+offset,delay:200},{x:870+offset,delay:0},{x:760+offset,delay:200},{x:520+offset,delay:100}].map(({x,delay})=>({
-  delay,points:Array.from({length:6},()=>[x,ground(terrain,x)]),impact:{x,y:ground(terrain,x),radius:65},effect:'fire' as const
+  delay,flightTime:100,points:Array.from({length:6},()=>[x,ground(terrain,x)]),impact:{x,y:ground(terrain,x),radius:65},effect:'fire' as const
  }));
- return {id,shooterId:'player',projectiles,hits:[],duration:850};
+ return {id,shooterId:'player',projectiles,hits:[],duration:850,startedAt:Date.now(),impacted:[]};
 }
 function authoritativeAfter(terrain:Uint8Array,map:MapId,shot:Shot){
  const result=terrain.slice();for(const projectile of shot.projectiles)crater(result,projectile.impact.x,projectile.impact.y,projectile.impact.radius,map);return result;
@@ -43,7 +43,7 @@ test('immutable fortress impacts finish playback without changing collision',()=
 
 test('hybrid playback damages soil while preserving every immutable region',()=>{
  const terrain=createTerrain('park'),before=terrain.slice(),template=terrainTemplate('park'),shot=shotFor('park');
- shot.projectiles.push({points:[[350,600]],delay:0,impact:{x:350,y:ground(terrain,350),radius:86},effect:'fire'});
+ shot.projectiles.push({points:[[350,600]],flightTime:0,delay:0,impact:{x:350,y:ground(terrain,350),radius:86},effect:'fire'});
  const result=applyDueImpacts(terrain,'park',shot,100000,new Set());assert.ok(result.removed>0);
  for(let index=0;index<terrain.length;index++){const region=template.definition[template.regions[index]];if(region&&!region.destructible)assert.equal(terrain[index],before[index]);}
  assert.deepEqual(terrain,authoritativeAfter(before,'park',shot));
@@ -70,7 +70,7 @@ test('client retains the shot clock and base snapshot until authoritative resolu
  const battle:Battle={id:'playback-match',roomId:'playback-room',map:'garden',players:[player],turnId:'player',turnNumber:1,wind:0,deadline:Date.now()+30000,phase:'aiming',winner:null,terrain:snapshot};
  try{
   client.update({battle,shot:null,shotReceivedAt:0});const before=performance.now();receive({type:'shot',shot});const receivedAt=client.state.shotReceivedAt;
-  assert.ok(receivedAt>=before&&receivedAt<=performance.now());
+  assert.ok(Math.abs((before-receivedAt)-(Date.now()-shot.startedAt))<30,'shot clock accounts for server time instead of restarting its flight');
   receive({type:'battle',battle:{...battle,players:[{...player,y:640,hp:650}],terrain:undefined,phase:'resolving'}});
   assert.equal(client.state.shot,shot);assert.equal(client.state.shotReceivedAt,receivedAt);assert.equal(client.state.battle!.terrain,snapshot);
   // A remounted renderer must animate from the pre-impact position and HP, not apply damage twice.

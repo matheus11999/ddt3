@@ -1,5 +1,22 @@
 # Prompt de continuidade — Brasa Arena / ddt3
 
+Último estado local: desenvolvimento ao vivo em8097 com compose.dev (Vite+tsx watch); manter essa configuração solicitada. Combate/habilidades/salas/recompensas evoluíram depois da cloud. Leia primeiro a seção superior de implementation-status, combat-stats, abilities e matchmaking. Não restaurar os antigos passos de criação, Salvar na mochila ou rematch manual. Não editar backend durante teste de partida sem considerar que o watch reinicia as salas em memória.
+
+## Continuação após refinamento local
+
+Pedido posterior prevalece: mochila equipa/pinta/oculta imediatamente por fila global com ACK correlacionado, sem Salvar/Restaurar/lixeira; duplo clique no slot desequipa. Corpo estático, aura animada separada, arma oculta na prévia e composição mais próxima do nome. Retrato circular do HUD do lobby preenchido pela cabeça universal e equipamentos visíveis, sem aura/corpo/arma/fantasia. Loja conserva experimentação local. Ler `customization.md` antes de editar esse fluxo.
+Preservar personagens estáticos e maiores na mochila/loja, ausência de armas no lobby, slots ampliados, restauração por ícone e molduras de `MenuFrame.css`. Arena usa matchmaking de grupos separados: quatro cartas somente de aliados, formato pela ocupação, `queue`/`cancel-queue`, mapa aleatório servidor e treino explícito separado. Ler `docs/matchmaking.md` antes de mudar salas ou seus testes.
+
+Somente os seis cosméticos provisórios listados no topo de `AGENTS.md` foram retirados. Manter os rostos, Surfista, Executivo, cabelo Ondulado e chapéus pintados. A migração troca posses dos protótipos por peças atuais. Esta clarificação substitui qualquer interpretação de remover todos os itens anteriores à loja.
+
+Gênero escolhido na criação e fixo; rostos completos, roupas, cabelos e chapéus possuem compatibilidade autoritativa. Loja separada em Masculino, Feminino e Unissex. Não permitir experimentar/comprar/equipar peças incompatíveis. Perfis legados preservam posses e recebem migração baseada na roupa. Ler `docs/customization.md`.
+
+Fantasia é o nono slot, unissex, substitui a aparência completa em todos os contextos sem alterar atributos/hitbox/gênero. Coleção inicial: Pintinho do Trovão e Raposa Arcana, concedidos uma vez no conteúdo 12. Sem itens “Sem ...” no inventário: sentinelas internas representam slots vazios. Engrenagem na prévia controla chapéu, óculos e fantasia; preferências fazem parte da personalização salva. Não alterar o shape de rostos normais para acomodar fantasias. Prompts e medidas em `costume-art-prompts.md`.
+
+Usuário aprovou o formato dos menus e pediu harmonizar cabeçalho/fundo. Preservar molduras compactas, personagem estático, slots maiores e botões por ícone.
+
+No celular, somente paisagem é jogável. Retrato mostra uma orientação para girar, bloqueia entrada e cancela a carga pendente sem dispará-la. Preservar sessão, rascunhos e partida ao girar; servidor continua autoritativo. Testar celulares em 844×390, 932×430 e 667×375, com toque real/emulado e ações acessíveis. Screenshots antigos em retrato não autorizam manter o jogo vertical.
+
 ## Checkpoint atual para voltar ao computador local
 
 Ler primeiro [local-handoff.md](local-handoff.md). A sessão cloud encerra após integrar seis chapéus vestidos e variantes pintadas de cabelo coberto, substituindo compressão e sobreposição antigas. `headwear.ts`, `COVERED_HAIR` e as passagens posterior/frontal do rig são o caminho atual. Ícones usam a arte vestida. Loja, compra/persistência, seis rostos universais e poses foram verificados. Preservar essa implementação; documentos abaixo descrevem também etapas históricas. O próximo trabalho depende do novo pedido do usuário, sem retomada automática de outras frentes.
@@ -14,7 +31,7 @@ Estamos criando um jogo de navegador de artilharia por turnos, com referência d
 
 ## Decisões finais que prevalecem sobre os briefings antigos
 
-- Personalização visível: rosto completo, roupa completa, cabelo, chapéu e óculos. Arma separada. Pulseira e bracelete equipáveis, porém invisíveis no personagem.
+- Personalização visível: rosto completo, roupa completa, cabelo, chapéu, óculos e fantasia completa. Arma separada. Pulseira e bracelete equipáveis, porém invisíveis no personagem.
 - Sem bolsa, acessórios extras, asas, anel, luvas ou slots separados de boca/olhos/sobrancelhas/calça/sapatos.
 - Roupa cobre todo o corpo do pescoço para baixo, incluindo mãos, calça e sapatos. **Cada roupa tem pose base exclusiva desenhada**, não apenas outra cor ou uma animação genérica. Surfista usa base larga e gesto shaka; Executivo usa postura formal, mão na gravata e outra no bolso. Preservar essas silhuetas.
 - Rosto troca a feição inteira: olhos, pálpebras, sobrancelhas e boca. Criar expressões diferentes de verdade. **Todos devem usar o mesmo shape, escala e âncoras universais**, sem prejudicar encaixe dos cabelos. Seguir integralmente `face-authoring-rules.md`.
@@ -30,7 +47,7 @@ Organize especialistas conforme `AGENTS.md`: arte de equipamentos, animação/en
 
 ## Requisitos do jogo a preservar
 
-Lobby como uma rua medieval ilustrada, com jogadores andando e entrada da arena/ferreiro; outras construções podem vir depois. Presença real de outros jogadores, salas/criação de sala, 1×1/2×2/3×3/4×4 e treino. Arena ocupa a tela do jogo, com chat, cartas altas, mapa ilustrado e quatro vagas por equipe. O dono fecha vagas espelhadas ou expulsa outros ocupantes durante a espera; nunca durante o combate. HUD com dados do jogador e mochila com personagem, slots, drag-and-drop e detalhes ao passar o mouse.
+Lobby como uma rua medieval ilustrada, com jogadores andando e entrada da arena/ferreiro; outras construções podem vir depois. Presença real de outros jogadores, grupos de aliados e matchmaking 1×1/2×2/3×3/4×4 e treino separado. Arena ocupa a tela do jogo, com chat e quatro vagas somente para aliados. O dono pode expulsar outros ocupantes durante a espera, fora da fila e do combate. Não restaurar vagas espelhadas, adversários manuais ou seletor de mapa. HUD com dados do jogador e mochila com personagem, slots, drag-and-drop e detalhes ao passar o mouse.
 
 Inventário: experimentar localmente, remover, restaurar e salvar uma combinação. A mesma aparência deve funcionar na prévia, lobby, sala e batalha. Chapéu, cabelo e óculos simultâneos, com oclusão correta. Nenhum item pode apagar outro slot indevidamente. Salvar e sincronizar para outros jogadores; servidor impede itens não possuídos.
 

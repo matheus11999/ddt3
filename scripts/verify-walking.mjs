@@ -1,3 +1,4 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium} from '@playwright/test';
 import {mkdir,writeFile} from 'node:fs/promises';
 import assert from 'node:assert/strict';
@@ -5,11 +6,11 @@ const base=process.env.BASE_URL??'http://127.0.0.1:5177';
 await mkdir('test-results',{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 try{
- const page=await browser.newPage({viewport:{width:1800,height:1500},deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));await page.goto(base,{waitUntil:'networkidle'});
+ const page=await browser.newPage({viewport:{width:1800,height:1500},deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));await enterGame(page,base);await page.waitForLoadState('networkidle');
  const report=await page.evaluate(async()=>{
   const {asset,avatarRig,AVATAR_UNIT}=await import('/src/game/appearance.ts'),{drawAvatar,createAvatarMotion,sampleWalkingLeg}=await import('/src/game/avatar.ts'),{DEFAULT_EQUIPMENT}=await import('/shared/catalog.ts');
   const ids=['outfit-surfer','outfit-executive'];
-  await Promise.all(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-spiky.png','/assets/faces/face-brave.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`])].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
+  await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`])].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   const results=ids.map(id=>{
    const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?10.5:9;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
    for(let i=0;i<120;i++){

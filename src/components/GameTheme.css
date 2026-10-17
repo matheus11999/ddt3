@@ -1,0 +1,19 @@
+/* Shared material palette. Keep the artwork vivid; chrome remains restrained. */
+:root {
+  --game-panel: #17283f;
+  --game-deep: #101d30;
+  --game-gold: #bfa16a;
+  --game-card: #f1eee5;
+  --game-ink: #293548;
+  --game-text: #dce5ef;
+  --game-muted: #a3b3c8;
+  --game-border: #536780;
+  --game-title: #eadbb7;
+  --game-focus: #f0d49a;
+  --game-texture: url('/assets/ui/arena-sapphire-texture.webp');
+  --game-surface: linear-gradient(125deg, #17283fed, #101d30f5), var(--game-texture);
+  --game-header: linear-gradient(100deg, #263c55ed, #14253bef), var(--game-texture);
+  --game-button: linear-gradient(#2b435f, #172a43);
+  --game-button-primary: linear-gradient(110deg, #e4cca0, #c1a16c 60%, #d5ba86);
+  --game-card-surface: radial-gradient(ellipse at 50% 35%, #fffdf7, transparent 75%), linear-gradient(145deg, #f1eee5, #e5decf);
+}

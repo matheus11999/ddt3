@@ -1,10 +1,11 @@
+import {enterGame} from './character-helpers.mjs';
 import {chromium} from '@playwright/test';
 import {mkdir} from 'node:fs/promises';
 await mkdir('test-results',{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 const page=await browser.newPage({viewport:{width:1536,height:864}});
 const errors=[];page.on('pageerror',error=>errors.push(error.message));page.on('console',msg=>{if(msg.type()==='error')errors.push(msg.text());});
-await page.goto(process.env.BASE_URL??'http://127.0.0.1:5177/',{waitUntil:'networkidle'});
+await enterGame(page,process.env.BASE_URL??'http://127.0.0.1:5177/');await page.waitForLoadState('networkidle');
 console.log(JSON.stringify({title:await page.title(),body:(await page.locator('body').innerText()).slice(0,2500),errors},null,2));
 await page.screenshot({path:'test-results/lobby.png'});
 await browser.close();

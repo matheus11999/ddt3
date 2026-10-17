@@ -1,0 +1,73 @@
+.ability-slots{display:flex;align-items:center;justify-content:center;gap:7px;--ability-size:49px}
+.ability-slot{position:relative;display:grid;place-items:center;flex:none;width:var(--ability-size);height:var(--ability-size);padding:3px;border:1px solid #9babc1;border-radius:12px;background:radial-gradient(ellipse at 48% 32%,#426486,#192d49 80%);box-shadow:inset 0 1px #d2e9f688,inset 0 0 0 3px #0d233745,0 3px #071526;color:#fff1c6;isolation:isolate;transition:filter .12s,border-color .12s,transform .12s}
+.ability-slot::before{content:'';position:absolute;inset:3px;border:1px solid #afc8d53d;border-radius:9px;pointer-events:none}
+.ability-slot img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 2px #06152d99);pointer-events:none}
+.ability-slot .ability-use-count{position:absolute;right:-3px;bottom:-3px;display:grid;place-items:center;min-width:17px;height:17px;padding:0 4px;border:1px solid #c3c6aa;border-radius:6px;background:linear-gradient(#3c5367,#192e45);font:900 10px/1 'Nunito',sans-serif;color:#fff1cb;text-shadow:0 1px #0a1427;box-shadow:0 1px #081529}
+.ability-slot.ability-active{border-color:#ffdc8d;box-shadow:inset 0 0 0 2px #d7a63d55,0 0 10px #ffca5155,0 3px #071526}
+.ability-active-gem{position:absolute;top:-4px;right:-3px;width:10px;height:10px;transform:rotate(45deg);border:1px solid #fff2bd;border-radius:3px;background:#f9cd5b;box-shadow:0 0 7px #ffd95f}
+.ability-slot.ability-spent{filter:saturate(.28);opacity:.62}
+.ability-slots.interactive .ability-slot:not(:disabled):hover{filter:brightness(1.15);border-color:#ffe7b0;transform:translateY(-1px)}
+.ability-slots.interactive .ability-slot:disabled{cursor:default;opacity:.55}
+.ability-slots.interactive .ability-slot.ability-active:disabled{opacity:.9;filter:none}
+.ability-slots.informative .ability-slot{cursor:help}
+.ability-slot:focus-visible{outline:2px solid #ffe3a1;outline-offset:4px}
+@media(prefers-reduced-motion:reduce){.ability-slot{transition:none}}
+
+/* Loadout preparation is a separate, tactile tray, never part of a player card. */
+.ability-slot.ability-empty{opacity:.35;background:linear-gradient(#102335,#0a1c2d);border-style:dashed;box-shadow:inset 0 2px 5px #0005}
+.ability-slot.ability-empty>span{font-size:11px;color:#a8bdcd;opacity:.5}
+.ability-preparation{position:relative;padding:20px 18px 15px;border:1px solid #c6a776;border-radius:18px;background:radial-gradient(ellipse at top,#6c523e25,transparent 65%),linear-gradient(145deg,#eee0be,#c9b58d);box-shadow:inset 0 1px #fff7dc,inset 0 0 0 4px #73583d12,0 4px 13px #07101e55;color:#654b32;isolation:isolate}
+.ability-preparation::before{content:'';position:absolute;inset:7px;border:1px solid #7b5b3626;border-radius:13px;pointer-events:none;z-index:-1;background:repeating-linear-gradient(135deg,#fff1d00a 0 3px,#59442805 3px 4px)}
+.ability-preparation>header{display:flex;flex-direction:column;align-items:center;gap:4px;margin-bottom:15px}
+.ability-preparation h2{font:700 21px 'Cinzel',Georgia,serif;letter-spacing:.3px;color:#715030;margin:0;text-shadow:0 1px #fff3c5}
+.preparation-state{font-size:9px;color:#8e7457;min-height:12px;font-weight:800}
+.preparation-catalog,.preparation-loadout{display:flex;align-items:center;justify-content:center;gap:13px}
+.preparation-choice{position:relative;display:grid;place-items:center;width:57px;height:57px;padding:3px;border:0;border-radius:14px;background:radial-gradient(ellipse,#a27a4930,transparent 70%);transition:filter .13s,transform .13s;cursor:grab}
+.preparation-choice img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 2px #72563775);pointer-events:none}
+.preparation-choice:not(:disabled):hover,.preparation-choice.chosen{transform:translateY(-3px);filter:brightness(1.08)}
+.preparation-choice.chosen::after{content:'';position:absolute;inset:0;border:2px solid #a16c31;border-radius:14px;box-shadow:0 0 0 2px #fff0ba8c;background:#ffedb113;pointer-events:none}
+.preparation-choice:disabled{opacity:.55;cursor:default}
+.preparation-divider{display:flex;align-items:center;gap:8px;margin:14px 0 13px;color:#987955}
+.preparation-divider span{font-size:7px;font-weight:900;letter-spacing:1.2px;white-space:nowrap}
+.preparation-divider i{height:1px;flex:1;background:linear-gradient(90deg,transparent,#86653955)}
+.preparation-divider i:last-child{transform:rotate(180deg)}
+.preparation-slot{position:relative;display:grid;place-items:center;width:56px;height:56px;padding:5px;border:1px solid #aa895b;border-radius:12px;background:linear-gradient(#344d5d,#142c40);box-shadow:inset 0 2px 5px #050e2377,0 2px #f7e7bc,0 0 0 2px #7352371c;color:#c8b68d;transition:border-color .13s,box-shadow .13s;cursor:grab}
+.preparation-slot img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 2px 1px #02132588);pointer-events:none}
+.preparation-slot-number{position:absolute;top:3px;left:5px;color:#d8c9a1;font-size:7px;font-weight:900;z-index:1;text-shadow:0 1px #17283b}
+.preparation-slot.empty{border-color:#9b8c70;background:linear-gradient(#afa17d,#cab891);box-shadow:inset 0 2px 5px #725d3b55,0 1px #fff0cb;color:#82714e}
+.preparation-slot.empty .preparation-slot-number{color:#83704a;text-shadow:0 1px #e9dab2}
+.preparation-slot-empty{font-size:24px;font-weight:300;line-height:1;opacity:.6}
+.preparation-slot.can-place{border-color:#d19b37;cursor:pointer}
+.preparation-slot.drag-over{border-color:#fff1ba;box-shadow:0 0 0 3px #cc8d31,0 0 20px #dba03577}
+.preparation-slot:disabled{cursor:default;opacity:.65}
+.preparation-choice:focus-visible,.preparation-slot:focus-visible{outline:3px solid #a77a37;outline-offset:3px}
+.preparation-hint{font-size:8px;text-align:center;color:#947958;margin:12px 0 0;min-height:11px}
+html.mobile-landscape .painted-room .ability-preparation{padding:10px 8px 8px;border-radius:13px;flex:none}
+html.mobile-landscape .painted-room .ability-preparation>header{gap:2px;margin-bottom:5px}
+html.mobile-landscape .painted-room .ability-preparation h2{font-size:14px}
+html.mobile-landscape .painted-room .preparation-state{font-size:6px;min-height:8px}
+html.mobile-landscape .painted-room .preparation-catalog,html.mobile-landscape .painted-room .preparation-loadout{gap:8px}
+html.mobile-landscape .painted-room .preparation-choice{width:35px;height:35px;padding:1px;border-radius:9px}
+html.mobile-landscape .painted-room .preparation-choice.chosen::after{border-radius:9px;border-width:1px}
+html.mobile-landscape .painted-room .preparation-divider{gap:4px;margin:6px 0}
+html.mobile-landscape .painted-room .preparation-divider span{font-size:5px;letter-spacing:.7px}
+html.mobile-landscape .painted-room .preparation-slot{width:34px;height:34px;padding:3px;border-radius:8px}
+html.mobile-landscape .painted-room .preparation-slot-number{top:2px;left:3px;font-size:5px}
+html.mobile-landscape .painted-room .preparation-slot-empty{font-size:18px}
+html.mobile-landscape .painted-room .preparation-hint{font-size:6px;margin-top:7px;min-height:8px}
+@media(prefers-reduced-motion:reduce){.preparation-choice,.preparation-slot{transition:none}}
+
+/* Match the room's blue leather and restrained bronze fittings. */
+.ability-preparation{border-color:#a58a5e77;background:radial-gradient(ellipse at top,#4e6c7f32,transparent 68%),linear-gradient(145deg,#223c50,#11283c);box-shadow:inset 0 1px #d3bc8529,inset 0 0 0 4px #07192c33,0 4px 13px #07101e55;color:#d1c5a7}
+.ability-preparation::before{border-color:#af956e20;background:repeating-linear-gradient(135deg,#d6b97803 0 3px,#07142408 3px 4px)}
+.ability-preparation h2{color:#e0c897;text-shadow:0 2px #081b2e}
+.preparation-state,.preparation-hint{color:#9eacaf}
+.preparation-choice{background:radial-gradient(ellipse,#b4954820,transparent 73%)}
+.preparation-choice img{filter:drop-shadow(0 3px 2px #04102099)}
+.preparation-choice.chosen::after{border-color:#bba16b;box-shadow:0 0 0 2px #edd5a01f;background:#edd49b0a}
+.preparation-divider{color:#ab9876}
+.preparation-divider i{background:linear-gradient(90deg,transparent,#bba17455)}
+.preparation-slot{border-color:#9d86607f;background:linear-gradient(#193248,#0c2035);box-shadow:inset 0 2px 5px #030d2099,0 1px #9b896438,0 0 0 2px #06192c4d}
+.preparation-slot.empty{border-color:#67777c7f;background:linear-gradient(#10253a,#132d42);box-shadow:inset 0 2px 5px #03132588,0 1px #9b896422;color:#758e9c}
+.preparation-slot.empty .preparation-slot-number{color:#8196a1;text-shadow:0 1px #061424}
+.preparation-choice:focus-visible,.preparation-slot:focus-visible{outline-color:#d3ba81}

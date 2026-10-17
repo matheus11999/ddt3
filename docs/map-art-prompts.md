@@ -2,6 +2,12 @@
 
 Geradas com a ferramenta integrada `image_gen` (skill imagegen). Artes originais, usadas como camadas independentes e texturas; a geometria jogável pertence à simulação autoritativa. Os arquivos finais ficam em `public/assets/maps/`.
 
+## Regra atual de contraste entre camadas — 16/10/2026
+
+Escurecer **levemente somente o fundo decorativo em parallax** para separar o cenário distante da ação. O terreno jogável, personagens, armas, projéteis, indicadores e HUD permanecem nítidos, com suas cores e iluminação preservadas. Aplicar a atenuação na composição das camadas de fundo; nunca sobrepor uma camada escura ao quadro completo nem alterar a máscara de colisão. Não usar desfoque ou névoa leitosa para obter essa separação.
+
+Manter pigmentos vivos e materiais definidos. Esta direção prevalece sobre descrições históricas de tons pastéis abaixo. Os prompts registram a origem dos assets; a regra orienta novas pinturas e a composição em tempo real, cuja verificação pertence ao renderer.
+
 ## garden
 
 Arquivo: `public/assets/maps/garden-midground.png`

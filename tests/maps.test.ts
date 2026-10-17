@@ -64,15 +64,16 @@ test('walking cannot enter tall containers and still climbs both park ramps',()=
 
 for(const map of MAP_IDS)test(`${map}: two clients receive identical impacts and reconnect gets authoritative terrain`,async()=>{
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>();
- const store:ProfileStore={buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
+ const store:ProfileStore={saveAbilityLoadout:async()=>{throw Error('unused');},buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
  const game=new Game(store),players=['MAP-A','MAP-B'].map(name=>normalizeProfile({id:randomUUID(),name,gold:500}));
  for(const p of players){profiles.set(p.id,p);events.set(p.id,[]);game.connect(p,e=>events.get(p.id)!.push(structuredClone(e)));}
- const [a,b]=players;await game.command(a.id,{type:'create',name:'Map verification',mode:'1v1',map});const roomId=game.peers.get(a.id)!.roomId!;
+ const [a,b]=players;await game.command(a.id,{type:'create',practice:true,name:'Map verification',mode:'1v1',map});const roomId=game.peers.get(a.id)!.roomId!;
  await game.command(b.id,{type:'join',roomId});await game.command(b.id,{type:'ready'});await game.command(a.id,{type:'start'});
  const match=game.matches.get(roomId)!,before=match.terrain.slice(),first=match.state.players.find(f=>f.id===match.state.turnId)!;
  await game.command(first.id,{type:'fire',angle:65,power:20});
  const shotA=events.get(a.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
  const shotB=events.get(b.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;assert.deepEqual(shotA,shotB);
+ assert.deepEqual(match.terrain,before,'fire does not apply future destruction');game.tick(match.resolveAt+1);
  const local=before.slice();for(const p of shotA.projectiles){assert.ok(p.impact.material);crater(local,p.impact.x,p.impact.y,p.impact.radius,map);}assert.deepEqual(local,match.terrain);
  if(map==='celestial')assert.deepEqual(match.terrain,before);else assert.notDeepEqual(match.terrain,before);
  game.disconnect(a.id);const resumed:ServerEvent[]=[];game.connect(a,e=>resumed.push(e));const welcome=resumed.find((e):e is Extract<ServerEvent,{type:'welcome'}>=>e.type==='welcome')!;

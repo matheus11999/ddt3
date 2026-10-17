@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,ITEMS,MAX_UPGRADE,SLOTS,STONES,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,SLOTS,STONES,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {SHOP_OFFER_BY_ID} from '../shared/shop';
 import {COMPOSITION_STONES,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {levelForXp,levelProgress,MAX_PLAYER_LEVEL} from '../shared/progression';
 import {commandSchema} from '../shared/protocol';
@@ -39,9 +40,9 @@ test('all weapon upgrades keep weapon identity and apply the same attribute rule
  for(const weapon of WEAPONS){
   const base=structuredClone(weapon),upgraded=weaponStats(weapon,12);
   assert.equal(upgraded.id,base.id);assert.equal(upgraded.effect,base.effect);assert.equal(upgraded.crater,base.crater);
-  assert.equal(upgraded.attack,base.attack+96);assert.equal(upgraded.damage,Math.round(base.damage*1.42));
+  assert.equal(upgraded.attack,base.attack+48);assert.equal(upgraded.damage,Math.round(base.damage*1.24));
   assert.deepEqual(weapon,base);assert.deepEqual(weaponStats(weapon,0),weapon);
-  assert.equal(attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:12}).attack-attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:0}).attack,96);
+  assert.equal(attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:12}).attack-attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:0}).attack,48);
  }
 });
 
@@ -67,7 +68,7 @@ test('customization accepts all independent slots and rejects forged upgrades, m
 });
 
 test('content migration grants new starter layers once and never refills a removed owned item',()=>{
- const migrated=normalizeProfile({id:'migration',name:'Teste',inventory:['ember'],contentVersion:1});
+ const migrated=normalizeProfile({id:'migration',name:'Teste',gender:'female',inventory:['ember'],contentVersion:1});
  assert.ok(migrated.inventory.includes('hair-wavy'));assert.equal(migrated.contentVersion,CONTENT_VERSION);
  const saved=normalizeProfile({...migrated,inventory:migrated.inventory.filter(id=>id!=='hair-wavy')});
  assert.equal(saved.inventory.includes('hair-wavy'),false);
@@ -82,8 +83,8 @@ test('version six grants the two new outfits without restoring removed cosmetics
  assert.equal(saved.inventory.includes('outfit-surfer'),false);assert.equal(saved.contentVersion,CONTENT_VERSION);
 });
 
-test('retired cosmetic items disappear while current equipment uses the eight supported slots',()=>{
- assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','bracelet']);
+test('retired cosmetic items disappear while current equipment uses the nine supported slots',()=>{
+ assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume']);
  const migrated=normalizeProfile({id:'retired',name:'Teste',contentVersion:4,inventory:['ember','accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'],equipment:{...DEFAULT_EQUIPMENT,...{accessory:'accessory-satchel',eyes:'eyes-ocean'}}});
  for(const id of ['accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'])assert.equal(migrated.inventory.includes(id),false);
  assert.equal(migrated.equipment.face,'face-brave');assert.equal(migrated.equipment.wristband,'wristband-none');
@@ -91,7 +92,7 @@ test('retired cosmetic items disappear while current equipment uses the eight su
 });
 
 test('retired outfits migrate to a current owned costume without changing other equipment or resources',()=>{
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-surfer','outfit-executive','outfit-racer','outfit-dancer']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-surfer','outfit-executive','outfit-racer','outfit-dancer','outfit-cartographer']);
  for(const retired of ['outfit-ranger','outfit-azure','outfit-royal']){
   assert.equal(CATALOG[retired],undefined);
   const before=normalizeProfile({id:'retired-outfit',name:'Teste'});
@@ -127,8 +128,37 @@ test('the dynamite rollout grants only its new weapon once without refilling mat
 });
 
 test('new shop cosmetics never auto-grant through legacy migrations and owned purchases remain owned',()=>{
- const ids=['outfit-racer','outfit-dancer','hair-undercut','hair-ponytail','glasses-sport','glasses-cat','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
+ const ids=['outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
  for(const version of [1,4,8,9]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(ids.every(id=>!profile.inventory.includes(id)));}
  const owned=normalizeProfile({id:'shop-purchase',name:'Teste',inventory:['ember',...ids],contentVersion:9});assert.ok(ids.every(id=>owned.inventory.includes(id)));
- assert.ok(owned.inventory.includes('hat-none')&&owned.inventory.includes('hair-none'));
+ assert.ok(owned.inventory.every(id=>!isEmptyItem(id)),'empty-slot sentinels are never inventory possessions');
+});
+
+test('retired prototypes leave catalog and shop while painted equipment remains available',()=>{
+ for(const id of Object.keys(RETIRED_COSMETIC_REPLACEMENTS)){assert.equal(CATALOG[id],undefined);assert.equal(SHOP_OFFER_BY_ID[id],undefined);}
+ for(const id of ['face-brave','face-smile','face-taunt','face-serene','face-fierce','outfit-surfer','outfit-executive','hat-cap','hat-mage','hair-wavy'])assert.ok(CATALOG[id]&&SHOP_OFFER_BY_ID[id]);
+});
+
+test('prototype retirement exchanges owned items and preserves equipment, composition and resources exactly once',()=>{
+ const retired=Object.keys(RETIRED_COSMETIC_REPLACEMENTS);
+ const raw={id:'prototype-migration',name:'Veterano',gender:'male' as const,contentVersion:9,inventory:['ember','face-taunt','outfit-executive','hat-tide',...retired],
+  equipment:{...DEFAULT_EQUIPMENT,face:'face-taunt',outfit:'outfit-executive',hat:'hat-knight',hair:'hair-silver',glasses:'glasses-round',dyes:{hat:'coral' as const}},
+  gold:575,xp:1234,wins:7,matches:10,upgrades:{ember:9},stones:{'1':0,'5':3},compositionStones:{'attack-1':0},compositions:{'hat-knight':{attack:20},'hat-tide':{attack:10,defense:30},ember:{armor:20}}};
+ const result=normalizeProfile(raw);
+ assert.ok(retired.every(id=>!result.inventory.includes(id)));
+ assert.ok(Object.values(RETIRED_COSMETIC_REPLACEMENTS).every(id=>result.inventory.includes(id)));
+ assert.equal(result.equipment.hat,'hat-tide');assert.equal(result.equipment.hair,'hair-undercut');assert.equal(result.equipment.glasses,'glasses-sport');
+ assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-executive');assert.equal(result.equipment.dyes?.hat,'coral');
+ assert.deepEqual(result.compositions,{'hat-tide':{attack:20,defense:30},ember:{armor:20}});
+ assert.equal(result.gold,575);assert.equal(result.xp,1234);assert.equal(result.wins,7);assert.equal(result.matches,10);assert.equal(result.upgrades.ember,9);
+ assert.equal(result.stones['1'],0);assert.equal(result.stones['5'],3);assert.equal(result.compositionStones['attack-1'],0);
+ assert.deepEqual(normalizeProfile(result),result);
+ const withoutUnequipped=normalizeProfile({...result,inventory:result.inventory.filter(id=>id!=='glasses-cat')});assert.ok(!withoutUnequipped.inventory.includes('glasses-cat'));
+ for(const slot of SLOTS)assert.ok(isEmptyItem(result.equipment[slot])||result.inventory.includes(result.equipment[slot]),slot);
+});
+
+test('migration ignores unknown and inherited object keys instead of granting invalid items',()=>{
+ const result=normalizeProfile({id:'invalid-legacy',name:'Teste',contentVersion:9,inventory:['ember','constructor','__proto__','toString'],equipment:{...DEFAULT_EQUIPMENT,hat:'constructor',hair:'__proto__'}});
+ assert.ok(result.inventory.every(id=>typeof id==='string'&&Object.hasOwn(CATALOG,id)));
+ for(const slot of SLOTS)assert.equal(CATALOG[result.equipment[slot]].slot,slot);
 });

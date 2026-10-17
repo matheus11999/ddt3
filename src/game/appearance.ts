@@ -8,8 +8,8 @@ const SIZE=1254,RESOLUTION=.5;
 const sources=new Map<string,HTMLImageElement>(),rigCache=new Map<string,AvatarRig>(),artCache=new Map<string,HTMLCanvasElement>(),faceCache=new Map<string,HTMLCanvasElement>(),outfitCache=new Map<string,HTMLCanvasElement>();
 const canvas=(w:number,h:number)=>{const el=document.createElement('canvas');el.width=Math.ceil(w);el.height=Math.ceil(h);return el;};
 export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=()=>{rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();window.dispatchEvent(new Event('brasa-art-loaded'));};sources.set(path,image);}return image;};
-const original=asset('/assets/adventurer.png'),modular=asset('/assets/character-base.png');
-const modularDependencies=['/assets/hair-spiky.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png','/assets/outfit-surfer-body.png','/assets/outfit-executive-body.png'];
+const modular=asset('/assets/character-base.png');
+const modularDependencies=['/assets/shop-accessories.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png','/assets/outfit-surfer-body.png','/assets/outfit-executive-body.png'];
 export const ENABLE_MODULAR_APPEARANCE:boolean=false;
 /** Never reveal an unfinished bald base while the painted layers are loading. */
 export const modularAppearanceReady=()=>ENABLE_MODULAR_APPEARANCE&&modular.complete&&modular.naturalWidth>0&&modularDependencies.every(path=>{const image=asset(path);return image.complete&&image.naturalWidth>0;});
@@ -18,7 +18,8 @@ export const PAINTED_OUTFITS:Readonly<Record<string,{source:readonly[number,numb
  'outfit-surfer':{source:[340,350,710,890],destination:[362,484,593,743],portrait:[340,350,710,890],hue:.51},
  'outfit-racer':{source:[100,65,490,745],destination:[430,575,431,656],portrait:[100,65,490,745],hue:.61},
  'outfit-dancer':{source:[740,75,420,730],destination:[455,585,378,657],portrait:[740,75,420,730],hue:.97},
- 'outfit-executive':{source:[415,405,460,830],destination:[470,555,373,673],portrait:[415,405,460,830],hue:.64}
+ 'outfit-executive':{source:[415,405,460,830],destination:[470,555,373,673],portrait:[415,405,460,830],hue:.64},
+ 'outfit-cartographer':{source:[240,8,775,904],destination:[340,610,542,630],portrait:[240,8,775,904],hue:.61}
 };
 export const paintedOutfitReady=(id:string)=>{const path=CATALOG[id]?.visual?.asset;if(!PAINTED_OUTFITS[id]||!path)return false;const image=asset(path);return image.complete&&image.naturalWidth>0;};
 type Point=readonly[number,number];
@@ -26,14 +27,14 @@ export interface AvatarPart {canvas:HTMLCanvasElement;x:number;y:number;width:nu
 export interface WalkingLeg {thigh:AvatarPart;shin:AvatarPart;foot:AvatarPart;hip:Point;knee:Point;ankle:Point;groundY:number;}
 export interface WalkingRig {torso:AvatarPart;near:WalkingLeg;far:WalkingLeg;}
 export interface CombatRig {torso:AvatarPart;nearLeg:AvatarPart;farLeg:AvatarPart;neck:Point;}
-export interface AvatarRig {combat?:CombatRig;head:AvatarPart;stanceBody:AvatarPart;walking?:WalkingRig;modular:boolean;paintedOutfit:boolean;outfitPose:'surfer'|'executive'|'racer'|'dancer';neckCloth?:AvatarPart;}
+export interface AvatarRig {combat?:CombatRig;head:AvatarPart;stanceBody:AvatarPart;walking?:WalkingRig;modular:boolean;paintedOutfit:boolean;outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer';neckCloth?:AvatarPart;}
 export interface LayerDefinition {anchor:'head'|'chest'|'hands'|'hips'|'feet'|'back'|'world';order:number;bounds:[number,number,number,number];}
 /** New assets reuse a slot's anchor; visual.offset/scale/rotation refine individual fits. */
 export const AVATAR_LAYERS:Partial<Record<Slot,LayerDefinition>>={
  outfit:{anchor:'chest',order:30,bounds:[-30,-81,60,82]},face:{anchor:'head',order:50,bounds:[-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160]},hair:{anchor:'head',order:54,bounds:[-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160]},glasses:{anchor:'head',order:52,bounds:[-10,-111,42,25]},hat:{anchor:'head',order:56,bounds:[-46,-169,94,67]}
 };
 export function visual(eq:Equipment,slot:Slot):ItemVisual {
- const item=CATALOG[eq[slot]],v=item?.visual??{variant:eq[slot]?.replace(`${slot}-`,'')??'none'};
+ const item=CATALOG[eq[slot]],v=item?.visual??{variant:item?item.id.replace(`${slot}-`,''):'none'};
  const dye=eq.dyes?.[slot as DyeSlot],color=DYES.find(d=>d.id===dye&&d.id!=='original')?.color;
  return {...v,color:color??v.color??item?.color??'#b68c63'};
 }
@@ -58,11 +59,14 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  const outfitId=PAINTED_OUTFITS[eq.outfit]?eq.outfit:'outfit-surfer',outfit=visual({...eq,outfit:outfitId},'outfit');
  // Loading or stale legacy IDs never reveal a retired outfit. The only fallback is Surfista.
  if(!paintedOutfitReady(outfitId))return null;
- const face=getFacePortrait(eq.face),hair=asset(visual(eq,'hair').asset??'/assets/hair-spiky.png'),headReady=!!face&&(eq.hair==='hair-none'||hair.complete&&hair.naturalWidth>0||asset('/assets/hair-spiky.png').naturalWidth>0),base=headReady?modular:original;
- if(!base.complete||!base.naturalWidth)return null;
- const shopOutfit=outfitId==='outfit-racer'||outfitId==='outfit-dancer';
- const body=asset(CATALOG[outfitId].visual!.asset!),walkImage=shopOutfit?asset('/assets/outfits/shop-walking-legs.png'):asset(`/assets/outfits/${outfitId}-walk.png`),walkReady=walkImage.complete&&walkImage.naturalWidth>0;
- const combatImage=shopOutfit?body:asset('/assets/outfits/combat-prone.png'),combatReady=combatImage.complete&&combatImage.naturalWidth>0;
+ const face=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave'),hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null,base=modular;
+ // Wait for the universal head instead of briefly showing the retired starter
+ // haircut baked into adventurer.png while the selected artwork is loading.
+ if(!face||!base.complete||!base.naturalWidth||hair&&(!hair.complete||!hair.naturalWidth))return null;
+ const headReady=true;
+ const shopOutfit=outfitId==='outfit-racer'||outfitId==='outfit-dancer',cartographer=outfitId==='outfit-cartographer',atlasCombat=shopOutfit||cartographer;
+ const body=asset(CATALOG[outfitId].visual!.asset!),walkImage=shopOutfit?asset('/assets/outfits/shop-walking-legs.png'):asset(cartographer?'/assets/outfits/cartographer-walk.png':`/assets/outfits/${outfitId}-walk.png`),walkReady=walkImage.complete&&walkImage.naturalWidth>0;
+ const combatImage=atlasCombat?body:asset('/assets/outfits/combat-prone.png'),combatReady=combatImage.complete&&combatImage.naturalWidth>0;
  const key=JSON.stringify([outfitId,base.src,body.src,eq.dyes?.outfit,headReady?eq.face:'original',walkReady,combatReady]);const cached=rigCache.get(key);if(cached){rigCache.delete(key);rigCache.set(key,cached);return cached;}
  const registration=PAINTED_OUTFITS[outfitId],source=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),c=source.getContext('2d')!;
  c.scale(RESOLUTION,RESOLUTION);c.drawImage(body,...registration.source,...registration.destination);
@@ -81,18 +85,36 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
   for(let y=0;y<cloth.height;y++)for(let x=0;x<cloth.width;x++){const i=(y*cloth.width+x)*4,r=headPixels[i],g=headPixels[i+1],b=headPixels[i+2];const isShirt=y>=580*RESOLUTION&&y<631*RESOLUTION&&x>=540*RESOLUTION&&x<736*RESOLUTION&&g>r*.87&&b>r*.71;pixels.data[i+3]=isShirt?Math.min(pixels.data[i+3],headPixels[i+3]):0;}
   cc.putImageData(pixels,0,0);rig.neckCloth=cut(cloth,[[535,575],[741,575],[741,635],[535,635]],[650,610]);
  }
+ if(cartographer){
+  // The universal face includes a short neck. Bring the painted standing
+  // collar/lapels forward so this outfit does not leave a long bare neck.
+  // The inset cravat is sampled from the same atlas painting, not a flat fill.
+  const cloth=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),cc=cloth.getContext('2d')!;cc.drawImage(source,0,0);
+  cc.save();cc.scale(RESOLUTION,RESOLUTION);cc.beginPath();polygon(cc,[[662,627],[723,639],[723,685],[681,705],[646,681]]);cc.clip();
+  cc.drawImage(body,704,74,60,96,645,620,80,86);cc.restore();
+  rig.neckCloth=cut(cloth,[[560,605],[745,605],[770,710],[530,710]],[650,610]);
+ }
  if(walkReady){
   const legs=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),lc=legs.getContext('2d')!;lc.scale(RESOLUTION,RESOLUTION);
-  if(shopOutfit)lc.drawImage(walkImage,...(outfitId==='outfit-racer'?[210,0,620,870]:[1070,0,505,870]) as [number,number,number,number],...(outfitId==='outfit-racer'?[480,790,340,440]:[545,790,245,440]) as [number,number,number,number]);else if(surfer)lc.drawImage(walkImage,450,675,500,540,500,818,380,410);else lc.drawImage(walkImage,415,405,500,830,470,555,405,673);
+  if(cartographer)lc.drawImage(walkImage,47,162,713,1009,390,820,495,420);
+  else if(shopOutfit)lc.drawImage(walkImage,...(outfitId==='outfit-racer'?[210,0,620,870]:[1070,0,505,870]) as [number,number,number,number],...(outfitId==='outfit-racer'?[480,790,340,440]:[545,790,245,440]) as [number,number,number,number]);else if(surfer)lc.drawImage(walkImage,450,675,500,540,500,818,380,410);else lc.drawImage(walkImage,415,405,500,830,470,555,405,673);
   if(dyed)tint(legs,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
   const makeLeg=(hip:Point,knee:Point,ankle:Point,thigh:readonly Point[],shin:readonly Point[],foot:readonly Point[]):WalkingLeg=>{
    const paintedFoot=cut(legs,foot,ankle),pixels=paintedFoot.canvas.getContext('2d')!.getImageData(0,0,paintedFoot.canvas.width,paintedFoot.canvas.height).data;let lastRow=0;
    for(let i=3;i<pixels.length;i+=4)if(pixels[i]>16)lastRow=Math.max(lastRow,Math.floor(i/4/paintedFoot.canvas.width));
    return {hip,knee,ankle,groundY:paintedFoot.y+(lastRow+1)/RESOLUTION,thigh:cut(legs,thigh,hip),shin:cut(legs,shin,knee),foot:paintedFoot};
   };
-  const walkingTorso=shopOutfit?canvas(SIZE*RESOLUTION,SIZE*RESOLUTION):source;
-  if(shopOutfit){const tc=walkingTorso.getContext('2d')!;tc.drawImage(source,0,0);tc.clearRect(0,800*RESOLUTION,SIZE*RESOLUTION,SIZE*RESOLUTION);tc.drawImage(legs,0,0);}
-  rig.walking=shopOutfit?{
+  const walkingTorso=shopOutfit||cartographer?canvas(SIZE*RESOLUTION,SIZE*RESOLUTION):source;
+  if(shopOutfit||cartographer){const tc=walkingTorso.getContext('2d')!;tc.drawImage(source,0,0);if(cartographer){
+   // Keep the painted asymmetric coat tails attached to the torso, while only
+   // the trouser/boot silhouettes below the belt become articulated legs.
+   tc.clearRect(505*RESOLUTION,850*RESOLUTION,348*RESOLUTION,404*RESOLUTION);
+  }else{tc.clearRect(0,800*RESOLUTION,SIZE*RESOLUTION,SIZE*RESOLUTION);tc.drawImage(legs,0,0);}}
+  rig.walking=cartographer?{
+   torso:cut(walkingTorso,[[260,460],[1010,460],[1010,1254],[260,1254]],[650,610]),
+   near:makeLeg([610,870],[595,1020],[580,1155],[[505,850],[715,850],[715,1050],[505,1050]],[[495,1000],[720,1000],[720,1170],[495,1170]],[[480,1110],[725,1110],[725,1240],[480,1240]]),
+   far:makeLeg([770,870],[772,1020],[790,1155],[[700,850],[895,850],[895,1050],[700,1050]],[[685,1000],[900,1000],[900,1170],[685,1170]],[[680,1110],[900,1110],[900,1240],[680,1240]])
+  }:shopOutfit?{
    torso:cut(walkingTorso,[[400,540],[880,540],[880,880],[400,880]],[650,610]),
    near:makeLeg([605,875],[585,1025],[580,1145],[[430,870],[650,870],[650,1045],[430,1045]],[[430,1005],[650,1005],[650,1165],[430,1165]],[[430,1110],[650,1110],[650,1254],[430,1254]]),
    far:makeLeg([710,875],[720,1025],[720,1145],[[650,870],[850,870],[850,1045],[650,1045]],[[650,1005],[850,1005],[850,1165],[650,1165]],[[650,1110],[850,1110],[850,1254],[650,1254]])
@@ -104,7 +126,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  }
  if(combatReady){
   const prone=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),pc=prone.getContext('2d')!;pc.scale(RESOLUTION,RESOLUTION);
-  pc.drawImage(combatImage,...(shopOutfit?(outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]):surfer?[25,380,990,350]:[1040,380,970,350]) as [number,number,number,number],201,1018,560,220);
+  pc.drawImage(combatImage,...(cartographer?[101,926,1055,317]:shopOutfit?(outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]):surfer?[25,380,990,350]:[1040,380,970,350]) as [number,number,number,number],201,1018,560,220);
   if(dyed)tint(prone,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
   // Compact chibi combat body: the unchanged universal head occupies ~75% of total height.
   const point=(p:Point):Point=>[201+(p[0]-80)*560/856,1018+(p[1]-918)*220/300];
@@ -116,12 +138,16 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
    nearLeg:cutProne([[60,1080],[155,1080],[362,1108],[526,1080],[526,1254],[60,1254]],hip)
   };
  }
- if(shopOutfit&&combatReady&&rig.combat){
+ if(atlasCombat&&combatReady&&rig.combat){
   const prone=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),pc=prone.getContext('2d')!;pc.scale(RESOLUTION,RESOLUTION);
-  pc.drawImage(body,...(outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]) as [number,number,number,number],201,1018,560,220);
+  pc.drawImage(body,...(cartographer?[101,926,1055,317]:outfitId==='outfit-racer'?[25,880,600,265]:[640,905,590,245]) as [number,number,number,number],...(cartographer?[180,1018,650,195]:[201,1018,560,220]) as [number,number,number,number]);
   if(dyed)tint(prone,outfit.color!,ctx=>ctx.rect(0,0,SIZE,SIZE),1,registration.hue);
-  const neck:Point=outfitId==='outfit-racer'?[680,1040]:[690,1040],hip:Point=[450,1130];
-  rig.combat={neck,torso:cut(prone,[[440,1000],[780,1000],[780,1254],[440,1254]],neck),farLeg:cut(prone,[[180,1000],[460,1000],[460,1125],[180,1125]],hip),nearLeg:cut(prone,[[180,1125],[460,1125],[460,1254],[180,1254]],hip)};
+  const neck:Point=cartographer?[765,1040]:outfitId==='outfit-racer'?[680,1040]:[690,1040],hip:Point=cartographer?[465,1130]:[450,1130];
+  rig.combat=cartographer?{neck,
+   torso:cut(prone,[[475,1010],[850,1010],[850,1220],[475,1220]],neck),
+   farLeg:cut(prone,[[180,1010],[490,1010],[490,1135],[180,1135]],hip),
+   nearLeg:cut(prone,[[180,1115],[500,1115],[500,1230],[180,1230]],hip)
+  }:{neck,torso:cut(prone,[[440,1000],[780,1000],[780,1254],[440,1254]],neck),farLeg:cut(prone,[[180,1000],[460,1000],[460,1125],[180,1125]],hip),nearLeg:cut(prone,[[180,1125],[460,1125],[460,1254],[180,1254]],hip)};
  }
  rigCache.set(key,rig);if(rigCache.size>32)rigCache.delete(rigCache.keys().next().value!);return rig;
 }
@@ -159,21 +185,36 @@ export const PAINTED_ACCESSORIES:Readonly<Record<string,{source:[number,number,n
  'hair-wavy':{source:[280,65,820,760],destination:[-35.1,-143.54,76.56,70.94]},
  'hair-undercut':{source:[25,85,610,500],destination:[-43,-156,85,70],clip:[[0,0],[610,0],[610,290],[575,365],[575,500],[0,500]]},
  'hair-ponytail':{source:[600,85,650,660],destination:[-52,-156,93,94],clip:[[40,0],[650,0],[650,660],[0,660],[0,365],[40,290]]},
+ 'hair-horizon':{source:[270,49,753,593],destination:[-43,-153,86,68]},
  'hat-thunder':{source:[20,110,635,425],clip:[[0,0],[635,0],[635,380],[610,380],[610,425],[0,425]]},
  'hat-tide':{source:[630,110,624,490],clip:[[45,0],[624,0],[624,490],[0,490],[0,410],[45,370]]},
  'hat-ruby':{source:[0,680,635,430],clip:[[0,0],[635,0],[635,330],[560,430],[0,430]]},
  'hat-tropical':{source:[615,685,639,460],clip:[[90,0],[639,0],[639,460],[0,460],[0,390],[75,200]]},
  'glasses-sport':{source:[45,880,570,235]},
- 'glasses-cat':{source:[640,890,600,240]}
+ 'glasses-cat':{source:[640,890,600,240]},
+ 'glasses-navigator':{source:[29,483,1197,387]}
 };
 export function getAccessoryPortrait(id:string,color?:string):HTMLCanvasElement|null {
  const registration=PAINTED_ACCESSORIES[id],path=CATALOG[id]?.visual?.asset;if(!registration||!path)return null;
  const img=asset(path);if(!img.complete||!img.naturalWidth)return null;const known=artCache.get(`portrait:${id}:${color??''}`);if(known)return known;
- const [x,y,w,h]=registration.source,out=canvas(w,h);const c=out.getContext('2d')!;if(registration.clip){c.beginPath();polygon(c,registration.clip);c.clip();}c.drawImage(img,x,y,w,h,0,0,w,h);if(color){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(color);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}artCache.set(`portrait:${id}:${color??''}`,out);return out;
+ const [x,y,w,h]=registration.source,out=canvas(w,h);const c=out.getContext('2d')!;if(registration.clip){c.beginPath();polygon(c,registration.clip);c.clip();}c.drawImage(img,x,y,w,h,0,0,w,h);if(color){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(color);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}
+ if(id==='glasses-navigator'){
+  // The painted cyan lenses are translucent in the game. Preserve the gold
+  // rims, temples and bright white glints while showing the full face below.
+  const pixels=c.getImageData(0,0,w,h),data=pixels.data;
+  for(let row=0;row<h;row++)for(let col=0;col<w;col++){
+   const px=col+x,py=row+y,near=((px-640)/214)**2+((py-680)/159)**2<1,far=((px-1087)/103)**2+((py-700)/135)**2<1;
+   if(!near&&!far)continue;
+   const index=(row*w+col)*4,r=data[index],g=data[index+1],b=data[index+2];
+   if(data[index+3]>0&&b>165&&g>135&&b>r*1.07&&g>r*.94)data[index+3]=Math.round(data[index+3]*.45);
+  }
+  c.putImageData(pixels,0,0);
+ }
+ artCache.set(`portrait:${id}:${color??''}`,out);return out;
 }
 // Optical centers measured in each original atlas, not the bounds of the temples.
 // A similarity transform fits both eyes without stretching the painted lenses.
-const GLASSES_LENSES:Record<string,readonly[Point,Point]>={sport:[[344,1014],[557,1042]],cat:[[945,1018],[1155,1036]]};
+const GLASSES_LENSES:Record<string,readonly[Point,Point]>={sport:[[344,1014],[557,1042]],cat:[[945,1018],[1155,1036]],navigator:[[640,679],[1094,704]]};
 const headPoint=([x,y]:Point):Point=>[(x-625)*AVATAR_UNIT,(y-1225)*AVATAR_UNIT];
 const nearEye=headPoint(FACE_REGISTRATION.sockets.leftEye),farEye=headPoint(FACE_REGISTRATION.sockets.rightEye);
 function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number){layer(c,v,()=>{
@@ -181,7 +222,9 @@ function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number){layer(
   const img=asset(v.asset);if(img.complete&&img.naturalWidth){
    const [near,far]=lenses,dx=far[0]-near[0],dy=far[1]-near[1],tx=farEye[0]-nearEye[0],ty=farEye[1]-nearEye[1],scale=Math.hypot(tx,ty)/Math.hypot(dx,dy);
    c.translate(...nearEye);c.rotate(Math.atan2(ty,tx)-Math.atan2(dy,dx));c.scale(scale,scale);
-   const [x,y,w,h]=registration.source;c.drawImage(img,x,y,w,h,x-near[0],y-near[1],w,h);
+   const [x,y,w,h]=registration.source,transparent=v.variant==='navigator'?getAccessoryPortrait('glasses-navigator'):null;
+   if(transparent)c.drawImage(transparent,x-near[0],y-near[1],w,h);
+   else c.drawImage(img,x,y,w,h,x-near[0],y-near[1],w,h);
   }return;
  }
  const pilot=v.variant==='pilot';c.strokeStyle=shade(v.color!,.5);c.lineWidth=pilot?2.2:1.35;const glass=c.createLinearGradient(0,-111,0,-88);glass.addColorStop(0,pilot?'#70b7cf80':'#e5fcff12');glass.addColorStop(1,'#72c6da16');
@@ -194,21 +237,23 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
  else if(v.variant==='knight'){c.translate(-3,-116);c.scale(.85,.85);c.rotate(.025);ellipse(c,0,9,35,8,'#25313a44');c.fillStyle=material(c,v.color!);c.strokeStyle=shade(v.color!,.48);c.lineWidth=1.7;c.beginPath();c.moveTo(-36,9);c.quadraticCurveTo(-42,-43,0,-41);c.quadraticCurveTo(37,-42,36,9);c.lineTo(21,1);c.lineTo(1,-5);c.lineTo(-21,5);c.closePath();c.fill();c.stroke();c.strokeStyle='#eff9e0aa';c.lineWidth=1.5;c.beginPath();c.moveTo(-29,-10);c.quadraticCurveTo(-23,-34,2,-34);c.stroke();c.fillStyle='#b8555c';c.beginPath();c.moveTo(-5,-38);c.quadraticCurveTo(-17,-64,21,-57);c.quadraticCurveTo(6,-49,6,-38);c.fill();}
  });}
 function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual){
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered?.destination&&hair.asset){const img=getAccessoryPortrait(eq.hair,eq.hair==='hair-wavy'&&eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)c.drawImage(img,...registered.destination);return;}
- const originalHair=eq.hair==='hair-spiky'||eq.hair==='hair-wavy',dyed=eq.dyes?.hair&&eq.dyes.hair!=='original';const art=tintedArt(hair.asset??'/assets/hair-spiky.png',!originalHair||dyed?hair.color:undefined)??tintedArt('/assets/hair-spiky.png',dyed?hair.color:undefined);if(art)c.drawImage(art,-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160);
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered?.destination&&hair.asset){const recolorable=eq.hair==='hair-wavy'||eq.hair==='hair-horizon',img=getAccessoryPortrait(eq.hair,recolorable&&eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)c.drawImage(img,...registered.destination);return;}
+ if(!hair.asset)return;
+ const dyed=eq.dyes?.hair&&eq.dyes.hair!=='original',art=tintedArt(hair.asset,dyed?hair.color:undefined);if(art)c.drawImage(art,-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160);
 }
 /** Painted alternatives for covered heads. Coordinates are authored against the
  * same 1254px head template; no squashing of the uncovered hairstyle. */
-export const COVERED_HAIR:Readonly<Record<string,{source:readonly[number,number,number,number];destination:readonly[number,number,number,number]}>>={
+export const COVERED_HAIR:Readonly<Record<string,{source:readonly[number,number,number,number];destination:readonly[number,number,number,number];asset?:string}>>={
  'hair-spiky':{source:[170,48,540,440],destination:[335,180,486,396]},
  'hair-silver':{source:[170,48,540,440],destination:[335,180,486,396]},
  'hair-wavy':{source:[850,48,585,470],destination:[330,160,526.5,423]},
  'hair-undercut':{source:[190,535,520,410],destination:[365,185,468,369]},
- 'hair-ponytail':{source:[835,535,620,475],destination:[295,175,558,427.5]}
+ 'hair-ponytail':{source:[835,535,620,475],destination:[295,175,558,427.5]},
+ 'hair-horizon':{source:[312,739,698,472],destination:[345,195,500,338],asset:'/assets/hair-horizon.png'}
 };
 function coveredHair(eq:Equipment,hair:ItemVisual){
  const registration=COVERED_HAIR[eq.hair];if(!registration)return null;
- const img=asset('/assets/hair-covered-atlas.png');if(!img.complete||!img.naturalWidth)return null;
+ const img=asset(registration.asset??'/assets/hair-covered-atlas.png');if(!img.complete||!img.naturalWidth)return null;
  const dye=eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:eq.hair==='hair-silver'?hair.color:undefined;
  const key=`covered:${eq.hair}:${dye??'original'}`;let out=artCache.get(key);if(out)return out;
  const [x,y,w,h]=registration.source;out=canvas(w,h);const c=out.getContext('2d')!;c.drawImage(img,x,y,w,h,0,0,w,h);

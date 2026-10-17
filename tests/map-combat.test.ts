@@ -9,10 +9,10 @@ import {crater,ground,unpackTerrain} from '../shared/physics';
 
 async function fixture(){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>();
- const store:ProfileStore={buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
+ const store:ProfileStore={saveAbilityLoadout:async()=>{throw Error('unused');},buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,saveEquipment:async id=>profiles.get(id)!,rename:async()=>{},finishMatch:async()=>{},forge:async()=>{throw Error('unused');},compose:async()=>{throw Error('unused');}};
  const game=new Game(store),players=['TERRA-A','TERRA-B'].map(name=>normalizeProfile({id:randomUUID(),name,gold:500}));
  for(const player of players){profiles.set(player.id,player);events.set(player.id,[]);game.connect(player,event=>events.get(player.id)!.push(structuredClone(event)));}
- const [a,b]=players;await game.command(a.id,{type:'create',name:'Terrain regression',mode:'1v1',map:'garden'});const roomId=game.peers.get(a.id)!.roomId!;
+ const [a,b]=players;await game.command(a.id,{type:'create',practice:true,name:'Terrain regression',mode:'1v1',map:'garden'});const roomId=game.peers.get(a.id)!.roomId!;
  await game.command(b.id,{type:'join',roomId});await game.command(b.id,{type:'ready'});await game.command(a.id,{type:'start'});
  const match=game.matches.get(roomId)!;match.state.wind=0;const shooter=match.state.players.find(player=>player.id===match.state.turnId)!;
  return {game,events,players,roomId,match,shooter};
@@ -33,15 +33,17 @@ test('the server rejects walking into a crate without consuming movement vigor',
  assert.deepEqual({x:shooter.x,y:shooter.y,stamina:shooter.stamina},before);
 });
 
-test('extra volleys launch after the shooter settles onto the terrain opened by earlier impacts',async()=>{
+test('extra volleys use a fixed cadence before the first impact and terrain settles only at impact',async()=>{
  const {game,events,match,shooter}=await fixture();shooter.x=650;shooter.y=ground(match.terrain,650);shooter.hp=shooter.maxHp=10000;const before=match.terrain.slice();
  await game.command(shooter.id,{type:'boost',boost:'extra1'});await game.command(shooter.id,{type:'fire',angle:85,power:5});
  const shot=events.get(shooter.id)!.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,2);const [first,second]=shot.projectiles;
+ assert.equal(second.delay,240);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
+ game.tick(shot.startedAt+first.flightTime-.001);assert.deepEqual(match.terrain,before);
  crater(before,first.impact.x,first.impact.y,first.impact.radius,'garden');
  const settled=ground(before,shooter.x,first.points[0][1]+40-3);
- assert.ok(second.points[0][1]>first.points[0][1]+20);assert.equal(second.points[0][1],settled-40);
- assert.equal(shooter.y,ground(match.terrain,shooter.x,settled-3));
+ game.tick(shot.startedAt+first.flightTime);assert.equal(shooter.y,settled);assert.deepEqual(match.terrain,before);
+ game.tick(match.resolveAt+1);assert.equal(shooter.y,ground(match.terrain,shooter.x,settled-3));
 });
 
 test('resolution completion and battle end publish authoritative terrain snapshots',async()=>{

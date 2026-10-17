@@ -1,3 +1,25 @@
 services:
+  web:
+    build:
+      dockerfile: infra/Dockerfile.dev
+    environment:
+      DEV_PROXY_TARGET: http://server:4107
+      DEV_POLLING: 'true'
+    volumes:
+      - ./src:/app/src:ro
+      - ./shared:/app/shared:ro
+      - ./public:/app/public:ro
+      - ./index.html:/app/index.html:ro
+      - ./vite.config.ts:/app/vite.config.ts:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+    init: true
   server:
     ports: ["127.0.0.1:4107:4107"]
+    command: ["node", "./node_modules/tsx/dist/cli.mjs", "watch", "--clear-screen=false", "server/index.ts"]
+    environment:
+      CHOKIDAR_USEPOLLING: 'true'
+      CHOKIDAR_INTERVAL: '300'
+    volumes:
+      - ./server:/app/server:ro
+      - ./shared:/app/shared:ro
+    init: true

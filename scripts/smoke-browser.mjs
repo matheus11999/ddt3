@@ -1,3 +1,4 @@
+import {enterGame,startPractice} from './character-helpers.mjs';
 import {spawnSync} from 'node:child_process';
 import {chromium,expect} from '@playwright/test';
 import assert from 'node:assert/strict';
@@ -14,22 +15,23 @@ await context.addInitScript(()=>{HTMLElement.prototype.scrollIntoView=function()
 const page=await context.newPage(),errors=[],commands=[],events=[];
 page.on('pageerror',e=>errors.push(e.message));
 page.on('websocket',ws=>{ws.on('framesent',frame=>{try{commands.push(JSON.parse(String(frame.payload)));}catch{}});ws.on('framereceived',frame=>{try{events.push(JSON.parse(String(frame.payload)));}catch{}});});
-const profile=async()=>{const response=await context.request.post(base+'/api/session',{headers:{Origin:base}});assert.equal(response.status(),200);return (await response.json()).profile;};
+const profile=async()=>{const response=await context.request.post(base+'/api/session',{headers:{Origin:base},data:{gender:'male'}});assert.equal(response.status(),200);return (await response.json()).profile;};
 try{
  // This inventory/forge regression needs an established wardrobe. Provision only
  // this fresh, tagged guest, then purchase through the real transaction. The shop
  // smoke separately covers the normal 500-coin starter and insufficient balance.
  const guest=await profile();assert.match(guest.id,/^[a-f0-9-]{36}$/);
- const fixtureScript=`import assert from 'node:assert/strict';import {Store} from './server/store.ts';const store=new Store();try{const id=${JSON.stringify(guest.id)},name=${JSON.stringify(guest.name)};const updated=await store.pool.query("UPDATE players SET name=$3,profile=jsonb_set(profile,'{gold}','3000') WHERE id=$1 AND name=$2 AND created_at>now()-interval '1 minute' RETURNING id",[id,name,'TEST-UI-'+id.slice(0,8)]);assert.equal(updated.rowCount,1);await store.buy(id,['hat-cap','glasses-round','face-taunt','wristband-braid','bracelet-sun','outfit-executive']);}finally{await store.pool.end();}`;
+ const fixtureScript=`import assert from 'node:assert/strict';import {Store} from './server/store.ts';const store=new Store();try{const id=${JSON.stringify(guest.id)},name=${JSON.stringify(guest.name)};const updated=await store.pool.query("UPDATE players SET name=$3,profile=jsonb_set(profile,'{gold}','3000') WHERE id=$1 AND name=$2 AND created_at>now()-interval '1 minute' RETURNING id",[id,name,'TEST-UI-'+id.slice(0,8)]);assert.equal(updated.rowCount,1);await store.buy(id,['glasses-sport','face-taunt','wristband-braid','bracelet-sun','outfit-executive']);}finally{await store.pool.end();}`;
  const fixture=spawnSync('docker',['compose','exec','-T','server','node','--import','tsx','--input-type=module'],{input:fixtureScript,encoding:'utf8',timeout:30000});assert.equal(fixture.status,0,fixture.stderr);
- await page.goto(base,{waitUntil:'networkidle'});
+ await enterGame(page,base);
  await expect(page.locator('.bottom-dock')).toBeVisible();
  const initial=await profile();
  assert.deepEqual(initial.inventory.filter(id=>id.startsWith('outfit-')).sort(),['outfit-executive','outfit-surfer']);
  assert.ok(['outfit-surfer','outfit-executive'].includes(initial.equipment.outfit));
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
  const bag=page.getByRole('dialog',{name:'Mochila'});
- await expect(bag.locator('[data-slot]')).toHaveCount(8);
+ await expect(bag.locator('[data-slot]')).toHaveCount(9);
+ await expect(bag.getByRole('button',{name:/Salvar personalização|Restaurar visual|^Remover /})).toHaveCount(0);
  await expect(bag.locator('.bag-customize')).toHaveCount(0);
  for(const stat of ['Dano','Armadura','Ataque','Defesa','Agilidade','Vida','Vigor'])await expect(bag.locator('.stat-grid')).toContainText(stat);
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('weapon');
@@ -44,13 +46,13 @@ try{
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('hat');
  await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).click();
  await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
- assert.deepEqual((await profile()).equipment,initial.equipment,'preview must remain local');
- await bag.getByRole('button',{name:'Restaurar',exact:true}).click();
- await expect(bag.getByRole('button',{name:'Salvar personalização'})).toBeDisabled();
+ await expect.poll(async()=>(await profile()).equipment.dyes?.hat,{timeout:15000}).toBe('coral');
+ await expect(bag.locator('.equipment-status')).toHaveText('Visual equipado');
+ await bag.locator('[data-slot="hat"]').dblclick();await expect.poll(async()=>(await profile()).equipment.hat).toBe('hat-none');
  await bag.getByRole('button',{name:'Boné do Explorador',exact:true}).dragTo(bag.locator('[data-slot="hat"]'));
  await bag.getByRole('button',{name:'Cor Coral',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('glasses');
- await bag.getByRole('button',{name:'Óculos de Estudo',exact:true}).dblclick();
+ await bag.getByRole('button',{name:'Óculos Sprint',exact:true}).dblclick();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('face');
  await bag.getByRole('button',{name:'Sorriso Provocador',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('wristband');
@@ -58,26 +60,28 @@ try{
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('bracelet');
  await bag.getByRole('button',{name:'Bracelete Solar',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('outfit');await bag.getByRole('button',{name:'Executivo',exact:true}).click();
- assert.equal(commands.filter(c=>c.type==='customize').length,0);
- await bag.getByRole('button',{name:'Salvar personalização'}).click();
- await expect(bag.getByText('Visual salvo',{exact:true})).toBeVisible();
+ await expect.poll(async()=>(await profile()).equipment,{timeout:15000}).toMatchObject({hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',dyes:{hat:'coral'},wristband:'wristband-braid',bracelet:'bracelet-sun',outfit:'outfit-executive'});
+ await expect(bag.locator('.equipment-status')).toHaveText('Visual equipado');
  const saved=await profile();
- assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-round');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.dyes.hat,'coral');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
+ assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-sport');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.dyes.hat,'coral');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
  assert.equal(saved.equipment.outfit,'outfit-executive');
  const savedAttack=Number(await bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b').innerText());
- assert.equal(commands.filter(c=>c.type==='customize').length,1);
+ const customizationCommands=commands.filter(c=>c.type==='customize');assert.ok(customizationCommands.length>0);assert.ok(customizationCommands.every(command=>events.some(event=>event.type==='profile'&&event.requestId===command.requestId)),'every equipment request has a persistence acknowledgement');
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('all');
- await bag.getByRole('button',{name:'Caminhar',exact:true}).click();
- await page.screenshot({path:'test-results/inventory-walk.png'});
- await bag.getByRole('button',{name:'Deitar',exact:true}).click();
- await animationFrames(page);await page.screenshot({path:'test-results/inventory-prone.png'});
+ await expect(bag.getByRole('button',{name:'Caminhar',exact:true})).toHaveCount(0);
+ await expect(bag.getByRole('button',{name:'Deitar',exact:true})).toHaveCount(0);
+ const character=bag.locator('canvas[aria-label="Prévia do personagem"]');
+ assert.ok(saved.equipment.upgrade<5,'full canvas comparison is restricted to the no-aura starter; body/aura clocks are covered separately');await page.waitForLoadState('networkidle');await animationFrames(page);
+ const pixels=await character.evaluate(canvas=>canvas.toDataURL());await animationFrames(page);
+ assert.equal(await character.evaluate(canvas=>canvas.toDataURL()),pixels);
+ await page.screenshot({path:'test-results/inventory-static.png'});
  await bag.getByRole('button',{name:'Fechar',exact:true}).click();
  await page.reload({waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual((await profile()).equipment,saved.equipment,'reload must preserve customization');
  await page.locator('.bottom-dock').getByRole('button',{name:'Ferreiro',exact:true}).click();
  const forge=page.getByRole('dialog',{name:'Ferreiro'});await expect(forge).toBeVisible({timeout:15000});
  await forge.getByRole('button',{name:/Dragão de Brasa, nível \+0\. Clique para colocar/}).click();
- await forge.getByRole('button',{name:'Adicionar Pedra de Fortificação II',exact:true}).click();
+ await forge.getByRole('button',{name:/^Pedra de Fortificação II, .* disponíveis\. Clique para adicionar\./}).click();
  await expect(forge.getByRole('progressbar',{name:'Chance de sucesso'})).toHaveAttribute('aria-valuenow','100');
  const forgeMark=commands.filter(command=>command.type==='forge').length;
  await forge.getByRole('button',{name:'Fortalecer',exact:true}).click();
@@ -87,7 +91,8 @@ try{
  await page.screenshot({path:'test-results/forge-browser.png'});
  await forge.getByRole('tab',{name:'Composição',exact:true}).click();
  await forge.getByRole('button',{name:/Dragão de Brasa, nível \+1\. Clique para colocar/}).click();
- await expect(forge.locator('.composition-stock-stone')).toHaveCount(12);
+ await expect(forge.getByRole('group',{name:'Atributo para composição'}).getByRole('button')).toHaveCount(4);
+ await expect(forge.locator('.composition-stock-stone')).toHaveCount(3);
  const composeMark=commands.filter(command=>command.type==='compose').length;
  for(const [tier,chance,cost,value] of [['III',30,180,30],['II',60,100,20],['I',100,40,10]]){
   await forge.getByRole('button',{name:new RegExp(`^Rubi da Fúria ${tier},`)}).click();
@@ -118,13 +123,13 @@ try{
  await page.reload({waitUntil:'networkidle'});await expect(page.locator('.bottom-dock')).toBeVisible();
  const persistedComposition=await profile();assert.deepEqual(persistedComposition.compositions,composed.compositions);assert.equal(persistedComposition.gold,composed.gold);assert.deepEqual(persistedComposition.compositionStones,composed.compositionStones);
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
- await expect(bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b')).toHaveText(String(savedAttack+8+10));
+ await expect(bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b')).toHaveText(String(savedAttack+4+10));
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('weapon');await bag.getByRole('button',{name:'Dragão de Brasa',exact:true}).hover();
  await expect(page.getByRole('tooltip')).toContainText('Composição: Ataque +10');
  await page.screenshot({path:'test-results/composition-inventory.png'});
  await bag.getByRole('button',{name:'Fechar',exact:true}).click();
  await page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();
- await page.getByRole('button',{name:'Treinar com bot',exact:true}).click();
+ await startPractice(page);
  await expect(page.locator('.battle-console')).toBeVisible({timeout:15000});
  await page.getByRole('button',{name:/Disparo adicional, 110 vigor/}).click();
  const shotMark=events.length;await chargeWithPointer(page,35);
@@ -136,6 +141,6 @@ try{
  await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual(errors,[]);
  assert.deepEqual(events.filter(event=>event.type==='error'),[]);
- const report={ok:true,base,checks:['async scroll API cleanup regression','8 current slots','two owned outfits in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','local preview','restore','drag equipment','simultaneous glasses and hat','server saved dyes jewelry and executive outfit','single atomic save','walking and prone previews','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
+ const report={ok:true,base,checks:['async scroll API cleanup regression','9 current slots','two owned outfits in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','immediate equipment and tint application','slot double-click removes equipment','drag equipment','simultaneous glasses and hat','server saved dyes jewelry and executive outfit','correlated persistence acknowledgements without Save/Restore/trash','static character and no pose controls','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
  await writeFile('test-results/browser-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){await page.screenshot({path:'test-results/browser-failure.png'}).catch(()=>{});throw error;}finally{await browser.close();}
