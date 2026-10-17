@@ -59,7 +59,7 @@ export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
 export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; }
 export const WEAPONS: Weapon[] = [
- {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:.04,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:80}
+ {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:.04,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:65}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
