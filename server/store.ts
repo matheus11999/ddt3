@@ -158,7 +158,7 @@ export class Store implements ProfileStore {
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
    if(items.some(item=>!canEquipItem(item,profile.gender)))throw Error('Este item não é compatível com o gênero do seu personagem.');
-   if(items.some(item=>profile.inventory.includes(item)))throw Error('Você já possui um item deste carrinho. Remova-o antes de comprar.');
+   if(items.some(item=>profile.inventory.includes(item)))throw Error('Você já tem este item na mochila.');
    if(profile.gold<spent)throw Error('Moedas Brasa insuficientes para esta compra.');
    profile.gold-=spent;profile.inventory.push(...items);
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');
