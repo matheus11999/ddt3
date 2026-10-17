@@ -39,7 +39,35 @@ export const MAP_DEFINITIONS:Partial<Record<MapId,MapDefinition>>&Record<Canonic
 };
 /** The map a new room starts on and the one unknown ids fall back to (tests point it at their fixture map). */
 export const MAP_DEFAULT:{id:MapId}={id:'snow'};
-export const MAPS=MAP_IDS.map(id=>{const m=MAP_DEFINITIONS[id];return {id:m.id,name:m.name,subtitle:m.subtitle,color:m.color};});
+/** Maps in the PvP draw, as listed to players. Kept in place when the admin panel publishes a map. */
+export const MAPS:{id:MapId;name:string;subtitle:string;color:string}[]=[];
+
+/**
+ * Maps published from the admin panel (shared/mapAdmin.ts) replace a built-in map's name, spawns,
+ * collision and terrain art, or add a new map based on another one's art. Server and client apply the same list.
+ */
+export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;}
+const BUILT_IN=new Map<string,MapDefinition>(MAP_IDS.map(id=>[id,MAP_DEFINITIONS[id]]));
+const status=new Map<string,{kind:'pvp'|'instance';enabled:boolean}>();
+export function applyMapOverride(o:MapOverride){
+ const base=BUILT_IN.get(o.id)??BUILT_IN.get(o.base)??MAP_DEFINITIONS[o.base as MapId]??MAP_DEFINITIONS[MAP_DEFAULT.id]!;
+ const id=o.id as MapId;
+ MAP_DEFINITIONS[id]={...base,id,name:o.name,subtitle:o.subtitle||base.subtitle,dimensions:{...base.dimensions,width:o.width},spawns:[[...o.spawns[0]],[...o.spawns[1]]],regions:o.regions,art:{...base.art,terrain:o.terrain}};
+ status.set(o.id,{kind:o.kind,enabled:o.enabled});listMaps();
+}
+/** Back to the repository version (or gone, for a map created in the panel). */
+export function removeMapOverride(id:string){
+ const original=BUILT_IN.get(id);if(original)MAP_DEFINITIONS[id as MapId]=original;else delete MAP_DEFINITIONS[id as MapId];
+ status.delete(id);listMaps();
+}
+export function mapStatus(id:string){return status.get(id)??{kind:'pvp' as const,enabled:true};}
+/** Maps a PvP match may be drawn on: built-in and published PvP maps that are switched on. */
+export function pvpRotation():MapId[]{
+ const ids=[...new Set([...MAP_IDS,...status.keys()])].filter(id=>MAP_DEFINITIONS[id as MapId]&&mapStatus(id).kind==='pvp'&&mapStatus(id).enabled) as MapId[];
+ return ids.length?ids:[MAP_DEFAULT.id];
+}
+function listMaps(){MAPS.splice(0,MAPS.length,...pvpRotation().map(id=>{const m=MAP_DEFINITIONS[id]!;return {id:m.id,name:m.name,subtitle:m.subtitle,color:m.color};}));}
+listMaps();
 const ALIASES:Partial<Record<MapId,MapId>>={sky:'garden',valley:'park'};
 export function canonicalMap(id:MapId):MapId{const alias=ALIASES[id]??id;return MAP_DEFINITIONS[alias]?alias:MAP_DEFAULT.id;}
 export function getMap(id:MapId):MapDefinition{return MAP_DEFINITIONS[canonicalMap(id)]!;}

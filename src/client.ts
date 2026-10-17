@@ -1,3 +1,4 @@
+import {syncPublishedMaps} from './publishedMaps';
 import {useSyncExternalStore} from 'react';
 import type {CharacterGender,Equipment} from '../shared/catalog';
 import {CustomizationQueue} from './customization';
@@ -38,7 +39,7 @@ class Client {
  subscribe=(fn:()=>void)=>{this.listeners.add(fn);return()=>this.listeners.delete(fn);};
  snapshot=()=>this.state;
  update(patch:Partial<State>){this.state={...this.state,...patch};this.listeners.forEach(f=>f());}
- async start(){if(this.started)return;this.started=true;this.update({status:'connecting',error:null});try{const r=await fetch('/api/session',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('Não foi possível entrar. Tente novamente.');const {profile}=await r.json();if(!profile){this.update({needsCharacter:true});return;}this.update({profile,needsCharacter:false});this.connect();}catch(e){this.update({status:'offline',error:e instanceof DOMException&&e.name==='TimeoutError'?'O servidor demorou a responder. Toque em tentar novamente.':(e as Error).message});this.started=false;}}
+ async start(){if(this.started)return;this.started=true;void syncPublishedMaps();this.update({status:'connecting',error:null});try{const r=await fetch('/api/session',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('Não foi possível entrar. Tente novamente.');const {profile}=await r.json();if(!profile){this.update({needsCharacter:true});return;}this.update({profile,needsCharacter:false});this.connect();}catch(e){this.update({status:'offline',error:e instanceof DOMException&&e.name==='TimeoutError'?'O servidor demorou a responder. Toque em tentar novamente.':(e as Error).message});this.started=false;}}
  async createCharacter(gender:CharacterGender){
   if(this.state.profile||this.state.creatingCharacter||!this.state.needsCharacter)return;
   this.update({creatingCharacter:true,error:null});
@@ -68,6 +69,7 @@ class Client {
   case 'rooms':this.update({rooms:e.rooms});break;
   case 'arena-population':this.update({arenaOnline:e.count});break;
   case 'ranking':this.update({ranking:e.ranking});break;
+  case 'maps':void syncPublishedMaps();break;
   case 'online-players':this.update({onlinePlayers:e.players,onlineTotal:e.total});break;
   case 'room-invite-list':if(this.state.room?.id===e.roomId)this.update({invitePlayers:e.players,inviteListRoomId:e.roomId});break;
   case 'room-invitation':if(!this.state.room&&!this.state.battle&&e.invite.expiresAt>Date.now()+this.state.offset)this.update({roomInvitations:[...this.state.roomInvitations.filter(invite=>invite.id!==e.invite.id),e.invite].slice(-5)});break;

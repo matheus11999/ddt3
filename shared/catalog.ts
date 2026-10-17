@@ -154,7 +154,8 @@ export const CONTENT_VERSION=12;
 export const MAX_UPGRADE = 15;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
-export const SMITH_POSITION = {x:3640,y:640} as const;
+/** Where players stand to use the forge, just in front of the smith (moves with the forge station, shared/lobby.ts). */
+export const SMITH_POSITION:{x:number;y:number} = {x:3640,y:640};
 export const STONES = [
  {level:1,name:'Pedra de Fortificação I',color:'#c9d0ca',power:1},
  {level:2,name:'Pedra de Fortificação II',color:'#65cffa',power:2},

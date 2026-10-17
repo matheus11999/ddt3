@@ -74,6 +74,8 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Pendências para continuar
 
+- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild. Próximas áreas previstas: jogadores, loja, eventos.
+
 - **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
 - Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
