@@ -2,7 +2,7 @@ import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS} from '../shared/shop';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {canEquipItem,CATALOG,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,MAX_UPGRADE,normalizeDyes,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS} from '../shared/catalog';
+import {canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,MAX_UPGRADE,normalizeDyes,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -27,6 +27,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  // Legacy profiles only infer once: a stored, valid gender always wins over clothing.
  const gender:CharacterGender=raw.gender==='male'||raw.gender==='female'?raw.gender:raw.equipment?.outfit==='outfit-dancer'?'female':'male';
  const defaults=starterEquipment(gender),unequip=unequipForGender(gender);
+ // Extra copies (`id~2`) are kept only alongside the first copy, which keeps the plain id.
  const inventory=Array.isArray(raw.inventory)?[...new Set(raw.inventory.filter(id=>Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)))]:ITEMS.filter(i=>!SHOP_ONLY_COSMETICS.has(i.id)&&!isEmptyItem(i)&&canEquipItem(i,gender)).map(i=>i.id);
  if(!raw.upgrades&&(raw.contentVersion??0)<1&&!inventory.includes(defaults.hat))inventory.push(defaults.hat);
  if((raw.contentVersion??0)<5){for(const item of ITEMS)if(item.visual&&!isEmptyItem(item)&&!SHOP_ONLY_COSMETICS.has(item.id)&&canEquipItem(item,gender)&&!inventory.includes(item.id))inventory.push(item.id);}
@@ -40,14 +41,18 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const replacements=(raw.contentVersion??0)<10?RETIRED_COSMETIC_REPLACEMENTS:{};
  for(const id of raw.inventory??[]){const replacement=Object.hasOwn(replacements,id)?replacements[id]:undefined;if(replacement&&!inventory.includes(replacement))inventory.push(replacement);}
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
- const upgrades=Object.fromEntries(WEAPONS.map(w=>[w.id,integer(raw.upgrades?.[w.id],0,MAX_UPGRADE)]));
+ if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
+ const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');
+ const upgrades=Object.fromEntries([...WEAPONS.map(w=>w.id),...weaponCopies].map(key=>[key,integer(raw.upgrades?.[key],0,MAX_UPGRADE)]));
  const stones=Object.fromEntries(STONES.map(s=>[String(s.level),raw.stones?integer(raw.stones[String(s.level)]):STARTER_STONES[String(s.level)]]));
  const migratedCompositions={...raw.compositions};
  for(const [oldId,newId] of Object.entries(replacements))if(raw.inventory?.includes(oldId)&&raw.compositions?.[oldId]){
   const previous=migratedCompositions[newId]??{};
   migratedCompositions[newId]={...previous,...Object.fromEntries(Object.entries(raw.compositions[oldId]).map(([stat,value])=>[stat,Math.max(value??0,previous[stat as keyof typeof previous]??0)]))};
  }
- const compositions=normalizeCompositions(migratedCompositions,inventory.map(id=>CATALOG[id]));
+ const compositions=normalizeCompositions(migratedCompositions,inventory.map(id=>CATALOG[id]).filter(Boolean));
+ // Each extra copy keeps its own compositions under its copy key.
+ for(const key of inventory.filter(isCopyKey)){const own=normalizeCompositions({[copyBase(key)]:(raw.compositions as Record<string,unknown>|undefined)?.[key]},[CATALOG[copyBase(key)]])[copyBase(key)];if(own)compositions[key]=own;}
  const compositionStones=Object.fromEntries(COMPOSITION_STONES.map(stone=>[stone.id,raw.compositionStones?integer(raw.compositionStones[stone.id]):(raw.contentVersion??0)<8?STARTER_COMPOSITION_STONES[stone.id]:0]));
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
@@ -57,14 +62,30 @@ export function normalizeProfile(raw:StoredProfile):Profile {
   // Every equipped fallback must actually be owned, including sparse historical profiles.
   if(!isEmptyItem(equipment[slot])&&!inventory.includes(equipment[slot]))inventory.push(equipment[slot]);
  }
- equipment.upgrade=upgrades[equipment.weapon]??0;
+ const copies=validCopies(raw.equipment?.copies,equipment,inventory);if(Object.keys(copies).length)equipment.copies=copies;
+ equipment.upgrade=upgrades[equippedCopy(equipment,'weapon')]??0;
  equipment.dyes=normalizeDyes(raw.equipment?.dyes);
  equipment.visibility=normalizeVisibility(raw.equipment?.visibility);
- if(Object.keys(compositions).length)equipment.compositions=compositions;
+ const worn=equippedCompositions(equipment,compositions);if(Object.keys(worn).length)equipment.compositions=worn;
  const xp=integer(raw.xp);
  // Experience earned at the former cap immediately counts toward the new levels.
  const level=Math.max(normalizeLevel(integer(raw.level,1)),levelForXp(xp));
  return {id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout)};
+}
+
+/** Keeps only the copy keys that are owned and match the item in their slot. */
+function validCopies(value:unknown,equipment:Record<Slot,string>,inventory:readonly string[]):Partial<Record<Slot,string>> {
+ if(!value||typeof value!=='object')return {};
+ const result:Partial<Record<Slot,string>>={};
+ for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const key=(value as Record<string,unknown>)[slot];if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(key)&&copyBase(key)===equipment[slot])result[slot]=key;}
+ // A copy can only be worn in one slot of a family (two ring slots).
+ const seen=new Set<string>();for(const [slot,key] of Object.entries(result))if(seen.has(key))delete result[slot as Slot];else seen.add(key);
+ return result;
+}
+function refreshWorn(profile:Profile){
+ profile.equipment.upgrade=profile.upgrades[equippedCopy(profile.equipment,'weapon')]??0;
+ delete profile.equipment.compositions;
+ const worn=equippedCompositions(profile.equipment,profile.compositions);if(Object.keys(worn).length)profile.equipment.compositions=worn;
 }
 
 export class Store implements ProfileStore {
@@ -106,9 +127,10 @@ export class Store implements ProfileStore {
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
    for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[equipment[slot]];if(!item||!slotAccepts(slot,item)||heldInSiblingSlot(equipment,slot,item.id)||(!isEmptyItem(item)&&!profile.inventory.includes(item.id)))throw Error('Este item não está na sua mochila.');if(!canEquipItem(item,profile.gender))throw Error('Este item não é compatível com o gênero do seu personagem.');}
    const selected=Object.fromEntries((Object.keys(SLOT_NAMES) as Slot[]).map(slot=>[slot,equipment[slot]])) as Record<Slot,string>;
-   profile.equipment={...selected,dyes:normalizeDyes(equipment.dyes),visibility:normalizeVisibility(visibility.data),upgrade:profile.upgrades[equipment.weapon]??0};
-   delete profile.equipment.compositions;
-   if(Object.keys(profile.compositions).length)profile.equipment.compositions=profile.compositions;
+   const copies=validCopies(equipment.copies,selected,profile.inventory);
+   if(Object.keys(equipment.copies??{}).some(slot=>!copies[slot as Slot]&&isCopyKey(String(equipment.copies?.[slot as Slot]))))throw Error('Esta cópia não está na sua mochila.');
+   profile.equipment={...selected,dyes:normalizeDyes(equipment.dyes),visibility:normalizeVisibility(visibility.data),upgrade:0,...(Object.keys(copies).length?{copies}:{})};
+   refreshWorn(profile);
    profile.equippedOnce=true;
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return profile;
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
@@ -120,13 +142,13 @@ export class Store implements ProfileStore {
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
-   if(!WEAPONS.some(w=>w.id===item)||!profile.inventory.includes(item))throw Error('Escolha uma arma da sua mochila.');
+   if(!WEAPONS.some(w=>w.id===copyBase(item))||!profile.inventory.includes(item))throw Error('Escolha uma arma da sua mochila.');
    const level=profile.upgrades[item]??0;if(level>=MAX_UPGRADE)throw Error('Esta arma já está no nível máximo.');
    for(const [tier,quantity] of Object.entries(consumed))if((profile.stones[tier]??0)<quantity)throw Error('Você não tem essas pedras na mochila.');
    const chance=upgradeChance(level,consumed),success=this.roll()<Math.round(chance*10);
    for(const [tier,quantity] of Object.entries(consumed))profile.stones[tier]-=quantity;
    if(success)profile.upgrades[item]=level+1;
-   profile.equipment.upgrade=profile.upgrades[profile.equipment.weapon]??0;
+   refreshWorn(profile);
    const result:ForgeResult={item,success,level:profile.upgrades[item],chance,consumed};
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
@@ -138,7 +160,7 @@ export class Store implements ProfileStore {
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
-   if(!profile.inventory.includes(item)||!canCompose(CATALOG[item]))throw Error('Escolha um equipamento compatível da sua mochila.');
+   if(!profile.inventory.includes(item)||!canCompose(CATALOG[copyBase(item)]))throw Error('Escolha um equipamento compatível da sua mochila.');
    const previous=profile.compositions[item]?.[stone.stat]??0;
    if(stone.value<=previous)throw Error('Este atributo já possui uma composição igual ou melhor.');
    if((profile.compositionStones[stoneId]??0)<1)throw Error('Você não tem essa pedra de composição.');
@@ -146,7 +168,7 @@ export class Store implements ProfileStore {
    const success=this.roll()<stone.chance*10;
    profile.compositionStones[stoneId]--;profile.gold-=stone.cost;
    if(success)profile.compositions[item]={...profile.compositions[item],[stone.stat]:stone.value};
-   if(Object.keys(profile.compositions).length)profile.equipment.compositions=profile.compositions;
+   refreshWorn(profile);
    const result:CompositionResult={item,stone:stoneId,stat:stone.stat,success,previous,value:profile.compositions[item]?.[stone.stat]??0,chance:stone.chance,cost:stone.cost};
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
@@ -161,9 +183,9 @@ export class Store implements ProfileStore {
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
    if(items.some(item=>!canEquipItem(item,profile.gender)))throw Error('Este item não é compatível com o gênero do seu personagem.');
-   if(items.some(item=>profile.inventory.includes(item)))throw Error('Você já tem este item na mochila.');
    if(profile.gold<spent)throw Error('Moedas Brasa insuficientes para esta compra.');
-   profile.gold-=spent;profile.inventory.push(...items);
+   // An item already owned arrives as a separate copy, with its own forge level and compositions.
+   profile.gold-=spent;for(const item of items){const key=nextCopyKey(profile.inventory,item);profile.inventory.push(key);if(key!==item&&WEAPONS.some(w=>w.id===item))profile.upgrades[key]=0;}
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');
    return {profile,result:{items:[...items],spent}};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}

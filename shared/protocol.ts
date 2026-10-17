@@ -39,6 +39,7 @@ export const abilityLoadoutSchema=z.tuple([abilitySlot,abilitySlot,abilitySlot])
 export const equipmentVisibilitySchema=z.object({hat:z.boolean().optional(),glasses:z.boolean().optional(),costume:z.boolean().optional()}).strict();
 export const equipmentSelectionSchema=z.object({
  items:z.record(z.enum(SLOTS),z.string().min(1).max(40)),
+ copies:z.partialRecord(z.enum(SLOTS),z.string().min(1).max(48)).optional(),
  dyes:z.partialRecord(z.enum(DYE_SLOTS),z.enum(DYE_IDS)).optional(),
  visibility:equipmentVisibilitySchema.optional()
 }).strict();
@@ -53,8 +54,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('customize'),selection:equipmentSelectionSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('ability-loadout'),slots:abilityLoadoutSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('shop-buy'),items:z.array(z.string().min(1).max(40)).min(1).max(20).refine(items=>new Set(items).size===items.length,'Itens repetidos no carrinho.')}).strict(),
- z.object({type:z.literal('forge'),item:z.string().min(1).max(40),stones:stoneSelectionSchema}).strict(),
- z.object({type:z.literal('compose'),item:z.string().min(1).max(40),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
+ z.object({type:z.literal('forge'),item:z.string().min(1).max(48),stones:stoneSelectionSchema}).strict(),
+ z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
  // Legacy mode/map are honored only by explicitly requested practice rooms.
  z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
