@@ -190,6 +190,8 @@ async function teamBattleFixture(){
  return {...f,roomId,match,fallen};
 }
 const nextTurn=(f:{game:Game;match:unknown})=>(f.game as unknown as {nextTurn:(m:unknown)=>void}).nextTurn(f.match);
+// Bots claim random cards the moment the match ends; humans must pick a card still free.
+const freeCard=(f:{match:{state:{rewards?:{cards:{index:number;playerId?:string}[]}}}})=>f.match.state.rewards!.cards.find(card=>!card.playerId)!.index;
 const finishAgainst=async(f:Awaited<ReturnType<typeof teamBattleFixture>>)=>{
  for(const p of f.match.state.players)if(p.team!==f.fallen.team)p.hp=0;
  nextTurn(f);assert.equal(f.match.state.phase,'finished');
@@ -207,7 +209,7 @@ test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of
  const f=await teamBattleFixture();f.fallen.hp=0;await f.game.command(f.a.id,{type:'leave'});
  assert.equal(f.fallen.left,true);assert.equal(f.match.state.phase,'aiming');assert.ok(f.match.state.players.includes(f.fallen));
  await finishAgainst(f);f.match.state.rewards!.opensAt=Date.now()-1;
- await f.game.command(f.b.id,{type:'reward-pick',card:0});await flush();assert.equal(f.match.state.rewards!.phase,'revealed');
+ await f.game.command(f.b.id,{type:'reward-pick',card:freeCard(f)});await flush();assert.deepEqual(errors(f.events.get(f.b.id)!),[]);assert.equal(f.match.state.rewards!.phase,'revealed');
  assert.ok(!f.match.state.rewards!.cards.some(card=>card.playerId===f.a.id));
  const [,winners,players,bonuses]=f.store.finishCalls[0] as [string,string[],string[],Record<string,unknown>];
  assert.ok(!players.includes(f.a.id));assert.ok(!winners.includes(f.a.id));assert.equal(bonuses[f.a.id],undefined);assert.ok(players.includes(f.b.id));
