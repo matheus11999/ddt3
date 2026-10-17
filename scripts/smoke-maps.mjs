@@ -10,7 +10,7 @@ import {chargeWithPointer} from './charge-helpers.mjs';
 // Works against Docker or Vite without imported client modules or mocked state.
 const base=process.env.BASE_URL??'http://127.0.0.1:8097';
 const output='test-results/maps/browser';
-const maps=[['garden','Jardim Encantado'],['park','Parque dos Sonhos'],['celestial','Fortaleza Celestial']];
+const maps=[['snow','Sonho Nevado']];
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 const context=await browser.newContext({viewport:{width:1536,height:864}});
@@ -66,7 +66,7 @@ try{
   await expect(page.locator('.battle-console')).toBeVisible();
   // Decode the map illustration and texture before capturing, including cold loads.
   await page.evaluate(async id=>{
-   for(const suffix of ['midground','terrain-world','props']){const image=new Image();image.src=`/assets/maps/${id}-${suffix}.png`;await image.decode();}
+   for(const file of ['background.webp','terrain-world.png']){const image=new Image();image.src=`/assets/maps/${id}/${file}`;await image.decode();}
   },map);
   const quality=page.getByRole('combobox',{name:'Qualidade do cenário'}),zoom=page.getByLabel('Zoom do cenário'),options=page.getByRole('button',{name:'Mais opções do cenário',exact:true});
   await options.click();await expect(options).toHaveAttribute('aria-expanded','true');
@@ -103,9 +103,9 @@ try{
   await expect(page.locator('.turn-clock')).toContainText('DISPARO');await screenshot(`${map}-firing`);
   const final=await waitEvent(events,'battle',event=>event.battle?.id===started.battle.id&&event.battle.phase!=='resolving'&&event.battle.turnNumber>started.battle.turnNumber,fireMark,shot.shot.duration+12000);
   assert.ok(final.battle.terrain,'completed shot must deliver full authoritative terrain');
-  if(map==='celestial')assert.equal(final.battle.terrain,started.battle.terrain,'celestial must remain intact');else assert.notEqual(final.battle.terrain,started.battle.terrain,`${map}: real shot should create craters`);
+  assert.notEqual(final.battle.terrain,started.battle.terrain,`${map}: real shot should create craters`);
   await screenshot(`${map}-after-impact`);
-  if(map==='celestial'){
+  {
    await page.setViewportSize({width:640,height:960});
    const toggle=page.getByRole('button',{name:'Cenário e câmera',exact:true});await expect(toggle).toBeVisible();await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded','true');
    await quality.selectOption('medium');await expect(quality).toHaveValue('medium');
@@ -114,7 +114,7 @@ try{
   }
   await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();
   await partner.request({type:'leave'},'room',event=>event.room===null);
-  results.push({map,name,setup:'practice-protocol',realPlayers:2,projectiles:9,zoom:true,qualityPersistence:true,ambientMutePersistence:true,reconnect:true,compactControls:map==='celestial'});
+  results.push({map,name,setup:'practice-protocol',realPlayers:2,projectiles:9,zoom:true,qualityPersistence:true,ambientMutePersistence:true,reconnect:true,compactControls:true});
   console.log(`${map}: practice protocol setup, real battle UI, 9 projectiles, camera/quality/audio and reconnect OK`);
  }
  assert.deepEqual(errors,[],'browser JavaScript errors');assert.deepEqual(serverErrors,[],'game rejected an action');

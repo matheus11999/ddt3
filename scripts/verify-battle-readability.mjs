@@ -11,10 +11,10 @@ try{
  page.on('pageerror',error=>errors.push(error.message));await enterGame(page,base);
  await page.evaluate(async()=>{
   const clientUrl=performance.getEntriesByType('resource').filter(entry=>new URL(entry.name).pathname==='/src/client.ts').at(-1).name;const {client}=await import(clientUrl);window.readabilityClient=client;const {attributes}=await import('/shared/catalog.ts'),{createTerrain,ground}=await import('/shared/physics.ts'),{preloadEnvironment}=await import('/src/game/environment.ts');
-  client.stop();client.send=()=>{};window.readabilityNow=Date.now();Date.now=()=>window.readabilityNow;const profile=client.state.profile,stats=attributes(profile.equipment),terrain=createTerrain('garden');await preloadEnvironment('garden');
+  client.stop();client.send=()=>{};window.readabilityNow=Date.now();Date.now=()=>window.readabilityNow;const profile=client.state.profile,stats=attributes(profile.equipment),terrain=createTerrain('snow');await preloadEnvironment('snow');
   const fighter={id:profile.id,name:'FALL-PLAYER',level:profile.level,equipment:profile.equipment,ready:true,bot:false,team:0,slot:0,connected:true,x:370,y:ground(terrain,370),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:1,boosts:[],aimAngle:45,aimSlope:0,abilities:{heal:1,homing:1,invisibility:1}};
   const enemy={...fighter,id:'test-enemy',name:'RIVAL',team:1,x:1100,y:ground(terrain,1100),facing:-1};
-  client.update({status:'online',offset:0,shot:null,impacts:[],abilityEffects:[],room:null,battle:{id:'readability',roomId:'fixture',map:'garden',players:[fighter,enemy],turnId:profile.id,turnNumber:1,wind:0,deadline:Date.now()+300000,phase:'aiming',winner:null}});
+  client.update({status:'online',offset:0,shot:null,impacts:[],abilityEffects:[],room:null,battle:{id:'readability',roomId:'fixture',map:'snow',players:[fighter,enemy],turnId:profile.id,turnNumber:1,wind:0,deadline:Date.now()+300000,phase:'aiming',winner:null}});
   window.readabilitySamples=[];const original=CanvasRenderingContext2D.prototype.strokeText;
   CanvasRenderingContext2D.prototype.strokeText=function(text,x,y,...args){if(text==='FALL-PLAYER'&&this.canvas.classList.contains('world-canvas'))window.readabilitySamples.push({at:Date.now(),y:y+124});return original.call(this,text,x,y,...args);};
  });

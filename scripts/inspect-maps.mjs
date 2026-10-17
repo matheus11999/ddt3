@@ -6,7 +6,7 @@ import {mkdir,writeFile} from 'node:fs/promises';
 // script; timing here is explicitly not a promise about hardware or game FPS.
 const directory='test-results/maps';
 await mkdir(directory,{recursive:true});
-const browser=await chromium.launch({headless:true,...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
+const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:{}),...(process.env.BROWSER_CHANNEL?{channel:process.env.BROWSER_CHANNEL}:process.platform==='win32'?{channel:'msedge'}:{})});
 const errors=[],results=[];
 async function setup(page){
  page.on('pageerror',error=>errors.push(error.message));
@@ -40,14 +40,14 @@ const machine=await page.evaluate(()=>{
  const gl=document.createElement('canvas').getContext('webgl'),debug=gl?.getExtension('WEBGL_debug_renderer_info');
  return {userAgent:navigator.userAgent,hardwareConcurrency:navigator.hardwareConcurrency,renderer:gl&&debug?gl.getParameter(debug.UNMASKED_RENDERER_WEBGL):'not exposed',scope:'Environment-only Canvas2D. Pixel checks use CPU readback; timing uses a separate presented Canvas with no repeated readback. Headless measurements, not full-game FPS.'};
 });
-for(const id of ['garden','park','celestial']){
+for(const id of ['snow']){
  const initial=await page.evaluate(id=>window.drawMap(id),id);assert.equal(initial.ready,true,`${id}: assets decoded`);
  await saveCanvas(page,`${directory}/${id}.png`);
  await page.evaluate(id=>window.drawMap(id,{zoom:1.45}),id);await saveCanvas(page,`${directory}/${id}-zoom.png`);
  const damaged=await page.evaluate(id=>window.drawMap(id,{damage:true}),id);await saveCanvas(page,`${directory}/${id}-impact.png`);
  const updatedTerrain=await page.evaluate(async id=>{
   const {env,physics,c}=window.preview,{renderer,terrain,camera}=window.scene;
-  const x=id==='garden'?519:666;physics.crater(terrain,x,physics.ground(terrain,x),44,id);renderer.setTerrain(terrain);window.renderMap();const updated=window.pixelSnapshot();
+  const x=1040;physics.crater(terrain,x,physics.ground(terrain,x),44,id);renderer.setTerrain(terrain);window.renderMap();const updated=window.pixelSnapshot();
   const restored=new env.EnvironmentRenderer(id,terrain);await restored.whenReady();restored.drawBack(c,6000,camera);c.save();env.applyCamera(c,camera);restored.drawTerrain(c,6000);c.restore();restored.drawFront(c,6000,camera);
   return window.compare(updated,window.pixelSnapshot());
  },id);
@@ -96,11 +96,11 @@ await context.close();
 // A deferred asset must keep one coherent loading composition, even if a crater
 // arrives meanwhile. Release the gate explicitly: elapsed time is not readiness.
 const loadingContext=await browser.newContext({viewport:{width:1536,height:864}}),loadingPage=await loadingContext.newPage();let release;const gate=new Promise(resolve=>{release=resolve;});
-await loadingPage.route('**/assets/maps/*-terrain-world.png',async route=>{await gate;await route.continue();});
-await setup(loadingPage);await loadingPage.evaluate(()=>window.startMap('garden'));
+await loadingPage.route('**/assets/maps/*/terrain-world.png',async route=>{await gate;await route.continue();});
+await setup(loadingPage);await loadingPage.evaluate(()=>window.startMap('snow'));
 const loading=await loadingPage.evaluate(async()=>{
- const image=new Image();image.src='/assets/maps/garden-preview.png';await image.decode();window.renderMap();const before=window.pixelSnapshot();
- const {renderer,terrain}=window.scene;window.preview.physics.crater(terrain,650,550,86,'garden');renderer.setTerrain(terrain);window.scene.time+=1000;window.renderMap();
+ const image=new Image();image.src='/assets/maps/snow-preview.png';await image.decode();window.renderMap();const before=window.pixelSnapshot();
+ const {renderer,terrain}=window.scene;window.preview.physics.crater(terrain,1040,600,86,'snow');renderer.setTerrain(terrain);window.scene.time+=1000;window.renderMap();
  const layer=renderer.getTerrainLayer(),p=layer.getContext('2d').getImageData(0,0,layer.width,layer.height).data;
  return {readyWhileBlocked:renderer.isReady(),changedWhileBlocked:window.compare(before,window.pixelSnapshot()).changedPixels,paintedTerrainWhileBlocked:p.some(value=>value!==0)};
 });
@@ -110,8 +110,8 @@ await loadingPage.evaluate(()=>window.renderMap());await saveCanvas(loadingPage,
 assert.equal(loading.readyWhileBlocked,false);assert.equal(loading.changedWhileBlocked,0);assert.equal(loading.paintedTerrainWhileBlocked,false);assert.equal(loading.readyAfterRelease,true);
 await loadingContext.close();
 const failedContext=await browser.newContext({viewport:{width:1536,height:864}}),failedPage=await failedContext.newPage();
-await failedPage.route('**/assets/maps/*-terrain-world.png',route=>route.abort());await setup(failedPage);
-const failed=await failedPage.evaluate(async()=>{window.startMap('garden');const ready=await window.scene.renderer.whenReady();window.renderMap();return {ready,rendererReady:window.scene.renderer.isReady()};});
+await failedPage.route('**/assets/maps/*/terrain-world.png',route=>route.abort());await setup(failedPage);
+const failed=await failedPage.evaluate(async()=>{window.startMap('snow');const ready=await window.scene.renderer.whenReady();window.renderMap();return {ready,rendererReady:window.scene.renderer.isReady()};});
 await saveCanvas(failedPage,`${directory}/loading-error.png`);assert.equal(failed.ready,false);assert.equal(failed.rendererReady,false);await failedContext.close();
 const report={machine,results,loading,failed,errors};await writeFile(`${directory}/report.json`,JSON.stringify(report,null,2));
 console.log(JSON.stringify({machine,scenarios:results.map(({id,quality,dpr,timing,verification})=>({id,quality,dpr,timing,identicalPixels:verification.identical.changedPixels,cameraReturnPixels:verification.returned.changedPixels,qualityReturnPixels:verification.restoredQuality.changedPixels,physicsUnchanged:verification.physicalBytesUnchanged})),loading,failed,errors},null,2));

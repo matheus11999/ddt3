@@ -1,5 +1,5 @@
 import {canonicalMap, getMap} from '../../shared/maps';
-import type {CanonicalMapId, MapId} from '../../shared/maps';
+import type {MapId} from '../../shared/maps';
 import {createEnvironmentTrack} from './ambience';
 
 type WeaponSound=import('../../shared/catalog').WeaponEffect;
@@ -20,7 +20,7 @@ class AudioEngine {
  private context:AudioContext|null=null;
  private noise:AudioBuffer|null=null;
  private environmentEnabled=readPreference('brasa-environment-sound');
- private map:CanonicalMapId|null=null;
+ private map:MapId|null=null;
  private track:{stop():void}|null=null;
  private listening=false;
  private pageHidden=false;

@@ -1,6 +1,6 @@
 import type {MapId, Weapon} from './catalog';
-import {canonicalMap,cellBits,contains,getMap} from './maps';
-import type {CanonicalMapId,MaterialId,MapRegion} from './maps';
+import {canonicalMap,cellBits,contains,getMap,MAP_DEFAULT} from './maps';
+import type {MaterialId,MapRegion} from './maps';
 import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 /** Default arena; a map may be wider (`MapDefinition.dimensions.width`), never taller. */
 export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
@@ -11,8 +11,8 @@ export function terrainWidth(t:{length:number}){return terrainCols(t)*WORLD.cell
 export const PROJECTILE_SPEED_SCALE=1.18;
 export const FIGHTER_HIT_RADIUS=22;
 interface TerrainTemplate {solid:Uint8Array;regions:Int16Array;definition:readonly MapRegion[];cols:number;}
-const templates=new Map<CanonicalMapId,TerrainTemplate>();
-export function terrainTemplate(map:MapId='garden'):TerrainTemplate {
+const templates=new Map<MapId,TerrainTemplate>();
+export function terrainTemplate(map:MapId=MAP_DEFAULT.id):TerrainTemplate {
  const id=canonicalMap(map),cached=templates.get(id);if(cached)return cached;
  const def=getMap(id),definition=def.regions,cols=def.dimensions.width/WORLD.cell,solid=new Uint8Array(cols*WORLD.rows),regions=new Int16Array(solid.length).fill(-1);
  // Scan-convert polygons once per row, not once per cell: large illustrated contours
@@ -36,7 +36,7 @@ export function terrainTemplate(map:MapId='garden'):TerrainTemplate {
  }
  const value={solid,regions,definition,cols};templates.set(id,value);return value;
 }
-export function createTerrain(map:MapId='garden'):Uint8Array{return terrainTemplate(map).solid.slice();}
+export function createTerrain(map:MapId=MAP_DEFAULT.id):Uint8Array{return terrainTemplate(map).solid.slice();}
 export function terrainMaterial(map:MapId,x:number,y:number):{material:MaterialId;destructible:boolean;region?:string}{
  const template=terrainTemplate(map);const cx=Math.floor(x/3),cy=Math.floor(y/3);
  if(cx<0||cx>=template.cols||cy<0||cy>=WORLD.rows)return {material:'earth',destructible:false};
@@ -81,18 +81,20 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
 export const DIRECT_HIT_DIG=.45;
 /** Where an impact removes terrain: under the target on a direct hit, else at the explosion. */
 export function impactDig(impact:{x:number;y:number;radius:number;dig?:{x:number;y:number;radius:number}}){return impact.dig??impact;}
-/** Broken ground is never a perfect circle: the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
+/** Broken ground is never a perfect circle: by default the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
 export const CRATER_ROUGHNESS=.14;
+/** A weapon may set its own `craterRoughness` (0 = a clean circle); impacts carry it so clients dig the same hole. */
+export function weaponRoughness(weapon:{craterRoughness?:number}){return weapon.craterRoughness??CRATER_ROUGHNESS;}
 function roughness(angle:number,seed:number){const a=(seed&1023)/163,b=((seed>>10)&1023)/163,c=((seed>>20)&1023)/163;
  return (Math.sin(angle*5+a)*.45+Math.sin(angle*9+b)*.35+Math.sin(angle*17+c)*.2+1)/2;}
 /** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId='garden'){
- const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+CRATER_ROUGHNESS);
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS){
+ const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+rough);
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-extent)/3));cx<Math.min(cols,Math.ceil((x+extent)/3));cx++){
   const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const dx=cx*3-x,dy=cy*3-y,edge=r*(1+CRATER_ROUGHNESS*roughness(Math.atan2(dy,dx),seed));if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+  const dx=cx*3-x,dy=cy*3-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
  }
  return removed;
 }

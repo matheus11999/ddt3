@@ -77,8 +77,8 @@ async function returnTurn(shot,mark){
 try{
  await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
  profile=(await waitEvent(events,'welcome')).profile;partner=await connectPartner();
- let mark=events.length;await send({type:'create',practice:true,name:'TEST Charge controls',mode:'1v1',map:'celestial'});const room=(await waitEvent(events,'room',event=>!!event.room,mark)).room;
- assert.equal(room.practice,true);assert.equal(room.map,'celestial');assert.equal(room.mode,'1v1');
+ let mark=events.length;await send({type:'create',practice:true,name:'TEST Charge controls',mode:'1v1',map:'snow'});const room=(await waitEvent(events,'room',event=>!!event.room,mark)).room;
+ assert.equal(room.practice,true);assert.equal(room.map,'snow');assert.equal(room.mode,'1v1');
  await partner.request({type:'join',roomId:room.id},'room',event=>event.room?.id===room.id);await partner.request({type:'ready'},'room',event=>event.room?.players.some(p=>p.id===partner.profile.id&&p.ready));
  mark=events.length;await send({type:'start'});await waitEvent(events,'battle',event=>event.battle?.turnId===profile.id,mark);
  const meter=page.getByRole('meter',{name:'Força do disparo',exact:true}),charge=page.getByRole('meter',{name:'Força do disparo',exact:true});
@@ -112,7 +112,7 @@ try{
  await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();await partner.request({type:'leave'},'room',event=>event.room===null);
  await animationFrames(page);await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual(errors,[]);assert.deepEqual(events.filter(event=>event.type==='error'),[]);assert.deepEqual(partner.events.filter(event=>event.type==='error'),[]);
- const report={ok:true,base,setup:'practice-protocol',map:'celestial',coverage:'real battle HUD inputs and authoritative shot events; arena matchmaking UI is verified separately',checks,shots,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+ const report={ok:true,base,setup:'practice-protocol',map:'snow',coverage:'real battle HUD inputs and authoritative shot events; arena matchmaking UI is verified separately',checks,shots,testPlayerIds:[profile.id,partner.profile.id]};await writeFile(`${output}/report.json`,JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){
  await page.screenshot({path:`${output}/failure.png`}).catch(()=>{});await writeFile(`${output}/failure.json`,JSON.stringify({error:String(error),errors,commands,serverErrors:events.filter(event=>event.type==='error')},null,2));throw error;
 }finally{

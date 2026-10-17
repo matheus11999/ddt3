@@ -9,8 +9,8 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
-test('every map has seven depth layers and four balanced, supported mirrored spawns per team',()=>{
- for(const id of MAP_IDS){const map=getMap(id),terrain=createTerrain(id);assert.equal(map.layers.length,7);assert.deepEqual(terrain,createTerrain(id));
+test('every map has four balanced, supported mirrored spawns per team',()=>{
+ for(const id of MAP_IDS){const map=getMap(id),terrain=createTerrain(id);assert.deepEqual(terrain,createTerrain(id));
   const width=map.dimensions.width;assert.equal(terrain.length,width/WORLD.cell*WORLD.rows);
   if(width===WORLD.width)assert.deepEqual(map.spawns.map(team=>team.slice(0,2)),[[260,395],[1276,1141]]);
   // Two players start a good distance apart, never at opposite ends of a wide map.
@@ -77,7 +77,7 @@ for(const map of MAP_IDS)test(`${map}: two clients receive identical impacts and
  const shotB=events.get(b.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;assert.deepEqual(shotA,shotB);
  assert.deepEqual(match.terrain,before,'fire does not apply future destruction');game.tick(match.resolveAt+1);
  const local=before.slice();for(const p of shotA.projectiles){assert.ok(p.impact.material);crater(local,p.impact.x,p.impact.y,p.impact.radius,map);}assert.deepEqual(local,match.terrain);
- if(map==='celestial')assert.deepEqual(match.terrain,before);else assert.notDeepEqual(match.terrain,before);
+ assert.notDeepEqual(match.terrain,before);
  game.disconnect(a.id);const resumed:ServerEvent[]=[];game.connect(a,e=>resumed.push(e));const welcome=resumed.find((e):e is Extract<ServerEvent,{type:'welcome'}>=>e.type==='welcome')!;
  assert.equal(welcome.battle?.map,map);assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),match.terrain);
  await game.command(a.id,{type:'leave'});await game.command(b.id,{type:'leave'});for(const match of game.matches.values())if(match.state.rewards)game.tick(match.state.rewards.deadline+1);await new Promise(resolve=>setImmediate(resolve));game.tick(Date.now()+30000);assert.equal(game.matches.size,0);

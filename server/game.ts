@@ -7,10 +7,10 @@ import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby'
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,DIRECT_HIT_DIG,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_DIG,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
-import {getMap,canonicalMap,MAP_IDS} from '../shared/maps';
+import {getMap,canonicalMap,MAP_DEFAULT,MAP_IDS} from '../shared/maps';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
@@ -194,7 +194,7 @@ export class Game {
     case 'create':{
      if(p.roomId)throw Error('Saia da sala atual antes de criar outra.');if(this.rooms.size>=200)throw Error('A arena está cheia. Tente novamente em breve.');
      const practice=c.practice===true,mode=practice?(c.mode??'1v1'):'1v1';
-     const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:c.name??`Sala de ${p.profile.name}`.slice(0,24),hostId:id,practice,mode,openSlots:practice?initialSlots(mode):[0],spectatorSlots:[],spectators:[],map:practice?canonicalMap(c.map??'garden'):'garden',status:'waiting',players:[this.seat(p,0,0)]};this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
+     const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:c.name??`Sala de ${p.profile.name}`.slice(0,24),hostId:id,practice,mode,openSlots:practice?initialSlots(mode):[0],spectatorSlots:[],spectators:[],map:practice?canonicalMap(c.map??MAP_DEFAULT.id):MAP_DEFAULT.id,status:'waiting',players:[this.seat(p,0,0)]};this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
     }
     case 'join':{
      this.join(p,c.roomId);break;
@@ -404,7 +404,7 @@ export class Game {
    // A shot that hits a fighter in full still digs a little, under the target's feet.
    const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined;
    const dig=victim?{x:result.x,y:victim.y,radius:radius*DIRECT_HIT_DIG}:undefined;
-   const impact={x:result.x,y:result.y,radius,...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
+   const rough=weaponRoughness(w),impact={x:result.x,y:result.y,radius,roughness:rough,...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
@@ -412,8 +412,8 @@ export class Game {
     if(damage<=0)continue;
     target.hp=Math.max(0,target.hp-damage);hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
    }
-   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,effect:w.effect,level:f.equipment.upgrade}});
+   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough);this.settle(simulated);
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
@@ -447,7 +447,7 @@ export class Game {
    if(target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,damage,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);}
    hits.push({...planned,damage,x:target.x,y:target.y-85});
   }
-  crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map);
+  crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
   if(!impact.fragment)m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
