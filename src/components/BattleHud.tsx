@@ -5,7 +5,7 @@ import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
 import {AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
-import {ExpeditionFoes,ExpeditionBanners} from './ExpeditionBattle';
+import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
@@ -181,7 +181,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    </div>
    {mine&&!intro&&<button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>}
    </div>
-   <Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>
+   {instance?<div className="instance-side"><Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/><ExpeditionObjective battle={b}/></div>
+    :<Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>}
   </div>
   {instance&&<ExpeditionBanners battle={b} intro={intro}/>}
   {mine&&!intro&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}

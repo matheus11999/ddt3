@@ -12,9 +12,10 @@
 .expedition-banner-call strong{font:900 clamp(17px,1.6vw,23px)/1.1 'Nunito',sans-serif;color:var(--wood-gold);text-shadow:0 2px #2c1004;animation:expedition-call 1.6s ease-in-out infinite}
 .expedition-banner-call span{font-size:13px;font-weight:700;color:#ffdca4}
 @keyframes expedition-call{50%{transform:scale(1.05);color:#fff1b8}}
-.expedition-banner-choice{grid-template-columns:auto 1fr;align-items:center;justify-items:start;text-align:left;gap:10px}
-.expedition-banner-choice img{width:88px;height:60px;object-fit:cover;border-radius:8px;border:2px solid #fff0c9;box-shadow:0 2px 6px #0007}
-.expedition-banner-choice strong{display:block;font:900 20px/1.1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #2c1004}
+.expedition-banner-choice{padding-top:70px}
+.expedition-banner-choice>div{display:grid;justify-items:center;gap:2px}
+.expedition-banner-choice small{font:800 14px/1.2 'Nunito',sans-serif;color:#ffe2b0;text-shadow:0 1px 2px #000}
+.expedition-banner-choice strong{display:block;font:900 26px/1.1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #2c1004}
 .expedition-banner-choice span,.expedition-difficulty-tag{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;font:800 12px/1.4 'Nunito',sans-serif;color:#fff;background:#4c9b39;box-shadow:inset 0 -2px #2c6a1f,0 1px #0006;text-transform:uppercase;letter-spacing:.6px}
 [data-difficulty="normal"]{--difficulty:#3d82c9}[data-difficulty="hard"]{--difficulty:#c9572f}[data-difficulty="hero"]{--difficulty:#8a3fc0}
 .expedition-banner-choice span[data-difficulty]:not([data-difficulty="easy"]){background:var(--difficulty)}
@@ -41,20 +42,33 @@ html.mobile-landscape .pr-expedition-pick{display:flex}
 .expedition-detail .wood-cream{display:grid;align-content:start;gap:10px}
 .expedition-cover{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--wood-edge);aspect-ratio:16/7;background:#2b4a6b}
 .expedition-cover img{width:100%;height:100%;object-fit:cover}
-.expedition-cover h3{position:absolute;left:14px;bottom:10px;margin:0;font:900 30px/1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #3b1806,0 0 10px #000a}
+.expedition-cover-caption{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 12px;background:linear-gradient(transparent,#2c1004b3 55%,#1d0a02e6)}
+.expedition-cover h3{margin:0;font:900 30px/1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #3b1806,0 0 10px #000a}
+.expedition-cover-caption small{display:block;margin-top:4px;font:800 13px/1.2 'Nunito',sans-serif;color:#ffd99a;text-shadow:0 1px 2px #000}
+.expedition-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.expedition-power{flex:1;min-width:220px;display:flex;align-items:center;gap:12px;padding:7px 12px;border-radius:10px;background:linear-gradient(90deg,#ffe7a8,#fff6dc 70%,#fff6dc00);border:1px solid #e6b860;color:var(--wood-ink)}
+.expedition-power>span{display:grid;gap:1px}
+.expedition-power small{font:800 11px/1.1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.5px}
+.expedition-power strong{font:900 20px/1 'Nunito',sans-serif;color:#a8521a}
+.expedition-power .expedition-power-mine{margin-left:auto;text-align:right}
+.expedition-power.is-ready .expedition-power-mine strong{color:#3d8a2a}
+.expedition-power.is-weak .expedition-power-mine strong{color:#c0392b}
+.expedition-stage-pick{display:flex;align-items:center;gap:6px;font:800 12px/1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase}
+.expedition-stage-pick button{width:34px;height:34px;border:2px solid #d9a865;border-radius:9px;background:linear-gradient(#fffaf0,#fbe6bd);color:var(--wood-ink);font:900 15px/1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
+.expedition-stage-pick button.is-active{color:#fff;border-color:#8a4a12;background:linear-gradient(#f2b45a,#c97a24 60%,#8a4a12);box-shadow:inset 0 -3px #6a3608;text-shadow:0 1px #5a2c06}
 .expedition-description{margin:0;font-size:14px;font-weight:700;color:var(--wood-ink)}
 .expedition-difficulties{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.expedition-difficulty{position:relative;display:grid;justify-items:center;gap:1px;padding:8px 4px;border:2px solid #d9a865;border-radius:10px;background:#fff8e8;color:var(--wood-ink);font:900 14px/1.1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
+.expedition-difficulty{position:relative;display:grid;justify-items:center;align-content:center;gap:1px;min-height:48px;padding:6px 4px;border:2px solid #d9a865;border-radius:10px;background:#fff8e8;color:var(--wood-ink);font:900 14px/1.1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
 .expedition-difficulty small{font-size:10px;font-weight:800;color:var(--wood-ink-soft);text-transform:uppercase}
 .expedition-difficulty svg{position:absolute;top:5px;right:6px;color:var(--wood-ink-soft)}
-.expedition-difficulty.is-active{color:#fff;border-color:#2c6a1f;background:linear-gradient(#7cc85e,#4c9b39);box-shadow:inset 0 -3px #2c6a1f;text-shadow:0 1px #1d4a12}
+.expedition-difficulty>span{font-size:15px}
+.expedition-difficulty{--tone:#4c9b39;--tone-light:#8fd86c;--tone-dark:#2c6a1f}
+.expedition-difficulty[data-difficulty="normal"]{--tone:#3d82c9;--tone-light:#7fbaf0;--tone-dark:#21558f}
+.expedition-difficulty[data-difficulty="hard"]{--tone:#c9572f;--tone-light:#f39a6d;--tone-dark:#8a3315}
+.expedition-difficulty[data-difficulty="hero"]{--tone:#8a3fc0;--tone-light:#c48af0;--tone-dark:#5a2186}
+.expedition-difficulty:not(:disabled){background:linear-gradient(#fffaf0,#fbe6bd)}
+.expedition-difficulty.is-active{color:#fff;border-color:var(--tone-dark);background:linear-gradient(var(--tone-light),var(--tone) 60%,var(--tone-dark));box-shadow:inset 0 -3px var(--tone-dark),0 0 0 2px #fff6,0 3px 8px #0003;text-shadow:0 1px var(--tone-dark)}
 .expedition-difficulty:disabled{opacity:.55;cursor:var(--cursor-arrow,default)}
-.expedition-stages{margin:0;padding:0;list-style:none;display:grid;gap:6px}
-.expedition-stages li{display:grid;grid-template-columns:28px 1fr auto;align-items:center;gap:8px;padding:6px 10px;border-radius:9px;background:#fbe9c4;color:var(--wood-ink)}
-.expedition-stages b{display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--wood);color:#fff;font:900 14px/1 'Nunito',sans-serif;box-shadow:inset 0 -2px var(--wood-dark)}
-.expedition-stages strong{display:block;font:800 14px/1.2 'Nunito',sans-serif}
-.expedition-stages small{font-size:12px;font-weight:700;color:var(--wood-ink-soft)}
-.expedition-stages svg{color:#a8381f}
 .expedition-confirm{justify-self:end;display:inline-flex;align-items:center;gap:6px;padding:10px 18px}
 @media (max-width:760px){.expedition-picker-body{grid-template-columns:1fr}.expedition-list .wood-cream{display:flex;gap:8px;overflow-x:auto}.expedition-entry{min-width:200px}}
 html.mobile-landscape .expedition-picker-body{grid-template-columns:190px 1fr}
@@ -69,11 +83,16 @@ html.mobile-landscape .expedition-cover{aspect-ratio:16/5}
 .stage-banner small{display:block;font:900 18px/1 'Nunito',sans-serif;letter-spacing:3px;color:#ffe9b8;text-shadow:0 2px #3b1806}
 .artillery-hud .stage-banner .battle-3d-text{font-size:58px}
 @keyframes stage-banner{0%{opacity:0;transform:translate(-50%,-40%) scale(.9)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
-.boss-bar{position:absolute;left:50%;top:112px;transform:translateX(-50%);z-index:5;width:min(520px,44vw);display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;pointer-events:none}
-.boss-bar-face{width:46px;height:46px;border-radius:50%;border:3px solid #ffd36b;background:#3b1806 no-repeat;background-size:620% auto;background-position:5% 4%;box-shadow:0 2px 6px #000a}
-.boss-bar-meter{position:relative;height:22px;border-radius:999px;border:2px solid #2c1004;background:#3b1004;box-shadow:inset 0 2px 4px #000a,0 2px #0006;overflow:hidden}
-.boss-bar-meter i{position:absolute;inset:0 auto 0 0;background:linear-gradient(#ff8a6a,#e23b22 55%,#a8180c);transition:width .4s ease-out}
-.boss-bar-meter b{position:absolute;inset:0;display:grid;place-items:center;font:900 13px/1 'Nunito',sans-serif;color:#fff;text-shadow:0 1px 2px #000}
-.boss-bar-name{position:absolute;left:58px;top:-17px;font:900 14px/1 'Nunito',sans-serif;color:#ffd36b;text-shadow:0 2px #2c1004}
 .monster-count{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#2c1004cc;color:#ffe2b0;font:900 13px/1 'Nunito',sans-serif;box-shadow:inset 0 0 0 1px #ffd36b66}
-.monster-count img{width:26px;height:26px;object-fit:cover;object-position:0 0}
+.monster-count img{width:30px;height:26px;object-fit:cover;object-position:-7px 0}
+
+/* Instances: the stage goal sits under the minimap on a see-through panel. */
+.artillery-hud .instance-side{position:absolute;right:0;top:0;width:224px;display:grid;gap:6px;pointer-events:none}
+.artillery-hud .instance-side .battle-minimap{position:relative;right:auto;top:auto}
+.expedition-objective{padding:6px 10px 7px;border-radius:9px;background:linear-gradient(90deg,#14100cb8,#14100c66);border:1px solid #ffd36b40;color:#fff;text-shadow:0 1px 2px #000}
+.expedition-objective small{display:block;font:900 11px/1.1 'Nunito',sans-serif;color:#ffd36b;text-transform:uppercase;letter-spacing:.8px}
+.expedition-objective p{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:2px 0 0;font:800 13px/1.25 'Nunito',sans-serif}
+.expedition-objective b{font:900 14px/1 'Nunito',sans-serif;color:#ffe2b0;white-space:nowrap}
+.expedition-objective.is-done p{color:#9cf08a}.expedition-objective.is-done b{color:#9cf08a}
+html.mobile-landscape .artillery-hud .instance-side{transform:scale(.72);transform-origin:top right}
+html.mobile-landscape .artillery-hud .instance-side .battle-minimap{transform:none}

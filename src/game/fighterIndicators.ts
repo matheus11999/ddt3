@@ -18,27 +18,44 @@ export function drawFighterIndicators(c:CanvasRenderingContext2D,fighter:Fighter
  c.restore();
 }
 
-export type FighterPlate={fighter:Fighter;x:number;y:number;ally:boolean;active:boolean};
+/** `slim`: a monster's nameless bar (`y` is its top, just under the feet) instead of the name plate. */
+export type FighterPlate={fighter:Fighter;x:number;y:number;ally:boolean;active:boolean;slim?:boolean};
 
 const PLATE_LIFT=30,PLATE_GAP=6;
 const plateName=(fighter:Fighter)=>fighter.name.length>18?fighter.name.slice(0,17)+'…':fighter.name;
 
 /** Raises a plate one row for every neighbour it would touch, so names and HP bars of
  * fighters standing side by side never overlap. Returns the lift in pixels per plate. */
-export function plateLifts(plates:{x:number;y:number;width:number}[]){
+export function plateLifts(plates:{x:number;y:number;width:number}[],row=PLATE_LIFT){
  const placed:{left:number;right:number;top:number}[]=[],lifts=new Array<number>(plates.length).fill(0);
  plates.map((plate,index)=>({plate,index})).sort((a,b)=>a.plate.x-b.plate.x).forEach(({plate,index})=>{
   const left=plate.x-plate.width/2-PLATE_GAP/2,right=plate.x+plate.width/2+PLATE_GAP/2;
   let lift=0;
-  while(placed.some(other=>other.left<right&&left<other.right&&Math.abs(other.top-(plate.y-lift))<PLATE_LIFT))lift+=PLATE_LIFT;
+  while(placed.some(other=>other.left<right&&left<other.right&&Math.abs(other.top-(plate.y-lift))<row))lift+=row;
   placed.push({left,right,top:plate.y-lift});lifts[index]=lift;
  });
  return lifts;
 }
 
 export function drawFighterPlates(c:CanvasRenderingContext2D,plates:FighterPlate[],time:number){
+ const people=plates.filter(plate=>!plate.slim),monsters=plates.filter(plate=>plate.slim);
  c.save();c.font='800 12px "Nunito",sans-serif';
- const lifts=plateLifts(plates.map(plate=>({x:plate.x,y:plate.y,width:Math.max(90,c.measureText(plateName(plate.fighter)).width+8)})));
+ const lifts=plateLifts(people.map(plate=>({x:plate.x,y:plate.y,width:Math.max(90,c.measureText(plateName(plate.fighter)).width+8)})));
  c.restore();
- plates.forEach((plate,index)=>drawFighterIndicators(c,plate.fighter,plate.x,plate.y,plate.ally,plate.active,time,lifts[index]));
+ // Monsters crowd their prey, so theirs are slim bars with no name under their feet (clear of the adventurers' plates),
+ // pushed down a row when two touch.
+ const monsterRows=plateLifts(monsters.map(plate=>({x:plate.x,y:-plate.y,width:monsterBarWidth(plate.fighter)})),MONSTER_PLATE_LIFT);
+ monsters.forEach((plate,index)=>drawMonsterBar(c,plate.fighter,plate.x,plate.y+monsterRows[index]));
+ people.forEach((plate,index)=>drawFighterIndicators(c,plate.fighter,plate.x,plate.y,plate.ally,plate.active,time,lifts[index]));
+}
+
+const MONSTER_PLATE_LIFT=11;
+const monsterBarWidth=(fighter:Fighter)=>Math.round(Math.min(74,Math.max(46,(fighter.hitRadius??40)*1.25)));
+/** Slim HP bar over a monster's head (y = top of the bar). */
+function drawMonsterBar(c:CanvasRenderingContext2D,fighter:Fighter,x:number,y:number){
+ const hp=Math.max(0,Math.min(1,fighter.hp/fighter.maxHp)),width=monsterBarWidth(fighter),left=x-width/2;
+ c.save();c.shadowColor='#1a0702';c.shadowBlur=3;c.fillStyle='#2a0d05ee';c.beginPath();c.roundRect(left-2,y-2,width+4,10,5);c.fill();
+ c.shadowBlur=0;c.fillStyle='#3a1a12';c.beginPath();c.roundRect(left,y,width,6,3);c.fill();
+ if(hp>0){const fill=c.createLinearGradient(0,y,0,y+6);fill.addColorStop(0,'#ffb9a8');fill.addColorStop(.5,'#f2503f');fill.addColorStop(1,'#a8241c');c.fillStyle=fill;c.beginPath();c.roundRect(left,y,Math.max(2,width*hp),6,Math.min(3,width*hp/2));c.fill();}
+ c.restore();
 }

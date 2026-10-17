@@ -7,7 +7,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {MONSTERS,partyHpScale} from '../shared/expeditions';
-import {MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn} from '../shared/instanceTurn';
+import {MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,strideOf} from '../shared/instanceTurn';
 import type {MonsterBody} from '../shared/instanceTurn';
 import {createTerrain,ground} from '../shared/physics';
 import {getMap,INSTANCE_MAP_IDS,MAPS} from '../shared/maps';
@@ -32,6 +32,7 @@ function fixture(){
  for(const p of players){store.profiles.set(p.id,structuredClone(p));events.set(p.id,[]);game.connect(p,event=>events.get(p.id)!.push(structuredClone(event)));}
  return {game,store,events,a:players[0],b:players[1]};
 }
+const stageOf=(room:{expedition?:{stage:number}|null})=>room.expedition?.stage;
 const errors=(events:ServerEvent[])=>events.filter((e):e is Extract<ServerEvent,{type:'error'}>=>e.type==='error').map(e=>e.message);
 
 async function expedition(){
@@ -54,11 +55,18 @@ test('melee ants walk toward the nearest adventurer by their stride and bite onl
   {id:'far',x:400,y:y(400),hp:10,team:1,monster:'ant-worker',facing:1},
   {id:'near',x:1250,y:y(1250),hp:10,team:1,monster:'ant-soldier',facing:1}];
  const plan=planMonsterTurn(terrain,bodies),far=plan.moves.find(m=>m.id==='far')!;
- assert.ok(far.to[0]>400&&far.to[0]-400<=MONSTERS['ant-worker'].stride+3,`andou ${far.to[0]-400}`);
+ assert.ok(far.to[0]>400&&far.to[0]-400<=MONSTERS['ant-worker'].stride*1.15+3,`andou ${far.to[0]-400}`);
  assert.deepEqual(plan.bites,[{id:'near',targetId:'p'}]);
  // Arriving within reach does not bite this turn.
  const close:MonsterBody[]=[bodies[0],{...bodies[1],x:1180,y:y(1180)}],arrive=planMonsterTurn(terrain,close);
  assert.equal(arrive.bites.length,0);assert.ok(arrive.moves[0].to[0]<1300-MONSTERS['ant-worker'].reach*.7+4);
+});
+
+test('heavier ants walk slower, and two of a kind rarely walk the same distance',()=>{
+ assert.ok(MONSTERS['ant-worker'].stride>MONSTERS['ant-soldier'].stride&&MONSTERS['ant-soldier'].stride>MONSTERS['ant-brute'].stride);
+ const steps=['a','b','c','d'].map(id=>strideOf({id,x:300,monster:'ant-worker'}));
+ assert.ok(new Set(steps.map(Math.round)).size>1);
+ for(const step of steps)assert.ok(step>=MONSTERS['ant-worker'].stride*.85&&step<=MONSTERS['ant-worker'].stride*1.15);
 });
 
 test('instance maps stay out of the PvP draw and place monsters on ground',()=>{
@@ -77,7 +85,7 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'hero'});
  assert.equal(f.room.expedition,null);
  await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy'});
- assert.deepEqual(f.room.expedition,{id:'anthill',difficulty:'easy'});
+ assert.deepEqual(f.room.expedition,{id:'anthill',difficulty:'easy',stage:0});
  await f.game.command(f.a.id,{type:'start'});assert.match(errors(f.events.get(f.a.id)!).at(-1)!,/prontos/);
  await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const m=f.game.matches.get(f.roomId)!,s=m.state;
@@ -101,22 +109,40 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  assert.equal(s.phase,'finished');assert.equal(s.winner,0);assert.equal(s.rewards!.cards.length,4);
  f.game.tick(s.rewards!.deadline+1);await new Promise(resolve=>setImmediate(resolve));
  assert.equal(f.store.expeditions.length,1);assert.equal(f.store.matches.length,0);
+ // Back in the room after the stage; the choice now points at stage 2 and the party starts it again.
  f.game.tick(s.rewards!.revealedAt!+60000);
+ assert.equal(f.room.status,'waiting');assert.equal(f.game.matches.get(f.roomId),undefined);assert.equal(stageOf(f.room),1);
+ await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const stage2=f.game.matches.get(f.roomId)!.state;
  assert.equal(stage2.map,'anthill-2');assert.equal(stage2.instance?.stage,2);assert.ok(stage2.instance?.boss);assert.ok(stage2.instance?.nest);
+ assert.ok(stage2.instance!.introUntil-Date.now()<=1600,'sem a chegada das formigas no estágio 2');
  // The queen falls: the boss reward has more cards.
  stage2.instance!.introUntil=Date.now()-1;stage2.players.find(p=>p.id===stage2.instance!.boss)!.hp=0;
  const turn=stage2.turnId;await f.game.command(turn,{type:'pass'});f.game.tick(f.game.matches.get(f.roomId)!.resolveAt+1);
  assert.equal(stage2.phase,'finished');assert.equal(stage2.rewards!.cards.length,8);
+ // The last stage won: back to the room, starting over at stage 1.
+ const last=f.game.matches.get(f.roomId)!;f.game.tick(stage2.rewards!.deadline+1);await new Promise(resolve=>setImmediate(resolve));f.game.tick(stage2.rewards!.revealedAt!+60000);
+ assert.equal(last.state.rewards!.saved,true);assert.equal(f.room.status,'waiting');assert.equal(stageOf(f.room),0);
+});
+
+test('the leader can pick the stage to start on (testing aid) and a lost stage keeps the choice',async()=>{
+ const f=await expedition();
+ await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy',stage:5});
+ assert.match(errors(f.events.get(f.a.id)!).at(-1)!,/Estágio/);
+ await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy',stage:1});
+ await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
+ const m=f.game.matches.get(f.roomId)!;assert.equal(m.state.map,'anthill-2');
+ for(const p of m.state.players)if(!p.monster)p.hp=0;
+ (f.game as unknown as {checkInstanceEnd:(match:typeof m)=>boolean}).checkInstanceEnd(m);
+ assert.equal(m.state.phase,'finished');assert.equal(m.state.winner,1);
+ f.game.tick(m.state.rewards!.deadline+1);await new Promise(resolve=>setImmediate(resolve));f.game.tick((m.state.rewards!.revealedAt??Date.now())+60000);
+ assert.equal(f.room.status,'waiting');assert.equal(stageOf(f.room),1);
 });
 
 test('the queen shoots and summons ants from the nest on her turn',async()=>{
  const f=await expedition();
- await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy'});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
+ await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy',stage:1});await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const m=f.game.matches.get(f.roomId)!;
- // Skip to stage 2.
- for(const ant of m.state.players.filter(p=>p.monster))ant.hp=0;m.state.instance!.introUntil=Date.now()-1;
- await f.game.command(m.state.turnId,{type:'pass'});f.game.tick(m.resolveAt+1);f.game.tick(m.state.rewards!.deadline+1);await new Promise(resolve=>setImmediate(resolve));f.game.tick(m.state.rewards!.revealedAt!+60000);
  const s=f.game.matches.get(f.roomId)!.state;s.instance!.introUntil=Date.now()-1;
  for(let n=0;n<2;n++)await f.game.command(s.turnId,{type:'pass'});
  assert.equal(s.turnId,MONSTER_TURN_ID);

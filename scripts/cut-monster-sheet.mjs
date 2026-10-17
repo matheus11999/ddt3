@@ -5,8 +5,9 @@ import {dirname} from 'node:path';
 
 // Cuts the expedition art painted by Codex on magenta (docs/expeditions.md):
 //  - a creature's 2x2 sheet (left to right, top to bottom) into one horizontal 4-frame strip. Every frame
-//    shares the same size and baseline, and is pinned by the creature's back (the side opposite to where
-//    it faces), so a lunge or a drawn bow reaches forward without the body sliding;
+//    shares the same size and baseline. Walking frames are centred on the body's mass, so the two steps
+//    do not slide back and forth and the creature stands on its own x; the attack frames (and the queen)
+//    are pinned by the back (the side opposite to where it faces), so a lunge or a drawn bow reaches forward;
 //  - the arrow + icons sheet into the arrow and the dock button;
 //  - the cover and the room banner into webp.
 // Usage: node scripts/cut-monster-sheet.mjs [--src=public/assets/expeditions/anthill/source]
@@ -14,9 +15,9 @@ import {dirname} from 'node:path';
 const arg=name=>process.argv.find(a=>a.startsWith(`--${name}=`))?.slice(name.length+3);
 const src=arg('src')??'public/assets/expeditions/anthill/source',out='public/assets/expeditions/anthill';
 const CREATURES=[
- {sheet:'10-formiga-operaria.png',file:'ant-worker.png',faces:1,height:240},
- {sheet:'11-formiga-soldado.png',file:'ant-soldier.png',faces:1,height:260},
- {sheet:'12-formiga-guerreira.png',file:'ant-brute.png',faces:1,height:300},
+ {sheet:'10-formiga-operaria.png',file:'ant-worker.png',faces:1,walks:true,height:240},
+ {sheet:'11-formiga-soldado.png',file:'ant-soldier.png',faces:1,walks:true,height:260},
+ {sheet:'12-formiga-guerreira.png',file:'ant-brute.png',faces:1,walks:true,height:300},
  {sheet:'13-rainha.png',file:'ant-queen.png',faces:-1,height:420},
 ];
 const builder=(await transformWithEsbuild(await readFile('shared/mapBuilder.ts','utf8'),'mapBuilder.ts',{loader:'ts',format:'iife',globalName:'MapBuilder'})).code;
@@ -54,14 +55,17 @@ try{
    const frames=cells(found,2,2).map(group=>{
     // The body is the biggest island; its feet set the baseline. Swooshes and sparkles ride along.
     const body=group.reduce((a,b)=>b.n>a.n?b:a),part=crop(sc,found,group);
-    return {...part,feet:body.y1-part.y0,back:creature.faces===1?body.x0-part.x0:body.x1-part.x0};
+    return {...part,feet:body.y1-part.y0,back:creature.faces===1?body.x0-part.x0:body.x1-part.x0,mass:body.sx/body.n-part.x0};
    });
-   // Shared frame: everything above the feet, everything behind and in front of the back.
+   // Anchor of each frame, drawn at the frame's centre: the body's centre of mass for the walk (frames 0 and 1);
+   // for the attack frames, the back plus walk A's distance from back to centre. The queen keeps her back.
+   frames.forEach((f,n)=>{f.anchor=!creature.walks?f.back:n<2?f.mass:f.back+(frames[0].mass-frames[0].back);});
    const above=Math.max(...frames.map(f=>f.feet)),below=Math.max(...frames.map(f=>f.h-f.feet));
-   const behind=Math.max(...frames.map(f=>creature.faces===1?f.back:f.w-f.back)),ahead=Math.max(...frames.map(f=>creature.faces===1?f.w-f.back:f.back));
-   const fw=behind+ahead+8,fh=above+below+6,scale=creature.height/fh,cw=Math.round(fw*scale),ch=creature.height;
+   const half=Math.max(...frames.map(f=>Math.max(f.anchor,f.w-f.anchor)));
+   const fw=creature.walks?half*2+8:Math.max(...frames.map(f=>f.anchor))+Math.max(...frames.map(f=>f.w-f.anchor))+8,fh=above+below+6,scale=creature.height/fh,cw=Math.round(fw*scale),ch=creature.height;
    const strip=B.canvas(cw*4,ch),g=strip.getContext('2d');g.imageSmoothingQuality='high';
-   frames.forEach((f,n)=>{const left=creature.faces===1?4+behind-f.back:4+ahead-f.back;g.drawImage(f.canvas,n*cw+left*scale,(3+above-f.feet)*scale,f.w*scale,f.h*scale);});
+   const origin=creature.walks?4+half:4+Math.max(...frames.map(f=>f.anchor));
+   frames.forEach((f,n)=>g.drawImage(f.canvas,n*cw+(origin-f.anchor)*scale,(3+above-f.feet)*scale,f.w*scale,f.h*scale));
    files[creature.file]=encode(strip);files[creature.file+'.feet']=String(((3+above)/fh).toFixed(3));
   }
   {const {sc}=B.unkey(await B.loadImage(icons)),found=islands(sc),[top,,left,right]=cells(found,2,2),upper=found.list.filter(i=>i.sy/i.n<found.H/2);
