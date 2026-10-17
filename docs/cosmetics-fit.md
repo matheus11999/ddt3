@@ -68,6 +68,10 @@ Nenhum número novo vai para `appearance.ts` ou `headwear.ts`.
 
 Corte Horizonte, Corte Tempestade e Rabo de Cavalo Rubi passavam da cabeça (1,56–1,71× de largura). `shrink(..., .9)` em `manifest.ts` reduz cada um a 90% em volta do centro do crânio (o Horizonte gira perto do olho distante para a franja não descer sobre os olhos). Agora cabem na largura; sobra uma pequena altura extra e a franja sobre os olhos, que só a arte nova corrige. Quando a arte repintada chegar, remover o `shrink` da peça.
 
+## Orelha na frente do cabelo (17/10/2026)
+
+O cabelo passava por cima da orelha. Agora `drawHeadLayers` redesenha a orelha da cabeça universal (`EAR_FRONT` em `anchors.ts`) logo depois do cabelo, descoberto ou coberto, e antes de óculos e chapéu. Todo cabelo contorna a orelha sem repintar a arte. Arte nova não deve pintar mechas sobre a orelha.
+
 ## Fase 3: ajustes de código
 
 - Todos os chapéus pintados usam o mesmo assento (`HEAD_ANCHORS.hatSeat`); antes cada um tinha o seu, com até 23 px de diferença.

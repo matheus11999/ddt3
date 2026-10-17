@@ -26,6 +26,10 @@ export const HEAD_ANCHORS={
 /** Head width (W). Every size limit is a multiple of it. */
 export const HEAD_WIDTH=417;
 
+/** Near ear of the universal head, outline included. Hair is drawn behind it, so every hairstyle
+ * contours the ear instead of covering it. */
+export const EAR_FRONT:readonly Point[]=[[450,418],[492,416],[516,432],[516,498],[530,516],[502,537],[458,532],[436,506],[429,470],[436,438]];
+
 /** Painted features no hair or hat may cover: eyes and mouth. */
 export const FACE_KEEPOUT:readonly {center:Point;radius:Point}[]=[
  {center:HEAD_ANCHORS.nearEye,radius:[44,40]},

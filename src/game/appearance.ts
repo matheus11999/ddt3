@@ -5,6 +5,7 @@ import {drawWornHat,getHeadwearProfile} from './headwear';
 import {cutRegion,drawPinned} from './rig/draw';
 import {COSMETIC_MANIFEST,onTemplate} from './rig/manifest';
 import type {ArtRegion} from './rig/manifest';
+import {EAR_FRONT} from './rig/anchors';
 
 export const AVATAR_UNIT=160/1254;
 const SIZE=1254,RESOLUTION=.5;
@@ -274,9 +275,17 @@ export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time
  if(isModular&&hair.variant!=='none'&&!hat.hideHair&&getHeadwearProfile(eq)==='covered')layer(c,hair,()=>drawCoveredHair(c,eq,hair,false));
 }
 /** Front order: fringe, then glasses (a paid item always stays visible), then the hat brim. */
+/** Repaints the near ear from the universal head on top of the hair, so hair goes around it. */
+function drawEarOverHair(c:CanvasRenderingContext2D){
+ if(!modular.complete||!modular.naturalWidth)return;
+ const point=([x,y]:readonly [number,number])=>[(x-625)*AVATAR_UNIT,(y-1225)*AVATAR_UNIT] as const;
+ c.save();c.beginPath();EAR_FRONT.forEach((p,i)=>i?c.lineTo(...point(p)):c.moveTo(...point(p)));c.closePath();c.clip();
+ c.drawImage(modular,-625*AVATAR_UNIT,-1225*AVATAR_UNIT,160,160);c.restore();
+}
 export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>getHeadwearProfile(eq)==='covered'?drawCoveredHair(c,eq,hair,true):drawHair(c,eq,hair));
+ if(isModular&&hair.variant!=='none'&&!hat.hideHair)drawEarOverHair(c);
  drawGlasses(c,visual(eq,'glasses'),time);
  if(!drawWornHat(c,eq))drawHat(c,eq);
 }
