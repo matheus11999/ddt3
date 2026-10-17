@@ -186,3 +186,14 @@ test('a direct hit digs a shallow bowl under the feet that shows past the body o
  assert.ok(ground(t,x)-feet<=brick.crater*DIRECT_HIT_DIG+3,'no deeper than the share of the crater');
  const wide=directHitDig(x,feet,80);assert.equal(wide.stretch,undefined,'a big crater is already wider than the body');
 });
+
+test('a rival standing on top of the shooter is passed through, one a little aside is hit',()=>{
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:600,y:700,facing:1 as const},weapon={...WEAPONS[0],projectileRadius:6};
+ const at=(dx:number)=>[{id:'rival',x:origin.x+dx,y:origin.y,hp:100}];
+ // Same spot or slightly behind: the shot flies out of him and lands far away.
+ for(const dx of [0,-10,10]){const r=trajectory(terrain,origin,60,40,0,weapon,at(dx));assert.equal(r.hitId,undefined,`dx=${dx}`);assert.ok(r.x-origin.x>100);}
+ // A little aside in front: the launch point is inside him, so it hits at once.
+ assert.equal(trajectory(terrain,origin,60,40,0,weapon,at(24)).hitId,'rival');
+ // After leaving him, a shot falling straight back down can still hit him.
+ assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(0)).hitId,'rival');
+});
