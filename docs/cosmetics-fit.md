@@ -92,4 +92,4 @@ Comparação com 353 imagens de referência (todas as combinações chapéu × c
 
 ## Cabelo sob chapéu
 
-Com chapéu, o cabelo coberto é cortado por `underHat` em `appearance.ts`: some tudo acima da linha de assento do chapéu (`HEAD_ANCHORS.hatSeat`), e atrás da cabeça o corte desce pela curva do crânio (`HAT_NAPE`), com borda suave. Nenhuma mecha passa por trás da copa, e o que fica parece sair por baixo da faixa, como no DDTank. Vale para todo cabelo coberto, sem número por item.
+Com chapéu aparece o mesmo cabelo de sem chapéu, só cortado: nada surge que o cabelo descoberto não tenha. `drawHair` passa a arte por `underHat` em `appearance.ts`, que apaga tudo acima da linha de assento do chapéu (`HEAD_ANCHORS.hatSeat`). Atrás da cabeça o corte desce pela curva do crânio (`HAT_NAPE`) e, passando da frente da faixa, desce pela têmpora (`HAT_BROW`), com borda suave, para as mechas laterais parecerem sair por baixo do chapéu. As regiões `covered` do manifesto não são mais desenhadas. Vale para todo cabelo, sem número por item.

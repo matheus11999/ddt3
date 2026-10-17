@@ -244,35 +244,17 @@ function drawHat(c:CanvasRenderingContext2D,eq:Equipment){const v=visual(eq,'hat
  if(v.variant==='pilot'){c.translate(1,-124);c.scale(.8,.8);c.rotate(-.105);c.strokeStyle='#35251f44';c.lineWidth=10;c.beginPath();c.moveTo(-35,-1);c.quadraticCurveTo(0,-12,32,-1);c.stroke();c.strokeStyle='#77533d';c.lineWidth=7;c.beginPath();c.moveTo(-35,-4);c.quadraticCurveTo(0,-15,32,-4);c.stroke();const g=material(c,v.color!);ellipse(c,-12,-4,14,10,g,'#68462e');ellipse(c,15,-3,12,9,g,'#68462e');ellipse(c,-12,-4,10,6.7,'#5798b4','#f3d595');ellipse(c,15,-3,8.5,5.8,'#5798b4','#f3d595');c.strokeStyle='#d5f5ff';c.lineWidth=1.5;c.beginPath();c.moveTo(-18,-5);c.lineTo(-10,-8);c.moveTo(10,-4);c.lineTo(17,-6);c.stroke();}
  else if(v.variant==='knight'){c.translate(-3,-116);c.scale(.85,.85);c.rotate(.025);ellipse(c,0,9,35,8,'#25313a44');c.fillStyle=material(c,v.color!);c.strokeStyle=shade(v.color!,.48);c.lineWidth=1.7;c.beginPath();c.moveTo(-36,9);c.quadraticCurveTo(-42,-43,0,-41);c.quadraticCurveTo(37,-42,36,9);c.lineTo(21,1);c.lineTo(1,-5);c.lineTo(-21,5);c.closePath();c.fill();c.stroke();c.strokeStyle='#eff9e0aa';c.lineWidth=1.5;c.beginPath();c.moveTo(-29,-10);c.quadraticCurveTo(-23,-34,2,-34);c.stroke();c.fillStyle='#b8555c';c.beginPath();c.moveTo(-5,-38);c.quadraticCurveTo(-17,-64,21,-57);c.quadraticCurveTo(6,-49,6,-38);c.fill();}
  });}
-function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual){
- const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,aroundEar(img,registered),registered,true);return;}
+/** Under a hat it is the same hairstyle, cut by `underHat`, so nothing appears that the bare hair lacks. */
+function drawHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual,covered=false){
+ const fit=(art:HTMLCanvasElement,region:ArtRegion)=>aroundEar(covered?underHat(art,region):art,region);
+ const registered=PAINTED_ACCESSORIES[eq.hair];if(registered){const img=getAccessoryPortrait(eq.hair,eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:undefined);if(img)drawPinned(c,fit(img,registered),registered,true);return;}
  if(!hair.asset)return;
  const dyed=eq.dyes?.hair&&eq.dyes.hair!=='original',art=tintedArt(hair.asset,dyed?hair.color:undefined);
- if(art){const region=COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate(hair.asset);drawPinned(c,aroundEar(art,region),region,true);}
-}
-function coveredHair(eq:Equipment,hair:ItemVisual){
- const registration=COSMETIC_MANIFEST[eq.hair]?.covered;if(!registration)return null;
- const img=asset(registration.atlas);if(!img.complete||!img.naturalWidth)return null;
- const dye=eq.dyes?.hair&&eq.dyes.hair!=='original'?hair.color:eq.hair==='hair-silver'?hair.color:undefined;
- const key=`covered:${eq.hair}:${dye??'original'}`;let out=artCache.get(key);if(out)return out;
- const [x,y,w,h]=registration.source;out=canvas(w,h);const c=out.getContext('2d')!;c.drawImage(img,x,y,w,h,0,0,w,h);
- if(dye){const pixels=c.getImageData(0,0,w,h),{h:targetHue,s:targetSaturation}=hsl(dye);for(let i=0;i<pixels.data.length;i+=4)if(pixels.data[i+3])recolor(pixels.data,i,targetHue,targetSaturation);c.putImageData(pixels,0,0);}
- artCache.set(key,out);return out;
-}
-function drawCoveredHair(c:CanvasRenderingContext2D,eq:Equipment,hair:ItemVisual,front:boolean){
- const registration=COSMETIC_MANIFEST[eq.hair]?.covered,art=coveredHair(eq,hair);if(!art||!registration)return;
- c.save();
- if(front){
-  // The nape and low ponytail belong behind the universal face/neck. Only the
-  // authored fringe and temple area pass in front; the hat brim is drawn last.
-  c.beginPath();polygon(c,[[425,130],[920,130],[920,515],[700,515],[600,470],[425,460]].map(p=>headPoint(p as [number,number])));c.clip();
- }
- drawPinned(c,aroundEar(underHat(art,registration),registration),registration,true);c.restore();
+ if(art){const region=COSMETIC_MANIFEST[eq.hair]?.worn??onTemplate(hair.asset);drawPinned(c,fit(art,region),region,true);}
 }
 /** Rear equipment follows exactly the head transform in standing and combat rigs. */
-export function drawHeadRearLayers(c:CanvasRenderingContext2D,eq:Equipment,_time:number,_emotion:string,isModular:boolean){
- const hair=visual(eq,'hair'),hat=visual(eq,'hat');
- if(isModular&&hair.variant!=='none'&&!hat.hideHair&&getHeadwearProfile(eq)==='covered')layer(c,hair,()=>drawCoveredHair(c,eq,hair,false));
+export function drawHeadRearLayers(_c:CanvasRenderingContext2D,_eq:Equipment,_time:number,_emotion:string,_isModular:boolean){
+ // Hats no longer swap in a separate covered hairstyle drawn behind the head; see drawHair.
 }
 /** Front order: fringe, then glasses (a paid item always stays visible), then the hat brim. */
 /** Maps template points into the pixels of pre-cut art placed by drawPinned (its inverse). */
@@ -302,17 +284,21 @@ function underHat(art:HTMLCanvasElement,region:ArtRegion){
  const known=hatCuts.get(art);if(known)return known;
  const {toArt,pixelsPerUnit}=artSpace(art,region),[[bx,by],[fx,fy]]=HEAD_ANCHORS.hatSeat,seatY=(x:number)=>by+(x-bx)*(fy-by)/(fx-bx)-HAT_TUCK;
  const out=canvas(art.width,art.height),c=out.getContext('2d')!;c.drawImage(art,0,0);
- const back=seatY(bx),hidden:Point[]=[[-SIZE,-SIZE],[2*SIZE,-SIZE],[2*SIZE,seatY(2*SIZE)],[bx,back],...HAT_NAPE.map(([x,y]):Point=>[bx-x,back+y]),[-SIZE,back+HAT_NAPE[HAT_NAPE.length-1][1]]];
+ const back=seatY(bx),front=seatY(fx),brow=HAT_BROW.map(([x,y]):Point=>[fx+x,front+y]).reverse();
+ const hidden:Point[]=[[-SIZE,-SIZE],[2*SIZE,-SIZE],[2*SIZE,brow[0][1]],...brow,[bx,back],...HAT_NAPE.map(([x,y]):Point=>[bx-x,back+y]),[-SIZE,back+HAT_NAPE[HAT_NAPE.length-1][1]]];
  c.globalCompositeOperation='destination-out';c.filter=`blur(${HAT_SOFT*pixelsPerUnit}px)`;
  c.beginPath();hidden.forEach((point,i)=>i?c.lineTo(...toArt(point)):c.moveTo(...toArt(point)));c.closePath();c.fill();
  hatCuts.set(art,out);return out;
 }
 /** Template units: how far above the seat line the band hides the cut, the softness of its edge,
  * and the cut behind the head (back, down from the band's rear corner), rounded like the skull. */
-const HAT_TUCK=10,HAT_SOFT=4,HAT_NAPE:readonly Point[]=[[0,-45],[45,-38],[90,-18],[130,15],[165,60],[190,120]];
+const HAT_TUCK=10,HAT_SOFT=4,HAT_NAPE:readonly Point[]=[[0,-45],[45,-38],[90,-18],[130,15],[165,60],[190,120],[205,200],[215,320]];
+/** Past the band's front corner the cut curves down the far temple (forward, down), so side strands
+ * start under the hat instead of in a flat line beside the brim. */
+const HAT_BROW:readonly Point[]=[[0,0],[30,25],[60,70],[85,140],[100,260]];
 export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
- if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>getHeadwearProfile(eq)==='covered'?drawCoveredHair(c,eq,hair,true):drawHair(c,eq,hair));
+ if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>drawHair(c,eq,hair,getHeadwearProfile(eq)==='covered'));
  drawGlasses(c,visual(eq,'glasses'),time);
  if(!drawWornHat(c,eq))drawHat(c,eq);
 }
