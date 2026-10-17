@@ -250,3 +250,9 @@ Smoke no frontend de produção passou após liberar cache de builds que havia e
 ### Quebra-Tijolos no checkout de desenvolvimento
 
 O catálogo e a loja incluem a arma épica `brick` por 500 Brasas; a mecânica produz cacos autoritativos após o impacto principal e aplica demolição adicional em materiais resistentes. A arte final gerada por `image_gen` substitui as seis pinturas provisórias: quatro estágios da arma, atlas de efeitos e resíduo. Prompts, medidas e prancha estão em [brick-weapon.md](brick-weapon.md). Os testes específicos de física e combate foram adaptados ao checkout atual; `npx tsx --test tests/physics.test.ts tests/game.test.ts` passou com 27 testes.
+
+## Virada do personagem ao andar (17/10/2026)
+
+- Antes a virada misturava duas cópias espelhadas e semitransparentes e achatava o boneco na largura por 150 ms, o que parecia uma folha de papel girando. Agora o boneco troca de lado de uma vez, como no DDTank, com um agachamento curto e um pulinho nos pés (`turnPop` em `src/game/avatar.ts`). Vale para roupas, fantasias e combate.
+- No lobby, o boneco só vira quando o movimento horizontal domina (`Scene.tsx`), para não ficar virando ao andar quase na vertical.
+- Andar conferido nas cinco roupas e nas duas fantasias, com chapéus: todas mexem as pernas pelo mesmo mecanismo. Prévia: `docs/previews/lobby-turn.gif`.

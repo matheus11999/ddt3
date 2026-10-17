@@ -63,7 +63,7 @@ function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,contex
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
  const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}
  m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=outfitPose==='surfer'?42:36;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
- const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/150);
+ const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/170);
  const poseTime=context.poseTime??time-m.poseAt,stride=Math.sin(m.phase),aiming=pose==='aim'||pose==='charge'||pose==='fire',recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,slope=clamp(context.slope??0,-.5,.5);
  let lean=slope*.55+stride*.025*m.walk,leftArm=-stride*.3*m.walk,rightArm=stride*.26*m.walk,bodyY=0,headTilt=-slope*.24;
  if(aiming){const elevation=(clamp(context.angle??45,5,90)-45)*Math.PI/180;leftArm-=.85+elevation*.55;rightArm-=.38+elevation*.45;lean+=.045;headTilt-=.025+elevation*.06;}
@@ -257,7 +257,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   c.save();c.translate(x,y);c.scale(height/160,height/160);
   if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);
   if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
-  const paint=(direction:number,opacity:number)=>{if(opacity<.01)return;c.save();c.globalAlpha*=opacity;c.scale(direction*(1-Math.sin(m.turn*Math.PI)*.12),1);
+  const paint=(direction:number)=>{c.save();turnPop(c,m.turn);c.scale(direction,1);
    // Menu cards keep the miniature weapon legible beside a costume. Combat
    // retains the original layering and authoritative muzzle placement.
    const paintWeapon=()=>{if(!weapon)return;c.save();if(!context.combat){const scale=clamp(context.weaponScale??1,.4,1.2);c.scale(context.weaponSide??1,1);c.translate(0,clamp(context.weaponVerticalOffset??0,-15,24));c.translate((context.weaponOffset??0)+27*160/112,-40*160/112);c.scale(scale,scale);c.translate(-27*160/112,40*160/112);}drawCombatWeapon(c,eq,time,context.angle??45,recoil,pose==='charge',context.power??0);c.restore();};
@@ -265,15 +265,15 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(!foregroundWeapon)paintWeapon();
    drawCostume(c,eq.costume,{pose,phase:m.phase,walk:m.walk,poseTime,angle:context.angle??45,power:context.power??0,slope,combat:context.combat??false,time});
    if(foregroundWeapon)paintWeapon();c.restore();};
-  const turn=m.turn*m.turn*(3-2*m.turn);if(turn<1)paint(m.previousFacing,1-turn);paint(m.facing,turn);c.restore();return;
+  paint(m.facing);c.restore();return;
  }
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat)return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
  const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
  c.save();c.translate(x,y);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35');
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
- const body=(direction:number,opacity:number)=>{
-  if(opacity<.01)return;c.save();c.globalAlpha*=opacity;c.scale(direction*(1-Math.sin(m.turn*Math.PI)*.12),1);
+ const body=(direction:number)=>{
+  c.save();turnPop(c,m.turn);c.scale(direction,1);
   if(context.combat&&rig.combat){
    const painted=rig.combat,crawl=walk,cycle=m.phase,stroke=Math.sin(cycle),breath=Math.sin(time/900)*.28*(1-crawl),hit=pose==='hit'?Math.exp(-Math.max(0,context.poseTime??0)/210):0;
    // Crawl: the chest surges forward on each stroke while the legs drag and
@@ -327,5 +327,14 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    c.drawImage(w,-35,-46,82,82);c.restore();
   }}c.restore();c.restore();
  };
- const turn=m.turn*m.turn*(3-2*m.turn);if(turn<1)body(m.previousFacing,1-turn);body(m.facing,turn);c.restore();
+ body(m.facing);c.restore();
+}
+
+/** Turning around flips the whole figure at once, like DDTank, and sells the
+ * change of direction with a quick crouch and spring on the feet. Squeezing or
+ * cross-fading two mirrored copies reads as a sheet of paper turning over. */
+function turnPop(c:CanvasRenderingContext2D,turn:number){
+ if(turn>=1)return;
+ const dip=Math.sin(Math.min(1,turn/.45)*Math.PI)*(turn<.45?1:0),spring=turn>=.45?Math.sin((turn-.45)/.55*Math.PI):0;
+ c.translate(0,-3.2*spring);c.scale(1+.03*dip,1-.07*dip+.025*spring);
 }
