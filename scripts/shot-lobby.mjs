@@ -16,7 +16,7 @@ await page.keyboard.press('Escape');await expect(page.locator('.party-arena')).t
 await page.keyboard.down('ArrowLeft');await page.waitForTimeout(4000);await page.keyboard.up('ArrowLeft');await page.waitForTimeout(1200);
 await page.screenshot({path:`${dir}/lobby-left.png`});
 await page.locator('.bottom-dock').getByRole('button',{name:/^Ferreiro/}).click();
-await expect(page.locator('.forge-window')).toBeVisible({timeout:40000});
+await expect(page.locator('.forge-workbench')).toBeVisible({timeout:40000});
 await page.keyboard.press('Escape');await page.waitForTimeout(1200);
 await page.screenshot({path:`${dir}/lobby-forge.png`});
 await browser.close();console.log('lobby smoke ok');
