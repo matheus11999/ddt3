@@ -1,7 +1,24 @@
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
-export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume'] as const;
+export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
+/** Equipment slots that accept the items of another slot family (two rings share one item type). */
+export const SLOT_FAMILY:Partial<Record<Slot,Slot>>={ring2:'ring'};
+export function slotFamily(slot:Slot):Slot {return SLOT_FAMILY[slot]??slot;}
+export function slotAccepts(slot:Slot,item:Item|undefined):boolean {return !!item&&item.slot===slotFamily(slot);}
+/** Every equipment slot an item can occupy, in preference order. */
+export function slotsForItem(item:Item|undefined):Slot[] {return item?SLOTS.filter(slot=>slotFamily(slot)===item.slot):[];}
+/** One owned copy cannot fill both slots of a family (e.g. the same ring twice). */
+export function heldInSiblingSlot(equipment:Partial<Record<Slot,string>>,slot:Slot,id:string):boolean {
+ return !id.endsWith('-none')&&SLOTS.some(other=>other!==slot&&slotFamily(other)===slotFamily(slot)&&equipment[other]===id);
+}
+/** Where equipping an item lands: its current slot, else the first empty sibling, else the first slot. */
+export function targetSlotForItem(equipment:Partial<Record<Slot,string>>,item:Item):Slot {
+ const slots=slotsForItem(item);
+ return slots.find(slot=>equipment[slot]===item.id)??slots.find(slot=>String(equipment[slot]??'').endsWith('-none'))??slots[0]??item.slot;
+}
+/** Only these item types show a rarity class ("Comum", "Normal", "Épico", "Lendário") for now. */
+export const CLASSED_SLOTS:readonly Slot[]=['weapon','outfit','hat'];
 export const CHARACTER_GENDERS=['male','female'] as const;
 export type CharacterGender=typeof CHARACTER_GENDERS[number];
 export type ItemGender=CharacterGender|'unisex';
@@ -73,6 +90,13 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('bracelet-none','Sem bracelete','bracelet','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('bracelet-sun','Bracelete Solar','bracelet','sun','#dfb861','rare',{visible:false}),attack:4,defense:14,agility:2,luck:4,armor:10},
  cosmetic('costume-none','Sem fantasia','costume','none','#bfb3a5','common',{visible:false}),
+ cosmetic('ring-none','Sem anel','ring','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('ring-ember','Anel da Brasa','ring','ember','#ff7a2e','rare',{visible:false}),description:'Aro dourado com uma brasa que nunca apaga.',attack:6,luck:6,agility:2,defense:0},
+ {...cosmetic('ring-tide','Anel da Maré','ring','tide','#18b9d6','uncommon',{visible:false}),description:'Prata polida com uma pérola azul do mar.',attack:2,defense:6,agility:4,luck:2},
+ cosmetic('necklace-none','Sem colar','necklace','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('necklace-star','Colar Estelar','necklace','star','#ffc93a','epic',{visible:false}),description:'Uma estrela cadente presa num cordão de ouro.',attack:6,defense:10,agility:4,luck:8,armor:6},
+ cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
+ {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de fala fofinho em forma de nuvem.'},
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];
@@ -97,7 +121,7 @@ export function canEquipItem(item:Item|string,gender:CharacterGender):boolean {
 }
 export function isEmptyItem(item:Item|string):boolean {const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;return !!value&&value.id.endsWith('-none')&&value.visual?.variant==='none';}
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:'ember',hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',upgrade:0};
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:'ember',hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',outfit:'outfit-dancer',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
 }
@@ -107,8 +131,8 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
  'hair-spiky':'hair-undercut','hair-silver':'hair-ponytail',
  'glasses-round':'glasses-sport','glasses-pilot':'glasses-cat'
 };
-export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia'};
-export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none'};
+export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
+export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
 export const CONTENT_VERSION=12;
 export const MAX_UPGRADE = 12;
