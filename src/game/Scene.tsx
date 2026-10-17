@@ -3,6 +3,7 @@ import {client} from '../client';
 import type {Equipment} from '../../shared/catalog';
 import {DEFAULT_EQUIPMENT,WEAPONS} from '../../shared/catalog';
 import {createTerrain,ground,impactDig,unpackTerrain} from '../../shared/physics';
+import {getMap} from '../../shared/maps';
 import {createAvatarMotion,drawAvatar,heldMuzzle} from './avatar';
 import type {AvatarContext,AvatarMotion} from './avatar';
 import {audio,startEnvironmentAudio,stopEnvironmentAudio} from './audio';
@@ -55,7 +56,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
    }
    if(b){
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera();shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}

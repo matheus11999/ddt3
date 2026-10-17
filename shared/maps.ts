@@ -20,7 +20,9 @@ export interface MapDefinition {
  regions:readonly MapRegion[];objects:readonly EnvironmentObject[];spawns:readonly [readonly number[],readonly number[]];
  art:{midground:string;props:string;terrain?:string;midgroundRect?:{x:number;y:number;width:number;height:number};
   /** One large painted backdrop that replaces the procedural sky and midground layers; never collides. */
-  background?:string};
+  background?:string;
+  /** Optional mid-distance band (transparent), tiled across the world at half camera speed. */
+  mid?:string};
 }
 export const MATERIALS:Record<MaterialId,{color:string;highlight:string;debris:string}>={
  earth:{color:'#a46c48',highlight:'#d9a16c',debris:'#b18455'},
@@ -67,8 +69,8 @@ export const MAP_DEFINITIONS:Record<CanonicalMapId,MapDefinition>={
    structure('celestial-left-crystal',[[166,551],[156,527],[170,489],[186,527],[180,551]],'magic'),structure('celestial-right-crystal',[[1370,551],[1380,527],[1366,489],[1350,527],[1356,551]],'magic')],
   objects:[{id:'statue-a',kind:'statue',x:104,y:552,scale:.85,layer:5},{id:'statue-b',kind:'statue',x:1432,y:552,scale:.85,layer:5},{id:'crystal-a',kind:'crystal',x:171,y:551,scale:.65,layer:5,region:'celestial-left-crystal',animated:true},{id:'crystal-b',kind:'crystal',x:1365,y:551,scale:.65,layer:5,region:'celestial-right-crystal',animated:true},{id:'flag-a',kind:'flag',x:570,y:540,scale:1,layer:5,animated:true},{id:'flag-b',kind:'flag',x:966,y:540,scale:1,layer:5,animated:true},{id:'crystal-front-a',kind:'crystal',x:35,y:890,scale:2,layer:6,animated:true},{id:'crystal-front-b',kind:'crystal',x:1503,y:890,scale:1.8,layer:6,animated:true}]
  },
- snow:{...common,id:'snow',name:'Sonho Nevado',subtitle:'Pontes de pedra nevadas · Destrutível',color:'#8fb8ff',theme:'snow',lighting:{sky:'#5d6fb8',horizon:'#b9c4ee',ambient:'#dfe8ff'},audio:{ambience:'wind',impact:{earth:'dust'}},
-  art:{background:'/assets/maps/snow/background.webp',midground:'/assets/maps/snow/background.webp',props:'/assets/maps/garden-props.png',terrain:'/assets/maps/snow/terrain-world.png'},
+ snow:{...common,dimensions:{width:3072,height:864},spawns:[[1000,860,1140,720],[2072,2212,1932,2352]],id:'snow',name:'Sonho Nevado',subtitle:'Pontes de pedra nevadas · Destrutível',color:'#8fb8ff',theme:'snow',lighting:{sky:'#5d6fb8',horizon:'#b9c4ee',ambient:'#dfe8ff'},audio:{ambience:'wind',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/snow/background.webp',midground:'/assets/maps/snow/background.webp',props:'/assets/maps/garden-props.png',terrain:'/assets/maps/snow/terrain-world.png',mid:'/assets/maps/snow/mid.webp'},
   regions:SNOW_REGIONS,objects:[]
  }
 };

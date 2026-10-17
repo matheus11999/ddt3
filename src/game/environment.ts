@@ -1,8 +1,9 @@
 import {getMap,MATERIALS} from '../../shared/maps';
 import type {EnvironmentObject,EnvironmentQuality,MapDefinition,MapId,Shape} from '../../shared/maps';
-import {ground,solid,terrainTemplate,WORLD} from '../../shared/physics';
+import {ground,solid,terrainCols,terrainTemplate,WORLD} from '../../shared/physics';
 
-const W=WORLD.width,H=WORLD.height,TAU=Math.PI*2,TERRAIN_SCALE=2;
+/** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
+const W=WORLD.width,H=WORLD.height,TAU=Math.PI*2,TERRAIN_SCALE=2,MID_OFFSET=60;
 /** Art direction: dim only the distant/parallax painting, never the playfield. */
 export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
@@ -12,7 +13,7 @@ const preloadedMaps=new Map<MapId,Promise<boolean>>();
 /** Decode before entering a map; callers may prefetch while its room is open. */
 export function preloadEnvironment(map:MapId):Promise<boolean>{
  const def=getMap(map),cached=preloadedMaps.get(def.id);if(cached)return cached;
- const sources=[def.art.background??def.art.midground,def.art.terrain??`/assets/maps/${def.id}-terrain.png`,def.art.props,getMap('garden').art.props];
+ const sources=[def.art.background??def.art.midground,...def.art.mid?[def.art.mid]:[],def.art.terrain??`/assets/maps/${def.id}-terrain.png`,def.art.props,getMap('garden').art.props];
  const ready=Promise.all([...new Set(sources)].map(src=>decodedImages.get(loadImage(src))!)).then(results=>results.every(Boolean));preloadedMaps.set(def.id,ready);return ready;
 }
 let quality:EnvironmentQuality='high';
@@ -78,7 +79,7 @@ function props(src:string){let atlas=propAtlases.get(src);if(!atlas){atlas=new P
 const registeredTerrain=new WeakMap<HTMLImageElement,HTMLCanvasElement>();
 function registerTerrainArt(image:HTMLImageElement,map:MapId){
  const cached=registeredTerrain.get(image);if(cached)return cached;
- const raw=makeCanvas(W,H),rc=raw.getContext('2d',{willReadFrequently:true})!;rc.drawImage(image,0,0,W,H);
+ const width=getMap(map).dimensions.width,raw=makeCanvas(width,H),rc=raw.getContext('2d',{willReadFrequently:true})!;rc.drawImage(image,0,0,width,H);
  // Collision traced from this very painting (`npm run build:map`) already matches it pixel for pixel.
  if(getMap(map).regions.every(region=>region.shape.kind==='cells')){registeredTerrain.set(image,raw);return raw;}
  const rgba=rc.getImageData(0,0,W,H).data,template=terrainTemplate(map),objects=new Set(getMap(map).objects.map(o=>o.region).filter(Boolean));
@@ -132,15 +133,15 @@ function registerTerrainArt(image:HTMLImageElement,map:MapId){
  }ctx.putImageData(aligned,0,0);
  registeredTerrain.set(image,output);return output;
 }
-export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;}
-export function createCamera():CameraState{return {x:W/2,y:H/2,zoom:1,targetZoom:1,targetX:W/2,targetY:H/2};}
+export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;worldWidth:number;}
+export function createCamera(worldWidth=W):CameraState{return {x:W/2,y:H/2,zoom:1,targetZoom:1,targetX:W/2,targetY:H/2,worldWidth};}
 export function zoomCamera(camera:CameraState,delta:number,map:MapDefinition){camera.targetZoom=Math.max(map.camera.minZoom,Math.min(map.camera.maxZoom,camera.targetZoom+delta));}
 export function updateCamera(camera:CameraState,x:number,y:number){
  camera.zoom+=(camera.targetZoom-camera.zoom)*.09;
  const hw=W/(2*camera.zoom),hh=H/(2*camera.zoom);
- camera.targetX=Math.max(hw,Math.min(W-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh,y));
+ const right=camera.worldWidth??W;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh,y));
  camera.x+=(camera.targetX-camera.x)*.075;camera.y+=(camera.targetY-camera.y)*.075;
- camera.x=Math.max(hw,Math.min(W-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh,camera.y));
+ camera.x=Math.max(hw,Math.min(right-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh,camera.y));
 }
 export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=1){
  const zoom=1+(camera.zoom-1)*Math.min(1,depth);
@@ -149,9 +150,9 @@ export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=
 
 /** Terrain artwork is masked by exactly the same cells the authoritative simulation uses. */
 export function paintTerrain(data:Uint8Array,map:MapId,texture?:CanvasImageSource,worldArt?:CanvasImageSource):HTMLCanvasElement {
- const def=getMap(map),template=terrainTemplate(map),small=document.createElement('canvas');small.width=WORLD.cols;small.height=WORLD.rows;
- const s=small.getContext('2d')!,pixels=s.createImageData(WORLD.cols,WORLD.rows);
- for(let i=0;i<data.length;i++){if(!data[i])continue;const region=template.definition[template.regions[i]];if(!region)continue;const color=hex(MATERIALS[region.material].color),x=i%WORLD.cols,y=Math.floor(i/WORLD.cols),noise=(random(x+y*19)-.5)*13;const edge=y===0||!data[i-WORLD.cols];
+ const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map),small=document.createElement('canvas');small.width=COLS;small.height=WORLD.rows;
+ const s=small.getContext('2d')!,pixels=s.createImageData(COLS,WORLD.rows);
+ for(let i=0;i<data.length;i++){if(!data[i])continue;const region=template.definition[template.regions[i]];if(!region)continue;const color=hex(MATERIALS[region.material].color),x=i%COLS,y=Math.floor(i/COLS),noise=(random(x+y*19)-.5)*13;const edge=y===0||!data[i-COLS];
   for(let n=0;n<3;n++)pixels.data[i*4+n]=color[n]+noise+(edge?25:0);pixels.data[i*4+3]=255;
  }s.putImageData(pixels,0,0);
  // A 2x coverage buffer filters the *same* 3px simulation cells. It affects only
@@ -181,16 +182,25 @@ export function paintTerrain(data:Uint8Array,map:MapId,texture?:CanvasImageSourc
  if(worldArt){
   // A soft shadow of the removed cells shades fractures inside the remaining
   // terrain. Per-cell strokes used to overwrite antialiasing with opaque steps.
-  const fracture=makeCanvas(WORLD.cols,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(WORLD.cols,WORLD.rows);let damaged=false;
-  for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4]=39;edge.data[i*4+1]=18;edge.data[i*4+2]=36;edge.data[i*4+3]=190;damaged=true;}
-  if(damaged){fc.putImageData(edge,0,0);c.shadowColor='#271224aa';c.shadowBlur=5*TERRAIN_SCALE;c.drawImage(fracture,0,0,W,H);c.shadowBlur=0;}
+  const fracture=makeCanvas(COLS,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(COLS,WORLD.rows);let damaged=false;
+  for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;}
+  if(damaged){
+   // Generic broken edge, the same for every weapon: a short cool shade inside
+   // the cut and a thin light lip on the surviving cells, never a burnt halo.
+   fc.putImageData(edge,0,0);c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(fracture,0,0,W,H);c.shadowBlur=0;
+   const lip=makeCanvas(COLS,WORLD.rows),lc=lip.getContext('2d')!,rim=lc.createImageData(COLS,WORLD.rows);
+   const removed=(i:number)=>i>=0&&i<data.length&&template.solid[i]===1&&!data[i];
+   for(let i=0;i<data.length;i++){if(!data[i])continue;const x=i%COLS;
+    if(removed(i-COLS)||(x>0&&removed(i-1))||(x<COLS-1&&removed(i+1))||removed(i+COLS)){rim.data[i*4]=rim.data[i*4+1]=rim.data[i*4+2]=255;rim.data[i*4+3]=removed(i-COLS)?210:120;}}
+   lc.putImageData(rim,0,0);c.drawImage(lip,0,0,W,H);
+  }
  }
  c.restore();
  if(worldArt)return canvas;
  // An irregular illustrated rim follows ALL exposed upward faces, rather than a fixed band.
- for(let x=0;x<WORLD.cols;x++)for(let y=1;y<WORLD.rows;y++){
-  const i=y*WORLD.cols+x;if(!data[i]||data[i-WORLD.cols])continue;const region=template.definition[template.regions[i]];if(!region||region.surface==='wood')continue;
-  const px=x*3,py=y*3,isOriginal=template.solid[i-WORLD.cols]===0;
+ for(let x=0;x<COLS;x++)for(let y=1;y<WORLD.rows;y++){
+  const i=y*COLS+x;if(!data[i]||data[i-COLS])continue;const region=template.definition[template.regions[i]];if(!region||region.surface==='wood')continue;
+  const px=x*3,py=y*3,isOriginal=template.solid[i-COLS]===0;
   if(worldArt&&isOriginal)continue;
   c.lineWidth=3;c.strokeStyle=isOriginal&&region.surface==='grass'?'#416f40':isOriginal?'#f8edcc':'#593e45';c.beginPath();c.moveTo(px,py+1);c.lineTo(px+3,py+1);c.stroke();
   if(isOriginal&&region.surface==='grass'&&x%2===0){const h=4+random(x)*8;c.strokeStyle=x%3?'#7ba85a':'#b9ce76';c.lineWidth=1.7;c.beginPath();c.moveTo(px,py+1);c.quadraticCurveTo(px-2,py-h*.6,px-4+random(x+1)*7,py-h);c.stroke();
@@ -201,14 +211,14 @@ export function paintTerrain(data:Uint8Array,map:MapId,texture?:CanvasImageSourc
 }
 
 export class EnvironmentRenderer {
- readonly definition:MapDefinition;private data:Uint8Array;private terrain:HTMLCanvasElement;private terrainDrawing:HTMLCanvasElement;private art:HTMLImageElement;private texture?:HTMLImageElement;private worldArt?:HTMLImageElement;private preview:HTMLImageElement;
+ readonly definition:MapDefinition;readonly width:number;private mid?:HTMLImageElement;private data:Uint8Array;private terrain:HTMLCanvasElement;private terrainDrawing:HTMLCanvasElement;private art:HTMLImageElement;private texture?:HTMLImageElement;private worldArt?:HTMLImageElement;private preview:HTMLImageElement;
  private loadState:'loading'|'ready'|'error'='loading';private preparation:Promise<boolean>;
  private objectLayers=new Map<string,CachedLayer>();private layers=new Map<string,HTMLCanvasElement>();private camera=createCamera();private objectQuality=quality;
  private props:PropAtlas;private gardenProps:PropAtlas;private propsRevision='';
  constructor(map:MapId,data:Uint8Array){
-  this.definition=getMap(map);this.data=data;this.preview=loadImage(`/assets/maps/${this.definition.id}-preview.png`);this.art=loadImage(this.definition.art.midground);
+  this.definition=getMap(map);this.width=this.definition.dimensions.width;this.data=data;if(this.definition.art.mid)this.mid=loadImage(this.definition.art.mid);this.preview=loadImage(`/assets/maps/${this.definition.id}-preview.png`);this.art=loadImage(this.definition.art.midground);
   if(this.definition.art.terrain)this.worldArt=loadImage(this.definition.art.terrain);else this.texture=loadImage(`/assets/maps/${this.definition.id}-terrain.png`);
-  this.props=props(this.definition.art.props);this.gardenProps=props(getMap('garden').art.props);this.terrain=makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE);this.terrainDrawing=makeCanvas(W,H);
+  this.props=props(this.definition.art.props);this.gardenProps=props(getMap('garden').art.props);this.terrain=makeCanvas(this.width*TERRAIN_SCALE,H*TERRAIN_SCALE);this.terrainDrawing=makeCanvas(this.width,H);
   this.preparation=preloadEnvironment(map).then(ready=>{if(!ready){this.loadState='error';return false;}this.props.ready();this.gardenProps.ready();this.loadState='ready';this.setTerrain(this.data);return true;}).catch(()=>{this.loadState='error';return false;});
  }
  isReady(){return this.loadState==='ready';}
@@ -223,7 +233,7 @@ export class EnvironmentRenderer {
   c.restore();this.objectLayers.clear();
   // Resolve supersampled coverage once at the artwork's native world resolution.
   // Re-filtering the full 2x surface on every pan is expensive in software Canvas.
-  this.terrainDrawing=makeCanvas(W,H);const resolved=this.terrainDrawing.getContext('2d')!;smoothImages(resolved);resolved.drawImage(this.terrain,0,0,W,H);
+  this.terrainDrawing=makeCanvas(this.width,H);const resolved=this.terrainDrawing.getContext('2d')!;smoothImages(resolved);resolved.drawImage(this.terrain,0,0,this.width,H);
  }
  getTerrainLayer(){return this.terrain;}
  private cached(key:string,width:number,height:number,paint:(c:CanvasRenderingContext2D)=>void){
@@ -256,7 +266,7 @@ export class EnvironmentRenderer {
   if(!this.isReady())return;
   // Keep the resampling filter's neighbourhood outside the viewport: changing
   // the integer crop during a subpixel pan must not expose its sampling edge.
-  const visible=cameraBounds(this.camera),padding=8,x=Math.max(0,Math.floor(visible.x)-padding),y=Math.max(0,Math.floor(visible.y)-padding),right=Math.min(W,Math.ceil(visible.x+visible.width)+padding),bottom=Math.min(H,Math.ceil(visible.y+visible.height)+padding);
+  const visible=cameraBounds(this.camera),padding=8,x=Math.max(0,Math.floor(visible.x)-padding),y=Math.max(0,Math.floor(visible.y)-padding),right=Math.min(this.width,Math.ceil(visible.x+visible.width)+padding),bottom=Math.min(H,Math.ceil(visible.y+visible.height)+padding);
   if(right>x&&bottom>y)c.drawImage(this.terrainDrawing,x,y,right-x,bottom-y,x,y,right-x,bottom-y);
   for(const object of this.definition.objects)if(object.layer===5){
    if(object.animated&&!object.region)this.drawObject(c,object,time);
@@ -272,14 +282,22 @@ export class EnvironmentRenderer {
  }
  /** A single painted backdrop, cover-fitted to the bottom edge so its abyss sits under the playfield. It barely drifts with the camera. */
  private drawBackdrop(c:CanvasRenderingContext2D,camera:CameraState){
-  const image=this.art,margin=48;if(!image.naturalWidth)return;
-  const layer=this.cached('backdrop',W+margin*2,H+margin*2,ctx=>{const width=W+margin*2,scale=Math.max(width/image.naturalWidth,(H+margin*2)/image.naturalHeight),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
-  c.save();applyCamera(c,camera,.1);c.drawImage(layer,-margin,-margin);c.restore();
+  const image=this.art,margin=48,depth=.1;if(!image.naturalWidth)return;
+  const travel=(this.width-W)*depth,layer=this.cached('backdrop',W+travel+margin*2,H+margin*2,ctx=>{const width=W+travel+margin*2,scale=Math.max(width/image.naturalWidth,(H+margin*2)/image.naturalHeight),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
+  c.save();applyCamera(c,camera,depth);c.drawImage(layer,-margin,-margin);c.restore();
+  const mid=this.mid;
+  if(mid?.naturalWidth){
+   // Painted mid-distance band, tiled across the world, between backdrop and terrain.
+   const midDepth=.5,height=H,width=mid.naturalWidth*height/mid.naturalHeight,tile=this.cached('mid',width,height,ctx=>{smoothImages(ctx);ctx.drawImage(mid,0,0,width,height);});
+   c.save();applyCamera(c,camera,midDepth);const view=cameraBounds(camera,midDepth);
+   // Every other copy is mirrored, so neighbouring edges always match.
+   for(let x=Math.floor(view.x/width)*width;x<view.x+view.width;x+=width){if(Math.round(x/width)%2){c.save();c.translate(x+width,MID_OFFSET);c.scale(-1,1);c.drawImage(tile,0,0);c.restore();}else c.drawImage(tile,x,MID_OFFSET);}c.restore();
+  }
   c.save();c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
   c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,W,H);
-  if(this.preview.complete&&this.preview.naturalWidth)c.drawImage(this.preview,0,0,W,H);
+  if(this.preview.complete&&this.preview.naturalWidth){const p=this.preview,share=W/this.width;c.drawImage(p,p.naturalWidth*(1-share)/2,0,p.naturalWidth*share,p.naturalHeight,0,0,W,H);}
   c.fillStyle='#08132999';c.fillRect(0,0,W,H);c.textAlign='center';c.fillStyle='#fff3ce';c.font='600 24px sans-serif';
   c.fillText(this.loadState==='error'?'Não foi possível carregar o cenário. Recarregue para tentar novamente.':'Preparando cenário…',W/2,H/2);c.restore();
  }
@@ -298,7 +316,7 @@ export class EnvironmentRenderer {
     const x=Math.floor(b.x/3)*3-3,y=Math.floor(b.y/3)*3-3,width=Math.ceil((b.x+b.width-x)/3)*3+3,height=Math.ceil((b.y+b.height-y)/3)*3+3,canvas=makeCanvas(width*TERRAIN_SCALE,height*TERRAIN_SCALE),ctx=canvas.getContext('2d')!;
     ctx.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(ctx);ctx.translate(-x,-y);this.object(ctx,o,0);ctx.setTransform(TERRAIN_SCALE,0,0,TERRAIN_SCALE,0,0);
     if(region>=0){const mask=makeCanvas(width/3,height/3),mc=mask.getContext('2d')!,im=mc.createImageData(mask.width,mask.height);
-     for(let cy=0;cy<mask.height;cy++)for(let cx=0;cx<mask.width;cx++){const tx=x/3+cx,ty=y/3+cy,i=ty*WORLD.cols+tx;if(tx>=0&&ty>=0&&tx<WORLD.cols&&ty<WORLD.rows&&this.data[i]&&template.regions[i]===region)im.data[(cy*mask.width+cx)*4+3]=255;}
+     for(let cy=0;cy<mask.height;cy++)for(let cx=0;cx<mask.width;cx++){const tx=x/3+cx,ty=y/3+cy,i=ty*terrainCols(this.data)+tx;if(tx>=0&&ty>=0&&tx<terrainCols(this.data)&&ty<WORLD.rows&&this.data[i]&&template.regions[i]===region)im.data[(cy*mask.width+cx)*4+3]=255;}
      mc.putImageData(im,0,0);ctx.globalCompositeOperation='destination-in';ctx.drawImage(mask,0,0,width,height);
     }layer={canvas,x,y,width,height};this.objectLayers.set(o.id,layer);
    }c.drawImage(layer.canvas,layer.x,layer.y,layer.width,layer.height);
@@ -349,6 +367,13 @@ export class EnvironmentRenderer {
  }
  private atmosphere(c:CanvasRenderingContext2D,time:number){
   const m=this.definition,n=count(12,28,48),t=time/1000,visible=cameraBounds(this.camera,.85);
+  if(m.theme==='snow'){
+   // Soft snowfall across the whole world, a little denser near the camera.
+   const flakes=Math.round(count(30,60,100)*this.width/W);c.save();c.fillStyle='#ffffff';
+   for(let i=0;i<flakes;i++){const fall=14+random(i+7)*22,x=(random(i+80)*this.width+Math.sin(t*.6+i)*18+t*6)%this.width,y=((random(i+190)*(H+40)+t*fall)%(H+40))-20;
+    if(!intersects({x:x-4,y:y-4,width:8,height:8},visible))continue;c.globalAlpha=.35+random(i+3)*.45;ellipse(c,x,y,1.2+random(i+11)*2.2,1.2+random(i+11)*2.2,'#ffffff');}
+   c.restore();return;
+  }
   for(let i=0;i<n;i++){
    const x=(random(i+80)*W+t*(m.id==='park'?5:9+i%4))%W,y=80+((random(i+190)*590+t*(m.id==='garden'?7:3))%590);if(!intersects({x:x-8,y:y-8,width:16,height:16},visible))continue;c.save();c.translate(x,y);c.rotate(t*.7+i);c.globalAlpha=.3+Math.sin(t+i)*.16;
    if(m.id==='garden'){ellipse(c,0,0,3+i%3,1.5+i%2,i%3?'#ff66ba':'#ffe452');}

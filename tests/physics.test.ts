@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {crater,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_ROUGHNESS,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -11,14 +11,14 @@ test('terrain is deterministic, map-specific and round-trips its compact network
  assert.equal(solid(sky,-1,600),false);assert.equal(solid(sky,WORLD.width,600),false);
 });
 
-test('a crater removes only material inside its radius and opens a new landing surface',()=>{
+test('a crater removes only material inside its rough radius and opens a new landing surface',()=>{
  const terrain=createTerrain(),before=terrain.slice(),x=600,y=ground(terrain,x);
  crater(terrain,x,y,60);
  assert.equal(solid(terrain,x,y),false);assert.ok(ground(terrain,x,y)>=y+57);
  assert.equal(solid(terrain,x+66,y+60),solid(before,x+66,y+60));
  for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){
   assert.equal(terrain[cell],0);const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;
-  assert.ok(Math.hypot(cx-x,cy-y)<=60);
+  assert.ok(Math.hypot(cx-x,cy-y)<=60*(1+CRATER_ROUGHNESS));
  }
 });
 

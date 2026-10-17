@@ -27,7 +27,7 @@ test('one through four paired slots start supported, mirrored combat spawns on e
   const positions=new Set<string>();
   for(const fighter of match.state.players){
    assert.equal(fighter.x,getMap(map).spawns[fighter.team][fighter.slot]);assert.equal(fighter.y,ground(match.terrain,fighter.x));assert.ok(fighter.y<WORLD.height);assert.ok(solid(match.terrain,fighter.x,fighter.y));
-   positions.add(`${fighter.team}:${fighter.slot}`);assert.equal(fighter.x+getMap(map).spawns[fighter.team===0?1:0][fighter.slot],WORLD.width);
+   positions.add(`${fighter.team}:${fighter.slot}`);assert.equal(fighter.x+getMap(map).spawns[fighter.team===0?1:0][fighter.slot],getMap(map).dimensions.width);
   }
   assert.equal(positions.size,(size+1)*2);
  }
