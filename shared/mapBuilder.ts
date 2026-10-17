@@ -103,8 +103,9 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
  for(const {item,source,mirrored} of expandItems(layout)){
   const sheet=item.sheet??firstSheet,list=sheetPieces[sheet]??[],piece=list[item.piece];
   if(!piece){warnings.push({text:`${sheet}: peça ${item.piece} não existe (${list.length} peças)`,item:source});continue;}
-  if(piece.touchesEdge)warnings.push({text:`${sheet}: peça ${item.piece} encosta na borda da folha`,item:source});
   const scale=item.scale??1,w=piece.w*scale,h=piece.h*scale,left=item.x-w/2;
+  // A piece cut by the sheet's edge is fine when it also runs off the map (a ground that spans the whole width).
+  if(piece.touchesEdge&&left>0&&left+w<W)warnings.push({text:`${sheet}: peça ${item.piece} encosta na borda da folha`,item:source});
   const draw=(c:CanvasRenderingContext2D,top:number)=>{c.save();c.translate(item.x,top);if(item.flip)c.scale(-1,1);c.drawImage(piece.canvas,-w/2,0,w,h);c.restore();};
   // Props marked `rest` drop onto the terrain already placed below `top` (sinking a few px into the snow), so nothing floats.
   // Pixels are read only in the item's own columns, which keeps the editor responsive on wide maps.

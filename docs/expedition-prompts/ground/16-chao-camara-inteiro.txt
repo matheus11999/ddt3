@@ -1,0 +1,7 @@
+Use the attached images as style references: pecas.png (the current anthill-chamber pieces of this stage: dirt floor, queen throne pillar, roots, amber crystals) and the blockout (anthill-2-blockout.png).
+
+Paint ONE single continuous terrain piece for a 2D side-view artillery game in the painted DDTank style (thick dark outlines, rich volume, warm saturated colours, soft painted shading, no flat vector look).
+
+Subject: the floor of the ant queen's chamber, seen from the side: one long slab of packed orange anthill dirt with pebbles, grey stones, roots and glowing amber crystals in the side, the same look as the reference floor piece. On the right end the same slab rises into the queen's throne: a tall dirt pillar with roots and crystals, its flat top crowned with green leaves, white flowers and amber crystals around the edge (like the reference throne), the top centre left clear and flat for the queen to stand. Floor and throne are ONE connected piece: no seams, no separate blocks, no gaps, no steps between pieces. The floor top is the walkable ground: mostly flat with small bumps, nothing sticking up from it. The left end of the floor is a natural rounded dirt edge.
+
+Composition: match the gray silhouette in the blockout exactly (same positions and heights). Everything that is not terrain must be flat pure magenta #FF00FF, no shadow on the magenta, no background. No text, no numbers, no letters. Output 1536x1024.

@@ -6,7 +6,7 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {MONSTERS,partyHpScale} from '../shared/expeditions';
+import {dropChance,expeditionStages,getExpedition,MONSTERS,partyHpScale} from '../shared/expeditions';
 import {MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,strideOf} from '../shared/instanceTurn';
 import type {MonsterBody} from '../shared/instanceTurn';
 import {createTerrain,ground} from '../shared/physics';
@@ -156,4 +156,10 @@ test('the queen shoots and summons ants from the nest on her turn',async()=>{
  const minion=s.players.find(p=>p.id===summons[0].id)!;assert.equal(minion.hp,0);
  while(m.instance!.events.length)f.game.tick(m.instance!.events[0].at);
  assert.equal(minion.hp,minion.maxHp);assert.ok(Math.abs(minion.x-s.instance!.nest!.x)<80);
+});
+
+test('the drop chances shown on the board come from the stage reward cards',()=>{
+ const [first,queen]=expeditionStages('anthill','easy'),drop=getExpedition('anthill')!.drops[0];
+ assert.equal(dropChance(first,drop),1/first.prizes.length);
+ assert.equal(dropChance(queen,drop),queen.prizes.filter(prize=>prize.kind==='stone'&&prize.level===1).length/queen.prizes.length);
 });

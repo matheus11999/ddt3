@@ -1,0 +1,7 @@
+Use the attached images as style references: pecas.png (the current fallen-log pieces of this stage) and the blockout (anthill-1-blockout.png).
+
+Paint ONE single continuous terrain piece for a 2D side-view artillery game in the painted DDTank style (thick dark outlines, rich volume, warm saturated colours, soft painted shading, no flat vector look).
+
+Subject: one long fallen tree trunk lying horizontally across the whole image, seen from the side, the same bark, moss tufts, knots and colours as the reference log pieces. It must be ONE log from the left edge to the right edge of the image: no cut, no seam, no second log, no stump, no gap. The top of the trunk is the walkable ground: keep it mostly flat with small natural bumps, moss on top, no sprouts or leaves sticking up from the top (they would act as walls). The log continues off both image edges (cut cleanly by the frame).
+
+Composition: match the gray silhouette in the blockout exactly (same position, same height, full width). Everything that is not the trunk must be flat pure magenta #FF00FF, no shadow on the magenta, no ground below, no background. No text, no numbers, no letters. Output 1536x1024.
