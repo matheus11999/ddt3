@@ -696,7 +696,7 @@
 .bag-window .bag-action:disabled { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
 
 /* ---------- Cards por classe: Comum, Normal, Épico, Lendário ---------- */
-.bag-window .item-card[data-tier][data-card-variant]:not([data-card-empty])::after {
+:is(.bag-window, .smith-window) .item-card[data-tier][data-card-variant]:not([data-card-empty])::after {
   content: '';
   position: absolute;
   left: 5px;
@@ -710,10 +710,10 @@
   box-shadow: 0 1px 2px #0007;
   pointer-events: none;
 }
-.bag-window .item-card[data-tier="common"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#e6ebee, #8d9aa3); }
-.bag-window .item-card[data-tier="normal"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#bfe8ff, #2f8ff0); }
-.bag-window .item-card[data-tier="epic"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#f4d6ff, #a54ae8); box-shadow: 0 0 6px #d18bff; }
-.bag-window .item-card[data-tier="legendary"][data-card-variant]:not([data-card-empty])::after {
+:is(.bag-window, .smith-window) .item-card[data-tier="common"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#e6ebee, #8d9aa3); }
+:is(.bag-window, .smith-window) .item-card[data-tier="normal"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#bfe8ff, #2f8ff0); }
+:is(.bag-window, .smith-window) .item-card[data-tier="epic"][data-card-variant]:not([data-card-empty])::after { background: linear-gradient(#f4d6ff, #a54ae8); box-shadow: 0 0 6px #d18bff; }
+:is(.bag-window, .smith-window) .item-card[data-tier="legendary"][data-card-variant]:not([data-card-empty])::after {
   width: 12px;
   height: 12px;
   border: 0;
@@ -724,18 +724,18 @@
   filter: drop-shadow(0 0 3px #ffd34a);
   box-shadow: none;
 }
-.bag-window .item-card[data-tier="epic"][data-card-variant]:not([data-card-empty]) {
+:is(.bag-window, .smith-window) .item-card[data-tier="epic"][data-card-variant]:not([data-card-empty]) {
   box-shadow: inset 0 1px var(--card-light), inset 0 0 12px #c47cff55, 0 3px 0 var(--card-shadow), 0 0 8px #b05cff55;
 }
-.bag-window .item-card[data-tier="legendary"][data-card-variant]:not([data-card-empty]) {
+:is(.bag-window, .smith-window) .item-card[data-tier="legendary"][data-card-variant]:not([data-card-empty]) {
   animation: bag-legendary-glow 2.6s ease-in-out infinite;
 }
 @keyframes bag-legendary-glow {
   0%, 100% { box-shadow: inset 0 1px var(--card-light), inset 0 0 12px #ffd76a55, 0 3px 0 var(--card-shadow), 0 0 6px #ffc94a66; }
   50% { box-shadow: inset 0 1px var(--card-light), inset 0 0 18px #ffe28a88, 0 3px 0 var(--card-shadow), 0 0 16px #ffc94acc; }
 }
-@media (prefers-reduced-motion: reduce) { .bag-window .item-card[data-tier="legendary"] { animation: none; } }
-.bag-window .item-card .bag-upgrade-tag {
+@media (prefers-reduced-motion: reduce) { :is(.bag-window, .smith-window) .item-card[data-tier="legendary"] { animation: none; } }
+:is(.bag-window, .smith-window) .item-card .bag-upgrade-tag {
   position: absolute;
   left: -6px;
   bottom: -7px;

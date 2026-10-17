@@ -6,13 +6,6 @@
 @media(prefers-reduced-motion:reduce){.orientation-phone{animation:none;transform:rotate(-90deg)}}
 
 /* Mobile menus use the viewport, independent of the scaled 1536px world canvas. */
-html.mobile-landscape .forge-workshop-shell .composition-selection{margin-top:4px;min-height:35px;gap:7px}
-html.mobile-landscape .forge-workshop-shell .composition-selected-stone{width:34px;height:35px}
-html.mobile-landscape .forge-workshop-shell .composition-selected-stone>svg{width:27px;height:27px}
-html.mobile-landscape .forge-workshop-shell .composition-selection>div{gap:1px;font-size:9px;line-height:11px}
-html.mobile-landscape .forge-workshop-shell .composition-selection strong{font-size:10px;line-height:12px}
-html.mobile-landscape .forge-workshop-shell .composition-preview{gap:4px;font-size:10px;line-height:12px}
-html.mobile-landscape .forge-workshop-shell .composition-preview b{font-size:11px}
 html.mobile-landscape .compact-modal-layer{position:fixed;inset:0;z-index:40}
 html.mobile-landscape .compact-modal-layer>.modal-backdrop{animation:none;backdrop-filter:blur(3px)}
 html.mobile-landscape .compact-modal-layer .game-window.menu-frame{animation:none}
@@ -66,16 +59,6 @@ html.mobile-landscape .shop-footer{font-size:8px;min-height:20px;padding-top:4px
 html.mobile-landscape .shop-catalog-footer{font-size:8px;min-height:20px;padding-top:4px}html.mobile-landscape .shop-categories button{flex-direction:row}
 html.mobile-landscape .shop-checkout{padding:7px;gap:5px}html.mobile-landscape .shop-buy{min-height:34px;padding:6px}html.mobile-landscape .shop-checkout-total strong{font-size:16px}html.mobile-landscape .shop-cart-heading{margin:0;font-size:11px}html.mobile-landscape .shop-cart-row{padding:6px;gap:5px}html.mobile-landscape .shop-cart-row strong{font-size:10px}
 
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-layout{display:grid;grid-template-columns:58px minmax(0,1fr);grid-template-rows:minmax(0,1fr);overflow:hidden;min-height:0}
-html.mobile-landscape .forge-workshop-shell .forge-services{position:static;display:flex;flex-direction:column;padding:6px 4px;gap:7px}html.mobile-landscape .forge-workshop-shell .forge-services>button{min-height:61px;padding:5px 1px;font-size:8px;gap:5px;flex-direction:column;flex:none}html.mobile-landscape .forge-service-mark{display:none}
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-body{display:grid;grid-template-columns:minmax(0,55%) minmax(0,45%);grid-template-rows:minmax(0,1fr);min-height:0;height:100%;overflow:hidden}
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-workbench{display:grid;grid-template-rows:minmax(110px,1fr)67px 91px;min-height:0;overflow:hidden}
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-workshop{height:auto;min-height:0;background-size:cover}
-html.mobile-landscape .forge-workshop-shell .forge-hero-label{top:5px;left:9%;right:5%;min-height:19px}html.mobile-landscape .forge-workshop-shell .forge-hero-label>span{font-size:10px}html.mobile-landscape .forge-workshop-shell .forge-hero-label>.upgrade-badge{width:46px}
-html.mobile-landscape .forge-workshop-shell .item-card.forge-weapon-target{width:80px;height:76px;top:23px;left:calc(55% - 40px)}html.mobile-landscape .forge-weapon-target .item-art{width:72px!important;height:72px!important}html.mobile-landscape .forge-workshop-shell .forge-level-path{bottom:3px;left:22%;right:8%;height:5px}html.mobile-landscape .forge-progress-caption{display:none}
-html.mobile-landscape .forge-workshop-shell .forge-materials{height:67px;padding:5px 7px;margin:0 6px;border-radius:9px}html.mobile-landscape .forge-workshop-shell .forge-section-heading h2{font-size:9px;gap:4px}html.mobile-landscape .forge-workshop-shell .forge-section-heading>span{font-size:8px}html.mobile-landscape .forge-workshop-shell .forge-sockets{margin-top:4px;gap:5px}html.mobile-landscape .forge-workshop-shell .forge-socket{width:34px;height:35px}html.mobile-landscape .forge-socket .item-art,html.mobile-landscape .forge-socket img{width:29px!important;height:29px!important}
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-action{padding:6px 8px}html.mobile-landscape .forge-workshop-shell .forge-action-bottom{margin-top:6px;gap:5px}html.mobile-landscape .forge-workshop-shell .forge-submit.button{min-width:118px;min-height:34px;padding:6px;font-size:11px}html.mobile-landscape .forge-next-level{font-size:16px}html.mobile-landscape .forge-empty-label{font-size:12px}html.mobile-landscape .forge-workshop-shell .forge-action>p{font-size:8px;margin-top:4px}
-html.mobile-landscape .inventory-modal-layer .menu-frame.forge-workshop-shell .forge-stock{overflow:auto;min-height:0;padding:7px;overscroll-behavior:contain;scrollbar-width:thin}html.mobile-landscape .forge-workshop-shell .forge-weapon-stock{margin-top:5px;gap:6px}html.mobile-landscape .forge-workshop-shell .forge-stock-item{height:55px}html.mobile-landscape .forge-stock-item>.item-art{width:52px!important;height:52px!important}html.mobile-landscape .forge-stock-hint{display:none}html.mobile-landscape .forge-workshop-shell .forge-stones-heading{margin-top:10px}html.mobile-landscape .forge-workshop-shell .forge-stone-cell{min-height:49px;padding:4px;gap:5px}html.mobile-landscape .forge-workshop-shell .forge-stock-stone{width:39px;height:39px}html.mobile-landscape .forge-material-name strong{font-size:9px!important}html.mobile-landscape .forge-material-name span{font-size:8px}html.mobile-landscape .forge-workshop-shell .forge-add-stone{width:29px;height:31px}html.mobile-landscape .forge-workshop-shell .forge-outcome{top:14px;left:5%;right:5%;min-height:98px}html.mobile-landscape .forge-outcome>strong{font-size:25px!important}
 
 
 html.mobile-landscape .character-creation-backdrop{padding:max(8px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));overflow:auto}

@@ -5,3 +5,25 @@
 .player-hud .profile-level-badge .level-badge{opacity:1;filter:drop-shadow(0 1px 1px #08131f)}
 .player-hud .profile-level-badge .level-badge-art{opacity:1}
 .player-hud .profile-level-badge .level-badge[data-tier="1"]{--level-art-filter:grayscale(1) brightness(1.08) contrast(1.08)}
+
+/* Praça Celeste: event medals across the top right, as in the classic artillery lobbies. */
+.game-frame>.lobby-events{position:absolute;top:74px;right:18px;display:flex;gap:4px;z-index:4}
+.lobby-event{display:flex;flex-direction:column;align-items:center;gap:2px;width:80px;padding:0;border:0;background:none;cursor:pointer;color:#fff6c8;animation:lobby-event-bob 2.8s ease-in-out infinite}
+.lobby-event:nth-child(2){animation-delay:-.7s}.lobby-event:nth-child(3){animation-delay:-1.4s}.lobby-event:nth-child(4){animation-delay:-2.1s}
+.lobby-event-medal{position:relative;display:grid;place-items:center;width:62px;height:62px;border-radius:50%;border:3px solid #ffd968;box-shadow:0 0 0 2px #5a2f12,inset 0 4px 6px #ffffff8a,inset 0 -7px 10px #0000003d,0 5px 10px #10264a66;transition:transform .15s,filter .15s}
+.lobby-event-medal svg{width:31px;height:31px;color:#fff;stroke-width:2.4;filter:drop-shadow(0 2px 0 #00000059)}
+.lobby-event.arena .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#9ff0ff,#2c9ef2 55%,#1a4fb8)}
+.lobby-event.shop .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#ffc2ec,#ff5fb4 55%,#b2246f)}
+.lobby-event.quests .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#fff1a0,#ffb21f 55%,#c2560d)}
+.lobby-event.forge .lobby-event-medal{background:radial-gradient(circle at 35% 28%,#ffcf9e,#ff6a2d 55%,#9e2512)}
+.lobby-event-label{font:900 14px/1.1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;text-shadow:0 0 3px #5a2f12,1px 1px 0 #5a2f12,-1px 1px 0 #5a2f12,1px -1px 0 #5a2f12,-1px -1px 0 #5a2f12,0 2px 0 #5a2f12}
+.lobby-event:hover .lobby-event-medal,.lobby-event:focus-visible .lobby-event-medal{transform:scale(1.08);filter:brightness(1.12)}
+.lobby-event[aria-pressed="true"] .lobby-event-medal{border-color:#fff7cf}
+.lobby-event-count{position:absolute;top:-6px;right:-8px;min-width:22px;height:22px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 12px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
+@keyframes lobby-event-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+@media (prefers-reduced-motion:reduce){.lobby-event{animation:none}}
+.game-frame>.quest-panel{top:150px;left:22px;right:auto}
+.game-frame>.channel-chip{position:absolute;top:118px;left:126px;display:flex;align-items:center;gap:6px;padding:4px 12px;border-radius:12px;background:#10294bd9;border:1px solid #dfab4899;color:#ffe9a8;font:800 11px Nunito,sans-serif;letter-spacing:.3px}
+.game-frame>.channel-chip i{width:3px;height:3px;border-radius:50%;background:#ffd968}
+html.mobile-landscape .game-frame>.lobby-events{transform:scale(calc(.62 / var(--game-scale)));transform-origin:top right;top:92px}
+html.mobile-landscape .game-frame>.channel-chip{display:none}

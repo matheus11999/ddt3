@@ -29,7 +29,7 @@ const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
 const LOWER_SLOTS:Slot[]=['necklace','weapon','bubble'];
 const SLOT_ICONS:Record<Slot,LucideIcon>={hair:Scissors,hat:GraduationCap,glasses:Glasses,face:Smile,outfit:Shirt,costume:Sparkles,wristband:Watch,bracelet:Gem,weapon:Crosshair,ring:CircleDot,ring2:CircleDot,necklace:Medal,bubble:MessageCircle};
 const BAG_TABS:{id:string;name:string;Icon:LucideIcon}[]=[{id:'all',name:'Tudo',Icon:LayoutGrid},{id:'style',name:'Visuais',Icon:Shirt},{id:'weapons',name:'Armas',Icon:Swords},{id:'stones',name:'Pedras',Icon:Gem}];
-type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
+export type Tip={id:string;anchor:HTMLElement;mode:'hover'|'focus'|'touch'};
 function searchable(text:string){return text.toLocaleLowerCase('pt-BR').normalize('NFD').replace(/[\u0300-\u036f]/g,'');}
 
 export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void}){
@@ -166,7 +166,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:()=>void})
 
 const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
 const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
-function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions}){
+export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string}){
  const {id,anchor}=tip,level=upgrades[id]??0,item=CATALOG[id],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===id),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
  const equipped=!!item&&slotsForItem(item).some(slot=>equipment[slot]===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
@@ -200,11 +200,11 @@ function InventoryTooltip({tip,gender,equipment,upgrades,compositions}:{tip:Tip;
    {stats&&<div className="bag-tip-weapon"><span>Destruição <b>{stats.crater}</b></span><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
-   {(!compatible||!equipped)&&<footer className={`bag-tip-foot ${!compatible?'blocked':''}`}>{!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar'}</footer>}
+   {(action||!compatible||!equipped)&&<footer className={`bag-tip-foot ${action?'':!compatible?'blocked':''}`}>{action??(!compatible?'Incompatível com este personagem':tip.mode==='touch'?'Toque para equipar':'Clique para equipar')}</footer>}
   </>:<>
    <p className="bag-tip-desc">Material para fortalecer armas no ferreiro.</p>
    <dl className="bag-tip-stats"><div><dt>Potência</dt><dd>{stone?.power}</dd></div><div><dt>Nível</dt><dd>{stone?.level}</dd></div></dl>
-   <footer className="bag-tip-foot">Use no ferreiro</footer>
+   <footer className="bag-tip-foot">{action??'Use no ferreiro'}</footer>
   </>}
  </aside>;
 }

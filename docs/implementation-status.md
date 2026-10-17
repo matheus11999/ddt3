@@ -1,5 +1,13 @@
 # Estado da entrega — 16/10/2026
 
+## Lobby redesenhado — Praça Celeste (17/10/2026)
+
+- Rua dos Aventureiros substituída pela Praça Celeste, no estilo de lobby clássico de artilharia: céu aberto, ilha flutuante com cascata, mar, templo, dirigível, balões e faixa de festival animados. Três portais na praça (Ateliê → loja, Arena e Treino → arena) e dois NPCs (Guarda-volumes → mochila, Ferreiro → forja). Ferreiro mudou para a direita: `SMITH_POSITION` agora é (1250, 630).
+- HUD do lobby: título central e placas Arena/Ferreiro trocados por medalhas de evento no topo direito (Arena, Ateliê, Missões com contador, Ferreiro) e um selo de canal sob o retrato. Painel de missões abre pela medalha Missões.
+- Fundo pintado por código é só reserva (usuário achou simples/infantil); a arte final é uma pintura única em `public/assets/lobby/plaza.webp`, que substitui o cenário e os NPCs-boneco. Prompts e mapa de cliques em [lobby-art-prompts.md](lobby-art-prompts.md). Verificação: `scripts/shot-lobby.mjs`.
+
+- Atualização 17/10 02h: praça com **três telas de largura** (`shared/lobby.ts`, 4608 px) e câmera seguindo o jogador (clique ou setas/A-D). Portais viraram o **pódio do ranking PvP do dia** (1º/2º/3º, `LobbyWorld.podiums()` pronto para os bonecos), porta da Arena PvP e NPCs animados por camadas recortadas. Ferreiro em x 3720 (`SMITH_POSITION` 3640, 640). Prompt e mapa das estações em [lobby-art-prompts.md](lobby-art-prompts.md).
+
 ## Salão PvP e sala no padrão da mochila — 17/10/2026
 
 - Salão PvP: moldura de madeira em tela cheia, barra de título com brasão, população e saída; salas em cartas creme (número, nome, líder, formato, vagas ocupadas, estado colorido e assistir) sobre área creme; conversa creme ao lado; botão Criar sala no rodapé.
