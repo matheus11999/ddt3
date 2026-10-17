@@ -23,7 +23,6 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-dock>.lobby-dock-button:disabled{opacity:.55;cursor:var(--cursor-arrow)}
 .lobby-dock>.lobby-dock-button:focus-visible{outline:none}.lobby-dock>.lobby-dock-button:focus-visible .lobby-dock-tile{outline:3px solid #fff1c4;outline-offset:2px}
 .lobby-dock-label{position:relative;z-index:1;font:900 12px/1 Nunito,'Trebuchet MS',sans-serif;letter-spacing:.2px;color:var(--wood-gold);white-space:nowrap;text-shadow:0 1px #2c1004,0 0 3px #2c1004}
-.lobby-dock .lobby-dock-tile kbd{position:absolute;right:-4px;top:-5px;min-width:17px;padding:1px 4px;border:1px solid #fff2c8;border-radius:6px;background:linear-gradient(#7a3a14,#55250b);color:#ffdca4;font:900 9px/1.2 Nunito,sans-serif;opacity:1}
 .lobby-dock-count{position:absolute;top:-7px;right:-8px;min-width:21px;height:21px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 11px Nunito,sans-serif;box-shadow:0 2px 3px #0005}
 .lobby-dock-popover{position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);width:300px;padding:0 0 10px;border:2px solid var(--wood-rim);border-radius:12px;background:linear-gradient(#fffaf0,var(--wood-cream-mid));box-shadow:0 10px 26px #4a1f0888;color:var(--wood-ink);overflow:hidden;font-family:Nunito,sans-serif}
 .lobby-dock-popover>header{display:flex;align-items:center;justify-content:space-between;padding:6px 8px 6px 12px;background:linear-gradient(#ffc566,#f39a2c 60%,#e5801c);color:#fff;font-size:14px;text-shadow:0 1px #8a3a07}
@@ -36,8 +35,7 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
 .game-frame>.walk-hint{bottom:124px}
 html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:translateX(-50%) scale(calc(.62 / var(--game-scale)));transform-origin:bottom center;height:auto;padding:6px 10px 6px;gap:2px}
-html.mobile-landscape .lobby-dock .lobby-dock-tile kbd{display:none}
-
+html.mobile-landscape 
 /* Lobby chat in the same wood and cream finish as the PvP room chat: folder tabs
    that join the cream message area, and a sunken cream input. */
 .game-frame>.chat-shell.lobby-chat{bottom:24px;left:20px;width:340px;height:170px;overflow:hidden;border-radius:12px;z-index:6;grid-template-rows:19px minmax(0,1fr) 28px;gap:0;padding:4px 5px 5px;background:var(--wood-grain),linear-gradient(160deg,var(--wood-light),var(--wood) 45%,var(--wood-dark));box-shadow:inset 0 1px #ffd9a8,inset 0 -3px #4d220a99,0 0 0 3px #4a210a,0 10px 22px #1a0c04a0}
