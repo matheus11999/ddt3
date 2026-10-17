@@ -31,12 +31,12 @@ export function playerMenuProps(target:PlayerTarget|null|undefined){
 export function PlayerActions(){
  const {playerPanel:panel,profile}=useGame();
  if(!panel||!profile)return null;
- const target:PlayerTarget={id:panel.id,name:panel.name,context:panel.context},self=panel.id===profile.id;
+ const target:PlayerTarget={id:panel.id,name:panel.name,context:panel.context},self=panel.id===profile.id,bot=panel.id.startsWith('bot-');
  if(panel.kind==='menu')return createPortal(<BagContextMenu x={panel.x} y={panel.y} title={panel.name} onClose={()=>client.closePlayerPanel()} actions={[
   {id:'info',label:'Ver informações',icon:<IdCard size={16}/>,onSelect:()=>{client.openPlayerPanel('info',target);audio.play('click');}},
-  ...(self?[]:[{id:'report',label:'Denunciar',icon:<Flag size={16}/>,danger:true,onSelect:()=>{client.openPlayerPanel('report',target);audio.play('click');}}]),
+  ...(self||bot?[]:[{id:'report',label:'Denunciar',icon:<Flag size={16}/>,danger:true,onSelect:()=>{client.openPlayerPanel('report',target);audio.play('click');}}]),
  ]}/>,document.body);
- return panel.kind==='info'?<PlayerInfoWindow target={target} self={self}/>:<ReportWindow target={target}/>;
+ return panel.kind==='info'?<PlayerInfoWindow target={target} self={self||bot}/>:<ReportWindow target={target}/>;
 }
 
 /** Read-only "Informações pessoais" of another player, laid out like the backpack's left side. */
@@ -68,7 +68,7 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
  return <section className="bag-profile" aria-label={`Informações de ${info.name}`}>
   <header className="bag-profile-head">
    <LevelBadge level={info.level} size={42}/>
-   <div className="bag-identity"><small>{info.online?'Online agora':'Offline'}</small><h2>{info.name}</h2><span className="equipment-status">{info.gender==='female'?'Aventureira':'Aventureiro'} · Nível {info.level}</span></div>
+   <div className="bag-identity"><small>{info.bot?'Bot':info.online?'Online agora':'Offline'}</small><h2>{info.name}</h2><span className="equipment-status">{info.bot?'Bot do jogo':info.gender==='female'?'Aventureira':'Aventureiro'} · Nível {info.level}</span></div>
    <dl className="bag-records"><div><dt>Vitórias</dt><dd>{info.wins.toLocaleString('pt-BR')}</dd></div><div><dt>Partidas</dt><dd>{info.matches.toLocaleString('pt-BR')}</dd></div></dl>
    {onReport&&<button className="player-info-report" onClick={onReport} aria-label={`Denunciar ${info.name}`} title="Denunciar"><Flag size={16}/></button>}
   </header>

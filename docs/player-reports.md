@@ -1,6 +1,6 @@
 # Informações do jogador e denúncias
 
-O botão direito sobre outro jogador abre o menu do jogo com **Ver informações** e **Denunciar**. Funciona no nome do chat, nos jogadores andando na praça e no pódio, na lista de online do Salão PvP, nos cards da sala PvP e nos retratos do topo da batalha. Bots não têm menu; no próprio personagem aparece só "Ver informações".
+O botão direito sobre outro jogador abre o menu do jogo com **Ver informações** e **Denunciar**. Funciona no nome do chat, nos jogadores andando na praça e no pódio, na lista de online do Salão PvP, nos cards da sala PvP e nos retratos do topo da batalha. Em bots e no próprio personagem aparece só "Ver informações" (bot não pode ser denunciado).
 
 ## Ver informações
 
