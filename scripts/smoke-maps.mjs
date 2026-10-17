@@ -68,34 +68,25 @@ try{
   await page.evaluate(async id=>{
    for(const file of ['background.webp','terrain-world.png']){const image=new Image();image.src=`/assets/maps/${id}/${file}`;await image.decode();}
   },map);
-  const quality=page.getByRole('combobox',{name:'Qualidade do cenário'}),zoom=page.getByLabel('Zoom do cenário'),options=page.getByRole('button',{name:'Mais opções do cenário',exact:true});
-  await options.click();await expect(options).toHaveAttribute('aria-expanded','true');
-  await quality.selectOption('high');await expect(quality).toHaveValue('high');await options.click();
-  await expect(zoom).toHaveText('100%');await screenshot(`${map}-wide`);
+  // The camera has no zoom buttons: holding and dragging the minimap (or the field) looks around, and letting go
+  // hands the camera back to the turn. Read where the minimap draws the camera frame (its white outline).
+  const minimap=page.getByRole('region',{name:'Minimapa',exact:true}).locator('canvas');
+  const frameX=()=>minimap.evaluate(canvas=>{const {width,height}=canvas,data=canvas.getContext('2d').getImageData(0,0,width,height).data,columns=[];
+   for(let x=0;x<width;x++){let white=0;for(let y=0;y<height;y++){const i=(y*width+x)*4;if(data[i]>200&&data[i+1]>200&&data[i+2]>200)white++;}if(white>height*.7)columns.push(x);}
+   return columns.length?(columns[0]+columns.at(-1))/2/width:null;});
+  await screenshot(`${map}-wide`);
   const physicsCommands=()=>commands.filter(command=>!['aim','ping'].includes(command.type)).length;
-  const beforeControls=physicsCommands();
-  await page.getByRole('button',{name:'Aproximar cenário',exact:true}).click();
-  await page.getByRole('button',{name:'Aproximar cenário',exact:true}).click();
-  await expect(zoom).toHaveText('130%');await screenshot(`${map}-zoom`);
-  const explore=page.getByRole('button',{name:'Explorar cenário',exact:true});await explore.click();await expect(explore).toHaveAttribute('aria-pressed','true');
-  await page.getByRole('button',{name:'Afastar cenário',exact:true}).click();await expect(zoom).toHaveText('115%');
-  await page.getByRole('button',{name:'Restaurar câmera',exact:true}).click();await expect(zoom).toHaveText('100%');await expect(explore).toHaveAttribute('aria-pressed','false');
-  // Space activates the focused camera button; it must not leak to shooting.
-  const zoomIn=page.getByRole('button',{name:'Aproximar cenário',exact:true});await zoomIn.focus();await zoomIn.press('Space');await expect(zoom).toHaveText('115%');
-  await page.getByRole('button',{name:'Restaurar câmera',exact:true}).click();await expect(zoom).toHaveText('100%');
-  await options.click();await quality.selectOption('low');await expect(quality).toHaveValue('low');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('brasa-environment-quality')),'low');
-  const sound=page.getByRole('button',{name:'Sons do cenário',exact:true});await expect(sound).toHaveAttribute('aria-pressed','true');await sound.click();await expect(sound).toHaveAttribute('aria-pressed','false');
-  assert.equal(await page.evaluate(()=>localStorage.getItem('brasa-environment-sound')),'off');
-  assert.equal(physicsCommands(),beforeControls,'camera and graphics controls must not send game commands');
-  await screenshot(`${map}-low`);
+  const beforeControls=physicsCommands();await expect.poll(frameX).not.toBeNull();const following=await frameX();
+  const mini=await minimap.boundingBox(),hold=async x=>{await page.mouse.move(mini.x+mini.width*x,mini.y+mini.height/2);await expect.poll(frameX).toBeCloseTo(Math.min(.75,Math.max(.25,x)),1);};
+  await page.mouse.move(mini.x+mini.width*.02,mini.y+mini.height/2);await page.mouse.down();await hold(.02);await screenshot(`${map}-look-left`);
+  await hold(.98);await screenshot(`${map}-look-right`);await page.mouse.up();
+  await expect.poll(frameX,{message:'letting go returns the camera to the turn'}).toBeCloseTo(following,1);
+  assert.equal(physicsCommands(),beforeControls,'looking around the map must not send game commands');
   const reloadMark=events.length;await page.reload({waitUntil:'networkidle'});
   const restored=await waitEvent(events,'welcome',event=>event.battle?.id===started.battle.id,reloadMark);
-  assert.equal(restored.battle.map,map);assert.ok(restored.battle.terrain);await options.click();await expect(quality).toHaveValue('low');
-  await expect(sound).toHaveAttribute('aria-pressed','false');await sound.click();await expect(sound).toHaveAttribute('aria-pressed','true');
+  assert.equal(restored.battle.map,map);assert.ok(restored.battle.terrain);await expect(minimap).toBeVisible();
   // Return a timed-out turn through the legal opponent action, if necessary.
   if(battle.phase==='aiming'&&battle.turnId===partner.profile.id){const mark=events.length;partner.send({type:'pass'});await waitEvent(events,'battle',event=>event.battle?.turnId===profile.id&&event.battle.phase==='aiming',mark);}
-  await quality.selectOption('high');await options.click();
   await page.getByRole('button',{name:'Dois disparos adicionais, 110 vigor',exact:true}).click();
   await page.getByRole('button',{name:/Tridente, 110 vigor/}).click();
   const fireMark=events.length;await chargeWithPointer(page,25);
@@ -105,17 +96,10 @@ try{
   assert.ok(final.battle.terrain,'completed shot must deliver full authoritative terrain');
   assert.notEqual(final.battle.terrain,started.battle.terrain,`${map}: real shot should create craters`);
   await screenshot(`${map}-after-impact`);
-  {
-   await page.setViewportSize({width:640,height:960});
-   const toggle=page.getByRole('button',{name:'Cenário e câmera',exact:true});await expect(toggle).toBeVisible();await toggle.click();await expect(toggle).toHaveAttribute('aria-expanded','true');
-   await quality.selectOption('medium');await expect(quality).toHaveValue('medium');
-   await page.getByRole('button',{name:'Aproximar cenário',exact:true}).click();await expect(zoom).toHaveText('115%');await screenshot(`${map}-compact-controls`);
-   await page.setViewportSize({width:1536,height:864});
-  }
   await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();
   await partner.request({type:'leave'},'room',event=>event.room===null);
-  results.push({map,name,setup:'practice-protocol',realPlayers:2,projectiles:9,zoom:true,qualityPersistence:true,ambientMutePersistence:true,reconnect:true,compactControls:true});
-  console.log(`${map}: practice protocol setup, real battle UI, 9 projectiles, camera/quality/audio and reconnect OK`);
+  results.push({map,name,setup:'practice-protocol',realPlayers:2,projectiles:9,minimapLook:true,reconnect:true});
+  console.log(`${map}: practice protocol setup, real battle UI, 9 projectiles, minimap camera and reconnect OK`);
  }
  assert.deepEqual(errors,[],'browser JavaScript errors');assert.deepEqual(serverErrors,[],'game rejected an action');
  assert.deepEqual(partner.events.filter(event=>event.type==='error'),[],'partner commands rejected');

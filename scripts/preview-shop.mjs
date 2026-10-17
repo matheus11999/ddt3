@@ -15,11 +15,11 @@ for(const {name,viewport,mobile} of sizes){
  const shop=page.getByRole('dialog',{name:'Loja da Brasa'});await shop.waitFor();await page.waitForTimeout(1200);
  await shop.getByRole('textbox',{name:'Buscar na loja'}).click();await page.screenshot({path:`${output}/catalog-${name}.png`});
  await shop.getByRole('button',{name:'Armas',exact:true}).click();
- await shop.getByRole('button',{name:'Experimentar Tempestade',exact:true}).click();
- if(!mobile){await shop.getByRole('button',{name:'Experimentar Tempestade',exact:true}).hover();await page.waitForTimeout(500);}
+ await shop.getByRole('button',{name:'Experimentar Quebra-Tijolos',exact:true}).click();
+ if(!mobile){await shop.getByRole('button',{name:'Experimentar Quebra-Tijolos',exact:true}).hover();await page.waitForTimeout(500);}
  await page.screenshot({path:`${output}/weapons-${name}.png`});
  await page.mouse.move(2,2);
- await shop.getByRole('button',{name:'Comprar Tempestade',exact:true}).click();await page.waitForTimeout(400);
+ await shop.getByRole('button',{name:'Comprar Quebra-Tijolos',exact:true}).click();await page.waitForTimeout(400);
  await page.screenshot({path:`${output}/confirm-${name}.png`});
  await context.close();
 }
