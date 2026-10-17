@@ -45,7 +45,7 @@ test('a second authoritative crater continues the current fall without a jump an
  shot.projectiles.push({...firstProjectile,delay:firstProjectile.delay+80,impact:{...firstProjectile.impact,x:mark.x,y:mark.y}});
  f.match.pendingImpacts!.push({at,projectileIndex:1,hits:[],mark});f.game.tick(at-.001);assert.deepEqual(f.target.fall,previous);f.game.tick(at);
  const fall=f.target.fall!;assert.equal(fall.fromY,fallPosition(previous,at));assert.equal(fall.velocity,fallVelocity(previous,at));assert.ok(fall.velocity>0);assert.equal(fall.toY,WORLD.height+150);assert.equal(fall.void,true);
- assert.equal(f.target.hp,0);assert.equal(f.target.y,fall.toY);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.rewards!.opensAt,fall.startedAt+fall.duration+REWARD_RESULT_MS);
+ assert.equal(f.target.hp,0);assert.equal(f.target.y,fall.toY);assert.equal(f.match.state.phase,'resolving');f.game.tick(f.match.resolveAt);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.rewards!.opensAt,fall.startedAt+fall.duration+REWARD_RESULT_MS);
  const hits=f.events.get(f.actor.id)!.filter((event):event is Extract<ServerEvent,{type:'impact'}>=>event.type==='impact').flatMap(event=>event.hits);assert.ok(hits.some(hit=>hit.id===f.target.id&&hit.kind==='fall'));
  f.game.tick(at);assert.deepEqual(f.target.fall,fall,'duplicate ticks must not restart the fall');
 });
