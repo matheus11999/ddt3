@@ -28,7 +28,7 @@ export function Dashboard(){
     {stats.topToday.length?<ol className="adm-rank">{stats.topToday.map((p,i)=><li key={p.id}><span className={`adm-place p${i+1}`}>{i+1}</span><b>{p.name}</b><small>nível {p.level}</small><em>{p.wins} {p.wins===1?'vitória':'vitórias'}</em></li>)}</ol>:<p className="adm-empty">Ninguém venceu hoje ainda.</p>}
    </article>
    <article className="adm-panel"><h2><UserPlus size={18}/> Últimos jogadores</h2>
-    <ul className="adm-list">{stats.newestPlayers.map(p=><li key={p.id}><b>{p.name}</b><small>nível {p.level}</small><em>{time(p.createdAt)}</em></li>)}</ul>
+    {stats.newestPlayers.length?<ul className="adm-list">{stats.newestPlayers.map(p=><li key={p.id}><b>{p.name}</b><small>nível {p.level}</small><em>{time(p.createdAt)}</em></li>)}</ul>:<p className="adm-empty">Ninguém criou conta ainda.</p>}
    </article>
    <article className="adm-panel span2"><h2>Atividade do painel</h2>
     {stats.audit.length?<ul className="adm-list">{stats.audit.map((a,i)=><li key={i}><b>{ACTIONS[a.action]??a.action}{a.detail?.id?` · ${a.detail.id}`:''}</b><small>{a.username??'—'}</small><em>{time(a.at)}</em></li>)}</ul>:<p className="adm-empty">Sem atividade.</p>}

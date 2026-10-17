@@ -25,11 +25,21 @@ Tipos: **PvP** (entra no sorteio das partidas), **Instância** (dungeons; guarda
 
 Usa o mesmo montador do `npm run build:map` (`shared/mapBuilder.ts`): as peças saem das folhas em magenta de `public/assets/maps/<id>/source/`, a colisão é traçada do alfa e os avisos são os mesmos (objeto flutuando, peça escondida, spawn sem chão, colado em objeto ou com obstáculo). Ao salvar, o editor monta o terreno e a prévia e manda para o servidor, que confere de novo os spawns e os limites da colisão; com spawn sem chão o mapa não pode ser publicado.
 
-- Arrastar peças, objetos e spawns; Shift trava o eixo; setas movem 1 px (Shift: 10 px); Del apaga; Ctrl+D duplica; Ctrl+Z/Ctrl+Y desfaz e refaz; Ctrl+S salva; roda do mouse dá zoom; arrastar o fundo navega.
+- Arrastar peças, objetos e spawns; Shift trava o eixo; setas movem 1 px (Shift: 10 px); Del apaga; Ctrl+D duplica; Ctrl+Z/Ctrl+Y desfaz e refaz; Ctrl+S salva; arrastar o fundo navega. A lista completa abre no botão de teclado ou em `?`.
+- Zoom: roda do mouse no cursor (a página não dá zoom junto), pinça de dois dedos no touch, botões − / % / + e ajustar à tela; teclas `+`, `-`, `0` (mapa inteiro) e `1` (tamanho real).
+- Barras laterais recolhem (botões nas pontas da barra de cima, teclas `[` e `]`); a escolha fica salva no navegador.
+- Ajudas: grade de 96 px (`G`), encaixe de 8 px ao arrastar (`M`), régua do 1x1 entre as posições 1 dos dois times (`R`, verde dentro de 900–1200), retângulo de uma tela do jogo em volta do cursor (`T`), pôr a peça no centro do mapa. Na lista de itens, travar (`L`) impede mover a peça pelo mapa e esconder (`H`) tira a peça só da vista do editor; as duas valem só no editor.
+- Objeto apoiado no chão (`rest`) é arrastado de onde está desenhado e cai no chão abaixo; se ficar dentro do chão, sobe até a superfície. O spawn fica sobre qualquer coisa com colisão, inclusive objetos: spawn com problema aparece com `!` vermelho e o motivo no painel do spawn.
 - Painel da peça: folha, número da peça, nome, X, topo, escala, virar, repetir espelhado no outro time, peça diferente no lado espelhado (`mirrorAs`), apoiar no chão (`rest`, `sink`), quebra com tiros, tem colisão.
 - Painel do mapa: subtítulo, tipo, no sorteio PvP, largura em telas, espelhar para o outro time.
-- Spawns: 4 por time, só na horizontal (o pé fica no chão); mostra a distância do 1x1 (ideal 900–1200) e espelha o time 1 no time 2.
+- Spawns: 4 por time, só na horizontal (o pé fica no chão); mostra a distância do 1x1 (ideal 900–1200), os avisos do spawn e espelha o time 1 no time 2.
 - **JSON** baixa o layout no formato de `scripts/map-layouts/<id>.json`, para levar a mudança para o repositório e rodar `npm run build:map`.
+
+### Assets dos mapas
+
+`/admin/assets` mostra todas as peças e fundos de todos os mapas, separados pela pasta de cada mapa (`public/assets/maps/<mapa>/source`), com busca por nome, pasta, tipo ou tamanho e o filtro Terreno / Objetos / Fundo. Cada peça diz em quais mapas e itens é usada. Os nomes vêm de `source/pieces.json` (`{"objetos": ["Boneco de neve", …]}`, na ordem das peças da folha); sem ele, a peça aparece como "Objetos 3". As pastas são as dos layouts em `scripts/map-layouts`.
+
+No editor, a aba **Peças** tem a mesma busca, começa em "Este mapa" e pode mostrar "Todas as pastas". Uma peça de outra pasta entra no layout como uma folha emprestada: `sheets` ganha uma chave como `garden-objetos` com caminho relativo (`../../garden/source/objetos.png`), que o `build:map` lê do mesmo jeito; nada é copiado. Folha com nome terminado em `objetos` conta como objeto nos avisos.
 
 ### Editor do lobby
 

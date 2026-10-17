@@ -27,6 +27,8 @@ export interface PlacedItem {id:string;source:number;mirrored:boolean;item:Layou
 export interface CellsShape {kind:'cells';col:number;row:number;cols:number;rows:number;bits:string;}
 export interface BuiltRegion {id:string;material:string;destructible:boolean;solid:number;shape:CellsShape;}
 /** A problem the map maker must fix; `item` is the layout index it points at, when there is one. */
+/** Prop sheets: "objetos", or a sheet borrowed from another map's folder under a key like "garden-objetos". */
+export const isPropSheet=(sheet:string)=>/(^|-)objetos$/.test(sheet);
 export interface BuildWarning {text:string;item?:number;spawn?:[number,number];}
 export interface Assembly {
  width:number;world:HTMLCanvasElement;regions:BuiltRegion[];warnings:BuildWarning[];placed:PlacedItem[];
@@ -107,9 +109,11 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
   let top=item.top;const ground0=band(gc,left,left+w+1,H);
   const ph=Math.ceil(h)+1,probe=canvas(W,ph),pc=ctx(probe);draw(pc,0);const shape=band(pc,left,left+w+1,ph);
   const feet:[number,number][]=[];for(let x=Math.ceil(left+w*.2);x<left+w*.8;x+=3){let y=Math.floor(h);while(y>0&&!opaqueIn(shape,x,y))y--;if(y>0)feet.push([x,y]);}
-  const surface=([x,foot]:[number,number])=>{for(let y=Math.max(0,Math.floor(item.top+foot));y<H;y++)if(opaqueIn(ground0,x,y))return y-foot;return Infinity;};
+  // A foot that starts inside the ground (the editor drags props by where they are drawn) climbs to the surface instead.
+  const surface=([x,foot]:[number,number])=>{let y=Math.max(0,Math.floor(item.top+foot));if(opaqueIn(ground0,x,y)){while(y>0&&opaqueIn(ground0,x,y-1))y--;return y-foot;}
+   for(;y<H;y++)if(opaqueIn(ground0,x,y))return y-foot;return Infinity;};
   if(item.rest){const tops=feet.map(surface).filter(Number.isFinite);if(tops.length)top=Math.min(...tops)+(item.sink??8);else warnings.push({text:`${item.id}: não achou chão abaixo para apoiar`,item:source});}
-  if(item.rest||sheet==='objetos'){const touching=feet.filter(([x,foot])=>[0,3,6,9].some(d=>opaqueIn(ground0,x,Math.floor(top+foot+d)))).length;
+  if(item.rest||isPropSheet(sheet)){const touching=feet.filter(([x,foot])=>[0,3,6,9].some(d=>opaqueIn(ground0,x,Math.floor(top+foot+d)))).length;
    if(touching<Math.max(1,feet.length*.15))warnings.push({text:`${item.id}: objeto flutuando (base sem chão embaixo)`,item:source});}
   const entry:PlacedItem={id:item.id,source,mirrored,item,sheet,piece,left,right:left+w,top,bottom:top+h,w,h};
   if(item.solid===false){draw(wc,top);placed.push(entry);continue;}
@@ -127,7 +131,7 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
 
  // A big piece mostly covered from above by another piece is hidden under it (e.g. a gate under a bridge): it has no reason to be there.
  const solidPlaced=placed.filter(p=>p.item.solid!==false);
- for(const a of solidPlaced)if(a.sheet!=='objetos'){const covered=solidPlaced.filter(b=>b!==a&&b.sheet!=='objetos'&&b.bottom<a.top-10).reduce((n,b)=>n+Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left)),0);
+ for(const a of solidPlaced)if(!isPropSheet(a.sheet)){const covered=solidPlaced.filter(b=>b!==a&&!isPropSheet(b.sheet)&&b.bottom<a.top-10).reduce((n,b)=>n+Math.max(0,Math.min(a.right,b.right)-Math.max(a.left,b.left)),0);
   if(covered>(a.right-a.left)*.5)warnings.push({text:`${a.id}: peça escondida embaixo de outra (${Math.round(100*covered/(a.right-a.left))}% coberta por cima); só faz sentido se tiver motivo`,item:a.source});}
 
  // Spawns stand on open terrain: never on or against a prop, with room to walk both ways and nothing overhead.
@@ -136,7 +140,7 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
  const top=(x:number)=>x>=0&&x<W?surface[Math.floor(x)]:H;
  layout.spawns.forEach((team,t)=>team.forEach((x,slot)=>{const name=`spawn time ${t+1} jogador ${slot+1} (x ${x})`,spawn:[number,number]=[t,slot];
   const y=top(x);if(y>=H){warnings.push({text:`${name}: sem chão, cai no abismo`,spawn});return;}
-  const prop=solidPlaced.find(p=>p.sheet==='objetos'&&x>p.left-40&&x<p.right+40);if(prop)warnings.push({text:`${name}: colado em ${prop.id}`,spawn});
+  const prop=solidPlaced.find(p=>isPropSheet(p.sheet)&&x>p.left-40&&x<p.right+40);if(prop)warnings.push({text:`${name}: colado em ${prop.id}`,spawn});
   // The column's top pixel is the floor, so "obstructed" means a wall or bump rising beside the body, or a drop right next to it.
   for(let dx=-40;dx<=40;dx+=4){if(!dx)continue;const g=top(x+dx);
    if(g<y-24){warnings.push({text:`${name}: obstáculo a ${Math.abs(dx)} px (${y-g} px mais alto)`,spawn});break;}

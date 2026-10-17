@@ -7,7 +7,7 @@ import {applyMapOverride,contains,getMap,MAP_IDS,removeMapOverride} from '../sha
 import type {MapId,MapRegion} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
-import {LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN} from '../shared/mapAdmin';
+import {LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
 import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMaps} from '../shared/mapAdmin';
 
 /**
@@ -150,6 +150,9 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   const parsed=mapSaveSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:`Dados inválidos: ${parsed.error.issues.slice(0,3).map(i=>`${i.path.join('.')} ${i.message}`).join('; ')}`});
   const save=parsed.data,row=await store.map(id);
   if((id===LOBBY_MAP_ID)!==(save.kind==='lobby'))return reply.code(400).send({error:'Só a Praça Celeste é um mapa de lobby por enquanto.'});
+  // A map's kind is chosen when it is created and never changes (a PvP map does not become an instance, nor the reverse).
+  const kind=row?.kind??(builtIn(id)?(id===LOBBY_MAP_ID?'lobby':'pvp'):null);
+  if(kind&&save.kind!==kind)return reply.code(400).send({error:`O tipo do mapa não muda depois de criado (este é ${MAP_KIND_NAMES[kind]}).`});
   const base=row?.base??(builtIn(id)?id:z.string().regex(MAP_ID_PATTERN).safeParse((req.query as Record<string,unknown>)?.base).data);
   if(!base)return reply.code(400).send({error:'Mapa novo precisa de um mapa de base.'});
   let terrain:Buffer|null=null,preview:Buffer|null=null,data:Record<string,unknown>;
