@@ -7,7 +7,7 @@ import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby'
 import {attributes,BOOSTS,CATALOG,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,DIRECT_HIT_DIG,ground,packTerrain,shatter,terrainMaterial,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_DIG,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_IDS} from '../shared/maps';
@@ -422,7 +422,7 @@ export class Game {
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
   const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){
-   const result=results[parent];if(result.x<0||result.x>WORLD.width||result.y>WORLD.height)continue;
+   const result=results[parent];if(result.x<0||result.x>terrainWidth(m.terrain)||result.y>WORLD.height)continue;
    const start=delays[parent]+result.flightTime,base=shot.projectiles.length,shardImpacts:Shot['projectiles'][number]['impact'][]=[];
    const pieces=shatter(simulated.terrain,{x:result.x,y:result.y},shardCount,shooter.facing,w,m.state.wind,simulated.state.players.filter(player=>player.id!==f.id&&player.id!==result.hitId),(piece,index)=>{
     shardImpacts[index]=planImpact(piece,base+index,start,w.fragments!.crater,w.fragments!.blast,w.fragments!.damage,true);

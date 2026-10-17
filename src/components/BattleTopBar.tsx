@@ -35,31 +35,33 @@ export function FighterRoster({players,myTeam,turnId,side}:{players:Fighter[];my
  </div>;
 }
 
-const MINI_W=216,MINI_H=Math.round(MINI_W*WORLD.height/WORLD.width);
+/** Wide maps get a wide, short minimap, like DDTank's. */
+const MINI_W=216,miniHeight=(worldWidth:number)=>Math.round(MINI_W*WORLD.height/worldWidth);
 
 /** Whole-map overview: live terrain, fighters and the camera's view (top-right). */
 export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;myId:string;onExit:()=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),live=useRef({battle,myTeam,myId});live.current={battle,myTeam,myId};
+ const worldWidth=getMap(battle.map).dimensions.width,MINI_H=miniHeight(worldWidth),cols=worldWidth/WORLD.cell;
  useEffect(()=>{
   const c=canvas.current?.getContext('2d');if(!c)return;
-  const ground=document.createElement('canvas');ground.width=WORLD.cols;ground.height=WORLD.rows;const g=ground.getContext('2d')!;
+  const ground=document.createElement('canvas');ground.width=cols;ground.height=WORLD.rows;const g=ground.getContext('2d')!;
   let painted=-1,frame=0,last=0;const backdrop=new Image();backdrop.src=`/assets/maps/${getMap(live.current.battle.map).id}-preview.png`;
   const paintTerrain=(terrain:Uint8Array)=>{
-   const image=g.createImageData(WORLD.cols,WORLD.rows),data=image.data;
-   for(let y=0;y<WORLD.rows;y++)for(let x=0;x<WORLD.cols;x++){const i=y*WORLD.cols+x;if(terrain[i]!==1)continue;const top=y===0||terrain[i-WORLD.cols]!==1,o=i*4;
+   const image=g.createImageData(cols,WORLD.rows),data=image.data;
+   for(let y=0;y<WORLD.rows;y++)for(let x=0;x<cols;x++){const i=y*cols+x;if(terrain[i]!==1)continue;const top=y===0||terrain[i-cols]!==1,o=i*4;
     if(top){data[o]=120;data[o+1]=226;data[o+2]=96;}else{const shade=Math.min(1,(y-0)/WORLD.rows+.25);data[o]=Math.round(178-60*shade);data[o+1]=Math.round(118-45*shade);data[o+2]=Math.round(62-25*shade);}data[o+3]=255;}
    g.putImageData(image,0,0);
   };
   const draw=(now:number)=>{
    frame=requestAnimationFrame(draw);if(now-last<120)return;last=now;
    const {battle:b,myTeam:team,myId:id}=live.current;
-   if(sceneView.terrain&&sceneView.version!==painted){painted=sceneView.version;paintTerrain(sceneView.terrain);}
-   const sx=MINI_W/WORLD.width,sy=MINI_H/WORLD.height;
+   if(sceneView.terrain?.length===cols*WORLD.rows&&sceneView.version!==painted){painted=sceneView.version;paintTerrain(sceneView.terrain);}
+   const sx=MINI_W/worldWidth,sy=MINI_H/WORLD.height;
    const sky=c.createLinearGradient(0,0,0,MINI_H);sky.addColorStop(0,'#1d3b6e');sky.addColorStop(1,'#0b1730');c.fillStyle=sky;c.fillRect(0,0,MINI_W,MINI_H);
    if(backdrop.complete&&backdrop.naturalWidth){c.globalAlpha=.55;c.drawImage(backdrop,0,0,MINI_W,MINI_H);c.globalAlpha=1;c.fillStyle='#0b173055';c.fillRect(0,0,MINI_W,MINI_H);}
    c.imageSmoothingEnabled=false;c.drawImage(ground,0,0,MINI_W,MINI_H);c.imageSmoothingEnabled=true;
    const cam=sceneView.camera,hw=WORLD.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
-   if(cam.zoom>1.02){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
+   if(cam.zoom>1.02||worldWidth>WORLD.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
    for(const player of b.players){
     if(player.hidden||player.hp<=0)continue;const x=player.x*sx,y=(player.y-14)*sy,ally=player.team===team,active=player.id===b.turnId;
     if(active){c.beginPath();c.arc(x,y,6+Math.sin(now/180)*1.2,0,Math.PI*2);c.strokeStyle='#fff3a0';c.lineWidth=1.5;c.stroke();}
