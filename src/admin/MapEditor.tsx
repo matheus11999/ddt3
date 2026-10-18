@@ -261,7 +261,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  };
  const onPointerUp=(e:React.PointerEvent)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchRef.current=null;
   const drag=dragRef.current;dragRef.current=null;
-  if(drag?.kind==='cut'){const box=cutBox(drag);if(box.w>=8&&box.h>=8)change(d=>{const item=d.layout.items[drag.index];item.passThrough=[...(item.passThrough??[]),box];});setCutting(false);redraw(n=>n+1);}
+  if(drag?.kind==='cut'){const box=cutBox(drag);if(box.w>=8&&box.h>=8)change(d=>{const item=d.layout.items[drag.index];item.passThrough=[...(item.passThrough??[]),box];});redraw(n=>n+1);}
  };
  const zoom100=()=>{const wrap=wrapRef.current!,v=viewRef.current,cx=(wrap.clientWidth/2-v.x)/v.scale;viewRef.current={scale:1,x:wrap.clientWidth/2-cx,y:(wrap.clientHeight-MAP_HEIGHT)/2};redraw(n=>n+1);};
 
@@ -315,7 +315,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    if(selection?.type==='spawn'&&doc&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{d.layout.spawns[selection.team][selection.slot]=Math.max(0,Math.min(W,d.layout.spawns[selection.team][selection.slot]+step));});}
    if(selection?.type==='monster'&&doc){if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeMonster(selection.index);return;}
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{const m=d.layout.monsters![selection.index];m.x=Math.max(0,Math.min(W,m.x+step));});}}
-   if(e.key==='Escape'){setSelection(null);setShowKeys(false);}
+   if(e.key==='Escape'){setSelection(null);setShowKeys(false);setCutting(false);}
    if(mod||e.altKey)return;
    if(e.key==='+'||e.key==='='){zoomAt(viewRef.current.scale*1.25);return;}
    if(e.key==='-'||e.key==='_'){zoomAt(viewRef.current.scale/1.25);return;}
@@ -445,7 +445,7 @@ function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange
   <Toggle label="Tem colisão" hint="Desligado: só enfeite, sem chão" value={item.solid!==false} onChange={v=>onChange({solid:v?undefined:false})}/>
   {item.solid!==false&&<Toggle label="Chão liso" hint="Pedrinhas e calombos em cima ficam só de enfeite: ninguém escala" value={!!item.smooth} onChange={v=>onChange({smooth:v?160:undefined})}/>}
   {item.solid!==false&&<div className="adm-cut-areas">
-   <label className="adm-toggle-row"><span><b>Marcar área sem colisão</b><small>Arraste um retângulo sobre a peça: ali ninguém pisa nem bate (folhas, enfeites)</small></span><button type="button" className={`adm-toggle ${cutting?'on':''}`} aria-pressed={cutting} onClick={onCut}><i/></button></label>
+   <label className="adm-toggle-row"><span><b>Marcar área sem colisão</b><small>Ligado, cada retângulo arrastado sobre a peça vira uma área: ali ninguém pisa nem bate (folhas, enfeites). Desligue para voltar a mover peças</small></span><button type="button" className={`adm-toggle ${cutting?'on':''}`} aria-pressed={cutting} onClick={onCut}><i/></button></label>
    {(item.passThrough??[]).map((box,n)=><div key={n} className="adm-cut-area"><span>Área {n+1} · x {box.x} · y {box.y} · {box.w}×{box.h}</span><button type="button" className="adm-icon" title="Devolver a colisão desta área" onClick={()=>{const rest=(item.passThrough??[]).filter((_,k)=>k!==n);onChange({passThrough:rest.length?rest:undefined});}}><Trash2 size={14}/></button></div>)}
   </div>}
  </section>;
