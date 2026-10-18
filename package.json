@@ -45,7 +45,8 @@
     "test:reports:browser": "node scripts/smoke-reports.mjs",
     "test:expedition:browser": "node scripts/smoke-expedition.mjs",
     "test:mail:integration": "tsx tests/mail.integration.ts",
-    "test:mail:browser": "node scripts/smoke-mail.mjs"
+    "test:mail:browser": "node scripts/smoke-mail.mjs",
+    "test:auction:integration": "tsx tests/auction.integration.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

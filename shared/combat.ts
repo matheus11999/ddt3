@@ -2,6 +2,7 @@ import {attributes} from './catalog';
 import type {BoostId,Equipment} from './catalog';
 import type {HitKind} from './protocol';
 import {FIGHTER_HIT_RADIUS} from './physics';
+import {powerUpShot} from './powerUps';
 import {armorReduction,attackMultiplier,combinedReduction,CRITICAL_ROLL_MODE,criticalBonusMultiplier,criticalChancePercent,defenseReduction} from './stats';
 import type {CriticalRollMode} from './stats';
 
@@ -18,9 +19,11 @@ export function criticalFromRoll(luck:number,roll:number,mode:CriticalRollMode=C
  if(!Number.isFinite(roll)||roll<0||roll>=1)return false;
  return mode==='legacy'?criticalChancePercent(luck)>=Math.floor(roll*100):roll<criticalChance(luck);
 }
+/** Shot shape and damage factors from the turn's power-ups (shared/powerUps.ts): consecutive volleys, the
+ * Tridente spread, the shot-mode penalty per projectile and the additive percentage bonus. */
 export function shotModifiers(boosts:readonly BoostId[]){
- const volleys=1+boosts.reduce((count,id)=>count+(id==='extra1'?1:id==='extra2'?2:0),0),trident=boosts.includes('trident');
- return {volleys,spread:trident?[-9,0,9]:[0],projectileMultiplier:Math.min(1,1.8/volleys)*(trident?.5:1),damageMultiplier:1+boosts.reduce((n,id)=>n+(id.startsWith('damage')?Number(id.slice(6))/100:0),0)};
+ const shot=powerUpShot(boosts);
+ return {volleys:shot.sequentialShots,spread:shot.spread,projectileMultiplier:shot.modeMultiplier,damageMultiplier:shot.bonusMultiplier};
 }
 /** Approach quality is the penetration of the projectile's travel line through
  * the expanded fighter circle; surface distance cannot distinguish a graze. */

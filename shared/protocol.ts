@@ -16,7 +16,9 @@ import {DIFFICULTIES} from './expeditions';
 import type {Difficulty,MonsterKind} from './expeditions';
 import type {MonsterMove,MonsterBite} from './instanceTurn';
 import type {MailClaimResult,MailMessage} from './mail';
-export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
+import {auctionCommandSchemas} from './auction';
+import type {AuctionMine,AuctionPage,AuctionResult} from './auction';
+export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
 export interface ColorResult {changes:ColorChange[];tickets:number;}
@@ -38,11 +40,12 @@ export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];tur
 /** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
 export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};/** Speech bubbles (boss opening), server time. */speech?:{id:string;text:string;from:number;to:number}[];monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
 export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number;stretch?:number};roughness?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;/** Shot by a monster (the queen's arrow): drawn by the expedition renderer, no crater. */monster?:'arrow';}
-export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;effect:Projectile['effect'];level:number;}
+/** scorch: the shot hit ground or an object that does not break, so it leaves an irregular burn instead of a crater mark. */
+export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;scorch?:boolean;effect:Projectile['effect'];level:number;}
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
-export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:'world'|'room';time:number;}
+export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:'world'|'room'|'private';time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;}
 import {LOBBY_WALK} from './lobby';
 const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLowerCase());
 export const MAX_SHOP_QUANTITY=20;
@@ -64,6 +67,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('player-info'),playerId:z.string().regex(/^(bot-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)}).strict(),
  reportCommandSchema,
  z.object({type:z.literal('mail-list')}).strict(),
+ ...auctionCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  // Without an id: "Receber tudo".
@@ -99,14 +103,15 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('power')}).strict(),
  z.object({type:z.literal('ability'),ability:z.enum(ABILITY_IDS)}).strict(),
  z.object({type:z.literal('flight'),active:z.boolean()}).strict(),
- z.object({type:z.literal('boost'),boost:z.enum(['extra1','extra2','trident','damage50','damage40','damage30','damage20'])}),
+ z.object({type:z.literal('boost'),boost:z.enum(['extra1','extra2','trident','damage50','damage40','damage30','damage20','damage10'])}),
  z.object({type:z.literal('walk'),direction:z.union([z.literal(-1),z.literal(1)])}),
  z.object({type:z.literal('face'),direction:z.union([z.literal(-1),z.literal(1)])}).strict(),
  z.object({type:z.literal('aim'),angle:finite(5,90),power:finite(0,100),charging:z.boolean()}).strict(),
  z.object({type:z.literal('fire'),angle:finite(5,90),power:finite(5,100)}),
  z.object({type:z.literal('reward-pick'),card:z.number().int().min(0).max(7)}).strict(),
  z.object({type:z.literal('pass')}),z.object({type:z.literal('rematch')}),
- z.object({type:z.literal('chat'),text:z.string().trim().min(1).max(180),channel:z.enum(['world','room'])}),
+ // `to` (a player id) only for a private message.
+ z.object({type:z.literal('chat'),text:z.string().trim().min(1).max(180),channel:z.enum(['world','room','private']),to:z.string().uuid().optional()}),
  z.object({type:z.literal('ping'),time:z.number().finite()})
 ]);
 export type Command=z.infer<typeof commandSchema>;
@@ -139,5 +144,9 @@ export type ServerEvent =
  | {type:'mail';mails:MailMessage[];unread:number}
  | {type:'mail-claim-result';result:MailClaimResult}
  | {type:'report-result';playerId:string;name:string}
+ /** Leilão: one page of listings, my own listings and notices, and the outcome of a sale, purchase or withdrawal. */
+ | {type:'auction-page';page:AuctionPage}
+ | ({type:'auction-mine'} & AuctionMine)
+ | {type:'auction-result';result:AuctionResult}
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};

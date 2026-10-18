@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {CATALOG,isEmptyItem,MAX_UPGRADE,STONES,WEAPONS} from './catalog';
 import {COMPOSITION_STONE_BY_ID} from './composition';
+import type {CompositionBonus} from './composition';
 
 /**
  * Player mail ("Correio"): an inbox like e-mail, with sender, subject, text and attachments.
@@ -9,7 +10,8 @@ import {COMPOSITION_STONE_BY_ID} from './composition';
  */
 export type MailAttachment=
  | {kind:'coins';amount:number}
- | {kind:'item';item:string;quantity:number;/** Forge level of a weapon (each copy). */upgrade?:number}
+ | {kind:'coupons';amount:number}
+ | {kind:'item';item:string;quantity:number;/** Forge level of a weapon, hat or outfit (each copy). */upgrade?:number;/** A copy coming back from the Leilão keeps its compositions and ticket color. */compositions?:CompositionBonus;color?:string}
  | {kind:'stone';level:number;amount:number}
  | {kind:'composition';stone:string;amount:number}
  | {kind:'ticket';amount:number};
@@ -25,6 +27,7 @@ export const MAIL_DEFAULT_SENDER='Equipe Brasa';
 const amount=(max:number)=>z.number().int().min(1).max(max);
 export const mailAttachmentSchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('coins'),amount:amount(MAIL_COINS_MAX)}).strict(),
+ z.object({kind:z.literal('coupons'),amount:amount(MAIL_COINS_MAX)}).strict(),
  z.object({kind:z.literal('item'),item:z.string().min(1).max(40).refine(id=>Object.hasOwn(CATALOG,id)&&!isEmptyItem(id),'Item não existe no jogo.'),quantity:amount(MAIL_ITEM_COPIES_MAX),upgrade:z.number().int().min(0).max(MAX_UPGRADE).optional()}).strict(),
  z.object({kind:z.literal('stone'),level:z.number().int().min(1).max(STONES.length),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
  z.object({kind:z.literal('composition'),stone:z.string().refine(id=>Object.hasOwn(COMPOSITION_STONE_BY_ID,id),'Pedra de composição inválida.'),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
@@ -44,6 +47,7 @@ const ROMAN=['I','II','III','IV','V'];
 export function attachmentLabel(a:MailAttachment):string{
  switch(a.kind){
   case 'coins':return `${a.amount.toLocaleString('pt-BR')} Moedas Brasa`;
+  case 'coupons':return `${a.amount.toLocaleString('pt-BR')} Cupons`;
   case 'item':{const name=CATALOG[a.item]?.name??a.item;return `${name}${a.upgrade?` +${a.upgrade}`:''}${a.quantity>1?` ×${a.quantity}`:''}`;}
   case 'stone':return `${a.amount}× Pedra de Fortificação ${ROMAN[a.level-1]??a.level}`;
   case 'composition':return `${a.amount}× ${COMPOSITION_STONE_BY_ID[a.stone]?.name??a.stone}`;

@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Clover,Flag,Flame,Footprints,Heart,IdCard,LoaderCircle,Send,Shield,ShieldCheck,Swords,X,Zap} from 'lucide-react';
+import {Clover,Flag,Flame,Footprints,Heart,IdCard,LoaderCircle,MessageCircle,Send,Shield,ShieldCheck,Swords,X,Zap} from 'lucide-react';
 import {attributes,canStrengthen,CATALOG,SLOT_NAMES,equippedCopy,isEmptyItem} from '../../shared/catalog';
 import type {Slot} from '../../shared/catalog';
 import {REPORT_DETAILS_MAX,REPORT_REASONS} from '../../shared/reports';
@@ -34,6 +34,7 @@ export function PlayerActions(){
  const target:PlayerTarget={id:panel.id,name:panel.name,context:panel.context},self=panel.id===profile.id,bot=panel.id.startsWith('bot-');
  if(panel.kind==='menu')return createPortal(<BagContextMenu x={panel.x} y={panel.y} title={panel.name} onClose={()=>client.closePlayerPanel()} actions={[
   {id:'info',label:'Ver informações',icon:<IdCard size={16}/>,onSelect:()=>{client.openPlayerPanel('info',target);audio.play('click');}},
+  ...(self||bot?[]:[{id:'message',label:'Enviar mensagem',icon:<MessageCircle size={16}/>,onSelect:()=>{client.messagePlayer(target);audio.play('click');}}]),
   ...(self||bot?[]:[{id:'report',label:'Denunciar',icon:<Flag size={16}/>,danger:true,onSelect:()=>{client.openPlayerPanel('report',target);audio.play('click');}}]),
  ]}/>,document.body);
  return panel.kind==='info'?<PlayerInfoWindow target={target} self={self||bot}/>:<ReportWindow target={target}/>;

@@ -1,4 +1,5 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
+import {powerUpConflict} from '../shared/powerUps';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -24,6 +25,7 @@ import {REPORT_CHAT_WINDOW_MS} from '../shared/reports';
 import type {PlayerInfo,ReportChatLine} from '../shared/reports';
 import type {ReportSink} from './reports';
 import type {MailBox} from './mail';
+import type {AuctionHouse} from './auction';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
@@ -55,6 +57,8 @@ export class Game {
  reports?:ReportSink;
  /** Player mail (server/mail.ts); without it the inbox stays empty. */
  mail?:MailBox;
+ /** The Leilão (server/auction.ts); without it the auction house is closed. */
+ auction?:AuctionHouse;
  /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
  private chatLog=new Map<string,ReportChatLine[]>();private chatLogPrunedAt=0;private playerInfoAt=new Map<string,number>();
  private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
@@ -69,10 +73,17 @@ export class Game {
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
   send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
-  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);return p;
+  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);return p;
  }
  /** Sends a player their inbox (on connect, and when the admin panel mails them). */
  private async sendInbox(p:Peer){if(!this.mail||!p.connected)return;const {mails,unread}=await this.mail.inbox(p.profile.id);this.emit(p,{type:'mail',mails,unread});}
+ /** A seller's listings and notices (the bell counts the unseen ones). */
+ private async sendAuctionMine(p:Peer){if(!this.auction||!p.connected)return;this.emit(p,{type:'auction-mine',...await this.auction.mine(p.profile.id)});}
+ /** Closes the listings whose time ran out (goods go back by mail) and tells online sellers. */
+ async auctionSweep(){
+  if(!this.auction)return;
+  for(const id of await this.auction.expireDue()){const p=this.peers.get(id);if(p?.connected){await this.sendInbox(p);await this.sendAuctionMine(p);}}
+ }
  /** New mail from the admin panel reaches an online player right away. */
  async mailArrived(playerId:string){const p=this.peers.get(playerId);if(p?.connected)await this.sendInbox(p);}
  /** Where each connected player is, for the admin panel's player table. */
@@ -423,8 +434,39 @@ export class Game {
     }
     case 'chat':{
      const msg={id:randomUUID(),playerId:id,name:p.profile.name,text:c.text,channel:c.channel,time:Date.now()};
-     if(c.channel==='room'){const r=this.room(p);this.logChat(id,{at:msg.time,channel:'room',text:c.text,room:r.number});const m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
+     if(c.channel==='private'){
+      const target=c.to?this.peers.get(c.to):undefined;
+      if(!c.to||c.to===id)throw Error('Escolha para quem enviar a mensagem.');
+      if(!target?.connected)throw Error('Este jogador não está online agora.');
+      const line={...msg,toId:target.profile.id,toName:target.profile.name};this.logChat(id,{at:msg.time,channel:'private',text:c.text,to:target.profile.name});
+      this.emit(p,{type:'chat',message:line});this.emit(target,{type:'chat',message:line});
+     }
+     else if(c.channel==='room'){const r=this.room(p);this.logChat(id,{at:msg.time,channel:'room',text:c.text,room:r.number});const m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
      else{this.logChat(id,{at:msg.time,channel:'world',text:c.text});for(const peer of this.peers.values())if(peer.channel===p.channel)this.emit(peer,{type:'chat',message:msg});}break;
+    }
+    case 'auction-list':{
+     if(!this.auction)throw Error('O leilão está fechado no momento.');
+     this.emit(p,{type:'auction-page',page:await this.auction.list({category:c.category,page:c.page,search:c.search,gender:p.profile.gender})});return;
+    }
+    case 'auction-mine':await this.sendAuctionMine(p);return;
+    case 'auction-seen':if(this.auction){await this.auction.seen(id);await this.sendAuctionMine(p);}return;
+    case 'auction-sell':
+    case 'auction-buy':
+    case 'auction-cancel':{
+     if(!this.auction)throw Error('O leilão está fechado no momento.');
+     if(c.type!=='auction-cancel'&&p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Use o leilão entre as batalhas.');
+     if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);
+     try{
+      if(c.type==='auction-cancel'){const listing=await this.auction.cancel(id,c.id);this.emit(p,{type:'auction-result',result:{action:'cancel',listing}});await this.sendInbox(p);}
+      else if(c.type==='auction-sell'){const outcome=await this.auction.sell(id,{source:c.source,currency:c.currency,price:c.price,hours:c.hours});p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'auction-result',result:{action:'sell',listing:outcome.listing}});}
+      else{
+       const outcome=await this.auction.buy(id,c.id,c.currency,c.price);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'auction-result',result:{action:'buy',listing:outcome.listing}});
+       // The seller hears the bell and finds the payment in the mail right away.
+       const seller=this.peers.get(outcome.listing.sellerId);if(seller?.connected){await this.sendInbox(seller);await this.sendAuctionMine(seller);}
+      }
+     }finally{this.profileChanges.delete(id);}
+     await this.sendAuctionMine(p);return;
     }
     case 'mail-list':await this.sendInbox(p);return;
     case 'mail-read':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.markRead(id,c.id);await this.sendInbox(p);return;
@@ -602,7 +644,7 @@ export class Game {
  private boost(f:Fighter,id:BoostId){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
   const b=BOOSTS.find(b=>b.id===id)!;
-  if(id==='trident'&&f.boosts.includes(id))throw Error('O tridente já foi usado neste turno.');
+  const combination=powerUpConflict(f.boosts,id);if(combination)throw Error(combination);
   // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
   const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
@@ -671,7 +713,7 @@ export class Game {
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{

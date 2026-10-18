@@ -1,7 +1,12 @@
 import {CURRENCY_NAME} from '../../shared/rewards';
 import type {CardPrize} from '../../shared/rewards';
 /** Coins and EXP come from the painted reward strip; forge stones and Color Tickets use their own art. */
-export function RewardIcon({kind='coins',size=28,level=1}:{kind?:CardPrize['kind'];size?:number;level?:number}){
+/** Cupons, the cash currency: painted coupon (public/assets/ui/coupon.png). */
+export function CouponIcon({size=28}:{size?:number}){
+ return <img src="/assets/ui/coupon.png" width={size} height={size} alt="Cupons" draggable={false} style={{flexShrink:0,verticalAlign:'middle',objectFit:'contain'}}/>;
+}
+export function RewardIcon({kind='coins',size=28,level=1}:{kind?:CardPrize['kind']|'coupons';size?:number;level?:number}){
+ if(kind==='coupons')return <CouponIcon size={size}/>;
  if(kind==='stone')return <img src={`/assets/stone-${Math.max(1,Math.min(5,level))}.png`} width={size} height={size} alt={`Pedra de fortalecimento ${level}`} draggable={false} style={{flexShrink:0,verticalAlign:'middle',objectFit:'contain'}}/>;
  if(kind==='ticket')return <img src="/assets/ui/color-ticket.png" width={size} height={size} alt="Ticket de Cor" draggable={false} style={{flexShrink:0,verticalAlign:'middle',objectFit:'contain'}}/>;
  return <span role="img" aria-label={kind==='coins'?CURRENCY_NAME:'Experiência'} style={{display:'inline-block',flexShrink:0,width:size,height:size,verticalAlign:'middle',backgroundImage:"url('/assets/ui/reward-icons.png')",backgroundSize:'200% 100%',backgroundPosition:kind==='coins'?'0% 50%':'100% 50%',backgroundRepeat:'no-repeat'}}/>;

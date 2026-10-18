@@ -15,7 +15,7 @@ export class PlayerDirectory {
  private row(row:Record<string,unknown>,presence:ReadonlyMap<string,PlayerPresence>):AdminPlayerRow{
   const p=normalizeProfile({...(row.profile as object),id:row.id as string,name:row.name as string});
   const stones=Object.values(p.stones).reduce((a,b)=>a+b,0);
-  return {id:p.id,name:p.name,gender:p.gender,level:p.level,xp:p.xp,gold:p.gold,wins:p.wins,matches:p.matches,colorTickets:p.colorTickets,stones,items:p.inventory.length,
+  return {id:p.id,name:p.name,gender:p.gender,level:p.level,xp:p.xp,gold:p.gold,coupons:p.coupons,wins:p.wins,matches:p.matches,colorTickets:p.colorTickets,stones,items:p.inventory.length,
    createdAt:new Date(row.created_at as string).toISOString(),presence:presence.get(p.id)??'offline'};
  }
  async list(query:{search?:string;online?:boolean;sort?:string;page?:number},presence:ReadonlyMap<string,PlayerPresence>){
