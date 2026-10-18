@@ -60,9 +60,7 @@ await cat('PvP');await shot(page,'06-guildas-pvp');
 await side('Jogadores');await cat('Nível');await shot(page,'07-nivel');
 await cat('Conquistas');await shot(page,'08-conquistas');
 await side('Lendas');await page.waitForTimeout(800);await shot(page,'09-lendas-semanal');
-await side('Jogadores');await cat('PvP');await page.click('.hof-plate-actions button:has-text("Ver conquistas")');await page.waitForSelector('.hof-profile header');await shot(page,'10-perfil-jogador');
-await page.click('.hof-popup .hof-close');await side('Guildas');await page.click('.hof-plate-actions button:has-text("Ver guilda")');await page.waitForSelector('.hof-profile header');await shot(page,'11-perfil-guilda');
-await page.click('.hof-popup .hof-close');await side('Jogadores');await page.click('.hof-plate-actions button:has-text("Ver equipamento")');await shot(page,'13-ver-equipamento');
+await side('Jogadores');await cat('PvP');await page.click('.hof-plate-actions button:has-text("Ver equipamento")');await shot(page,'13-ver-equipamento');
 await page.close();
 // Mobile, landscape.
 const phone=await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true});

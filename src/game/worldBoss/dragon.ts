@@ -7,7 +7,7 @@
 import type {Battle,Fighter} from '../../../shared/protocol';
 import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
-import {glow,groundFire,hash,puff,stream,tongue} from './fire';
+import {glow,groundFire,hash,stream} from './fire';
 
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
@@ -153,11 +153,10 @@ function mouthGap(jaw:number){const tip=jawTip(jaw),lip=DRAGON_RIG.mouth;return 
 export function dragonMouth(f:Fighter,pose:DragonPose){return headPoint(f,pose,mouthGap(pose.jaw));}
 /** Fire roaring inside the open mouth, from the throat to the teeth: drawn between the jaw and the skull, so the teeth stay in front of it. */
 function mouthFire(c:CanvasRenderingContext2D,pose:DragonPose,t:number){
- const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),dx=gap[0]-THROAT[0],dy=gap[1]-THROAT[1],angle=Math.atan2(dx,-dy),open=clamp(pose.jaw/.6);
- glow(c,gap[0]-10,gap[1],90*k,.8*k);
- for(let i=0;i<7;i++){const u=i/6,x=THROAT[0]+dx*u,y=THROAT[1]+dy*u,r=(20+30*u)*(.5+.5*open)*(.7+.3*k);
-  puff(c,x,y,r*1.1,.6,.7*k);tongue(c,x,y,r*2.4,r*1.3,t,40+i,k,0,angle);}
- for(let i=0;i<12;i++){const u=i/11,w=Math.sin(t/70+i*1.7)*.35;puff(c,THROAT[0]+dx*u-dy*.04*w,THROAT[1]+dy*u+dx*.04*w,(24+18*u)*(.5+.5*open)*(1+.15*Math.sin(t/55+i)),.97,.95*k);}
+ const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),from={x:THROAT[0],y:THROAT[1]},to={x:gap[0],y:gap[1]};
+ // The same jet as outside, poured without pause while the mouth breathes fire: it reaches the teeth as wide as the stream leaving them.
+ glow(c,gap[0]-10,gap[1],70*k,.6*k);
+ c.save();c.globalAlpha*=k;stream(c,from,{x:(from.x+to.x)/2,y:(from.y+to.y)/2},to,t,t-2000,t+2000,120,20,true,t);c.restore();
 }
 
 /** Body, head and jaw: drawn before the terrain so the ridge in front hides where the dragon rises from. */
@@ -205,7 +204,17 @@ function rocks(c:Ctx,x:number,y:number,age:number,high:boolean){
  for(let i=0;i<(high?10:6);i++){const vx=(hash(i*3)-.5)*.75,vy=-(.55+.5*hash(i*3+1)),size=5+8*hash(i*3+2),px=x+vx*age,py=y-4+vy*age+g*age*age/2;
   if(py>y+10)continue;c.save();c.globalAlpha*=1-age/900;c.translate(px,py);c.rotate(age/120*(i%2?1:-1));c.fillStyle=i%3?'#8a6440':'#6b4a2e';c.beginPath();c.moveTo(-size,-size*.4);c.lineTo(-size*.2,-size);c.lineTo(size,-size*.3);c.lineTo(size*.6,size*.7);c.lineTo(-size*.7,size*.6);c.closePath();c.fill();c.restore();}
 }
-/** Paw, fire, smoke and dust: drawn over the fighters. */
+/** The paw coming out of the ground: drawn behind the fighters, so a player held in the fist stays in front of it, in the dragon's hand. */
+export function drawDragonPaw(c:CanvasRenderingContext2D,pose:DragonPose,ground:(x:number)=>number){
+ if(!pose.claw)return;
+ const cl=pose.claw;c.save();
+ // Only what is above the ground shows: the forearm stays in the earth.
+ c.beginPath();c.moveTo(cl.x-320,-2000);c.lineTo(cl.x+320,-2000);for(let x=cl.x+320;x>=cl.x-320;x-=16)c.lineTo(x,ground(x)+6);c.closePath();c.clip();
+ c.globalAlpha*=cl.alpha*pose.alpha;c.translate(cl.x,cl.y);c.rotate(cl.tilt);c.scale(1,-1);
+ drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}},900);
+ c.restore();
+}
+/** Cracks, fire, smoke and dust: drawn over the fighters. */
 export function drawDragonFront(c:CanvasRenderingContext2D,b:Battle,f:Fighter,pose:DragonPose,now:number,t:number,ground:(x:number)=>number,quality:'low'|'high'){
  const a=act(b),age=ageOf(a,now),high=quality==='high';
  // Idle: a thin puff from the nostrils now and then.
@@ -217,14 +226,6 @@ export function drawDragonFront(c:CanvasRenderingContext2D,b:Battle,f:Fighter,po
   const burst=a.action==='claw'?950:900,sink=a.action==='claw'?1700:2650;
   cracks(c,tx+20,ty,span(age,450,burst),1-span(age,sink+200,sink+900));
   rocks(c,tx+20,ty,age-burst-150,high);
-  if(pose.claw){
-   const cl=pose.claw;c.save();
-   // Only what is above the ground shows: the forearm stays in the earth.
-   c.beginPath();c.moveTo(cl.x-320,-2000);c.lineTo(cl.x+320,-2000);for(let x=cl.x+320;x>=cl.x-320;x-=16)c.lineTo(x,ground(x)+6);c.closePath();c.clip();
-   c.globalAlpha*=cl.alpha*pose.alpha;c.translate(cl.x,cl.y);c.rotate(cl.tilt);c.scale(1,-1);
-   drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}},900);
-   c.restore();
-  }
   dust(c,tx+20,ty+2,span(age,burst+250,burst+1000),95,high);
   dust(c,tx+20,ty+2,span(age,sink,sink+700),80,high);
   if(a.action==='grab')dust(c,tx,ty+2,span(age,2300,3000),100,high);
