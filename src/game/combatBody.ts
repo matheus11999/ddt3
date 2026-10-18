@@ -1,5 +1,5 @@
 import type {Equipment} from '../../shared/catalog';
-import {WEAPONS,weaponAssetPath} from '../../shared/catalog';
+import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
 import type {AvatarPart} from './appearance';
 import {asset,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart} from './appearance';
 import type {AvatarPose} from './avatar';
@@ -7,14 +7,15 @@ import type {FaceState} from './faceExpressions';
 import {recolorItem,tintSkin} from './recolor';
 import {HEAD_SCALE} from './rig/anchors';
 import type {CombatFrameName,Fist} from './rig/combatFrames';
-import {COMBAT_ATLAS,COMBAT_FIST_SIZE,COMBAT_FRAMES,combatFrameBlend,combatFrameIndex,HEAD_SILHOUETTE_CENTER} from './rig/combatFrames';
+import {COMBAT_ATLAS,COMBAT_FIST_SIZE,COMBAT_FRAMES,COMBAT_MANNEQUIN,combatFrameBlend,combatFrameIndex,HEAD_SILHOUETTE_CENTER} from './rig/combatFrames';
 import {drawWeaponEnergy} from './weaponEffects';
 import atlases from './combatAtlas.json';
 
 /** DDTank-style combat body (docs/combat-frames.md): the outfit's small painted body for the current
  * action, the universal head where that painting expects it, the universal skin-colored fists and the
  * weapon strapped on the back. */
-interface AtlasEntry {path:string;frames:{head:[number,number]}[];}
+type Point=readonly [number,number];
+interface AtlasEntry {path:string;frames:{head:[number,number]}[];/** The painted sleeve's cloth color, continued by the code-drawn forearm. */sleeve?:string;}
 const ATLASES=atlases as unknown as Record<string,AtlasEntry>;
 const tinted=new Map<string,HTMLCanvasElement>();
 
@@ -57,37 +58,58 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
  if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+dx,spec.back[1]+dy+breath,spec.backAngle,state.time);
- if(!prone)drawFist(c,eq.skin,fist(0),.9);
+ // Each fist hangs from a short forearm in the outfit's own sleeve color that starts under the painted
+ // sleeve, so the hand reads as part of the arm (the outfit art ends its sleeves at the elbow).
+ const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(index%COMBAT_ATLAS.columns)*cw,sy=Math.floor(index/COMBAT_ATLAS.columns)*ch;
+ const cloth=eq.colors?.outfit??entry.sleeve??CATALOG[eq.outfit]?.color??'#2b3f9e';
+ const arm=(k:0|1,to:Fist)=>{const [shoulder,elbow]=COMBAT_MANNEQUIN[name].sleeves[k],at=(p:Point):Point=>[p[0]+dx,p[1]+dy+breath*.4];
+  drawArm(c,at(shoulder),at(elbow),to,cloth,eq.skin);};
+ if(!prone){arm(0,fist(0));drawFist(c,eq.skin,fist(0),.9);}
  const atHead=(draw:()=>void)=>{c.save();c.translate(measured[0],measured[1]+breath);c.rotate(state.lively+hit*.05);c.scale(HEAD_SCALE,HEAD_SCALE);
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
  atHead(()=>{drawHeadRearLayers(c,eq,state.time,state.pose,state.modular);drawPart(c,head);drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'hair');});
- const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(index%COMBAT_ATLAS.columns)*cw,sy=Math.floor(index/COMBAT_ATLAS.columns)*ch;
+ if(prone)arm(0,fist(0));
+ arm(1,fist(1));
  c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
  // The near fist goes over everything, under the chin while lying, like in DDTank.
  if(prone)drawFist(c,eq.skin,fist(0),1);
- const front=fist(1);drawFist(c,eq.skin,front,1,prone?.68:1);
+ const front=fist(1);drawFist(c,eq.skin,front,1,prone?.8:1);
  if(state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
-/** The universal fist, simple like DDTank's: a small flat skin-colored bun (about 1.5 times wider than
- * tall, round top, flatter bottom) painted in three tones (near-white top, the skin, a darker orange
- * bottom band) with a thin near-black outline; no fingers. `shade` darkens the far one a little and
- * `scale` shrinks the forward fist while lying. */
+/** The universal fist, simple like DDTank's: a round skin-colored ball a little wider than tall, painted
+ * in three tones (near-white top, the skin, a darker bottom) with a thin near-black outline; no fingers.
+ * `shade` darkens the far one a little and `scale` shrinks the forward fist while lying. */
 function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:Fist,shade:number,scale=1){
- const w=COMBAT_FIST_SIZE*.57*scale,h=COMBAT_FIST_SIZE*.38*scale,color=skin??BASE_SKIN;
+ const w=COMBAT_FIST_SIZE*.42*scale,h=COMBAT_FIST_SIZE*.38*scale,color=skin??BASE_SKIN;
  c.save();c.translate(x,y);c.rotate(angle);if(shade<1)c.filter=`brightness(${shade})`;
- const bun=()=>{c.beginPath();c.moveTo(-w,h*.3);c.bezierCurveTo(-w*1.05,-h*1.25,w*1.05,-h*1.25,w,h*.3);
-  c.bezierCurveTo(w*.97,h*1.02,-w*.97,h*1.02,-w,h*.3);c.closePath();};
- bun();c.fillStyle=color;c.fill();
- c.save();bun();c.clip();
- c.fillStyle=shadeColor(color,.84,1.02,.9);c.fillRect(-w*1.1,h*.42,w*2.2,h);
- const glow=c.createRadialGradient(-w*.1,-h*.55,0,-w*.1,-h*.55,w*.7);glow.addColorStop(0,'rgba(255,244,230,.95)');glow.addColorStop(.6,'rgba(255,240,224,.55)');glow.addColorStop(1,'rgba(255,240,224,0)');
- c.fillStyle=glow;c.fillRect(-w*1.1,-h*1.2,w*2.2,h*1.6);c.restore();
- bun();c.strokeStyle='#120e09';c.lineWidth=1.25;c.lineJoin='round';c.stroke();
+ const ball=()=>{c.beginPath();c.ellipse(0,0,w,h,0,0,Math.PI*2);};
+ ball();c.fillStyle=color;c.fill();
+ c.save();ball();c.clip();
+ c.fillStyle=shadeColor(color,.86,.74,.66);c.beginPath();c.ellipse(0,h*.95,w*1.2,h*.62,0,0,Math.PI*2);c.fill();
+ const glow=c.createRadialGradient(-w*.25,-h*.5,0,-w*.25,-h*.5,w*.6);glow.addColorStop(0,'rgba(255,246,236,.85)');glow.addColorStop(.5,'rgba(255,240,224,.35)');glow.addColorStop(1,'rgba(255,240,224,0)');
+ c.fillStyle=glow;c.fillRect(-w,-h,w*2,h*2);c.restore();
+ ball();c.strokeStyle='#120e09';c.lineWidth=1.25;c.stroke();
  c.restore();
 }
+/** The arm under the painted body: the sleeve from the shoulder through the elbow (hidden where the outfit
+ * painting already covers it), then a light cuff and a bit of wrist reaching the fist. A fist thrown far
+ * (the windup) keeps a forearm of the usual length. */
+function drawArm(c:CanvasRenderingContext2D,shoulder:Point,elbow:Point,[fx,fy]:Fist,cloth:string,skin:string|undefined){
+ const vx=fx-elbow[0],vy=fy-elbow[1],length=Math.hypot(vx,vy);if(length<1)return;
+ const reach=Math.min(length,FOREARM_MAX),ux=vx/length,uy=vy/length,start:Point=length>FOREARM_MAX?[fx-ux*reach,fy-uy*reach]:elbow;
+ const cuff:Point=[fx-ux*Math.min(reach,7),fy-uy*Math.min(reach,7)],wrist:Point=[fx-ux*Math.min(reach,4.5),fy-uy*Math.min(reach,4.5)];
+ const stroke=(points:readonly Point[],width:number,color:string)=>{c.beginPath();c.moveTo(...points[0]);for(const p of points.slice(1))c.lineTo(...p);
+  c.lineWidth=width+2.4;c.strokeStyle='#120e09';c.stroke();c.lineWidth=width;c.strokeStyle=color;c.stroke();};
+ c.save();c.lineCap='round';c.lineJoin='round';
+ stroke(length>FOREARM_MAX?[start,cuff]:[shoulder,elbow,cuff],7,cloth);
+ stroke([cuff,wrist],6.6,'#f1e2c4');
+ stroke([wrist,[fx,fy]],4.6,skin??BASE_SKIN);
+ c.restore();
+}
+const FOREARM_MAX=26;
 const shadeColor=(hex:string,r:number,g=r,b=r)=>{const n=parseInt(hex.slice(1),16),f=(v:number,k:number)=>Math.min(255,Math.round(v*k));return `rgb(${f(n>>16&255,r)},${f(n>>8&255,g)},${f(n&255,b)})`;};
 function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,angle:number,time:number){
  const level=eq.upgrade??0,image=asset(weaponAssetPath(eq.weapon,level));if(!image.complete||!image.naturalWidth)return;
