@@ -63,19 +63,52 @@ export const MAPS:{id:MapId;name:string;subtitle:string;color:string}[]=[];
  * Maps published from the admin panel (shared/mapAdmin.ts) replace a built-in map's name, spawns,
  * collision and terrain art, or add a new map based on another one's art. Server and client apply the same list.
  */
-export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;monsters?:MonsterPlacement[];}
+export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;monsters?:MonsterPlacement[];/** Published revision (0 or absent: the repository version). */revision?:number;}
 const BUILT_IN=new Map<string,MapDefinition>([...MAP_IDS,...INSTANCE_MAP_IDS].map(id=>[id,MAP_DEFINITIONS[id]]));
 const status=new Map<string,{kind:'pvp'|'instance';enabled:boolean}>();
-export function applyMapOverride(o:MapOverride){
+/** Revision each map currently plays (absent: the repository version, revision 0). */
+const revisions=new Map<string,number>();
+function overrideDefinition(o:MapOverride,id:MapId):MapDefinition{
  const base=BUILT_IN.get(o.id)??BUILT_IN.get(o.base)??MAP_DEFINITIONS[o.base as MapId]??MAP_DEFINITIONS[MAP_DEFAULT.id]!;
- const id=o.id as MapId;
- MAP_DEFINITIONS[id]={...base,id,name:o.name,subtitle:o.subtitle||base.subtitle,dimensions:{...base.dimensions,width:o.width},spawns:[[...o.spawns[0]],[...o.spawns[1]]],regions:o.regions,art:{...base.art,terrain:o.terrain},monsters:o.monsters??base.monsters};
+ return {...base,id,name:o.name,subtitle:o.subtitle||base.subtitle,dimensions:{...base.dimensions,width:o.width},spawns:[[...o.spawns[0]],[...o.spawns[1]]],regions:o.regions,art:{...base.art,terrain:o.terrain},monsters:o.monsters??base.monsters};
+}
+export function applyMapOverride(o:MapOverride){
+ MAP_DEFINITIONS[o.id as MapId]=overrideDefinition(o,o.id as MapId);
+ if(o.revision)revisions.set(o.id,o.revision);else revisions.delete(o.id);
  status.set(o.id,{kind:o.kind,enabled:o.enabled});listMaps();
 }
 /** Back to the repository version (or gone, for a map created in the panel). */
 export function removeMapOverride(id:string){
  const original=BUILT_IN.get(id);if(original)MAP_DEFINITIONS[id as MapId]=original;else delete MAP_DEFINITIONS[id as MapId];
- status.delete(id);listMaps();
+ revisions.delete(id);status.delete(id);listMaps();
+}
+
+/**
+ * A match plays the map as it was when it started: its `Battle.map` is a pinned id (`snow@12`, map id and revision)
+ * that keeps that version while the admin panel publishes new ones. The next match picks up the new version.
+ */
+const PIN='@';
+const pins=new Set<string>();
+export function mapRevision(id:string){return revisions.get(id)??0;}
+export function pinnedMap(key:string):{id:string;revision:number}|null{
+ const at=key.lastIndexOf(PIN);if(at<1)return null;const revision=Number(key.slice(at+1));
+ return Number.isSafeInteger(revision)&&revision>=0?{id:key.slice(0,at),revision}:null;
+}
+/** The map id without its pinned revision. */
+export function baseMapId(id:string):MapId{return (pinnedMap(id)?.id??id) as MapId;}
+/** Pins the version a map plays right now and returns the id a match keeps. */
+export function pinMap(id:MapId):MapId{
+ const current=canonicalMap(baseMapId(id)),key=`${current}${PIN}${mapRevision(current)}` as MapId;
+ if(!MAP_DEFINITIONS[key]){MAP_DEFINITIONS[key]={...MAP_DEFINITIONS[current]!,id:key};pins.add(key);}
+ return key;
+}
+/** Registers an older published version a running match still plays (after a restart, or on clients). */
+export function registerPinnedMap(o:MapOverride&{revision:number}){
+ const key=`${o.id}${PIN}${o.revision}` as MapId;MAP_DEFINITIONS[key]=overrideDefinition(o,key);pins.add(key);return key;
+}
+/** Forgets pinned versions no match plays any more. */
+export function releasePinnedMaps(inUse:Iterable<string>){
+ const keep=new Set(inUse);for(const key of pins)if(!keep.has(key)){delete MAP_DEFINITIONS[key as MapId];pins.delete(key);}
 }
 export function mapStatus(id:string){return status.get(id)??{kind:(INSTANCE_MAP_IDS as readonly string[]).includes(id)?'instance' as const:'pvp' as const,enabled:true};}
 /** Maps a PvP match may be drawn on: built-in and published PvP maps that are switched on. */
@@ -86,7 +119,13 @@ export function pvpRotation():MapId[]{
 function listMaps(){MAPS.splice(0,MAPS.length,...pvpRotation().map(id=>{const m=MAP_DEFINITIONS[id]!;return {id:m.id,name:m.name,subtitle:m.subtitle,color:m.color};}));}
 listMaps();
 const ALIASES:Partial<Record<MapId,MapId>>={sky:'garden',valley:'park'};
-export function canonicalMap(id:MapId):MapId{const alias=ALIASES[id]??id;return MAP_DEFINITIONS[alias]?alias:MAP_DEFAULT.id;}
+export function canonicalMap(id:MapId):MapId{
+ const alias=ALIASES[id]??id;if(MAP_DEFINITIONS[alias])return alias;
+ // A pinned id not known here: revision 0 is the repository version; otherwise the map as it is now.
+ const pin=pinnedMap(alias);if(!pin)return MAP_DEFAULT.id;
+ const original=BUILT_IN.get(pin.id);if(pin.revision===0&&original){MAP_DEFINITIONS[alias]={...original,id:alias};pins.add(alias);return alias;}
+ return canonicalMap(pin.id as MapId);
+}
 export function getMap(id:MapId):MapDefinition{return MAP_DEFINITIONS[canonicalMap(id)]!;}
 export function contains(shape:Shape,x:number,y:number):boolean {
  if(shape.kind==='cells'){const cx=Math.floor(x/3)-shape.col,cy=Math.floor(y/3)-shape.row;if(cx<0||cy<0||cx>=shape.cols||cy>=shape.rows)return false;const n=cy*shape.cols+cx;return (cellBits(shape)[n>>3]>>(n&7)&1)===1;}

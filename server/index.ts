@@ -40,7 +40,7 @@ const adminStore=new AdminStore(store.pool);await adminStore.init();
 const reports=new ReportStore(store.pool);await reports.init();game.reports=reports;
 const mail=new MailStore(store.pool);await mail.init();game.mail=mail;
 const auction=new AuctionStore(store.pool);await auction.init();game.auction=auction;
-await registerAdmin(app,{store:adminStore,reports,mail,players:new PlayerDirectory(store.pool),presence:()=>game.presence(),onMail:id=>{void game.mailArrived(id).catch(e=>app.log.error(e));},live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),
+await registerAdmin(app,{store:adminStore,reports,mail,players:new PlayerDirectory(store.pool),presence:()=>game.presence(),onMail:id=>{void game.mailArrived(id).catch(e=>app.log.error(e));},live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),pinnedMaps:()=>game.pinnedMaps(),
  onMapsChanged:()=>{const event=JSON.stringify({type:'maps'});for(const ws of connections.values())if(ws.readyState===WebSocket.OPEN)ws.send(event);}});
 const wss=new WebSocketServer({noServer:true,maxPayload:2048,perMessageDeflate:false});
 const upgradeLimit=new Map<string,{time:number,count:number}>();

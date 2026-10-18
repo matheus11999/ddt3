@@ -11,7 +11,7 @@ import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomIn
 import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
-import {getMap,canonicalMap,MAP_DEFAULT,pvpRotation} from '../shared/maps';
+import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps';
 import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
 import {clampHp,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
@@ -520,6 +520,8 @@ export class Game {
    this.launchMatch([other,r]);break;
   }
  }
+ /** Map versions running matches play (`snow@12`): kept while an admin publishes newer ones. */
+ pinnedMaps(){return [...new Set([...this.matches.values()].map(m=>m.state.map))];}
  private cleanupMatch(m:Match){if(m.state.rewards?.saved&&m.roomIds.every(id=>this.roomMatches.get(id)!==m.key))this.matches.delete(m.key);}
  private returnParties(m:Match){
   if(!m.state.rewards?.saved)return;
@@ -544,14 +546,15 @@ export class Game {
  private launchMatch(rooms:Room[],practiceSeats?:Seat[]){
   const r=rooms[0],rotation=pvpRotation(),map=rooms.length===2||practiceSeats?rotation[randomInt(rotation.length)]:r.map;
   const seats:Seat[]=practiceSeats??(rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):r.players);
-  const terrain=createTerrain(map);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(map).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
+  // The match keeps this version of the map even if the admin panel publishes a new one meanwhile.
+  const played=pinMap(map),terrain=createTerrain(played);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(played).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));
   // Roster order (Agilidade first) only breaks Delay ties; everyone starts at their base Delay.
   fighters.sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility);
   // In practice, the human takes the first turn so controls can be learned immediately.
   const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:nextByDelay(fighters)!;startDelayTurn(fighters,first,this.baseDelay(first));
   const key=this.matches.has(r.id)?randomUUID():r.id;
-  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
+  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.broadcastBattle(m,true);
  }
  private startExpedition(p:Peer){
@@ -564,10 +567,10 @@ export class Game {
  private launchExpedition(room:Room,stageIndex:number){
   const choice=room.expedition!,stages=expeditionStages(choice.id,choice.difficulty);
   const seats=room.players.filter(seat=>!seat.bot);
-  const terrain=createTerrain(stages[stageIndex].map as Battle['map']),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
+  const played=pinMap(stages[stageIndex].map as Battle['map']),terrain=createTerrain(played),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
   setup.fighters.forEach(fighter=>{if(!fighter.monster)adjustAimToTerrain(fighter,terrain);});
   const run:ExpeditionRun={expedition:choice.id,difficulty:choice.difficulty,stages,stage:stageIndex,order:setup.order,round:{round:1,acted:[]},events:[]};
-  const state:Battle={id:randomUUID(),roomId:room.id,map:setup.map,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
+  const state:Battle={id:randomUUID(),roomId:room.id,map:played,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
   const key=this.matches.has(room.id)?randomUUID():room.id;
   const m:Match={key,roomIds:[room.id],state,terrain,resolveAt:0,botAt:Infinity,createdAt:now,instance:run};
   this.matches.set(key,m);this.queueIds.delete(room.id);room.status='playing';room.matchStartedAt=now;room.map=setup.map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);this.broadcastBattle(m,true);

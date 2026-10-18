@@ -21,7 +21,7 @@ const SCREEN_WIDTH=1536,SNAP=8,MIN_ZOOM=.1,MAX_ZOOM=4;
 interface Ui {left:boolean;right:boolean;snap:boolean;ruler:boolean;screen:boolean;}
 const UI_KEY='brasa-admin-map-editor';
 const loadUi=():Ui=>{const fallback={left:true,right:true,snap:false,ruler:true,screen:false};try{return {...fallback,...JSON.parse(localStorage.getItem(UI_KEY)??'{}')};}catch{return fallback;}};
-const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Cantos da peça','arraste para mudar o tamanho'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
+const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Cantos da peça','arraste para mudar o tamanho'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+C / Ctrl+V','copia e cola onde está o mouse (também em outro mapa)'],['Ctrl+X','recorta'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
 
 type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|{type:'monster';index:number}|null;
 /** Instance maps: names and sprites of the monsters the editor places (the nest is a marker, not a creature). */
@@ -42,6 +42,12 @@ function drawCutBox(c:CanvasRenderingContext2D,box:{x:number;y:number;w:number;h
  c.save();c.fillStyle=drawing?'rgba(255,90,90,.28)':'rgba(255,90,90,.16)';c.fillRect(box.x,box.y,box.w,box.h);c.setLineDash([8/scale,6/scale]);c.lineWidth=2/scale;c.strokeStyle='#ff6b5a';c.strokeRect(box.x,box.y,box.w,box.h);c.restore();
 }
 const round=(v:number)=>Math.round(v*10)/10;
+/** Ctrl+C / Ctrl+V: the clipboard lives in this browser, so a piece or monster pastes into any map (its sheet comes along). */
+const CLIPBOARD_KEY='brasa-admin-map-clipboard';
+type Clip={kind:'item';item:LayoutItem;url:string}|{kind:'monster';monster:NonNullable<MapLayout['monsters']>[number]};
+let memoryClip:Clip|null=null;
+const readClip=():Clip|null=>{try{return JSON.parse(localStorage.getItem(CLIPBOARD_KEY)??'null')??memoryClip;}catch{return memoryClip;}};
+const writeClip=(clip:Clip)=>{memoryClip=clip;try{localStorage.setItem(CLIPBOARD_KEY,JSON.stringify(clip));}catch{/* private window: memory only */}};
 
 export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const [summary,setSummary]=useState<AdminMapSummary|null>(null),[revisions,setRevisions]=useState<AdminRevision[]>([]);
@@ -115,6 +121,31 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const removeItem=(index:number)=>{change(d=>{d.layout.items.splice(index,1);});setSelection(null);};
  const duplicate=(index:number)=>{if(!doc)return;const source=doc.layout.items[index];let itemId=`${source.id}-copia`,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${source.id}-copia${k++}`;
   change(d=>{d.layout.items.splice(index+1,0,{...clone(source),id:itemId,x:source.x+40});});setSelection({type:'item',index:index+1});};
+ // Clipboard: copy/cut the selection; paste where the mouse is on the map (else beside the original, a bit further each time).
+ const pointerRef=useRef<{x:number;y:number}|null>(null),pastes=useRef(0);
+ const copySelection=(cut:boolean)=>{if(!doc||!selection)return false;
+  if(selection.type==='item'){const item=doc.layout.items[selection.index],file=doc.layout.sheets?.[item.sheet??'pieces']??doc.layout.pieces??'';
+   writeClip({kind:'item',item:clone(item),url:sourceUrl(doc.layout.source,file)});pastes.current=0;if(cut)removeItem(selection.index);
+   setNotice(cut?`“${item.id}” recortada. Ctrl+V cola onde está o mouse.`:`“${item.id}” copiada. Ctrl+V cola onde está o mouse.`);return true;}
+  if(selection.type==='monster'){const monster=doc.layout.monsters![selection.index];writeClip({kind:'monster',monster:clone(monster)});pastes.current=0;if(cut)removeMonster(selection.index);
+   setNotice(`${MONSTER_LABELS[monster.kind]} ${cut?'recortado':'copiado'}. Ctrl+V cola onde está o mouse.`);return true;}
+  return false;};
+ const paste=async()=>{const clip=readClip();if(!doc||!clip)return;
+  const at=pointerRef.current,offset=40*++pastes.current,clampX=(x:number)=>Math.max(0,Math.min(W,Math.round(x)));
+  if(clip.kind==='monster'){const index=doc.layout.monsters?.length??0,m=clip.monster;
+   change(d=>{(d.layout.monsters??=[]).push({...clone(m),x:clampX(at?at.x:m.x+offset),...(m.y!==undefined?{y:Math.round(at?at.y:m.y)}:{})});});setSelection({type:'monster',index});return;}
+  // The piece's sheet: one this map already uses, or borrowed from the other map's folder.
+  let key=Object.entries(doc.layout.sheets??{pieces:doc.layout.pieces??''}).find(([,file])=>sourceUrl(doc.layout.source,file)===clip.url)?.[0],borrow:{key:string;file:string}|null=null,sheet=key?sheets[key]:undefined;
+  if(!key){const origin=folderOf(clip.url),slash=clip.url.lastIndexOf('/'),file=relativeFile(doc.layout.source??'',`public${clip.url.slice(0,slash)}`,clip.url.slice(slash+1));
+   const base=(origin?`${origin.folder.id}-${origin.sheet.sheet}`:slug(clip.url.slice(slash+1).replace(/\.\w+$/,''))).slice(0,29);let k=2;key=base;while(doc.layout.sheets?.[key]||key==='pieces')key=`${base}-${k++}`;
+   try{sheet=await describeSheet(doc.layout.source,key,file);}catch{setError('A folha desta peça não carregou.');return;}
+   const described=sheet;setSheets(s=>({...s,[key!]:described}));borrow={key,file};}
+  const item=clip.item,h=(sheet?.pieces[item.piece]?.h??0)*(item.scale??1),n=doc.layout.items.length;
+  let itemId=`${item.id.replace(/-copia\d*$/,'')}-copia`,k=2;while(doc.layout.items.some(i=>i.id===itemId))itemId=`${item.id.replace(/-copia\d*$/,'')}-copia${k++}`;
+  const sheetKey=key;
+  change(d=>{if(borrow){if(!d.layout.sheets){d.layout.sheets={pieces:d.layout.pieces??''};delete d.layout.pieces;}d.layout.sheets[borrow.key]=borrow.file;}
+   d.layout.items.push({...clone(item),id:itemId,sheet:sheetKey,x:clampX(at?at.x:item.x+offset),top:Math.round(at?at.y-h/2:item.top)});});
+  setSelection({type:'item',index:n});if(borrow)setNotice('Peça colada de outro mapa. A folha passa a fazer parte deste mapa.');};
  const move=(index:number,by:number)=>{const to=index+by;if(!doc||to<0||to>=doc.layout.items.length)return;change(d=>{const [it]=d.layout.items.splice(index,1);d.layout.items.splice(to,0,it);});setSelection({type:'item',index:to});};
 
  // ── Canvas: view, drawing, hit testing ──
@@ -253,7 +284,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(pointers.current.has(e.pointerId))pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pinchRef.current&&pointers.current.size>=2){const p=pinchRef.current,now=pinchState(),scale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,p.view.scale*now.dist/p.dist));
    viewRef.current={scale,x:now.mx-(p.mx-p.view.x)*scale/p.view.scale,y:now.my-(p.my-p.view.y)*scale/p.view.scale};redraw(n=>n+1);return;}
-  if(ui.screen){hoverRef.current=toWorld(e);if(!dragRef.current)redraw(n=>n+1);}
+  pointerRef.current=toWorld(e);
+  if(ui.screen){hoverRef.current=pointerRef.current;if(!dragRef.current)redraw(n=>n+1);}
   if(!dragRef.current&&canvasRef.current){const h=hitHandle(toWorld(e).x,toWorld(e).y);canvasRef.current.style.cursor=h?(h.right===h.bottom?'nwse-resize':'nesw-resize'):cutting?'crosshair':'';}
   const drag=dragRef.current;if(!drag)return;
   if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
@@ -312,6 +344,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    if(mod&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?redo():undo();return;}
    if(mod&&e.key.toLowerCase()==='y'){e.preventDefault();redo();return;}
    if(mod&&e.key.toLowerCase()==='s'){e.preventDefault();void save();return;}
+   if(mod&&(e.key.toLowerCase()==='c'||e.key.toLowerCase()==='x')&&!window.getSelection()?.toString()){if(copySelection(e.key.toLowerCase()==='x'))e.preventDefault();return;}
+   if(mod&&e.key.toLowerCase()==='v'){e.preventDefault();void paste();return;}
    if(selection?.type==='item'){
     if(mod&&e.key.toLowerCase()==='d'){e.preventDefault();duplicate(selection.index);return;}
     if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeItem(selection.index);return;}
@@ -398,7 +432,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   </aside>
 
   <div className="adm-stage" ref={wrapRef}>
-   <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={()=>{if(ui.screen){hoverRef.current=null;redraw(n=>n+1);}}} onContextMenu={e=>e.preventDefault()}/>
+   <canvas ref={canvasRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onPointerLeave={()=>{pointerRef.current=null;if(ui.screen){hoverRef.current=null;redraw(n=>n+1);}}} onContextMenu={e=>e.preventDefault()}/>
    <div className="adm-stage-help">Arraste para mover · roda ou dois dedos = zoom · arraste o fundo para navegar · <b>?</b> atalhos</div>
    {showKeys&&<div className="adm-keys"><header><h4><Keyboard size={15}/>Atalhos</h4><button className="adm-icon" onClick={()=>setShowKeys(false)}><X size={15}/></button></header><dl>{SHORTCUTS.map(([k,v])=><div key={k}><dt>{k}</dt><dd>{v}</dd></div>)}</dl></div>}
    {(notice||error||busy)&&<div className={`adm-toast ${error?'bad':''}`}>{busy?<><Loader2 className="adm-spin" size={15}/>{busy}</>:error||notice}{(error||notice)&&!busy&&<button onClick={()=>{setError('');setNotice('');}}><X size={14}/></button>}</div>}

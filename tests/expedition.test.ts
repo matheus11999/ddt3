@@ -93,7 +93,7 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  await f.game.command(f.a.id,{type:'start'});assert.match(errors(f.events.get(f.a.id)!).at(-1)!,/prontos/);
  await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const m=f.game.matches.get(f.roomId)!,s=m.state;
- assert.equal(s.map,'anthill-1');assert.equal(s.instance?.stage,1);
+ assert.equal(s.map,'anthill-1@0');assert.equal(s.instance?.stage,1);
  const ants=s.players.filter(p=>p.monster);assert.equal(ants.length,getMap('anthill-1').monsters!.length);
  assert.equal(ants[0].maxHp,Math.round(MONSTERS[ants[0].monster!].hp*partyHpScale(2)));
  // Nobody plays while the ants walk in.
@@ -120,7 +120,7 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  assert.equal(f.room.status,'waiting');assert.equal(f.game.matches.get(f.roomId),undefined);assert.equal(stageOf(f.room),1);
  await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const stage2=f.game.matches.get(f.roomId)!.state;
- assert.equal(stage2.map,'anthill-2');assert.equal(stage2.instance?.stage,2);assert.ok(stage2.instance?.boss);assert.ok(stage2.instance?.nest);
+ assert.equal(stage2.map,'anthill-2@0');assert.equal(stage2.instance?.stage,2);assert.ok(stage2.instance?.boss);assert.ok(stage2.instance?.nest);
  // Stage 2 opens on the queen: two taunts in speech bubbles, then two ants leave the nest toward the party (no walk-in from the map sides).
  const opening=bossOpening(2),lines=stage2.instance!.speech!;
  assert.deepEqual(lines.map(l=>l.text),['Peguem esses invasores!!!','Não deixem ninguém sobreviver!']);assert.ok(lines.every(l=>l.id===stage2.instance!.boss));
@@ -142,7 +142,7 @@ test('the leader can pick the stage to start on (testing aid) and a lost stage k
  assert.match(errors(f.events.get(f.a.id)!).at(-1)!,/Estágio/);
  await f.game.command(f.a.id,{type:'expedition-select',expedition:'anthill',difficulty:'easy',stage:1});
  await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
- const m=f.game.matches.get(f.roomId)!;assert.equal(m.state.map,'anthill-2');
+ const m=f.game.matches.get(f.roomId)!;assert.equal(m.state.map,'anthill-2@0');
  for(const p of m.state.players)if(!p.monster)p.hp=0;
  (f.game as unknown as {checkInstanceEnd:(match:typeof m)=>boolean}).checkInstanceEnd(m);
  assert.equal(m.state.phase,'finished');assert.equal(m.state.winner,1);
