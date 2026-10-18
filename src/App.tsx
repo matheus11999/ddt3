@@ -6,6 +6,7 @@ import {CharacterCreation} from './components/CharacterCreation';
 import {PlayerActions} from './components/PlayerActions';
 import {Mailbox} from './components/Mailbox';
 import {Auction} from './components/Auction';
+import {Guild} from './components/Guild';
 import {MobileOrientationGate,useMobileOrientation} from './components/MobileOrientation';
 import {createPortal} from 'react-dom';
 import './components/Notifications.css';
@@ -28,7 +29,7 @@ export default function App(){
   setHeadingToForge(false);
  },[orientation.portrait]);
  // The player info and report windows hold the keyboard like any other window.
- const playerWindow=!!state.playerPanel&&state.playerPanel.kind!=='menu'||state.mailOpen||state.auctionOpen;
+ const playerWindow=!!state.playerPanel&&state.playerPanel.kind!=='menu'||state.mailOpen||state.auctionOpen||state.guildOpen;
  const close=useCallback(()=>{setPanel(null);setHeadingToForge(false);},[]);
  const openArena=useCallback(()=>{if(!client.state.room&&!client.state.battle)setPanel('arena');audio.play('click');},[]);
  const openExpeditions=useCallback(()=>{if(!client.state.room&&!client.state.battle)setPanel('expeditions');audio.play('click');},[]);
@@ -38,7 +39,7 @@ export default function App(){
  const lobbyAction=useCallback((action:LobbyAction)=>{if(action==='arena'||action==='practice')openArena();else if(action==='shop')openShop();else if(action==='storage')openInventory();else openForge();},[openArena,openShop,openInventory,openForge]);
  useEffect(()=>{if(!headingToForge)return;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&Math.hypot(me.x-SMITH_POSITION.x,me.y-SMITH_POSITION.y)<125){setHeadingToForge(false);setPanel('forge');}},[headingToForge,state.players,state.profile?.id]);
  useEffect(()=>{if(state.room)setPanel(v=>v==='arena'||v==='expeditions'?null:v);},[state.room]);
- useEffect(()=>{if(state.battle){setPanel(null);client.closeMail();client.closeAuction();}},[state.battle?.id]);
+ useEffect(()=>{if(state.battle){setPanel(null);client.closeMail();client.closeAuction();client.closeGuild();}},[state.battle?.id]);
  useEffect(()=>{if(state.error){const t=setTimeout(()=>client.update({error:null}),4500);return()=>clearTimeout(t);}},[state.error]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room)setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
  return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
@@ -47,6 +48,7 @@ export default function App(){
   {state.profile&&panel==='shop'&&<Shop onClose={close}/>}
   {state.profile&&state.mailOpen&&!state.battle&&<Mailbox/>}
   {state.profile&&state.auctionOpen&&!state.battle&&<Auction/>}
+  {state.profile&&state.guildOpen&&!state.battle&&<Guild onForge={()=>{client.closeGuild();setPanel('forge');audio.play('click');}}/>}
   {state.profile&&panel==='inventory'&&<Inventory onClose={close} onForge={openForge}/>}{state.profile&&panel==='arena'&&!state.room&&<Arena onClose={close}/>}{state.profile&&panel==='expeditions'&&!state.room&&<ExpeditionHall onClose={close}/>} {state.profile&&panel==='forge'&&<Forge onClose={close} initial={forgeItem}/>}
   {headingToForge&&<div className="destination-label">A caminho do ferreiro…</div>}
   {panel==='settings'&&state.profile&&<Modal title="Ajustes" onClose={close} className="settings-window"><form onSubmit={e=>{e.preventDefault();client.send({type:'rename',name});}}><label>Nome do aventureiro<input value={name} maxLength={24} minLength={2} onChange={e=>setName(e.target.value)} required/></label><button className="button gold" disabled={!!state.room} type="submit"><Check size={16}/> Salvar nome</button></form><div className="setting-row"><span><Volume2 size={20}/> Efeitos sonoros</span><button className={`toggle ${sound?'on':''}`} aria-label="Efeitos sonoros" aria-pressed={sound} onClick={()=>{audio.setEnabled(!sound);setSound(!sound);}}><i/></button></div><div className="settings-note">Seu progresso é salvo neste navegador. Não apague os cookies para manter seu aventureiro.</div></Modal>}

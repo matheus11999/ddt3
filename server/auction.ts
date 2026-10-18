@@ -22,8 +22,9 @@ export interface AuctionHouse {
  expireDue():Promise<string[]>;
 }
 
-/** Takes the goods out of the seller's bag: an unworn item copy (with its forge level, compositions and color) or stones. */
-export function takeGoods(profile:Profile,source:AuctionSource):AuctionGoods{
+/** Takes the goods out of the seller's bag: an unworn item copy (with its forge level, compositions and color) or stones.
+ * `anyItem`: every equipment type may leave (the guild Depósito), not only the types the auction lists. */
+export function takeGoods(profile:Profile,source:AuctionSource,anyItem=false):AuctionGoods{
  if(source.kind==='stone'){
   const tier=String(source.level);if((profile.stones[tier]??0)<source.amount)throw Error('Você não tem essas pedras na mochila.');
   profile.stones[tier]-=source.amount;return {kind:'stone',level:source.level,amount:source.amount};
@@ -34,7 +35,7 @@ export function takeGoods(profile:Profile,source:AuctionSource):AuctionGoods{
  }
  const key=source.key,item=copyBase(key);
  if(!profile.inventory.includes(key)||!CATALOG[item])throw Error('Este item não está na sua mochila.');
- if(!goodsCategory({kind:'item',item}))throw Error('Este tipo de item ainda não pode ir para o leilão.');
+ if(!anyItem&&!goodsCategory({kind:'item',item}))throw Error('Este tipo de item ainda não pode ir para o leilão.');
  if(SLOTS.some(slot=>equippedCopy(profile.equipment,slot)===key))throw Error('Desequipe o item antes de anunciar.');
  const kept=removeCopy(profile,key);refreshWorn(profile);
  return {kind:'item',item,...(kept.upgrade?{upgrade:kept.upgrade}:{}),...(kept.compositions&&Object.keys(kept.compositions).length?{compositions:kept.compositions}:{}),...(kept.color?{color:kept.color}:{})};

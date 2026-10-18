@@ -10,12 +10,13 @@ import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} fro
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
+import {guildChance} from '../shared/guilds';
 import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;forge(id:string,item:string,stones:Record<string,number>):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
 /** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
 export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
@@ -29,7 +30,7 @@ export const RANKING_TIME_ZONE='America/Sao_Paulo';
 type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>&{dyes?:Record<string,string>}};
 const integer=(value:unknown,fallback=0,max=Number.MAX_SAFE_INTEGER)=>typeof value==='number'&&Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):fallback;
 
-const SHOP_ONLY_COSMETICS=new Set(['love-boomerang','outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
+const SHOP_ONLY_COSMETICS=new Set(['necklace-guild-1','love-boomerang','outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
 
 // Missing fields are migrated once on read; an empty stone stack stays empty.
 export function normalizeProfile(raw:StoredProfile):Profile {
@@ -175,7 +176,7 @@ export class Store implements ProfileStore {
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return profile;
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
- async forge(id:string,item:string,selection:Record<string,number>):Promise<ForgeOutcome>{
+ async forge(id:string,item:string,selection:Record<string,number>,bonus=0):Promise<ForgeOutcome>{
   const parsed=stoneSelectionSchema.safeParse(selection);if(!parsed.success)throw Error('Selecione de 1 a 20 pedras válidas.');
   const consumed=Object.fromEntries(Object.entries(parsed.data).filter(([,quantity])=>quantity>0));
   const c=await this.pool.connect();try{
@@ -185,7 +186,7 @@ export class Store implements ProfileStore {
    if(!canStrengthen(CATALOG[copyBase(item)])||!profile.inventory.includes(item))throw Error('Escolha uma arma, roupa ou chapéu da sua mochila.');
    const level=profile.upgrades[item]??0;if(level>=MAX_UPGRADE)throw Error('Este equipamento já está no nível máximo.');
    for(const [tier,quantity] of Object.entries(consumed))if((profile.stones[tier]??0)<quantity)throw Error('Você não tem essas pedras na mochila.');
-   const chance=upgradeChance(level,consumed),success=this.roll()<Math.round(chance*10);
+   const chance=guildChance(upgradeChance(level,consumed),bonus),success=this.roll()<Math.round(chance*10);
    for(const [tier,quantity] of Object.entries(consumed))profile.stones[tier]-=quantity;
    if(success)profile.upgrades[item]=level+1;
    refreshWorn(profile);
@@ -193,7 +194,7 @@ export class Store implements ProfileStore {
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
- async compose(id:string,item:string,stoneId:string):Promise<CompositionOutcome>{
+ async compose(id:string,item:string,stoneId:string,bonus=0):Promise<CompositionOutcome>{
   const stone=Object.hasOwn(COMPOSITION_STONE_BY_ID,stoneId)?COMPOSITION_STONE_BY_ID[stoneId]:undefined;
   if(!stone)throw Error('Escolha uma pedra de composição válida.');
   const c=await this.pool.connect();try{
@@ -205,11 +206,11 @@ export class Store implements ProfileStore {
    if(stone.value<=previous)throw Error('Este atributo já possui uma composição igual ou melhor.');
    if((profile.compositionStones[stoneId]??0)<1)throw Error('Você não tem essa pedra de composição.');
    if(profile.gold<stone.cost)throw Error('Ouro insuficiente para esta composição.');
-   const success=this.roll()<stone.chance*10;
+   const chance=guildChance(stone.chance,bonus),success=this.roll()<Math.round(chance*10);
    profile.compositionStones[stoneId]--;profile.gold-=stone.cost;
    if(success)profile.compositions[item]={...profile.compositions[item],[stone.stat]:stone.value};
    refreshWorn(profile);
-   const result:CompositionResult={item,stone:stoneId,stat:stone.stat,success,previous,value:profile.compositions[item]?.[stone.stat]??0,chance:stone.chance,cost:stone.cost};
+   const result:CompositionResult={item,stone:stoneId,stat:stone.stat,success,previous,value:profile.compositions[item]?.[stone.stat]??0,chance,cost:stone.cost};
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }

@@ -26,6 +26,9 @@ import type {PlayerInfo,ReportChatLine} from '../shared/reports';
 import type {ReportSink} from './reports';
 import type {MailBox} from './mail';
 import type {AuctionHouse} from './auction';
+import type {GuildHall,Membership} from './guilds';
+import {GVG_CONTRIBUTION,smithBonus} from '../shared/guilds';
+import type {GuildMissionId} from '../shared/guilds';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
@@ -44,8 +47,8 @@ const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
 export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpacts'|'activeShot'|'pendingPower'|'savingRewards'|'instance'>&{invisibilityActivated?:[string,number][];instance?:Omit<ExpeditionRun,'events'>};
 export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
-const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;}
+const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];}
 
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
@@ -59,6 +62,10 @@ export class Game {
  mail?:MailBox;
  /** The Leilão (server/auction.ts); without it the auction house is closed. */
  auction?:AuctionHouse;
+ /** Guildas (server/guilds.ts); without it guilds are closed. */
+ guilds?:GuildHall;
+ /** Each player's guild as last loaded: the name on their room card, the forge bonus and GvG pairing. */
+ private memberships=new Map<string,Membership|null>();
  /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
  private chatLog=new Map<string,ReportChatLine[]>();private chatLogPrunedAt=0;private playerInfoAt=new Map<string,number>();
  private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
@@ -73,7 +80,7 @@ export class Game {
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
   send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
-  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);return p;
+  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);return p;
  }
  /** Sends a player their inbox (on connect, and when the admin panel mails them). */
  private async sendInbox(p:Peer){if(!this.mail||!p.connected)return;const {mails,unread}=await this.mail.inbox(p.profile.id);this.emit(p,{type:'mail',mails,unread});}
@@ -84,6 +91,34 @@ export class Game {
   if(!this.auction)return;
   for(const id of await this.auction.expireDue()){const p=this.peers.get(id);if(p?.connected){await this.sendInbox(p);await this.sendAuctionMine(p);}}
  }
+ private requireGuilds(){if(!this.guilds)throw Error('As guildas estão fechadas no momento.');return this.guilds;}
+ private async sendGuild(p:Peer){
+  if(!this.guilds||!p.connected)return;const state=await this.guilds.state(p.profile.id);
+  if(state.guild)state.guild.members=state.guild.members.map(m=>({...m,online:!!this.peers.get(m.id)?.connected}));
+  this.emit(p,{type:'guild',...state});
+ }
+ /** Daily guild missions: counts for the members among these players and refreshes their window. Never throws,
+  * so a hiccup here cannot replay a battle's rewards. */
+ private async guildMission(playerIds:string[],mission:GuildMissionId,amount=1){
+  if(!this.guilds)return;const members=playerIds.filter(id=>this.memberships.get(id));if(!members.length)return;
+  try{for(const id of await this.guilds.missionProgress(members,mission,amount)){const peer=this.peers.get(id);if(peer)await this.sendGuild(peer);}}catch(error){this.report(error);}
+ }
+ /** Reloads one player's guild: the name on their room card, the forge bonus and, when online, their guild window. */
+ private async refreshGuildMember(playerId:string){
+  if(!this.guilds)return;
+  const membership=await this.guilds.membership(playerId);this.memberships.set(playerId,membership);
+  const p=this.peers.get(playerId);if(!p)return;
+  const room=p.roomId?this.rooms.get(p.roomId):undefined,seat=room?.players.find(s=>s.id===playerId);
+  if(room&&seat&&seat.guild!==membership?.name){if(membership)seat.guild=membership.name;else delete seat.guild;this.broadcastRoom(room);}
+  await this.sendGuild(p);
+ }
+ /** After a guild changes, every online member (and anyone who just joined or left) sees it. */
+ private async refreshGuild(guildId:number,also:string[]=[]){
+  if(!this.guilds)return;const ids=new Set([...await this.guilds.memberIds(guildId),...also]);
+  await Promise.all([...ids].filter(id=>this.peers.get(id)?.connected).map(id=>this.refreshGuildMember(id)));
+ }
+ /** The one guild every player of a party belongs to, or null. */
+ private partyGuild(room:Room){const ids=new Set(room.players.map(s=>this.memberships.get(s.id)?.guildId??null));const [only]=ids;return ids.size===1&&only!=null?only:null;}
  /** New mail from the admin panel reaches an online player right away. */
  async mailArrived(playerId:string){const p=this.peers.get(playerId);if(p?.connected)await this.sendInbox(p);}
  /** Where each connected player is, for the admin panel's player table. */
@@ -171,7 +206,7 @@ export class Game {
  /** The caller's live fighter; turning in place may skip the aiming check and also works while a shot resolves or the monsters move. */
  private fighter(p:Peer,anyPhase=false){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase==='finished'||!anyPhase&&m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0||f.left)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
  private turn(p:Peer){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(m.state.instance&&Date.now()<m.state.instance.introUntil)throw Error('Aguarde os monstros chegarem.');if(Date.now()>m.state.deadline)throw Error('O tempo do turno terminou.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
- private seat(p:Peer,team:0|1,slot:number):Seat{return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:{...p.profile.equipment},abilityLoadout:normalizeAbilityLoadout(p.profile.abilityLoadout),ready:false,bot:false,team,slot,connected:true};}
+ private seat(p:Peer,team:0|1,slot:number):Seat{return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:{...p.profile.equipment},abilityLoadout:normalizeAbilityLoadout(p.profile.abilityLoadout),ready:false,bot:false,team,slot,connected:true,...(this.memberships.get(p.profile.id)?{guild:this.memberships.get(p.profile.id)!.name}:{})};}
  private vacantSeat(room:Room):{team:0|1;slot:number}{
   if(!room.practice){const slot=room.openSlots.find(index=>!room.players.some(p=>p.slot===index));if(slot===undefined)throw Error('Esta equipe está cheia. Peça ao líder para abrir outra vaga.');return {team:0,slot};}
   const teams: (0|1)[]=[0,1];teams.sort((a,b)=>room.players.filter(p=>p.team===a).length-room.players.filter(p=>p.team===b).length);
@@ -180,6 +215,7 @@ export class Game {
  }
  private join(p:Peer,roomId:string){
   if(p.roomId)throw Error('Você já está em uma sala.');const room=this.rooms.get(roomId);if(!room||room.status!=='waiting')throw Error('Esta sala não está disponível.');
+  if(room.gvg){const host=this.memberships.get(room.hostId);if(!host||this.memberships.get(p.profile.id)?.guildId!==host.guildId)throw Error(`Esta sala está buscando GvG: só entram membros da guilda ${host?.name??'do líder'}.`);}
   const {team,slot}=this.vacantSeat(room);room.players.push(this.seat(p,team,slot));p.roomId=room.id;if(!room.practice)this.updateParty(room);this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();
  }
  private spectate(p:Peer,roomId:string){
@@ -314,15 +350,18 @@ export class Game {
     }
     case 'forge':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para fortalecer sua arma.');
-     if(Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
-     const outcome=await this.store.forge(id,c.item,c.stones);p.profile=outcome.profile;
-     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'forge-result',result:outcome.result});this.sendLobby(p.channel);return;
+     // Guild members also reach the forge from the guild window; the Ferreiro da Guilda adds to the chance.
+     const guild=this.memberships.get(id);
+     if(!guild&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     const outcome=await this.store.forge(id,c.item,c.stones,smithBonus(guild?.smith??0));p.profile=outcome.profile;
+     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'forge-result',result:outcome.result});this.sendLobby(p.channel);await this.guildMission([id],'forge');return;
     }
     case 'compose':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para compor seu equipamento.');
-     if(Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
-     const outcome=await this.store.compose(id,c.item,c.stone);p.profile=outcome.profile;
-     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'composition-result',result:outcome.result});this.sendLobby(p.channel);return;
+     const guild=this.memberships.get(id);
+     if(!guild&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     const outcome=await this.store.compose(id,c.item,c.stone,smithBonus(guild?.smith??0));p.profile=outcome.profile;
+     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'composition-result',result:outcome.result});this.sendLobby(p.channel);await this.guildMission([id],'forge');return;
     }
     case 'create':{
      if(p.roomId)throw Error('Saia da sala atual antes de criar outra.');if(this.rooms.size>=200)throw Error('A arena está cheia. Tente novamente em breve.');
@@ -468,6 +507,58 @@ export class Game {
      }finally{this.profileChanges.delete(id);}
      await this.sendAuctionMine(p);return;
     }
+    case 'guild-state':await this.sendGuild(p);return;
+    case 'guild-list':this.emit(p,{type:'guild-list',guilds:await this.requireGuilds().list(c.search)});return;
+    case 'guild-create':{
+     const guilds=this.requireGuilds();if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);try{const outcome=await guilds.create(id,c.name);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});}finally{this.profileChanges.delete(id);}
+     await this.refreshGuildMember(id);this.emit(p,{type:'guild-result',message:'Guilda fundada!'});return;
+    }
+    case 'guild-apply':{
+     const {ownerId}=await this.requireGuilds().apply(id,c.id);await this.sendGuild(p);
+     if(this.peers.get(ownerId)?.connected)await this.sendGuild(this.peers.get(ownerId)!);
+     this.emit(p,{type:'guild-result',message:'Pedido enviado ao dono da guilda.'});return;
+    }
+    case 'guild-cancel-apply':await this.requireGuilds().cancelApply(id,c.id);await this.sendGuild(p);await this.refreshGuild(c.id);return;
+    case 'guild-answer':{
+     const {guildId}=await this.requireGuilds().answer(id,c.playerId,c.accept);await this.refreshGuild(guildId,[c.playerId]);
+     const peer=this.peers.get(c.playerId);if(c.accept&&peer)this.emit(peer,{type:'guild-result',message:'Você entrou na guilda!'});return;
+    }
+    case 'guild-kick':{const {guildId}=await this.requireGuilds().kick(id,c.playerId);await this.refreshGuild(guildId,[c.playerId]);return;}
+    case 'guild-leave':{
+     const guilds=this.requireGuilds();if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);let guildId:number,dissolved:boolean;try{({guildId,dissolved}=await guilds.leave(id));if(dissolved){const profile=await this.store.getProfile(id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});}}}finally{this.profileChanges.delete(id);}
+     await this.refreshGuild(guildId,[id]);this.emit(p,{type:'guild-result',message:dissolved?'A guilda foi encerrada.':'Você saiu da guilda.'});return;
+    }
+    case 'guild-upgrade':{
+     const {guildId,level}=await this.requireGuilds().upgrade(id,c.target);await this.refreshGuild(guildId);
+     this.emit(p,{type:'guild-result',message:`${c.target==='guild'?'Guilda':c.target==='shop'?'Loja':c.target==='smith'?'Ferreiro':'Depósito'} agora no nível ${level}!`});return;
+    }
+    case 'guild-buy':
+    case 'guild-deposit':
+    case 'guild-withdraw':{
+     const guilds=this.requireGuilds();
+     if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Use a guilda entre as batalhas.');
+     if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);let guildId:number|undefined;
+     try{
+      const outcome=c.type==='guild-buy'?await guilds.buy(id,c.item):c.type==='guild-deposit'?await guilds.deposit(id,c.source):await guilds.withdraw(id,c.id);
+      p.profile=outcome.profile;guildId='guildId' in outcome?outcome.guildId as number:undefined;this.emit(p,{type:'profile',profile:p.profile});
+     }finally{this.profileChanges.delete(id);}
+     if(guildId!==undefined)await this.refreshGuild(guildId);
+     this.emit(p,{type:'guild-result',message:c.type==='guild-buy'?'Compra concluída! O item está na sua mochila.':c.type==='guild-deposit'?'Item guardado no depósito.':'Item retirado para a sua mochila.'});return;
+    }
+    case 'guild-mission':{
+     const {guildId,reward}=await this.requireGuilds().claimMission(id,c.mission);await this.refreshGuild(guildId);
+     this.emit(p,{type:'guild-result',message:`Missão concluída! +${reward} de contribuição e Riqueza para a guilda.`});return;
+    }
+    case 'room-gvg':{
+     const r=this.room(p);if(r.kind==='expedition'||r.practice)throw Error('O GvG vale só para as salas PvP.');
+     if(r.hostId!==id)throw Error('Somente o líder pode ligar o GvG.');if(r.status!=='waiting')throw Error('Pare a busca para mudar o GvG.');
+     if(c.active&&!this.memberships.get(id))throw Error('Entre em uma guilda para buscar batalhas GvG.');
+     if(c.active){const guild=this.memberships.get(id)!.guildId;if(r.players.some(s=>this.memberships.get(s.id)?.guildId!==guild))throw Error('No GvG, todos da sala precisam ser da sua guilda.');r.gvg=true;}else delete r.gvg;
+     this.broadcastRoom(r);break;
+    }
     case 'mail-list':await this.sendInbox(p);return;
     case 'mail-read':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.markRead(id,c.id);await this.sendInbox(p);return;
     case 'mail-delete':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.remove(id,c.id);await this.sendInbox(p);return;
@@ -506,9 +597,10 @@ export class Game {
  }
  private updateParty(r:Room){r.mode=modeForSlots(r.openSlots.length);if(!r.players.some(player=>player.slot===0)){const host=r.players.find(player=>player.id===r.hostId);if(host)host.slot=0;}r.players.forEach(s=>{s.team=0;s.ready=false;});}
  private cancelSearch(r:Room){this.queueIds.delete(r.id);delete r.searchStartedAt;if(r.status==='searching'){r.status='waiting';r.players.forEach(s=>s.ready=false);this.roomsDirty=true;}}
- private queueEligible(r:Room){return !r.practice&&r.players.length===r.openSlots.length&&r.openSlots.length>=1&&r.openSlots.length<=MAX_PARTY_SIZE&&r.openSlots.every(slot=>r.players.filter(player=>player.slot===slot).length===1)&&r.players.every(s=>!s.bot&&s.connected&&(s.id===r.hostId||s.ready)&&!this.profileChanges.has(s.id)&&this.peers.get(s.id)?.connected&&this.peers.get(s.id)?.roomId===r.id);}
+ private queueEligible(r:Room){return !r.practice&&r.players.length===r.openSlots.length&&r.openSlots.length>=1&&r.openSlots.length<=MAX_PARTY_SIZE&&r.openSlots.every(slot=>r.players.filter(player=>player.slot===slot).length===1)&&r.players.every(s=>!s.bot&&s.connected&&(s.id===r.hostId||s.ready)&&!this.profileChanges.has(s.id)&&this.peers.get(s.id)?.connected&&this.peers.get(s.id)?.roomId===r.id)&&(!r.gvg||this.partyGuild(r)!==null);}
  private queue(p:Peer){
   const r=this.room(p);if(r.kind==='expedition'){this.startExpedition(p);return;}if(r.hostId!==p.profile.id)throw Error('Somente o líder pode buscar partida.');if(r.practice)throw Error('O treino não usa a busca de partidas.');if(r.status!=='waiting')throw Error('A equipe já está buscando ou jogando.');
+  if(r.gvg&&this.partyGuild(r)===null)throw Error('No GvG, todos da sala precisam ser da mesma guilda.');
   if(!this.queueEligible(r))throw Error('Preencha todas as vagas abertas e aguarde todos ficarem conectados e prontos.');
   r.mode=modeForSlots(r.openSlots.length);r.status='searching';r.searchStartedAt=Date.now();this.queueIds.add(r.id);this.broadcastRoom(r);
   // Synchronous validation and reservation prevent simultaneous queues from consuming a party twice.
@@ -517,6 +609,8 @@ export class Game {
    if(!other||other.status!=='searching'){this.queueIds.delete(otherId);continue;}
    if(!this.queueEligible(other)){this.cancelSearch(other);this.broadcastRoom(other);continue;}
    if(other.players.length!==r.players.length)continue;
+   // GvG parties only meet GvG parties of another guild; normal parties never meet them.
+   if(!!other.gvg!==!!r.gvg||r.gvg&&this.partyGuild(other)===this.partyGuild(r))continue;
    this.launchMatch([other,r]);break;
   }
  }
@@ -555,6 +649,7 @@ export class Game {
   const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:nextByDelay(fighters)!;startDelayTurn(fighters,first,this.baseDelay(first));
   const key=this.matches.has(r.id)?randomUUID():r.id;
   const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
+  if(rooms.length===2&&rooms.every(room=>room.gvg)){const guilds=rooms.map(room=>this.partyGuild(room));if(guilds.every(g=>g!==null))m.gvg=guilds as [number,number];}
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.broadcastBattle(m,true);
  }
  private startExpedition(p:Peer){
@@ -835,7 +930,16 @@ export class Game {
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
   const run=m.instance,award=run?.won?run.stages[run.stage].award:{coins:0,xp:0};
   const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses);
+  // GvG: every winner adds Riqueza to their guild (once per battle, like the match rewards).
+  const gvgGuild=m.gvg&&m.state.winner!==null&&winners.length?m.gvg[m.state.winner]:undefined;
   saving.then(async()=>{
+   if(gvgGuild!==undefined&&this.guilds&&await this.guilds.gvgWin(m.state.id,gvgGuild,winners,GVG_CONTRIBUTION)){
+    for(const winner of winners){const peer=this.peers.get(winner);if(peer)this.emit(peer,{type:'guild-result',message:`Vitória GvG! +${GVG_CONTRIBUTION} de Riqueza para a guilda.`});}
+    await this.refreshGuild(gvgGuild);
+   }
+   const ids=humans.map(f=>f.id);
+   if(run){if(run.won)await this.guildMission(ids,'expedition');}
+   else{await this.guildMission(ids,'play');await this.guildMission(winners,'win');if(gvgGuild!==undefined)await this.guildMission(winners,'gvg');}
    for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat)seat.level=profile.level;}}}
    rewards.saved=true;if(!run)void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
   }).catch(error=>{this.report(error);m.retryRewardsAt=Date.now()+2000;}).finally(()=>{m.savingRewards=false;});

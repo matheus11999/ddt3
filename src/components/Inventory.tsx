@@ -224,7 +224,8 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
   {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
   {item?<>
    <p className="bag-tip-desc">{item.description}</p>
-   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{bare![key]}{values![key]!==bare![key]&&<span className="bag-tip-bonus">{values![key]>bare![key]?'+':'−'}{Math.abs(values![key]-bare![key])}</span>}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
+   {!!item.hpPercent&&<dl className="bag-tip-stats bag-tip-percent"><div><dt><Heart size={13} aria-hidden="true"/>Vida</dt><dd>+{item.hpPercent}%</dd></div></dl>}
+   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{bare![key]}{values![key]!==bare![key]&&<span className="bag-tip-bonus">{values![key]>bare![key]?'+':'−'}{Math.abs(values![key]-bare![key])}</span>}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:!item.hpPercent&&<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
    {stats&&<div className="bag-tip-weapon"><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
    {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
