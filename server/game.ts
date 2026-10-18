@@ -154,7 +154,7 @@ export class Game {
   if(!carriers.some(f=>f.pet||f.petEffects?.length))return;
   const ctx=this.petContext(m);this.petEffect(m,carriers.flatMap(f=>petTurnEnd(ctx,f)));
  }
- private petTurnStart(m:Match,f:Fighter){if(f.pet)this.petEffect(m,petTurnStart(this.petContext(m),f));}
+ private petTurnStart(m:Match,f:Fighter){if(f.pet||f.petEffects?.length)this.petEffect(m,petTurnStart(this.petContext(m),f));}
  /** A pet skill or debuff can keep a fighter from acting. */
  private assertPetFree(f:Fighter,action:PetBlockedAction){if(f.petEffects?.length&&petBlocked(f,action))throw Error('Um efeito impede esta ação neste turno.');}
  private usePetSkill(m:Match,f:Fighter,skill:string,target?:string){
