@@ -33,15 +33,11 @@ export const combatBodyReady=(eq:Equipment)=>!!combatAtlas(eq);
 const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4'};
 /** Weapon art is drawn this many avatar units across on the back. */
 const BACK_WEAPON_SIZE=64;
-/** One painted fist shared by every outfit (knuckles to the right), tinted to the body color. */
-const FIST_PATH='/assets/outfits/combat/fist.png';
-const fists=new Map<string,HTMLCanvasElement>();
-function fistImage(skin:string|undefined):HTMLCanvasElement|null {
- const image=asset(FIST_PATH);if(!image.complete||!image.naturalWidth)return null;
- const key=skin??'',known=fists.get(key);if(known)return known;
- const out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;out.getContext('2d')!.drawImage(image,0,0);tintSkin(out,skin,true);
- fists.set(key,out);return out;
-}
+/** The painted body sinks this many avatar units into the ground, as in DDTank: the terrain's
+ * painted top (snow, grass) is soft and a body standing exactly on the collision line reads as floating. */
+const GROUND_SINK=7;
+/** Base skin of character-base.png; the fists follow the player's body color. */
+const BASE_SKIN='#fcd0ac';
 
 export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since the fighter last charged: it stays up while the shot reaches the server. */sinceCharge:number;phase:number;walk:number;time:number;power:number;face?:FaceState;lively:number;weapon:boolean;modular:boolean;}
 /** Draws the combat fighter facing right in avatar units from its contact point. Returns false
@@ -56,10 +52,12 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const lift=name.startsWith('crawl')?state.walk:0,turn=state.phase;
  const fist=(k:0|1):Fist=>{const a=spec.fists[k],b=next.fists[k],m=blend.mix,up=lift*Math.max(0,Math.sin(turn+(k?Math.PI:0)))*2.5;
   return [a[0]+(b[0]-a[0])*m+dx,a[1]+(b[1]-a[1])*m+dy-up+breath,a[2]+(b[2]-a[2])*m];};
- c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2,0);
- // faceDown: the weapon on the back, behind the body and the head; the far fist behind the body too.
+ c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2,GROUND_SINK);
+ // faceDown: the weapon on the back, behind the body and the head. Kneeling, the far fist goes behind the
+ // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
+ const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
  if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+dx,spec.back[1]+dy+breath,spec.backAngle,state.time);
- drawFist(c,eq.skin,fist(0),.86);
+ if(!prone)drawFist(c,eq.skin,fist(0),.9);
  const atHead=(draw:()=>void)=>{c.save();c.translate(measured[0],measured[1]+breath);c.rotate(state.lively+hit*.05);c.scale(HEAD_SCALE,HEAD_SCALE);
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
@@ -68,19 +66,29 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
  // The near fist goes over everything, under the chin while lying, like in DDTank.
- const front=fist(1);drawFist(c,eq.skin,front,1);
+ if(prone)drawFist(c,eq.skin,fist(0),1);
+ const front=fist(1);drawFist(c,eq.skin,front,1,prone?.68:1);
  if(state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
-/** The universal fist; `shade` darkens the far one a little. Until the painting loads, a plain one. */
-function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:Fist,shade:number){
- const size=COMBAT_FIST_SIZE,image=fistImage(skin);
+/** The universal fist, simple like DDTank's: a small flat skin-colored bun (about 1.5 times wider than
+ * tall, round top, flatter bottom) painted in three tones (near-white top, the skin, a darker orange
+ * bottom band) with a thin near-black outline; no fingers. `shade` darkens the far one a little and
+ * `scale` shrinks the forward fist while lying. */
+function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:Fist,shade:number,scale=1){
+ const w=COMBAT_FIST_SIZE*.57*scale,h=COMBAT_FIST_SIZE*.38*scale,color=skin??BASE_SKIN;
  c.save();c.translate(x,y);c.rotate(angle);if(shade<1)c.filter=`brightness(${shade})`;
- if(image){const w=size*image.width/Math.max(image.width,image.height),h=size*image.height/Math.max(image.width,image.height);c.drawImage(image,-w/2,-h/2,w,h);}
- else{const r=size/2;c.fillStyle=skin??'#ffd9bd';c.strokeStyle='#5a3424';c.lineWidth=1.3;c.beginPath();c.ellipse(0,0,r,r*.86,0,0,Math.PI*2);c.fill();c.stroke();
-  c.beginPath();c.moveTo(r*.15,-r*.55);c.lineTo(r*.15,r*.5);c.lineWidth=.8;c.stroke();}
+ const bun=()=>{c.beginPath();c.moveTo(-w,h*.3);c.bezierCurveTo(-w*1.05,-h*1.25,w*1.05,-h*1.25,w,h*.3);
+  c.bezierCurveTo(w*.97,h*1.02,-w*.97,h*1.02,-w,h*.3);c.closePath();};
+ bun();c.fillStyle=color;c.fill();
+ c.save();bun();c.clip();
+ c.fillStyle=shadeColor(color,.84,1.02,.9);c.fillRect(-w*1.1,h*.42,w*2.2,h);
+ const glow=c.createRadialGradient(-w*.1,-h*.55,0,-w*.1,-h*.55,w*.7);glow.addColorStop(0,'rgba(255,244,230,.95)');glow.addColorStop(.6,'rgba(255,240,224,.55)');glow.addColorStop(1,'rgba(255,240,224,0)');
+ c.fillStyle=glow;c.fillRect(-w*1.1,-h*1.2,w*2.2,h*1.6);c.restore();
+ bun();c.strokeStyle='#120e09';c.lineWidth=1.25;c.lineJoin='round';c.stroke();
  c.restore();
 }
+const shadeColor=(hex:string,r:number,g=r,b=r)=>{const n=parseInt(hex.slice(1),16),f=(v:number,k:number)=>Math.min(255,Math.round(v*k));return `rgb(${f(n>>16&255,r)},${f(n>>8&255,g)},${f(n&255,b)})`;};
 function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,angle:number,time:number){
  const level=eq.upgrade??0,image=asset(weaponAssetPath(eq.weapon,level));if(!image.complete||!image.naturalWidth)return;
  const weapon=WEAPONS.find(item=>item.id===eq.weapon);

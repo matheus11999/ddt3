@@ -310,10 +310,12 @@ html.mobile-landscape .pvp-room .pr-gvg strong{font-size:16px}
 html.mobile-landscape .pvp-room .pr-gvg small{font-size:8px}
 
 /* Room leader: only a gold crown beside the name (matheus, 18/10). */
-/* Painted-look crown beside the leader's name. */
-.pvp-room .pr-host-crown{flex:none;width:22px;height:18px;margin-right:4px;filter:drop-shadow(0 1px 0 #6b3008) drop-shadow(0 0 3px #fff2b0aa)}
-html.mobile-landscape /* Painted-look crown beside the leader's name. */
-.pvp-room .pr-host-crown{flex:none;width:22px;height:18px;margin-right:4px;filter:drop-shadow(0 1px 0 #6b3008) drop-shadow(0 0 3px #fff2b0aa)}
+/* Plain crown after the leader's name. */
+.pvp-room .pr-host-crown{flex:none;width:17px;height:13px;margin-left:5px}
+.pvp-room .pr-card-names strong{flex:0 1 auto}
+html.mobile-landscape /* Plain crown after the leader's name. */
+.pvp-room .pr-host-crown{flex:none;width:17px;height:13px;margin-left:5px}
+.pvp-room .pr-card-names strong{flex:0 1 auto}
 /* Ready sash across the lower-left corner of the card. */
 .pvp-room .pr-ready-sash{position:absolute;right:-52px;bottom:30px;z-index:3;width:196px;height:32px;display:flex;align-items:center;justify-content:center;transform:rotate(-45deg);background:linear-gradient(#ffe68a,#d99a1c) top/100% 3px no-repeat,linear-gradient(#d99a1c,#8a5a0c) bottom/100% 3px no-repeat,linear-gradient(#7fe59b 0%,#3fbf68 30%,#249a4f 62%,#16773a 100%);box-shadow:0 1px 0 #5b3a08,0 -1px 0 #5b3a08,0 5px 8px #0f3d2266,inset 0 9px 6px -6px #ffffff66;pointer-events:none}
 .pvp-room .pr-ready-sash span{color:#fffbe8;font-family:'Lilita One','Nunito',sans-serif;font-size:18px;letter-spacing:.07em;text-transform:uppercase;-webkit-text-stroke:3px #0f5a2b;paint-order:stroke fill;text-shadow:0 2px 0 #0b4320,0 3px 3px #062a1488}

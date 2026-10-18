@@ -1,6 +1,6 @@
 # Combate em quadros pintados (como no DDTank)
 
-Pedido do usuário em 18/10/2026, a partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: o corpo de combate funciona como o compositor de sprites do DDTank. Cada roupa traz as poses de combate **pintadas** em células compatíveis; o jogo só escolhe o quadro da ação atual e empilha por cima, no mesmo espaço, a cabeça universal, o cabelo, o chapéu, os óculos e a arma nas costas. Deitado para andar e mirar, **ajoelhado para arremessar** (nunca fica de pé), arma presa nas costas o tempo todo. Revisão de 18/10 à tarde (pedido do matheus): o corpo é pequeno como no DDTank, menor que a cabeça, e as **mãos são universais**: um único punho pintado (`public/assets/outfits/combat/fist.png`) desenhado pelo jogo em todos os personagens, tingido na cor da pele. Vale para todas as roupas, sem números por roupa.
+Pedido do usuário em 18/10/2026, a partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: o corpo de combate funciona como o compositor de sprites do DDTank. Cada roupa traz as poses de combate **pintadas** em células compatíveis; o jogo só escolhe o quadro da ação atual e empilha por cima, no mesmo espaço, a cabeça universal, o cabelo, o chapéu, os óculos e a arma nas costas. Deitado para andar e mirar, **ajoelhado para arremessar** (nunca fica de pé), arma presa nas costas o tempo todo. Revisão de 18/10 à tarde (pedido do matheus): o corpo é pequeno como no DDTank, menor que a cabeça, e as **mãos são universais**: um punho achatado simples (mais largo que alto, topo redondo, base reta, três tons de pele e contorno quase preto), sem dedos, desenhado pelo jogo em todos os personagens na cor da pele (como no DDTank). Deitado, os dois punhos ficam lado a lado na frente do queixo, com a base na mesma linha, e o da frente é menor (cerca de 2/3), como medido na simulação do DDTank. O deitado segue as medidas da simulação do DDTank: cabeça parada, corpo curto e reto (cerca de meia cabeça aparece atrás dela), punhos sob o queixo, arma baixa atrás do quadril. Vale para todas as roupas, sem números por roupa.
 
 ## Quadros (`src/game/rig/combatFrames.json`)
 
@@ -19,7 +19,7 @@ Para cada quadro o contrato diz onde fica a cabeça (`head`), os dois punhos uni
 
 ## Ordem das camadas
 
-Como no `GameCharacterLoader` do DDTank: arma nas costas → punho de trás → cabeça e cabelo → roupa → óculos e chapéu → punho da frente. Os punhos sob o queixo no quadro deitado ficam por cima do rosto, igual ao original. Entre um quadro e o seguinte (rastejar, levantar, arremesso) os punhos deslizam suavemente; rastejando eles também sobem e descem alternados.
+Como no `GameCharacterLoader` do DDTank: arma nas costas → punho de trás (só ajoelhado) → cabeça e cabelo → roupa → óculos e chapéu → punho da frente. Deitado, os dois punhos ficam por cima do rosto, cobrindo a parte de baixo do queixo, igual ao original. Entre um quadro e o seguinte (rastejar, levantar, arremesso) os punhos deslizam suavemente; rastejando eles também sobem e descem alternados.
 
 ## Andar deitado
 
@@ -29,7 +29,7 @@ O servidor anda 8 px a cada comando (90 ms). O cliente persegue essa posição e
 
 1. `python3 scripts/make-combat-templates.py` gera os moldes `docs/templates/combat-ground.png` e `combat-throw.png`: 3×2 células de 512 px sobre magenta, com a cabeça como silhueta verde, o corpo como boneco cinza pequeno (`mannequin` no contrato, no tamanho do DDTank) e os punhos como discos ciano, onde o jogo desenha a mão universal.
 2. O Codex pinta a roupa por cima do boneco cinza, sem mãos (mangas terminam no cotovelo), com os prompts de `docs/combat-art-prompts/`: anexar o molde, a roupa em pé e as referências de pose do relatório (`output/pdf/ddtank-rig-imagens/04`, `05`, `06`). As referências do DDTank servem só de pose; a arte é nossa.
-3. `python3 scripts/build-combat-atlas.py outfit-<id>` acha a cabeça verde de cada quadro, escala a prancha para a cabeça universal, apaga o verde, coloca o corpo na célula do atlas (cabeça no x do contrato, linha mais baixa no chão) e grava `public/assets/outfits/combat/outfit-<id>.png` e a altura medida da cabeça em `src/game/combatAtlas.json`. Avisa quando o corpo pintado passa 30% do boneco cinza. Avisos e erros em `test-results/combat/outfit-<id>/`. O punho universal: `fist.txt` e `python3 scripts/build-combat-atlas.py --fist <imagem>`.
+3. `python3 scripts/build-combat-atlas.py outfit-<id>` acha a cabeça verde de cada quadro, escala a prancha para a cabeça universal, apaga o verde, coloca o corpo na célula do atlas (cabeça no x do contrato, linha mais baixa no chão) e grava `public/assets/outfits/combat/outfit-<id>.png` e a altura medida da cabeça em `src/game/combatAtlas.json`. Avisa quando o corpo pintado passa 30% do boneco cinza. Avisos e erros em `test-results/combat/outfit-<id>/`.
 4. `node scripts/verify-combat-frames.mjs` monta a prancha de todas as roupas × ações (`test-results/combat/combat-frames.png`) para mostrar ao usuário.
 
 Roupa sem atlas continua no corpo deitado recortado antigo (`docs/prone-combat.md`). O Ticket de Cor e a cor do corpo se aplicam ao atlas inteiro pela mesma zona da roupa.

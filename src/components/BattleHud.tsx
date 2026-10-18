@@ -47,12 +47,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const canAct=mine&&!intro&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
  // Turning in place is free and allowed at any time of the match: anyone's turn, a shot in flight, the monsters' turn (the server checks it too).
  const canFace=b.phase!=='finished'&&!blocked&&!exit&&status==='online'&&me.hp>0;
+ // The angle can be set at any time too (user request, 18/10/2026); off turn it stays local and is sent when the turn starts.
+ const canAim=canFace&&!charging&&!(mine&&!!submitted);
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
  const paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
- const live=useRef({canAct,canFace,angle,minAngle,maxAngle,me,wind:b.wind});live.current={canAct,canFace,angle,minAngle,maxAngle,me,wind:b.wind};
+ const live=useRef({canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind});live.current={canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind};
  const terrainAim=useRef<{battleId:string;slope:number}|null>(null);
  useLayoutEffect(()=>{
   const previous=terrainAim.current,newBattle=previous?.battleId!==b.id;
@@ -139,6 +141,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    if(move?ignoresMoveKeys(event.target):ignoresGameKeys(event.target))return;
    if(!live.current.canAct){
     if(side&&live.current.canFace){event.preventDefault();if(!event.repeat&&live.current.me.facing!==side)client.send({type:'face',direction:side});}
+    if(!side&&move&&live.current.canAim){event.preventDefault();keys.add(key);}
     return;
    }
    if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(key))event.preventDefault();
@@ -159,11 +162,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const focus=(event:FocusEvent)=>{if(ignoresGameKeys(event.target)&&chargeSource.current==='keyboard')blur();};
   const visibility=()=>{if(document.hidden)blur();};
   const timer=setInterval(()=>{
-   if(!live.current.canAct||turnSubmitted.current||ignoresMoveKeys(document.activeElement))return;
+   if(ignoresMoveKeys(document.activeElement))return;
+   if(live.current.canAim){
+    if(keys.has('w')||keys.has('arrowup'))setAngle(Math.min(live.current.maxAngle,live.current.angle+1));
+    if(keys.has('s')||keys.has('arrowdown'))setAngle(Math.max(live.current.minAngle,live.current.angle-1));
+   }
+   if(!live.current.canAct||turnSubmitted.current)return;
    if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
    if(keys.has('d')||keys.has('arrowright'))client.send({type:'walk',direction:1});
-   if(keys.has('w')||keys.has('arrowup'))setAngle(Math.min(live.current.maxAngle,live.current.angle+1));
-   if(keys.has('s')||keys.has('arrowdown'))setAngle(Math.max(live.current.minAngle,live.current.angle-1));
   },90);
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);window.addEventListener('focusin',focus);document.addEventListener('visibilitychange',visibility);
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
@@ -231,7 +237,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
     <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
-    <div className="angle-buttons"><button type="button" disabled={!canAct} aria-label="Aumentar ângulo" onClick={event=>{setAngle(Math.min(maxAngle,angle+1));if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAct} aria-label="Diminuir ângulo" onClick={event=>{setAngle(Math.max(minAngle,angle-1));if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
+    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{setAngle(Math.min(maxAngle,angle+1));if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{setAngle(Math.max(minAngle,angle-1));if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>

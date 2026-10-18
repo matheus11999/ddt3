@@ -112,7 +112,7 @@ async function run(){
   let [a,b]=clients;
   await a.request({type:'rename',name:`TEST-A-${a.profile.id.slice(0,8)}`},'profile');await b.request({type:'rename',name:`TEST-B-${b.profile.id.slice(0,8)}`},'profile');
   await a.request({type:'shop-buy',items:['face-taunt','face-fierce']},'shop-result');await b.request({type:'shop-buy',items:['face-serene']},'shop-result');
-  for(const item of ['hat-cap','face-taunt','outfit-surfer'])await a.request({type:'equip',item},'profile');
+  for(const item of ['hat-cap','face-taunt','outfit-cartographer'])await a.request({type:'equip',item},'profile');
   assert.equal(a.profile.equipment.hat,'hat-cap');assert.equal(a.profile.equipment.face,'face-taunt');checks.push('purchased equipment and compatible starter cosmetics');
   assert.match((await a.request({type:'forge',item:'ember',stones:{'1':1}},'error')).message,/Aproxime-se/);
   const invalidSelections:Record<string,number>[]=[{'1':-1},{'1':21},{'6':1}];

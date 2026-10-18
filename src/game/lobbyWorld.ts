@@ -37,7 +37,7 @@ const BRONZE:Theme={glow:'#ff8a3d',core:'#ffe0c2',metal:['#ffd9a8','#d08a4a','#7
  */
 type Motion='still'|'breathe'|'sway'|'bob'|'pulse';
 type Layer={name:string;motion:Motion;pivot?:[number,number];period?:number;amount?:number;phase?:number};
-type Fallback={kind:'podium'|'gate';portal:Portal}|{kind:'keeper';outfit:'surfer'|'executive';hat:string;facing:1|-1};
+type Fallback={kind:'podium'|'gate';portal:Portal}|{kind:'keeper';hat:string;facing:1|-1};
 export type Station={id:string;title:string;dir:string;x:number;y:number;height:number;layers:Layer[];action?:LobbyAction;rank?:1|2|3;stand?:[number,number];glow?:Portal;shadows?:Shadow[];noCast?:boolean;fallback:Fallback};
 /**
  * Contact shadow where a station touches the floor: centre x/y, radius x/y, as fractions of the canvas, and an optional darkness (1 = default).
@@ -50,9 +50,9 @@ type Shadow=[number,number,number,number,number?];
 /** Podiums sit a little smaller than the other stations so the ranked players stand out. */
 const PODIUM_HEIGHT=255;
 export const LOBBY_STATIONS:Station[]=[
- {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:626,height:300,action:'shop',shadows:[[.5,.95,.5,.05],[.51,.99,.09,.02]],fallback:{kind:'keeper',outfit:'surfer',hat:'hat-tide',facing:1},layers:[
+ {id:'shop',title:'Ateliê',dir:'npc-loja',x:560,y:626,height:300,action:'shop',shadows:[[.5,.95,.5,.05],[.51,.99,.09,.02]],fallback:{kind:'keeper',hat:'hat-tide',facing:1},layers:[
   {name:'barraca',motion:'still'},{name:'npc',motion:'breathe'}]},
- {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:628,height:240,action:'storage',shadows:[[.31,.99,.21,.03],[.73,.99,.12,.025]],fallback:{kind:'keeper',outfit:'surfer',hat:'hat-cap',facing:1},layers:[
+ {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:628,height:240,action:'storage',shadows:[[.31,.99,.21,.03],[.73,.99,.12,.025]],fallback:{kind:'keeper',hat:'hat-cap',facing:1},layers:[
   {name:'burro',motion:'breathe',period:3400},{name:'npc',motion:'breathe'}]},
  // All podium canvases share one scale, so they share one height; `stand` is the centre of each top.
  ...([[2,2040,616,[.5,.66],SILVER],[1,2304,608,[.5,.49],GOLD],[3,2568,620,[.5,.75],BRONZE]] as const).map(([rank,x,y,stand,theme]):Station=>({
@@ -60,7 +60,7 @@ export const LOBBY_STATIONS:Station[]=[
   fallback:{kind:'podium',portal:{x,y,scale:1,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'pulse'}]})),
  {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',noCast:true,shadows:[[.5,.97,.52,.075,1.5],[.34,.95,.48,.075,1.1]],glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
   {name:'base',motion:'still'},{name:'asas',motion:'sway',pivot:[.5,.45],period:1700,amount:.03},{name:'calice',motion:'bob',period:2400,amount:8}]},
- {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:632,height:300,action:'forge',shadows:[[.5,.95,.5,.05],[.48,.99,.15,.025]],fallback:{kind:'keeper',outfit:'executive',hat:'hat-cap',facing:-1},layers:[
+ {id:'forge',title:'Ferreiro',dir:'npc-ferreiro',x:3720,y:632,height:300,action:'forge',shadows:[[.5,.95,.5,.05],[.48,.99,.15,.025]],fallback:{kind:'keeper',hat:'hat-cap',facing:-1},layers:[
   {name:'barraca',motion:'still'},
   {name:'npc',motion:'breathe'}]},
 ];
@@ -168,7 +168,7 @@ function forgeProps(c:CanvasRenderingContext2D,t:number){
  c.restore();
 }
 
-export interface LobbyKeeper {id:string;x:number;y:number;outfit:'surfer'|'executive';hat:string;facing:1|-1;}
+export interface LobbyKeeper {id:string;x:number;y:number;hat:string;facing:1|-1;}
 export interface LobbyPodium {rank:1|2|3;x:number;y:number;}
 
 export class LobbyWorld {
@@ -261,7 +261,7 @@ export class LobbyWorld {
  }
  /** Keepers to stand in as avatars while their painting is missing. */
  keepers():LobbyKeeper[]{
-  return LOBBY_STATIONS.flatMap(station=>station.fallback.kind==='keeper'&&!this.hasArt(station)?[{id:`npc-${station.id}`,x:station.x,y:station.y,outfit:station.fallback.outfit,hat:station.fallback.hat,facing:station.fallback.facing}]:[]);
+  return LOBBY_STATIONS.flatMap(station=>station.fallback.kind==='keeper'&&!this.hasArt(station)?[{id:`npc-${station.id}`,x:station.x,y:station.y,hat:station.fallback.hat,facing:station.fallback.facing}]:[]);
  }
  /** Where the day's top PvP players stand, in world coordinates. */
  podiums():LobbyPodium[]{

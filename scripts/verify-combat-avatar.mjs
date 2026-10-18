@@ -8,7 +8,7 @@ try{
  const page=await browser.newPage({viewport:{width:1680,height:1100}}),errors=[];page.on('pageerror',e=>errors.push(e.message));await enterGame(page,process.env.BASE_URL??'http://127.0.0.1:5177');await page.waitForLoadState('networkidle');
  const report=await page.evaluate(async()=>{
   const {asset,avatarRig}=await import('/src/game/appearance.ts'),{drawAvatar,createAvatarMotion,drawAura,getUpgradeAura}=await import('/src/game/avatar.ts'),{DEFAULT_EQUIPMENT,weaponAssetPath}=await import('/shared/catalog.ts');
-  const ids=['outfit-surfer','outfit-executive'],levels=[0,5,9,12];
+  const ids=['outfit-cartographer'],levels=[0,5,9,12];
   await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png','/assets/outfits/combat-prone.png','/assets/auras/upgrade-rings.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`]),...levels.map(n=>weaponAssetPath('ember',n))].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   document.body.replaceChildren();document.body.style.cssText='margin:0;background:#172944';const sheet=document.createElement('canvas');sheet.id='combat-sheet';sheet.width=1680;sheet.height=1150;document.body.append(sheet);const c=sheet.getContext('2d');
   c.fillStyle='#172944';c.fillRect(0,0,sheet.width,sheet.height);c.fillStyle='#fff0bb';c.font='bold 26px Georgia';c.fillText('COMBATE CHIBI COMPACTO · SEM AURA · ARMA ATRÁS',30,42);
@@ -34,7 +34,7 @@ try{
    sheet.width=1800;sheet.height=780;c.fillStyle='#172944';c.fillRect(0,0,1800,780);c.fillStyle='#fff0bb';c.font='bold 25px Georgia';c.fillText('AURA DE LUZ · SOMENTE INVENTÁRIO, PERFIL E CARTAS',24,40);
    for(let i=0;i<3;i++){
     const level=[5,9,12][i],x=300+i*600;c.fillStyle='#fff0bb';c.font='21px Arial';c.fillText(`+${level}`,x-18,85);const m=createAvatarMotion(),cell=document.createElement('canvas');cell.width=600;cell.height=670;const cc=cell.getContext('2d');
-    for(let f=0;f<40;f++){cc.clearRect(0,0,600,670);drawAvatar(cc,{...DEFAULT_EQUIPMENT,outfit:i===1?'outfit-executive':'outfit-surfer',upgrade:level,hat:'hat-none'},300,615,530,1000+f*16,false,1,false,m,{pose:'idle',showAura:true});}c.drawImage(cell,i*600,110);
+    for(let f=0;f<40;f++){cc.clearRect(0,0,600,670);drawAvatar(cc,{...DEFAULT_EQUIPMENT,outfit:'outfit-cartographer',upgrade:level,hat:'hat-none'},300,615,530,1000+f*16,false,1,false,m,{pose:'idle',showAura:true});}c.drawImage(cell,i*600,110);
    }
   };
   window.drawAuraEdges=()=>{

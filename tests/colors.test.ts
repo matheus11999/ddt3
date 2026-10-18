@@ -33,7 +33,7 @@ test('profiles without the color system start with the starter tickets and no co
  assert.equal(p.colorTickets,STARTER_COLOR_TICKETS);assert.deepEqual(p.itemColors,{});assert.deepEqual(p.bodyColors,{});
  assert.equal(normalizeProfile({...p,colorTickets:0}).colorTickets,0);
  // Colors of copies no longer owned, or that are not hex colors, are dropped.
- const cleaned=normalizeProfile({...p,itemColors:{'hat-ruby':'#ABCDEF','hat-cap':'#ffffff','outfit-dancer':'red'},bodyColors:{skin:'#123456',eyes:'blue'}});
+ const cleaned=normalizeProfile({...p,itemColors:{'hat-ruby':'#ABCDEF','hat-cap':'#ffffff','outfit-cartographer':'red'},bodyColors:{skin:'#123456',eyes:'blue'}});
  assert.deepEqual(cleaned.itemColors,{'hat-ruby':'#abcdef'});assert.deepEqual(cleaned.bodyColors,{skin:'#123456'});
  assert.equal(cleaned.equipment.colors?.hat,'#abcdef');assert.equal(cleaned.equipment.skin,'#123456');
 });
@@ -90,7 +90,7 @@ test('tickets are bought by quantity and equipment never by quantity',async()=>{
 
 test('discarding removes a copy with its data, unequips it and keeps one of each worn type',async()=>{
  const {store,state}=await database();
- state.profile.inventory.push('hat-cap~2');state.profile.itemColors={'hat-cap':'#c8463d','hat-cap~2':'#00ff00'};state.profile.equipment.copies={hat:'hat-cap~2'};
+ state.profile.inventory.push('hat-cap~2','outfit-cartographer~2');state.profile.itemColors={'hat-cap':'#c8463d','hat-cap~2':'#00ff00'};state.profile.equipment.copies={hat:'hat-cap~2'};
  // Throwing away the first copy moves the newest one into the plain id, keeping what is worn.
  let p=await store.discard(state.profile.id,'hat-cap');
  assert.deepEqual(p.inventory.filter(key=>key.startsWith('hat-cap')),['hat-cap']);assert.equal(p.itemColors['hat-cap'],'#00ff00');assert.equal(p.equipment.hat,'hat-cap');assert.equal(p.equipment.copies?.hat,undefined);assert.equal(p.equipment.colors?.hat,'#00ff00');
@@ -100,9 +100,10 @@ test('discarding removes a copy with its data, unequips it and keeps one of each
  // The last weapon cannot go (the test fixtures add more weapons, so throw those away first).
  for(const key of p.inventory.filter(key=>key!==p.equipment.weapon&&ITEMS.find(item=>item.id===key)?.slot==='weapon'))p=await store.discard(state.profile.id,key);
  await assert.rejects(store.discard(state.profile.id,p.equipment.weapon),/pelo menos um/);
- // A worn outfit with another owned is swapped for that one.
- const outfits=p.inventory.filter(key=>key.startsWith('outfit-'));assert.ok(outfits.length>1);
- p=await store.discard(state.profile.id,p.equipment.outfit);assert.ok(p.inventory.includes(p.equipment.outfit));
+ // A worn outfit with another owned copy is swapped for that one; the last outfit stays.
+ const outfits=p.inventory.filter(key=>key.startsWith('outfit-'));assert.deepEqual(outfits,['outfit-cartographer','outfit-cartographer~2']);
+ p=await store.discard(state.profile.id,p.equipment.outfit);assert.deepEqual(p.inventory.filter(key=>key.startsWith('outfit-')),['outfit-cartographer']);assert.equal(p.equipment.outfit,'outfit-cartographer');
+ await assert.rejects(store.discard(state.profile.id,'outfit-cartographer'),/pelo menos um/);
  // The copy is gone for good after a fresh read.
  assert.deepEqual(normalizeProfile(structuredClone(state.profile)).inventory,p.inventory);
 });

@@ -18,10 +18,6 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'glasses-sport':{label:'A armação e as lentes'},
  'glasses-cat':{label:'A armação e as lentes'},
  'glasses-navigator':{label:'A armação; as lentes ficam como estão',hue:.04,tolerance:.05,minSaturation:.3},
- 'outfit-surfer':{label:'A camisa florida',hue:.5,tolerance:.06,minSaturation:.25},
- 'outfit-racer':{label:'O azul do macacão; os detalhes laranja ficam como estão',hue:.61,tolerance:.07,minSaturation:.25},
- 'outfit-dancer':{label:'A jaqueta e os tênis',hue:.975,tolerance:.04,minSaturation:.35},
- 'outfit-executive':{label:'O terno',hue:.64,tolerance:.06,minSaturation:.2},
  'outfit-cartographer':{label:'O casaco azul; o dourado fica como está',hue:.63,tolerance:.06,minSaturation:.25}
 };
 /** Share of a piece's painted pixels that may change: too little reads as "nothing happened", too much

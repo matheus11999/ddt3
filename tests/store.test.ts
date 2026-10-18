@@ -76,7 +76,7 @@ test('equipment persistence derives upgrade from the locked profile and validate
 
 test('customization saves simultaneous facial, head and clothing layers atomically and ignores client colors',async()=>{
  const {store,state}=await database();state.profile.inventory.push('glasses-sport','hair-undercut');const before=structuredClone(state.profile);
- const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',hair:'hair-undercut',outfit:'outfit-executive'};
+ const equipment={...before.equipment,hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',hair:'hair-undercut',outfit:'outfit-cartographer'};
  const saved=await store.saveEquipment(before.id,{...equipment,colors:{hat:'#ff0000'}});
  assert.deepEqual(saved.equipment,equipment);assert.deepEqual(saved.stones,before.stones);assert.deepEqual(saved.upgrades,before.upgrades);
  assert.equal(saved.equipment.wristband,before.equipment.wristband);assert.equal(saved.equipment.bracelet,before.equipment.bracelet);
@@ -139,7 +139,7 @@ test('composition rejects incompatible equipment, downgrades, absent materials a
 
 test('composition rollback restores both currency and mineral on database failure',async()=>{
  const {store,state}=await database(0);state.failWrite=true;const before=structuredClone(state.profile);
- await assert.rejects(store.compose(before.id,'outfit-surfer','armor-1'),/Database write failed/);
+ await assert.rejects(store.compose(before.id,'outfit-cartographer','armor-1'),/Database write failed/);
  assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,1);
 });
 

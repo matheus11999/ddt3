@@ -21,13 +21,13 @@ try{
  // this fresh, tagged guest, then purchase through the real transaction. The shop
  // smoke separately covers the normal 500-coin starter and insufficient balance.
  const guest=await profile();assert.match(guest.id,/^[a-f0-9-]{36}$/);
- const fixtureScript=`import assert from 'node:assert/strict';import {Store} from './server/store.ts';const store=new Store();try{const id=${JSON.stringify(guest.id)},name=${JSON.stringify(guest.name)};const updated=await store.pool.query("UPDATE players SET name=$3,profile=jsonb_set(profile,'{gold}','3000') WHERE id=$1 AND name=$2 AND created_at>now()-interval '1 minute' RETURNING id",[id,name,'TEST-UI-'+id.slice(0,8)]);assert.equal(updated.rowCount,1);await store.buy(id,['glasses-sport','face-taunt','wristband-braid','bracelet-sun','outfit-executive']);}finally{await store.pool.end();}`;
+ const fixtureScript=`import assert from 'node:assert/strict';import {Store} from './server/store.ts';const store=new Store();try{const id=${JSON.stringify(guest.id)},name=${JSON.stringify(guest.name)};const updated=await store.pool.query("UPDATE players SET name=$3,profile=jsonb_set(profile,'{gold}','3000') WHERE id=$1 AND name=$2 AND created_at>now()-interval '1 minute' RETURNING id",[id,name,'TEST-UI-'+id.slice(0,8)]);assert.equal(updated.rowCount,1);await store.buy(id,['glasses-sport','face-taunt','wristband-braid','bracelet-sun']);}finally{await store.pool.end();}`;
  const fixture=spawnSync('docker',['compose','exec','-T','server','node','--import','tsx','--input-type=module'],{input:fixtureScript,encoding:'utf8',timeout:30000});assert.equal(fixture.status,0,fixture.stderr);
  await enterGame(page,base);
  await expect(page.locator('.bottom-dock')).toBeVisible();
  const initial=await profile();
- assert.deepEqual(initial.inventory.filter(id=>id.startsWith('outfit-')).sort(),['outfit-executive','outfit-surfer']);
- assert.ok(['outfit-surfer','outfit-executive'].includes(initial.equipment.outfit));
+ assert.deepEqual(initial.inventory.filter(id=>id.startsWith('outfit-')).sort(),['outfit-cartographer']);
+ assert.equal(initial.equipment.outfit,'outfit-cartographer');
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
  const bag=page.getByRole('dialog',{name:'Mochila'});
  await expect(bag.locator('[data-slot]')).toHaveCount(13);
@@ -57,12 +57,11 @@ try{
  await bag.getByRole('button',{name:'Pulseira Trançada',exact:true}).click();
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('bracelet');
  await bag.getByRole('button',{name:'Bracelete Solar',exact:true}).click();
- await bag.getByRole('combobox',{name:'Categoria'}).selectOption('outfit');await bag.getByRole('button',{name:'Executivo',exact:true}).click();
- await expect.poll(async()=>(await profile()).equipment,{timeout:15000}).toMatchObject({hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',wristband:'wristband-braid',bracelet:'bracelet-sun',outfit:'outfit-executive'});
+ await expect.poll(async()=>(await profile()).equipment,{timeout:15000}).toMatchObject({hat:'hat-cap',glasses:'glasses-sport',face:'face-taunt',wristband:'wristband-braid',bracelet:'bracelet-sun',outfit:'outfit-cartographer'});
  await expect(bag.locator('.equipment-status')).toHaveText('Visual equipado');
  const saved=await profile();
  assert.equal(saved.equipment.hat,'hat-cap');assert.equal(saved.equipment.glasses,'glasses-sport');assert.equal(saved.equipment.face,'face-taunt');assert.equal(saved.equipment.wristband,'wristband-braid');assert.equal(saved.equipment.bracelet,'bracelet-sun');
- assert.equal(saved.equipment.outfit,'outfit-executive');
+ assert.equal(saved.equipment.outfit,'outfit-cartographer');
  const savedAttack=Number(await bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b').innerText());
  const customizationCommands=commands.filter(c=>c.type==='customize');assert.ok(customizationCommands.length>0);assert.ok(customizationCommands.every(command=>events.some(event=>event.type==='profile'&&event.requestId===command.requestId)),'every equipment request has a persistence acknowledgement');
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('all');
@@ -139,6 +138,6 @@ try{
  await expect(page.locator('.bottom-dock')).toBeVisible();
  assert.deepEqual(errors,[]);
  assert.deepEqual(events.filter(event=>event.type==='error'),[]);
- const report={ok:true,base,checks:['async scroll API cleanup regression','9 current slots','two owned outfits in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','immediate equipment and tint application','slot double-click removes equipment','drag equipment','simultaneous glasses and hat','server saved jewelry and executive outfit','correlated persistence acknowledgements without Save/Restore/trash','static character and no pose controls','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
+ const report={ok:true,base,checks:['async scroll API cleanup regression','9 current slots','single starter outfit in established-player fixture','hover attributes tooltip within viewport','no bottom item detail panel','seven character attributes','immediate equipment and tint application','slot double-click removes equipment','drag equipment','simultaneous glasses and hat','server saved jewelry and executive outfit','correlated persistence acknowledgements without Save/Restore/trash','static character and no pose controls','reload persistence','forge UI single transaction and consumption','composition tier previews without spending','one authoritative composition transaction','composition stone and gold consumption','equal composition disabled','composition persistence and attribute totals','composition tooltip bonus','hold-release practice and extra projectile','return to lobby'],testPlayerId:saved.id};
  await writeFile('test-results/browser-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
 }catch(error){await page.screenshot({path:'test-results/browser-failure.png'}).catch(()=>{});throw error;}finally{await browser.close();}

@@ -119,6 +119,14 @@ for sheet, path in zip(contract['sheets'], inputs):
         mask = Image.new('L', (T['cell'], T['cell']), 0)
         ImageDraw.Draw(mask).ellipse([hx - cx - sw / 2, hy - cy - sh / 2, hx - cx + sw / 2, hy - cy + sh * .2], fill=255)
         figure[np.asarray(mask) > 0, 3] = 0
+        # Optional per-sheet shrink of an older, bigger painting: the body scales about the chin, so the
+        # neck stays under the head and the head comes down with the smaller body.
+        k = sheet.get('bodyScale', 1)
+        if k != 1:
+            chin = (hx - cx, hy - cy + sh * .45)
+            img = Image.fromarray(figure.astype('uint8'), 'RGBA')
+            img = img.transform(img.size, Image.AFFINE, (1 / k, 0, chin[0] - chin[0] / k, 0, 1 / k, chin[1] - chin[1] / k), Image.BICUBIC)
+            figure = np.asarray(img).astype(float)
         solid = np.nonzero(figure[..., 3] > 128)
         if len(solid[0]) < 2000:
             issues.append(f'{sheet["name"]} {name}: corpo quase vazio')
