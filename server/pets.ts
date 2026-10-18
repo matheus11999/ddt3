@@ -2,7 +2,7 @@ import type pg from 'pg';
 import {randomInt,randomUUID} from 'node:crypto';
 import {PET_CONFIG,PET_STAT_KEYS} from '../shared/petConfig';
 import type {PetConfig,PetStats} from '../shared/petConfig';
-import {cleanStats,gainPetXp,petSnapshot,petSpecies,PET_FOODS,PET_QUALITIES,refreshKnownSkills,skillSlotProblem,validPetName} from '../shared/pets';
+import {cleanStats,gainPetXp,petSnapshot,petSpecies,PET_FOODS,PET_QUALITIES,placeLearned,refreshKnownSkills,skillSlotProblem,validPetName} from '../shared/pets';
 import type {PlayerPet} from '../shared/pets';
 import type {PetDomainEvent,PetDomainEventKind,PetResult,PetsState} from '../shared/petProtocol';
 import type {Profile} from '../shared/protocol';
@@ -21,6 +21,8 @@ export interface PetKeeper {
  release(ownerId:string,petId:string,confirmName:string):Promise<PetOutcome>;
  feed(ownerId:string,petId:string,food:string,quantity:number):Promise<PetOutcome>;
  setSkillSlot(ownerId:string,petId:string,slot:number,skill:string|null):Promise<PetOutcome>;
+ /** A one-time gift (null when already received). */
+ gift(ownerId:string,gift:{key:string;species:string;food?:Record<string,number>;equip?:boolean}):Promise<PetOutcome|null>;
  /** End of a battle: EXP and vitality for each pet that fought, applied once per battle and pet whatever the retries. */
  settleBattle(battleId:string,entries:BattlePetEntry[]):Promise<Map<string,PetOutcome>>;
 }
@@ -62,15 +64,35 @@ export abstract class PetService implements PetKeeper {
   const def=petSpecies(species);if(!def||!def.enabled)throw Error('Este pet não está disponível.');
   const quality=options.quality??def.qualities[0];if(!def.qualities.includes(quality)||!PET_QUALITIES.has(quality))throw Error('Qualidade de pet inválida.');
   let created!:PlayerPet;
-  const outcome=await this.act(ownerId,'grant',tx=>{
-   if(tx.pets.length>=this.config.maxOwned)throw Error(`Você já tem ${this.config.maxOwned} pets. Libere um para receber outro.`);
-   const traits=options.traits?cleanStats(options.traits):Object.fromEntries(PET_STAT_KEYS.filter(key=>def.traitRange[key]).map(key=>[key,Math.round(this.rng()*(def.traitRange[key]??0))]).filter(([,v])=>v));
-   created={id:randomUUID(),ownerId,species,name:validPetName(options.name??def.name,this.config),level:1,xp:0,vitality:this.config.vitality.initial,quality,stars:Math.max(0,Math.min(def.maxStars,Math.floor(options.stars??0))),stage:0,
-    traits,knownSkills:[],equippedSkills:this.config.skillSlots.map(()=>null),gear:Object.fromEntries(this.config.equipment.slots.map(slot=>[slot,null])),equipped:false,locked:false,obtainedAt:new Date().toISOString(),source:options.source.slice(0,40),evolution:{}};
-   refreshKnownSkills(created);tx.pets.push(created);event(tx,'PET_OBTAINED',created,{species,quality,source:created.source});
-   return {petId:created.id,message:`Você recebeu ${created.name}!`};
-  });
+  const outcome=await this.act(ownerId,'grant',tx=>{created=this.create(tx,ownerId,species,quality,options);return {petId:created.id,message:`Você recebeu ${created.name}!`};});
   return {...outcome,pet:structuredClone(outcome.state.pets.find(p=>p.id===created.id)!)};
+ }
+ /** A new pet inside a transaction: capacity, traits rolled in the species range, skills learned and placed in the open slots. */
+ private create(tx:PetTx,ownerId:string,species:string,quality:string,options:{source:string;name?:string;stars?:number;traits?:PetStats}){
+  const def=petSpecies(species)!;
+  if(tx.pets.length>=this.config.maxOwned)throw Error(`Você já tem ${this.config.maxOwned} pets. Libere um para receber outro.`);
+  const traits=options.traits?cleanStats(options.traits):Object.fromEntries(PET_STAT_KEYS.filter(key=>def.traitRange[key]).map(key=>[key,Math.round(this.rng()*(def.traitRange[key]??0))]).filter(([,v])=>v));
+  const created:PlayerPet={id:randomUUID(),ownerId,species,name:validPetName(options.name??def.name,this.config),level:1,xp:0,vitality:this.config.vitality.initial,quality,stars:Math.max(0,Math.min(def.maxStars,Math.floor(options.stars??0))),stage:0,
+   traits,knownSkills:[],equippedSkills:this.config.skillSlots.map(()=>null),gear:Object.fromEntries(this.config.equipment.slots.map(slot=>[slot,null])),equipped:false,locked:false,obtainedAt:new Date().toISOString(),source:options.source.slice(0,40),evolution:{}};
+  refreshKnownSkills(created);placeLearned(created,this.config);tx.pets.push(created);event(tx,'PET_OBTAINED',created,{species,quality,source:created.source});
+  return created;
+ }
+ /**
+  * A one-time gift (the starter pet): given once per player and key, with its food, and sent to battle when
+  * the player has no pet out. Returns null when it was already received or the species is off.
+  */
+ async gift(ownerId:string,gift:{key:string;species:string;food?:Record<string,number>;equip?:boolean}):Promise<PetOutcome|null>{
+  const def=petSpecies(gift.species);if(!def?.enabled)return null;
+  let given=false;
+  const outcome=await this.act(ownerId,'grant',tx=>{
+   const gifts=tx.profile.petGifts??[];if(gifts.includes(gift.key)||tx.pets.length>=this.config.maxOwned)return {message:''};
+   tx.profile.petGifts=[...gifts,gift.key];
+   const pet=this.create(tx,ownerId,gift.species,def.qualities[0],{source:`gift:${gift.key}`});
+   if(gift.equip!==false&&!tx.pets.some(p=>p.equipped)){pet.equipped=true;event(tx,'PET_EQUIPPED',pet,{});}
+   for(const [food,n] of Object.entries(gift.food??{}))if(PET_FOODS.has(food)&&n>0)tx.profile.petFood[food]=(tx.profile.petFood[food]??0)+Math.floor(n);
+   given=true;return {petId:pet.id,message:`Você recebeu ${pet.name}! Ela já está pronta para lutar ao seu lado.`};
+  });
+  return given?outcome:null;
  }
  equip(ownerId:string,petId:string){return this.act(ownerId,'equip',tx=>{
   const pet=ownPet(tx,petId);if(!petSpecies(pet.species))throw Error('Este pet ainda não está disponível.');
@@ -136,6 +158,7 @@ export abstract class PetService implements PetKeeper {
   const outcome=gainPetXp(pet,amount,this.config);
   if(outcome.gained)event(tx,'PET_XP_GAINED',pet,{amount:outcome.gained,source});
   if(outcome.levelsGained)event(tx,'PET_LEVEL_UP',pet,{from:outcome.from,to:outcome.to,slots:outcome.unlockedSlots});
+  if(outcome.evolved)event(tx,'PET_EVOLVED',pet,{...outcome.evolved,kind:'level'});
   for(const skill of outcome.unlockedSkills)event(tx,'PET_SKILL_UNLOCKED',pet,{skill});
   return outcome;
  }
@@ -152,7 +175,7 @@ export abstract class PetService implements PetKeeper {
     if(cost)event(tx,'PET_VITALITY_CHANGED',pet,{from:before,to:pet.vitality,reason:'battle',battleId});
     const gained=this.addXp(tx,pet,xp,`battle:${battleId}`);
     event(tx,'PET_BATTLE_SETTLED',pet,{battleId,mode:entry.mode,won:entry.won,xp:gained.gained,vitality:-cost});
-    return {petId:pet.id,message:`${pet.name} ganhou ${gained.gained} de EXP${gained.levelsGained?` e subiu para o nível ${pet.level}`:''}.${pet.vitality<=0?' Ele está sem vitalidade: alimente-o.':''}`};
+    return {petId:pet.id,message:`${pet.name} ganhou ${gained.gained} de EXP${gained.levelsGained?` e subiu para o nível ${pet.level}`:''}.${gained.evolved?` Evoluiu para ${petSpecies(pet.species)?.stages[pet.stage]?.name??'um novo estágio'}!`:''}${pet.vitality<=0?' Ele está sem vitalidade: alimente-o.':''}`};
    });
    if(outcome.result.events.length)out.set(entry.ownerId,outcome);
   }
@@ -206,11 +229,18 @@ export class PetStore extends PetService {
    await c.query('COMMIT');
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
+ /** Postgres may abort one of two crossing transactions (a deadlock, 40P01): the pet action is simply run again. */
  protected async transact<T>(ownerId:string,run:(tx:PetTx)=>Promise<T>|T){
+  for(let attempt=1;;attempt++){
+   try{return await this.once(ownerId,run);}
+   catch(e){if((e as {code?:string}).code!=='40P01'||attempt>=3)throw e;}
+  }
+ }
+ private async once<T>(ownerId:string,run:(tx:PetTx)=>Promise<T>|T){
   const c=await this.pool.connect();try{
    await c.query('BEGIN');
    const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[ownerId]);if(!r.rows[0])throw Error('Jogador não encontrado.');
-   const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}),beforeProfile=json({pet:profile.equipment.pet,food:profile.petFood});
+   const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}),beforeProfile=json({pet:profile.equipment.pet,food:profile.petFood,gifts:profile.petGifts});
    const pets=(await c.query('SELECT * FROM player_pets WHERE owner_id=$1 ORDER BY obtained_at,id FOR UPDATE',[ownerId])).rows.map(petRow);
    const original=new Map(pets.map(p=>[p.id,json(p)]));
    const tx:PetTx={profile,pets,events:[],
@@ -226,7 +256,7 @@ export class PetStore extends PetService {
     else if(original.get(p.id)!==json(p))await c.query('UPDATE player_pets SET name=$3,level=$4,xp=$5,vitality=$6,quality=$7,stars=$8,stage=$9,traits=$10,known_skills=$11,equipped_skills=$12,gear=$13,evolution=$14,equipped=$15,locked=$16 WHERE id=$1 AND owner_id=$2',[p.id,ownerId,...values.slice(3,17)]);
    }
    PetService.wear(profile,tx.pets,this.config);
-   if(json({pet:profile.equipment.pet,food:profile.petFood})!==beforeProfile)await c.query('UPDATE players SET profile=$2 WHERE id=$1',[ownerId,profile]);
+   if(json({pet:profile.equipment.pet,food:profile.petFood,gifts:profile.petGifts})!==beforeProfile)await c.query('UPDATE players SET profile=$2 WHERE id=$1',[ownerId,profile]);
    for(const e of tx.events)await c.query('INSERT INTO pet_events(id,pet_id,owner_id,kind,data,at) VALUES($1,$2,$3,$4,$5,$6)',[e.id,e.petId,e.ownerId,e.kind,json(e.data),e.at]);
    await c.query('COMMIT');return {value,profile,pets:tx.pets};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}

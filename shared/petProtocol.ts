@@ -16,7 +16,7 @@ export const petCommandSchemas=[
  // In battle, on your turn: use an active skill of the equipped pet (target = a fighter id, when the skill picks one).
  z.object({type:z.literal('pet-skill'),skill:skillId,target:z.string().min(1).max(64).optional()}).strict()
 ] as const;
-export const PET_DOMAIN_EVENTS=['PET_OBTAINED','PET_EQUIPPED','PET_UNEQUIPPED','PET_RENAMED','PET_LOCKED','PET_UNLOCKED','PET_RELEASED','PET_FED','PET_VITALITY_CHANGED','PET_XP_GAINED','PET_LEVEL_UP','PET_SKILL_UNLOCKED','PET_SKILL_EQUIPPED','PET_SKILL_UNEQUIPPED','PET_BATTLE_SETTLED'] as const;
+export const PET_DOMAIN_EVENTS=['PET_OBTAINED','PET_EQUIPPED','PET_UNEQUIPPED','PET_RENAMED','PET_LOCKED','PET_UNLOCKED','PET_RELEASED','PET_FED','PET_VITALITY_CHANGED','PET_XP_GAINED','PET_LEVEL_UP','PET_SKILL_UNLOCKED','PET_SKILL_EQUIPPED','PET_SKILL_UNEQUIPPED','PET_BATTLE_SETTLED','PET_EVOLVED'] as const;
 export type PetDomainEventKind=typeof PET_DOMAIN_EVENTS[number];
 /** A pet domain event: persisted for audit (pet_events) and sent to the owner. `id` is unique, so replays are detectable. */
 export interface PetDomainEvent {id:string;kind:PetDomainEventKind;petId:string;ownerId:string;at:string;data:Record<string,unknown>;}
