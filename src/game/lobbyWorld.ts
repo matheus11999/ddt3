@@ -2,12 +2,16 @@
  * Praça Celeste: the social lobby. The world is LOBBY_WIDTH wide (three
  * screens) and the camera follows the player sideways.
  *
- * Painted art (preferred): `/assets/lobby/plaza.webp`, one panorama of the empty
- * plaza (no NPCs, no podiums), plus one folder of cut-out layers per station.
- * Without the panorama, a procedural plaza tiles the width as a stand-in, and
- * stations without art fall back to procedural podiums or keeper avatars.
+ * Painted art (preferred): parallax depth layers built by `npm run build:lobby`
+ * (sky, far islands, castle city, balustrade; airship and balloons float on top),
+ * the floor texture `floor.webp`, plus one folder of cut-out layers per station.
+ * Before the layers load, `/assets/lobby/plaza.webp` (one flat panorama) stands in;
+ * without it, a procedural plaza tiles the width, and stations without art fall
+ * back to procedural podiums or keeper avatars.
  */
 import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
+import {LOBBY_PARALLAX,LOBBY_FLOATERS} from '../../shared/generated/lobbyParallax';
+import type {LobbyParallaxLayer,LobbyFloater} from '../../shared/generated/lobbyParallax';
 import type {LobbyStationSpot} from '../../shared/lobby';
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
@@ -355,11 +359,15 @@ export class LobbyWorld {
  painted=false;
  private art=new Map<string,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();private casts=new Map<string,HTMLCanvasElement>();
  private floor=new Image();private floorCanvas:HTMLCanvasElement|null=null;
+ private depth:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;image:HTMLImageElement}[];
  /** Podium ranks with a player standing on them: their ring and halo are left out, so nothing glows behind the figure. */
  occupied=new Set<number>();
  constructor(density=2){
   this.sky=this.layer(density,paintSky);this.world=this.layer(density,paintWorld);
   this.plaza.onload=()=>{this.painted=true;};this.plaza.src='/assets/lobby/plaza.webp';
+  // Depth layers and floaters, back to front by how fast they follow the camera.
+  const entries:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;file:string}[]=[...LOBBY_PARALLAX.map(layer=>({factor:layer.factor,layer,file:layer.file})),...LOBBY_FLOATERS.map(floater=>({factor:floater.factor,floater,file:floater.file}))];
+  this.depth=entries.sort((a,b)=>a.factor-b.factor).map(({file,...entry})=>{const image=new Image();image.src=file;return {...entry,image};});
   // Optional floor texture laid over the painted floor; see docs/lobby-art-prompts.md.
   this.floor.src='/assets/lobby/floor.webp';
   for(const station of LOBBY_STATIONS){
@@ -370,6 +378,39 @@ export class LobbyWorld {
  private layer(density:number,paint:(c:CanvasRenderingContext2D)=>void){const canvas=document.createElement('canvas');canvas.width=LOBBY_W*density;canvas.height=LOBBY_H*density;const c=canvas.getContext('2d')!;c.scale(density,density);c.lineCap='round';c.lineJoin='round';paint(c);return canvas;}
  private loaded(station:Station){return station.layers.map(layer=>({layer,image:this.layers.get(`${station.dir}/${layer.name}`)!})).filter(({image})=>image.complete&&image.naturalWidth>0);}
  private hasArt(station:Station){const single=this.art.get(station.id)!;return this.loaded(station).length>0||(single.complete&&single.naturalWidth>0);}
+ /** True once every depth layer has loaded, so the backdrop never pops in piece by piece. */
+ private deep(){return this.depth.length>0&&this.depth.every(d=>d.image.complete&&d.image.naturalWidth>0);}
+ /**
+  * The depth layers as seen with the camera at `cam`, clipped to world columns x0..x1:
+  * a layer with factor f is drawn from world x cam·(1-f), so it slides f px per camera px.
+  */
+ private drawDepth(c:CanvasRenderingContext2D,t:number,cam:number,x0:number,x1:number){
+  for(const {factor,layer,floater,image} of this.depth){
+   const left=cam*(1-factor);
+   if(layer){const k=image.naturalWidth/layer.width,from=Math.max(0,x0-left),to=Math.min(layer.width,x1-left);if(to>from)c.drawImage(image,from*k,0,(to-from)*k,image.naturalHeight,left+from,layer.y,to-from,layer.height);continue;}
+   const f=floater!,phase=t/f.period*Math.PI*2+f.x*.01,x=left+f.x+Math.sin(phase*.5)*f.drift-f.w/2,y=f.y+Math.sin(phase)*f.bob-f.h/2;
+   if(x<x1&&x+f.w>x0)c.drawImage(image,x,y,f.w,f.h);
+  }
+ }
+ /**
+  * The whole plaza at once (admin editor): each spot shows the layers as a player
+  * standing there sees them, so the slower layers are squeezed toward the middle.
+  */
+ drawWhole(c:CanvasRenderingContext2D,t:number){
+  if(!this.deep()){for(let x=0;x<LOBBY_WIDTH;x+=LOBBY_W)this.drawBack(c,t,x);return;}
+  const half=LOBBY_W/2,range=LOBBY_WIDTH-LOBBY_W,step=8;
+  const local=(x:number,f:number)=>x-LobbyWorld.camera(x)*(1-f),world=(l:number,f:number)=>l<half?l:l>half+range*f?l+range*(1-f):(l-half*(1-f))/f;
+  for(const {factor,layer,floater,image} of this.depth){
+   if(floater){const f=floater,phase=t/f.period*Math.PI*2+f.x*.01,x=world(f.x+Math.sin(phase*.5)*f.drift,factor);c.drawImage(image,x-f.w/2,f.y+Math.sin(phase)*f.bob-f.h/2,f.w,f.h);continue;}
+   const k=image.naturalWidth/layer!.width;
+   for(let x=0;x<LOBBY_WIDTH;x+=step){const a=local(x,factor),b=local(x+step,factor);c.drawImage(image,a*k,0,(b-a)*k,image.naturalHeight,x,layer!.y,step+.5,layer!.height);}
+  }
+  this.drawFloor(c,0,LOBBY_WIDTH);
+ }
+ private drawFloor(c:CanvasRenderingContext2D,x0:number,w:number){
+  const floor=this.floorBand();
+  if(floor){const d=floor.width/LOBBY_WIDTH;c.drawImage(floor,x0*d,0,w*d,floor.height,x0,FLOOR_TOP,w,LOBBY_H-FLOOR_TOP);}
+ }
  /**
   * The plaza floor across the whole width, built once from the tileable
   * top-down `floor.webp`: rows get shallower toward the balustrade so the
@@ -399,12 +440,12 @@ export class LobbyWorld {
  static camera(focusX:number){return Math.max(0,Math.min(LOBBY_WIDTH-LOBBY_W,focusX-LOBBY_W/2));}
  /** Draws the backdrop in world coordinates; the caller has already translated by -camX. */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number){
+  if(this.deep()){this.drawDepth(c,t,camX,camX,camX+LOBBY_W);this.drawFloor(c,camX,LOBBY_W);return;}
   if(this.painted){
    // Height fits the view; a panorama narrower than the plaza repeats.
    const k=LOBBY_H/this.plaza.naturalHeight,tile=this.plaza.naturalWidth*k;
    for(let x0=Math.floor(camX/tile)*tile;x0<camX+LOBBY_W;x0+=tile){const from=Math.max(camX,x0),to=Math.min(camX+LOBBY_W,x0+tile);c.drawImage(this.plaza,(from-x0)/k,0,(to-from)/k,this.plaza.naturalHeight,from,0,to-from,LOBBY_H);}
-   const floor=this.floorBand();
-   if(floor){const d=floor.width/LOBBY_WIDTH;c.drawImage(floor,camX*d,0,LOBBY_W*d,floor.height,camX,FLOOR_TOP,LOBBY_W,LOBBY_H-FLOOR_TOP);}
+   this.drawFloor(c,camX,LOBBY_W);
    return;
   }
   for(let x0=Math.floor(camX/LOBBY_W)*LOBBY_W;x0<camX+LOBBY_W;x0+=LOBBY_W){

@@ -1,0 +1,10 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the LEFT HALF of the far background of the lobby "Praça Celeste" (the right half is painted next, so this image must NOT look complete or symmetrical on its own). This is only the FARTHEST layer of a parallax scene: other layers with islands, castles and the balustrade are painted separately and go in front.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+
+Content:
+- Bright blue sky, deeper blue at the top, pale near the horizon; big fluffy white cumulus clouds with soft painted volume, a few thin high wisps; soft sun rays from the upper right.
+- The sea horizon is a straight line at 62% of the image height (y = 635). Below it, turquoise calm sea all the way to the bottom, with soft light sparkles; it gets a little deeper blue toward the bottom.
+- On the horizon only: a low, pale, hazy distant mountain range (blue-lavender, very washed out) and two or three tiny pale distant islands. NO buildings, castles, floating islands, trees, ships or balloons (they come in other layers).
+- The RIGHT 20% of the image is only sky, clouds and open sea with a flat horizon, no mountain or island touching the right edge (it will be blended into the right half).
