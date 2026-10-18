@@ -2,12 +2,13 @@ Production 2D painted chibi game sprite sheet for a DDTank-style turn-based arti
 
 IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin lying belly-down behind it, and two flat CYAN (#00FFFF) discs under the chin.
 IMAGE 2 is the outfit to paint: the standing character shows the outfit design (ignore the bald head).
+IMAGE 4 (if attached) is the same outfit painted earlier by you: keep exactly the same design and colors, only the pose and size change.
 IMAGE 3 is a POSE and PROPORTION reference from DDTank (lying, crawling): a tiny body behind a big head resting on its fists. Copy only the pose and the proportions, never their clothes or art.
 
 Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head and every cyan disc EXACTLY where they are, same shape and size, flat and untouched: the game replaces the green with the player's own head and the cyan with the same skin-colored fists for every character. Do NOT paint hands or forearms: the sleeves end at the elbow, short stubs.
 
 Paint IMAGE 2's outfit as a SMALL chibi body exactly over each gray mannequin, same size and pose, covering the gray completely and not growing past it by more than a few pixels: the body is much smaller than the head, like DDTank. Collar touching the green chin, facing RIGHT, feet to the LEFT.
 
-Six frames, left to right, top to bottom: 1 REST lying belly-down, legs behind with feet raised a little. 2 CRAWL A: near knee drawn up. 3 CRAWL B: chest pushed up a little. 4 CRAWL C: far knee drawn up. 5 CRAWL D: legs stretched. 6 HURT: flattened, legs kicked up.
+The body is TINY and SHORT like DDTank: only a short torso and two short legs lying flat on the ground behind the head, feet low near the ground (not raised), the whole body barely as long as the head is wide. Six frames, left to right, top to bottom: 1 REST lying belly-down. 2-5 CRAWL: same pose, only the feet shift 1-3 px between frames (follow the mannequin). 6 HURT: flattened, feet kicked up a little.
 
 Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. No hands, no weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.

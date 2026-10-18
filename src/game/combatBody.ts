@@ -36,15 +36,8 @@ const BACK_WEAPON_SIZE=64;
 /** The painted body sinks this many avatar units into the ground, as in DDTank: the terrain's
  * painted top (snow, grass) is soft and a body standing exactly on the collision line reads as floating. */
 const GROUND_SINK=7;
-/** One painted fist shared by every outfit (knuckles to the right), tinted to the body color. */
-const FIST_PATH='/assets/outfits/combat/fist.png';
-const fists=new Map<string,HTMLCanvasElement>();
-function fistImage(skin:string|undefined):HTMLCanvasElement|null {
- const image=asset(FIST_PATH);if(!image.complete||!image.naturalWidth)return null;
- const key=skin??'',known=fists.get(key);if(known)return known;
- const out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;out.getContext('2d')!.drawImage(image,0,0);tintSkin(out,skin,true);
- fists.set(key,out);return out;
-}
+/** Base skin of character-base.png; the fists follow the player's body color. */
+const BASE_SKIN='#fcd0ac';
 
 export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since the fighter last charged: it stays up while the shot reaches the server. */sinceCharge:number;phase:number;walk:number;time:number;power:number;face?:FaceState;lively:number;weapon:boolean;modular:boolean;}
 /** Draws the combat fighter facing right in avatar units from its contact point. Returns false
@@ -75,15 +68,17 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  if(state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
-/** The universal fist; `shade` darkens the far one a little. Until the painting loads, a plain one. */
+/** The universal fist, simple like DDTank's: a round skin-colored mitten with a dark outline, a soft
+ * highlight and the thumb line, no fingers. `shade` darkens the far one a little. */
 function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:Fist,shade:number){
- const size=COMBAT_FIST_SIZE,image=fistImage(skin);
+ const r=COMBAT_FIST_SIZE/2,color=skin??BASE_SKIN;
  c.save();c.translate(x,y);c.rotate(angle);if(shade<1)c.filter=`brightness(${shade})`;
- if(image){const w=size*image.width/Math.max(image.width,image.height),h=size*image.height/Math.max(image.width,image.height);c.drawImage(image,-w/2,-h/2,w,h);}
- else{const r=size/2;c.fillStyle=skin??'#ffd9bd';c.strokeStyle='#5a3424';c.lineWidth=1.3;c.beginPath();c.ellipse(0,0,r,r*.86,0,0,Math.PI*2);c.fill();c.stroke();
-  c.beginPath();c.moveTo(r*.15,-r*.55);c.lineTo(r*.15,r*.5);c.lineWidth=.8;c.stroke();}
+ const fill=c.createRadialGradient(-r*.35,-r*.4,r*.1,0,0,r*1.1);fill.addColorStop(0,'#fff6ee');fill.addColorStop(.35,color);fill.addColorStop(1,shadeColor(color,.78));
+ c.fillStyle=fill;c.strokeStyle='#4a2414';c.lineWidth=1.2;c.beginPath();c.ellipse(0,0,r*1.08,r*.9,0,0,Math.PI*2);c.fill();c.stroke();
+ c.beginPath();c.moveTo(r*.05,r*.1);c.quadraticCurveTo(r*.55,r*.05,r*.7,r*.45);c.lineWidth=.9;c.strokeStyle='#4a241499';c.stroke();
  c.restore();
 }
+const shadeColor=(hex:string,k:number)=>{const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(v*k);return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;};
 function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,angle:number,time:number){
  const level=eq.upgrade??0,image=asset(weaponAssetPath(eq.weapon,level));if(!image.complete||!image.naturalWidth)return;
  const weapon=WEAPONS.find(item=>item.id===eq.weapon);
