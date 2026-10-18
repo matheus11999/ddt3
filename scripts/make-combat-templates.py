@@ -68,9 +68,13 @@ for sheet in contract['sheets']:
         mannequin(draw, body, at)
         hx, hy = frame['head']
         cx, cy = at[0] + hx * ppu, at[1] + hy * ppu
+        if prone:
+            # DDTank depth: the far fist (1) peeks out from behind the face, the near one (0) rests over the chin.
+            arm(draw, body['sleeves'][1], frame['fists'][1], at)
         out.paste((0, 255, 0), (round(cx - size[0] / 2), round(cy - size[1] / 2)), mask)
         if prone:
             arm(draw, body['sleeves'][0], frame['fists'][0], at)
-        arm(draw, body['sleeves'][1], frame['fists'][1], at)
+        else:
+            arm(draw, body['sleeves'][1], frame['fists'][1], at)
     out.save(f"docs/templates/combat-{sheet['name']}.png")
     print(f"docs/templates/combat-{sheet['name']}.png", sheet['frames'])

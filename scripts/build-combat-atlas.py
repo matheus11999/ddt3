@@ -124,7 +124,8 @@ for sheet, path in zip(contract['sheets'], inputs):
             warnings.append(f'{sheet["name"]} {name}: cabeça {m[2] / median:.0%} da mediana da prancha')
     scale = head_px / median
     clean = rgba.copy()
-    clean[grow(head_mask | rim, 7), 3] = 0
+    # Only pixels that still carry green go: a blind band around the head would cut the fists' and collar's outlines.
+    clean[(grow(head_mask | rim, 7) & (green > 8)) | head_mask | rim, 3] = 0
     for i, (m, name) in enumerate(zip(measured, sheet['frames'])):
         if not m:
             continue
