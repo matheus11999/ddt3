@@ -103,7 +103,7 @@ test('an expedition stage comes back with its monsters and round',async()=>{
  const backend=new MemoryBackend('postgres'),t0=Date.now();await new LiveState(s.game,[{backend,every:0}]).save(true,t0);
  const after=server(s.store);await new LiveState(after.game,[{backend,every:0}]).restore(t0+5000);
  const back=after.game.matches.get(roomId)!;
- assert.equal(back.state.map,'anthill-1');assert.equal(back.state.instance?.stage,1);
+ assert.equal(back.state.map,'anthill-1@0');assert.equal(back.state.instance?.stage,1);
  assert.equal(back.state.players.filter(f=>f.monster).length,m.state.players.filter(f=>f.monster).length);
  assert.equal(back.state.players.find(f=>f.monster)!.hp,1);
  assert.equal(back.state.instance!.introUntil,m.state.instance!.introUntil+5000);

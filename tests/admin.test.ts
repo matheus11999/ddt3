@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {checkCredentials,hashPassword,LoginThrottle,verifyPassword} from '../server/adminAuth';
 import {mapBlockers} from '../server/admin';
-import {applyMapOverride,getMap,MAP_DEFINITIONS,MAPS,pvpRotation,removeMapOverride} from '../shared/maps';
+import {applyMapOverride,baseMapId,getMap,MAP_DEFINITIONS,MAPS,pinMap,pvpRotation,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
 import type {MapId,MapRegion} from '../shared/maps';
 import {createTerrain,ground} from '../shared/physics';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK,lobbyFree} from '../shared/lobby';
@@ -43,6 +43,26 @@ test('a published map replaces collision, spawns and name, and joins or leaves t
  }finally{removeMapOverride('snow');removeMapOverride('templo');removeMapOverride('masmorra');}
  assert.equal(getMap('snow'),original);assert.equal(MAP_DEFINITIONS['templo' as MapId],undefined);assert.ok(pvpRotation().includes('snow'));
  assert.notEqual(ground(createTerrain("snow"),300),501);
+});
+
+test('a running match keeps the map version it started on while a new one is published',()=>{
+ const original=getMap('snow'),width=original.dimensions.width;
+ const v7={id:'snow',kind:'pvp' as const,name:'Neve 7',subtitle:'',enabled:true,base:'snow',width,spawns:[[1000,900,1200,400],[2072,2172,1872,2672]] as [number[],number[]],regions:[floor(0,width)],terrain:'/api/maps/snow/terrain/7.png',revision:7};
+ try{
+  const repo=pinMap('snow');assert.equal(repo,'snow@0');
+  applyMapOverride(v7);const playing=pinMap('snow');assert.equal(playing,'snow@7');assert.equal(baseMapId(playing),'snow');
+  applyMapOverride({...v7,name:'Neve 8',regions:[floor(200,width)],terrain:'/api/maps/snow/terrain/8.png',revision:8});
+  // The match on revision 7 still plays it; a new match gets revision 8; the one started before any edit keeps the repository map.
+  assert.equal(getMap(playing).name,'Neve 7');assert.equal(ground(createTerrain(playing),300),501);
+  assert.equal(getMap(pinMap('snow')).name,'Neve 8');assert.equal(getMap(repo).name,original.name);assert.equal(getMap(repo).regions,original.regions);
+  // Not in the PvP draw, and forgotten once no match plays it.
+  assert.ok(!pvpRotation().some(id=>id.includes('@')));
+  releasePinnedMaps(['snow@8']);assert.equal(MAP_DEFINITIONS[playing],undefined);
+  // After a restart (or on a client) an older version comes back from its saved revision; unknown ones play the current map.
+  registerPinnedMap(v7);assert.equal(getMap('snow@7' as MapId).name,'Neve 7');
+  assert.equal(getMap('snow@99' as MapId).name,'Neve 8');
+ }finally{releasePinnedMaps([]);removeMapOverride('snow');}
+ assert.equal(getMap('snow'),original);
 });
 
 test('the server refuses to publish spawns without ground or regions outside the map',()=>{

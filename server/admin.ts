@@ -3,12 +3,12 @@ import {z} from 'zod';
 import {adminAccount,checkCredentials,LoginThrottle} from './adminAuth';
 import {AdminStore,ADMIN_SESSION_HOURS} from './adminStore';
 import type {StoredMap,StoredRevision} from './adminStore';
-import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,removeMapOverride} from '../shared/maps';
-import type {MapId,MapRegion} from '../shared/maps';
+import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,pinMap,pinnedMap,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
+import type {MapId,MapOverride,MapRegion} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
 import {LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
-import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMaps} from '../shared/mapAdmin';
+import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMap,PublishedMaps} from '../shared/mapAdmin';
 import type {ReportStore} from './reports';
 import {REPORT_STATUSES,reportUpdateSchema} from '../shared/reports';
 import type {ReportStatus} from '../shared/reports';
@@ -30,6 +30,7 @@ const BUILT_IN_NAMES:Record<string,string>={[LOBBY_MAP_ID]:'Praça Celeste'};
 const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 
 export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;
+ /** Map versions running matches play (`snow@12`, shared/maps.ts pinMap). */pinnedMaps?:()=>string[];
  /** Players page: the table, the mail it sends and where each online player is. */
  players?:PlayerDirectory;mail?:MailStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;}
 
@@ -58,27 +59,50 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  const terrainUrl=(id:string,revision:number)=>`/api/maps/${id}/terrain/${revision}.png`;
  let published:PublishedMaps={maps:[],lobby:null};
 
- /** Applies what is published to the running game (collision, spawns, names, lobby footprints). */
+ const publishedMap=(map:{id:string;kind:string;base:string},revision:{id:number;data:Record<string,unknown>}):PublishedMap=>{
+  const data=revision.data,layout=data.layout as EditableLayout;
+  return {id:map.id,kind:map.kind==='instance'?'instance':'pvp',name:String(data.name),subtitle:String(data.subtitle??''),enabled:data.enabled!==false,revision:revision.id,base:map.base,width:layout.width??1536,spawns:[layout.spawns[0],layout.spawns[1]],regions:data.regions as PublishedMap['regions'],terrain:terrainUrl(map.id,revision.id),...(layout.monsters?{monsters:layout.monsters}:{})};
+ };
+ /** Older published versions that running matches still play, by pinned id (`snow@12`). */
+ const older=new Map<string,PublishedMap>();
+ /** Keeps the versions running matches play: what was replaced stays available to them and to their players' clients. */
+ const keepPinned=async()=>{
+  const inUse=ctx.pinnedMaps?.()??[];
+  for(const key of inUse){
+   const pin=pinnedMap(key);if(!pin||!pin.revision||older.has(key))continue;
+   const current=published.maps.find(m=>m.id===pin.id&&m.revision===pin.revision);
+   if(current){pinMap(pin.id as MapId);continue;}
+   // After a restart: load the version the match started with.
+   const [map,revision]=await Promise.all([store.map(pin.id),store.revision(pin.id,pin.revision)]);
+   if(!map||!revision)continue;const old=publishedMap(map,revision);older.set(key,old);registerPinnedMap(old as MapOverride&{revision:number});
+  }
+  for(const key of older.keys())if(!inUse.includes(key))older.delete(key);
+  releasePinnedMaps(inUse);
+ };
+
+ /** Applies what is published to the running game (collision, spawns, names, lobby footprints). Running matches keep their version. */
  const refresh=async()=>{
   const rows=await store.published(),next:PublishedMaps={maps:[],lobby:null};
   for(const {map,revision} of rows){
    const data=revision.data;
    if(map.kind==='lobby'){next.lobby={id:map.id,kind:'lobby',name:data.name,revision:revision.id,lobby:data.lobby as LobbyLayout};continue;}
-   const layout=data.layout as EditableLayout;
-   next.maps.push({id:map.id,kind:map.kind==='instance'?'instance':'pvp',name:data.name,subtitle:String(data.subtitle??''),enabled:data.enabled!==false,revision:revision.id,base:map.base,width:layout.width??1536,spawns:[layout.spawns[0],layout.spawns[1]],regions:data.regions as PublishedMaps['maps'][number]['regions'],terrain:terrainUrl(map.id,revision.id),...(layout.monsters?{monsters:layout.monsters}:{})});
+   next.maps.push(publishedMap(map,revision));
   }
+  const inUse=new Set(ctx.pinnedMaps?.()??[]);
+  for(const old of published.maps)if(!next.maps.some(m=>m.id===old.id&&m.revision===old.revision)&&inUse.has(`${old.id}@${old.revision}`))older.set(`${old.id}@${old.revision}`,old);
   for(const old of published.maps)if(!next.maps.some(m=>m.id===old.id))removeMapOverride(old.id);
-  for(const m of next.maps)applyMapOverride(m as Parameters<typeof applyMapOverride>[0]);
+  for(const m of next.maps)applyMapOverride(m as MapOverride);
   applyLobbyLayout(next.lobby?.lobby??defaultLobby);
   published=next;
+  await keepPinned();
  };
  await refresh();
 
  // ── Public: what the game client applies on start ──
- app.get('/api/maps',async(_req,reply)=>{reply.header('Cache-Control','no-cache');return published;});
+ app.get('/api/maps',async(_req,reply)=>{reply.header('Cache-Control','no-cache');await keepPinned();return {...published,pinned:[...older.values()]};});
  app.get<{Params:{id:string;revision:string}}>('/api/maps/:id/terrain/:revision.png',async(req,reply)=>{
   const revision=Number(req.params.revision);
-  if(!MAP_ID_PATTERN.test(req.params.id)||!Number.isSafeInteger(revision)||!published.maps.some(m=>m.id===req.params.id&&m.revision===revision))return reply.code(404).send({error:'Mapa não encontrado.'});
+  if(!MAP_ID_PATTERN.test(req.params.id)||!Number.isSafeInteger(revision)||!published.maps.some(m=>m.id===req.params.id&&m.revision===revision)&&!older.has(`${req.params.id}@${revision}`))return reply.code(404).send({error:'Mapa não encontrado.'});
   const image=await store.image(req.params.id,revision,'terrain');if(!image)return reply.code(404).send({error:'Mapa não encontrado.'});
   return reply.header('Content-Type','image/png').header('Cache-Control','public, max-age=31536000, immutable').send(image);
  });

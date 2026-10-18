@@ -75,7 +75,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Pendências para continuar
 
-- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild; página **Jogadores** (18/10) com tabela, filtro online e envio de moedas, itens e mensagens. Próximas áreas previstas: loja, eventos.
+- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild (vale só na próxima batalha: a partida guarda a versão do mapa, `Battle.map` = `snow@12`; compare mapas com `baseMapId`); Ctrl+C/Ctrl+V de peças e monstros, também entre mapas; página **Jogadores** (18/10) com tabela, filtro online e envio de moedas, itens e mensagens. Próximas áreas previstas: loja, eventos.
 - **Correio** (18/10, `docs/mail.md`): caixa de entrada do jogador (botão Correio da praça e da sala). Tudo que o admin envia (moedas, itens, mensagens) chega como carta com anexos; Receber/Receber tudo resgatam no servidor uma vez só (tabela `player_mail`). Recompensa nova que deva chegar por carta usa `MailStore.send`.
 
 - **Leilão** (18/10, `docs/auction.md`): botão na praça, abas Comprar/Vender, menu de categorias que expande, tabela paginada, sino de vendas; venda por Ouro ou **Cupons** (moeda cash, `Profile.coupons`, ícone `coupon.png` gerado pelo Codex); taxa em ouro por tempo (2h/8h/24h), até 3 anúncios; pagamento e item não vendido chegam pelo Correio. "Enviar mensagem" no menu de jogador abre o chat privado (aba Privado).
