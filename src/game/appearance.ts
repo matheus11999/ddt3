@@ -30,7 +30,7 @@ export const paintedOutfitReady=(id:string)=>{const path=CATALOG[id]?.visual?.as
 type Point=readonly[number,number];
 export interface AvatarPart {canvas:HTMLCanvasElement;x:number;y:number;width:number;height:number;pivot:Point;}
 export interface WalkingLeg {thigh:AvatarPart;shin:AvatarPart;foot:AvatarPart;hip:Point;knee:Point;ankle:Point;groundY:number;}
-export interface WalkingRig {torso:AvatarPart;near:WalkingLeg;far:WalkingLeg;}
+export interface WalkingRig {torso:AvatarPart;near:WalkingLeg;far:WalkingLeg;/** Shadow inside the coat, drawn behind the stepping legs so no gap opens where they were. */hollow?:AvatarPart;}
 export interface CombatRig {torso:AvatarPart;nearLeg:AvatarPart;farLeg:AvatarPart;neck:Point;arms?:AvatarPart;hand?:Point;}
 export interface AvatarRig {combat?:CombatRig;head:AvatarPart;stanceBody:AvatarPart;walking?:WalkingRig;modular:boolean;paintedOutfit:boolean;outfitPose:'cartographer';neckCloth?:AvatarPart;}
 export interface LayerDefinition {anchor:'head'|'chest'|'hands'|'hips'|'feet'|'back'|'world';order:number;bounds:[number,number,number,number];}
@@ -60,8 +60,8 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  // Wait for the universal head instead of briefly showing the retired starter
  // haircut baked into adventurer.png while the selected artwork is loading.
  if(!face||!base.complete||!base.naturalWidth||hair&&(!hair.complete||!hair.naturalWidth))return null;
- const body=asset(CATALOG[outfitId].visual!.asset!),walkImage=asset('/assets/outfits/cartographer-walk.png'),walkReady=walkImage.complete&&walkImage.naturalWidth>0;
- const key=JSON.stringify([outfitId,base.src,body.src,eq.colors?.outfit,eq.skin,eq.eyes,eq.face,walkReady]);const cached=rigCache.get(key);if(cached){rigCache.delete(key);rigCache.set(key,cached);return cached;}
+ const body=asset(CATALOG[outfitId].visual!.asset!);
+ const key=JSON.stringify([outfitId,base.src,body.src,eq.colors?.outfit,eq.skin,eq.eyes,eq.face]);const cached=rigCache.get(key);if(cached){rigCache.delete(key);rigCache.set(key,cached);return cached;}
  const registration=PAINTED_OUTFITS[outfitId],source=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),c=source.getContext('2d')!;
  c.scale(RESOLUTION,RESOLUTION);c.drawImage(body,...registration.source,...registration.destination);
  // Ticket colors repaint only the outfit's zone; a body color repaints the painted arms and legs.
@@ -80,23 +80,26 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
   cc.drawImage(body,704,74,60,96,645,620,80,86);cc.restore();
   rig.neckCloth=cut(cloth,[[560,605],[745,605],[770,710],[530,710]],[650,610]);
  }
- if(walkReady){
-  const legs=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),lc=legs.getContext('2d')!;lc.scale(RESOLUTION,RESOLUTION);
-  lc.drawImage(walkImage,47,162,713,1009,390,820,495,420);
-  paint(legs);
+ {
+  // Walking lifts the standing trousers and boots out of the painting itself (the map scroll and the
+  // coat stay on the torso, tails included), so the steps never tear the coat or show a second pair of legs.
+  const legs=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION);
+  const pieces={nearThigh:[[566,872],[652,872],[650,1022],[560,1022]],nearShin:[[543,1000],[642,1000],[612,1150],[538,1150]],nearFoot:[[508,1150],[618,1150],[618,1242],[508,1242]],
+   farThigh:[[652,872],[742,872],[748,1022],[662,1022]],farShin:[[666,1000],[768,1000],[772,1140],[684,1140]],farFoot:[[680,1140],[832,1140],[832,1212],[680,1212]]} as const satisfies Record<string,readonly Point[]>;
+  const mask=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),mc=mask.getContext('2d')!;mc.scale(RESOLUTION,RESOLUTION);mc.beginPath();for(const piece of Object.values(pieces))polygon(mc,piece);mc.fill();
+  mc.globalCompositeOperation='destination-out';mc.beginPath();polygon(mc,[[553,828],[652,818],[658,948],[558,958]]);mc.fill();
+  const lc=legs.getContext('2d')!;lc.drawImage(source,0,0);lc.globalCompositeOperation='destination-in';lc.drawImage(mask,0,0);
+  const walkingTorso=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),tc=walkingTorso.getContext('2d')!;tc.drawImage(source,0,0);tc.globalCompositeOperation='destination-out';tc.drawImage(mask,0,0);
   const makeLeg=(hip:Point,knee:Point,ankle:Point,thigh:readonly Point[],shin:readonly Point[],foot:readonly Point[]):WalkingLeg=>{
    const paintedFoot=cut(legs,foot,ankle),pixels=paintedFoot.canvas.getContext('2d')!.getImageData(0,0,paintedFoot.canvas.width,paintedFoot.canvas.height).data;let lastRow=0;
    for(let i=3;i<pixels.length;i+=4)if(pixels[i]>16)lastRow=Math.max(lastRow,Math.floor(i/4/paintedFoot.canvas.width));
    return {hip,knee,ankle,groundY:paintedFoot.y+(lastRow+1)/RESOLUTION,thigh:cut(legs,thigh,hip),shin:cut(legs,shin,knee),foot:paintedFoot};
   };
-  // Keep the painted asymmetric coat tails attached to the torso, while only
-  // the trouser/boot silhouettes below the belt become articulated legs.
-  const walkingTorso=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),tc=walkingTorso.getContext('2d')!;tc.drawImage(source,0,0);
-  tc.clearRect(505*RESOLUTION,850*RESOLUTION,348*RESOLUTION,404*RESOLUTION);
   rig.walking={
+   
    torso:cut(walkingTorso,[[260,460],[1010,460],[1010,1254],[260,1254]],[650,610]),
-   near:makeLeg([610,870],[595,1020],[580,1155],[[505,850],[715,850],[715,1050],[505,1050]],[[495,1000],[720,1000],[720,1170],[495,1170]],[[480,1110],[725,1110],[725,1240],[480,1240]]),
-   far:makeLeg([770,870],[772,1020],[790,1155],[[700,850],[895,850],[895,1050],[700,1050]],[[685,1000],[900,1000],[900,1170],[685,1170]],[[680,1110],[900,1110],[900,1240],[680,1240]])
+   near:makeLeg([608,880],[596,1012],[572,1150],pieces.nearThigh,pieces.nearShin,pieces.nearFoot),
+   far:makeLeg([698,880],[712,1012],[724,1140],pieces.farThigh,pieces.farShin,pieces.farFoot)
   };
  }
  {
