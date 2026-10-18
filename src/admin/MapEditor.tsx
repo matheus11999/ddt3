@@ -286,7 +286,9 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  };
  const askPublish=()=>{const warnings=built?.warnings.map(w=>w.text)??[];if(warnings.length)setConfirm({warnings});else void publish();};
  const restoreOriginal=async()=>{if(!window.confirm(summary?.builtIn?'Voltar o jogo para a versão original deste mapa? Os rascunhos continuam no histórico.':'Tirar este mapa do jogo?'))return;
-  setBusy('Voltando…');try{await api.unpublish(id);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);setNotice(summary?.builtIn?'O jogo voltou a usar o mapa original.':'Mapa fora do jogo.');}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+  setBusy('Voltando…');try{await api.unpublish(id);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);if(summary?.builtIn)openShipped(false);setNotice(summary?.builtIn?'O jogo voltou a usar o mapa original, e o editor abriu o original. Seus rascunhos continuam no Histórico.':'Mapa fora do jogo.');}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+ // The repository layout (scripts/map-layouts) in the editor, replacing a stale draft; saving makes it the new draft.
+ const openShipped=(notice=true)=>{const layout=shippedLayout(id);if(!layout)return;change(d=>{d.layout={...layout,name:d.meta.name};});setSelection(null);setDirty(true);if(notice)setNotice('Original aberto no editor. Salve e publique para usá-lo com suas mudanças.');};
  const deleteMap=async()=>{if(!window.confirm('Apagar este mapa e todo o histórico? Não dá para desfazer.'))return;try{await api.remove(id);onBack();}catch(e){setError((e as Error).message);}};
  const openRevision=async(revision:number)=>{try{const r=await api.revision(id,revision);const data=r.revision.data;if(!data.layout)return;
   change(d=>{d.layout=data.layout as MapLayout;d.meta={name:data.name,subtitle:String(data.subtitle??''),kind:data.kind==='instance'?'instance':'pvp',enabled:data.enabled!==false};});setShowHistory(false);setNotice(`Versão ${revision} aberta no editor. Salve para usá-la.`);}catch(e){setError((e as Error).message);}};
@@ -397,7 +399,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} width={W} locked={locked.has(selectedItem.id)} onLock={()=>toggleIn(setLocked,selectedItem.id)} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1} cutting={cutting} onCut={()=>setCutting(on=>!on)}/>
    :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} problems={spawnWarnings.get(`${selection.team}-${selection.slot}`)??[]} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
    :selection?.type==='monster'&&doc.layout.monsters?.[selection.index]?<MonsterInspector monster={doc.layout.monsters[selection.index] as MonsterPlacement} width={W} ground={surfaceAt(doc.layout.monsters[selection.index].x)} problems={(built?.warnings??[]).filter(w=>w.monster===selection.index).map(w=>w.text)} onChange={patch=>change(d=>{Object.assign(d.layout.monsters![selection.index],patch);})} onRemove={()=>removeMonster(selection.index)}/>
-   :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onDelete={deleteMap}/>}
+   :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onOpenShipped={()=>{if(window.confirm('Abrir no editor a versão original deste mapa? O que não foi salvo se perde; os rascunhos salvos continuam no Histórico.'))openShipped();}} onDelete={deleteMap}/>}
    <section className="adm-warnings"><h4>{warnings.length?<><AlertTriangle size={15}/>{warnings.length} {warnings.length===1?'aviso':'avisos'}</>:<><Eye size={15}/>Sem avisos</>}</h4>
     {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):w.monster!==undefined?setSelection({type:'monster',index:w.monster}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
     {built&&<small>{built.regions.length} regiões de colisão · {doc.layout.items.length} itens</small>}
@@ -472,7 +474,7 @@ function MonsterInspector({monster,width,ground,problems,onChange,onRemove}:{mon
  </section>;
 }
 
-function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onDelete:()=>void}){
+function MapInspector({doc,id,summary,onChange,onRestore,onOpenShipped,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onOpenShipped:()=>void;onDelete:()=>void}){
  const W=doc.layout.width??1536;
  return <section className="adm-inspector">
   <header><h3>Mapa</h3></header>
@@ -485,6 +487,7 @@ function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:s
   <dl className="adm-facts"><dt>Código</dt><dd>{id}</dd><dt>Arte de</dt><dd>{summary?.base??id}</dd><dt>Peças</dt><dd>{doc.layout.source}</dd></dl>
   <p className="adm-hint">Selecione uma peça ou um spawn no mapa para editar. Peças novas de arte entram pelo Codex (docs/maps-kit.md).</p>
   <div className="adm-danger-zone">
+   {summary?.builtIn&&summary.draftRevision&&<button className="adm-btn ghost wide" onClick={onOpenShipped}><RotateCcw size={15}/>Abrir o original no editor</button>}
    {summary?.publishedRevision&&<button className="adm-btn ghost wide" onClick={onRestore}><RotateCcw size={15}/>{summary.builtIn?'Voltar ao original no jogo':'Tirar do jogo'}</button>}
    {summary&&!summary.builtIn&&<button className="adm-btn danger wide" onClick={onDelete}><Trash2 size={15}/>Apagar mapa</button>}
   </div>

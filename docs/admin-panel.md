@@ -18,7 +18,7 @@ Online agora, salas e partidas rolando; jogadores totais, novos hoje e na semana
 Tipos: **PvP** (entra no sorteio das partidas), **Instância** (dungeons; guardada até as instâncias existirem) e **Lobby** (a Praça Celeste).
 
 - **Salvar** grava um rascunho (versão nova no histórico). **Publicar** põe a versão no jogo na hora: o servidor troca colisão, spawns e nome, e avisa os jogadores conectados para recarregar a lista de mapas (`GET /api/maps`, evento `maps`). Partidas em andamento terminam no mapa antigo.
-- **Histórico**: as últimas 50 versões; abrir qualquer uma no editor ou publicá-la direto. **Voltar ao original** tira a versão publicada e o jogo volta ao mapa do repositório.
+- **Histórico**: as últimas 50 versões; abrir qualquer uma no editor ou publicá-la direto. **Voltar ao original** tira a versão publicada e o jogo volta ao mapa do repositório, e o editor também abre o original (os rascunhos ficam no Histórico). Com um rascunho antigo salvo, **Abrir o original no editor** carrega o layout do repositório para editar por cima dele (útil quando o repositório ganhou correções depois do seu rascunho).
 - **Novo mapa**: escolha nome, código, tipo e o mapa de base (fundo e folhas de peças). Arte nova continua vindo pelo Codex (`docs/maps-kit.md`).
 
 ### Editor de mapas com peças (PvP e instância)
