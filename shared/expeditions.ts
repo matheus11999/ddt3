@@ -46,6 +46,8 @@ export interface MonsterDef {
  muzzle?:{forward:number;up:number};
  /** Where speech bubbles point (the mouth), in world px ahead of and above the feet. */
  mouth?:{forward:number;up:number};
+ /** Boss face for the top bar, like a player's portrait. */
+ portrait?:string;
 }
 export const MONSTERS:Record<MonsterKind,MonsterDef>={
  'ant-worker':{kind:'ant-worker',name:'Formiga Operária',hp:450,attack:120,toughness:1,reach:84,stride:175,hitRadius:36,hitHeight:48,behavior:'melee',
@@ -54,7 +56,7 @@ export const MONSTERS:Record<MonsterKind,MonsterDef>={
   sprite:{walk:{src:'/assets/expeditions/anthill/ant-soldier-walk.png',cycle:60},src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
  'ant-brute':{kind:'ant-brute',name:'Formiga Guerreira',hp:1200,attack:240,toughness:1.25,reach:104,stride:65,hitRadius:54,hitHeight:74,behavior:'melee',
   sprite:{walk:{src:'/assets/expeditions/anthill/ant-brute-walk.png',cycle:48},src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
- 'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',muzzle:{forward:85,up:128},mouth:{forward:8,up:148},
+ 'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',muzzle:{forward:85,up:128},mouth:{forward:8,up:148},portrait:'/assets/expeditions/anthill/ant-queen-face.png',
   sprite:{src:'/assets/expeditions/anthill/ant-queen.png',height:260,feet:.98,faces:-1}},
 };
 export const isMonsterKind=(kind:string):kind is MonsterKind=>(MONSTER_KINDS as readonly string[]).includes(kind);

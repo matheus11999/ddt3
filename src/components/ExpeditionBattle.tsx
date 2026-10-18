@@ -4,15 +4,18 @@ import type {Battle} from '../../shared/protocol';
 import {BattleText} from './BattleText';
 import './Expedition.css';
 
-/** Top bar of an expedition: monsters left instead of the enemy roster (the queen's HP plate sits under her in the scene). */
+/** Top bar of an expedition: the boss shows like an enemy player (portrait and HP), without the player menu; plain monsters show nothing. */
 export function ExpeditionFoes({battle}:{battle:Battle}){
- const monsters=battle.players.filter(f=>f.team===1&&f.monster),boss=monsters.find(f=>f.id===battle.instance?.boss);
- const alive=monsters.filter(f=>f.hp>0&&f.id!==boss?.id).length,icon=MONSTERS['ant-worker'].sprite.src;
- return <>
-  <div className="fighter-roster enemy expedition-foes" aria-label="Monstros">
-   <div className="monster-count" role="status" aria-label={`${alive} ${alive===1?'formiga':'formigas'} restando`}><img src={icon} alt="" draggable={false}/><b>{alive}</b><span>{alive===1?'formiga':'formigas'}</span></div>
+ const boss=battle.players.find(f=>f.id===battle.instance?.boss&&f.monster);
+ const portrait=boss?.monster?MONSTERS[boss.monster].portrait:undefined;
+ if(!boss||!portrait)return null;
+ const ratio=Math.max(0,Math.min(1,boss.hp/boss.maxHp));
+ return <div className="fighter-roster enemy" aria-label="Chefe">
+  <div className={`roster-card enemy boss-card ${boss.id===battle.turnId?'active-fighter':''} ${boss.hp<=0?'defeated-fighter':''}`} data-fighter={boss.id} title={`${boss.name} · ${boss.hp}/${boss.maxHp}`}>
+   <div className="roster-face"><img src={portrait} alt={boss.name} draggable={false}/></div>
+   <div className="roster-health" role="meter" aria-label={`Vida de ${boss.name}`} aria-valuenow={boss.hp} aria-valuemin={0} aria-valuemax={boss.maxHp}><i style={{width:`${ratio*100}%`}}/></div>
   </div>
- </>;
+ </div>;
 }
 
 /** The stage title while the monsters walk in, and the monsters' shared turn. */
