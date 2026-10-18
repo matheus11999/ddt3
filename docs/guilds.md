@@ -13,11 +13,12 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
   - **Depósito da Guilda**: 10 espaços por nível (fechado no nível 0). Qualquer membro guarda itens não equipados e pedras; qualquer membro retira.
 - **Sair**: o membro sai quando quiser; o dono que sai passa a guilda para o membro com mais contribuição; o último a sair encerra a guilda e recebe o que estava no depósito.
 - **Missões diárias** (`GUILD_MISSIONS`): jogar 3 batalhas na Arena (+5), vencer 2 (+8), vencer 1 GvG (+10), vencer 1 estágio de expedição (+6), usar o Ferreiro 2 vezes (+4). Ao receber, o valor vira contribuição do membro e a mesma Riqueza para a guilda. Renovam à meia-noite de Brasília (`guild_members.daily`, campo `today` = contribuição do dia).
+- **Cargos** (`DEFAULT_RANKS`, `guilds.ranks`, `guild_members.rank`): Líder (0, pode tudo, edita os cargos e exclui a guilda), Vice-Líder (1, todas as permissões), Recrutador (2, aceitar pedidos e retirar do depósito), Veterano (3) e Membro (4, retirar do depósito). O líder troca o nome de cada cargo (ex.: Recrutador → Comandante) e marca as permissões: aceitar/recusar pedidos, expulsar, trocar cargos, evoluir e retirar do depósito. Ninguém age sobre um cargo igual ou acima do seu nem dá um cargo igual ou acima do seu. Quem entra começa como Membro; quando o líder sai, o cargo mais alto com mais contribuição vira líder. Excluir guilda: só o líder, devolve o depósito para ele.
 
 ## Janela
 
-- Tela inicial: brasão com o **nível em destaque**, nome, dono, membros e Riqueza; as três construções (Loja e Depósito abrem janelas próprias, Ferreiro abre o Ferreiro normal); **Gerenciar** (só o dono, janela própria) e Sair.
-- Membros com contribuição de hoje e total, posição pela contribuição, busca, "Só online" e ordenação por contribuição total, de hoje, nível ou nome (também clicando no cabeçalho).
+- Cabeçalho no topo: brasão com o nível, nome, líder, nível, membros e Riqueza. Abaixo, à esquerda, as três construções (Loja e Depósito abrem janelas próprias, Ferreiro abre o Ferreiro normal; nível 0 fica desativado), **Gerenciar** (para quem pode evoluir ou recrutar; abas Evoluir, Pedidos e Cargos, Cargos só para o líder) e Sair.
+- Membros com cargo, contribuição de hoje e total, posição pela contribuição; ordenação só pela setinha do título de cada coluna; sem barra de rolagem (páginas com as linhas que cabem). Cada membro tem uma engrenagem com Ver informações, Promover e Rebaixar (um cargo por vez, para quem tem a permissão) e Expulsar (pede confirmação); sem caixa de seleção (pedido do matheus).
 - Missões diárias com barra de progresso e botão Receber.
 - A Loja da Guilda usa o visual da Loja da Brasa (provador, vitrine com cards, confirmação de compra).
 - O nome da guilda aparece no card da sala logo abaixo do nome, dentro da área creme.

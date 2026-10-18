@@ -72,12 +72,46 @@ export function claimMission(daily:GuildDaily,mission:GuildMissionId){
 }
 
 export type GuildRole='owner'|'member';
+
+/** Cargos: the leader (rank 0) can do everything, including closing the guild and editing the ranks. Ranks 1 to 4
+ * are ordered (1 is the highest); the leader renames them and picks what each may do. A member only acts on
+ * members of a lower rank and only hands out ranks below their own. */
+export const GUILD_PERMISSIONS=['recruit','kick','promote','upgrade','withdraw'] as const;
+export type GuildPermission=typeof GUILD_PERMISSIONS[number];
+export const PERMISSION_NAMES:Record<GuildPermission,string>={recruit:'Aceitar e recusar pedidos de entrada',kick:'Expulsar membros',promote:'Trocar o cargo dos membros',upgrade:'Evoluir a guilda e as construções',withdraw:'Retirar itens do depósito'};
+export interface GuildRank {id:number;name:string;permissions:GuildPermission[];}
+export const LEADER_RANK=0,MEMBER_RANK=4,GUILD_RANK_IDS=[1,2,3,4] as const;
+export const RANK_NAME_MIN=2,RANK_NAME_MAX=16;
+export const DEFAULT_RANKS:readonly GuildRank[]=[
+ {id:0,name:'Líder',permissions:[...GUILD_PERMISSIONS]},
+ {id:1,name:'Vice-Líder',permissions:[...GUILD_PERMISSIONS]},
+ {id:2,name:'Recrutador',permissions:['recruit','withdraw']},
+ {id:3,name:'Veterano',permissions:['withdraw']},
+ {id:4,name:'Membro',permissions:['withdraw']},
+];
+/** The stored ranks over the defaults: always five, the leader always with every permission. */
+export function guildRanks(raw:unknown):GuildRank[]{
+ const stored=Array.isArray(raw)?raw as Partial<GuildRank>[]:[];
+ return DEFAULT_RANKS.map(rank=>{
+  const saved=stored.find(r=>r?.id===rank.id);
+  const name=typeof saved?.name==='string'&&saved.name.trim()?saved.name:rank.name;
+  const permissions=rank.id===LEADER_RANK?[...GUILD_PERMISSIONS]:Array.isArray(saved?.permissions)?GUILD_PERMISSIONS.filter(p=>saved!.permissions!.includes(p)):[...rank.permissions];
+  return {id:rank.id,name,permissions};
+ });
+}
+export const rankCan=(ranks:GuildRank[],rank:number,permission:GuildPermission)=>rank===LEADER_RANK||!!ranks.find(r=>r.id===rank)?.permissions.includes(permission);
+export function validRankName(raw:string){
+ const name=raw.trim().replace(/\s+/g,' ');
+ if(name.length<RANK_NAME_MIN||name.length>RANK_NAME_MAX)throw Error(`O nome do cargo precisa ter de ${RANK_NAME_MIN} a ${RANK_NAME_MAX} letras.`);
+ if(!/^[\p{L}\p{N} _.-]+$/u.test(name))throw Error('Use só letras, números, espaço, ponto, hífen ou sublinhado no nome do cargo.');
+ return name;
+}
 export interface GuildSummary {id:number;name:string;level:number;members:number;capacity:number;ownerName:string;}
-export interface GuildMember {id:string;name:string;level:number;role:GuildRole;contribution:number;/** Contribution earned today (missions and GvG). */today:number;joinedAt:string;online?:boolean;}
+export interface GuildMember {id:string;name:string;level:number;role:GuildRole;/** Cargo (0 = leader). */rank:number;contribution:number;/** Contribution earned today (missions and GvG). */today:number;joinedAt:string;online?:boolean;}
 export interface GuildApplication {playerId:string;name:string;level:number;at:string;}
 /** One stored copy or stack in the Depósito; `by` is who put it there. */
 export interface GuildStored {id:number;goods:AuctionGoods;by:string;at:string;}
-export interface GuildView {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Record<GuildBuilding,number>;members:GuildMember[];storage:GuildStored[];/** Only the owner sees who asked to join. */applications?:GuildApplication[];createdAt:string;ownerName:string;/** The viewer's own daily missions. */daily:GuildDaily;}
+export interface GuildView {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Record<GuildBuilding,number>;members:GuildMember[];storage:GuildStored[];/** Only members who may recruit see who asked to join. */applications?:GuildApplication[];ranks:GuildRank[];/** The viewer's own rank. */myRank:number;createdAt:string;ownerName:string;/** The viewer's own daily missions. */daily:GuildDaily;}
 /** My guild (null without one) and the guilds I asked to join. */
 export interface GuildState {guild:GuildView|null;applied:number[];}
 
@@ -106,5 +140,8 @@ export const guildCommandSchemas=[
  z.object({type:z.literal('guild-deposit'),source:auctionSourceSchema}).strict(),
  z.object({type:z.literal('guild-withdraw'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('guild-mission'),mission:z.enum(GUILD_MISSION_IDS)}).strict(),
+ z.object({type:z.literal('guild-rank-set'),playerId,rank:z.number().int().min(1).max(4)}).strict(),
+ z.object({type:z.literal('guild-ranks'),ranks:z.array(z.object({id:z.number().int().min(0).max(4),name:z.string().max(40),permissions:z.array(z.enum(GUILD_PERMISSIONS)).max(GUILD_PERMISSIONS.length)}).strict()).length(5)}).strict(),
+ z.object({type:z.literal('guild-disband')}).strict(),
  z.object({type:z.literal('room-gvg'),active:z.boolean()}).strict(),
 ] as const;

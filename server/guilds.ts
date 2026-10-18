@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import {canEquipItem,nextCopyKey} from '../shared/catalog';
-import {addMissionProgress,BUILDING_NAMES,buildingLevelCost,claimMission,dailyFor,guildDay,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_MAX_LEVEL,GUILD_OFFER_BY_ID,GUILD_PAGE_SIZE,guildLevelCost,guildMemberCap,storageCapacity,validGuildName} from '../shared/guilds';
-import type {GuildApplication,GuildBuilding,GuildMissionId,GuildMember,GuildRole,GuildState,GuildStored,GuildSummary,GuildView} from '../shared/guilds';
+import {addMissionProgress,BUILDING_NAMES,guildRanks,LEADER_RANK,MEMBER_RANK,rankCan,validRankName,buildingLevelCost,claimMission,dailyFor,guildDay,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_MAX_LEVEL,GUILD_OFFER_BY_ID,GUILD_PAGE_SIZE,guildLevelCost,guildMemberCap,storageCapacity,validGuildName} from '../shared/guilds';
+import type {GuildApplication,GuildBuilding,GuildMissionId,GuildPermission,GuildRank,GuildMember,GuildRole,GuildState,GuildStored,GuildSummary,GuildView} from '../shared/guilds';
 import type {AuctionGoods,AuctionSource} from '../shared/auction';
 import type {Profile} from '../shared/protocol';
 import {goodsAttachment,takeGoods} from './auction';
@@ -33,9 +33,15 @@ export interface GuildHall {
  missionProgress(playerIds:string[],mission:GuildMissionId,amount?:number):Promise<string[]>;
  /** Claims a finished daily mission: contribution for the member, the same Riqueza for the guild. */
  claimMission(playerId:string,mission:GuildMissionId):Promise<{guildId:number;reward:number}>;
+ /** Gives a member a lower rank than the actor's (permission "promote"). */
+ setRank(actorId:string,playerId:string,rank:number):Promise<{guildId:number}>;
+ /** The leader renames the ranks and picks their permissions. */
+ saveRanks(leaderId:string,ranks:GuildRank[]):Promise<{guildId:number}>;
+ /** The leader closes the guild; whatever is in the Depósito goes back to the leader. */
+ disband(leaderId:string):Promise<{guildId:number;members:string[];profile:Profile|null}>;
 }
 type Buildings=Record<GuildBuilding,number>;
-interface GuildRow {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Buildings;createdAt:string;}
+interface GuildRow {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Buildings;ranks:GuildRank[];createdAt:string;}
 
 /** Pure checks shared by the Postgres store and the tests. */
 export function checkCreate(profile:Profile,name:string){
@@ -61,7 +67,7 @@ export function checkGuildPurchase(profile:Profile,item:string,shopLevel:number)
 }
 
 const guildRow=(row:Record<string,unknown>):GuildRow=>({id:Number(row.id),name:row.name as string,level:Number(row.level),riqueza:Number(row.riqueza),ownerId:row.owner_id as string,
- buildings:{shop:0,smith:0,storage:0,...(row.buildings as Partial<Buildings>)},createdAt:new Date(row.created_at as string).toISOString()});
+ buildings:{shop:0,smith:0,storage:0,...(row.buildings as Partial<Buildings>)},ranks:guildRanks(row.ranks),createdAt:new Date(row.created_at as string).toISOString()});
 
 /** Guilds in Postgres. Each change locks the guild (and the player, when their bag changes) in one transaction. */
 export class GuildStore implements GuildHall {
@@ -73,6 +79,9 @@ export class GuildStore implements GuildHall {
    role varchar(8) NOT NULL DEFAULT 'member',contribution bigint NOT NULL DEFAULT 0,joined_at timestamptz NOT NULL DEFAULT now());
   CREATE INDEX IF NOT EXISTS guild_members_guild ON guild_members(guild_id);
   ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS daily jsonb NOT NULL DEFAULT '{}';
+  ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS rank int NOT NULL DEFAULT 4;
+  ALTER TABLE guilds ADD COLUMN IF NOT EXISTS ranks jsonb NOT NULL DEFAULT '[]';
+  UPDATE guild_members SET rank=0 WHERE role='owner' AND rank<>0;
   CREATE TABLE IF NOT EXISTS guild_applications(guild_id int NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
    created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(guild_id,player_id));
   CREATE TABLE IF NOT EXISTS guild_storage(id bigserial PRIMARY KEY,guild_id int NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,goods jsonb NOT NULL,by_name varchar(24) NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
@@ -89,11 +98,23 @@ export class GuildStore implements GuildHall {
  }
  private async saveProfile(c:pg.PoolClient,profile:Profile){await c.query('UPDATE players SET profile=$2 WHERE id=$1',[profile.id,profile]);}
  /** The guild a player belongs to, locked for the rest of the transaction. */
- private async myGuild(c:pg.PoolClient,playerId:string,role?:GuildRole){
-  const r=await c.query('SELECT g.*,m.role FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1 FOR UPDATE OF g',[playerId]);
+ private async myGuild(c:pg.PoolClient,playerId:string,role?:GuildRole){return (await this.actor(c,playerId,role)).g;}
+ /** The guild a player belongs to (locked) and their rank; with a permission, refuses ranks without it. */
+ private async actor(c:pg.PoolClient,playerId:string,need?:GuildRole|GuildPermission){
+  const r=await c.query('SELECT g.*,m.role,m.rank AS member_rank FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1 FOR UPDATE OF g',[playerId]);
   if(!r.rows[0])throw Error('Você não faz parte de uma guilda.');
-  if(role&&r.rows[0].role!==role)throw Error('Só o dono da guilda pode fazer isso.');
-  return guildRow(r.rows[0]);
+  const g=guildRow(r.rows[0]),rank=r.rows[0].role==='owner'?LEADER_RANK:Number(r.rows[0].member_rank);
+  if(need==='owner'&&rank!==LEADER_RANK)throw Error('Só o líder da guilda pode fazer isso.');
+  else if(need&&need!=='owner'&&need!=='member'&&!rankCan(g.ranks,rank,need))throw Error('Seu cargo não tem permissão para isso.');
+  return {g,rank};
+ }
+ /** Another member of the same guild, who must be below the actor's rank. */
+ private async target(c:pg.PoolClient,guildId:number,actorRank:number,playerId:string){
+  const r=await c.query('SELECT role,rank FROM guild_members WHERE guild_id=$1 AND player_id=$2 FOR UPDATE',[guildId,playerId]);
+  if(!r.rows[0])throw Error('Este jogador não está na guilda.');
+  const rank=r.rows[0].role==='owner'?LEADER_RANK:Number(r.rows[0].rank);
+  if(rank<=actorRank)throw Error('Você só pode fazer isso com membros de cargo abaixo do seu.');
+  return rank;
  }
  async membership(playerId:string):Promise<Membership|null>{
   const r=await this.pool.query('SELECT g.id,g.name,g.buildings,m.role FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1',[playerId]);
@@ -102,16 +123,16 @@ export class GuildStore implements GuildHall {
  async memberIds(guildId:number){return (await this.pool.query('SELECT player_id FROM guild_members WHERE guild_id=$1',[guildId])).rows.map(row=>row.player_id as string);}
  async state(playerId:string):Promise<GuildState>{
   const applied=(await this.pool.query('SELECT guild_id FROM guild_applications WHERE player_id=$1',[playerId])).rows.map(row=>Number(row.guild_id));
-  const r=await this.pool.query('SELECT g.*,m.role,m.daily FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1',[playerId]);
+  const r=await this.pool.query('SELECT g.*,m.role,m.rank AS member_rank,m.daily FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1',[playerId]);
   if(!r.rows[0])return {guild:null,applied};
-  const g=guildRow(r.rows[0]),owner=r.rows[0].role==='owner',day=guildDay();
-  const members=(await this.pool.query(`SELECT m.player_id,m.role,m.contribution,m.joined_at,m.daily,p.name,p.profile->>'level' AS level FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=$1 ORDER BY (m.role='owner') DESC,m.contribution DESC,m.joined_at`,[g.id])).rows
-   .map((row):GuildMember=>({id:row.player_id,name:row.name,level:Number(row.level??1),role:row.role,contribution:Number(row.contribution),today:dailyFor(row.daily,day).today,joinedAt:new Date(row.joined_at).toISOString()}));
+  const g=guildRow(r.rows[0]),myRank=r.rows[0].role==='owner'?LEADER_RANK:Number(r.rows[0].member_rank),day=guildDay();
+  const members=(await this.pool.query(`SELECT m.player_id,m.role,m.rank,m.contribution,m.joined_at,m.daily,p.name,p.profile->>'level' AS level FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=$1 ORDER BY m.rank,m.contribution DESC,m.joined_at`,[g.id])).rows
+   .map((row):GuildMember=>({id:row.player_id,name:row.name,level:Number(row.level??1),role:row.role,rank:row.role==='owner'?LEADER_RANK:Number(row.rank),contribution:Number(row.contribution),today:dailyFor(row.daily,day).today,joinedAt:new Date(row.joined_at).toISOString()}));
   const storage=(await this.pool.query('SELECT * FROM guild_storage WHERE guild_id=$1 ORDER BY id',[g.id])).rows
    .map((row):GuildStored=>({id:Number(row.id),goods:row.goods as AuctionGoods,by:row.by_name,at:new Date(row.created_at).toISOString()}));
-  const applications=owner?(await this.pool.query(`SELECT a.player_id,a.created_at,p.name,p.profile->>'level' AS level FROM guild_applications a JOIN players p ON p.id=a.player_id WHERE a.guild_id=$1 ORDER BY a.created_at`,[g.id])).rows
+  const applications=rankCan(g.ranks,myRank,'recruit')?(await this.pool.query(`SELECT a.player_id,a.created_at,p.name,p.profile->>'level' AS level FROM guild_applications a JOIN players p ON p.id=a.player_id WHERE a.guild_id=$1 ORDER BY a.created_at`,[g.id])).rows
    .map((row):GuildApplication=>({playerId:row.player_id,name:row.name,level:Number(row.level??1),at:new Date(row.created_at).toISOString()})):undefined;
-  const view:GuildView={id:g.id,name:g.name,level:g.level,riqueza:g.riqueza,ownerId:g.ownerId,ownerName:members.find(m=>m.id===g.ownerId)?.name??'',daily:dailyFor(r.rows[0].daily,day),buildings:g.buildings,members,storage,createdAt:g.createdAt,...(applications?{applications}:{})};
+  const view:GuildView={id:g.id,name:g.name,level:g.level,riqueza:g.riqueza,ownerId:g.ownerId,ownerName:members.find(m=>m.id===g.ownerId)?.name??'',daily:dailyFor(r.rows[0].daily,day),ranks:g.ranks,myRank,buildings:g.buildings,members,storage,createdAt:g.createdAt,...(applications?{applications}:{})};
   return {guild:view,applied};
  }
  async list(search=''){
@@ -128,7 +149,7 @@ export class GuildStore implements GuildHall {
    const clean=checkCreate(profile,name),key=clean.toLocaleLowerCase('pt-BR');
    if((await c.query('SELECT 1 FROM guilds WHERE name_key=$1',[key])).rowCount)throw Error('Já existe uma guilda com esse nome.');
    const r=await c.query('INSERT INTO guilds(name,name_key,owner_id) VALUES($1,$2,$3) RETURNING id',[clean,key,playerId]);const guildId=Number(r.rows[0].id);
-   await c.query(`INSERT INTO guild_members(player_id,guild_id,role) VALUES($1,$2,'owner')`,[playerId,guildId]);
+   await c.query(`INSERT INTO guild_members(player_id,guild_id,role,rank) VALUES($1,$2,'owner',0)`,[playerId,guildId]);
    await c.query('DELETE FROM guild_applications WHERE player_id=$1',[playerId]);
    await this.saveProfile(c,profile);
    return {profile,guildId};
@@ -146,14 +167,14 @@ export class GuildStore implements GuildHall {
  async cancelApply(playerId:string,guildId:number){await this.pool.query('DELETE FROM guild_applications WHERE guild_id=$1 AND player_id=$2',[guildId,playerId]);}
  async answer(ownerId:string,playerId:string,accept:boolean){
   return this.transaction(async c=>{
-   const g=await this.myGuild(c,ownerId,'owner');
+   const {g}=await this.actor(c,ownerId,'recruit');
    const app=await c.query('DELETE FROM guild_applications WHERE guild_id=$1 AND player_id=$2 RETURNING player_id',[g.id,playerId]);
    if(!app.rowCount)throw Error('Este pedido não existe mais.');
    if(accept){
     if((await c.query('SELECT 1 FROM guild_members WHERE player_id=$1',[playerId])).rowCount)throw Error('Este jogador já entrou em outra guilda.');
     const count=(await c.query('SELECT count(*)::int AS n FROM guild_members WHERE guild_id=$1',[g.id])).rows[0].n;
     if(count>=guildMemberCap(g.level))throw Error(`A guilda está cheia (${guildMemberCap(g.level)} membros). Evolua a guilda para receber mais.`);
-    await c.query(`INSERT INTO guild_members(player_id,guild_id,role) VALUES($1,$2,'member')`,[playerId,g.id]);
+    await c.query(`INSERT INTO guild_members(player_id,guild_id,role,rank) VALUES($1,$2,'member',$3)`,[playerId,g.id,MEMBER_RANK]);
     await c.query('DELETE FROM guild_applications WHERE player_id=$1',[playerId]);
    }
    return {guildId:g.id};
@@ -162,8 +183,8 @@ export class GuildStore implements GuildHall {
  async kick(ownerId:string,playerId:string){
   return this.transaction(async c=>{
    if(ownerId===playerId)throw Error('Para sair, use Sair da guilda.');
-   const g=await this.myGuild(c,ownerId,'owner');
-   const r=await c.query('DELETE FROM guild_members WHERE guild_id=$1 AND player_id=$2',[g.id,playerId]);if(!r.rowCount)throw Error('Este jogador não está na guilda.');
+   const {g,rank}=await this.actor(c,ownerId,'kick');await this.target(c,g.id,rank,playerId);
+   await c.query('DELETE FROM guild_members WHERE guild_id=$1 AND player_id=$2',[g.id,playerId]);
    return {guildId:g.id};
   });
  }
@@ -174,8 +195,8 @@ export class GuildStore implements GuildHall {
    const g=await this.myGuild(c,playerId);
    await c.query('DELETE FROM guild_members WHERE player_id=$1',[playerId]);
    if(g.ownerId!==playerId)return {guildId:g.id,dissolved:false};
-   const heir=await c.query('SELECT player_id FROM guild_members WHERE guild_id=$1 ORDER BY contribution DESC,joined_at LIMIT 1',[g.id]);
-   if(heir.rows[0]){await c.query(`UPDATE guild_members SET role='owner' WHERE player_id=$1`,[heir.rows[0].player_id]);await c.query('UPDATE guilds SET owner_id=$2 WHERE id=$1',[g.id,heir.rows[0].player_id]);return {guildId:g.id,dissolved:false};}
+   const heir=await c.query('SELECT player_id FROM guild_members WHERE guild_id=$1 ORDER BY rank,contribution DESC,joined_at LIMIT 1',[g.id]);
+   if(heir.rows[0]){await c.query(`UPDATE guild_members SET role='owner',rank=0 WHERE player_id=$1`,[heir.rows[0].player_id]);await c.query('UPDATE guilds SET owner_id=$2 WHERE id=$1',[g.id,heir.rows[0].player_id]);return {guildId:g.id,dissolved:false};}
    const stored=await c.query('SELECT goods FROM guild_storage WHERE guild_id=$1',[g.id]);
    if(stored.rows.length){const profile=await this.lockPlayer(c,playerId);applyAttachments(profile,stored.rows.map(row=>goodsAttachment(row.goods as AuctionGoods)));refreshWorn(profile);await this.saveProfile(c,profile);}
    await c.query('DELETE FROM guilds WHERE id=$1',[g.id]);
@@ -184,7 +205,7 @@ export class GuildStore implements GuildHall {
  }
  async upgrade(ownerId:string,target:GuildTarget){
   return this.transaction(async c=>{
-   const g=await this.myGuild(c,ownerId,'owner');const {cost,level}=upgradeCost(g,target);
+   const {g}=await this.actor(c,ownerId,'upgrade');const {cost,level}=upgradeCost(g,target);
    if(target==='guild')await c.query('UPDATE guilds SET level=$2,riqueza=riqueza-$3 WHERE id=$1',[g.id,level,cost]);
    else await c.query('UPDATE guilds SET buildings=$2,riqueza=riqueza-$3 WHERE id=$1',[g.id,JSON.stringify({...g.buildings,[target]:level}),cost]);
    return {guildId:g.id,level};
@@ -211,7 +232,7 @@ export class GuildStore implements GuildHall {
  }
  async withdraw(playerId:string,id:number){
   return this.transaction(async c=>{
-   const g=await this.myGuild(c,playerId);
+   const {g}=await this.actor(c,playerId,'withdraw');
    const r=await c.query('DELETE FROM guild_storage WHERE id=$1 AND guild_id=$2 RETURNING goods',[id,g.id]);if(!r.rows[0])throw Error('Alguém já retirou este item.');
    const goods=r.rows[0].goods as AuctionGoods,profile=await this.lockPlayer(c,playerId);
    if(goods.kind==='item'&&!canEquipItem(goods.item,profile.gender))throw Error('Este item não é compatível com o gênero do seu personagem.');
@@ -245,6 +266,34 @@ export class GuildStore implements GuildHall {
    await c.query('UPDATE guild_members SET contribution=contribution+$2,daily=$3 WHERE player_id=$1',[playerId,reward,JSON.stringify(daily)]);
    await c.query('UPDATE guilds SET riqueza=riqueza+$2 WHERE id=$1',[g.id,reward]);
    return {guildId:g.id,reward};
+  });
+ }
+ async setRank(actorId:string,playerId:string,rank:number){
+  return this.transaction(async c=>{
+   if(actorId===playerId)throw Error('Você não pode trocar o próprio cargo.');
+   const {g,rank:mine}=await this.actor(c,actorId,'promote');await this.target(c,g.id,mine,playerId);
+   if(rank<=mine||rank>MEMBER_RANK)throw Error('Você só pode dar cargos abaixo do seu.');
+   await c.query('UPDATE guild_members SET rank=$2 WHERE player_id=$1',[playerId,rank]);
+   return {guildId:g.id};
+  });
+ }
+ async saveRanks(leaderId:string,ranks:GuildRank[]){
+  return this.transaction(async c=>{
+   const {g}=await this.actor(c,leaderId,'owner');
+   const clean=guildRanks(ranks.map(r=>({...r,name:validRankName(r.name)})));
+   const names=clean.map(r=>r.name.toLocaleLowerCase('pt-BR'));if(new Set(names).size!==names.length)throw Error('Cada cargo precisa de um nome diferente.');
+   await c.query('UPDATE guilds SET ranks=$2 WHERE id=$1',[g.id,JSON.stringify(clean)]);
+   return {guildId:g.id};
+  });
+ }
+ async disband(leaderId:string){
+  return this.transaction(async c=>{
+   const {g}=await this.actor(c,leaderId,'owner');
+   const members=(await c.query('SELECT player_id FROM guild_members WHERE guild_id=$1',[g.id])).rows.map(row=>row.player_id as string);
+   const stored=await c.query('SELECT goods FROM guild_storage WHERE guild_id=$1',[g.id]);let profile:Profile|null=null;
+   if(stored.rows.length){profile=await this.lockPlayer(c,leaderId);applyAttachments(profile,stored.rows.map(row=>goodsAttachment(row.goods as AuctionGoods)));refreshWorn(profile);await this.saveProfile(c,profile);}
+   await c.query('DELETE FROM guilds WHERE id=$1',[g.id]);
+   return {guildId:g.id,members,profile};
   });
  }
 }

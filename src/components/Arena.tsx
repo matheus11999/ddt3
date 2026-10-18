@@ -23,17 +23,17 @@ export {Arena} from './ArenaHall';
 export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
  return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} {...playerMenuProps(seat?{id:seat.id,name:seat.name,context:'room'}:null)} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
-  {seat?<><header className="pr-card-name wood-ribbon"><span className="pr-card-names"><strong title={seat.name}>{seat.name}</strong></span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
+  {seat?<><header className="pr-card-name wood-ribbon"><span className="pr-card-names">{owner&&<Crown className="pr-host-crown" size={17} strokeWidth={2.4} aria-label="Líder da sala"/>}<strong title={seat.name}>{seat.name}</strong></span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
    <div className="pr-card-stage">
     <div className="pr-card-tags">
      {seat.guild&&<span className="pr-card-guild" title={`Guilda ${seat.guild}`}><Shield size={12} aria-hidden="true"/>{seat.guild}</span>}
-     {owner&&<span className="pr-host-tag" aria-label="Líder da sala"><Crown size={12} aria-hidden="true"/>Líder da sala</span>}
     </div>
     <div className="pr-card-insignia"><LevelNumber level={seat.level} size={44}/><VipBadge level={seat.vipLevel??0} size={54}/></div>
     {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>
-   {seat.connected&&ready?<footer className="party-player-state ready pr-card-state" role="img" aria-label="Pronto" title="Pronto"><Check size={15} strokeWidth={3} aria-hidden="true"/><span aria-hidden="true">{owner?'Líder':'Pronto'}</span></footer>:<footer className="pr-card-state waiting"><span>{seat.connected?'Preparando':'Reconectando'}</span></footer>}
+   {/* Ready: a diagonal sash over the lower-left corner (matheus, 18/10). The leader has the crown instead. */}
+   {seat.connected&&ready&&!owner&&<div className="party-player-state ready pr-ready-sash" role="img" aria-label="Pronto" title="Pronto"><span aria-hidden="true"><Check size={14} strokeWidth={3.2}/>Pronto</span></div>}
   </>:<>
    <header className="pr-card-name pr-card-name--vacant"><span>Vaga {slot+1}</span></header>
    <div className="pr-card-stage pr-card-vacant"><button type="button" className="party-slot-toggle" disabled={!canManage||slot===0} aria-label={`${open?'Fechar':'Abrir'} vaga ${slot+1}`} title={canManage?(open?'Fechar vaga':'Abrir vaga'):undefined} onClick={()=>client.send({type:'room-slot',slot,open:!open})}><span className="party-vacant-emblem" aria-hidden="true">{open?<UserPlus size={34} strokeWidth={2}/>:<LockKeyhole size={34} strokeWidth={2}/>}</span></button><span className="pr-vacant-caption" aria-hidden="true">{open?'Vaga aberta':'Vaga fechada'}</span></div>

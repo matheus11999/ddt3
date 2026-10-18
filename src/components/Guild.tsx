@@ -1,15 +1,16 @@
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {ArrowUpCircle,Check,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,Search,Settings,Shield,ShoppingBag,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
+import {ArrowUpCircle,Check,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,ArrowDownCircle,IdCard,Search,Settings,Shield,ShoppingBag,Trash2,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES} from '../../shared/catalog';
 import {goodsName} from '../../shared/auction';
-import {BUILDING_LEVEL_COSTS,BUILDING_NAMES,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,GUILD_MAX_LEVEL,GUILD_MISSIONS,GUILD_NAME_MAX,GUILD_SHOP,guildMemberCap,smithBonus,SMITH_BONUS_PER_LEVEL,storageCapacity} from '../../shared/guilds';
-import type {GuildBuilding,GuildView} from '../../shared/guilds';
+import {BUILDING_LEVEL_COSTS,BUILDING_NAMES,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,GUILD_MAX_LEVEL,GUILD_MISSIONS,GUILD_NAME_MAX,GUILD_PERMISSIONS,GUILD_SHOP,guildMemberCap,LEADER_RANK,PERMISSION_NAMES,RANK_NAME_MAX,RANK_NAME_MIN,rankCan,smithBonus,SMITH_BONUS_PER_LEVEL,storageCapacity} from '../../shared/guilds';
+import type {GuildBuilding,GuildMember,GuildPermission,GuildRank,GuildView} from '../../shared/guilds';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {bagGoods,GoodsArt,GoodsCard,goodsRarity} from './Auction';
 import {Avatar} from './Avatar';
+import {BagContextMenu} from './ColorStudio';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
 import {ItemCard,ItemCardFrame,itemTier,rarityLabel} from './ItemCard';
@@ -31,6 +32,7 @@ const BUILDING_ART:Record<GuildBuilding,string>={shop:'/assets/ui/guild-shop.png
 const BUILDING_FALLBACK:Record<GuildBuilding,string>={shop:'/assets/ui/shop-button.png',smith:'/assets/ui/forge-button.png',storage:'/assets/ui/backpack-button.png'};
 const BUILDING_ICONS={shop:ShoppingBag,smith:Hammer,storage:Warehouse};
 const SHORT_NAMES:Record<GuildBuilding,string>={shop:'Loja',smith:'Ferreiro',storage:'Depósito'};
+const PERMISSION_SHORT:Record<GuildPermission,string>={recruit:'Recrutar',kick:'Expulsar',promote:'Cargos',upgrade:'Evoluir',withdraw:'Retirar'};
 function buildingEffect(building:GuildBuilding,level:number){
  if(building==='smith')return level?`+${smithBonus(level)}% de sucesso no ferreiro`:'Sem bônus no ferreiro';
  if(building==='shop')return level?`${GUILD_SHOP.filter(o=>o.level<=level).length} ${GUILD_SHOP.filter(o=>o.level<=level).length===1?'item à venda':'itens à venda'}`:'Fechada';
@@ -50,19 +52,19 @@ function RiquezaIcon({size=18}:{size?:number}){return <Coins className="guild-ri
 export function Guild({onForge}:{onForge:()=>void}){
  const {guild:state,guildTab:tab,guildMessage:message,profile}=useGame(),p=profile!;
  useEffect(()=>{if(!message)return;audio.play('click');const t=setTimeout(()=>client.update({guildMessage:null}),3200);return()=>clearTimeout(t);},[message]);
- const guild=state?.guild??null,owner=guild?.ownerId===p.id;
+ const guild=state?.guild??null,manager=!!guild&&(guild.myRank===LEADER_RANK||rankCan(guild.ranks,guild.myRank,'upgrade')||rankCan(guild.ranks,guild.myRank,'recruit'));
  const closeSub=()=>{client.update({guildTab:'home'});audio.play('click');};
  const toast=message&&<div className="guild-toast" role="status"><Check size={18}/>{message.text}</div>;
  return <>
   <Modal title={guild?'Guilda':'Guildas'} onClose={()=>client.closeGuild()} className="bag-window guild-window" viewport>
    {!state?<div className="guild-loading"><LoaderCircle className="guild-spin" size={26}/>Abrindo a guilda…</div>
     :!guild?<GuildLobby applied={state.applied}/>
-    :<GuildHome guild={guild} owner={owner} onForge={onForge}/>}
+    :<GuildHome guild={guild} manager={manager} onForge={onForge}/>}
    {tab==='home'&&toast}
   </Modal>
   {guild&&tab==='shop'&&<GuildShop guild={guild} onClose={closeSub} toast={toast}/>}
   {guild&&tab==='storage'&&<Modal title={BUILDING_NAMES.storage} onClose={closeSub} className="bag-window guild-window guild-sub-window" viewport><GuildStorage guild={guild}/>{toast}</Modal>}
-  {guild&&owner&&tab==='manage'&&<Modal title="Gerenciar guilda" onClose={closeSub} className="bag-window guild-window guild-sub-window" viewport><GuildManage guild={guild}/>{toast}</Modal>}
+  {guild&&manager&&tab==='manage'&&<Modal title="Gerenciar guilda" onClose={closeSub} className="bag-window guild-window guild-sub-window" viewport><GuildManage guild={guild}/>{toast}</Modal>}
  </>;
 }
 
@@ -96,39 +98,42 @@ function GuildLobby({applied}:{applied:number[]}){
  </div>;
 }
 
-type SortKey='contribution'|'today'|'level'|'name';
+type SortKey='contribution'|'today'|'level'|'name'|'rank';
 
-/** Tela inicial: o brasão com o nível em destaque, as construções, os membros com as contribuições e as missões do dia. */
-function GuildHome({guild,owner,onForge}:{guild:GuildView;owner:boolean;onForge:()=>void}){
+/** Tela inicial: cabeçalho com o brasão, o nível, o nome, os membros e a Riqueza; abaixo as construções, os membros e as missões do dia. */
+function GuildHome({guild,manager,onForge}:{guild:GuildView;manager:boolean;onForge:()=>void}){
  const {room}=useGame();
  const open=(building:GuildBuilding)=>{
   if(building==='smith'){onForge();return;}
   client.update({guildTab:building});audio.play('click');
  };
- return <div className="guild-main">
-  <aside className="guild-side">
-   <section className="guild-crest" aria-label={`Guilda ${guild.name}, nível ${guild.level}`}>
-    <span className="guild-crest-badge" aria-hidden="true"><Shield className="guild-crest-shield" size={112} strokeWidth={1.4}/><b className="guild-crest-level">{guild.level}</b></span>
-    <h2 className="guild-crest-name">{guild.name}</h2>
-    <span className="guild-crest-owner"><Crown size={13}/>{guild.ownerName||'Sem dono'}</span>
-    <div className="guild-crest-stats">
-     <span title="Membros"><Users size={15}/>{guild.members.length} / {guildMemberCap(guild.level)}</span>
-     <span title="Riqueza: moeda da guilda. O dono usa para evoluir a guilda e as construções."><RiquezaIcon size={16}/>{money(guild.riqueza)}</span>
-    </div>
-   </section>
-   <div className="guild-buildings">{GUILD_BUILDINGS.map(building=>{const level=guild.buildings[building],Icon=BUILDING_ICONS[building],blocked=!level||building==='smith'&&!!room;
-    return <button key={building} className={`guild-building ${level?'':'unbuilt'}`} disabled={blocked} title={!level?`${SHORT_NAMES[building]} ainda não foi construído. O dono constrói em Gerenciar.`:blocked?'Volte à praça para usar o ferreiro':buildingEffect(building,level)} onClick={()=>open(building)}>
-     <span className="guild-building-stage"><BuildingArt building={building} size={64}/></span>
-     <span className="guild-building-plate"><Icon size={14}/><b>{SHORT_NAMES[building]}</b></span>
-     <em>Nv. {level}</em>
-    </button>;})}</div>
-   <div className="guild-side-actions">
-    {owner&&<button className="wood-button guild-manage-button" onClick={()=>{client.update({guildTab:'manage'});audio.play('click');}}><Settings size={16}/>Gerenciar{!!guild.applications?.length&&<b className="guild-count">{guild.applications.length}</b>}</button>}
-    <LeaveGuild guild={guild}/>
+ const leader=guild.ranks[LEADER_RANK]?.name??'Líder';
+ return <div className="guild-page">
+  <header className="guild-banner" aria-label={`Guilda ${guild.name}, nível ${guild.level}`}>
+   <span className="guild-crest-badge" aria-hidden="true"><Shield className="guild-crest-shield" size={70} strokeWidth={1.4}/><b className="guild-crest-level">{guild.level}</b></span>
+   <div className="guild-banner-name"><h2 className="guild-crest-name">{guild.name}</h2><span className="guild-crest-owner"><Crown size={13}/>{leader}: {guild.ownerName||'—'}</span></div>
+   <div className="guild-crest-stats">
+    <span title="Nível da guilda"><Shield size={15}/>Nível {guild.level}</span>
+    <span title="Membros"><Users size={15}/>{guild.members.length} / {guildMemberCap(guild.level)}</span>
+    <span title="Riqueza: moeda da guilda, usada para evoluir a guilda e as construções."><RiquezaIcon size={16}/>{money(guild.riqueza)}</span>
    </div>
-  </aside>
-  <GuildRoster guild={guild} owner={owner}/>
-  <GuildMissions guild={guild}/>
+  </header>
+  <div className="guild-main">
+   <aside className="guild-side">
+    <div className="guild-buildings">{GUILD_BUILDINGS.map(building=>{const level=guild.buildings[building],Icon=BUILDING_ICONS[building],blocked=!level||building==='smith'&&!!room;
+     return <button key={building} className={`guild-building ${level?'':'unbuilt'}`} disabled={blocked} title={!level?`${SHORT_NAMES[building]} ainda não foi construído.`:blocked?'Volte à praça para usar o ferreiro':buildingEffect(building,level)} onClick={()=>open(building)}>
+      <span className="guild-building-stage"><BuildingArt building={building} size={64}/></span>
+      <span className="guild-building-plate"><Icon size={14}/><b>{SHORT_NAMES[building]}</b></span>
+      <em>Nv. {level}</em>
+     </button>;})}</div>
+    <div className="guild-side-actions">
+     {manager&&<button className="wood-button guild-manage-button" onClick={()=>{client.update({guildTab:'manage'});audio.play('click');}}><Settings size={16}/>Gerenciar{!!guild.applications?.length&&<b className="guild-count">{guild.applications.length}</b>}</button>}
+     <LeaveGuild guild={guild}/>
+    </div>
+   </aside>
+   <GuildRoster guild={guild}/>
+   <GuildMissions guild={guild}/>
+  </div>
  </div>;
 }
 
@@ -144,8 +149,9 @@ function LeaveGuild({guild}:{guild:GuildView}){
 }
 
 /** Membros com as contribuições, ordenados pela setinha de cada título; sem barra de rolagem: cada página tem as linhas que cabem. */
-function GuildRoster({guild,owner}:{guild:GuildView;owner:boolean}){
- const {profile,guildPending:pending}=useGame(),me=profile!.id;
+function GuildRoster({guild}:{guild:GuildView}){
+ const {profile,guildPending:pending}=useGame(),me=profile!.id,mine=guild.myRank,canKick=rankCan(guild.ranks,mine,'kick'),canPromote=rankCan(guild.ranks,mine,'promote');
+ const [menu,setMenu]=useState<{member:GuildMember;x:number;y:number}|null>(null),[kicking,setKicking]=useState<GuildMember|null>(null);
  const [sort,setSort]=useState<SortKey>('contribution'),[desc,setDesc]=useState(true),[page,setPage]=useState(0),[pageSize,setPageSize]=useState(10);
  const box=useRef<HTMLDivElement>(null);
  useLayoutEffect(()=>{
@@ -154,9 +160,9 @@ function GuildRoster({guild,owner}:{guild:GuildView;owner:boolean}){
   fit();const observer=new ResizeObserver(fit);observer.observe(element);return()=>observer.disconnect();
  },[]);
  const rows=useMemo(()=>{
-  const ranked=[...guild.members].sort((a,b)=>b.contribution-a.contribution||a.name.localeCompare(b.name)).map((m,i)=>({...m,rank:i+1}));
-  const value=(m:typeof ranked[number])=>sort==='name'?0:m[sort];
-  return ranked.sort((a,b)=>{const d=sort==='name'?a.name.localeCompare(b.name,'pt-BR'):value(a)-value(b);return (desc?-d:d)||a.rank-b.rank;});
+  const ranked=[...guild.members].sort((a,b)=>b.contribution-a.contribution||a.name.localeCompare(b.name)).map((m,i)=>({...m,place:i+1}));
+  const value=(m:typeof ranked[number])=>sort==='name'?0:sort==='rank'?-m.rank:m[sort];
+  return ranked.sort((a,b)=>{const d=sort==='name'?a.name.localeCompare(b.name,'pt-BR'):value(a)-value(b);return (desc?-d:d)||a.place-b.place;});
  },[guild.members,sort,desc]);
  const pages=Math.max(1,Math.ceil(rows.length/pageSize)),current=Math.min(page,pages-1),visible=rows.slice(current*pageSize,(current+1)*pageSize);
  const by=(key:SortKey)=>{if(key===sort)setDesc(!desc);else{setSort(key);setDesc(key!=='name');}setPage(0);audio.play('click');};
@@ -168,19 +174,36 @@ function GuildRoster({guild,owner}:{guild:GuildView;owner:boolean}){
    {pages>1&&<div className="guild-pager"><button aria-label="Página anterior" disabled={current===0} onClick={()=>setPage(current-1)}><ChevronLeft size={15}/></button><span>{current+1} / {pages}</span><button aria-label="Próxima página" disabled={current===pages-1} onClick={()=>setPage(current+1)}><ChevronRight size={15}/></button></div>}
   </header>
   <div className="guild-roster-box" ref={box}>
-   <table className={`guild-table ${owner?'with-actions':''}`}>
-    <colgroup><col className="c-rank"/><col/><col className="c-level"/><col className="c-today"/><col className="c-total"/>{owner&&<col className="c-act"/>}</colgroup>
-    <thead><tr><th>#</th>{head('name','Membro')}{head('level','Nível')}{head('today','Hoje')}{head('contribution','Total')}{owner&&<th aria-label="Ações"/>}</tr></thead>
+   <table className="guild-table with-actions">
+    <colgroup><col className="c-rank"/><col/><col className="c-role"/><col className="c-level"/><col className="c-today"/><col className="c-total"/><col className="c-act"/></colgroup>
+    <thead><tr><th>#</th>{head('name','Membro')}{head('rank','Cargo')}{head('level','Nível')}{head('today','Hoje')}{head('contribution','Total')}<th aria-label="Opções"/></tr></thead>
     <tbody>{visible.map(m=><tr key={m.id} className={m.id===me?'me':''}>
-     <td className="guild-rank"><span data-rank={m.rank<=3?m.rank:undefined}>{m.rank}</span></td>
-     <td><span className="guild-member"><span className={`guild-dot ${m.online?'on':''}`} title={m.online?'Online':'Offline'}/><b title={m.name} {...playerMenuProps(m.id!==me?{id:m.id,name:m.name,context:'hall'}:null)}>{m.name}</b>{m.role==='owner'&&<Crown className="guild-owner-crown" size={14} aria-label="Dono"/>}</span></td>
+     <td className="guild-rank"><span data-rank={m.place<=3?m.place:undefined}>{m.place}</span></td>
+     <td><span className="guild-member"><span className={`guild-dot ${m.online?'on':''}`} title={m.online?'Online':'Offline'}/><b title={m.name} {...playerMenuProps(m.id!==me?{id:m.id,name:m.name,context:'hall'}:null)}>{m.name}</b>{m.rank===LEADER_RANK&&<Crown className="guild-owner-crown" size={14} aria-label={guild.ranks[0].name}/>}</span></td>
+     <td className="guild-role-cell"><span className={`guild-role ${m.rank===LEADER_RANK?'owner':''}`} data-rank={m.rank}>{guild.ranks[m.rank]?.name}</span></td>
      <td>{m.level}</td>
      <td className="guild-num">{m.today?`+${money(m.today)}`:'0'}</td>
      <td className="guild-num"><RiquezaIcon size={14}/> {money(m.contribution)}</td>
-     {owner&&<td>{m.role!=='owner'&&<button className="guild-icon-button" title={`Expulsar ${m.name}`} aria-label={`Expulsar ${m.name}`} disabled={pending} onClick={()=>client.guildAction({type:'guild-kick',playerId:m.id})}><UserMinus size={14}/></button>}</td>}
+     <td>{m.id!==me&&<button className="guild-icon-button guild-gear" title="Opções" aria-label={`Opções de ${m.name}`} aria-haspopup="menu" aria-expanded={menu?.member.id===m.id} onClick={e=>{const box=e.currentTarget.getBoundingClientRect();setMenu({member:m,x:box.right-4,y:box.bottom+4});audio.play('click');}}><Settings size={15}/></button>}</td>
     </tr>)}</tbody></table>
   </div>
+  {menu&&createPortal(<BagContextMenu x={menu.x} y={menu.y} title={menu.member.name} onClose={()=>setMenu(null)} actions={memberActions(menu.member)}/>,document.body)}
+  {kicking&&<div className="guild-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setKicking(null);}}><section className="guild-confirm" role="alertdialog" aria-label={`Expulsar ${kicking.name}`}>
+   <strong>Expulsar {kicking.name}?</strong>
+   <p>A contribuição de {kicking.name} fica com a guilda.</p>
+   <div><button className="wood-quiet" onClick={()=>setKicking(null)}>Voltar</button><button className="wood-button guild-danger" disabled={pending} onClick={()=>{client.guildAction({type:'guild-kick',playerId:kicking.id});setKicking(null);}}>Expulsar</button></div>
+  </section></div>}
  </section>;
+ /** Ver informações for everyone; promote, demote and kick only on members below the viewer's rank. */
+ function memberActions(m:GuildMember){
+  const below=m.rank>mine,up=guild.ranks[m.rank-1],down=guild.ranks[m.rank+1],rank=(r:number)=>()=>{client.guildAction({type:'guild-rank-set',playerId:m.id,rank:r});audio.play('click');};
+  return [
+   {id:'info',label:'Ver informações',icon:<IdCard size={16}/>,onSelect:()=>{client.openPlayerPanel('info',{id:m.id,name:m.name,context:'hall'});audio.play('click');}},
+   ...(canPromote&&below&&up&&up.id>mine?[{id:'promote',label:`Promover a ${up.name}`,icon:<ArrowUpCircle size={16}/>,disabled:pending,onSelect:rank(up.id)}]:[]),
+   ...(canPromote&&below&&down?[{id:'demote',label:`Rebaixar a ${down.name}`,icon:<ArrowDownCircle size={16}/>,disabled:pending,onSelect:rank(down.id)}]:[]),
+   ...(canKick&&below?[{id:'kick',label:'Expulsar',icon:<UserMinus size={16}/>,danger:true,disabled:pending,onSelect:()=>setKicking(m)}]:[]),
+  ];
+ }
 }
 
 /** Missões diárias: cada uma concluída e recebida soma contribuição ao membro e a mesma Riqueza à guilda. */
@@ -278,12 +301,12 @@ function GuildShop({guild,onClose,toast}:{guild:GuildView;onClose:()=>void;toast
 function GuildStorage({guild}:{guild:GuildView}){
  const {guildPending:pending,profile}=useGame(),p=profile!,capacity=storageCapacity(guild.buildings.storage);
  const [picking,setPicking]=useState(false);const goods=useMemo(()=>bagGoods(p,true),[p]);
- const full=guild.storage.length>=capacity;
+ const full=guild.storage.length>=capacity,canWithdraw=rankCan(guild.ranks,guild.myRank,'withdraw');
  return <div className="guild-storage">
   <div className="guild-section-head"><BuildingArt building="storage" size={58}/><div><h3>{BUILDING_NAMES.storage} · Nv. {guild.buildings.storage}</h3><small>{capacity?`${guild.storage.length} de ${capacity} espaços. Qualquer membro pode guardar e retirar.`:'Fechado. O dono constrói o depósito em Gerenciar.'}</small></div>
    <button className="wood-button" disabled={!capacity||full||pending} onClick={()=>{setPicking(true);audio.play('click');}}><PackagePlus size={17}/>Guardar item</button></div>
   <div className="guild-storage-grid wood-cream">{Array.from({length:Math.max(capacity,10)},(_,i)=>{const stored=guild.storage[i];
-   if(stored)return <ItemCard key={stored.id} rarity={goodsRarity(stored.goods)} className="guild-storage-cell" title={`${goodsName(stored.goods)} · guardado por ${stored.by}. Clique para retirar.`} disabled={pending} onClick={()=>client.guildAction({type:'guild-withdraw',id:stored.id})}>
+   if(stored)return <ItemCard key={stored.id} rarity={goodsRarity(stored.goods)} className="guild-storage-cell" title={`${goodsName(stored.goods)} · guardado por ${stored.by}.${canWithdraw?' Clique para retirar.':' Seu cargo não pode retirar itens.'}`} disabled={pending||!canWithdraw} onClick={()=>client.guildAction({type:'guild-withdraw',id:stored.id})}>
     <GoodsArt goods={stored.goods} size={48}/>{stored.goods.kind==='item'&&!!stored.goods.upgrade&&<UpgradeTag level={stored.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{stored.goods.kind!=='item'&&stored.goods.amount>1&&<b className="guild-cell-count">{money(stored.goods.amount)}</b>}</ItemCard>;
    return <ItemCardFrame key={`empty-${i}`} empty variant="slot" className={`guild-storage-cell ${i>=capacity?'locked':''}`}/>;})}</div>
   {picking&&<div className="guild-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setPicking(false);}}><section className="guild-confirm guild-picker" role="dialog" aria-label="Guardar item">
@@ -295,30 +318,77 @@ function GuildStorage({guild}:{guild:GuildView}){
  </div>;
 }
 
-/** The owner's panel: raise the guild and the buildings with Riqueza, and answer who asked to join. */
+type ManageTab='upgrade'|'requests'|'ranks';
+/** Gerenciar: cada parte aparece para quem o cargo permite; Cargos e Excluir guilda são só do líder. */
 function GuildManage({guild}:{guild:GuildView}){
+ const leader=guild.myRank===LEADER_RANK,can=(perm:GuildPermission)=>rankCan(guild.ranks,guild.myRank,perm);
+ const tabs=([['upgrade','Evoluir',can('upgrade')],['requests','Pedidos',can('recruit')],['ranks','Cargos',leader]] as [ManageTab,string,boolean][]).filter(t=>t[2]);
+ const [tab,setTab]=useState<ManageTab>(tabs[0]?.[0]??'upgrade'),current=tabs.some(t=>t[0]===tab)?tab:tabs[0]?.[0];
+ return <div className="guild-manage">
+  <nav className="guild-manage-tabs">{tabs.map(([id,label])=><button key={id} className={current===id?'active':''} aria-pressed={current===id} onClick={()=>{setTab(id);audio.play('click');}}>{label}{id==='requests'&&!!guild.applications?.length&&<b className="guild-count">{guild.applications.length}</b>}</button>)}</nav>
+  {current==='upgrade'&&<GuildUpgrades guild={guild}/>}
+  {current==='requests'&&<GuildRequests guild={guild}/>}
+  {current==='ranks'&&<GuildRanks guild={guild}/>}
+ </div>;
+}
+
+function GuildUpgrades({guild}:{guild:GuildView}){
  const {guildPending:pending}=useGame();
  const rows:{target:'guild'|GuildBuilding;name:string;level:number;cost:number|undefined;effect:string;blocked:string}[]=[
   {target:'guild',name:'Guilda',level:guild.level,cost:GUILD_LEVEL_COSTS[guild.level],effect:`Até ${guildMemberCap(guild.level+1)} membros e construções até o nível ${guild.level+1}`,blocked:guild.level>=GUILD_MAX_LEVEL?'Nível máximo':''},
   ...GUILD_BUILDINGS.map(building=>{const level=guild.buildings[building];return {target:building,name:SHORT_NAMES[building],level,cost:BUILDING_LEVEL_COSTS[level],effect:nextEffect(building,level),
    blocked:level>=GUILD_MAX_LEVEL?'Nível máximo':canRaiseBuilding(guild.level,level)?'':`Evolua a guilda para o nível ${level+1}`};})];
- return <div className="guild-manage">
-  <section className="guild-pane wood-cream guild-upgrades" aria-label="Melhorias">
-   <h3>Evoluir <small>Riqueza disponível: <RiquezaIcon size={15}/> {money(guild.riqueza)}</small></h3>
-   <ul>{rows.map(row=>{const afford=row.cost!==undefined&&guild.riqueza>=row.cost;return <li key={row.target} data-target={row.target}>
-    <span className="guild-upgrade-art">{row.target==='guild'?<span className="guild-emblem small"><Shield size={22}/><b>{row.level}</b></span>:<BuildingArt building={row.target} size={46}/>}</span>
-    <span className="guild-upgrade-text"><b>{row.name} <em>Nv. {row.level}{!row.blocked&&` → ${row.level+1}`}</em></b><small>{row.blocked||row.effect}</small></span>
-    {!row.blocked&&<span className={`guild-upgrade-cost ${afford?'':'short'}`}><RiquezaIcon size={15}/>{money(row.cost??0)}</span>}
-    <button className="wood-button" disabled={!!row.blocked||!afford||pending} onClick={()=>client.guildAction({type:'guild-upgrade',target:row.target})}><ArrowUpCircle size={16}/>Evoluir</button>
-   </li>;})}</ul>
-  </section>
-  <section className="guild-pane wood-cream guild-applications" aria-label="Pedidos para entrar">
-   <h3>Pedidos para entrar <small>{guild.members.length} / {guildMemberCap(guild.level)} membros</small></h3>
-   {guild.applications?.length?<ul>{guild.applications.map(a=><li key={a.playerId}>
-    <span><b {...playerMenuProps({id:a.playerId,name:a.name,context:'hall'})}>{a.name}</b><small>Nível {a.level}</small></span>
-    <button className="wood-quiet" disabled={pending} onClick={()=>client.guildAction({type:'guild-answer',playerId:a.playerId,accept:false})}><X size={15}/>Recusar</button>
-    <button className="wood-button" disabled={pending} onClick={()=>client.guildAction({type:'guild-answer',playerId:a.playerId,accept:true})}><Check size={15}/>Aceitar</button>
-   </li>)}</ul>:<p className="guild-empty"><UserPlus size={24}/>Nenhum pedido por enquanto.</p>}
-  </section>
- </div>;
+ return <section className="guild-pane wood-cream guild-upgrades" aria-label="Melhorias">
+  <h3>Evoluir <small>Riqueza disponível: <RiquezaIcon size={15}/> {money(guild.riqueza)}</small></h3>
+  <ul>{rows.map(row=>{const afford=row.cost!==undefined&&guild.riqueza>=row.cost;return <li key={row.target} data-target={row.target}>
+   <span className="guild-upgrade-art">{row.target==='guild'?<span className="guild-emblem small"><Shield size={22}/><b>{row.level}</b></span>:<BuildingArt building={row.target} size={46}/>}</span>
+   <span className="guild-upgrade-text"><b>{row.name} <em>Nv. {row.level}{!row.blocked&&` → ${row.level+1}`}</em></b><small>{row.blocked||row.effect}</small></span>
+   {!row.blocked&&<span className={`guild-upgrade-cost ${afford?'':'short'}`}><RiquezaIcon size={15}/>{money(row.cost??0)}</span>}
+   <button className="wood-button" disabled={!!row.blocked||!afford||pending} onClick={()=>client.guildAction({type:'guild-upgrade',target:row.target})}><ArrowUpCircle size={16}/>Evoluir</button>
+  </li>;})}</ul>
+ </section>;
+}
+
+function GuildRequests({guild}:{guild:GuildView}){
+ const {guildPending:pending}=useGame();
+ return <section className="guild-pane wood-cream guild-applications" aria-label="Pedidos para entrar">
+  <h3>Pedidos para entrar <small>{guild.members.length} / {guildMemberCap(guild.level)} membros</small></h3>
+  {guild.applications?.length?<ul>{guild.applications.map(a=><li key={a.playerId}>
+   <span><b {...playerMenuProps({id:a.playerId,name:a.name,context:'hall'})}>{a.name}</b><small>Nível {a.level}</small></span>
+   <button className="wood-quiet" disabled={pending} onClick={()=>client.guildAction({type:'guild-answer',playerId:a.playerId,accept:false})}><X size={15}/>Recusar</button>
+   <button className="wood-button" disabled={pending} onClick={()=>client.guildAction({type:'guild-answer',playerId:a.playerId,accept:true})}><Check size={15}/>Aceitar</button>
+  </li>)}</ul>:<p className="guild-empty"><UserPlus size={24}/>Nenhum pedido por enquanto.</p>}
+ </section>;
+}
+
+/** Cargos: o líder troca os nomes e marca o que cada cargo pode fazer; o cargo de líder sempre pode tudo. */
+function GuildRanks({guild}:{guild:GuildView}){
+ const {guildPending:pending}=useGame();
+ const [draft,setDraft]=useState<GuildRank[]>(()=>guild.ranks.map(r=>({...r,permissions:[...r.permissions]})));
+ const [closing,setClosing]=useState(false);
+ useEffect(()=>{setDraft(guild.ranks.map(r=>({...r,permissions:[...r.permissions]})));},[guild.ranks]);
+ const changed=JSON.stringify(draft)!==JSON.stringify(guild.ranks);
+ const valid=draft.every(r=>r.name.trim().length>=RANK_NAME_MIN&&r.name.trim().length<=RANK_NAME_MAX);
+ const toggle=(id:number,perm:GuildPermission)=>setDraft(d=>d.map(r=>r.id!==id?r:{...r,permissions:r.permissions.includes(perm)?r.permissions.filter(x=>x!==perm):GUILD_PERMISSIONS.filter(x=>x===perm||r.permissions.includes(x))}));
+ return <section className="guild-pane wood-cream guild-ranks" aria-label="Cargos">
+  <h3>Cargos <small>do mais alto para o mais baixo</small></h3>
+  <div className="guild-ranks-scroll">
+   <table className="guild-ranks-table"><thead><tr><th>Cargo</th>{GUILD_PERMISSIONS.map(perm=><th key={perm} title={PERMISSION_NAMES[perm]}>{PERMISSION_SHORT[perm]}</th>)}</tr></thead>
+    <tbody>{draft.map(r=><tr key={r.id} data-rank={r.id}>
+     <td><span className="guild-rank-name">{r.id===LEADER_RANK&&<Crown size={14}/>}<input value={r.name} maxLength={RANK_NAME_MAX} aria-label={`Nome do cargo ${r.id+1}`} onChange={e=>setDraft(d=>d.map(x=>x.id===r.id?{...x,name:e.target.value}:x))}/></span></td>
+     {GUILD_PERMISSIONS.map(perm=><td key={perm}><label className="guild-check"><input type="checkbox" checked={r.id===LEADER_RANK||r.permissions.includes(perm)} disabled={r.id===LEADER_RANK} aria-label={`${r.name}: ${PERMISSION_NAMES[perm]}`} onChange={()=>toggle(r.id,perm)}/><i aria-hidden="true"><Check size={13}/></i></label></td>)}
+    </tr>)}</tbody></table>
+  </div>
+  <footer className="guild-ranks-foot">
+   <small>Quem tem um cargo só age sobre cargos abaixo do seu. Só o líder edita os cargos e pode excluir a guilda.</small>
+   <button className="wood-quiet" disabled={!changed||pending} onClick={()=>setDraft(guild.ranks.map(r=>({...r,permissions:[...r.permissions]})))}>Desfazer</button>
+   <button className="wood-button" disabled={!changed||!valid||pending} onClick={()=>client.guildAction({type:'guild-ranks',ranks:draft.map(r=>({...r,name:r.name.trim()}))})}><Check size={16}/>Salvar cargos</button>
+  </footer>
+  <div className="guild-danger-zone"><span><b>Excluir guilda</b><small>Todos saem e os itens do depósito voltam para você. Não dá para desfazer.</small></span><button className="wood-button guild-danger" onClick={()=>setClosing(true)}><Trash2 size={15}/>Excluir guilda</button></div>
+  {closing&&<div className="guild-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setClosing(false);}}><section className="guild-confirm" role="alertdialog" aria-label="Excluir guilda">
+   <strong>Excluir a guilda {guild.name}?</strong>
+   <p>Todos os {guild.members.length} membros saem, a Riqueza e as construções se perdem e os itens do depósito voltam para você.</p>
+   <div><button className="wood-quiet" onClick={()=>setClosing(false)}>Voltar</button><button className="wood-button guild-danger" disabled={pending} onClick={()=>{client.guildAction({type:'guild-disband'});setClosing(false);client.update({guildTab:'home'});}}>Excluir</button></div>
+  </section></div>}
+ </section>;
 }
