@@ -1,0 +1,9 @@
+Paint ONE image, exactly 1536x1024 pixels: a sprite sheet of 3 separate scenery pieces for the middle layer of the lobby "Praça Celeste" (parallax), left to right.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+Background: pure flat magenta #FF00FF everywhere outside the pieces (no gradient, no shadow, no glow, no ground on the magenta). Each piece is a separate island of paint with at least 60 px of magenta around it; no piece touches the image border. Keep magenta out of the painting itself (no pink or purple close to #FF00FF inside the pieces).
+
+1) a BIG floating rock island (about 45% of the image width) with green grass on top, a small white-and-gold domed tower, cypress and round trees and flowering bushes; two waterfalls pour off its edge and fade into mist below; jagged painted rock underside; it floats in the air, no ground under it;
+2) a medium floating island with trees, ivy and a small ruined white stone arch bridge, one thin waterfall, no ground under it;
+3) a white round marble temple with columns and a golden dome (tholos) on a rocky islet with green grass and a small waterfall, the bottom of the islet is a flat horizontal waterline with foam.

@@ -1,0 +1,14 @@
+Paint ONE image, exactly 1536x1024 pixels: a sprite sheet of 6 separate DISTANT scenery pieces for the far-middle layer of the lobby "Praça Celeste" (parallax). Arrange them in two rows of three.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+Background: pure flat magenta #FF00FF everywhere outside the pieces (no gradient, no shadow, no glow, no ground on the magenta). Each piece is a separate island of paint with at least 60 px of magenta around it; no piece touches the image border. Keep magenta out of the painting itself (no pink or purple close to #FF00FF inside the pieces).
+
+These pieces sit far away on the sea horizon, so paint them a little paler and hazier than the attached plaza.webp foreground (soft blue atmospheric haze, lower contrast), but with full painted detail. Seen from the side at eye level.
+1) a small rocky islet with a tiny white-and-gold domed temple and two cypress trees, the bottom is a flat waterline with soft foam;
+2) a rocky sea stack with an old white stone arch ruin and some green, flat waterline bottom;
+3) a long low green island with tiny white houses with blue roofs and a small lighthouse, flat waterline bottom;
+4) a cluster of three small floating rock islands with grass and tiny trees, each with a thin waterfall falling from it (the waterfalls fade out downward), floating in the air, no ground under them;
+5) a single medium floating rock island with a tiny white gazebo and a waterfall, no ground under it;
+6) two small white sailboats close together on a short strip of water with foam, flat waterline bottom.
+Every piece that stands on the sea ends in a straight horizontal waterline at its bottom.

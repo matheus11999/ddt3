@@ -1,0 +1,12 @@
+Paint ONE image, exactly 1536x1024 pixels: a sprite sheet of 5 separate trees and bushes that grow just behind the balustrade of the lobby "Praça Celeste" (they frame the scene), seen from the side.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+Background: pure flat magenta #FF00FF everywhere outside the pieces (no gradient, no shadow, no glow, no ground on the magenta). Each piece is a separate island of paint with at least 60 px of magenta around it; no piece touches the image border. Keep magenta out of the painting itself (no pink or purple close to #FF00FF inside the pieces).
+
+1) a big lush round tree with dense green foliage painted in soft clusters and light from the upper right, trunk visible at the bottom, flat bottom (it stands behind a wall);
+2) a big blossoming tree with pink and white flowers, flat bottom;
+3) a pair of tall slender dark-green cypress trees side by side, flat bottom;
+4) a single tall cypress, flat bottom;
+5) a wide round flowering bush with white and yellow flowers, flat bottom.
+Each piece ends at the bottom in a straight horizontal cut (the bottom will be hidden behind the balustrade).

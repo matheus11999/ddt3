@@ -1,0 +1,13 @@
+Paint ONE image, exactly 1536x1024 pixels: a sprite sheet of the stone balustrade that closes the plaza of the lobby "Praça Celeste", straight FRONT view (orthographic, no perspective, no angle), like the balustrade of the attached plaza.webp but at higher detail.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+Background: pure flat magenta #FF00FF everywhere outside the pieces (no gradient, no shadow, no glow, no ground on the magenta). Each piece is a separate island of paint with at least 60 px of magenta around it; no piece touches the image border. Keep magenta out of the painting itself (no pink or purple close to #FF00FF inside the pieces).
+
+Top row:
+1) ONE square cream-white stone pillar with carved panels, a molded cap and a round stone urn on top overflowing with green leaves and white and pink flowers, ivy trailing down the pillar; the pillar stands on a flat bottom;
+2) ONE square stone pillar like 1, but with a small ornate white-and-gold lamp (unlit) on top instead of the urn.
+Bottom row:
+3) ONE straight run of the balustrade between two pillars: a flat cream stone handrail on top, 9 identical turned balusters (vase-shaped columns) with soft blue-green shadows between them, and a low stone base curb at the bottom. Its left and right ends are cut perfectly straight and vertical (it will be repeated side by side between pillars). Width about 1300 px, height about 300 px. A few green leaves and small flowers in front of its base.
+4) a low leafy hedge strip with white and pink flowers, straight bottom, about 1300 px wide, 120 px tall, ends fading softly into leaves.
+Same lighting on every piece (sun from the upper right, soft shadow on the left faces).
