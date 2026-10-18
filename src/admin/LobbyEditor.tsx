@@ -54,7 +54,7 @@ export function LobbyEditor({onBack}:{onBack:()=>void}){
   const dpr=devicePixelRatio||1,cw=wrap.clientWidth,ch=wrap.clientHeight;if(canvas.width!==cw*dpr||canvas.height!==ch*dpr){canvas.width=cw*dpr;canvas.height=ch*dpr;}
   const c=canvas.getContext('2d')!,v=view.current;c.setTransform(dpr,0,0,dpr,0,0);c.clearRect(0,0,cw,ch);c.save();c.translate(v.x,v.y);c.scale(v.scale,v.scale);
   c.save();c.beginPath();c.rect(0,0,LOBBY_WIDTH,LOBBY_H);c.clip();
-  for(let x=0;x<LOBBY_WIDTH;x+=LOBBY_W)world.drawBack(c,t,x);
+  world.drawWhole(c,t);
   for(const sprite of world.sprites(t,null).sort((a,b)=>a.y-b.y))sprite.draw(c);
   world.drawFront(c,t,null);c.restore();
   const px=1/v.scale;
