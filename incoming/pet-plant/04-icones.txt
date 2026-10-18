@@ -1,0 +1,11 @@
+Paint ONE image, exactly 1536x512 pixels, on a perfectly flat solid magenta background #FF00FF.
+
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading with glossy highlights, rounded chubby cartoon shapes, clean soft dark outlines, rich saturated colors, whimsical fairy-tale mood). Not pixel art, not flat vector, not 3D render, not anime. Light from the upper left. Use the attached referencia-matheus.png only as a STYLE and THEME reference (a cute plant pet that evolves from a sprout into a flower); do not copy its exact creatures. Also match the attached 01-estagios.png (the plant pet "Brotinho").
+
+Four square game ICONS in a row, each exactly 300x300 px with a rounded-square painted frame of warm gold with a dark brown inner border, at least 60 px of magenta between them, each icon's picture filling its frame:
+1. Passive skill "Raízes da Terra": green vines and sprouts bursting out of cracked ground.
+2. Active skill "Orbe da Natureza": the glowing green nature orb of leaves with a golden spark (critical hit feel).
+3. Active skill "Orvalho Curativo": a big glossy dew drop on a leaf with a soft green glow and a small heart-shaped sparkle.
+4. Pet food "Adubo de Orvalho" (no frame for this one, just the object about 240 px): a small cute burlap sack of green fertilizer tied with twine, with a leaf sprouting from the top and a few dew drops.
+
+Crisp anti-aliased edges. Absolutely no text, letters or numbers anywhere.

@@ -1,0 +1,11 @@
+Paint ONE image, exactly 1536x1024 pixels, as a SPRITE SHEET on a perfectly flat solid magenta background #FF00FF (no gradient, no shadow on the background).
+
+Game: a 2D side-view turn-based artillery browser game in the exact painted style of DDTank (soft painted shading with glossy highlights, rounded chubby cartoon shapes, clean soft dark outlines, rich saturated colors, whimsical fairy-tale mood). Not pixel art, not flat vector, not 3D render, not anime. Light from the upper left. Use the attached referencia-matheus.png only as a STYLE and THEME reference (a cute plant pet that evolves from a sprout into a flower); do not copy its exact creatures. Also match the attached 01-estagios.png (the three stages of the plant pet "Brotinho"): same artist, same greens, pinks and gold.
+
+Subject: the passive AREA ATTACK of the plant pet. It is NOT a projectile: it bursts out of the ground at the target's spot, hits whoever stands there and fades. Three rows, one per evolution stage, each row with 4 animation frames from left to right (start, grow, peak, fade), every frame in a cell of 384x340 px, the effect standing on an invisible ground line at the bottom of its cell, centred in the cell, never touching the cell borders:
+Row 1 (Stage 1, sprout): a cluster of small glossy green sprouts and leaves popping out of the ground with a puff of green spores; small.
+Row 2 (Stage 2, bud): thorny curling green vines lashing up out of the ground with a few pink buds; medium size.
+Row 3 (Stage 3, bloom): a big magenta-pink and gold flower blooming out of the ground with a ring of vines and a burst of glowing petals; the largest and most impressive.
+The last frame of each row is the same effect fading (semi-transparent look painted with lighter colors, no real transparency needed).
+
+Crisp anti-aliased edges, every frame separated by pure magenta. Absolutely no text, letters or numbers anywhere.
