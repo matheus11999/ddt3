@@ -59,7 +59,7 @@ export function normalizeVisibility(value:unknown):Record<typeof VISIBILITY_SLOT
 }
 export interface ItemVisual {variant:string;visible?:boolean;pose?:'adventurer'|'confident'|'regal'|'surfer'|'executive'|'racer'|'dancer'|'cartographer';asset?:string;color?:string;secondary?:string;hideHair?:boolean;offset?:[number,number];scale?:number;rotation?:number;}
 export type Rarity = 'common'|'uncommon'|'rare'|'epic'|'legendary';
-export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; luck?:number; damage?:number; armor?:number; visual?:ItemVisual; gender?:ItemGender; }
+export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; luck?:number; damage?:number; armor?:number; /** Extra Vida in percent (guild necklaces); several add up. */ hpPercent?:number; visual?:ItemVisual; gender?:ItemGender; }
 export interface ItemAttributes {attack:number;defense:number;agility:number;luck:number;damage:number;armor:number;}
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
 export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang';
@@ -107,6 +107,8 @@ export const ITEMS: Item[] = [...WEAPONS,
  {...cosmetic('ring-tide','Anel da Maré','ring','tide','#18b9d6','uncommon',{visible:false}),description:'Prata polida com uma pérola azul do mar.',attack:2,defense:6,agility:4,luck:2},
  cosmetic('necklace-none','Sem colar','necklace','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('necklace-star','Colar Estelar','necklace','star','#ffc93a','epic',{visible:false}),description:'Uma estrela cadente presa num cordão de ouro.',attack:6,defense:10,agility:4,luck:8,armor:6},
+ // Loja da Guilda (shared/guilds.ts): sold only to guild members.
+ {...cosmetic('necklace-guild-1','Colar da Guilda Nv. 1','necklace','guild-1','#3f8fe0','rare',{visible:false,asset:'/assets/items/necklace-guild-1.png'}),description:'Medalhão da guilda num cordão trançado. Só membros de uma guilda podem comprá-lo.',attack:0,defense:0,agility:0,hpPercent:5},
  cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de fala fofinho em forma de nuvem.'},
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
@@ -225,7 +227,7 @@ export function slotUpgrade(eq:Equipment,slot:Slot):number {return slot==='weapo
  * (forged, plus composition). Vida comes from level and Defesa, Vigor from Agilidade, Delay from Agilidade and Ataque.
  */
 export function attributes(eq:Equipment,level=1) {
- const stats:ItemAttributes={...CHARACTER_BASE};
- for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[eq[slot]];if(item){const values=itemAttributes(item,slotUpgrade(eq,slot),eq.compositions?.[item.id]);for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=values[key];}}
- return {...stats,hp:maxHpFor(level,stats.defense),stamina:maxStaminaFor(stats.agility),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
+ const stats:ItemAttributes={...CHARACTER_BASE};let hpPercent=0;
+ for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[eq[slot]];if(item){hpPercent+=item.hpPercent??0;const values=itemAttributes(item,slotUpgrade(eq,slot),eq.compositions?.[item.id]);for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=values[key];}}
+ return {...stats,hp:maxHpFor(level,stats.defense,1+hpPercent/100),stamina:maxStaminaFor(stats.agility),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
 }

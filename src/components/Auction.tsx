@@ -5,6 +5,7 @@ import {CATALOG,copyBase,equippedCopy,SLOTS,STONES} from '../../shared/catalog';
 import {COMPOSITION_STONES,COMPOSITION_STONE_BY_ID} from '../../shared/composition';
 import {AUCTION_CATEGORIES,AUCTION_DURATIONS,AUCTION_MAX_LISTINGS,AUCTION_PRICE_MAX,CURRENCY_NAMES,goodsAmount,goodsName,isListableItem,timeLeft} from '../../shared/auction';
 import type {AuctionCurrency,AuctionGoods,AuctionListing,AuctionSource} from '../../shared/auction';
+import type {Profile} from '../../shared/protocol';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {CompositionIcon} from './CompositionIcon';
@@ -26,16 +27,16 @@ import './Auction.css';
    Vender: os meus anúncios (até 3) e o formulário do anúncio, que escolhe o item numa janela da mochila. */
 const money=(value:number)=>value.toLocaleString('pt-BR');
 export function CurrencyIcon({currency,size=20}:{currency:AuctionCurrency;size?:number}){return currency==='gold'?<RewardIcon size={size}/>:<CouponIcon size={size}/>;}
-const goodsRarity=(goods:AuctionGoods):ItemRarity=>goods.kind==='item'?(CATALOG[goods.item]?.rarity??'common'):'common';
+export const goodsRarity=(goods:AuctionGoods):ItemRarity=>goods.kind==='item'?(CATALOG[goods.item]?.rarity??'common'):'common';
 /** Where the hover card reads a listed copy from: its own key, so forge level, compositions and color show. */
 const tipKey=(listing:{id:number;goods:AuctionGoods})=>listing.goods.kind==='item'?`${listing.goods.item}~L${listing.id}`:listing.goods.kind==='stone'?`stone-${listing.goods.level}`:'';
 
-function GoodsArt({goods,size=46}:{goods:AuctionGoods;size?:number}){
+export function GoodsArt({goods,size=46}:{goods:AuctionGoods;size?:number}){
  if(goods.kind==='item')return <ItemIcon id={goods.item} size={size} upgrade={goods.upgrade??0} color={goods.color}/>;
  if(goods.kind==='stone')return <RewardIcon kind="stone" level={goods.level} size={size-6}/>;
  return <CompositionIcon stat={COMPOSITION_STONE_BY_ID[goods.stone]?.stat??'attack'} size={size-6}/>;
 }
-function GoodsCard({goods,size=50,...props}:{goods:AuctionGoods;size?:number}&React.HTMLAttributes<HTMLDivElement>){
+export function GoodsCard({goods,size=50,...props}:{goods:AuctionGoods;size?:number}&React.HTMLAttributes<HTMLDivElement>){
  const amount=goodsAmount(goods);
  return <ItemCardFrame rarity={goodsRarity(goods)} variant="slot" className="auction-goods-card" style={{width:size,height:size}} {...props}>
   <GoodsArt goods={goods} size={Math.round(size*.86)}/>
@@ -148,19 +149,20 @@ export function Auction(){
  </Modal>;
 }
 
-type Sellable={key:string;source:AuctionSource;goods:AuctionGoods;owned:number};
+export type Sellable={key:string;source:AuctionSource;goods:AuctionGoods;owned:number};
 
+/** What can leave the bag (auction, guild Depósito): unworn items of the listed types, and stones (by quantity). */
+export function bagGoods(p:Profile,anyItem=false):Sellable[]{
+ const worn=new Set(SLOTS.map(slot=>equippedCopy(p.equipment,slot)));
+ const items=p.inventory.filter(key=>!worn.has(key)&&(anyItem?!!CATALOG[copyBase(key)]:isListableItem(copyBase(key)))).map(key=>({key,source:{kind:'item',key} as AuctionSource,owned:1,
+  goods:{kind:'item',item:copyBase(key),upgrade:p.upgrades[key]||undefined,compositions:p.compositions[key],color:p.itemColors[key]} as AuctionGoods}));
+ const stones=STONES.filter(s=>(p.stones[String(s.level)]??0)>0).map(s=>({key:`stone-${s.level}`,source:{kind:'stone',level:s.level,amount:1} as AuctionSource,owned:p.stones[String(s.level)],goods:{kind:'stone',level:s.level,amount:p.stones[String(s.level)]} as AuctionGoods}));
+ const compositions=COMPOSITION_STONES.filter(s=>(p.compositionStones[s.id]??0)>0).map(s=>({key:`composition-${s.id}`,source:{kind:'composition',stone:s.id,amount:1} as AuctionSource,owned:p.compositionStones[s.id],goods:{kind:'composition',stone:s.id,amount:p.compositionStones[s.id]} as AuctionGoods}));
+ return [...items,...stones,...compositions];
+}
 function SellTab({feedback,setFeedback,sent,locked,now,showTip,hideTip}:{feedback:string;setFeedback:(text:string)=>void;sent:React.RefObject<string|null>;locked:boolean;now:number;showTip:(listing:{id:number;goods:AuctionGoods})=>(event:React.SyntheticEvent<HTMLElement>)=>void;hideTip:()=>void}){
  const {profile,auctionMine:mine,auctionPending:pending}=useGame(),p=profile!;
- // What can go to the auction: unworn items of the listed types, and stones (by quantity).
- const sellables=useMemo<Sellable[]>(()=>{
-  const worn=new Set(SLOTS.map(slot=>equippedCopy(p.equipment,slot)));
-  const items=p.inventory.filter(key=>!worn.has(key)&&isListableItem(copyBase(key))).map(key=>({key,source:{kind:'item',key} as AuctionSource,owned:1,
-   goods:{kind:'item',item:copyBase(key),upgrade:p.upgrades[key]||undefined,compositions:p.compositions[key],color:p.itemColors[key]} as AuctionGoods}));
-  const stones=STONES.filter(s=>(p.stones[String(s.level)]??0)>0).map(s=>({key:`stone-${s.level}`,source:{kind:'stone',level:s.level,amount:1} as AuctionSource,owned:p.stones[String(s.level)],goods:{kind:'stone',level:s.level,amount:p.stones[String(s.level)]} as AuctionGoods}));
-  const compositions=COMPOSITION_STONES.filter(s=>(p.compositionStones[s.id]??0)>0).map(s=>({key:`composition-${s.id}`,source:{kind:'composition',stone:s.id,amount:1} as AuctionSource,owned:p.compositionStones[s.id],goods:{kind:'composition',stone:s.id,amount:p.compositionStones[s.id]} as AuctionGoods}));
-  return [...items,...stones,...compositions];
- },[p]);
+ const sellables=useMemo(()=>bagGoods(p),[p]);
  const [selected,setSelected]=useState<string|null>(null),[amount,setAmount]=useState(1),[currency,setCurrency]=useState<AuctionCurrency>('gold'),[price,setPrice]=useState(''),[hours,setHours]=useState<2|8|24>(8);
  const choice=sellables.find(s=>s.key===selected)??null;
  useEffect(()=>{if(selected&&!choice)setSelected(null);},[selected,choice]);

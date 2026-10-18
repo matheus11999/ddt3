@@ -3,6 +3,7 @@ import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {CSSProperties,DragEvent,FocusEvent,PointerEvent as ReactPointerEvent} from 'react';
 import {ArrowRight,Check,Gem,Hammer,LoaderCircle,Minus,Sparkles,Swords,X} from 'lucide-react';
+import {guildChance,smithBonus} from '../../shared/guilds';
 import {canStrengthen,CATALOG,copyBase,ITEMS,MAX_FORGE_STONES,MAX_UPGRADE,SLOT_NAMES,STONES,upgradeChance} from '../../shared/catalog';
 import {COMPOSITION_STATS,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,COMPOSITION_STAT_NAMES,canCompose} from '../../shared/composition';
 import type {CompositionBonus,CompositionStat} from '../../shared/composition';
@@ -98,7 +99,9 @@ export function Forge({onClose,initial}:{onClose:()=>void;initial?:string}){
  const item=selected?CATALOG[copyBase(selected)]:null,stone=COMPOSITION_STONE_BY_ID[selectedStone];
  const level=pending&&attempt?attempt.level:selected?(p.upgrades[selected]??0):0,stock=pending&&attempt?attempt.stock:p.stones,compositionStock=pending&&attempt?attempt.compositionStock:p.compositionStones??{};
  const bonus=pending&&attempt?attempt.bonus:p.compositions?.[selected]??{},stoneCount=Object.values(stones).reduce((sum,n)=>sum+n,0);
- const chance=pending&&attempt?attempt.chance:composing?stone?.chance??0:selected&&level<MAX_UPGRADE?upgradeChance(level,stones):0;
+ // The Ferreiro da Guilda adds its points to every member's chance (the server applies the same rule).
+ const guildBonus=smithBonus(state.guild?.guild?.buildings.smith??0);
+ const chance=pending&&attempt?attempt.chance:guildChance(composing?stone?.chance??0:selected&&level<MAX_UPGRADE?upgradeChance(level,stones):0,guildBonus);
  const locked=pending||state.status!=='online'||!!state.battle||!!state.room;
  const enough=STONES.every(s=>(stones[String(s.level)]??0)<=(p.stones[String(s.level)]??0));
  const canForge=!!item&&!locked&&(composing?canCompose(item)&&!!stone&&(compositionStock[stone.id]??0)>0&&p.gold>=stone.cost&&stone.value>(bonus[stone.stat]??0):level<MAX_UPGRADE&&stoneCount>0&&enough);
@@ -175,7 +178,7 @@ export function Forge({onClose,initial}:{onClose:()=>void;initial?:string}){
      </div>
      <div className="smith-forge-controls">
       <div className="smith-chance" data-tone={item&&(composing?!!stone:stoneCount>0)?chanceTone:undefined}>
-       <div className="forge-chance-track" role="progressbar" aria-label="Chance de sucesso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={chance}><i style={{width:`${chance}%`}}/><strong>{!composing&&level>=MAX_UPGRADE?'Nível máximo':`Chance ${number.format(chance)}%`}</strong>{chanceDelta&&<em key={chanceDelta.key} className={chanceDelta.value>0?'up':'down'}>{chanceDelta.value>0?'+':''}{number.format(chanceDelta.value)}%</em>}</div>
+       <div className="forge-chance-track" role="progressbar" aria-label="Chance de sucesso" aria-valuemin={0} aria-valuemax={100} aria-valuenow={chance}><i style={{width:`${chance}%`}}/><strong>{!composing&&level>=MAX_UPGRADE?'Nível máximo':`Chance ${number.format(chance)}%`}</strong>{guildBonus>0&&chance>0&&<span className="forge-guild-bonus" title="Bônus do Ferreiro da Guilda">+{guildBonus}% guilda</span>}{chanceDelta&&<em key={chanceDelta.key} className={chanceDelta.value>0?'up':'down'}>{chanceDelta.value>0?'+':''}{number.format(chanceDelta.value)}%</em>}</div>
        {composing&&<div className={`composition-cost ${stone&&p.gold<stone.cost?'insufficient':''}`} title="Custo em Moedas Brasa"><RewardIcon size={16}/><strong>{stone?.cost??0}</strong></div>}
       </div>
       <button className={`smith-action forge-submit ${pending?'pending':''} ${canForge?'is-ready':''}`} disabled={!canForge} aria-busy={pending} aria-describedby="forge-action-feedback" onClick={submit}>{pending?<LoaderCircle className="button-spinner" size={20}/>:composing?<Sparkles size={20}/>:<Hammer size={20}/>}{pending?composing?'Compondo…':'Fortalecendo…':composing?'Compor atributo':level>=MAX_UPGRADE?'Nível máximo':'Fortalecer'}</button>

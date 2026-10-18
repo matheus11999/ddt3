@@ -18,6 +18,8 @@ import type {MonsterMove,MonsterBite} from './instanceTurn';
 import type {MailClaimResult,MailMessage} from './mail';
 import {auctionCommandSchemas} from './auction';
 import type {AuctionMine,AuctionPage,AuctionResult} from './auction';
+import {guildCommandSchemas} from './guilds';
+import type {GuildState,GuildSummary} from './guilds';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
@@ -26,11 +28,11 @@ export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
-export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;}
+export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;/** Guild name shown under the player's name on the room cards. */guild?:string;}
 /** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
 export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
-export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;/** Expedition Center room: co-op party against an expedition's monsters, chosen by the leader. */kind?:'expedition';expedition?:{id:string;difficulty:Difficulty;/** Stage the next start opens (0-based); a won stage moves it on, the last one back to 0. */stage:number}|null;}
+export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;/** GvG: the party only meets parties of another guild (everyone in the room must share one guild). */gvg?:boolean;/** Expedition Center room: co-op party against an expedition's monsters, chosen by the leader. */kind?:'expedition';expedition?:{id:string;difficulty:Difficulty;/** Stage the next start opens (0-based); a won stage moves it on, the last one back to 0. */stage:number}|null;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
 export interface OnlinePlayer {id:string;name:string;level:number;gender:CharacterGender;}
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
@@ -68,6 +70,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  reportCommandSchema,
  z.object({type:z.literal('mail-list')}).strict(),
  ...auctionCommandSchemas,
+ ...guildCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  // Without an id: "Receber tudo".
@@ -148,5 +151,9 @@ export type ServerEvent =
  | {type:'auction-page';page:AuctionPage}
  | ({type:'auction-mine'} & AuctionMine)
  | {type:'auction-result';result:AuctionResult}
+ /** Guildas: my guild (or none), the guild list and a short confirmation of the last action. */
+ | ({type:'guild'} & GuildState)
+ | {type:'guild-list';guilds:GuildSummary[]}
+ | {type:'guild-result';message:string}
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};
