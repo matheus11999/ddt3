@@ -11,7 +11,7 @@ import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pvpRotation} from '../shared/maps';
-import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
+import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
@@ -611,7 +611,7 @@ export class Game {
   const weapon={...weaponStats(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,f.equipment.upgrade),projectileRadius:6},result=trajectory(m.terrain,f,angle,power,m.state.wind,weapon),startedAt=Date.now(),id=randomUUID();
   f.flightArmed=false;f.charging=false;f.aimAngle=angle;f.chargePower=power;
   const shot:Shot={id,shooterId:f.id,startedAt,duration:result.flightTime+450,hits:[],impacted:[],projectiles:[{kind:'flight',effect:weapon.effect,points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0,...terrainMaterial(m.state.map,result.x,result.y)}}]};
-  m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits:[],flight:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:weapon.effect,level:f.equipment.upgrade}}];m.state.phase='resolving';m.resolveAt=startedAt+shot.duration;
+  m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits:[],flight:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:weapon.effect,level:f.equipment.upgrade}}];m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
  }
  private resolveFire(m:Match,f:Fighter,angle:number,power:number,powered:boolean,startedAt=Date.now()){
@@ -653,7 +653,7 @@ export class Game {
    });
    pieces.forEach((piece,index)=>shot.projectiles.push({points:piece.points,delay:start,flightTime:piece.flightTime,impact:shardImpacts[index],effect:w.effect,powered,fragment:true}));
   }
-  shot.duration=Math.max(...shot.projectiles.map(projectile=>projectile.delay+projectile.flightTime))+450;m.activeShot=shot;m.pendingImpacts=pending.sort((a,b)=>a.at-b.at||a.projectileIndex-b.projectileIndex);m.state.phase='resolving';m.resolveAt=startedAt+shot.duration;
+  shot.duration=Math.max(...shot.projectiles.map(projectile=>projectile.delay+projectile.flightTime))+450;m.activeShot=shot;m.pendingImpacts=pending.sort((a,b)=>a.at-b.at||a.projectileIndex-b.projectileIndex);m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});
   this.broadcastBattle(m);
  }
@@ -665,7 +665,7 @@ export class Game {
    if(landing){
     shooter.x=landing.x;shooter.y=landing.y;
     if(shooter.y>WORLD.height){hits.push({id:shooter.id,damage:shooter.hp,x:landing.x,y:landing.fromY-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});shooter.y=WORLD.height+150;shooter.hp=0;shooter.powerArmed=false;}
-    this.animateFall(shooter,landing.fromY,impact.at);if(shooter.fall)m.resolveAt=Math.max(m.resolveAt,shooter.fall.startedAt+shooter.fall.duration);
+    this.animateFall(shooter,landing.fromY,impact.at);if(shooter.fall)m.resolveAt=Math.max(m.resolveAt,shooter.fall.startedAt+shooter.fall.duration+TURN_GAP_MS);
     adjustAimToTerrain(shooter,m.terrain);this.abilityEffect(m,{playerId:shooter.id,ability:'flight',x:landing.x,y:landing.fromY,at:impact.at});
    }
    shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});this.broadcastBattle(m,true);return;
@@ -694,7 +694,7 @@ export class Game {
  }
  private settle(m:Match,at?:number){for(const target of m.state.players){
   const fromY=target.y;target.y=ground(m.terrain,target.x,Math.max(0,target.y-3));if(target.y>WORLD.height){target.y=WORLD.height+150;target.hp=0;}
-  if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration);}
+  if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration+TURN_GAP_MS);}
   adjustAimToTerrain(target,m.terrain);
  }}
  private nextTurn(m:Match){

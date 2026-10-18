@@ -8,6 +8,7 @@ import {WEAPONS} from '../shared/catalog';
 import {createFall,FALL_GRAVITY,fallDuration,fallPosition,fallVelocity} from '../shared/fall';
 import {trajectory,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent} from '../shared/protocol';
+import {TURN_GAP_MS} from '../shared/combat';
 import {REWARD_RESULT_MS} from '../shared/rewards';
 
 async function fixture(lowerFloor=true){
@@ -33,7 +34,7 @@ test('crater fall begins only at impact, survives reconnect and delays the next 
  const f=await fixture(),before=f.match.terrain.slice();await f.game.command(f.actor.id,{type:'fire',...f.aim});const impact=f.match.pendingImpacts![0],originalResolve=f.match.resolveAt;
  assert.equal(f.target.fall,undefined);assert.equal(f.target.y,570);assert.deepEqual(f.match.terrain,before);f.game.tick(impact.at-.001);assert.equal(f.target.fall,undefined);
  f.game.tick(impact.at);const fall=f.target.fall!;assert.ok(fall);assert.equal(fall.fromY,570);assert.equal(fall.toY,780);assert.equal(fall.startedAt,impact.at);assert.equal(fall.void,false);assert.equal(f.target.y,780);assert.ok(f.target.hp>0);assert.notDeepEqual(f.match.terrain,before);
- assert.ok(f.match.resolveAt>originalResolve);assert.equal(f.match.resolveAt,fall.startedAt+fall.duration);f.game.tick(originalResolve+.001);assert.equal(f.match.state.phase,'resolving');
+ assert.ok(f.match.resolveAt>originalResolve);assert.equal(f.match.resolveAt,fall.startedAt+fall.duration+TURN_GAP_MS);f.game.tick(originalResolve+.001);assert.equal(f.match.state.phase,'resolving');
  const resumed:ServerEvent[]=[];f.game.disconnect(f.actor.id);f.game.connect(f.players[0],event=>resumed.push(structuredClone(event)));
  const welcome=resumed.find((event):event is Extract<ServerEvent,{type:'welcome'}>=>event.type==='welcome')!;assert.deepEqual(welcome.battle!.players.find(player=>player.id===f.target.id)!.fall,fall);
  f.game.tick(f.match.resolveAt+.001);assert.equal(f.match.state.phase,'aiming');assert.equal(f.match.state.turnId,f.target.id);
@@ -87,4 +88,10 @@ test('settling clears an expired fall on unchanged support and preserves a still
   const fall=structuredClone(f.actor.fall!),at=f.match.pendingImpacts![0].at;f.game.tick(at);
   assert.equal(f.actor.y,570);if(active)assert.deepEqual(f.actor.fall,fall);else assert.equal(f.actor.fall,undefined);
  }
+});
+
+test('every shot holds the turn for the pause after its last impact before the next turn opens',async()=>{
+ const f=await fixture();await f.game.command(f.actor.id,{type:'fire',...f.aim});const shot=f.match.activeShot!,end=shot.startedAt+shot.duration;
+ assert.ok(f.match.resolveAt>=end+TURN_GAP_MS);f.game.tick(end+TURN_GAP_MS-1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.turnId,f.actor.id);
+ f.game.tick(f.match.resolveAt+.001);assert.notEqual(f.match.state.turnId,f.actor.id);
 });

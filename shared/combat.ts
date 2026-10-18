@@ -6,6 +6,8 @@ import {FIGHTER_HIT_RADIUS} from './physics';
 export const CRITICAL_MULTIPLIER=1.5;
 export const CRITICAL_CHANCE_CAP=.30;
 export const VOLLEY_CADENCE_MS=570;
+/** Pause after the last impact, damage number or fall of a shot before the next turn opens and the camera moves. */
+export const TURN_GAP_MS=1200;
 export const SPLASH_RADIUS_SCALE=.60;
 export const SPLASH_MAX_MULTIPLIER=.82;
 export function criticalChance(luck:number){return Math.min(CRITICAL_CHANCE_CAP,(20+Math.max(0,Number.isFinite(luck)?luck:0))/1000);}

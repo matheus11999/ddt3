@@ -42,6 +42,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
   - Nível na sala PvP como número com brilho na cor da faixa + estrelas (`LevelNumber`); escudo VIP pintado (`VipBadge`, `vip-badges.webp`).
   - Números de dano empilhados por acerto; crítico com estrela vermelha simples desenhada em código atrás; intervalo de 570 ms entre tiros de rajada (era 380; matheus pediu mais tempo em 17/10).
   - Aura do POW: pequena, quente e discreta.
+  - Pausa de 1,2 s (`TURN_GAP_MS` em `shared/combat.ts`) depois do último impacto, número de dano ou queda antes do próximo turno, em todos os combates (inclusive o turno dos monstros); a câmera fica parada no último impacto (18/10).
   - NPCs do lobby como figura inteira que só respira; sombras desenhadas em código a partir do contorno.
 - **Rejeitado**
   - Arte procedural/canvas como arte final do lobby ("jogo infantil").
