@@ -44,16 +44,16 @@ export function ExpeditionPicker({current,canChoose,onClose}:{current:{id:string
      <div className="expedition-cover"><img src={expedition.art} alt="" draggable={false}/>
       <div className="expedition-cover-top"><h3><BattleText className="expedition-title">{expedition.name}</BattleText></h3><small>{expedition.subtitle}</small></div>
       <span className="expedition-cover-level">Nível {expedition.minLevel}+</span>
-      <div className="expedition-cover-info">
+      <div className="expedition-cover-info"><div className="expedition-cover-stats">
        <div className={`expedition-power ${power>=recommended?'is-ready':'is-weak'}`} role="note"><PowerIcon size={30}/><span><small>Poder recomendado</small><strong>{recommended.toLocaleString('pt-BR')}</strong></span><span className="expedition-power-mine"><small>Seu poder</small><strong>{power.toLocaleString('pt-BR')}</strong></span></div>
        <ExpeditionDrops expedition={expedition}/>
       </div>
-     </div>
-     <p className="expedition-description">{expedition.description}</p>
-     <div className="expedition-controls">
+      <div className="expedition-controls">
       <div className="expedition-difficulties" role="radiogroup" aria-label="Dificuldade">{DIFFICULTIES.map(level=>{const open=expeditionStages(chosen,level).length>0;return <button key={level} type="button" role="radio" aria-checked={difficulty===level} disabled={!open} data-difficulty={level} className={`expedition-difficulty ${difficulty===level?'is-active':''}`} title={open?DIFFICULTY_NAMES[level]:`${DIFFICULTY_NAMES[level]}: em breve`} onClick={()=>setDifficulty(level)}>{!open&&<LockKeyhole size={11} aria-hidden="true"/>}<span>{DIFFICULTY_NAMES[level]}</span></button>;})}</div>
       {stages.length>1&&<div className="expedition-stage-pick" role="radiogroup" aria-label="Estágio"><span>Estágio</span>{stages.map((_,index)=><button key={index} type="button" role="radio" aria-checked={Math.min(stage,stages.length-1)===index} className={Math.min(stage,stages.length-1)===index?'is-active':''} onClick={()=>setStage(index)}>{index+1}</button>)}</div>}
       <button type="button" className="wood-button expedition-confirm" disabled={!canChoose||!stages.length} onClick={()=>{client.send({type:'expedition-select',expedition:chosen,difficulty,stage:Math.min(stage,stages.length-1)});onClose();}}><Check size={18}/>{canChoose?'Escolher':'Só o líder escolhe'}</button>
+       </div>
+      </div>
      </div>
     </div></section>
    </div>
