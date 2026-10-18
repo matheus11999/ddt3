@@ -18,9 +18,10 @@
 .expedition-title::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:var(--text-depth);-webkit-text-stroke:6px #2a1006;paint-order:stroke fill;text-shadow:0 1px var(--text-depth),1px 2px var(--text-depth),1px 3px var(--text-depth),2px 4px var(--text-depth),2px 5px var(--text-depth),3px 6px var(--text-depth),3px 7px #1d0a04}
 .expedition-title>span{position:relative;display:block;background:linear-gradient(var(--face-top) 8%,var(--face-middle) 45%,var(--face-bottom) 84%);background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-stroke:1.4px var(--text-edge);paint-order:stroke fill}
 .expedition-banner-choice .expedition-difficulty-tag{margin-top:0}
-.expedition-stage-badge{position:absolute;top:12px;left:12px;display:grid;place-items:center;align-content:center;width:72px;height:72px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff3b0,#ffc63d 38%,#d37812 72%,#8a430b);border:3px solid #5a2a08;box-shadow:inset 0 0 0 3px #ffe58a,inset 0 -4px 6px #8a430b,0 4px 8px #0009;color:#4a1d04;text-align:center;pointer-events:none}
-.expedition-stage-badge small{font:900 10px/1 'Nunito',sans-serif;letter-spacing:.6px;text-transform:uppercase}
-.expedition-stage-badge b{font:400 34px/.95 'Lilita One','Nunito',sans-serif;color:#fffbe6;-webkit-text-stroke:1.5px #6a2c06;paint-order:stroke fill;text-shadow:0 3px #6a2c06}
+.expedition-stage-badge{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;height:44px;padding:0 12px 0 10px;border:2px solid #fff0b8;border-radius:11px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 14px #ffb44f88;line-height:1;pointer-events:none}
+.expedition-stage-badge::before{content:'';position:absolute;inset:3px;border:1px solid #fff6cf99;border-radius:8px}
+.expedition-stage-badge small{font:900 11px/1 'Nunito',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#7a3a0a;text-shadow:0 1px #fff4c2}
+.expedition-stage-badge b{min-width:20px;font:900 30px/1 'Nunito',sans-serif;text-align:center;color:#fff;-webkit-text-stroke:2px #7a2d04;paint-order:stroke fill;text-shadow:0 2px 0 #4a1a04,0 0 8px #fff1b0}
 .expedition-drops{display:grid;justify-items:center;gap:5px}
 .expedition-drops small{font:900 11px/1 'Nunito',sans-serif;letter-spacing:.8px;text-transform:uppercase;color:#ffd36b;text-shadow:0 1px 2px #000}
 .expedition-drops ul{display:flex;gap:6px;margin:0;padding:0;list-style:none}
@@ -28,9 +29,6 @@
 .expedition-drops li img{width:34px;height:34px;object-fit:contain;filter:drop-shadow(0 2px 2px #0008)}
 .expedition-drops li b{position:absolute;right:-4px;bottom:-6px;padding:1px 5px;border-radius:999px;background:#2a1006;border:1px solid #ffd36b;font:900 11px/1.2 'Nunito',sans-serif;color:#fff1c2}
 .expedition-drops li.is-empty{background:#2c140666;border:2px dashed #c8953f80;box-shadow:none}
-.expedition-detail .expedition-drops{justify-items:start}
-.expedition-detail .expedition-drops small{color:var(--wood-ink-soft);text-shadow:none}
-.expedition-detail .expedition-drops li.is-empty{background:#fff3d6;border-color:#d9a865}
 .expedition-cover .expedition-title{font-size:44px}
 .expedition-banner-choice strong{display:block;font:900 26px/1.1 'Cinzel',Georgia,serif;color:#fff1cf;text-shadow:0 2px #2c1004}
 .expedition-difficulty-tag{display:inline-block;margin-top:4px;padding:2px 10px;border-radius:999px;font:800 12px/1.4 'Nunito',sans-serif;color:#fff;background:#4c9b39;box-shadow:inset 0 -2px #2c6a1f,0 1px #0006;text-transform:uppercase;letter-spacing:.6px}
@@ -43,53 +41,68 @@
 @media (max-width:1180px){html:not(.mobile-landscape) .pr-expedition-pick{display:flex}}
 html.mobile-landscape .pr-expedition-pick{display:flex}
 
-.expedition-picker-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:#1a0b03a6;backdrop-filter:blur(2px)}
-.expedition-picker{width:min(860px,100%);max-height:min(620px,100%);display:grid;grid-template-rows:auto 1fr;overflow:hidden;border-radius:16px}
+.expedition-picker-overlay{position:fixed;inset:0;z-index:80;display:grid;place-items:center;padding:16px;background:#1a0b03b3;backdrop-filter:blur(3px)}
+.expedition-picker{width:min(900px,100%);max-height:min(640px,100%);display:grid;grid-template-rows:auto 1fr;overflow:hidden;border-radius:16px;animation:expedition-picker-in .18s ease-out}
+@keyframes expedition-picker-in{from{opacity:0;transform:scale(.96)}}
 .expedition-picker:focus{outline:none}
 .expedition-picker>header{display:flex;align-items:center;gap:10px;padding:8px 12px}
 .expedition-picker>header h2{flex:1;margin:0}
-.expedition-picker-body{display:grid;grid-template-columns:250px 1fr;gap:10px;padding:10px;min-height:0}
+.expedition-picker-body{display:grid;grid-template-columns:190px 1fr;gap:10px;padding:10px;min-height:0}
 .expedition-picker .wood-pane{min-height:0;display:grid}
 .expedition-picker .wood-cream{min-height:0;overflow:auto;padding:10px;border-radius:10px}
-.expedition-entry{width:100%;display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px;padding:6px;border:2px solid transparent;border-radius:10px;background:#fff8e8;color:var(--wood-ink);text-align:left;cursor:var(--cursor-pointer,pointer)}
-.expedition-entry img{width:64px;height:44px;object-fit:cover;border-radius:6px}
-.expedition-entry strong{display:block;font:800 15px/1.2 'Nunito',sans-serif}
-.expedition-entry small{font-size:12px;font-weight:700;color:var(--wood-ink-soft)}
-.expedition-entry.is-active{border-color:var(--wood-edge);background:linear-gradient(#ffeec4,#ffe0a0);box-shadow:0 2px 0 var(--wood-cream-deep)}
-.expedition-detail .wood-cream{display:grid;align-content:start;grid-auto-rows:max-content;gap:10px}
-.expedition-cover{position:relative;border-radius:12px;overflow:hidden;border:2px solid var(--wood-edge);aspect-ratio:16/6;background:#2b4a6b}
-.expedition-cover img{width:100%;height:100%;object-fit:cover}
-.expedition-cover-caption{position:absolute;left:0;right:0;bottom:0;padding:40px 16px 12px;background:linear-gradient(transparent,#2c1004b3 55%,#1d0a02e6)}
+/* The list: one painted card per expedition. */
+.expedition-list .wood-cream{display:grid;align-content:start;gap:8px}
+.expedition-entry{position:relative;width:100%;height:96px;padding:0;border:2px solid #c98a45;border-radius:11px;overflow:hidden;background:#2c1406;color:#fff;text-align:left;cursor:var(--cursor-pointer,pointer);box-shadow:0 2px 0 #b9773a}
+.expedition-entry img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.75) brightness(.8);transition:filter .15s,transform .2s}
+.expedition-entry span{position:absolute;left:0;right:0;bottom:0;display:grid;padding:16px 9px 6px;background:linear-gradient(transparent,#1a0802e6)}
+.expedition-picker .expedition-entry strong{font:400 19px/1 'Lilita One','Nunito',sans-serif;color:#ffe08a;-webkit-text-stroke:1px #5e2410;paint-order:stroke fill;text-shadow:0 2px #2a1006}
+.expedition-entry small{font:800 11px/1.3 'Nunito',sans-serif;color:#ffdca4}
+.expedition-entry:hover img{filter:saturate(1) brightness(.95)}
+.expedition-entry.is-active{border-color:#ffd36b;box-shadow:0 0 0 2px #8a4a12,0 0 14px #ffb44f99}
+.expedition-entry.is-active img{filter:none;transform:scale(1.04)}
+/* The detail: a large cover with the title, power and drops painted over it, then the controls. */
+.expedition-detail .wood-cream{display:grid;grid-template-rows:1fr auto auto;gap:10px;padding:8px}
+.expedition-cover{position:relative;min-height:300px;border-radius:12px;overflow:hidden;border:2px solid #8a4a12;box-shadow:inset 0 0 0 1px #ffd36b66,0 3px 0 #c98a45;background:#2b4a6b}
+.expedition-cover>img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.expedition-cover-top{position:absolute;left:0;right:0;top:0;padding:12px 16px 50px;background:linear-gradient(#1a0802d9,#2c100488 55%,transparent)}
 .expedition-cover h3{margin:0;line-height:1;text-shadow:none}
-.expedition-cover-caption small{display:block;margin-top:4px;font:800 13px/1.2 'Nunito',sans-serif;color:#ffd99a;text-shadow:0 1px 2px #000}
-.expedition-meta{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.expedition-power{flex:1;min-width:220px;display:flex;align-items:center;gap:12px;padding:7px 12px;border-radius:10px;background:linear-gradient(90deg,#ffe7a8,#fff6dc 70%,#fff6dc00);border:1px solid #e6b860;color:var(--wood-ink)}
-.expedition-power>span{display:grid;gap:1px}
-.expedition-power small{font:800 11px/1.1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.5px}
-.expedition-power strong{font:900 20px/1 'Nunito',sans-serif;color:#a8521a}
-.expedition-power .expedition-power-mine{margin-left:auto;text-align:right}
-.expedition-power.is-ready .expedition-power-mine strong{color:#3d8a2a}
-.expedition-power.is-weak .expedition-power-mine strong{color:#c0392b}
-.expedition-stage-pick{display:flex;align-items:center;gap:6px;font:800 12px/1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase}
-.expedition-stage-pick button{width:34px;height:34px;border:2px solid #d9a865;border-radius:9px;background:linear-gradient(#fffaf0,#fbe6bd);color:var(--wood-ink);font:900 15px/1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
-.expedition-stage-pick button.is-active{color:#fff;border-color:#8a4a12;background:linear-gradient(#f2b45a,#c97a24 60%,#8a4a12);box-shadow:inset 0 -3px #6a3608;text-shadow:0 1px #5a2c06}
-.expedition-description{margin:0;font-size:14px;font-weight:700;color:var(--wood-ink)}
-.expedition-difficulties{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-.expedition-difficulty{position:relative;display:grid;justify-items:center;align-content:center;gap:1px;min-height:48px;padding:6px 4px;border:2px solid #d9a865;border-radius:10px;background:#fff8e8;color:var(--wood-ink);font:900 14px/1.1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
-.expedition-difficulty small{font-size:10px;font-weight:800;color:var(--wood-ink-soft);text-transform:uppercase}
-.expedition-difficulty svg{position:absolute;top:5px;right:6px;color:var(--wood-ink-soft)}
-.expedition-difficulty>span{font-size:15px}
+.expedition-cover .expedition-title{font-size:46px}
+.expedition-cover-top small{display:block;margin-top:2px;font:800 13px/1.2 'Nunito',sans-serif;color:#ffe0a8;text-shadow:0 1px 2px #000}
+.expedition-cover-level{position:absolute;top:14px;right:14px;padding:3px 10px;border-radius:999px;background:#1a0802b3;border:1px solid #ffd36b99;font:900 12px/1.3 'Nunito',sans-serif;color:#ffe08a}
+.expedition-cover-info{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:flex-end;justify-content:space-between;gap:12px;padding:60px 14px 12px;background:linear-gradient(transparent,#2c1004b3 45%,#1a0802f2)}
+.expedition-cover .expedition-drops{justify-items:end}
+.expedition-power{display:flex;align-items:center;gap:10px;padding:7px 14px 7px 9px;border-radius:12px;background:linear-gradient(#3a1a08cc,#1a0802e6);border:1px solid #ffd36b88;box-shadow:inset 0 1px #ffe1a033,0 2px 6px #0008;color:#fff}
+.expedition-power>span{display:grid;gap:2px}
+.expedition-power small{font:900 10px/1.1 'Nunito',sans-serif;color:#ffd36b;text-transform:uppercase;letter-spacing:.6px}
+.expedition-picker .expedition-power strong{font:400 24px/1 'Lilita One','Nunito',sans-serif;color:#fff1c2;-webkit-text-stroke:1px #5e2410;paint-order:stroke fill;text-shadow:0 2px #2a1006}
+.expedition-power .expedition-power-mine{padding-left:12px;margin-left:2px;border-left:1px solid #ffd36b55}
+.expedition-power.is-ready .expedition-power-mine strong{color:#9ff07a}
+.expedition-power.is-weak .expedition-power-mine strong{color:#ff8a7a}
+.expedition-description{margin:0;padding:0 4px;font:700 13px/1.4 'Nunito',sans-serif;color:var(--wood-ink)}
+.expedition-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 8px 4px;border-top:1px solid #e3b97a}
+.expedition-stage-pick{display:flex;align-items:center;gap:5px;font:900 11px/1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.5px}
+.expedition-stage-pick button{width:28px;height:28px;border:2px solid #d9a865;border-radius:8px;background:linear-gradient(#fffaf0,#fbe6bd);color:var(--wood-ink);font:900 13px/1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
+.expedition-stage-pick button.is-active{color:#fff;border-color:#8a4a12;background:linear-gradient(#f2b45a,#c97a24 60%,#8a4a12);box-shadow:inset 0 -2px #6a3608;text-shadow:0 1px #5a2c06}
+.expedition-confirm{margin-left:auto;min-width:150px}
+/* Difficulty: a compact segmented switch, each level in its own colour. */
+.expedition-difficulties{display:flex;padding:3px;gap:3px;border-radius:10px;background:#e9c88f;box-shadow:inset 0 1px 3px #8a4a1255}
+.expedition-difficulty{position:relative;display:flex;align-items:center;gap:3px;height:28px;padding:0 11px;border:0;border-radius:7px;background:transparent;color:var(--wood-ink);font:900 12px/1 'Nunito',sans-serif;cursor:var(--cursor-pointer,pointer)}
 .expedition-difficulty{--tone:#4c9b39;--tone-light:#8fd86c;--tone-dark:#2c6a1f}
 .expedition-difficulty[data-difficulty="normal"]{--tone:#3d82c9;--tone-light:#7fbaf0;--tone-dark:#21558f}
 .expedition-difficulty[data-difficulty="hard"]{--tone:#c9572f;--tone-light:#f39a6d;--tone-dark:#8a3315}
 .expedition-difficulty[data-difficulty="hero"]{--tone:#8a3fc0;--tone-light:#c48af0;--tone-dark:#5a2186}
-.expedition-difficulty:not(:disabled){background:linear-gradient(#fffaf0,#fbe6bd)}
-.expedition-difficulty.is-active{color:#fff;border-color:var(--tone-dark);background:linear-gradient(var(--tone-light),var(--tone) 60%,var(--tone-dark));box-shadow:inset 0 -3px var(--tone-dark),0 0 0 2px #fff6,0 3px 8px #0003;text-shadow:0 1px var(--tone-dark)}
-.expedition-difficulty:disabled{opacity:.55;cursor:var(--cursor-arrow,default)}
-.expedition-confirm{justify-self:end;display:inline-flex;align-items:center;gap:6px;padding:10px 18px}
-@media (max-width:760px){.expedition-picker-body{grid-template-columns:1fr}.expedition-list .wood-cream{display:flex;gap:8px;overflow-x:auto}.expedition-entry{min-width:200px}}
-html.mobile-landscape .expedition-picker-body{grid-template-columns:190px 1fr}
-html.mobile-landscape .expedition-cover{aspect-ratio:16/5}
+.expedition-difficulty:not(:disabled):not(.is-active):hover{background:#fff4dc}
+.expedition-difficulty.is-active{color:#fff;background:linear-gradient(var(--tone-light),var(--tone) 60%,var(--tone-dark));box-shadow:inset 0 -2px var(--tone-dark),0 1px 3px #0004;text-shadow:0 1px var(--tone-dark)}
+.expedition-difficulty:disabled{opacity:.5;cursor:var(--cursor-arrow,default)}
+.expedition-difficulty svg{color:var(--wood-ink-soft)}
+
+@media (max-width:760px){.expedition-picker-body{grid-template-columns:1fr}.expedition-list .wood-cream{display:flex;gap:8px;overflow-x:auto}.expedition-entry{min-width:180px;height:72px}.expedition-cover{min-height:220px}}
+html.mobile-landscape .expedition-picker-body{grid-template-columns:150px 1fr;gap:6px;padding:6px}
+html.mobile-landscape .expedition-entry{height:70px}
+html.mobile-landscape .expedition-cover{min-height:150px}
+html.mobile-landscape .expedition-cover .expedition-title{font-size:30px}
+html.mobile-landscape .expedition-cover-info{padding-top:30px}
+html.mobile-landscape .expedition-description{display:none}
 
 /* Battle: the monsters' turn banner, the boss bar and the stage tag. */
 .monster-turn-banner{position:absolute;left:50%;top:210px;transform:translateX(-50%);z-index:6;pointer-events:none;text-align:center;animation:monster-turn-in .35s ease-out}
@@ -113,3 +126,15 @@ html.mobile-landscape .expedition-cover{aspect-ratio:16/5}
 .expedition-objective.is-done p{color:#9cf08a}.expedition-objective.is-done b{color:#9cf08a}
 html.mobile-landscape .artillery-hud .instance-side{transform:scale(.72);transform-origin:top right}
 html.mobile-landscape .artillery-hud .instance-side .battle-minimap{transform:none}
+html.mobile-landscape .expedition-cover-top{padding:8px 12px 30px}
+html.mobile-landscape .expedition-cover-info{padding:24px 10px 8px}
+html.mobile-landscape .expedition-picker .expedition-power{gap:6px;padding:4px 10px 4px 6px}
+html.mobile-landscape .expedition-picker .expedition-power strong{font-size:17px}
+html.mobile-landscape .expedition-picker .expedition-power small{font-size:8px}
+html.mobile-landscape .expedition-picker .expedition-drops li{width:32px;height:32px}
+html.mobile-landscape .expedition-picker .expedition-drops li img{width:24px;height:24px}
+html.mobile-landscape .expedition-picker .expedition-drops small{font-size:9px}
+html.mobile-landscape .expedition-controls{gap:8px;padding:4px 4px 2px}
+html.mobile-landscape .expedition-stage-badge{top:6px;left:6px;height:30px;padding:0 8px 0 6px;border-width:1px;border-radius:8px}
+html.mobile-landscape .expedition-stage-badge small{font-size:8px}
+html.mobile-landscape .expedition-stage-badge b{font-size:20px;-webkit-text-stroke:1.5px #7a2d04}
