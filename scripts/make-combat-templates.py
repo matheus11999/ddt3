@@ -1,7 +1,8 @@
 """Combat body templates for Codex (docs/combat-frames.md): one 1536x1024 sheet per group of frames,
 3x2 cells of 512 px on magenta. In every cell the universal head is a flat green silhouette, the
 small chibi body to paint is a flat gray mannequin (DDTank proportions: the body is smaller than the
-head) and the two hands are cyan discs: the game draws the same skin-colored fists for every outfit.
+head) with gray arms reaching two skin-colored fist guides. Like DDTank, the hands are painted in the
+outfit's own sheet, joined to the sleeves; the game tints every skin-colored pixel to the player's skin.
 Codex paints the outfit over the gray mannequin; scripts/build-combat-atlas.py finds the green heads
 again, so the body is registered to the head without any per-outfit numbers.
 Usage: python3 scripts/make-combat-templates.py"""
@@ -12,7 +13,7 @@ import numpy as np
 contract = json.load(open('src/game/rig/combatFrames.json'))
 T = contract['template']; cell = T['cell']; ppu = T['pixelsPerUnit']
 H = contract['headSilhouette']
-GRAY, CYAN = (128, 128, 128), (0, 255, 255)
+GRAY, SKIN, LINE = (128, 128, 128), (252, 208, 172), (58, 36, 20)
 # The head cut used by the game (appearance.ts avatarRig: rig.head) over character-base.png.
 base = Image.open('public/assets/character-base.png').convert('RGBA')
 cut = Image.new('L', base.size, 0)
@@ -39,23 +40,37 @@ def mannequin(draw, body, at):
         limb(leg[0], leg[1], 9); limb(leg[1], leg[2], 8)
         x, y = P(leg[2]); draw.ellipse([x - 5 * ppu, y - 3.5 * ppu, x + 5 * ppu, y + 3.5 * ppu], fill=GRAY)
     limb(body["neck"], body["hip"], 20)
-    for a, b in body['sleeves']:
-        limb(a, b, 8)
+
+
+def arm(draw, sleeve, fist, at):
+    """Gray sleeve from the shoulder through the elbow down to the wrist, then the skin fist guide."""
+    P = lambda p: (at[0] + p[0] * ppu, at[1] + p[1] * ppu)
+    (shoulder, elbow), (fx, fy) = sleeve, fist[:2]
+    for a, b, width in ((shoulder, elbow, 8), (elbow, (fx, fy), 6)):
+        draw.line([P(a), P(b)], fill=GRAY, width=round(width * ppu))
+        for q in (a, b):
+            x, y = P(q); r = width * ppu / 2
+            draw.ellipse([x - r, y - r, x + r, y + r], fill=GRAY)
+    x, y = P((fx, fy)); rx, ry = contract['fist']['size'] * .5 * ppu, contract['fist']['size'] * .45 * ppu
+    draw.ellipse([x - rx, y - ry, x + rx, y + ry], fill=SKIN, outline=LINE, width=3)
 
 
 for sheet in contract['sheets']:
     out = Image.new('RGB', (cell * T['columns'], cell * T['rows']), (255, 0, 255))
     draw = ImageDraw.Draw(out)
     for i, name in enumerate(sheet['frames']):
-        frame = contract['frames'][name]
+        frame, body = contract['frames'][name], contract['mannequin'][name]
         at = ((i % T['columns']) * cell + sheet['origin'][0], (i // T['columns']) * cell + sheet['origin'][1])
-        mannequin(draw, contract['mannequin'][name], at)
+        prone = name in ('rest', 'hurt') or name.startswith('crawl')
+        # Kneeling, the far arm is behind the body; lying, both fists rest in front of the chin.
+        if not prone:
+            arm(draw, body['sleeves'][0], frame['fists'][0], at)
+        mannequin(draw, body, at)
         hx, hy = frame['head']
         cx, cy = at[0] + hx * ppu, at[1] + hy * ppu
         out.paste((0, 255, 0), (round(cx - size[0] / 2), round(cy - size[1] / 2)), mask)
-        r = contract['fist']['size'] / 2 * ppu
-        for x, y, _ in frame['fists']:
-            x, y = at[0] + x * ppu, at[1] + y * ppu
-            draw.ellipse([x - r, y - r, x + r, y + r], fill=CYAN)
+        if prone:
+            arm(draw, body['sleeves'][0], frame['fists'][0], at)
+        arm(draw, body['sleeves'][1], frame['fists'][1], at)
     out.save(f"docs/templates/combat-{sheet['name']}.png")
     print(f"docs/templates/combat-{sheet['name']}.png", sheet['frames'])

@@ -4,6 +4,7 @@ import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
 import {drawCombatBody,hasCombatFrames} from './combatBody';
+import {drawWalkBody,hasWalkFrames} from './walkBody';
 import {COSTUMES,drawCostume,hasProneCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
@@ -296,8 +297,10 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    c.restore();c.restore();c.restore();return;
   }
   const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=WALK_STEP*Math.max(.25,rawWalk);
+  // Outfits with a painted walk cycle (DDTank) switch whole paintings by distance walked; the bob is painted.
+  const sheetWalk=walkBlend>.001&&hasWalkFrames(eq.outfit),distance=m.phase*WALK_STEP*4/(Math.PI*2);
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
-  if(rig.walking&&walkBlend>.001){
+  if(rig.walking&&walkBlend>.001&&!sheetWalk){
    c.save();c.globalAlpha*=walkBlend;
    if(rig.walking.hollow){c.save();c.translate(0,rootY);c.translate(0,-32);c.rotate(m.lean);c.translate(0,32);drawPart(c,rig.walking.hollow);c.restore();}
    // The painted stance spreads the legs for a 3/4 view. Walking from that spread
@@ -308,9 +311,12 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    for(const frame of [far,near])if(frame.grounded)ellipse(c,frame.ankle[0]+2,Math.tan(slope)*frame.ankle[0]-.5,6,1.4,'#10213235');
    drawWalkingLeg(c,rig.walking.far,far);drawWalkingLeg(c,rig.walking.near,near);c.restore();
   }
-  c.save();c.translate(-24*lie,rootY+14*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
-  if(walkBlend<.999){c.save();c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
-  if(rig.walking&&walkBlend>.001){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
+  c.save();c.translate(-24*lie,(sheetWalk?0:rootY)+14*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
+  // While the walk atlas loads, the standing painting stands in for it.
+  const headShift=sheetWalk?drawWalkBody(c,eq,distance):null;
+  if(walkBlend<.999||sheetWalk&&!headShift){c.save();if(!sheetWalk)c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
+  if(rig.walking&&walkBlend>.001&&!sheetWalk){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
+  if(headShift)c.translate(...headShift);
   c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,-5);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
   if(weapon){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;

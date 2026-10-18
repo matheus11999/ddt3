@@ -1,0 +1,22 @@
+{
+ "template": {"columns": 3, "rows": 2, "cell": 512, "scale": 0.39, "ground": 494},
+ "atlas": {"columns": 3, "rows": 2, "cell": [400, 320], "origin": [200, 300], "pixelsPerUnit": 3},
+ "headScale": 1.3,
+ "headPivot": [650, 610],
+ "center": [640, 0],
+ "groundY": 1242,
+ "hip": [650, 880],
+ "thigh": 132,
+ "shin": 150,
+ "neckY": 650,
+ "shoulderY": 690,
+ "frameUnits": 17,
+ "frames": [
+  {"name": "contact", "near": [28, 8], "far": [-22, -40], "nearArm": -24, "farArm": 24, "bob": 0},
+  {"name": "down", "near": [14, 10], "far": [-10, -72], "nearArm": -14, "farArm": 14, "bob": 12},
+  {"name": "passing", "near": [0, 0], "far": [22, -55], "nearArm": 0, "farArm": 0, "bob": -10},
+  {"name": "contact2", "near": [-22, -40], "far": [28, 8], "nearArm": 24, "farArm": -24, "bob": 0},
+  {"name": "down2", "near": [-10, -72], "far": [14, 10], "nearArm": 14, "farArm": -14, "bob": 12},
+  {"name": "passing2", "near": [22, -55], "far": [0, 0], "nearArm": 0, "farArm": 0, "bob": -10}
+ ]
+}
