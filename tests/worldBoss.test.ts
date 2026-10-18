@@ -114,7 +114,8 @@ test('when the event ends mid-attempt the dragon flies away (time) or falls (kil
  assert.equal(f.realm.current.phase,'results');assert.equal(f.realm.current.finalBlow,'Bento');
  for(const m of [ma,mb]){assert.equal(m.state.worldBoss!.over,'defeated');assert.equal(m.state.worldBoss!.act!.action,'death');assert.equal(m.state.phase,'finished');}
  assert.equal(ma.state.players.find(p=>p.boss)!.hp,0);
- f.game.tick(ma.state.worldBoss!.closesAt!+1);assert.equal(f.game.matches.size,0);
+ // Each battle closes on its own clock (they heard the kill a moment apart).
+ f.game.tick(Math.max(ma.state.worldBoss!.closesAt!,mb.state.worldBoss!.closesAt!)+1);assert.equal(f.game.matches.size,0);
  // A finished event cannot be entered; a new one can, and running out of time makes the dragon retreat.
  await f.game.command(f.a.id,{type:'world-boss-enter'});assert.match((f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'error'}>=>e.type==='error').at(-1))!.message,/terminou/);
  f.realm.set({phase:'active',occurrenceId:randomUUID(),hp:5000,maxHp:5000,endReason:undefined,finalBlow:undefined});

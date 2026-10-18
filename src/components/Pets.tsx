@@ -50,7 +50,7 @@ export function Pets(){
     <div className="pets-row">
      <button className="pets-arrow" aria-label="Pets anteriores" disabled={first===0} onClick={()=>setStart(first-1)}><ChevronLeft size={18}/></button>
      <ul className="pets-carousel">{Array.from({length:ROW},(_,i)=>{const p=list[first+i];
-      return <li key={p?.id??`empty-${i}`}>{p?<button className={`pets-slot ${p.id===selected?'selected':''}`} title={`${p.name} · Nv. ${p.level}`} aria-pressed={p.id===selected} onClick={()=>{setSelected(p.id);audio.play('click');}}><Portrait pet={p} size={54}/>{p.equipped&&<b className="pets-stamp small">Lutar</b>}</button>
+      return <li key={p?.id??`empty-${i}`}>{p?<button className={`pets-slot ${p.id===selected?'selected':''}`} title={`${p.name} · Nv. ${p.level}`} aria-pressed={p.id===selected} onClick={()=>{setSelected(p.id);audio.play('click');}}><Portrait pet={p} size={58}/>{p.equipped&&<b className="pets-stamp small">Lutar</b>}</button>
        :<span className="pets-slot empty" aria-hidden="true"><PawPrint size={22}/></span>}</li>;})}</ul>
      <button className="pets-arrow" aria-label="Próximos pets" disabled={first>=pages} onClick={()=>setStart(first+1)}><ChevronRight size={18}/></button>
     </div>

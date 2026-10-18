@@ -8,7 +8,7 @@ Uma planta que evolui sozinha com o nível, como as armas por fase: **Broto** (n
 
 | Habilidade | Tipo | O que faz |
 | --- | --- | --- |
-| Raízes da Terra | passiva, inata (não ocupa slot) | depois do último projétil do tiro do dono, a terra ataca onde o primeiro projétil caiu: dano em área (`area-damage`, gatilho `shot-end`), sem projétil, número de dano próprio; raio e dano crescem com o estágio (`stageScaling`), arte `roots-{estágio}.png` |
+| Raízes da Terra | passiva, inata (não ocupa slot) | depois do último projétil do tiro do dono, um redemoinho de folhas gira onde o primeiro projétil caiu: dano em área (`area-damage`, gatilho `shot-end`), sem projétil, número de dano próprio; raio e dano crescem com o estágio (`stageScaling`), arte `whirl-{estágio}.png` (anel que gira, `style: 'whirl'`) e `leaves-{estágio}.png` (folhas soltas que saem girando) |
 | Orbe da Natureza | ativa | o próximo tiro vira uma bola verde (`special-shot`): um projétil só, sem ferramentas, POW, voo ou mira assistida no turno (bloqueados), dano sempre crítico × multiplicador do estágio |
 | Orvalho Curativo | ativa, nível 10 | cura % da Vida no **começo** de cada um dos próximos 3 turnos do dono (`hot` com `at: 'turn-start'`) |
 
