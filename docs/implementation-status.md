@@ -43,6 +43,11 @@
 - Evidência: `npm run check`, `npm test` (341 passando) e `npm run build`; navegador em 8097 iniciou treino, ativou +50%, confirmou a seleção autoritativa e verificou que o buffer reproduzido corresponde ao MP3 enviado (`test-results/verify-powerup.mjs`).
 
 
+## Hall da Fama — 18/10/2026
+
+- Hall da Fama (`docs/hall-of-fame.md`): Poder, PvP diário/semanal/geral, Guildas (poder dos 10 mais fortes, PvP dos 20 maiores contribuidores, GvG, nível), Evolução, Conquistas e Lendas; top 50 paginado, pódio com personagem real, posição própria, perfis de jogador e guilda; fechamento automático no fuso de Brasília com foto oficial, títulos e recompensas pelo Correio; alertas antifraude e anulação com auditoria no `/admin/hall`. O pódio da praça passou a usar o PvP diário do Hall.
+- Evidência: `tests/hall.test.ts`, `npm run test:hall:integration` (20 cenários) e `npx tsx scripts/preview-hall.ts` (capturas em `test-results/hall/`).
+
 ## Leilão e Cupons — 18/10/2026
 
 - Leilão (`docs/auction.md`): abas Comprar/Vender, menu de categorias que expande, busca, tabela paginada com item, vendedor (botão direito: informações, mensagem privada, denúncia), tempo e preço; venda por Ouro ou Cupons com taxa em ouro (2h/8h/24h), até 3 anúncios; sino de vendas; pagamento, devolução e retirada pelo Correio.

@@ -19,6 +19,8 @@ import type {MailClaimResult,MailMessage} from './mail';
 import {auctionCommandSchemas} from './auction';
 import type {AuctionMine,AuctionPage,AuctionResult} from './auction';
 import {guildCommandSchemas} from './guilds';
+import {hallCommandSchemas} from './hall';
+import type {HallEvent} from './hall';
 import type {GuildState,GuildSummary} from './guilds';
 import type {BattleWorldBoss,WorldBossRanking,WorldBossStatus} from './worldBoss';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
@@ -72,6 +74,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('mail-list')}).strict(),
  ...auctionCommandSchemas,
  ...guildCommandSchemas,
+ ...hallCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  // Without an id: "Receber tudo".
@@ -162,5 +165,6 @@ export type ServerEvent =
  | ({type:'guild'} & GuildState)
  | {type:'guild-list';guilds:GuildSummary[]}
  | {type:'guild-result';message:string}
+ | HallEvent
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};
