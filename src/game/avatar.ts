@@ -3,6 +3,7 @@ import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
 import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
+import {drawCombatBody,hasCombatFrames} from './combatBody';
 import {COSTUMES,drawCostume,hasProneCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
@@ -276,9 +277,9 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(foregroundWeapon)paintWeapon();c.restore();};
   paint(m.facing);c.restore();return;
  }
- const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat)return;
+ const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat&&!hasCombatFrames(eq.outfit))return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
- const {pose,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,lively=context.seed!==undefined&&context.animated!==false&&(pose==='idle'||pose==='aim'||pose==='prone')?idleHeadTilt(time,context.seed)*(1-walk):0,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
+ const {pose,poseTime,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,lively=context.seed!==undefined&&context.animated!==false&&(pose==='idle'||pose==='aim'||pose==='prone')?idleHeadTilt(time,context.seed)*(1-walk):0,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
  // Combat fighters lie along the ground under them, as in DDTank: the whole body
  // (weapon included) turns about the contact point by the ground angle.
  const tilt=context.combat&&rig.combat?slope:0;
@@ -286,6 +287,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
+  // Painted DDTank-style combat frames (docs/combat-frames.md); outfits without them keep the cut-out rig.
+  if(context.combat&&hasCombatFrames(eq.outfit)&&drawCombatBody(c,eq,rig.head,{pose,poseTime,phase:m.phase,walk,time,power:context.power??0,face:context.face,lively,weapon,modular:rig.modular})){c.restore();return;}
   if(context.combat&&rig.combat){
    const painted=rig.combat,crawl=walk,cycle=m.phase,stroke=Math.sin(cycle),breath=Math.sin(time/900)*.28*(1-crawl),hit=pose==='hit'?Math.exp(-Math.max(0,context.poseTime??0)/210):0;
    // Crawl: the chest surges forward on each stroke while the legs drag and

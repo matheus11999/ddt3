@@ -1,0 +1,18 @@
+Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
+
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background, with a lime-green head placeholder in every cell that shows where the head goes and how big it is.
+IMAGE 2 is the full-body costume (top-left painting = idle pose): exact character design, colors, outlines and painted volume.
+IMAGE 3 is the same costume already painted lying down in combat: keep the same design and scale.
+IMAGES 4 and 5 are POSE references from DDTank (getting up to throw, throwing): copy only the poses and proportions, never their art.
+
+Return the same 1536x1024 canvas with a flat pure magenta background. In every cell paint the WHOLE costume character, its own head/helmet/hat included, facing RIGHT, with its head covering the green placeholder exactly (same place and size, no green left visible), feet on the ground under the body. The hand prop is strapped diagonally on the BACK, hands empty.
+
+Six frames, left to right, top to bottom:
+1 RISE: getting up from lying: on one knee, torso half upright, near hand still touching the ground in front.
+2 READY: standing, feet apart, near arm stretched forward at chest height with a closed fist (holding the projectile), far arm bent at the chest.
+3 WIND-UP: standing, the near (throwing) arm raised up and back behind the head with a closed fist, far arm forward for balance, torso twisted back.
+4 RELEASE: the throwing arm whipped forward, fist straight ahead at chest height pointing right, torso leaning forward, back foot lifting.
+5 FOLLOW-THROUGH: throwing arm forward and slightly lowered, open hand, weight on the front foot.
+6 SETTLE: standing again, both fists back at the chest.
+
+All six figures stand on the same ground line with identical scale. No floor, no shadow, no text, nothing crossing a cell border or touching the image edge.
