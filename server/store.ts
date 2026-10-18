@@ -80,7 +80,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const xp=integer(raw.xp);
  // Experience earned at the former cap immediately counts toward the new levels.
  const level=Math.max(normalizeLevel(integer(raw.level,1)),levelForXp(xp));
- const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
+ const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),coupons:integer(raw.coupons),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
   itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS)};
  refreshWorn(profile);return profile;
 }
@@ -95,7 +95,7 @@ function validCopies(value:unknown,equipment:Record<Slot,string>,inventory:reado
  return result;
 }
 /** Everything renderers and battles read from the equipment comes from the copies actually worn. */
-function refreshWorn(profile:Profile){
+export function refreshWorn(profile:Profile){
  const equipment=profile.equipment;
  equipment.upgrade=profile.upgrades[equippedCopy(equipment,'weapon')]??0;
  const slotUpgrades=Object.fromEntries(ARMOR_SLOTS.map(slot=>[slot,profile.upgrades[equippedCopy(equipment,slot)]??0]).filter(([,level])=>level));
@@ -105,6 +105,23 @@ function refreshWorn(profile:Profile){
  const colors=equippedColors(equipment,profile.itemColors);if(Object.keys(colors).length)equipment.colors=colors;
  if(profile.bodyColors.skin)equipment.skin=profile.bodyColors.skin;
  if(profile.bodyColors.eyes)equipment.eyes=profile.bodyColors.eyes;
+}
+/** Takes one owned copy out of the profile and returns what made it unique (forge level, compositions, color).
+ * The plain id always stays with a remaining copy: when it leaves, the newest copy moves into it. */
+export function removeCopy(profile:Profile,item:string):{upgrade?:number;compositions?:Profile['compositions'][string];color?:string}{
+ const base=copyBase(item),equipment=profile.equipment;
+ const kept={upgrade:profile.upgrades[item],compositions:profile.compositions[item],color:profile.itemColors[item]};
+ const forget=(key:string)=>{profile.inventory=profile.inventory.filter(owned=>owned!==key);delete profile.upgrades[key];delete profile.compositions[key];delete profile.itemColors[key];};
+ const copies=profile.inventory.filter(key=>isCopyKey(key)&&copyBase(key)===base);
+ if(item===base&&copies.length){
+  const last=copies.sort((a,b)=>Number(a.split('~')[1])-Number(b.split('~')[1])).at(-1)!;
+  const move=<T,>(record:Record<string,T>)=>{if(Object.hasOwn(record,last))record[base]=record[last];else delete record[base];};
+  move(profile.upgrades);move(profile.compositions);move(profile.itemColors);
+  for(const slot of Object.keys(equipment.copies??{}) as Slot[])if(equipment.copies?.[slot]===last)delete equipment.copies[slot];
+  forget(last);
+ }else forget(item);
+ if(equipment.copies&&!Object.keys(equipment.copies).length)delete equipment.copies;
+ return kept;
 }
 /** Item types the character always wears something of: the last owned one cannot be discarded. */
 const ALWAYS_WORN=new Set(['weapon','outfit','face']);
@@ -252,16 +269,7 @@ export class Store implements ProfileStore {
    if(ALWAYS_WORN.has(base.slot)&&sameKind.length<=1)throw Error(`Você precisa ficar com pelo menos um item de ${SLOT_NAMES[base.slot].toLowerCase()}.`);
    const equipment=profile.equipment,unequip=unequipForGender(profile.gender);
    const worn=slotsForItem(base).filter(slot=>equippedCopy(equipment,slot)===item);
-   const forget=(key:string)=>{profile.inventory=profile.inventory.filter(owned=>owned!==key);delete profile.upgrades[key];delete profile.compositions[key];delete profile.itemColors[key];};
-   const copies=profile.inventory.filter(key=>isCopyKey(key)&&copyBase(key)===base.id);
-   if(item===base.id&&copies.length){
-    // The plain id must stay with a remaining copy: the newest copy moves into it.
-    const last=copies.sort((a,b)=>Number(a.split('~')[1])-Number(b.split('~')[1])).at(-1)!;
-    const move=<T,>(record:Record<string,T>)=>{if(Object.hasOwn(record,last))record[base.id]=record[last];else delete record[base.id];};
-    move(profile.upgrades);move(profile.compositions);move(profile.itemColors);
-    for(const slot of Object.keys(equipment.copies??{}) as Slot[])if(equipment.copies?.[slot]===last)delete equipment.copies[slot];
-    forget(last);
-   }else forget(item);
+   removeCopy(profile,item);
    for(const slot of worn){
     delete equipment.copies?.[slot];
     const fallback=unequip[slot];

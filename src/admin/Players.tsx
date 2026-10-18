@@ -76,7 +76,7 @@ function PlayerDrawer({id,onClose,onCompose}:{id:string;onClose:()=>void;onCompo
   <header><h3><span className={`adm-gender ${p.gender}`}>{GENDER[p.gender]}</span>{p.name}</h3><button className="adm-icon" aria-label="Fechar" onClick={onClose}><X size={18}/></button></header>
   <span className={`adm-status ${PRESENCE_TONES[p.presence]}`}>{PRESENCE_NAMES[p.presence]}</span>
   <dl className="adm-facts">
-   <dt>Código</dt><dd><code>{p.id}</code></dd><dt>Nível</dt><dd>{p.level} <small>({number(p.xp)} EXP)</small></dd><dt>Moedas</dt><dd>{number(p.gold)}</dd>
+   <dt>Código</dt><dd><code>{p.id}</code></dd><dt>Nível</dt><dd>{p.level} <small>({number(p.xp)} EXP)</small></dd><dt>Moedas</dt><dd>{number(p.gold)}</dd><dt>Cupons</dt><dd>{number(p.coupons)}</dd>
    <dt>Vitórias</dt><dd>{number(p.wins)} de {number(p.matches)} partidas</dd><dt>Tickets de Cor</dt><dd>{p.colorTickets}</dd>
    <dt>Pedras de forja</dt><dd>{STONES.map(s=>`${['I','II','III','IV','V'][s.level-1]}: ${p.stoneStacks[String(s.level)]??0}`).join(' · ')}</dd>
    <dt>Criado em</dt><dd>{date(p.createdAt)}</dd>
@@ -102,7 +102,7 @@ const ITEM_GROUPS:{id:string;label:string;slots?:Slot[]}[]=[
  {id:'weapon',label:'Armas',slots:['weapon']},{id:'outfit',label:'Roupas',slots:['outfit']},{id:'hat',label:'Chapéus',slots:['hat']},{id:'hair',label:'Cabelos',slots:['hair']},
  {id:'face',label:'Rostos',slots:['face']},{id:'glasses',label:'Óculos',slots:['glasses']},{id:'costume',label:'Fantasias',slots:['costume']},
  {id:'accessory',label:'Acessórios',slots:['wristband','bracelet','ring','necklace','bubble']},
- {id:'stone',label:'Pedras de forja'},{id:'composition',label:'Pedras de composição'},{id:'ticket',label:'Ticket de Cor'},{id:'coins',label:'Moedas'},
+ {id:'stone',label:'Pedras de forja'},{id:'composition',label:'Pedras de composição'},{id:'ticket',label:'Ticket de Cor'},{id:'coins',label:'Moedas'},{id:'coupons',label:'Cupons'},
 ];
 function catalog(gender:CharacterGender):Record<string,CatalogEntry[]>{
  const groups:Record<string,CatalogEntry[]>={};
@@ -113,13 +113,14 @@ function catalog(gender:CharacterGender):Record<string,CatalogEntry[]>{
  groups.composition=COMPOSITION_STONES.map(s=>({key:`composition-${s.id}`,name:s.name,icon:<CompositionIcon stat={s.stat} size={50}/>,note:`+${s.value}`,attachment:()=>({kind:'composition',stone:s.id,amount:5})}));
  groups.ticket=[{key:'ticket',name:'Ticket de Cor',icon:<RewardIcon kind="ticket" size={50}/>,attachment:()=>({kind:'ticket',amount:3})}];
  groups.coins=[{key:'coins',name:'Moedas Brasa',icon:<RewardIcon size={46}/>,attachment:()=>({kind:'coins',amount:1000})}];
+ groups.coupons=[{key:'coupons',name:'Cupons',icon:<RewardIcon kind="coupons" size={46}/>,attachment:()=>({kind:'coupons',amount:100})}];
  return groups;
 }
 const sameAttachment=(a:MailAttachment,b:MailAttachment)=>a.kind===b.kind&&(a.kind!=='item'||b.kind==='item'&&a.item===b.item&&a.upgrade===b.upgrade)&&(a.kind!=='stone'||b.kind==='stone'&&a.level===b.level)&&(a.kind!=='composition'||b.kind==='composition'&&a.stone===b.stone);
 const countOf=(a:MailAttachment)=>a.kind==='item'?a.quantity:a.amount;
-const maxOf=(a:MailAttachment)=>a.kind==='item'?MAIL_ITEM_COPIES_MAX:a.kind==='coins'?MAIL_COINS_MAX:MAIL_AMOUNT_MAX;
+const maxOf=(a:MailAttachment)=>a.kind==='item'?MAIL_ITEM_COPIES_MAX:a.kind==='coins'||a.kind==='coupons'?MAIL_COINS_MAX:MAIL_AMOUNT_MAX;
 const withCount=(a:MailAttachment,n:number):MailAttachment=>{const value=Math.max(1,Math.min(maxOf(a),Math.floor(n)||1));return a.kind==='item'?{...a,quantity:value}:{...a,amount:value};};
-const attachmentName=(a:MailAttachment)=>a.kind==='item'?CATALOG[a.item]?.name??a.item:a.kind==='coins'?'Moedas Brasa':a.kind==='stone'?STONES[a.level-1]?.name??'Pedra':a.kind==='ticket'?'Ticket de Cor':COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??a.stone;
+const attachmentName=(a:MailAttachment)=>a.kind==='item'?CATALOG[a.item]?.name??a.item:a.kind==='coins'?'Moedas Brasa':a.kind==='coupons'?'Cupons':a.kind==='stone'?STONES[a.level-1]?.name??'Pedra':a.kind==='ticket'?'Ticket de Cor':COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??a.stone;
 function AttachmentIcon({a,size=36}:{a:MailAttachment;size?:number}){
  if(a.kind==='item')return <ItemIcon id={a.item} size={size} upgrade={a.upgrade??0}/>;
  if(a.kind==='composition'){const stone=COMPOSITION_STONES.find(s=>s.id===a.stone);return stone?<CompositionIcon stat={stone.stat} size={size}/>:null;}

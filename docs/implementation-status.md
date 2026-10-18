@@ -1,6 +1,12 @@
 # Estado da entrega — 16/10/2026
 
 
+## Leilão e Cupons — 18/10/2026
+
+- Leilão (`docs/auction.md`): abas Comprar/Vender, menu de categorias que expande, busca, tabela paginada com item, vendedor (botão direito: informações, mensagem privada, denúncia), tempo e preço; venda por Ouro ou Cupons com taxa em ouro (2h/8h/24h), até 3 anúncios; sino de vendas; pagamento, devolução e retirada pelo Correio.
+- Cupons (`Profile.coupons`) no topo da praça, na mochila e no leilão; o painel envia cupons por carta. Ícones pintados pelo Codex: `coupon.png`, `auction-button.png`, `auction-bell.png`.
+- Evidência: `tests/auction.test.ts`, `npm run test:auction:integration` (compra simultânea, limite, devoluções) e `node scripts/preview-auction.mjs` (capturas em `test-results/auction/`).
+
 ## Jogadores no painel e Correio — 18/10/2026
 
 - `/admin/jogadores`: tabela paginada de todos os jogadores com status ao vivo (praça, sala, batalha), nível, moedas, vitórias, partidas, itens, tickets e pedras; busca, aba Online, ordenação e ficha com mochila e cartas enviadas. Botões de moedas, itens (catálogo por categoria, bloqueia item do outro gênero, arma com nível de forja) e mensagem.
