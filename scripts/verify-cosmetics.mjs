@@ -157,13 +157,38 @@ try{
    if(zone){const w=zone.maxWidth*HEAD_WIDTH,top=HEAD_ANCHORS.crown[1]-zone.maxAboveCrown*HEAD_WIDTH;zs.strokeStyle=result.issues.length?'#ff4d5e':'#4dff9a';zs.lineWidth=1.5;zs.setLineDash([5,4]);zs.strokeRect(x+(PAD+headCenter-w/2-view[0])*k,y+(PAD+top-view[1])*k,w*k,(zone.maxBottom-top)*k);zs.setLineDash([]);}
    zs.fillStyle='#fff';zs.font='bold 12px sans-serif';zs.fillText(CATALOG[id].name,x+6,y+15);zs.font='11px sans-serif';zs.fillStyle=result.issues.length?'#ffb3ba':'#b8ffd6';zs.fillText(result.issues.length?`${result.issues.length} problema(s)`:'dentro da zona',x+6,y+cell-8);
   });
+  // Full-body costumes (src/game/costumes.ts): four paintings, two of them the walking contacts.
+  // Each frame must be whole (not cut by the atlas cell) and the head must not jump between walking paintings.
+  const C=await import('/src/game/costumes.ts');
+  await Promise.all(Object.values(C.COSTUMES).map(item=>load(item.path)));
+  const costumes=[],costumeSheet=document.createElement('canvas'),cc=costumeSheet.getContext('2d'),cellW=230,cellH=260,costumeIds=Object.keys(C.COSTUMES);
+  costumeSheet.width=cellW*5;costumeSheet.height=cellH*costumeIds.length;cc.fillStyle='#16233a';cc.fillRect(0,0,costumeSheet.width,costumeSheet.height);
+  costumeIds.forEach((id,row)=>{
+   const issues=[],framesOf=[0,1,2,3].map(index=>C.getCostumeFrame(id,index));
+   if(framesOf.some(frame=>!frame))issues.push({code:'costume-frame',message:'Fantasia sem as 4 pinturas',measured:framesOf.filter(Boolean).length,limit:4});
+   const ok=framesOf.filter(Boolean);
+   framesOf.forEach((frame,index)=>{if(frame?.cut)issues.push({code:'costume-cut',message:`Pintura ${index} cortada na borda da imagem`,measured:index,limit:0});});
+   const heights=ok.map(f=>f.canvas.height);
+   const [a,b]=C.COSTUME_WALK_FRAMES,drift=framesOf[a]&&framesOf[b]?Math.abs((framesOf[a].canvas.height-framesOf[b].canvas.height))*framesOf[a].scale:0;
+   if(drift>6)issues.push({code:'costume-walk-height',message:`Altura muda ${drift.toFixed(1)} un. entre os passos`,measured:drift,limit:6});
+   const standing=[0,1,2].map(i=>framesOf[i]?.canvas.height??0),spread=(Math.max(...standing)-Math.min(...standing))*(framesOf[0]?.scale??0);
+   if(spread>12)issues.push({code:'costume-scale',message:`Pinturas em pé com alturas diferentes (${spread.toFixed(1)} un.)`,measured:spread,limit:12});
+   costumes.push({id,heights,walkFrames:C.COSTUME_WALK_FRAMES,issues});
+   // Sheet: the four paintings on their measured origin, then the two steps overlaid (onion skin).
+   const y0=row*cellH,base=y0+cellH-24;
+   framesOf.forEach((f,index)=>{if(!f)return;const x=index*cellW+cellW/2,k=1.25*f.scale*160/155;cc.drawImage(f.canvas,x-f.anchor[0]*k,base-f.anchor[1]*k,f.canvas.width*k,f.canvas.height*k);cc.fillStyle='#fff';cc.font='12px sans-serif';cc.fillText(['parado','passo 1','passo 2','combate'][index],index*cellW+6,y0+16);});
+   cc.globalAlpha=.5;for(const index of C.COSTUME_WALK_FRAMES){const f=framesOf[index];if(!f)continue;const x=4*cellW+cellW/2,k=1.25*f.scale*160/155;cc.drawImage(f.canvas,x-f.anchor[0]*k,base-f.anchor[1]*k,f.canvas.width*k,f.canvas.height*k);}cc.globalAlpha=1;
+   cc.strokeStyle='#ffffff55';cc.beginPath();cc.moveTo(0,base+.5);cc.lineTo(costumeSheet.width,base+.5);cc.stroke();
+   for(let i=0;i<5;i++){cc.beginPath();cc.moveTo(i*cellW+cellW/2+.5,y0+24);cc.lineTo(i*cellW+cellW/2+.5,base);cc.stroke();}
+   cc.fillStyle=issues.length?'#ffb3ba':'#b8ffd6';cc.font='bold 12px sans-serif';cc.fillText(`${CATALOG[id].name}: ${issues.length?issues.length+' problema(s)':'ok'}`,4*cellW+6,y0+16);
+  });
   const matrix=document.createElement('canvas'),rows=['hat-none',...hats],cols=['hair-none',...hairs],mc=200;
   matrix.width=cols.length*mc;matrix.height=rows.length*mc;const ms=matrix.getContext('2d');ms.fillStyle='#16233a';ms.fillRect(0,0,matrix.width,matrix.height);
   rows.forEach((hat,r)=>cols.forEach((hair,col)=>{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,prone,recolor,counts:{hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,recolor,costumes,counts:{costumes:costumeIds.length,hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png'),costumes:costumeSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -171,7 +196,7 @@ try{
 const {sheets,...data}=report;
 for(const [name,url] of Object.entries(sheets))await writeFile(`${output}/${name}.png`,Buffer.from(url.split(',')[1],'base64'));
 await writeFile(`${output}/report.json`,JSON.stringify(data,null,1));
-const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length),failingColors=data.recolor.filter(item=>item.issues.length);
+const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length),failingColors=data.recolor.filter(item=>item.issues.length),failingCostumes=data.costumes.filter(item=>item.issues.length);
 const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  `${data.counts.hairs} cabelos, ${data.counts.hats} chapéus, ${data.counts.glasses} óculos, ${data.counts.outfits} roupas; ${data.combinations.length} combinações de chapéu × cabelo, cada uma com todos os óculos.`,'',
  '## Peças isoladas','','| Peça | Classe | Largura | Problemas |','| --- | --- | --- | --- |',
@@ -179,8 +204,9 @@ const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  '## Combinações com problema','',...(failingCombos.length?failingCombos.map(combo=>`- ${combo.hat} + ${combo.hair}: ${combo.issues.map(issue=>issue.message).join('; ')}`):['Nenhuma.']),'',
  '## Roupas','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Combate deitado','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.widthRatio}× | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
- '## Ticket de Cor','','| Peça | O que muda | Área | Problemas |','| --- | --- | --- | --- |',...data.recolor.map(item=>`| ${item.id} | ${item.label} | ${Math.round(item.coverage*100)}% | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
+ '## Ticket de Cor','','| Peça | O que muda | Área | Problemas |','| --- | --- | --- | --- |',...data.recolor.map(item=>`| ${item.id} | ${item.label} | ${Math.round(item.coverage*100)}% | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Fantasias','','| Fantasia | Problemas |','| --- | --- |',...data.costumes.map(item=>`| ${item.id} | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
-console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png, ${output}/skins.png`);
-if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingColors.length))process.exit(1);
+console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}; fantasias com problema: ${failingCostumes.length}/${data.costumes.length}`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png, ${output}/skins.png, ${output}/costumes.png`);
+if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingColors.length||failingCostumes.length))process.exit(1);

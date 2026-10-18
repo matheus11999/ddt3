@@ -94,3 +94,13 @@ Comparação com 353 imagens de referência (todas as combinações chapéu × c
 ## Cabelo sob chapéu
 
 Com chapéu aparece o mesmo cabelo de sem chapéu, só cortado: nada surge que o cabelo descoberto não tenha. `drawHair` passa a arte por `underHat` em `appearance.ts`, que apaga tudo acima da linha de assento do chapéu (`HEAD_ANCHORS.hatSeat`). Atrás da cabeça o corte desce pela curva do crânio (`HAT_NAPE`) e, passando da frente da faixa, desce pela têmpora (`HAT_BROW`), com borda suave, para as mechas laterais parecerem sair por baixo do chapéu. As regiões `covered` do manifesto não são mais desenhadas. Vale para todo cabelo, sem número por item.
+
+## Fantasias (corpo inteiro)
+
+Uma fantasia (`src/game/costumes.ts`) é uma imagem quadrada com quatro pinturas em grade 2×2: parado, passo 1, passo 2 e combate. Nada de números por fantasia:
+
+- Cada pintura é separada pela área pintada conectada, não pela grade: uma asa ou cajado que passa para a célula vizinha continua inteiro.
+- A origem é medida na pintura: a linha dos pés e o centro da cabeça (faixa de cima da figura). Assim o rosto não pula entre as pinturas.
+- Andar alterna só os dois passos (`COSTUME_WALK_FRAMES`), um a cada `COSTUME_STEP` unidades percorridas, com sobe e desce feito em código. A pintura parada nunca entra no meio do passo.
+- `npm run verify:cosmetics` mede as fantasias (pintura cortada na borda da imagem, altura entre os passos, alturas das pinturas em pé) e gera `costumes.png` com as quatro pinturas na origem medida e os dois passos sobrepostos. `npm run test:costumes` confere poses, lados e combate.
+- Fantasia nova: os dois passos devem ter a mesma altura e o rosto no mesmo lugar; nenhuma pintura pode encostar na borda da imagem inteira.
