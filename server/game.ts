@@ -38,10 +38,15 @@ import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_EN
 import type {InstanceRound} from '../shared/instanceTurn';
 import {monsterDamage} from '../shared/combat';
 import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
+import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
+import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
+import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
 export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
 /** An expedition run: its stages, the current round of the instance turn and the monster turn's timed events. */
+/** A Chefão Mundial attempt: damage not yet sent to the global life and the dragon's timed blows. */
+interface WorldBossRun {occurrenceId:string;pending:number;events:{at:number;run:()=>void}[];last?:DragonAction;}
 interface ExpeditionRun {expedition:string;difficulty:Difficulty;stages:readonly StageDef[];stage:number;order:string[];round:InstanceRound;events:{at:number;run:()=>void}[];won?:boolean;}
 /** How long a dropped player keeps their place: the whole match while it runs (up to 5 min away), a bit longer after a restart. */
 const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
@@ -58,7 +63,7 @@ export interface HallService {
  legends(board:LegendBoard,key?:string):Promise<HallLegends>;
 }
 const HALL_MIN_MS=150;
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
 
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
@@ -77,6 +82,10 @@ export class Game {
  /** Hall da Fama (server/hall.ts); without it the hall is closed. */
  hall?:HallService;
  private hallAt=new Map<string,number>();private hallQueued=new Map<string,Command>();
+ /** Chefão Mundial (server/worldBoss.ts); without it the event never opens. */
+ worldBoss?:WorldBossRealm;
+ /** Damage waiting to reach the global life, in order; each entry has its own ledger key, so a retry counts once. */
+ private worldBossQueue:WorldBossDamage[]=[];private worldBossFlushing=false;private worldBossRetryAt=0;private worldBossDirty=false;private worldBossSentAt=0;private worldBossRankingAt=new Map<string,number>();
  /** Each player's guild as last loaded: the name on their room card, the forge bonus and GvG pairing. */
  private memberships=new Map<string,Membership|null>();
  /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
@@ -91,7 +100,7 @@ export class Game {
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
-  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
+  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
   this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);return p;
  }
@@ -150,9 +159,11 @@ export class Game {
  /** Everything a restart must keep: rooms, who sits where and each match as of its last stable moment.
   * A match in the middle of a shot is left out (`stable:false`) so the saved copy stays at the start of that turn. */
  savedState(now=Date.now()){
-  const game:SavedGame={savedAt:now,nextRoomNumber:this.nextRoomNumber,rooms:[...this.rooms.values()],roomMatches:[...this.roomMatches],
-   peers:[...this.peers.values()].filter(p=>p.roomId&&this.rooms.has(p.roomId)).map(p=>({id:p.profile.id,roomId:p.roomId!,channel:p.channel,profile:p.profile}))};
-  const matches=[...this.matches.values()].map(m=>{
+  // A Chefão Mundial attempt is not kept: its damage is already in Postgres and the player comes back to the plaza.
+  const kept=this.publicRooms(),keptIds=new Set(kept.map(room=>room.id));
+  const game:SavedGame={savedAt:now,nextRoomNumber:this.nextRoomNumber,rooms:kept,roomMatches:[...this.roomMatches].filter(([roomId])=>keptIds.has(roomId)),
+   peers:[...this.peers.values()].filter(p=>p.roomId&&keptIds.has(p.roomId)).map(p=>({id:p.profile.id,roomId:p.roomId!,channel:p.channel,profile:p.profile}))};
+  const matches=[...this.matches.values()].filter(m=>!m.worldBoss).map(m=>{
    if(m.state.phase==='resolving')return {key:m.key,stable:false as const};
    const {terrain,invisibilityActivated,pendingImpacts:_impacts,activeShot:_shot,pendingPower:_power,savingRewards:_saving,instance,...rest}=m;
    const match:SavedMatch={...rest,...(invisibilityActivated?{invisibilityActivated:[...invisibilityActivated]}:{}),...(instance?{instance:{...instance,events:undefined} as Omit<ExpeditionRun,'events'>}:{})};
@@ -196,7 +207,9 @@ export class Game {
  lobby(channel:number):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y}));}
  private emit(p:Peer,e:ServerEvent){if(p.connected)p.send(e);}
  private sendLobby(channel:number){const players=this.lobby(channel);const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId)this.emit(p,{type:'lobby',players,online});}
- private broadcastRooms(){for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms:[...this.rooms.values()]});this.roomsDirty=false;}
+ private broadcastRooms(){const rooms=this.publicRooms();for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms});this.roomsDirty=false;}
+ /** Rooms listed in the halls: a Chefão Mundial attempt is a hidden solo room. */
+ private publicRooms(){return [...this.rooms.values()].filter(room=>room.kind!=='world-boss');}
  private countArena(){return [...this.peers.values()].filter(p=>p.connected&&(p.arenaOpen||(p.roomId!==null&&this.rooms.has(p.roomId)))).length;}
  private publishArenaPopulation(){const count=this.countArena();if(count===this.arenaPopulation)return;this.arenaPopulation=count;for(const peer of this.peers.values())this.emit(peer,{type:'arena-population',count});}
  private roomMembers(room:Room){return [...room.players,...(room.spectators??[])];}
@@ -386,6 +399,11 @@ export class Game {
      const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:`Expedição de ${p.profile.name}`.slice(0,24),hostId:id,kind:'expedition',expedition:null,mode:'4v4',openSlots:[0,1,2,3],spectatorSlots:[],spectators:[],map:MAP_DEFAULT.id,status:'waiting',players:[this.seat(p,0,0)]};
      this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
     }
+    case 'world-boss-enter':this.enterWorldBoss(p);break;
+    case 'world-boss-ranking':{
+     if(!this.worldBoss)return;const now=Date.now();if(now-(this.worldBossRankingAt.get(id)??-Infinity)<1000)return;this.worldBossRankingAt.set(id,now);
+     this.emit(p,{type:'world-boss-ranking',ranking:await this.worldBoss.ranking(id)});return;
+    }
     case 'expedition-select':{
      const room=this.room(p);if(room.kind!=='expedition')throw Error('Escolha expedições numa sala da Central de Expedições.');
      if(room.hostId!==id)throw Error('Somente o líder escolhe a expedição.');if(room.status!=='waiting')throw Error('Escolha a expedição entre as batalhas.');
@@ -398,7 +416,7 @@ export class Game {
     case 'join':{
      this.join(p,c.roomId);break;
     }
-    case 'spectate':if(this.rooms.get(c.roomId)?.kind==='expedition')throw Error('Expedições não têm espectadores.');this.spectate(p,c.roomId);break;
+    case 'spectate':if(this.rooms.get(c.roomId)?.kind==='expedition')throw Error('Expedições não têm espectadores.');if(this.rooms.get(c.roomId)?.kind==='world-boss')throw Error('Esta sala não está disponível para assistir.');this.spectate(p,c.roomId);break;
     case 'room-spectator-slot':{
      const room=this.room(p);if(room.hostId!==id)throw Error('Somente o líder pode abrir lugares para espectadores.');
      if(c.slot!==0&&c.slot!==1)throw Error('Lugar de espectador inválido.');
@@ -623,6 +641,7 @@ export class Game {
  }
  private leave(p:Peer){
   if(!p.roomId)return;const r=this.rooms.get(p.roomId),m=this.matchForRoom(p.roomId);
+  if(r?.kind==='world-boss'){if(m){if(m.state.phase!=='finished')this.queueWorldBossDamage(m);this.closeWorldBoss(m);}else{this.rooms.delete(r.id);this.detach(p);}return;}
   if(r?.spectators?.some(s=>s.id===p.profile.id)){r.spectators=r.spectators.filter(s=>s.id!==p.profile.id);this.detach(p);this.broadcastRoom(r);return;}
   if(r){this.cancelSearch(r);r.players=r.players.filter(s=>s.id!==p.profile.id);if(m){const f=m.state.players.find(f=>f.id===p.profile.id);if(f&&m.state.phase==='finished')f.connected=false;else if(f){f.hp=0;f.connected=false;f.powerArmed=false;f.left=true;}if(!this.checkWin(m)&&m.state.turnId===p.profile.id&&m.state.phase==='aiming')this.nextTurn(m);else this.broadcastBattle(m);}
    if(!r.players.some(s=>!s.bot)){for(const spectator of r.spectators??[]){const peer=this.peers.get(spectator.id);if(peer?.roomId===r.id)this.detach(peer);}r.spectators=[];this.rooms.delete(r.id);this.roomMatches.delete(r.id);if(m)this.cleanupMatch(m);}
@@ -882,6 +901,8 @@ export class Game {
   for(const planned of impact.hits){
    // Hits are only planned on fighters still alive when the projectile lands (killed ones are let through).
    const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height||planned.damage<=0)continue;
+   // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
+   if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
    const absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
    if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
    hits.push({...planned,x:target.x,y:target.y-85});
@@ -902,6 +923,7 @@ export class Game {
   target.fall=createFall(falling?fallPosition(previous,at):fromY,target.y,at,target.y>WORLD.height,falling?fallVelocity(previous,at):0);
  }
  private settle(m:Match,at?:number){for(const target of m.state.players){
+  if(target.boss)continue;
   const fromY=target.y;target.y=ground(m.terrain,target.x,Math.max(0,target.y-3));if(target.y>WORLD.height){target.y=WORLD.height+150;target.hp=0;}
   if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration+TURN_GAP_MS);}
   adjustAimToTerrain(target,m.terrain);
@@ -909,6 +931,7 @@ export class Game {
  private nextTurn(m:Match){
   if(this.checkWin(m))return;
   if(m.instance){this.nextInstanceTurn(m);return;}
+  if(m.worldBoss){this.nextWorldBossTurn(m);return;}
   const s=m.state,withTerrain=s.phase==='resolving';
   const outgoing=s.players.find(p=>p.id===s.turnId);if(outgoing&&(outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
   // The living fighter with the lowest accumulated Delay plays, possibly the same one again (shared/turnDelay.ts).
@@ -918,6 +941,7 @@ export class Game {
  private checkWin(m:Match){
   if(m.state.phase==='finished')return true;
   if(m.instance)return this.checkInstanceEnd(m);
+  if(m.worldBoss)return this.checkWorldBossEnd(m);
   const teams=new Set(m.state.players.filter(p=>p.hp>0).map(p=>p.team));
   const exhausted=m.state.turnNumber>=80;
   if(teams.size>1&&!exhausted)return false;
@@ -1023,7 +1047,9 @@ export class Game {
    if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS){const run=m.instance,room=this.rooms.get(m.roomIds[0]);// Every stage ends back in the room; a win moves the room's choice on to the next stage (the last one starts over).
     if(run&&room?.expedition&&this.matchForRoom(room.id)===m&&run.won)room.expedition.stage=run.stage+1<run.stages.length?run.stage+1:0;this.returnParties(m);}this.cleanupMatch(m);}
    if(m.pendingPower&&now>=m.pendingPower.at){const pending=m.pendingPower;delete m.pendingPower;delete m.state.powerCutIn;const shooter=m.state.players.find(f=>f.id===pending.playerId);if(shooter&&shooter.hp>0&&m.state.phase==='resolving')this.resolveFire(m,shooter,pending.angle,pending.power,true,now);else if(m.state.phase!=='finished')this.nextTurn(m);}
+   if(m.state.worldBoss?.closesAt!==undefined&&now>=m.state.worldBoss.closesAt){this.closeWorldBoss(m);continue;}
    while(m.state.phase==='resolving'&&m.instance?.events.length&&m.instance.events[0].at<=now)m.instance.events.shift()!.run();
+   while(m.state.phase==='resolving'&&m.worldBoss?.events.length&&m.worldBoss.events[0].at<=now)m.worldBoss.events.shift()!.run();
    while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}
    if(m.state.phase==='resolving'&&now>=m.resolveAt)this.nextTurn(m);
    else if(m.state.phase==='aiming'){
@@ -1032,5 +1058,114 @@ export class Game {
    }
   }
   if(this.roomsDirty)this.broadcastRooms();
+  if(this.worldBoss){
+   if(this.worldBossQueue.length&&now>=this.worldBossRetryAt)void this.flushWorldBoss();
+   if(this.worldBossDirty&&now-this.worldBossSentAt>=1000){this.worldBossDirty=false;this.worldBossSentAt=now;const status=this.worldBoss.status();for(const peer of this.peers.values())this.emit(peer,{type:'world-boss',status});}
+  }
+ }
+ /** Entrar: a solo attempt at the dragon in a hidden room; the battle opens with its entrance. */
+ private enterWorldBoss(p:Peer){
+  const realm=this.worldBoss;if(!realm)throw Error('O Chefão Mundial não está disponível no momento.');
+  if(p.roomId)throw Error('Saia da sala atual antes de enfrentar o Chefão Mundial.');
+  if(this.profileChanges.has(p.profile.id))throw Error('Aguarde a atualização do seu equipamento.');
+  const status=realm.status(),now=Date.now();
+  if(status.phase==='results')throw Error('O Chefão Mundial já terminou. Confira o ranking.');
+  if(status.phase!=='active'||!status.occurrenceId||status.hp<=0||(status.endsAt??0)<=now+3000)throw Error('O Chefão Mundial não está ativo agora.');
+  if(this.rooms.size>=600)throw Error('As salas estão cheias. Tente novamente em breve.');
+  const room:Room={id:randomUUID(),number:0,name:status.name.slice(0,24),hostId:p.profile.id,kind:'world-boss',mode:'1v1',openSlots:[0],spectatorSlots:[],spectators:[],map:WORLD_BOSS_MAP,status:'playing',players:[this.seat(p,0,0)],matchStartedAt:now};
+  const played=pinMap(WORLD_BOSS_MAP),terrain=createTerrain(played),seat=room.players[0],stats=attributes(seat.equipment,seat.level),x=getMap(played).spawns[0][0],abilityLoadout=normalizeAbilityLoadout(seat.abilityLoadout);
+  const hero:Fighter={...seat,equipment:structuredClone(seat.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};
+  adjustAimToTerrain(hero,terrain);
+  const dragon:Fighter={id:DRAGON_FIGHTER_ID,name:status.name,level:seat.level,equipment:{...DEFAULT_EQUIPMENT},ready:true,bot:true,team:1,slot:0,connected:true,x:DRAGON_BODY.x,y:DRAGON_BODY.y,hp:status.hp,maxHp:status.maxHp,stamina:0,maxStamina:0,facing:-1,boosts:[],boss:'dragon',hitRadius:DRAGON_BODY.hitRadius,hitHeight:DRAGON_BODY.hitHeight};
+  const entrance:DragonAct={id:randomUUID(),action:'entrance',startedAt:now,hits:[]},opening=DRAGON_ACTIONS.entrance.duration;
+  const state:Battle={id:randomUUID(),roomId:room.id,map:played,players:[hero,dragon],turnId:DRAGON_TURN_ID,turnNumber:1,wind:this.wind(),deadline:now+opening+TURN_SECONDS*1000,phase:'resolving',winner:null,
+   worldBoss:{occurrenceId:status.occurrenceId,name:status.name,hp:status.hp,maxHp:status.maxHp,endsAt:status.endsAt!,introUntil:now+opening,round:0,attemptDamage:0,act:entrance}};
+  const m:Match={key:room.id,roomIds:[room.id],state,terrain,resolveAt:now+opening,botAt:Infinity,createdAt:now,worldBoss:{occurrenceId:status.occurrenceId,pending:0,events:[]}};
+  this.rooms.set(room.id,room);this.matches.set(m.key,m);this.roomMatches.set(room.id,m.key);p.roomId=room.id;
+  this.emit(p,{type:'room',room});this.broadcastBattle(m,true);this.sendLobby(p.channel);this.publishArenaPopulation();
+  void realm.attempt(status.occurrenceId,p.profile.id,p.profile.name,p.profile.level).catch(this.report);
+ }
+ /** Player turn, then the dragon's act, then the player again; the player's damage goes out when their turn ends. */
+ private nextWorldBossTurn(m:Match){
+  const s=m.state,wb=s.worldBoss!,withTerrain=s.phase==='resolving',hero=s.players.find(f=>!f.boss)!;
+  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});
+  if(s.turnId!==DRAGON_TURN_ID){
+   if((hero.invisibleTurns??0)>0&&m.invisibilityActivated?.get(hero.id)!==s.turnNumber)hero.invisibleTurns!--;
+   // The commit can end the event at once (this blow killed the dragon): then the dragon falls instead of acting.
+   this.queueWorldBossDamage(m);if(!wb.over)this.startDragonTurn(m);return;
+  }
+  wb.round++;delete wb.act;hero.stamina=hero.maxStamina;hero.boosts=[];
+  s.turnId=hero.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;this.broadcastBattle(m,withTerrain);
+ }
+ /** The dragon's act: one move a round (claw, grab, breath or the sweeping flames), never the same kind twice in a row. */
+ private startDragonTurn(m:Match){
+  const s=m.state,wb=s.worldBoss!,run=m.worldBoss!,now=Date.now(),hero=s.players.find(f=>!f.boss)!,dragon=s.players.find(f=>f.boss)!;
+  s.turnId=DRAGON_TURN_ID;s.turnNumber++;s.phase='resolving';
+  const action=pickDragonAction(run.last,Math.random());run.last=action;
+  // An invisible player is not found: the blow lands beside them.
+  const def=DRAGON_ACTIONS[action],hidden=(hero.invisibleTurns??0)>0,targetX=hidden?Math.max(60,hero.x+(hero.x>400?-1:1)*(200+Math.random()*150)):hero.x;
+  const at=now+(action==='firesweep'?sweepReachAt(hero.x,dragon.x-320,0):def.contact);
+  const damage=monsterDamage(def.attack*dragonRage(Math.max(1,wb.round)),hero.equipment,1,hero.level);
+  const act:DragonAct={id:randomUUID(),action,startedAt:now,targetId:hero.id,targetX,targetY:ground(m.terrain,targetX,0),hits:hidden&&action!=='firesweep'||!hero.hp?[]:[{at,targetId:hero.id,damage,x:hero.x,y:hero.y-85}]};
+  for(const [index,hit] of act.hits.entries())run.events.push({at:hit.at,run:()=>{
+   if(hero.hp<=0||hero.left||wb.over)return;const dealt=Math.min(hero.hp,hit.damage);hero.hp-=dealt;if(hero.hp<=0)hero.powerArmed=false;
+   hero.powerCharge=chargeFromDamage(hero.powerCharge??0,dealt,hero.maxHp,true);
+   const shown:ShotHit={id:hero.id,damage:dealt,x:hero.x,y:hero.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
+   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`dragon:${act.id}`,projectileIndex:index,at:hit.at,hits:[shown]});
+   if(!this.checkWin(m))this.broadcastBattle(m);
+  }});
+  run.events.sort((a,b)=>a.at-b.at);wb.act=act;m.resolveAt=now+def.duration+TURN_GAP_MS;this.broadcastBattle(m);
+ }
+ /** The attempt ends when the player falls (or leaves); the event ending is handled by `endWorldBossAttempt`. */
+ private checkWorldBossEnd(m:Match){
+  const s=m.state,wb=s.worldBoss!,hero=s.players.find(f=>!f.boss);
+  if(wb.over)return true;
+  if(hero&&hero.hp>0&&!hero.left&&s.turnNumber<400)return false;
+  this.queueWorldBossDamage(m);m.worldBoss!.events=[];delete m.pendingPower;delete m.pendingImpacts;delete s.powerCutIn;
+  s.phase='finished';s.winner=1;
+  const now=Date.now(),actEnd=wb.act?wb.act.startedAt+DRAGON_ACTIONS[wb.act.action].duration:now,fallEnd=hero?.fall?hero.fall.startedAt+hero.fall.duration:now;
+  // No result screen: the defeat plays out and the player goes back to the plaza with the event window open.
+  wb.closesAt=Math.max(now+2200,actEnd+500,fallEnd+1400);this.broadcastBattle(m,true);return true;
+ }
+ /** The event ended during the attempt: the dragon falls (killed) or flies away (time, or stopped in the panel). */
+ private endWorldBossAttempt(m:Match,reason:WorldBossEndReason){
+  const s=m.state,wb=s.worldBoss!,run=m.worldBoss!,now=Date.now(),dragon=s.players.find(f=>f.boss);
+  if(wb.over||wb.closesAt!==undefined)return;
+  run.events=[];run.pending=0;delete m.pendingPower;delete m.pendingImpacts;delete m.activeShot;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});
+  const action:DragonAction=reason==='defeated'?'death':'retreat';if(dragon&&reason==='defeated')dragon.hp=0;
+  wb.over=reason;wb.act={id:randomUUID(),action,startedAt:now,hits:[]};s.phase='finished';s.winner=reason==='defeated'?0:null;s.turnId=DRAGON_TURN_ID;
+  wb.closesAt=now+DRAGON_ACTIONS[action].duration+1500;this.broadcastBattle(m,true);
+ }
+ /** Closes the attempt: the room and battle go away and the client opens the event window again. */
+ private closeWorldBoss(m:Match){
+  this.matches.delete(m.key);
+  for(const roomId of m.roomIds){
+   const room=this.rooms.get(roomId);this.rooms.delete(roomId);this.roomMatches.delete(roomId);
+   for(const seat of room?.players??[]){const peer=this.peers.get(seat.id);if(peer?.roomId===roomId){this.detach(peer);this.emit(peer,{type:'world-boss-closed'});}}
+  }
+ }
+ /** Moves the turn's damage into the queue for Postgres. */
+ private queueWorldBossDamage(m:Match){
+  const run=m.worldBoss,hero=m.state.players.find(f=>!f.boss);if(!run||!hero||run.pending<=0)return;
+  this.worldBossQueue.push({occurrenceId:run.occurrenceId,battleId:m.state.id,turn:m.state.turnNumber,playerId:hero.id,name:hero.name,level:hero.level,damage:run.pending});run.pending=0;
+  void this.flushWorldBoss();
+ }
+ private async flushWorldBoss(){
+  if(this.worldBossFlushing||!this.worldBoss)return;this.worldBossFlushing=true;
+  try{while(this.worldBossQueue.length){await this.worldBoss.commit(this.worldBossQueue[0]);this.worldBossQueue.shift();this.followWorldBoss(this.worldBoss.status());}}
+  catch(error){this.report(error);this.worldBossRetryAt=Date.now()+2000;}
+  finally{this.worldBossFlushing=false;}
+ }
+ /** The event changed (start, end, global life): clients hear it within a second and running attempts follow it. */
+ worldBossChanged(status:WorldBossStatus){this.worldBossDirty=true;this.followWorldBoss(status);}
+ private followWorldBoss(status:WorldBossStatus){
+  for(const m of this.matches.values()){
+   const run=m.worldBoss,wb=m.state.worldBoss;if(!run||!wb||wb.over||wb.closesAt!==undefined)continue;
+   const same=status.occurrenceId===run.occurrenceId;
+   if(!same||status.phase!=='active'){this.endWorldBossAttempt(m,same?status.endReason??'time':'admin');continue;}
+   const queued=this.worldBossQueue.filter(entry=>entry.battleId===m.state.id).reduce((sum,entry)=>sum+entry.damage,0);
+   const dragon=m.state.players.find(f=>f.boss),hp=Math.max(0,status.hp-queued-run.pending);
+   if(dragon&&(dragon.hp!==hp||wb.hp!==status.hp||wb.endsAt!==status.endsAt)){dragon.hp=hp;dragon.maxHp=status.maxHp;wb.hp=status.hp;wb.maxHp=status.maxHp;wb.endsAt=status.endsAt??wb.endsAt;this.broadcastBattle(m);}
+  }
  }
 }

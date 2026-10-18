@@ -6,8 +6,6 @@ export const MAX_SHOP_ITEMS=20;
 export const SHOP_OFFERS:readonly ShopOffer[]=[
  {id:'brick',price:300},
  {id:'love-boomerang',price:480},
- {id:'outfit-surfer',price:280},{id:'outfit-executive',price:340},
- {id:'outfit-racer',price:360},{id:'outfit-dancer',price:360},
  {id:'outfit-cartographer',price:360},
  {id:'face-brave',price:100},{id:'face-smile',price:120},{id:'face-serene',price:150},{id:'face-taunt',price:180},{id:'face-fierce',price:220},{id:'face-wink',price:180},
  {id:'hat-cap',price:100},{id:'hat-mage',price:250},

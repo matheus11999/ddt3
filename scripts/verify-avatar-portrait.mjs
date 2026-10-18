@@ -39,7 +39,7 @@ try{
    import('/src/game/appearance.ts'),import('/src/game/avatar.ts'),import('/shared/catalog.ts'),import('/src/game/costumes.ts'),import('/src/components/Avatar.tsx'),import('/node_modules/.vite/deps/react.js'),import('/node_modules/.vite/deps/react-dom_client.js')
   ]);
   const load=path=>new Promise((resolve,reject)=>{const image=asset(path);if(image.complete&&image.naturalWidth)return resolve();image.addEventListener('load',resolve,{once:true});image.addEventListener('error',()=>reject(Error(path)),{once:true});});
-  await Promise.all([...Object.values(CATALOG).map(item=>item.visual?.asset).filter(Boolean),...Object.values(COSTUMES).map(item=>item.path),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/auras/upgrade-rings.png','/assets/outfits/outfit-surfer-walk.png','/assets/outfits/combat-prone.png'].map(load));
+  await Promise.all([...Object.values(CATALOG).map(item=>item.visual?.asset).filter(Boolean),...Object.values(COSTUMES).map(item=>item.path),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/auras/upgrade-rings.png','/assets/outfits/cartographer-walk.png','/assets/outfits/combat-prone.png'].map(load));
   const createCanvas=(size=360)=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=size;return canvas;};
   const pixels=canvas=>canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,canvas.width,canvas.height).data;
   const sources=new WeakMap();let sourceId=0;
@@ -59,7 +59,7 @@ try{
   const base={...DEFAULT_EQUIPMENT,glasses:'glasses-sport',upgrade:12};
   const cap=head(base),bare=head({...base,hat:'hat-none'}),hidden=head({...base,visibility:{hat:false}}),noGlasses=head({...base,glasses:'glasses-none'}),hiddenGlasses=head({...base,visibility:{glasses:false}});
   const hiddenMatchesBare=equal(hidden,bare),hiddenGlassesMatchesEmpty=equal(hiddenGlasses,noGlasses),hatChangesPortrait=!equal(cap,bare);
-  const excludedLayersDoNotChangePortrait=equal(head({...base,outfit:'outfit-dancer',costume:'costume-arcane-fox',weapon:'crystal',upgrade:0}),cap);
+  const excludedLayersDoNotChangePortrait=equal(head({...base,outfit:'outfit-cartographer',costume:'costume-arcane-fox',weapon:'crystal',upgrade:0}),cap);
   const sheet=createCanvas();sheet.id='portrait-contact-sheet';sheet.width=1440;sheet.height=680;const c=sheet.getContext('2d');
   c.fillStyle='#132941';c.fillRect(0,0,sheet.width,sheet.height);c.font='bold 24px Arial';c.fillStyle='#ffe3a7';c.fillText('RETRATO · CABEÇA UNIVERSAL E CHAPÉUS',25,38);
   const samples=[
@@ -95,7 +95,7 @@ try{
  const cold=await browser.newPage({viewport:{width:900,height:700}});
  let releaseHead,releaseBody;const headReady=new Promise(resolve=>{releaseHead=resolve;}),bodyReady=new Promise(resolve=>{releaseBody=resolve;});
  await cold.route('**/assets/faces/face-brave.png',async route=>{await headReady;await route.continue();});
- await cold.route('**/assets/outfit-surfer-body.png',async route=>{await bodyReady;await route.continue();});
+ await cold.route('**/assets/outfits/cartographer-atlas.png',async route=>{await bodyReady;await route.continue();});
  try{
   await cold.goto(base,{waitUntil:'domcontentloaded'});
   await cold.evaluate(async()=>{

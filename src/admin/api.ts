@@ -3,6 +3,7 @@ import type {ReportDetail,ReportStatus,ReportSummary} from '../../shared/reports
 import type {AdminPlayerDetail,AdminPlayerRow,PlayerSort} from '../../shared/adminPlayers';
 import type {MailAttachment,MailMessage} from '../../shared/mail';
 import type {HallAdminMatch,HallAlert,HallClosing,HallConfig} from '../../shared/hall';
+import type {WorldBossAdminState,WorldBossSchedule,WorldBossSettings} from '../../shared/worldBoss';
 
 /** Admin API client. Every call is same-origin; the session cookie is scoped to /api/admin. */
 export class ApiError extends Error {constructor(message:string,public status:number){super(message);}}
@@ -59,4 +60,11 @@ export const api={
  player:(id:string)=>call<{player:AdminPlayerDetail;mail:SentMail[]}>('GET',`/api/admin/players/${id}`),
  sendMail:(id:string,mail:MailDraft)=>call<{id:number;mail:SentMail[]}>('POST',`/api/admin/players/${id}/mail`,mail),
  remove:(id:string)=>call<{ok:true}>('DELETE',`/api/admin/maps/${id}`),
+ worldBoss:()=>call<WorldBossAdminState>('GET','/api/admin/events/world-boss'),
+ worldBossStart:(body:{requestId:string;endsAt:number;maxHp?:number})=>call<WorldBossAdminState>('POST','/api/admin/events/world-boss/start',body),
+ worldBossStop:(body:{requestId:string;occurrenceId:string})=>call<WorldBossAdminState>('POST','/api/admin/events/world-boss/stop',body),
+ worldBossSettings:(body:WorldBossSettings)=>call<WorldBossAdminState>('POST','/api/admin/events/world-boss/settings',body),
+ worldBossAddSchedule:(body:Pick<WorldBossSchedule,'startsAt'|'endsAt'|'repeat'|'enabled'>)=>call<WorldBossAdminState>('POST','/api/admin/events/world-boss/schedules',body),
+ worldBossEditSchedule:(id:string,body:Pick<WorldBossSchedule,'startsAt'|'endsAt'|'repeat'|'enabled'>)=>call<WorldBossAdminState>('POST',`/api/admin/events/world-boss/schedules/${id}`,body),
+ worldBossRemoveSchedule:(id:string)=>call<WorldBossAdminState>('DELETE',`/api/admin/events/world-boss/schedules/${id}`),
 };
