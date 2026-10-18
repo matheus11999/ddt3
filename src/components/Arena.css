@@ -298,16 +298,6 @@ html.mobile-landscape .pvp-room .pr-card-guild svg{width:9px;height:9px}
 /* GvG ao lado do Início */
 .pvp-room .pr-start-row{display:flex;gap:7px;align-items:stretch}
 .pvp-room .pr-start-row>.party-search-action,.pvp-room .pr-start-row>.party-spectator-status{flex:1;min-width:0}
-.pvp-room .pr-gvg{display:grid;place-content:center;gap:2px;flex:none;width:70px;padding:0;border:2px solid #fff3d6;border-radius:14px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -3px #d9b880,0 2px #2a0f03;color:#8a3f0b;cursor:pointer}
-.pvp-room .pr-gvg strong{font:900 22px/1 'Lilita One','Nunito',sans-serif;letter-spacing:.02em;text-shadow:0 1px #fff}
-.pvp-room .pr-gvg small{font-size:10px;font-weight:900;text-transform:uppercase;opacity:.8}
-.pvp-room .pr-gvg.active{border-color:#d3f4ff;background:linear-gradient(#7cc0f0,#3d84d6 60%,#235aa0);box-shadow:inset 0 1px #d3f4ff,inset 0 -3px #173451,0 0 12px #7cc0f0aa,0 2px #2a0f03;color:#fff}
-.pvp-room .pr-gvg.active strong{text-shadow:0 2px #173451}
-.pvp-room .pr-gvg:disabled{cursor:var(--cursor-arrow);opacity:.6}
-.pvp-room .pr-gvg.active:disabled{opacity:.9}
-html.mobile-landscape .pvp-room .pr-gvg{width:52px;border-radius:11px}
-html.mobile-landscape .pvp-room .pr-gvg strong{font-size:16px}
-html.mobile-landscape .pvp-room .pr-gvg small{font-size:8px}
 
 /* Room leader: only a gold crown beside the name (matheus, 18/10). */
 /* Plain crown after the leader's name. */
@@ -321,3 +311,20 @@ html.mobile-landscape /* Plain crown after the leader's name. */
 .pvp-room .pr-ready-sash span{color:#fffbe8;font-family:'Lilita One','Nunito',sans-serif;font-size:18px;letter-spacing:.07em;text-transform:uppercase;-webkit-text-stroke:3px #0f5a2b;paint-order:stroke fill;text-shadow:0 2px 0 #0b4320,0 3px 3px #062a1488}
 html.mobile-landscape .pvp-room .pr-ready-sash{position:absolute;right:-52px;bottom:30px;z-index:3;width:196px;height:32px;display:flex;align-items:center;justify-content:center;transform:rotate(-45deg);background:linear-gradient(#ffe68a,#d99a1c) top/100% 3px no-repeat,linear-gradient(#d99a1c,#8a5a0c) bottom/100% 3px no-repeat,linear-gradient(#7fe59b 0%,#3fbf68 30%,#249a4f 62%,#16773a 100%);box-shadow:0 1px 0 #5b3a08,0 -1px 0 #5b3a08,0 5px 8px #0f3d2266,inset 0 9px 6px -6px #ffffff66;pointer-events:none}
 html.mobile-landscape .pvp-room .pr-ready-sash span{color:#fffbe8;font-family:'Lilita One','Nunito',sans-serif;font-size:18px;letter-spacing:.07em;text-transform:uppercase;-webkit-text-stroke:3px #0f5a2b;paint-order:stroke fill;text-shadow:0 2px 0 #0b4320,0 3px 3px #062a1488}
+
+/* Normal | GvG: no quadro da sala; quando o quadro some (telas menores e celular), na barra de título. */
+.pvp-room .pr-mode{display:inline-flex;padding:3px;gap:2px;border:2px solid #fff0c9;border-radius:999px;background:linear-gradient(#5b2a0e,#3b1806);box-shadow:inset 0 1px 3px #000a,0 2px 6px #2c1004aa}
+.pvp-room .pr-mode button{display:inline-flex;align-items:center;gap:5px;height:28px;padding:0 14px;border:0;border-radius:999px;background:transparent;color:#ffdca4;font:900 14px/1 'Nunito',sans-serif;cursor:pointer;transition:background .15s,color .15s}
+.pvp-room .pr-mode button[aria-checked="true"]{background:linear-gradient(#fff6c9,#ffd36b 50%,#e48d12);color:#5b2a0e;box-shadow:inset 0 -2px #b4600d,0 1px #2c1004}
+.pvp-room .pr-mode.is-gvg button[aria-checked="true"]{background:linear-gradient(#ffb59a,#e2452a 55%,#9a1d12);color:#fff4e6;box-shadow:inset 0 -2px #5e0f08,0 1px #2c1004;text-shadow:0 1px #5e0f08}
+.pvp-room .pr-mode button:disabled{cursor:var(--cursor-arrow)}
+.pvp-room .pr-mode button:disabled:not([aria-checked="true"]){opacity:.55}
+.pvp-room .pr-mode-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:2}
+.pvp-room .pr-banner-art:has(.pr-mode-banner)>h2{top:calc(4% + 40px)}
+.pvp-room .pr-mode-title{display:none}
+@media(max-width:1180px){html:not(.mobile-landscape) .pvp-room .pr-mode-title{display:inline-flex}}
+html.mobile-landscape .pvp-room .pr-mode-title{display:inline-flex}
+html.mobile-landscape .pvp-room .pr-mode button{height:22px;padding:0 9px;font-size:11px}
+html.mobile-landscape .pvp-room .pr-mode button svg{width:11px;height:11px}
+.pvp-room .pr-banner.is-gvg .pr-banner-art>h2 strong{background:linear-gradient(#fff1e0,#ffb08a 40%,#e2452a 70%,#ffcf9e);-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:1px #5e0f08;filter:drop-shadow(0 3px #3b0a05) drop-shadow(0 0 10px #ff5a3a88)}
+.pvp-room .pr-banner.is-gvg .party-pvp-caption{background:linear-gradient(transparent,#3b0c06d9 45%,#250604f2)}

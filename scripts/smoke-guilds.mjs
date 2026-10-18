@@ -98,16 +98,24 @@ try{
  await member.page.waitForTimeout(600);await member.page.screenshot({path:`${output}/8-ferreiro.png`});
  await member.page.keyboard.press('Escape');
 
- // PvP room: guild under the name and the GvG switch beside Início.
+ // PvP room: guild under the name and the Normal | GvG toggle on the room board (none beside Início).
  await owner.page.locator('.guild-window:not(.guild-sub-window) > .window-header .close-button').click();await createArenaRoom(owner.page);
  await owner.page.getByRole('button',{name:'Abrir vaga 2',exact:true}).click();
  await member.page.locator('.bottom-dock').getByRole('button',{name:/^Arena(?:\s|$)/}).click();
  const search=member.page.getByRole('button',{name:'Pesquisar salas',exact:true});if(await search.isVisible())await search.click();
  await member.page.locator('.arena-room-entry').filter({hasText:owner.profile.name}).first().click();
  await owner.page.locator('.pr-card-guild').nth(1).waitFor();
- await owner.page.getByRole('button',{name:'GvG desligado'}).click();await owner.page.getByRole('button',{name:/GvG ligado/}).waitFor();
+ const mode=owner.page.locator('.pr-mode-banner');await owner.page.waitForTimeout(400);await owner.page.screenshot({path:`${output}/9a-sala-normal.png`});
+ assert.equal(await owner.page.locator('.pr-start-row').getByText('GvG').count(),0,'no GvG button beside Início');
+ await mode.getByRole('radio',{name:'GvG'}).click();await mode.getByRole('radio',{name:'GvG',checked:true}).waitFor();
+ await owner.page.locator('.pr-banner.is-gvg img[src*="gvg-room-banner"]').waitFor();
+ await member.page.locator('.pr-mode-banner').getByRole('radio',{name:'GvG',checked:true}).waitFor();
+ assert.equal(await member.page.locator('.pr-mode-banner').getByRole('radio',{name:'Normal'}).isDisabled(),true,'only the leader picks the battle type');
  await member.page.getByRole('button',{name:'Estou pronto'}).click();await owner.page.waitForTimeout(800);
  await owner.page.screenshot({path:`${output}/9-sala-gvg.png`});
+ // Smaller screens hide the board: the toggle moves to the title bar.
+ await owner.page.setViewportSize({width:1100,height:700});await owner.page.locator('.pr-mode-title').getByRole('radio',{name:'GvG',checked:true}).waitFor();
+ await owner.page.waitForTimeout(300);await owner.page.screenshot({path:`${output}/9c-sala-gvg-pequena.png`});
  assert.deepEqual(errors,[]);
  console.log(`guild smoke ok: ${output}`);
 }finally{await browser.close();await db.end();}
