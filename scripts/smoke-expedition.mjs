@@ -33,7 +33,7 @@ try{
  await page.locator('.expedition-banner-art').click();await page.getByRole('dialog',{name:'Expedições'}).waitFor();await page.waitForTimeout(600);
  await expect(page.locator('.expedition-difficulty[disabled]')).toHaveCount(3);await expect(page.locator('.expedition-stage-pick button')).toHaveCount(2);await expect(page.locator('.expedition-power')).toContainText('Poder recomendado');
  await page.screenshot({path:`${output}/03-picker.png`});
- await page.getByRole('button',{name:'Escolher expedição'}).click();await expect(page.locator('.expedition-banner-choice')).toBeVisible();
+ await page.getByRole('button',{name:'Escolher',exact:true}).click();await expect(page.locator('.expedition-banner-choice')).toBeVisible();
  const roomId=await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').filter(e=>new URL(e.name).pathname==='/src/client.ts').at(-1).name,{client}=await import(url);return client.state.room.id;});
  send(friend,{type:'leave'});await wait(friend,'room',e=>!e.room);send(friend,{type:'join',roomId});await wait(friend,'room',e=>e.room?.id===roomId);send(friend,{type:'ready'});
  await expect(page.getByRole('button',{name:'Iniciar expedição'})).toBeEnabled();await page.waitForTimeout(500);
