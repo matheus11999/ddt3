@@ -1,6 +1,6 @@
 import type {Projectile} from '../../shared/protocol';
 import {WEAPONS,weaponPhaseTier} from '../../shared/catalog';
-import {weaponEffectsPath,weaponKit} from '../../shared/weaponKit';
+import {weaponEffectsPath,weaponKit,weaponPowPath} from '../../shared/weaponKit';
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 
@@ -8,9 +8,14 @@ type Effect=Projectile['effect'];
 type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number};
 /** tilt: radians the painted projectiles point above horizontal, undone when drawing the top row. */
 type Atlas={cells:Cell[];ready:Promise<void>;tilt:number};
+/** `effects`: projectile / launch / impact rows. `pow`: the POW shot's own projectile / impact rows, so POW never looks like a normal shot. */
+type Sheet='effects'|'pow';
+const SHEET_ROWS:Record<Sheet,number>={effects:3,pow:2};
 export interface WeaponEffectOptions {quality?:'high'|'low';reducedMotion?:boolean;}
 export const VFX_LIMITS={high:{trailSamples:18,flightParticles:16,impactParticles:26,debris:14},low:{trailSamples:8,flightParticles:6,impactParticles:10,debris:6}} as const;
 const TAU=Math.PI*2;
+/** The POW sprite is painted bigger than the normal shot; this keeps it a notch larger on screen too. */
+const POW_SPRITE_SCALE=1.3;
 const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly number[];trail:readonly number[]}>= {
  fire:{hot:'#fff09a',mid:'#ff7920',dark:'#b72a20',size:[42,48,57,66],trail:[6,12,18,25]},
  electric:{hot:'#c1fdff',mid:'#25caff',dark:'#4154ea',size:[35,40,47,54],trail:[5,11,17,24]},
@@ -18,7 +23,7 @@ const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly numb
  crystal:{hot:'#e6caff',mid:'#ed58ff',dark:'#7033d9',size:[51,58,65,73],trail:[5,10,15,21]},
  brick:{hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]}
 };
-const atlases=new Map<Effect,Atlas>();
+const atlases=new Map<string,Atlas>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
 const reduced=(options:WeaponEffectOptions)=>options.reducedMotion??motionPreference?.matches??false;
 const limits=(options:WeaponEffectOptions)=>VFX_LIMITS[options.quality==='low'||reduced(options)?'low':'high'];
@@ -27,8 +32,8 @@ function clamp(value:number,min=0,max=1){return Math.max(min,Math.min(max,value)
 const noise=(n:number)=>{const value=Math.sin(n*127.1+311.7)*43758.5453;return value-Math.floor(value);};
 const canvas=(width:number,height:number)=>{const out=document.createElement('canvas');out.width=Math.max(1,Math.round(width));out.height=Math.max(1,Math.round(height));return out;};
 
-function atlasFor(effect:Effect):Atlas{
- const cached=atlases.get(effect);if(cached)return cached;
+function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
+ const key=`${effect}:${sheet}`,rows=SHEET_ROWS[sheet],cached=atlases.get(key);if(cached)return cached;
  const image=new Image();const weapon=WEAPONS.find(item=>item.effect===effect),atlas:Atlas={cells:[],ready:Promise.resolve(),tilt:(weapon&&weaponKit(weapon.id)?.projectileTilt||0)*Math.PI/180};
  atlas.ready=new Promise(resolve=>{
   image.onload=()=>{
@@ -39,8 +44,8 @@ function atlasFor(effect:Effect):Atlas{
    // retaining painted glows; the original RGBA artwork remains untouched.
    for(let i=3;i<data.length;i+=4)if(data[i]<=12)data[i]=0;
    context.putImageData(pixels,0,0);
-   for(let row=0;row<3;row++)for(let column=0;column<4;column++){
-    const left=Math.round(column*canvas.width/4),right=Math.round((column+1)*canvas.width/4),top=Math.round(row*canvas.height/3),bottom=Math.round((row+1)*canvas.height/3);
+   for(let row=0;row<rows;row++)for(let column=0;column<4;column++){
+    const left=Math.round(column*canvas.width/4),right=Math.round((column+1)*canvas.width/4),top=Math.round(row*canvas.height/rows),bottom=Math.round((row+1)*canvas.height/rows);
     let x0=right,x1=left,y0=bottom,y1=top;
     for(let y=top;y<bottom;y++)for(let x=left;x<right;x++)if(data[(y*canvas.width+x)*4+3]>20){x0=Math.min(x0,x);x1=Math.max(x1,x);y0=Math.min(y0,y);y1=Math.max(y1,y);}
     x0=Math.max(left,x0-2);y0=Math.max(top,y0-2);x1=Math.min(right,x1+3);y1=Math.min(bottom,y1+3);
@@ -64,18 +69,18 @@ function atlasFor(effect:Effect):Atlas{
   };
   // Each weapon paints its own atlas (shared/weaponKit.ts); an effect no weapon uses keeps the drawn fallback.
   if(!weapon){resolve();return;}
-  image.onerror=()=>resolve();image.src=weaponEffectsPath(weapon.id);
+  image.onerror=()=>resolve();image.src=sheet==='pow'?weaponPowPath(weapon.id):weaponEffectsPath(weapon.id);
  });
- atlases.set(effect,atlas);return atlas;
+ atlases.set(key,atlas);return atlas;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
-export function preloadWeaponEffects(){return Promise.all([...new Set(WEAPONS.map(weapon=>weapon.effect))].map(effect=>atlasFor(effect).ready));}
+export function preloadWeaponEffects(){return Promise.all([...new Set(WEAPONS.map(weapon=>weapon.effect))].flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready]));}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
 if(typeof Image!=='undefined')void preloadWeaponEffects();
 
-function sprite(c:CanvasRenderingContext2D,effect:Effect,row:number,tier:number,x:number,y:number,width:number,angle=0,anchor=.5,alpha=1,dissolve=0,energy=row!==0){
- const atlas=atlasFor(effect),cell=atlas.cells[row*4+tier];if(!cell)return false;
+function sprite(c:CanvasRenderingContext2D,effect:Effect,row:number,tier:number,x:number,y:number,width:number,angle=0,anchor=.5,alpha=1,dissolve=0,energy=row!==0,sheet:Sheet='effects'){
+ const atlas=atlasFor(effect,sheet),cell=atlas.cells[row*4+tier];if(!cell)return false;
  if(row===0)angle+=atlas.tilt;
  const height=width*cell.height/cell.width;
  c.save();c.translate(x,y);c.rotate(angle);c.globalAlpha*=alpha;c.drawImage(energy?cell.energy[Math.min(cell.energy.length-1,Math.floor(clamp(dissolve)*6))]:cell.solid,-width*anchor,-height*.5,width,height);c.restore();return true;
@@ -210,7 +215,9 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  }
  const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='brick',spin=p.effect==='dynamite'?(reduced(options)?0:clock/170):p.effect==='brick'?(reduced(options)?0:Math.sin(sample*.09)*.55):pulse*.035;
  c.save();c.rotate(spin);if(!solid)c.scale(1,1+pulse*.09);
- const painted=sprite(c,p.effect,0,tier,0,0,size,0,p.effect==='dynamite'||p.effect==='brick'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72,solid?.86:.82,0,!solid);c.restore();
+ const anchor=p.effect==='dynamite'||p.effect==='brick'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
+ // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
+ const painted=(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
   const x=-Math.cos(spin)*size*.35,y=-Math.sin(spin)*size*.35;glow(c,x,y,5+tier*.6,family.hot,.55);
   c.save();c.globalCompositeOperation='screen';c.strokeStyle='#ffeab4';c.lineWidth=.8;const count=Math.min(limits(options).flightParticles,2+tier);
@@ -231,8 +238,9 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
  const lift=p.effect==='fire'?-radius*age*.36:p.effect==='dynamite'?-radius*age*.15:p.effect==='brick'?-radius*age*.12:0,rotation=p.effect==='electric'?motion*.8:p.effect==='fire'?motion*.3:p.effect==='crystal'?motion*.08:0;
  // The painting becomes a light layer, then erodes; particles continue its motion.
  const size=radius*(p.effect==='crystal'?2.05:p.effect==='brick'?2.2:1.9)*(.48+open*.52)*(1+tier*.06);
- sprite(c,p.effect,2,tier,0,lift,size,rotation,.5,.98,clamp((age-.04)/.84));
- if(tier>=2&&options.quality!=='low'&&p.effect!=='dynamite')sprite(c,p.effect,2,tier,0,lift*.55,size*1.13,-rotation*.7,.5,.16*(1-age),clamp((age+.1)/.9));
+ const pow=!!p.powered&&sprite(c,p.effect,1,tier,0,lift,size*POW_SPRITE_SCALE,rotation,.5,.98,clamp((age-.04)/.84),true,'pow');
+ if(!pow)sprite(c,p.effect,2,tier,0,lift,size,rotation,.5,.98,clamp((age-.04)/.84));
+ if(tier>=2&&options.quality!=='low'&&p.effect!=='dynamite')sprite(c,p.effect,pow?1:2,tier,0,lift*.55,size*1.13*(pow?POW_SPRITE_SCALE:1),-rotation*.7,.5,.16*(1-age),clamp((age+.1)/.9),true,pow?'pow':'effects');
  c.save();c.globalCompositeOperation='screen';
  if(age<.23)glow(c,0,0,radius*(.15+age*.8),family.hot,(1-age/.23)*.65);
  const ring=radius*(.2+open*.95);c.strokeStyle=family.mid;c.lineWidth=1.2*(1-age);c.globalAlpha*=.48*(1-age);

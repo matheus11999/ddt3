@@ -33,7 +33,9 @@ export const PHASE_ART_SLOTS={
  held:{label:'Arma na mão',size:[1254,1254]},
  projectile:{label:'Projétil',size:null},
  muzzle:{label:'Disparo',size:null},
- impact:{label:'Impacto',size:null}
+ impact:{label:'Impacto',size:null},
+ powProjectile:{label:'Projétil do POW',size:null},
+ powImpact:{label:'Impacto do POW',size:null}
 } as const;
 export type PhaseArtSlot=keyof typeof PHASE_ART_SLOTS;
 export const WEAPON_ART_SLOTS={terrain:{label:'Marca no cenário'}} as const;
@@ -48,6 +50,9 @@ export type WeaponSoundSlot=keyof typeof WEAPON_SOUND_SLOTS;
 /** Row of the 4 × 3 effect atlas `effects.png` (columns are the phases). */
 export const ATLAS_ROWS:Record<'projectile'|'muzzle'|'impact',number>={projectile:0,muzzle:1,impact:2};
 export const ATLAS_SIZE=[1448,1086] as const;
+/** Row of the 4 × 2 POW atlas `pow.png`: the POW shot always looks different from the normal one (user rule, 18/10/2026). */
+export const POW_ATLAS_ROWS:Record<'powProjectile'|'powImpact',number>={powProjectile:0,powImpact:1};
+export const POW_ATLAS_SIZE=[1448,724] as const;
 
 export interface PhaseBrief {
  /** What the weapon looks like in this phase. */
@@ -58,6 +63,9 @@ export interface PhaseBrief {
  projectile:string;
  muzzle:string;
  impact:string;
+ /** The POW shot of this phase: a different, bigger object than `projectile`, never the same one with more glow. */
+ powProjectile:string;
+ powImpact:string;
 }
 export interface WeaponKit {
  id:string;
@@ -91,10 +99,10 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
   projectileTilt:25,
   sound:{fire:'heavy underarm throw whoosh with a creaking rope',flight:'low tumbling whoosh with bricks knocking together',impact:'bricks smashing with a dry crash and clay shards scattering',terrain:'small chunk of wall crumbling, gravel falling'},
   phases:{
-   0:{ammo:'tijolos comuns de barro vermelho-alaranjado, foscos, cantos lascados e manchas de argamassa creme',held:'saco de estopa bege remendado, com a boca aberta e franzida por uma corda de sisal, cheio de tijolos vermelhos aparecendo pela abertura, alça de corda para carregar no ombro',projectile:'um tijolo vermelho girando, com lascas nos cantos',muzzle:'nuvem curta de pó de barro com duas lascas',impact:'tijolo partindo em cacos com poeira de barro alaranjada'},
-   10:{ammo:'tijolos mais firmes e alaranjados, cada um com uma cinta fina de latão e rachaduras finas com brilho fraco de brasa',held:'balde de obra de madeira com aros de latão e alça de corda dupla, transbordando de tijolos, uma pequena gema cor de brasa presa no aro',projectile:'tijolo com cinta de latão e brilho de brasa fraco nas rachaduras',muzzle:'pó de barro com faíscas de latão em leque',impact:'estouro de cacos com brasas pequenas e anel de poeira'},
-   12:{ammo:'tijolos laqueados vermelho-escuro brilhantes, cinta vermelha com rebite de latão e uma pequena gema de brasa incrustada em cada um',held:'estojo de pedreiro pequeno e portátil, de madeira laqueada vermelha com cantoneiras de latão e alça de corda grossa de sisal por cima para carregar numa mão, aberto em cima mostrando 4 tijolos encaixados, gema de brasa média na frente e uma picareta pequena presa na lateral; do tamanho de uma caixa de ferramentas de mão, nunca um caixote',projectile:'tijolo laqueado com cinta vermelha e gema de brasa acesa',muzzle:'leque de pó dourado e lascas de tijolo',impact:'cacos quentes voando com anel de faíscas'},
-   15:{ammo:'tijolos de mestre com cantos de latão polido e veios de brasa viva laranja-amarela correndo pelas rachaduras, soltando pequenas faíscas',held:'bolsa de mestre de obras de couro vermelho reforçada com placas de latão polido, alça de ombro de couro trançado, aberta em cima mostrando 4 tijolos encaixados em compartimentos, gema de brasa viva na tampa dobrada, martelo e colher de pedreiro pequenos cruzados presos na frente; do tamanho de uma bolsa carregada no ombro, nunca um baú',projectile:'tijolo com rachaduras de brasa e dois cacos girando em volta',muzzle:'estouro de brasa com pó dourado',impact:'explosão de cacos em brasa com onda de poeira dourada'}
+   0:{ammo:'tijolos comuns de barro vermelho-alaranjado, foscos, cantos lascados e manchas de argamassa creme',held:'saco de estopa bege remendado, com a boca aberta e franzida por uma corda de sisal, cheio de tijolos vermelhos aparecendo pela abertura, alça de corda para carregar no ombro',projectile:'um tijolo vermelho girando, com lascas nos cantos',muzzle:'nuvem curta de pó de barro com duas lascas',impact:'tijolo partindo em cacos com poeira de barro alaranjada',powProjectile:'um TIJOLÃO: bloco grande de dois tijolos comuns colados com argamassa creme, girando dentro de um redemoinho de poeira de barro com uma faixa branca de vento em espiral',powImpact:'estouro grande de cacos de tijolo e argamassa com anel largo de poeira de barro e onda de choque bege'},
+   10:{ammo:'tijolos mais firmes e alaranjados, cada um com uma cinta fina de latão e rachaduras finas com brilho fraco de brasa',held:'balde de obra de madeira com aros de latão e alça de corda dupla, transbordando de tijolos, uma pequena gema cor de brasa presa no aro',projectile:'tijolo com cinta de latão e brilho de brasa fraco nas rachaduras',muzzle:'pó de barro com faíscas de latão em leque',impact:'estouro de cacos com brasas pequenas e anel de poeira',powProjectile:'um TIJOLÃO de dois tijolos alaranjados presos por duas cintas largas de latão, rachaduras de brasa acesas e uma espiral de faíscas de latão em volta',powImpact:'explosão de cacos com brasas, anel de faíscas de latão e onda de poeira alaranjada'},
+   12:{ammo:'tijolos laqueados vermelho-escuro brilhantes, cinta vermelha com rebite de latão e uma pequena gema de brasa incrustada em cada um',held:'estojo de pedreiro pequeno e portátil, de madeira laqueada vermelha com cantoneiras de latão e alça de corda grossa de sisal por cima para carregar numa mão, aberto em cima mostrando 4 tijolos encaixados, gema de brasa média na frente e uma picareta pequena presa na lateral; do tamanho de uma caixa de ferramentas de mão, nunca um caixote',projectile:'tijolo laqueado com cinta vermelha e gema de brasa acesa',muzzle:'leque de pó dourado e lascas de tijolo',impact:'cacos quentes voando com anel de faíscas',powProjectile:'um TIJOLÃO laqueado vermelho-escuro de dois tijolos com cinta vermelha larga e uma gema de brasa GRANDE acesa no centro, puxando um cometa curto de brasa',powImpact:'explosão de cacos laqueados com clarão vermelho da gema, anel de brasas e poeira dourada'},
+   15:{ammo:'tijolos de mestre com cantos de latão polido e veios de brasa viva laranja-amarela correndo pelas rachaduras, soltando pequenas faíscas',held:'bolsa de mestre de obras de couro vermelho reforçada com placas de latão polido, alça de ombro de couro trançado, aberta em cima mostrando 4 tijolos encaixados em compartimentos, gema de brasa viva na tampa dobrada, martelo e colher de pedreiro pequenos cruzados presos na frente; do tamanho de uma bolsa carregada no ombro, nunca um baú',projectile:'um único tijolo de mestre inteiro, cantos de latão polido e rachaduras de brasa viva, com rastro curto de faíscas e calor atrás; nenhum caco, lasca ou pedaço solto ao redor',muzzle:'estouro de brasa com pó dourado',impact:'explosão de cacos em brasa com onda de poeira dourada',powProjectile:'um TIJOLÃO de mestre de dois tijolos com cantoneiras de latão polido, veios de brasa viva por todo o bloco e um cometa de fogo laranja-amarelo atrás; tudo numa peça só, sem pedaços soltos',powImpact:'grande explosão de brasa com cacos incandescentes, onda de choque dourada em anel e coluna curta de faíscas'}
   }
  }
 };
@@ -126,9 +134,11 @@ export {weaponIconPath};
 export function weaponSoundPath(id:string,slot:WeaponSoundSlot){return `/assets/audio/weapons/${id}/${slot}.mp3`;}
 export function weaponEffectsPath(id:string){return `/assets/weapons/${id}/effects.png`;}
 export function weaponTerrainPath(id:string){return `/assets/weapons/${id}/terrain.png`;}
+export function weaponPowPath(id:string){return `/assets/weapons/${id}/pow.png`;}
 export function phaseArtPath(kit:WeaponKit,stage:WeaponPhase,slot:PhaseArtSlot):string {
  if(slot==='icon')return weaponIconPath(kit.id,stage);
  if(slot==='held')return weaponAssetPath(kit.id,stage);
+ if(slot==='powProjectile'||slot==='powImpact')return weaponPowPath(kit.id);
  return weaponEffectsPath(kit.id);
 }
 
@@ -147,21 +157,22 @@ const CONSISTENCY='CONSISTENCY: attach the reference images listed below. Copy o
 const NEW_OBJECT='IMPORTANT: the reference images show EARLIER phases of this weapon. Do NOT redraw, edit or recolor their object. Paint a DIFFERENT object with a new silhouette, exactly as described below; if the result looks like a reference image, it is wrong.';
 
 /** Order to generate pieces: each one uses earlier, approved pieces as references. */
-export function promptOrder(slot:PhaseArtSlot|'terrain'|'atlas',stage?:WeaponPhase):number {
+export function promptOrder(slot:PhaseArtSlot|'terrain'|'atlas'|'pow',stage?:WeaponPhase):number {
  const tier=stage===undefined?0:WEAPON_PHASES.find(p=>p.stage===stage)!.tier;
- return slot==='icon'?1+tier*2:slot==='held'?2+tier*2:slot==='atlas'?9:10;
+ return slot==='icon'?1+tier*2:slot==='held'?2+tier*2:slot==='atlas'?9:slot==='pow'?11:10;
 }
-function references(kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas',stage?:WeaponPhase):string[] {
+function references(kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas'|'pow',stage?:WeaponPhase):string[] {
  const tier=stage===undefined?0:WEAPON_PHASES.find(p=>p.stage===stage)!.tier,previous=tier>0?WEAPON_PHASES[tier-1].stage:undefined;
  const icon=(s:WeaponPhase)=>`public${weaponIconPath(kit.id,s)}`,held=(s:WeaponPhase)=>`public${weaponAssetPath(kit.id,s)}`;
  if(slot==='icon')return previous===undefined?[]:[...new Set([icon(0),icon(previous)])];
  if(slot==='held')return [icon(stage!),...(previous===undefined?[]:[held(previous)])];
  if(slot==='atlas')return WEAPON_PHASES.map(p=>held(p.stage));
+ if(slot==='pow')return [`public${weaponEffectsPath(kit.id)}`,...WEAPON_PHASES.map(p=>held(p.stage))];
  return [`public${weaponEffectsPath(kit.id)}`];
 }
 
 /** ChatGPT image prompt for one missing art piece. */
-export function artPrompt(weapon:Weapon,kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas',stage?:WeaponPhase):string {
+export function artPrompt(weapon:Weapon,kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas'|'pow',stage?:WeaponPhase):string {
  const phase=stage===undefined?undefined:WEAPON_PHASES.find(p=>p.stage===stage)!,brief=stage===undefined?undefined:kit.phases[stage];
  const own=references(kit,slot,stage),anchors=WEAPON_STYLE_ANCHORS.filter(path=>!path.startsWith(`/assets/weapons/${kit.id}/`)).map(path=>`public${path}`);
  const refs=[...new Set([...anchors,...own])];
@@ -170,6 +181,10 @@ export function artPrompt(weapon:Weapon,kit:WeaponKit,slot:PhaseArtSlot|'terrain
  if(slot==='icon')return `${head}${growth}\nCreate ONE square inventory ICON, 512×512, of this weapon: ${brief!.held}. The bricks inside this phase: ${brief!.ammo}. Icon framing like DDTank weapon icons: the object fills about 80% of the square, slight diagonal three-quarter view, chunky and readable at 64 px. Transparent background: the game paints the colored tile behind it.\nSave as public${weaponIconPath(kit.id,stage!)}`;
  if(slot==='held')return `${head}${growth}\nCreate ONE isolated weapon asset, 1254×1254, the same design as the icon of this phase, as the character holds it in combat: ${brief!.held}. The bricks inside this phase: ${brief!.ammo}. Centered, diagonal pointing up-right, no hand or person.\nSave as public${weaponAssetPath(kit.id,stage!)}`;
  if(slot==='terrain')return `${head}\nCreate the TERRAIN MARK this weapon leaves on destructible ground after it explodes: a small organic decal with a transparent center (the crater hole), soft painted edges and little clay shards and mortar dust that match the weapon. The weapon digs small craters, so the mark is modest. Not an active explosion, not a cloud. Square 1024×1024, transparent.\nSave as public${weaponTerrainPath(kit.id)}`;
+ if(slot==='pow'){
+  const pow=WEAPON_PHASES.map(p=>`column ${p.tier+1} (${p.label}): POW projectile = ${kit.phases[p.stage].powProjectile} (the normal shot of this phase, which it must NOT look like: ${kit.phases[p.stage].projectile}); POW impact = ${kit.phases[p.stage].powImpact}`).join('\n');
+  return `${head}\nCreate the POW SPRITE ATLAS, exactly 1448×724, FOUR columns × TWO rows of square 362×362 cells, no gridlines. POW is the special super shot: in every column it is a clearly DIFFERENT and BIGGER object than the normal projectile of the same phase in the reference atlas (different silhouette, not the same brick with more glow), yet clean and readable, not overloaded; the game draws the POW text and aura. Columns left to right are the phases ${WEAPON_PHASES.map(p=>p.label).join(' / ')}, evolving like the held weapon of that phase. Top row: flying POW projectile pointing RIGHT and tilted about ${kit.projectileTilt??0}° upward like the normal projectiles, one single object with its trail to the LEFT, no loose pieces around it. Bottom row: radial POW impact, bigger and stronger than the normal impact, no ground. Every sprite stays inside the central 70% of its cell.\n${pow}\nSave as public${weaponPowPath(kit.id)}`;
+ }
  const rows=WEAPON_PHASES.map(p=>`column ${p.tier+1} (${p.label}): projectile = ${kit.phases[p.stage].projectile}; launch = ${kit.phases[p.stage].muzzle}; impact = ${kit.phases[p.stage].impact}`).join('\n');
  return `${head}\nCreate ONE visual effect SPRITE ATLAS, exactly 1448×1086, FOUR columns × THREE rows of square 362×362 cells, no gridlines. Columns left to right are the phases ${WEAPON_PHASES.map(p=>p.label).join(' / ')}; each column is a clearly more evolved design with a different silhouette, matching the held weapon of that phase. Top row: flying projectile pointing RIGHT, trail to the LEFT. Middle row: launch/muzzle flash from the left toward the RIGHT, no weapon body. Bottom row: radial impact with matching debris, no ground. Every sprite stays inside the central 65% of its cell.\n${rows}\nSave as public${weaponEffectsPath(kit.id)}`;
 }
