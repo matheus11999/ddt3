@@ -1,0 +1,7 @@
+Paint ONE image, exactly 1536x1024 pixels, landscape, fully opaque. It is the RIGHT HALF of the far background of the lobby "Praça Celeste". The attached ceu-esquerda.png is the LEFT half: continue it to the right as one single panorama, same sky colors, same cloud style, same sea, and the sea horizon at exactly the same height (62% of the image height, y = 635). Do not repeat any cloud or mountain of the left half.
+
+Game: a 2D side-view online browser artillery game in the exact painted style of DDTank (soft painted shading, rounded cartoon shapes, clean soft outlines, rich saturated sunny colors, whimsical fairy-tale mood, high detail). Not pixel art, not flat vector, not 3D render, not photo. Keep the exact mood, palette, light (sun from the upper right) and painting of the attached plaza.webp (approved Praça Celeste lobby), but paint it again at higher detail.
+Absolutely no text, letters, numbers, logos, UI, frames, people or characters.
+
+Content: same as the left half (sky, big painted cumulus clouds, turquoise sea to the bottom, a low pale hazy mountain range and tiny pale islands only on the horizon; no buildings, castles, floating islands, trees, ships or balloons). Make the mountain range a bit taller here, with one pale snowy peak around 70% from the left.
+- The LEFT 20% of the image is only sky, clouds and open sea with a flat horizon, no mountain or island touching the left edge (it is blended into the left half).
