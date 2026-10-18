@@ -7,7 +7,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {dropChance,expeditionStages,getExpedition,MONSTERS,partyHpScale} from '../shared/expeditions';
-import {MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,strideOf} from '../shared/instanceTurn';
+import {bossOpening,MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,strideOf} from '../shared/instanceTurn';
 import type {MonsterBody} from '../shared/instanceTurn';
 import {createTerrain,ground} from '../shared/physics';
 import {getMap,INSTANCE_MAP_IDS,MAPS} from '../shared/maps';
@@ -115,7 +115,12 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  await f.game.command(f.b.id,{type:'ready'});await f.game.command(f.a.id,{type:'start'});
  const stage2=f.game.matches.get(f.roomId)!.state;
  assert.equal(stage2.map,'anthill-2');assert.equal(stage2.instance?.stage,2);assert.ok(stage2.instance?.boss);assert.ok(stage2.instance?.nest);
- assert.ok(stage2.instance!.introUntil-Date.now()<=1600,'sem a chegada das formigas no estágio 2');
+ // Stage 2 opens on the queen: two taunts in speech bubbles, then two ants leave the nest toward the party (no walk-in from the map sides).
+ const opening=bossOpening(2),lines=stage2.instance!.speech!;
+ assert.deepEqual(lines.map(l=>l.text),['Peguem esses invasores!!!','Não deixem ninguém sobreviver!']);assert.ok(lines.every(l=>l.id===stage2.instance!.boss));
+ assert.ok(Math.abs(stage2.instance!.introUntil-Date.now()-opening.end)<200);
+ const walk=stage2.instance!.monsterTurn!;assert.equal(walk.summons.length,2);assert.equal(walk.moves.length,2);
+ for(const move of walk.moves){const ant=stage2.players.find(p=>p.id===move.id)!;assert.ok(ant.hp>0);assert.equal(ant.x,move.to[0]);assert.ok(move.to[0]<move.from[0],'as formigas andam do ninho em direção à equipe');}
  // The queen falls: the boss reward has more cards.
  stage2.instance!.introUntil=Date.now()-1;stage2.players.find(p=>p.id===stage2.instance!.boss)!.hp=0;
  const turn=stage2.turnId;await f.game.command(turn,{type:'pass'});f.game.tick(f.game.matches.get(f.roomId)!.resolveAt+1);
@@ -147,8 +152,15 @@ test('the queen shoots and summons ants from the nest on her turn',async()=>{
  for(let n=0;n<2;n++)await f.game.command(s.turnId,{type:'pass'});
  assert.equal(s.turnId,MONSTER_TURN_ID);
  const turn=s.instance!.monsterTurn!;assert.ok(turn.arrowAt);
- const events:number[]=[];while(m.instance!.events.length){const at=m.instance!.events[0].at;events.push(at);f.game.tick(at);}
+ // She shoots first; the ants only start walking after her arrow lands.
+ assert.ok(turn.startedAt>turn.arrowAt!,'a rainha atira antes de as formigas andarem');
+ const events:number[]=[];while(m.instance!.events.length&&!m.activeShot){const at=m.instance!.events[0].at;events.push(at);f.game.tick(at);}
  assert.ok(m.activeShot?.projectiles[0].monster==='arrow');
+ // The arrow leaves from her bow, not from the middle of her body.
+ const queen=s.players.find(p=>p.id===s.instance!.boss)!,[x0,y0]=m.activeShot!.projectiles[0].points[0],bow=MONSTERS['ant-queen'].muzzle!;
+ assert.ok(Math.hypot(x0-(queen.x+queen.facing*bow.forward),y0-(queen.y-bow.up))<6,`flecha saiu de ${x0},${y0}`);
+ assert.ok(m.activeShot!.startedAt+m.activeShot!.projectiles[0].flightTime<=turn.startedAt);
+ while(m.instance!.events.length){const at=m.instance!.events[0].at;events.push(at);f.game.tick(at);}
  // Round 1 is not a summoning round (every 2); round 2 is.
  f.game.tick(m.resolveAt+1);for(let n=0;n<2;n++)await f.game.command(s.turnId,{type:'pass'});
  assert.notEqual(s.phase,'finished');

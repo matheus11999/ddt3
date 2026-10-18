@@ -25,6 +25,8 @@ export interface MonsterSprite {
  height:number;feet:number;
  /** Direction the painting faces. */
  faces:1|-1;
+ /** Melee ants: a 4-frame walk cycle (same cell size and baseline as `src`), stepped by the distance walked, one cycle every `cycle` px. */
+ walk?:{src:string;cycle:number};
 }
 export interface MonsterDef {
  kind:MonsterKind;name:string;
@@ -40,15 +42,17 @@ export interface MonsterDef {
  hitRadius:number;hitHeight:number;
  behavior:'melee'|'queen';
  sprite:MonsterSprite;
+ /** Ranged monsters: where the projectile leaves (the bow), in world px ahead of and above the feet. */
+ muzzle?:{forward:number;up:number};
 }
 export const MONSTERS:Record<MonsterKind,MonsterDef>={
  'ant-worker':{kind:'ant-worker',name:'Formiga Operária',hp:450,attack:120,toughness:1,reach:84,stride:175,hitRadius:36,hitHeight:48,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-worker.png',height:108,feet:.97,faces:1}},
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-worker-walk.png',cycle:56},src:'/assets/expeditions/anthill/ant-worker.png',height:108,feet:.97,faces:1}},
  'ant-soldier':{kind:'ant-soldier',name:'Formiga Soldado',hp:750,attack:170,toughness:1.1,reach:92,stride:115,hitRadius:44,hitHeight:58,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-soldier-walk.png',cycle:60},src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
  'ant-brute':{kind:'ant-brute',name:'Formiga Guerreira',hp:1200,attack:240,toughness:1.25,reach:104,stride:65,hitRadius:54,hitHeight:74,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
- 'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-brute-walk.png',cycle:48},src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
+ 'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',muzzle:{forward:85,up:128},
   sprite:{src:'/assets/expeditions/anthill/ant-queen.png',height:260,feet:.98,faces:-1}},
 };
 export const isMonsterKind=(kind:string):kind is MonsterKind=>(MONSTER_KINDS as readonly string[]).includes(kind);
@@ -65,7 +69,9 @@ export interface StageDef {
  /** Fixed award for clearing the stage, before the card. */
  award:{coins:number;xp:number};
  /** Queen stages: the boss falling ends the stage; she summons ants every `summonEvery` monster turns, up to `summonLimit` alive. */
- boss?:{summonEvery:number;summonCount:number;summonLimit:number;summonKinds:readonly MonsterKind[]};
+ boss?:{summonEvery:number;summonCount:number;summonLimit:number;summonKinds:readonly MonsterKind[];
+  /** Opening scene: the boss speaks these lines (one speech bubble each), then `openingSummons` ants leave the nest toward the party. */
+  taunts?:readonly string[];openingSummons?:number};
 }
 export interface ExpeditionDef {
  id:string;name:string;subtitle:string;description:string;cover:string;minLevel:number;
@@ -87,7 +93,7 @@ export const EXPEDITIONS:readonly ExpeditionDef[]=[
   stages:{easy:[
    {map:'anthill-1',name:'O tronco caído',art:'/assets/expeditions/anthill/stage-1.webp',objective:'Derrotar todas as formigas',cards:4,award:{coins:20,xp:40},prizes:[
     {kind:'coins',amount:30},{kind:'coins',amount:50},{kind:'coins',amount:70},{kind:'xp',amount:40},{kind:'xp',amount:60},{kind:'stone',amount:1,level:1},{kind:'ticket',amount:1}]},
-   {map:'anthill-2',name:'A câmara da rainha',art:'/assets/expeditions/anthill/stage-2.webp',cards:8,award:{coins:60,xp:120},boss:{summonEvery:2,summonCount:2,summonLimit:5,summonKinds:['ant-worker','ant-soldier']},prizes:[
+   {map:'anthill-2',name:'A câmara da rainha',art:'/assets/expeditions/anthill/stage-2.webp',cards:8,award:{coins:60,xp:120},boss:{summonEvery:2,summonCount:2,summonLimit:5,summonKinds:['ant-worker','ant-soldier'],taunts:['Peguem esses invasores!!!','Não deixem ninguém sobreviver!'],openingSummons:2},prizes:[
     {kind:'coins',amount:100},{kind:'coins',amount:150},{kind:'coins',amount:250},{kind:'xp',amount:120},{kind:'xp',amount:200},
     {kind:'stone',amount:2,level:1},{kind:'stone',amount:1,level:2},{kind:'stone',amount:1,level:3},{kind:'ticket',amount:1},{kind:'ticket',amount:2}]},
   ]}},

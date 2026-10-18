@@ -8,6 +8,8 @@ import {dirname} from 'node:path';
 //    shares the same size and baseline. Walking frames are centred on the body's mass, so the two steps
 //    do not slide back and forth and the creature stands on its own x; the attack frames (and the queen)
 //    are pinned by the back (the side opposite to where it faces), so a lunge or a drawn bow reaches forward;
+//  - an ant's 2x2 walk-cycle sheet (4 walk frames) into `<file>-walk.png` with the very same cell size, baseline
+//    and centre as its main strip, each frame scaled so the body matches walk A's (the game swaps strips freely);
 //  - the arrow + icons sheet into the arrow and the dock button;
 //  - the cover and the room banner into webp.
 // Usage: node scripts/cut-monster-sheet.mjs [--src=public/assets/expeditions/anthill/source]
@@ -15,9 +17,9 @@ import {dirname} from 'node:path';
 const arg=name=>process.argv.find(a=>a.startsWith(`--${name}=`))?.slice(name.length+3);
 const src=arg('src')??'public/assets/expeditions/anthill/source',out='public/assets/expeditions/anthill';
 const CREATURES=[
- {sheet:'10-formiga-operaria.png',file:'ant-worker.png',faces:1,walks:true,height:240},
- {sheet:'11-formiga-soldado.png',file:'ant-soldier.png',faces:1,walks:true,height:260},
- {sheet:'12-formiga-guerreira.png',file:'ant-brute.png',faces:1,walks:true,height:300},
+ {sheet:'10-formiga-operaria.png',walkSheet:'18-operaria-andar.png',file:'ant-worker.png',faces:1,walks:true,height:240},
+ {sheet:'11-formiga-soldado.png',walkSheet:'19-soldado-andar.png',file:'ant-soldier.png',faces:1,walks:true,height:260},
+ {sheet:'12-formiga-guerreira.png',walkSheet:'20-guerreira-andar.png',file:'ant-brute.png',faces:1,walks:true,height:300},
  {sheet:'13-rainha.png',file:'ant-queen.png',faces:-1,height:420},
 ];
 const builder=(await transformWithEsbuild(await readFile('shared/mapBuilder.ts','utf8'),'mapBuilder.ts',{loader:'ts',format:'iife',globalName:'MapBuilder'})).code;
@@ -67,6 +69,16 @@ try{
    const origin=creature.walks?4+half:4+Math.max(...frames.map(f=>f.anchor));
    frames.forEach((f,n)=>g.drawImage(f.canvas,n*cw+(origin-f.anchor)*scale,(3+above-f.feet)*scale,f.w*scale,f.h*scale));
    files[creature.file]=encode(strip);files[creature.file+'.feet']=String(((3+above)/fh).toFixed(3));
+   if(creature.walkData){
+    const {sc:wc}=B.unkey(await B.loadImage(creature.walkData)),wf=islands(wc),bodyWidth=group=>{const body=group.reduce((a,b)=>b.n>a.n?b:a);return body.x1-body.x0;};
+    const main=cells(found,2,2).slice(0,2).map(bodyWidth),reference=(main[0]+main[1])/2;
+    const walk=cells(wf,2,2).map(group=>{const body=group.reduce((a,b)=>b.n>a.n?b:a),part=crop(wc,wf,group);return {...part,feet:body.y1-part.y0,mass:body.sx/body.n-part.x0,width:body.x1-body.x0};});
+    // One shared ratio (the walk sheet's average body width against walk A/B) keeps the cycle from pulsing in size.
+    const ratio=walk.reduce((n,f)=>n+f.width,0)/walk.length/reference;
+    const ws=B.canvas(cw*4,ch),wg=ws.getContext('2d');wg.imageSmoothingQuality='high';
+    walk.forEach((f,n)=>{wg.save();wg.beginPath();wg.rect(n*cw,0,cw,ch);wg.clip();wg.drawImage(f.canvas,n*cw+(origin-f.mass/ratio)*scale,(3+above-f.feet/ratio)*scale,f.w/ratio*scale,f.h/ratio*scale);wg.restore();});
+    files[creature.file.replace('.png','-walk.png')]=encode(ws);
+   }
   }
   {const {sc}=B.unkey(await B.loadImage(icons)),found=islands(sc),[top,,left,right]=cells(found,2,2),upper=found.list.filter(i=>i.sy/i.n<found.H/2);
    const square=(part,size)=>{const c=B.canvas(size,size),g=c.getContext('2d'),side=Math.max(part.w,part.h)/.92,s=size/side;g.imageSmoothingQuality='high';g.drawImage(part.canvas,(size-part.w*s)/2,(size-part.h*s)/2,part.w*s,part.h*s);return c;};
@@ -75,7 +87,7 @@ try{
   const resized=async(data,w,h)=>{const image=await B.loadImage(data),c=B.canvas(w,h),g=c.getContext('2d');g.imageSmoothingQuality='high';g.drawImage(image,0,0,w,h);return encode(c,'image/webp',.88);};
   files['cover.webp']=await resized(cover,768,512);files['room-banner.webp']=await resized(banner,768,1152);
   return files;
- },{creatures:await Promise.all(CREATURES.map(async c=>({...c,data:await dataUrl(`${src}/${c.sheet}`)}))),icons:await dataUrl(`${src}/14-flecha-e-icone.png`),cover:await dataUrl(`${src}/02-formigueiro-capa.png`),banner:await dataUrl(`${src}/01-sala-banner.png`)}));
+ },{creatures:await Promise.all(CREATURES.map(async c=>({...c,data:await dataUrl(`${src}/${c.sheet}`),...(c.walkSheet?{walkData:await dataUrl(`${src}/${c.walkSheet}`)}:{})}))),icons:await dataUrl(`${src}/14-flecha-e-icone.png`),cover:await dataUrl(`${src}/02-formigueiro-capa.png`),banner:await dataUrl(`${src}/01-sala-banner.png`)}));
 }finally{await browser.close();}
 
 const target=name=>name==='expedition-button.png'?'public/assets/ui/expedition-button.png':name==='room-banner.webp'?'public/assets/expeditions/room-banner.webp':`${out}/${name}`;

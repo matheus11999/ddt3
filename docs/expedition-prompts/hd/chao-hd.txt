@@ -1,0 +1,8 @@
+Repaint the attached image at FULL detail and sharpness. It is a 2x enlargement of a painted terrain piece from a 2D side-view artillery game in the DDTank style, so it looks soft and blurry; your job is a crisp high-resolution repaint of exactly the same thing.
+
+Rules:
+- Keep EXACTLY the same silhouette, outline, positions, sizes, shapes and colours as the attached image. Do not move, add or remove anything (same stones, roots, crystals, leaves, flowers, bumps, in the same places). Only add the fine painted detail a high-resolution version would have: crisp dark outlines, dirt grain, small pebbles, highlights on stones and crystals, soft painted shading.
+- This is a CROP of a longer piece: where the terrain touches the left or right border of the image it continues outside the image. Do not round off, close or end the terrain at those borders; paint it running straight off the edge.
+- Everything that is magenta in the attached image stays flat pure magenta #FF00FF: no shadow, glow or tint on the magenta, no background.
+- Painted DDTank style: thick soft dark outlines, rich volume, warm saturated colours. Not vector, not pixel art, not photo.
+- No text, no numbers, no letters, no watermark. Output exactly 1536x1024, same framing as the attached image.
