@@ -29,6 +29,8 @@ import type {AuctionHouse} from './auction';
 import type {GuildHall,Membership} from './guilds';
 import {GVG_CONTRIBUTION,smithBonus} from '../shared/guilds';
 import type {GuildMissionId} from '../shared/guilds';
+import type {GuildBoard,HallBoard,HallCategory,HallGuildProfile,HallLegends,HallPeriod,HallPlayerProfile,LegendBoard} from '../shared/hall';
+import type {MatchRecord} from './hall';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
@@ -57,7 +59,15 @@ export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpa
 export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch','pet-skill']);
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];}
+/** What the game reads from the Hall da Fama (tests use a fake). */
+export interface HallService {
+ board(viewerId:string,q:{category:HallCategory;period?:HallPeriod;board?:GuildBoard;page?:number}):Promise<HallBoard>;
+ profile(playerId:string):Promise<HallPlayerProfile|null>;
+ guildProfile(guildId:number):Promise<HallGuildProfile|null>;
+ legends(board:LegendBoard,key?:string):Promise<HallLegends>;
+}
+const HALL_MIN_MS=150;
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
 
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
@@ -77,6 +87,9 @@ export class Game {
  pets?:PetKeeper;
  /** Server roll for pet skill chances, uniform in [0, 1). */
  petRoll:()=>number=()=>randomInt(1_000_000)/1_000_000;
+ /** Hall da Fama (server/hall.ts); without it the hall is closed. */
+ hall?:HallService;
+ private hallAt=new Map<string,number>();private hallQueued=new Map<string,Command>();
  /** Chefão Mundial (server/worldBoss.ts); without it the event never opens. */
  worldBoss?:WorldBossRealm;
  /** Damage waiting to reach the global life, in order; each entry has its own ledger key, so a retry counts once. */
@@ -325,7 +338,7 @@ export class Game {
    else if(!this.invitationAvailable(pending))this.finishInvitation(pending,'unavailable');
   }
   for(const [key,at] of this.invitePairAt)if(now-at>=ROOM_INVITE_PAIR_MS)this.invitePairAt.delete(key);
-  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt,this.playerInfoAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
+  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt,this.playerInfoAt,this.hallAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
  }
  private invitePlayer(p:Peer,playerId:string){
   this.pruneInvitations();const room=this.invitationRoom(p),now=Date.now(),id=p.profile.id,target=this.peers.get(playerId);
@@ -616,6 +629,18 @@ export class Game {
      this.petOutcome(p,outcome);return;
     }
     case 'pet-skill':{const {m,f}=this.turn(p);this.usePetSkill(m,f,c.skill,c.target);break;}
+    case 'hall-board':case 'hall-profile':case 'hall-guild':case 'hall-legends':{
+     // Reading only. Asks closer than HALL_MIN_MS wait their turn and only the latest of each kind is answered,
+     // so a client clicking fast never hammers the database and never sees an error for it.
+     const hall=this.requireHall(),key=`${id}:${c.type}`,now=Date.now(),wait=HALL_MIN_MS-(now-(this.hallAt.get(key)??-Infinity));
+     if(wait>0){const queued=this.hallQueued.has(key);this.hallQueued.set(key,c);if(!queued)setTimeout(()=>{const next=this.hallQueued.get(key);this.hallQueued.delete(key);if(next)void this.command(id,next).catch(()=>{});},wait).unref?.();return;}
+     this.hallAt.set(key,now);
+     if(c.type==='hall-board')this.emit(p,{type:'hall-board',board:await hall.board(id,{category:c.category,period:c.period,board:c.board,page:c.page})});
+     else if(c.type==='hall-profile'){const profile=await hall.profile(c.playerId);if(!profile)throw Error('Jogador não encontrado.');this.emit(p,{type:'hall-profile',profile});}
+     else if(c.type==='hall-guild'){const guild=await hall.guildProfile(c.guildId);if(!guild)throw Error('Esta guilda não existe mais.');this.emit(p,{type:'hall-guild',guild});}
+     else this.emit(p,{type:'hall-legends',legends:await hall.legends(c.board,c.key)});
+     return;
+    }
     case 'guild-state':await this.sendGuild(p);return;
     case 'guild-list':this.emit(p,{type:'guild-list',guilds:await this.requireGuilds().list(c.search)});return;
     case 'guild-create':{
@@ -1025,7 +1050,7 @@ export class Game {
   const exhausted=m.state.turnNumber>=80;
   if(teams.size>1&&!exhausted)return false;
   delete m.pendingPower;delete m.pendingImpacts;delete m.state.powerCutIn;m.state.players.forEach(f=>{f.powerArmed=false;f.flightArmed=false;f.homingArmed=false;});
-  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:null;
+  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:null;m.finishedAt=Date.now();
   m.rewardDeck=Array.from({length:REWARD_CARD_COUNT},()=>({...CARD_PRIZES[randomInt(CARD_PRIZES.length)]}));
   const opensAt=Math.max(Date.now(),...m.state.players.map(player=>player.fall?player.fall.startedAt+player.fall.duration:0))+REWARD_RESULT_MS;m.state.rewards={opensAt,deadline:opensAt+REWARD_PICK_MS,phase:'picking',saved:false,cards:Array.from({length:REWARD_CARD_COUNT},(_,index)=>({index}))};
   // Bot choices occupy real slots too; prizes stay exclusively on the server until reveal.
@@ -1067,7 +1092,7 @@ export class Game {
   const humans=m.state.players.filter(p=>!p.bot&&!p.left),winners=humans.filter(p=>p.team===m.state.winner).map(p=>p.id);
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
   const run=m.instance,award=run?.won?run.stages[run.stage].award:{coins:0,xp:0};
-  const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses);
+  const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses,this.matchRecord(m));
   // GvG: every winner adds Riqueza to their guild (once per battle, like the match rewards).
   const gvgGuild=m.gvg&&m.state.winner!==null&&winners.length?m.gvg[m.state.winner]:undefined;
   // Pets settle right after the rewards (idempotent too, so a retry repeats both safely).
@@ -1083,6 +1108,16 @@ export class Game {
    rewards.saved=true;if(!run)void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
   }).catch(error=>{this.report(error);m.retryRewardsAt=Date.now()+2000;}).finally(()=>{m.savingRewards=false;});
  }
+ /** The official result for the Hall da Fama: every human who fought (leavers too), the kind of battle and its end. */
+ matchRecord(m:Match):MatchRecord{
+  const fighters=m.state.players.filter(f=>!f.bot&&!f.monster),size=(team:0|1)=>m.state.players.filter(f=>f.team===team&&!f.monster).length;
+  const kind=m.gvg?'gvg':m.roomIds.length===2&&!m.practiceParty&&!m.state.players.some(f=>f.bot)?'pvp':'practice';
+  return {matchId:m.state.id,kind,mode:`${size(0)}v${size(1)}`,winnerTeam:m.state.winner===0||m.state.winner===1?m.state.winner:null,startedAt:m.createdAt,finishedAt:m.finishedAt??Date.now(),
+   participants:fighters.map(f=>({id:f.id,team:f.team as 0|1,left:!!f.left}))};
+ }
+ /** A board of the Hall da Fama changed: everyone with the hall open asks again (the client decides). */
+ hallChanged(categories:HallCategory[]){for(const peer of this.peers.values())if(peer.connected)this.emit(peer,{type:'hall-changed',categories});if(categories.includes('pvp'))void this.refreshRanking();}
+ private requireHall(){if(!this.hall)throw Error('O Hall da Fama está fechado no momento.');return this.hall;}
  /** Reloads the day's podium and tells everyone when it changed; also rolls over at midnight. */
  refreshRanking():Promise<void>{
   if(!this.store.dailyRanking)return Promise.resolve();

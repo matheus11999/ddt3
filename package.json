@@ -49,7 +49,8 @@
     "test:mail:browser": "node scripts/smoke-mail.mjs",
     "test:auction:integration": "tsx tests/auction.integration.ts",
     "test:guilds:integration": "tsx tests/guilds.integration.ts",
-    "test:pets:integration": "tsx tests/pets.integration.ts"
+    "test:pets:integration": "tsx tests/pets.integration.ts",
+    "test:hall:integration": "tsx tests/hall.integration.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

@@ -22,6 +22,8 @@ import {guildCommandSchemas} from './guilds';
 import {petCommandSchemas} from './petProtocol';
 import type {PetsState,PetResult} from './petProtocol';
 import type {BattlePetState,PetApplication,PetEffect} from './petSkills';
+import {hallCommandSchemas} from './hall';
+import type {HallEvent} from './hall';
 import type {GuildState,GuildSummary} from './guilds';
 import type {BattleWorldBoss,WorldBossRanking,WorldBossStatus} from './worldBoss';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;/** Pet food stacks (shared/pets.ts PET_FOODS), counted like stones. */petFood:Record<string,number>;}
@@ -76,6 +78,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  ...auctionCommandSchemas,
  ...guildCommandSchemas,
  ...petCommandSchemas,
+ ...hallCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  // Without an id: "Receber tudo".
@@ -170,5 +173,6 @@ export type ServerEvent =
  | ({type:'pets'} & PetsState)
  | {type:'pet-result';result:PetResult}
  | {type:'pet-effect';battleId:string;at:number;applications:PetApplication[]}
+ | HallEvent
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};
