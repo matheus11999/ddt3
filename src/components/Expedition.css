@@ -14,9 +14,10 @@
 @keyframes expedition-call{50%{transform:scale(1.05);color:#fff1b8}}
 /* Chosen expedition on the board: tall gradient, 3D title (same recipe as the battle texts), difficulty, drops. */
 .expedition-banner-choice{padding:120px 14px 14px;gap:8px;background:linear-gradient(transparent,#2c1004a6 22%,#2c1004e0 48%,#1a0802f7 75%)}
-.expedition-title{--face-top:#fffbd0;--face-middle:#ffd84a;--face-bottom:#f08a12;--text-edge:#7a3510;--text-depth:#5e2410;position:relative;display:inline-block;isolation:isolate;font:400 clamp(40px,4.2vw,62px)/1.02 'Lilita One','Nunito',sans-serif;white-space:nowrap;letter-spacing:.5px;filter:drop-shadow(0 6px 4px #0009)}
+.expedition-title{--face-top:#fffbd0;--face-middle:#ffd84a;--face-bottom:#f08a12;--text-edge:#7a3510;--text-depth:#5e2410;position:relative;display:inline-block;isolation:isolate;font:400 clamp(40px,4.2vw,62px)/1.02 'Titan One','Lilita One','Nunito',sans-serif;white-space:nowrap;letter-spacing:.5px;filter:drop-shadow(0 6px 4px #0009)}
 .expedition-title::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:var(--text-depth);-webkit-text-stroke:6px #2a1006;paint-order:stroke fill;text-shadow:0 1px var(--text-depth),1px 2px var(--text-depth),1px 3px var(--text-depth),2px 4px var(--text-depth),2px 5px var(--text-depth),3px 6px var(--text-depth),3px 7px #1d0a04}
 .expedition-title>span{position:relative;display:block;background:linear-gradient(var(--face-top) 8%,var(--face-middle) 45%,var(--face-bottom) 84%);background-clip:text;-webkit-background-clip:text;color:transparent;-webkit-text-stroke:1.4px var(--text-edge);paint-order:stroke fill}
+:is(.pvp-room,.pvp-hall,.expedition-picker) :is(.expedition-title,.expedition-title>span){font-family:'Titan One','Lilita One','Nunito',sans-serif}
 .expedition-banner-choice .expedition-difficulty-tag{margin-top:0}
 .expedition-stage-badge{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;height:44px;padding:0 12px 0 10px;border:2px solid #fff0b8;border-radius:11px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 14px #ffb44f88;line-height:1;pointer-events:none}
 .expedition-stage-badge::before{content:'';position:absolute;inset:3px;border:1px solid #fff6cf99;border-radius:8px}
