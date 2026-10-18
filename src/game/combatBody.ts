@@ -33,6 +33,9 @@ export const combatBodyReady=(eq:Equipment)=>!!combatAtlas(eq);
 const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4'};
 /** Weapon art is drawn this many avatar units across on the back. */
 const BACK_WEAPON_SIZE=64;
+/** The painted body sinks this many avatar units into the ground, as in DDTank: the terrain's
+ * painted top (snow, grass) is soft and a body standing exactly on the collision line reads as floating. */
+const GROUND_SINK=7;
 /** One painted fist shared by every outfit (knuckles to the right), tinted to the body color. */
 const FIST_PATH='/assets/outfits/combat/fist.png';
 const fists=new Map<string,HTMLCanvasElement>();
@@ -56,7 +59,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const lift=name.startsWith('crawl')?state.walk:0,turn=state.phase;
  const fist=(k:0|1):Fist=>{const a=spec.fists[k],b=next.fists[k],m=blend.mix,up=lift*Math.max(0,Math.sin(turn+(k?Math.PI:0)))*2.5;
   return [a[0]+(b[0]-a[0])*m+dx,a[1]+(b[1]-a[1])*m+dy-up+breath,a[2]+(b[2]-a[2])*m];};
- c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2,0);
+ c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2,GROUND_SINK);
  // faceDown: the weapon on the back, behind the body and the head; the far fist behind the body too.
  if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+dx,spec.back[1]+dy+breath,spec.backAngle,state.time);
  drawFist(c,eq.skin,fist(0),.86);
