@@ -157,30 +157,54 @@ try{
    if(zone){const w=zone.maxWidth*HEAD_WIDTH,top=HEAD_ANCHORS.crown[1]-zone.maxAboveCrown*HEAD_WIDTH;zs.strokeStyle=result.issues.length?'#ff4d5e':'#4dff9a';zs.lineWidth=1.5;zs.setLineDash([5,4]);zs.strokeRect(x+(PAD+headCenter-w/2-view[0])*k,y+(PAD+top-view[1])*k,w*k,(zone.maxBottom-top)*k);zs.setLineDash([]);}
    zs.fillStyle='#fff';zs.font='bold 12px sans-serif';zs.fillText(CATALOG[id].name,x+6,y+15);zs.font='11px sans-serif';zs.fillStyle=result.issues.length?'#ffb3ba':'#b8ffd6';zs.fillText(result.issues.length?`${result.issues.length} problema(s)`:'dentro da zona',x+6,y+cell-8);
   });
-  // Full-body costumes (src/game/costumes.ts): four paintings, two of them the walking contacts.
-  // Each frame must be whole (not cut by the atlas cell) and the head must not jump between walking paintings.
+  // Full-body costumes (src/game/costumes.ts): the 2×2 atlas (idle, two steps, standing combat) and,
+  // when painted, a 6-frame walk cycle and a 6-frame belly-down combat sheet. Every frame must be whole
+  // (not cut by the image edge); the walk keeps one height; belly-down paintings lie feet left, head right.
   const C=await import('/src/game/costumes.ts');
-  await Promise.all(Object.values(C.COSTUMES).map(item=>load(item.path)));
-  const costumes=[],costumeSheet=document.createElement('canvas'),cc=costumeSheet.getContext('2d'),cellW=230,cellH=260,costumeIds=Object.keys(C.COSTUMES);
-  costumeSheet.width=cellW*5;costumeSheet.height=cellH*costumeIds.length;cc.fillStyle='#16233a';cc.fillRect(0,0,costumeSheet.width,costumeSheet.height);
-  costumeIds.forEach((id,row)=>{
-   const issues=[],framesOf=[0,1,2,3].map(index=>C.getCostumeFrame(id,index));
-   if(framesOf.some(frame=>!frame))issues.push({code:'costume-frame',message:'Fantasia sem as 4 pinturas',measured:framesOf.filter(Boolean).length,limit:4});
-   const ok=framesOf.filter(Boolean);
-   framesOf.forEach((frame,index)=>{if(frame?.cut)issues.push({code:'costume-cut',message:`Pintura ${index} cortada na borda da imagem`,measured:index,limit:0});});
-   const heights=ok.map(f=>f.canvas.height);
-   const [a,b]=C.COSTUME_WALK_FRAMES,drift=framesOf[a]&&framesOf[b]?Math.abs((framesOf[a].canvas.height-framesOf[b].canvas.height))*framesOf[a].scale:0;
-   if(drift>6)issues.push({code:'costume-walk-height',message:`Altura muda ${drift.toFixed(1)} un. entre os passos`,measured:drift,limit:6});
-   const standing=[0,1,2].map(i=>framesOf[i]?.canvas.height??0),spread=(Math.max(...standing)-Math.min(...standing))*(framesOf[0]?.scale??0);
+  await Promise.all(Object.values(C.COSTUMES).flatMap(item=>[item.path,item.walk?.path,item.prone?.path]).filter(Boolean).map(load));
+  const costumes=[],costumeIds=Object.keys(C.COSTUMES),cellW=200,cellH=230,rowsPer=3;
+  const costumeSheet=document.createElement('canvas'),cc=costumeSheet.getContext('2d');
+  costumeSheet.width=cellW*6;costumeSheet.height=cellH*rowsPer*costumeIds.length;cc.fillStyle='#16233a';cc.fillRect(0,0,costumeSheet.width,costumeSheet.height);
+  const paint=(f,column,row,label,lock)=>{
+   const y0=row*cellH,base=y0+cellH-22,x=column*cellW+cellW/2,k=1.15;
+   cc.strokeStyle='#ffffff40';cc.beginPath();cc.moveTo(column*cellW,base+.5);cc.lineTo(column*cellW+cellW,base+.5);cc.moveTo(x+.5,y0+22);cc.lineTo(x+.5,base);cc.stroke();
+   cc.fillStyle='#fff';cc.font='12px sans-serif';cc.fillText(label,column*cellW+6,y0+15);
+   if(f)cc.drawImage(f.canvas,x-f.anchor[0]*f.scale*k,base-f.anchor[1]*f.scale*k,f.canvas.width*f.scale*k,f.canvas.height*f.scale*k);
+  };
+  costumeIds.forEach((id,n)=>{
+   const def=C.COSTUMES[id],issues=[],row=n*rowsPer;
+   const atlas=[0,1,2,3].map(index=>C.getCostumeFrame(id,index));
+   if(atlas.some(frame=>!frame))issues.push({code:'costume-frame',message:'Fantasia sem as 4 pinturas',measured:atlas.filter(Boolean).length,limit:4});
+   atlas.forEach((frame,index)=>{if(frame?.cut)issues.push({code:'costume-cut',message:`Pintura ${index} cortada na borda da imagem`,measured:index,limit:0});});
+   const standing=[0,1,2].map(i=>atlas[i]?.canvas.height??0),spread=(Math.max(...standing)-Math.min(...standing))*(atlas[0]?.scale??0);
    if(spread>12)issues.push({code:'costume-scale',message:`Pinturas em pé com alturas diferentes (${spread.toFixed(1)} un.)`,measured:spread,limit:12});
-   costumes.push({id,heights,walkFrames:C.COSTUME_WALK_FRAMES,issues});
-   // Sheet: the four paintings on their measured origin, then the two steps overlaid (onion skin).
-   const y0=row*cellH,base=y0+cellH-24;
-   framesOf.forEach((f,index)=>{if(!f)return;const x=index*cellW+cellW/2,k=1.25*f.scale*160/155;cc.drawImage(f.canvas,x-f.anchor[0]*k,base-f.anchor[1]*k,f.canvas.width*k,f.canvas.height*k);cc.fillStyle='#fff';cc.font='12px sans-serif';cc.fillText(['parado','passo 1','passo 2','combate'][index],index*cellW+6,y0+16);});
-   cc.globalAlpha=.5;for(const index of C.COSTUME_WALK_FRAMES){const f=framesOf[index];if(!f)continue;const x=4*cellW+cellW/2,k=1.25*f.scale*160/155;cc.drawImage(f.canvas,x-f.anchor[0]*k,base-f.anchor[1]*k,f.canvas.width*k,f.canvas.height*k);}cc.globalAlpha=1;
-   cc.strokeStyle='#ffffff55';cc.beginPath();cc.moveTo(0,base+.5);cc.lineTo(costumeSheet.width,base+.5);cc.stroke();
-   for(let i=0;i<5;i++){cc.beginPath();cc.moveTo(i*cellW+cellW/2+.5,y0+24);cc.lineTo(i*cellW+cellW/2+.5,base);cc.stroke();}
-   cc.fillStyle=issues.length?'#ffb3ba':'#b8ffd6';cc.font='bold 12px sans-serif';cc.fillText(`${CATALOG[id].name}: ${issues.length?issues.length+' problema(s)':'ok'}`,4*cellW+6,y0+16);
+   ['parado','passo 1','passo 2','combate em pé'].forEach((label,index)=>paint(atlas[index],index,row,label));
+   cc.fillStyle='#ffe4a0';cc.font='bold 13px sans-serif';cc.fillText(CATALOG[id].name,4*cellW+6,row*cellH+40);
+   const walk=def.walk?[0,1,2,3,4,5].map(i=>C.getCostumeWalkFrame(id,i)):[];
+   if(!def.walk)issues.push({code:'costume-walk',message:'Sem ciclo de andar pintado (6 quadros)',measured:0,limit:6});
+   else{
+    if(walk.some(frame=>!frame))issues.push({code:'costume-walk',message:'Ciclo de andar sem os 6 quadros',measured:walk.filter(Boolean).length,limit:6});
+    walk.forEach((frame,index)=>{if(frame?.cut)issues.push({code:'costume-cut',message:`Andar ${index+1} cortado na borda da imagem`,measured:index,limit:0});});
+    // The painted bob may change the figure's height; the character's size may not: the head keeps its width.
+    const headWidth=f=>{const row=Math.round(f.canvas.height*.3),data=f.canvas.getContext('2d').getImageData(0,row,f.canvas.width,1).data;let l=-1,r=-1;for(let x=0;x<f.canvas.width;x++)if(data[x*4+3]>12){if(l<0)l=x;r=x;}return (r-l)*f.scale;};
+    const widths=walk.filter(Boolean).map(headWidth),change=(Math.max(...widths)-Math.min(...widths))/Math.max(...widths);
+    if(change>.1)issues.push({code:'costume-walk-size',message:`Tamanho da cabeça muda ${Math.round(change*100)}% no andar`,measured:change,limit:.1});
+    const heights=walk.filter(Boolean).map(f=>f.canvas.height*f.scale),gap=Math.max(...heights)-Math.min(...heights);
+    if(gap>30)issues.push({code:'costume-walk-height',message:`Sobe e desce ${gap.toFixed(1)} un. no andar`,measured:gap,limit:30});
+    const heads=walk.filter(Boolean).map(f=>(f.head-f.anchor[0])*f.scale),drift=Math.max(...heads)-Math.min(...heads);
+    if(drift>10)issues.push({code:'costume-walk-drift',message:`Cabeça anda ${drift.toFixed(1)} un. entre os quadros`,measured:drift,limit:10});
+   }
+   walk.forEach((f,index)=>paint(f,index,row+1,`andar ${index+1}`));
+   const prone=def.prone?[0,1,2,3,4,5].map(i=>C.getCostumeProneFrame(id,i)):[];
+   if(!def.prone)issues.push({code:'costume-prone',message:'Sem combate deitado pintado (6 quadros)',measured:0,limit:6});
+   else{
+    if(prone.some(frame=>!frame))issues.push({code:'costume-prone',message:'Combate deitado sem os 6 quadros',measured:prone.filter(Boolean).length,limit:6});
+    prone.forEach((frame,index)=>{if(!frame)return;if(frame.cut)issues.push({code:'costume-cut',message:`Deitado ${index+1} cortado na borda da imagem`,measured:index,limit:0});
+     if(frame.canvas.width<frame.canvas.height*1.05||frame.head<frame.canvas.width*.45)issues.push({code:'costume-prone-pose',message:`Deitado ${index+1} não está de bruços com a cabeça à direita`,measured:index,limit:0});});
+   }
+   ['descanso','arrastar A','arrastar B','carregar','arremessar','dor'].forEach((label,index)=>paint(prone[index],index,row+2,label,'ground'));
+   costumes.push({id,walk:!!def.walk,prone:!!def.prone,issues});
+   cc.fillStyle=issues.length?'#ffb3ba':'#b8ffd6';cc.font='bold 12px sans-serif';cc.fillText(issues.length?`${issues.length} problema(s)`:'ok',4*cellW+6,row*cellH+58);
   });
   const matrix=document.createElement('canvas'),rows=['hat-none',...hats],cols=['hair-none',...hairs],mc=200;
   matrix.width=cols.length*mc;matrix.height=rows.length*mc;const ms=matrix.getContext('2d');ms.fillStyle='#16233a';ms.fillRect(0,0,matrix.width,matrix.height);

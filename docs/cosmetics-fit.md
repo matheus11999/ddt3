@@ -97,10 +97,14 @@ Com chapéu aparece o mesmo cabelo de sem chapéu, só cortado: nada surge que o
 
 ## Fantasias (corpo inteiro)
 
-Uma fantasia (`src/game/costumes.ts`) é uma imagem quadrada com quatro pinturas em grade 2×2: parado, passo 1, passo 2 e combate. Nada de números por fantasia:
+Uma fantasia (`src/game/costumes.ts`) tem três imagens em `public/assets/costumes/`, sem números por fantasia:
 
-- Cada pintura é separada pela área pintada conectada, não pela grade: uma asa ou cajado que passa para a célula vizinha continua inteiro.
-- A origem é medida na pintura: a linha dos pés e o centro da cabeça (faixa de cima da figura). Assim o rosto não pula entre as pinturas.
-- Andar alterna só os dois passos (`COSTUME_WALK_FRAMES`), um a cada `COSTUME_STEP` unidades percorridas, com sobe e desce feito em código. A pintura parada nunca entra no meio do passo.
-- `npm run verify:cosmetics` mede as fantasias (pintura cortada na borda da imagem, altura entre os passos, alturas das pinturas em pé) e gera `costumes.png` com as quatro pinturas na origem medida e os dois passos sobrepostos. `npm run test:costumes` confere poses, lados e combate.
-- Fantasia nova: os dois passos devem ter a mesma altura e o rosto no mesmo lugar; nenhuma pintura pode encostar na borda da imagem inteira.
+- `costume-<id>.png`: grade 2×2 com parado, passo 1, passo 2 e combate em pé (prévia da loja e mochila, e reserva enquanto as outras carregam).
+- `costume-<id>-walk.png`: 1536×1024, grade 3×2, ciclo de andar de 6 quadros virado para a direita (contato, baixo, passagem; depois a outra perna). Troca de quadro a cada `COSTUME_WALK_FRAME` unidades percorridas; a escala vem dos dois contatos, que ficam da altura da pintura parada.
+- `costume-<id>-prone.png`: 1536×1024, grade 3×2, combate de bruços no mesmo padrão das roupas (pés à esquerda, cabeça à direita, adereço nas costas, mãos vazias): descanso, arrastar A, arrastar B, carregar, arremessar, dor. Altura do descanso: `COSTUME_PRONE_HEIGHT`. A arma do jogo vai nas costas, como nas roupas.
+
+Regras de leitura: cada figura é separada pela área pintada conectada (o que cruza a grade continua inteiro); a origem é a linha dos pés e o centro da cabeça (em pé) ou o centro do corpo no chão (de bruços).
+
+`npm run verify:cosmetics` mede as fantasias: pinturas cortadas na borda, ciclo de andar e combate deitado presentes com 6 quadros, cabeça do mesmo tamanho e no mesmo lugar no andar, quadros deitados de bruços com a cabeça à direita. A prancha `costumes.png` mostra tudo na origem medida. `npm run test:costumes` confere poses, lados e combate.
+
+Gerar arte nova pelo Codex (Remote Control em `D:\APPS\ddt`), com o atlas da fantasia e a pose de combate das roupas como referência; prompts usados em 18/10 estão em `docs/costume-art-prompts.md`.

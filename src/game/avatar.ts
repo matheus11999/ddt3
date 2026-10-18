@@ -3,7 +3,7 @@ import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
 import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
-import {COSTUMES,drawCostume} from './costumes';
+import {COSTUMES,drawCostume,hasProneCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
@@ -269,7 +269,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   const paint=(direction:number)=>{c.save();turnPop(c,m.turn);c.scale(direction,1);
    // Menu cards keep the miniature weapon legible beside a costume. Combat
    // retains the original layering and authoritative muzzle placement.
-   const paintWeapon=()=>{if(!weapon)return;c.save();if(!context.combat){const scale=clamp(context.weaponScale??1,.4,1.2);c.scale(context.weaponSide??1,1);c.translate(0,clamp(context.weaponVerticalOffset??0,-15,24));c.translate((context.weaponOffset??0)+27*160/112,-40*160/112);c.scale(scale,scale);c.translate(-27*160/112,40*160/112);}drawCombatWeapon(c,eq,time,context.angle??45,recoil,pose==='charge',context.power??0);c.restore();};
+   const paintWeapon=()=>{if(!weapon)return;if(context.combat&&hasProneCostume(eq.costume)){c.save();c.rotate(slope);drawBackWeapon(c,eq,time,context.angle??45,recoil,pose==='charge',context.power??0,0,m.walk,m.phase);c.restore();return;}c.save();if(!context.combat){const scale=clamp(context.weaponScale??1,.4,1.2);c.scale(context.weaponSide??1,1);c.translate(0,clamp(context.weaponVerticalOffset??0,-15,24));c.translate((context.weaponOffset??0)+27*160/112,-40*160/112);c.scale(scale,scale);c.translate(-27*160/112,40*160/112);}drawCombatWeapon(c,eq,time,context.angle??45,recoil,pose==='charge',context.power??0);c.restore();};
    const foregroundWeapon=!context.combat&&context.weaponSide===-1;
    if(!foregroundWeapon)paintWeapon();
    drawCostume(c,eq.costume,{pose,phase:m.phase,walk:m.walk,poseTime,angle:context.angle??45,power:context.power??0,slope,combat:context.combat??false,time});
