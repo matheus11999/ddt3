@@ -1,6 +1,6 @@
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {ChevronDown,ChevronLeft,ChevronRight,Gavel,Inbox,LoaderCircle,PackageOpen,Search,Store,Tag,Undo2,X} from 'lucide-react';
+import {ChevronDown,ChevronLeft,ChevronRight,Gavel,Inbox,LoaderCircle,PackageOpen,PackagePlus,Search,Store,Tag,Undo2,X} from 'lucide-react';
 import {CATALOG,copyBase,equippedCopy,SLOTS,STONES} from '../../shared/catalog';
 import {COMPOSITION_STONES,COMPOSITION_STONE_BY_ID} from '../../shared/composition';
 import {AUCTION_CATEGORIES,AUCTION_DURATIONS,AUCTION_MAX_LISTINGS,AUCTION_PRICE_MAX,CURRENCY_NAMES,goodsAmount,goodsName,isListableItem,timeLeft} from '../../shared/auction';
@@ -23,7 +23,7 @@ import './Auction.css';
 
 /* Leilão no padrão da mochila e do correio: madeira laranja, painéis creme e cards de item.
    Comprar: menu de categorias que expande à esquerda e a tabela paginada à direita.
-   Vender: itens da mochila, o formulário do anúncio e os meus anúncios (até 3). */
+   Vender: os meus anúncios (até 3) e o formulário do anúncio, que escolhe o item numa janela da mochila. */
 const money=(value:number)=>value.toLocaleString('pt-BR');
 export function CurrencyIcon({currency,size=20}:{currency:AuctionCurrency;size?:number}){return currency==='gold'?<RewardIcon size={size}/>:<CouponIcon size={size}/>;}
 const goodsRarity=(goods:AuctionGoods):ItemRarity=>goods.kind==='item'?(CATALOG[goods.item]?.rarity??'common'):'common';
@@ -118,16 +118,16 @@ export function Auction(){
     <div className="auction-table-wrap wood-cream">
      <table className="auction-table">
       <thead><tr><th>Item</th><th>Vendedor</th><th>Tempo</th><th>Preço</th><th aria-label="Comprar"/></tr></thead>
-      <tbody>{!page?<tr><td colSpan={5} className="auction-empty"><LoaderCircle className="button-spinner" size={24}/>Abrindo o leilão…</td></tr>
-       :page.listings.length?page.listings.map(l=>{const own=l.sellerId===p.id,short=balance(l.currency)<l.price;return <tr key={l.id} data-listing={l.id}>
+      <tbody>{page?.listings.map(l=>{const own=l.sellerId===p.id,short=balance(l.currency)<l.price;return <tr key={l.id} data-listing={l.id}>
         <td><div className="auction-item" tabIndex={0} onMouseEnter={showTip(l)} onMouseLeave={()=>setTip(null)} onFocus={showTip(l)} onBlur={()=>setTip(null)}><GoodsCard goods={l.goods} size={46}/><span><b>{goodsName(l.goods)}</b>{goodsAmount(l.goods)>1&&<small>Quantidade: {money(goodsAmount(l.goods))}</small>}</span></div></td>
         <td><span className="auction-seller" title="Botão direito: informações e mensagem" {...playerMenuProps(own?null:{id:l.sellerId,name:l.sellerName,context:'auction'})}>{l.sellerName}</span></td>
         <td className="auction-time">{timeLeft(l.expiresAt,now)}</td>
         <td><span className={`auction-price ${l.currency}`}><CurrencyIcon currency={l.currency}/>{money(l.price)}</span></td>
         <td>{own?<span className="auction-own">Seu</span>:<button className="wood-button auction-buy-button" disabled={locked||short} title={short?`${CURRENCY_NAMES[l.currency]} insuficientes`:'Comprar'} onClick={()=>{setBuying(l);audio.play('click');}}><Gavel size={15}/>Comprar</button>}</td>
-       </tr>;})
-       :<tr><td colSpan={5} className="auction-empty"><PackageOpen size={30}/>Nenhum item à venda {category?'nesta categoria':'agora'}.</td></tr>}</tbody>
+       </tr>;})}</tbody>
      </table>
+     {!page?<p className="auction-empty"><LoaderCircle className="button-spinner" size={24}/>Abrindo o leilão…</p>
+      :!page.listings.length&&<p className="auction-empty"><PackageOpen size={30}/>Nenhum item à venda {category?'nesta categoria':'agora'}.</p>}
     </div>
     <footer className="auction-pager">
      <span className="auction-feedback" role="status">{feedback}</span>
@@ -173,16 +173,22 @@ function SellTab({feedback,setFeedback,sent,locked,now,showTip,hideTip}:{feedbac
   sent.current='sell';setFeedback('');client.auctionSell(source,currency,value,hours);setSelected(null);setPrice('');setAmount(1);
  };
  const preview:AuctionGoods|null=choice?(choice.goods.kind==='item'?choice.goods:{...choice.goods,amount:count}):null;
+ const [picking,setPicking]=useState(false);
  return <div className="auction-sell">
-  <section className="auction-bag wood-cream" aria-label="Seus itens">
-   <h3>Sua mochila</h3>
-   <div className="auction-bag-grid">{sellables.length?sellables.map(s=><ItemCard key={s.key} rarity={goodsRarity(s.goods)} selected={selected===s.key} className="auction-bag-cell" aria-label={goodsName(s.goods)} aria-pressed={selected===s.key} title={goodsName(s.goods)} onClick={()=>{setSelected(s.key);setAmount(1);audio.play('click');}}>
-    <GoodsArt goods={s.goods} size={48}/>{s.goods.kind==='item'&&!!s.goods.upgrade&&<UpgradeTag level={s.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{s.owned>1&&<b className="auction-goods-count">{money(s.owned)}</b>}
-   </ItemCard>):<p className="auction-quiet">Nada para vender. Itens equipados não vão para o leilão.</p>}</div>
+  <section className="auction-mine wood-cream" aria-label="Meus anúncios">
+   <h3>Meus anúncios <small>{mine.listings.length} / {AUCTION_MAX_LISTINGS}</small></h3>
+   {mine.listings.length?<ul>{mine.listings.map(l=><li key={l.id}>
+    <div className="auction-item" tabIndex={0} onMouseEnter={showTip(l)} onMouseLeave={hideTip} onFocus={showTip(l)} onBlur={hideTip}><GoodsCard goods={l.goods} size={52}/><span><b>{goodsName(l.goods)}</b>{goodsAmount(l.goods)>1&&<small>Quantidade: {money(goodsAmount(l.goods))}</small>}</span></div>
+    <span className="auction-time">{timeLeft(l.expiresAt,now)}</span>
+    <span className={`auction-price ${l.currency}`}><CurrencyIcon currency={l.currency} size={18}/>{money(l.price)}</span>
+    <button className="wood-quiet" disabled={locked} title="Retirar do leilão (o item volta pelo correio)" onClick={()=>{sent.current='cancel';setFeedback('');client.auctionCancel(l.id);audio.play('click');}}><Undo2 size={15}/>Retirar</button>
+   </li>)}</ul>:<p className="auction-empty"><Tag size={30}/>Você não tem itens no leilão.</p>}
+   <span className="auction-feedback" role="status">{feedback}</span>
   </section>
   <form className="auction-form wood-cream" onSubmit={submit}>
    <h3>Novo anúncio</h3>
-   <div className="auction-form-item">{preview?<><GoodsCard goods={preview} size={64}/><div><b>{goodsName(preview)}</b><small>{choice!.goods.kind==='item'?'1 unidade':`Você tem ${money(choice!.owned)}`}</small></div></>:<p className="auction-quiet">Escolha um item da mochila.</p>}</div>
+   <div className="auction-form-item">{preview?<><GoodsCard goods={preview} size={64}/><div><b>{goodsName(preview)}</b><small>{choice!.goods.kind==='item'?'1 unidade':`Você tem ${money(choice!.owned)}`}</small></div><button type="button" className="wood-quiet auction-pick-again" onClick={()=>{setPicking(true);audio.play('click');}}>Trocar</button></>
+    :<button type="button" className="wood-button auction-pick" onClick={()=>{setPicking(true);audio.play('click');}}><PackagePlus size={18}/>Selecionar item</button>}</div>
    {choice&&choice.source.kind!=='item'&&<label className="auction-field"><span>Quantidade</span><input type="number" min={1} max={choice.owned} value={count} onChange={e=>setAmount(Math.floor(Number(e.target.value))||1)}/></label>}
    <div className="auction-field"><span>Vender por</span><div className="auction-toggle">{(['gold','coupons'] as const).map(c=><button type="button" key={c} className={currency===c?'active':''} aria-pressed={currency===c} onClick={()=>setCurrency(c)}><CurrencyIcon currency={c} size={18}/>{CURRENCY_NAMES[c]}</button>)}</div></div>
    <label className="auction-field"><span>Preço</span><span className="auction-price-input"><CurrencyIcon currency={currency} size={20}/><input inputMode="numeric" value={price} placeholder="0" onChange={e=>setPrice(e.target.value.replace(/\D/g,'').slice(0,7))} aria-label="Preço"/></span></label>
@@ -191,14 +197,13 @@ function SellTab({feedback,setFeedback,sent,locked,now,showTip,hideTip}:{feedbac
    <button className="wood-button auction-submit" disabled={!ready}>{pending?<LoaderCircle size={17} className="button-spinner"/>:<Gavel size={17}/>}{full?`Limite de ${AUCTION_MAX_LISTINGS} anúncios`:'Anunciar'}</button>
    <p className="auction-hint">Se ninguém comprar até o fim do tempo, o item volta pelo correio. O pagamento de uma venda também chega pelo correio.</p>
   </form>
-  <section className="auction-mine wood-cream" aria-label="Meus anúncios">
-   <h3>Meus anúncios <small>{mine.listings.length} / {AUCTION_MAX_LISTINGS}</small></h3>
-   {mine.listings.length?<ul>{mine.listings.map(l=><li key={l.id}>
-    <div className="auction-item" tabIndex={0} onMouseEnter={showTip(l)} onMouseLeave={hideTip} onFocus={showTip(l)} onBlur={hideTip}><GoodsCard goods={l.goods} size={44}/><span><b>{goodsName(l.goods)}</b><small>{timeLeft(l.expiresAt,now)}</small></span></div>
-    <span className={`auction-price ${l.currency}`}><CurrencyIcon currency={l.currency} size={18}/>{money(l.price)}</span>
-    <button className="wood-quiet" disabled={locked} title="Retirar do leilão (o item volta pelo correio)" onClick={()=>{sent.current='cancel';setFeedback('');client.auctionCancel(l.id);audio.play('click');}}><Undo2 size={15}/>Retirar</button>
-   </li>)}</ul>:<p className="auction-quiet">Você não tem itens no leilão.</p>}
-   <span className="auction-feedback" role="status">{feedback}</span>
-  </section>
+  {picking&&<div className="auction-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setPicking(false);}}>
+   <section className="auction-confirm auction-picker" role="dialog" aria-modal="true" aria-label="Selecionar item">
+    <header><strong>Selecionar item</strong><button type="button" className="wood-close" aria-label="Fechar" onClick={()=>setPicking(false)}><X size={18}/></button></header>
+    {sellables.length?<div className="auction-bag-grid">{sellables.map(s=><ItemCard key={s.key} rarity={goodsRarity(s.goods)} selected={selected===s.key} className="auction-bag-cell" aria-label={goodsName(s.goods)} aria-pressed={selected===s.key} title={goodsName(s.goods)} onClick={()=>{setSelected(s.key);setAmount(1);setPicking(false);audio.play('click');}}>
+     <GoodsArt goods={s.goods} size={48}/>{s.goods.kind==='item'&&!!s.goods.upgrade&&<UpgradeTag level={s.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{s.owned>1&&<b className="auction-goods-count">{money(s.owned)}</b>}
+    </ItemCard>)}</div>:<p className="auction-empty">Nada para vender. Itens equipados não vão para o leilão.</p>}
+   </section>
+  </div>}
  </div>;
 }
