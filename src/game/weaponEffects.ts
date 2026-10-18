@@ -7,7 +7,9 @@ import type {MaterialId} from '../../shared/maps';
 type Effect=Projectile['effect'];
 /** A painted chunk cut from an impact cell: its own image, its center and width as shares of the cell width. */
 type Piece={image:HTMLCanvasElement;x:number;y:number;width:number};
-type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number;pieces:Piece[];body?:HTMLCanvasElement};
+/** core: projectile row only, the painted object without its painted trail (the trail is animated in code), cropped
+ * to itself; width is its share of the cell width. */
+type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number;pieces:Piece[];body?:HTMLCanvasElement;core?:{image:HTMLCanvasElement;width:number}};
 /** tilt: radians the painted projectiles point above horizontal, undone when drawing the top row. */
 type Atlas={cells:Cell[];ready:Promise<void>;tilt:number};
 /** `effects`: projectile / launch / impact rows. `pow`: the POW shot's own projectile / impact rows, so POW never looks like a normal shot. */
@@ -68,6 +70,32 @@ function paintedPieces(image:ImageData):{pieces:Piece[];body:HTMLCanvasElement}{
  context.putImageData(rest,0,0);
  return {pieces,body};
 }
+/** The painted projectile without the trail painted behind it: the convex hull of its largest dark outline. The
+ * outline closes around the object but not around the streaks, sparks and chips, so those fall outside the hull. */
+function paintedCore(source:HTMLCanvasElement,image:ImageData):{image:HTMLCanvasElement;width:number}|undefined{
+ const {width,height,data}=image,size=width*height,dark=new Uint8Array(size),near=new Uint8Array(size);
+ for(let i=0;i<size;i++){const r=data[i*4],g=data[i*4+1],b=data[i*4+2];dark[i]=data[i*4+3]>200&&(Math.max(r,g,b)+Math.min(r,g,b))/510<.33?1:0;}
+ // Bridge small gaps in the outline before choosing its largest piece.
+ for(let y=0;y<height;y++)for(let x=0;x<width;x++)if(dark[y*width+x])for(let dy=-1;dy<=1;dy++)for(let dx=-1;dx<=1;dx++){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<width&&ny<height)near[ny*width+nx]=1;}
+ const label=new Int32Array(size).fill(-1),stack=new Int32Array(size);let best=-1,bestSize=0;
+ for(let start=0,id=0;start<size;start++){
+  if(label[start]>=0||!near[start])continue;let top=0,count=0;stack[top++]=start;label[start]=id;
+  while(top){const i=stack[--top],x=i%width;count++;for(const j of [x>0?i-1:-1,x<width-1?i+1:-1,i-width,i+width])if(j>=0&&j<size&&label[j]<0&&near[j]){label[j]=id;stack[top++]=j;}}
+  if(count>bestSize){best=id;bestSize=count;}id++;
+ }
+ const points:[number,number][]=[];for(let i=0;i<size;i++)if(label[i]===best&&dark[i])points.push([i%width,(i-i%width)/width]);
+ if(points.length<3)return undefined;
+ // Monotone chain hull.
+ points.sort((a,b)=>a[0]-b[0]||a[1]-b[1]);
+ const cross=(o:number[],a:number[],b:number[])=>(a[0]-o[0])*(b[1]-o[1])-(a[1]-o[1])*(b[0]-o[0]),lower:number[][]=[],upper:number[][]=[];
+ for(const point of points){while(lower.length>=2&&cross(lower[lower.length-2],lower[lower.length-1],point)<=0)lower.pop();lower.push(point);}
+ for(let n=points.length-1;n>=0;n--){const point=points[n];while(upper.length>=2&&cross(upper[upper.length-2],upper[upper.length-1],point)<=0)upper.pop();upper.push(point);}
+ const hull=[...lower.slice(0,-1),...upper.slice(0,-1)],x0=Math.min(...hull.map(p=>p[0])),x1=Math.max(...hull.map(p=>p[0]))+1,y0=Math.min(...hull.map(p=>p[1])),y1=Math.max(...hull.map(p=>p[1]))+1;
+ const out=canvas(x1-x0,y1-y0),context=out.getContext('2d')!;
+ context.beginPath();hull.forEach(([x,y],n)=>n?context.lineTo(x-x0+.5,y-y0+.5):context.moveTo(x-x0+.5,y-y0+.5));context.closePath();context.clip();context.drawImage(source,-x0,-y0);
+ const pixels=context.getImageData(0,0,out.width,out.height);for(let i=3;i<pixels.data.length;i+=4)if(pixels.data[i]<=60)pixels.data[i]=0;context.putImageData(pixels,0,0);
+ return {image:out,width:out.width/width};
+}
 function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
  const key=`${effect}:${sheet}`,rows=SHEET_ROWS[sheet],cached=atlases.get(key);if(cached)return cached;
  const image=new Image();const weapon=WEAPONS.find(item=>item.effect===effect),atlas:Atlas={cells:[],ready:Promise.resolve(),tilt:(weapon&&weaponKit(weapon.id)?.projectileTilt||0)*Math.PI/180};
@@ -100,7 +128,7 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
      context.putImageData(out,0,0);energy.push(layer);
     }
     const cut=row===rows-1?paintedPieces(original):undefined;
-    atlas.cells.push({solid,energy,width,height,pieces:cut?.pieces??[],body:cut?.body});
+    atlas.cells.push({solid,energy,width,height,pieces:cut?.pieces??[],body:cut?.body,core:row===0?paintedCore(solid,original):undefined});
    }
    image.onload=null;image.onerror=null;resolve();
   };
@@ -202,8 +230,6 @@ function trailParticles(c:CanvasRenderingContext2D,p:Projectile,index:number,tie
    const flip=Math.sin(clock/45+n*5)>0?1:-1;c.beginPath();c.moveTo(-6,flip*2);c.lineTo(-1,-flip*3);c.lineTo(1,flip*2);c.lineTo(5,-flip*2);c.stroke();
   }else if(p.effect==='crystal'){
    c.rotate(clock/330+n);const r=1.2+tier*.45;c.beginPath();c.moveTo(-r*2,0);c.lineTo(0,-r);c.lineTo(r*2,0);c.lineTo(0,r);c.closePath();c.globalAlpha*=.7;c.fill();
-  }else if(p.effect==='brick'){
-   c.globalAlpha*=.72;glow(c,-age*5,-age*9,3+age*5,'#d4ae83',.28);if(n%3===0)brickChunk(c,-age*5,age*6,2+tier*.5,n+clock/300,tier,clock);
   }else{
    // Powder has drifting smoke and falling fuse sparks, not a plasma ribbon.
    c.globalAlpha*=.6;glow(c,-age*6,-age*12,3+age*5,'#dac8ac',.35);c.strokeStyle=n%2?'#ffc064':'#ff682c';c.beginPath();c.moveTo(-age*4,age*6);c.lineTo(-age*4-3,age*6-2);c.stroke();
@@ -226,14 +252,15 @@ export function drawWeaponEnergy(c:CanvasRenderingContext2D,effect:Effect,level:
 export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:number,level:number,time:number,options:WeaponEffectOptions={}){
  if(!p.points.length||!Number.isFinite(index))return;
  if(p.fragment){drawBrickFragment(c,p,index,strength(level),time,options);return;}
+ if(p.effect==='brick'){drawBrickProjectile(c,p,clamp(index,0,p.points.length-1),strength(level),reduced(options)?0:time,options);return;}
  const sample=clamp(index,0,p.points.length-1),floor=Math.floor(sample),point=p.points[floor],next=p.points[Math.min(p.points.length-1,floor+1)],fraction=sample-floor;
  const tip:readonly[number,number]=[point[0]+(next[0]-point[0])*fraction,point[1]+(next[1]-point[1])*fraction];
  const tier=strength(level),family=FAMILY[p.effect],clock=reduced(options)?0:time,length=Math.min(limits(options).trailSamples,family.trail[tier]),start=Math.max(0,floor-length),previous=p.points[Math.max(0,floor-1)],angle=floor===0?Math.atan2(next[1]-point[1],next[0]-point[0]):Math.atan2(tip[1]-previous[1],tip[0]-previous[0]);
  c.save();c.lineCap='round';c.lineJoin='round';
  const from=p.points[start],gradient=c.createLinearGradient(from[0],from[1],tip[0]+.01,tip[1]+.01);gradient.addColorStop(0,family.dark+'00');gradient.addColorStop(.65,family.mid+'75');gradient.addColorStop(1,family.hot+'c4');
- c.strokeStyle=gradient;c.lineWidth=(p.effect==='electric'?.8:1.2)+tier*.35;c.globalAlpha*=p.effect==='dynamite'||p.effect==='brick'?.28:.8;
+ c.strokeStyle=gradient;c.lineWidth=(p.effect==='electric'?.8:1.2)+tier*.35;c.globalAlpha*=p.effect==='dynamite'?.28:.8;
  trace(c,p.points,start,floor,p.effect,tier,clock,0,tip);
- if(tier>=2&&p.effect!=='dynamite'&&p.effect!=='brick'){c.globalAlpha*=.45;c.lineWidth=.8;trace(c,p.points,start,floor,p.effect,tier,clock,1,tip);trace(c,p.points,start,floor,p.effect,tier,clock,-1,tip);}
+ if(tier>=2&&p.effect!=='dynamite'){c.globalAlpha*=.45;c.lineWidth=.8;trace(c,p.points,start,floor,p.effect,tier,clock,1,tip);trace(c,p.points,start,floor,p.effect,tier,clock,-1,tip);}
  c.restore();
  c.save();c.globalCompositeOperation='screen';trailParticles(c,p,sample,tier,clock,options);c.restore();
  c.save();c.translate(tip[0],tip[1]);c.rotate(angle);
@@ -250,9 +277,9 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
   }
   c.restore();
  }
- const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='brick',spin=p.effect==='dynamite'?(reduced(options)?0:clock/170):p.effect==='brick'?(reduced(options)?0:Math.sin(sample*.09)*.55):pulse*.035;
+ const solid=p.effect==='dynamite'||p.effect==='crystal',spin=p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid)c.scale(1,1+pulse*.09);
- const anchor=p.effect==='dynamite'||p.effect==='brick'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
+ const anchor=p.effect==='dynamite'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
  const painted=(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
@@ -262,6 +289,102 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  }
  if(p.powered){c.save();c.globalCompositeOperation='screen';c.globalAlpha*=.45;c.strokeStyle=family.hot;c.lineWidth=1;c.beginPath();c.ellipse(-4,0,5,12+tier*2,clock/230,0,Math.PI*1.6);c.stroke();glow(c,0,0,18+tier*3,family.mid,.28);c.restore();}
  if(!painted)ellipse(c,0,0,p.effect==='crystal'?7:3,2,family.hot);
+ c.restore();
+}
+
+/** Path samples per millisecond of flight (the server samples the arc at 60 per second). A particle emitted `age` ms
+ * ago sits `age*FLIGHT_SAMPLES_PER_MS` samples behind the tip, so trails stay where they were left, like real ones. */
+const FLIGHT_SAMPLES_PER_MS=.06;
+function pathAt(points:readonly number[][],position:number):[number,number,number]|undefined{
+ if(position<0||!points.length)return undefined;if(points.length===1)return [points[0][0],points[0][1],0];
+ const i=Math.min(points.length-2,Math.floor(position)),a=points[i],b=points[i+1],f=Math.min(1,position-i);
+ return [a[0]+(b[0]-a[0])*f,a[1]+(b[1]-a[1])*f,Math.atan2(b[1]-a[1],b[0]-a[0])];
+}
+/** Soft fire blobs drawn with normal blending, so flames stay orange over snow and sky alike. */
+const FLAME_STOPS={
+ hot:[[0,'#ffffff',1],[.2,'#fff3a6',1],[.48,'#ffac30',.95],[.76,'#ff6316',.55],[1,'#e0320a',0]],
+ ember:[[0,'#ffc04a',1],[.4,'#ff7a1e',.9],[.75,'#d8401a',.45],[1,'#8c1a0a',0]],
+ brass:[[0,'#fff4c4',1],[.35,'#ffd062',.9],[1,'#d98a1c',0]]
+} as const;
+type Flame=keyof typeof FLAME_STOPS;
+const flameCache=new Map<Flame,HTMLCanvasElement>();
+function flame(c:CanvasRenderingContext2D,x:number,y:number,radius:number,kind:Flame,opacity:number,angle=0,stretch=1){
+ if(opacity<=0||radius<=0)return;
+ let art=flameCache.get(kind);if(!art){art=canvas(64,64);const ctx=art.getContext('2d')!,gradient=ctx.createRadialGradient(32,32,0,32,32,32);for(const [stop,color,alpha] of FLAME_STOPS[kind])gradient.addColorStop(stop,color+Math.round(alpha*255).toString(16).padStart(2,'0'));ctx.fillStyle=gradient;ctx.fillRect(0,0,64,64);flameCache.set(kind,art);}
+ c.save();c.globalAlpha*=opacity;c.translate(x,y);if(stretch!==1){c.rotate(angle);c.scale(stretch,1);}c.drawImage(art,-radius,-radius,radius*2,radius*2);c.restore();
+}
+/** One stream of trail particles: `count` live at once, each `life` ms long, emitted from the tip as it passes. */
+function emitted(p:Projectile,sample:number,clock:number,count:number,life:number,salt:number,draw:(x:number,y:number,angle:number,age:number,n:number)=>void){
+ for(let n=0;n<count;n++){
+  const age=(clock/life+n/count+noise(n*17+salt)/count)%1,at=pathAt(p.points,sample-age*life*FLIGHT_SAMPLES_PER_MS);
+  if(at)draw(at[0],at[1],at[2],age,n);
+ }
+}
+/** Per upgrade, the brick's trail is drawn live, never painted: +0 clay dust, +10 dust and brass sparks,
+ * +12 a short ember comet, +15 a full fire tail with smoke and rising embers. POW doubles down, and its +0
+ * shot spins inside a white wind spiral. The painted brick itself (trail cut away) tumbles at the tip. */
+function drawBrickProjectile(c:CanvasRenderingContext2D,p:Projectile,sample:number,tier:number,clock:number,options:WeaponEffectOptions){
+ const pow=!!p.powered,low=options.quality==='low'||reduced(options),more=(n:number)=>Math.max(1,Math.round(n*(low?.45:1)*(pow?1.4:1)));
+ const sheet:Sheet=pow&&atlasFor(p.effect,'pow').cells[tier]?'pow':'effects',atlas=atlasFor(p.effect,sheet),cell=atlas.cells[tier];
+ const size=FAMILY.brick.size[tier]*1.2*(pow?1.16*POW_SPRITE_SCALE:1),brick=size*(cell?.core?.width??.5),tip=pathAt(p.points,sample);if(!tip)return;
+ const side=(angle:number,offset:number):[number,number]=>[-Math.sin(angle)*offset,Math.cos(angle)*offset];
+ c.save();
+ // A tapered streak along the path: what reads as the trail at a glance, longer and warmer each upgrade.
+ {const [inner,outer]=([['#fff4dc','#e8c9a0'],['#fff1c0','#ffc45a'],['#ffe6a0','#ff7a2a'],['#fff4c0','#ff6a1a']] as const)[tier],span=Math.round([12,15,18,22][tier]*(pow?1.3:1)*(low?.7:1));
+  for(const [color,width,alpha] of [[outer,.5,tier?.55:.45],[inner,.22,.75]] as const){
+   c.strokeStyle=color;c.lineCap='round';
+   for(let j=0;j<span;j++){const a=pathAt(p.points,sample-j),b=pathAt(p.points,sample-j-1);if(!a||!b)break;const fade=1-j/span;c.globalAlpha=fade*fade*alpha;c.lineWidth=brick*width*(.35+fade*.65);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();}
+  }
+  c.globalAlpha=1;}
+ // Smoke behind the fire (+15, POW from +12).
+ if(tier>=3)emitted(p,sample,clock,more(6),700,1,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*5)-.5)*brick*.5*(1+age));puff(c,x+ox,y+oy-age*brick*.7,brick*(.18+age*.4),n%2?'#9a8a82':'#b3a198',(1-age)*Math.min(1,age*4)*.16);});
+ // Clay dust: the whole trail at +0, a lighter haze from +10.
+ if(tier<3)emitted(p,sample,clock,more(tier?6:10),tier?420:520,2,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*3)-.5)*brick*.45*(1+age));puff(c,x+ox,y+oy-age*brick*.25,brick*(.16+age*.4),n%3?'#d9b08a':'#efd9bb',Math.pow(1-age,1.2)*(tier?.4:.62));});
+ // Fire: from a flicker of embers at +10 to a full tail at +15.
+ if(tier>=1){
+  const count=more([0,5,16,26][tier]),life=[0,200,320,440][tier],reach=[0,.22,.3,.36][tier]*(pow?.9:1);
+  emitted(p,sample,clock,count,life,4,(x,y,angle,age,n)=>{
+   const wobble=Math.sin(clock/45+n*2.1)*.12,[ox,oy]=side(angle,(noise(n*11)-.5)*brick*.28*(1+age)),r=brick*reach*(1-age*.65)*(.75+noise(n*13)*.5)*(1+wobble);
+   // Flames sit just behind the brick, never ahead of it.
+   const back=brick*.22*(1-age),fx=x+ox-Math.cos(angle)*back,fy=y+oy-Math.sin(angle)*back-age*age*brick*.6;
+   // Young flames stretch along the path; older ones round off as they cool.
+   const stretch=1.9-age*.8;
+   flame(c,fx,fy,r*1.2,'ember',(1-age)*.8,angle,stretch);
+   if(age<.55)flame(c,fx,fy,r*.85,tier===1?'brass':'hot',1-age/.55,angle,stretch);
+  });
+ }
+ c.restore();
+ // Sparks and embers glow over the fire.
+ c.save();c.globalCompositeOperation='screen';c.lineCap='round';
+ if(tier>=1||pow)emitted(p,sample,clock,more(tier>=3?10:6),tier>=3?620:420,5,(x,y,angle,age,n)=>{
+  const spread=(noise(n*19)-.5)*2.2,dir=angle+Math.PI+spread,speed=brick*(.5+noise(n*23)*.9),sx=x+Math.cos(dir)*speed*age,sy=y+Math.sin(dir)*speed*age-(tier>=3?age*brick*.9:-age*age*brick*.5);
+  const flicker=.6+.4*Math.sin(clock/30+n*5),length=brick*.12*(1-age);
+  c.globalAlpha=(1-age)*flicker;c.strokeStyle=n%3?'#ffd47a':'#fff3c0';c.lineWidth=tier>=3?1.6:1.2;c.beginPath();c.moveTo(sx,sy);c.lineTo(sx-Math.cos(dir)*length,sy-Math.sin(dir)*length);c.stroke();
+ });
+ c.restore();
+ // POW: a spiral wrapped around the path, white wind at +0, sparks of the phase's fire above that.
+ if(pow){
+  const color=tier?'#ffd47a':'#ffffff',span=Math.round(28*(low?.7:1)),step=.5;
+  c.save();c.lineCap='round';if(tier)c.globalCompositeOperation='screen';
+  for(const phase of [0,Math.PI])for(let j=0;j<span;j++){
+   const a=pathAt(p.points,sample-j*step),b=pathAt(p.points,sample-(j+1)*step);if(!a||!b)break;
+   const fade=1-j/span,turn=(k:number)=>k*step*.75-clock/55+phase,offset=(k:number)=>Math.sin(turn(k))*brick*.42*(.5+fade*.5),[ax,ay]=side(a[2],offset(j)),[bx,by]=side(b[2],offset(j+1));
+   // The half of the spiral behind the path is fainter, so it reads as wrapping around it.
+   c.globalAlpha=fade*(tier?.75:.7)*(Math.cos(turn(j))>0?1:.3);c.strokeStyle=color;c.lineWidth=(tier?1.8:2.4)*fade+.4;
+   c.beginPath();c.moveTo(a[0]+ax,a[1]+ay);c.lineTo(b[0]+bx,b[1]+by);c.stroke();
+  }
+  c.restore();
+ }
+ // Heat around the brick.
+ const pulse=Math.sin(clock/70)*.5+.5;
+ if(tier>=1)glow(c,tip[0],tip[1],brick*(.5+tier*.12),tier>=3?'#ff9a2a':FAMILY.brick.mid,.12+tier*.07+pulse*.05);
+ // The brick tumbles end over end; the atlas tilt is undone so it starts level with its path.
+ const spin=reduced(options)?0:(sample*(pow?.11:.16)+noise(Math.floor(p.points[0][0]))*TAU);
+ c.save();c.translate(tip[0],tip[1]);c.rotate(tip[2]+atlas.tilt+spin);
+ if(cell?.core){const h=brick*cell.core.image.height/cell.core.image.width;c.drawImage(cell.core.image,-brick/2,-h/2,brick,h);}
+ else ellipse(c,0,0,brick*.4,brick*.22,'#b84a2e');
+ // Lava cracks breathe at +15.
+ if(tier>=3&&cell?.core){c.globalCompositeOperation='screen';c.globalAlpha=.18+pulse*.22;const h=brick*cell.core.image.height/cell.core.image.width;c.drawImage(cell.core.image,-brick/2,-h/2,brick,h);}
  c.restore();
 }
 

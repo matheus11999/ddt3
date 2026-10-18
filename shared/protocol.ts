@@ -38,7 +38,8 @@ export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];tur
 /** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
 export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};/** Speech bubbles (boss opening), server time. */speech?:{id:string;text:string;from:number;to:number}[];monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
 export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number;stretch?:number};roughness?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;/** Shot by a monster (the queen's arrow): drawn by the expedition renderer, no crater. */monster?:'arrow';}
-export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;effect:Projectile['effect'];level:number;}
+/** scorch: the shot hit ground or an object that does not break, so it leaves an irregular burn instead of a crater mark. */
+export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;scorch?:boolean;effect:Projectile['effect'];level:number;}
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
