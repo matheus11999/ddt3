@@ -515,8 +515,9 @@ export class Game {
      await this.refreshGuildMember(id);this.emit(p,{type:'guild-result',message:'Guilda fundada!'});return;
     }
     case 'guild-apply':{
-     const {ownerId}=await this.requireGuilds().apply(id,c.id);await this.sendGuild(p);
-     if(this.peers.get(ownerId)?.connected)await this.sendGuild(this.peers.get(ownerId)!);
+     await this.requireGuilds().apply(id,c.id);await this.sendGuild(p);
+     // Everyone whose rank may recruit sees the new request.
+     await this.refreshGuild(c.id);
      this.emit(p,{type:'guild-result',message:'Pedido enviado ao dono da guilda.'});return;
     }
     case 'guild-cancel-apply':await this.requireGuilds().cancelApply(id,c.id);await this.sendGuild(p);await this.refreshGuild(c.id);return;
@@ -547,6 +548,15 @@ export class Game {
      }finally{this.profileChanges.delete(id);}
      if(guildId!==undefined)await this.refreshGuild(guildId);
      this.emit(p,{type:'guild-result',message:c.type==='guild-buy'?'Compra concluída! O item está na sua mochila.':c.type==='guild-deposit'?'Item guardado no depósito.':'Item retirado para a sua mochila.'});return;
+    }
+    case 'guild-rank-set':{const {guildId}=await this.requireGuilds().setRank(id,c.playerId,c.rank);await this.refreshGuild(guildId);this.emit(p,{type:'guild-result',message:'Cargo alterado.'});return;}
+    case 'guild-ranks':{const {guildId}=await this.requireGuilds().saveRanks(id,c.ranks);await this.refreshGuild(guildId);this.emit(p,{type:'guild-result',message:'Cargos salvos.'});return;}
+    case 'guild-disband':{
+     const guilds=this.requireGuilds();if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);let guildId:number,members:string[];
+     try{let profile:Profile|null;({guildId,members,profile}=await guilds.disband(id));if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});}}finally{this.profileChanges.delete(id);}
+     await this.refreshGuild(guildId,members);
+     for(const member of members){const peer=this.peers.get(member);if(peer)this.emit(peer,{type:'guild-result',message:'A guilda foi excluída pelo líder.'});}return;
     }
     case 'guild-mission':{
      const {guildId,reward}=await this.requireGuilds().claimMission(id,c.mission);await this.refreshGuild(guildId);
