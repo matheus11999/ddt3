@@ -248,6 +248,21 @@ test('turning in place is free, works on the opponent turn and never moves anyon
  assert.equal(errors(f.events.get(idle.id)!).length,0);
 });
 
+test('turning in place also works while a shot is in flight and the turn survives the impact, but not after the match ends',async()=>{
+ const f=await battleFixture(),s=f.match.state,shooter=s.players.find(p=>p.id===s.turnId)!,idle=s.players.find(p=>p.id!==s.turnId)!;
+ await f.game.command(shooter.id,{type:'fire',angle:45,power:40});assert.equal(s.phase,'resolving');
+ for(const fighter of [idle,shooter]){
+  const direction=(fighter.facing===1?-1:1) as 1|-1,spot={x:fighter.x,y:fighter.y};
+  await f.game.command(fighter.id,{type:'face',direction});
+  assert.equal(fighter.facing,direction);assert.equal(fighter.x,spot.x);assert.equal(fighter.y,spot.y);assert.equal(errors(f.events.get(fighter.id)!).length,0);
+ }
+ const turned={idle:idle.facing,shooter:shooter.facing};
+ f.game.tick(Math.max(...f.match.pendingImpacts!.map(impact=>impact.at))+1);f.game.tick(f.match.resolveAt+1);
+ assert.equal(s.phase,'aiming');assert.equal(idle.facing,turned.idle);assert.equal(shooter.facing,turned.shooter);
+ s.phase='finished';const direction=(idle.facing===1?-1:1) as 1|-1;f.game.peers.get(idle.id)!.lastFace=0;
+ await f.game.command(idle.id,{type:'face',direction});assert.notEqual(idle.facing,direction);
+});
+
 test('on your own turn the first press to the other side only turns, without spending stamina',async()=>{
  const f=await battleFixture(),s=f.match.state,me=s.players.find(p=>p.id===s.turnId)!,x=me.x,stamina=me.stamina,direction=(me.facing===1?-1:1) as 1|-1;
  await f.game.command(me.id,{type:'walk',direction});
