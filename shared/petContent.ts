@@ -9,7 +9,7 @@ const TOOLS=['boost','ability','power','flight'] as const;
 // ── Verdália, the plant: Broto → Botão → Flor. Every skill grows with the stage (stageScaling). ──
 // Numbers are provisional (matheus will tune them).
 registerPetSkill({id:'verdalia-roots',name:'Raízes da Terra',kind:'passive',stageScaling:true,
- description:'Quando você termina o seu tiro, a Verdália faz a terra atacar onde ele caiu: dano em quem estiver na área, sem projétil.',
+ description:'Quando você termina o seu tiro, a Verdália solta um redemoinho de folhas onde ele caiu: dano em quem estiver na área, sem projétil.',
  triggers:['shot-end'],limits:{perTurn:1},
  levels:[
   {effects:[{kind:'area-damage',target:'enemies',radius:90,amount:60,attackPercent:20}]},

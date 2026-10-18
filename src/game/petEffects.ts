@@ -11,21 +11,20 @@ const art=(path:string|undefined,stage=0)=>path?image(path.replace('{stage}',Str
 export const PET_EFFECT_MAX_MS=2000;
 export const PET_IMPACT_MS=650;
 
-/** One frame of a horizontal strip, bottom-centred on (x, y), `width` px wide. */
-function strip(c:CanvasRenderingContext2D,img:HTMLImageElement,frames:number,progress:number,x:number,y:number,width:number,alpha=1){
+/** One frame of a horizontal strip, `width` px wide: bottom-centred on (x, y), or centred on it with `centred`. */
+function strip(c:CanvasRenderingContext2D,img:HTMLImageElement,frames:number,progress:number,x:number,y:number,width:number,alpha=1,centred=false){
  const frame=Math.min(frames-1,Math.floor(progress*frames)),cw=img.naturalWidth/frames,ch=img.naturalHeight,h=width*ch/cw;
- c.save();c.globalAlpha=alpha;c.drawImage(img,frame*cw,0,cw,ch,x-width/2,y-h,width,h);c.restore();
+ c.save();c.globalAlpha=alpha;c.drawImage(img,frame*cw,0,cw,ch,x-width/2,centred?y-h/2:y-h,width,h);c.restore();
 }
-/** A pet application with art: the area attack rising from the ground where the shot landed, a heal on its target. Returns false when it is over. */
+/** A pet application with art: the area attack (a round whirlwind of leaves) where the shot landed, a heal on its target. Returns false when it is over. */
 export function drawPetApplication(c:CanvasRenderingContext2D,app:PetApplication,age:number,target?:{x:number;y:number},groundAt?:(x:number,y:number)=>number){
  const visual=petSkill(app.skill)?.visual;if(!visual?.effect)return false;
  const duration=visual.duration??900;if(age<0||age>=duration)return age<0;
  const img=art(visual.effect,app.stage);if(!img)return true;
  const progress=age/duration,fade=progress>.8?1-(progress-.8)/.2:1;
  if(app.kind==='area-damage'&&app.x!==undefined&&app.y!==undefined){
-  // A hit on a fighter lands at body height: the plant still grows from the ground under it.
-  const floor=groundAt?.(app.x,app.y-20),base=floor!==undefined&&floor<app.y+160?floor+8:app.y+14;
-  strip(c,img,visual.frames??1,progress,app.x,base,Math.max(visual.size??200,(app.radius??0)*2.2),fade);return true;}
+  // The whirlwind spins centred a little above the point where the shot landed; its painting grows with the stage.
+  strip(c,img,visual.frames??1,progress,app.x,app.y-24,visual.size??200,fade,true);return true;}
  if((app.kind==='hot'||app.kind==='heal')&&target){strip(c,img,visual.frames??1,progress,target.x,target.y+10,visual.size??140,fade);return true;}
  return false;
 }
