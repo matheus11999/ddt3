@@ -11,6 +11,8 @@ import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pvpRotation} from '../shared/maps';
+import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
+import {clampHp,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
@@ -404,7 +406,7 @@ export class Game {
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
     case 'fire':{const {m,f}=this.turn(p);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
-    case 'pass':{const {m}=this.turn(p);this.nextTurn(m);break;}
+    case 'pass':{const {m,f}=this.turn(p);f.delay=(f.delay??0)+PASS_DELAY;this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
      if(!m||m.state.phase!=='finished'||!rewards||rewards.phase!=='picking'||Date.now()>=rewards.deadline)throw Error('A escolha de cartas terminou.');
@@ -500,13 +502,14 @@ export class Game {
  private launchMatch(rooms:Room[],practiceSeats?:Seat[]){
   const r=rooms[0],rotation=pvpRotation(),map=rooms.length===2||practiceSeats?rotation[randomInt(rotation.length)]:r.map;
   const seats:Seat[]=practiceSeats??(rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):r.players);
-  const terrain=createTerrain(map);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment);const x=getMap(map).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0};});
+  const terrain=createTerrain(map);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(map).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));
+  // Roster order (Agilidade first) only breaks Delay ties; everyone starts at their base Delay.
   fighters.sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility);
   // In practice, the human takes the first turn so controls can be learned immediately.
-  const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:fighters[0];
+  const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:nextByDelay(fighters)!;startDelayTurn(fighters,first,this.baseDelay(first));
   const key=this.matches.has(r.id)?randomUUID():r.id;
-  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+30000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
+  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.broadcastBattle(m,true);
  }
  private startExpedition(p:Peer){
@@ -536,7 +539,7 @@ export class Game {
   s.instance!.round=run.round.round;
   const order=run.order.map(id=>s.players.find(f=>f.id===id)).filter((f):f is Fighter=>!!f),next=nextInstanceActor(order,run.round);
   if(next.kind==='monsters'){this.startMonsterTurn(m);return;}
-  const f=s.players.find(player=>player.id===next.id)!;f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+30000;this.broadcastBattle(m,withTerrain);
+  const f=s.players.find(player=>player.id===next.id)!;f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;this.broadcastBattle(m,withTerrain);
  }
  /** The monsters' shared turn: everyone walks at once, those already beside an adventurer bite, the queen shoots and summons. */
  private startMonsterTurn(m:Match){
@@ -553,7 +556,7 @@ export class Game {
   const bites=plan.bites.map((bite,index)=>({...bite,at:at+index*110}));
   bites.forEach((bite,index)=>{run.events.push({at:bite.at,run:()=>{
    const monster=s.players.find(f=>f.id===bite.id),target=s.players.find(f=>f.id===bite.targetId);if(!monster||monster.hp<=0||!target||target.hp<=0||!monster.monster)return;
-   const damage=Math.min(target.hp,monsterDamage(MONSTERS[monster.monster].attack,target.equipment));target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
+   const damage=Math.min(target.hp,monsterDamage(MONSTERS[monster.monster].attack,target.equipment,1,monster.level));target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
    target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);
    const hit:ShotHit={id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
    for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`bite:${turnId}`,projectileIndex:index,at:bite.at,hits:this.visibleHits(m,[hit],peer.profile.id)});
@@ -587,12 +590,14 @@ export class Game {
   queen.facing=aim.facing;const startedAt=Date.now(),id=randomUUID();
   const hits:ShotHit[]=[];
   for(const target of s.players){if(target.team!==0||target.hp<=0)continue;const exposure=impactExposure(target,result,ARROW.blast);if(exposure.attenuation<=0)continue;
-   hits.push({id:target.id,damage:monsterDamage(MONSTERS['ant-queen'].attack,target.equipment,exposure.attenuation),x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality});}
+   hits.push({id:target.id,damage:monsterDamage(MONSTERS['ant-queen'].attack,target.equipment,exposure.attenuation,queen.level),x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality});}
   const shot:Shot={id,shooterId:queen.id,startedAt,duration:result.flightTime+450,hits:[],impacted:[],projectiles:[{points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0},effect:'brick',monster:'arrow'}]};
   m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits,fragment:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:'brick',level:0}}];
   m.resolveAt=Math.max(m.resolveAt,startedAt+shot.duration+MONSTER_TURN_END_MS);
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
  }
+ /** Base Delay a fighter adds when their turn starts, from their match equipment. */
+ private baseDelay(f:Fighter){return attributes(f.equipment,f.level).delay;}
  private wind(){return Math.round((Math.random()*2-1)*35)/10;}
  private boost(f:Fighter,id:BoostId){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
@@ -600,7 +605,7 @@ export class Game {
   if(id==='trident'&&f.boosts.includes(id))throw Error('O tridente já foi usado neste turno.');
   // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
   const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
-  if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.boosts.push(id);
+  if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
  }
  private armPower(f:Fighter){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar Power.');
@@ -617,12 +622,14 @@ export class Game {
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');
   if(ability==='homing'&&f.homingArmed)throw Error('A mira assistida já está preparada.');
   f.abilities[ability]--;let amount:number|undefined;
-  if(ability==='heal'){amount=Math.min(HEAL_AMOUNT,f.maxHp-f.hp);f.hp+=amount;}
+  if(ability==='heal'){const healed=clampHp(f.hp+HEAL_AMOUNT,f.maxHp);amount=healed-f.hp;f.hp=healed;}
   if(ability==='homing')f.homingArmed=true;
   if(ability==='invisibility'){f.invisibleTurns=INVISIBILITY_TURNS;m.invisibilityActivated??=new Map();m.invisibilityActivated.set(f.id,m.state.turnNumber);}
   this.abilityEffect(m,{playerId:f.id,ability,x:f.x,y:f.y,amount,at:Date.now()});
  }
  private fire(m:Match,f:Fighter,angle:number,power:number){
+  // Delay for the seconds used this turn and for the shot itself (DDTank PrepareShoot + ball/weapon Delay).
+  f.delay=(f.delay??0)+timeDelay(Date.now()-(m.state.deadline-TURN_SECONDS*1000))+(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)?.shotDelay??0);
   if(f.flightArmed){this.fireFlight(m,f,angle,power);return;}
   if(f.powerArmed){
    f.powerArmed=false;f.charging=false;
@@ -656,7 +663,7 @@ export class Game {
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
-    const critical=criticalFromRoll(attributes(f.equipment).luck,this.criticalRoll());let damage=damageAtImpact(f.equipment,target.equipment,{attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
+    const critical=criticalFromRoll(attributes(f.equipment,f.level).luck,this.criticalRoll());let damage=damageAtImpact(f.equipment,target.equipment,{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
     if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
     if(damage<=0)continue;
     hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
@@ -727,10 +734,11 @@ export class Game {
  private nextTurn(m:Match){
   if(this.checkWin(m))return;
   if(m.instance){this.nextInstanceTurn(m);return;}
-  const s=m.state,withTerrain=s.phase==='resolving';const index=s.players.findIndex(p=>p.id===s.turnId);let next=index;
-  const outgoing=s.players[index];if((outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
-  for(let n=1;n<=s.players.length;n++){const candidate=(index+n)%s.players.length;if(s.players[candidate].hp>0){next=candidate;break;}}
-  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});const f=s.players[next];f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+30000;m.botAt=Date.now()+1800;this.broadcastBattle(m,withTerrain);
+  const s=m.state,withTerrain=s.phase==='resolving';
+  const outgoing=s.players.find(p=>p.id===s.turnId);if(outgoing&&(outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
+  // The living fighter with the lowest accumulated Delay plays, possibly the same one again (shared/turnDelay.ts).
+  const f=nextByDelay(s.players,s.turnId)??outgoing!;startDelayTurn(s.players,f,this.baseDelay(f));
+  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;m.botAt=Date.now()+1800;this.broadcastBattle(m,withTerrain);
  }
  private checkWin(m:Match){
   if(m.state.phase==='finished')return true;

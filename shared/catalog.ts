@@ -1,6 +1,7 @@
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
 import type {ColorSlot} from './colors';
+import {baseDelay,MAX_STRENGTHEN,maxHpFor,maxStaminaFor,strengthenedValue,strengthenLevel,weaponMilestoneValue} from './stats';
 export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
 /** Equipment slots that accept the items of another slot family (two rings share one item type). */
@@ -28,8 +29,12 @@ export const LEGACY_DYE_COLORS:Readonly<Record<string,string>>={coral:'#f24b64',
 export const VISIBILITY_SLOTS=['hat','glasses','costume'] as const;
 export type EquipmentVisibility=Partial<Record<typeof VISIBILITY_SLOTS[number],boolean>>;
 /** Which owned copy fills a slot when it is not the first one (the key of a repeated purchase). */
+/** Hats and outfits strengthen their Armadura at the forge level they carry. */
+export const ARMOR_SLOTS=['hat','outfit'] as const;
+export type ArmorSlot=typeof ARMOR_SLOTS[number];
+export function isArmorSlot(slot:Slot):slot is ArmorSlot {return (ARMOR_SLOTS as readonly Slot[]).includes(slot);}
 export type EquipmentCopies=Partial<Record<Slot,string>>;
-export type Equipment = Record<Slot, string> & {upgrade:number;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
+export type Equipment = Record<Slot, string> & {upgrade:number;/** Forge level of the worn hat and outfit copies (derived by the server, like `upgrade` for the weapon). */ slotUpgrades?:Partial<Record<ArmorSlot,number>>;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
 /** Buying an item again adds a separate copy: the first keeps the item id, later ones are `id~2`, `id~3`… */
 export const COPY_SEPARATOR='~';
 export function copyBase(key:string):string {const at=key.indexOf(COPY_SEPARATOR);return at<0?key:key.slice(0,at);}
@@ -57,7 +62,7 @@ export interface ItemAttributes {attack:number;defense:number;agility:number;luc
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
 export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
-export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; }
+export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; /** Delay added by each shot (DDTank ball Delay + weapon Property8); 0 until a value is set for the weapon. */ shotDelay?:number; }
 export const WEAPONS: Weapon[] = [
  {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:.04,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:65}
 ];
@@ -141,7 +146,7 @@ export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
 export const CONTENT_VERSION=13;
-export const MAX_UPGRADE = 15;
+export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
 /** Where players stand to use the forge, just in front of the smith (moves with the forge station, shared/lobby.ts). */
@@ -168,14 +173,16 @@ export function upgradeChance(currentLevel:number,stones:Record<string,number>):
  return Math.min(100,Math.round(750*power/UPGRADE_REQUIREMENTS[currentLevel])/10);
 }
 export function upgradeProgress(level:number):number {return Math.max(0,Math.min(MAX_UPGRADE,level))/MAX_UPGRADE*100;}
+/** Forge: Dano × 1.10^level; Ataque, Defesa, Agilidade and Sorte only gain at the +10 and +12 milestones (shared/stats.ts). */
 export function weaponStats(weapon:Weapon,level:number):Weapon {
- const upgrade=Number.isFinite(level)?Math.max(0,Math.min(MAX_UPGRADE,Math.floor(level))):0;
- return {...weapon,attack:weapon.attack+upgrade*4,damage:Math.round(weapon.damage*(1+.02*upgrade))};
+ const upgrade=strengthenLevel(level);
+ return {...weapon,damage:strengthenedValue(weapon.damage,upgrade),attack:weaponMilestoneValue(weapon.attack,upgrade),defense:weaponMilestoneValue(weapon.defense,upgrade),agility:weaponMilestoneValue(weapon.agility,upgrade),...(weapon.luck===undefined?{}:{luck:weaponMilestoneValue(weapon.luck,upgrade)})};
 }
-/** Item tooltips and character totals use the same authoritative numbers. */
+/** Item tooltips and character totals use the same authoritative numbers: original values, then forge, then composition. */
 export function itemAttributes(item:Item,level=0,composition:CompositionBonus={}):ItemAttributes {
  const value=item.slot==='weapon'?weaponStats(item as Weapon,level):item;
- const stats={attack:value.attack,defense:value.defense,agility:value.agility,luck:value.luck??0,damage:value.damage??0,armor:value.armor??0};
+ const armor=isArmorSlot(item.slot)?strengthenedValue(item.armor??0,level):value.armor??0;
+ const stats={attack:value.attack,defense:value.defense,agility:value.agility,luck:value.luck??0,damage:value.damage??0,armor};
  for(const stat of COMPOSITION_STATS)stats[stat]+=composition[stat]??0;
  return stats;
 }
@@ -192,20 +199,29 @@ export function weaponFragmentCount(weapon:Weapon,level:number,powered=false):nu
 /** Every weapon keeps its art in public/assets/weapons/<id>/ (contract: shared/weaponKit.ts). */
 export function weaponAssetPath(id:string,level=0):string {return `/assets/weapons/${id}/held-${weaponVisualStage(level)}.png`;}
 export function weaponIconPath(id:string,level=0):string {return `/assets/weapons/${id}/icon-${weaponVisualStage(level)}.png`;}
+/** Tools spend Vigor (`cost`) and may add Delay (`delay`, DDTank item Property5); no Delay value is set for them yet. */
 export const BOOSTS = [
- {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'Adiciona 1 disparo · repetível · dano distribuído',key:'1'},
- {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'Adiciona 2 disparos · repetível · dano distribuído',key:'2'},
- {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis em leque · 50% de dano · uma vez',key:'3'},
- {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4'},
- {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5'},
- {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6'},
- {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7'}
+ {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'Adiciona 1 disparo · repetível · dano distribuído',key:'1',delay:0},
+ {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'Adiciona 2 disparos · repetível · dano distribuído',key:'2',delay:0},
+ {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis em leque · 50% de dano · uma vez',key:'3',delay:0},
+ {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:0},
+ {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:0},
+ {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:0},
+ {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:0}
 ] as const;
 export type BoostId = typeof BOOSTS[number]['id'];
 export {MAPS} from './maps';
 export type {MapId} from './maps';
-export function attributes(eq:Equipment) {
- const stats:ItemAttributes={attack:80,defense:30,agility:50,luck:20,damage:0,armor:20};
- for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[eq[slot]];if(item){const values=itemAttributes(item,slot==='weapon'?eq.upgrade:0,eq.compositions?.[item.id]);for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=values[key];}}
- return {...stats,hp:1200+stats.defense*3,stamina:240+Math.floor(stats.agility/30),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
+/** Base attributes of every character before equipment. */
+export const CHARACTER_BASE:ItemAttributes={attack:80,defense:30,agility:50,luck:20,damage:0,armor:20};
+/** The forge level an equipped slot is read at. */
+export function slotUpgrade(eq:Equipment,slot:Slot):number {return slot==='weapon'?eq.upgrade??0:isArmorSlot(slot)?eq.slotUpgrades?.[slot]??0:0;}
+/**
+ * The one place character totals are made (docs/attributes.md): character base + every equipped item
+ * (forged, plus composition). Vida comes from level and Defesa, Vigor from Agilidade, Delay from Agilidade and Ataque.
+ */
+export function attributes(eq:Equipment,level=1) {
+ const stats:ItemAttributes={...CHARACTER_BASE};
+ for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[eq[slot]];if(item){const values=itemAttributes(item,slotUpgrade(eq,slot),eq.compositions?.[item.id]);for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=values[key];}}
+ return {...stats,hp:maxHpFor(level,stats.defense),stamina:maxStaminaFor(stats.agility),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
 }
