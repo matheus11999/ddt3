@@ -102,6 +102,11 @@ try{
  await blurControl();mark=events.length;await page.keyboard.down('Space');await waitForCharge(page,35);
  const held=Number(await meter.getAttribute('aria-valuenow'));await page.keyboard.down('Space');await animationFrames(page,2);assert.ok(Number(await meter.getAttribute('aria-valuenow'))>=held,'keyboard repeat must not restart charging');
  assert.equal(fires().length,before,'holding Space must not submit before release');await page.keyboard.up('Space');const keyboardShot=await assertRelease(before,mark,'keyboard');await page.keyboard.up('Space');await animationFrames(page);assert.equal(fires().length,before+1,'duplicate keyup cannot shoot twice');checks.push('keyboard release uses the committed visible power once');
+ // Turning in place works while the shot flies (not my aiming turn), even with a HUD button still focused.
+ {const facing=()=>events.filter(event=>event.type==='battle'&&event.battle).at(-1).battle.players.find(p=>p.id===profile.id).facing;
+  const side=facing()===1?-1:1,faceMark=events.length;await page.getByRole('button',{name:'Aumentar ângulo',exact:true}).focus();await page.keyboard.press(side===1?'ArrowRight':'ArrowLeft');
+  const turned=await waitEvent(events,'battle',event=>event.battle?.players.find(p=>p.id===profile.id)?.facing===side,faceMark);assert.equal(turned.battle.phase,'resolving','the turn happened while the shot was resolving');
+  assert.ok(commands.some(command=>command.type==='face'&&command.direction===side));await blurControl();checks.push('turning in place works while a shot resolves, with a HUD button focused');}
  await page.screenshot({path:`${output}/keyboard-shot.png`});await returnTurn(keyboardShot,mark);
 
  before=fires().length;mark=events.length;await blurControl();await page.keyboard.down('Space');await waitForCharge(page,100);await animationFrames(page,8);await expect(meter).toHaveAttribute('aria-valuenow','100');assert.equal(fires().length,before,'a full charge must wait for release instead of auto-firing');await page.screenshot({path:`${output}/maximum-charge.png`});await page.keyboard.up('Space');

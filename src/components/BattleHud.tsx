@@ -22,6 +22,8 @@ import './BattleConsole.css';
 type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=5,MAX_POWER=100,CHARGE_MS=2600;
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
+// A HUD button that kept focus after a click (PASS, a boost, an ability) must not swallow walking, turning or aiming.
+const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
 
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
  const {battle,profile,offset,status}=useGame();
@@ -39,8 +41,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // A fallen fighter keeps watching until the end (and keeps the reward) but plays no more.
  const fallen=me.hp<=0&&b.phase!=='finished';
  const canAct=mine&&!intro&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
- // Turning in place is free and allowed on anyone's turn (the server checks it too).
- const canFace=b.phase==='aiming'&&!blocked&&!exit&&status==='online'&&me.hp>0;
+ // Turning in place is free and allowed at any time of the match: anyone's turn, a shot in flight, the monsters' turn (the server checks it too).
+ const canFace=b.phase!=='finished'&&!blocked&&!exit&&status==='online'&&me.hp>0;
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
@@ -127,8 +129,10 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  useEffect(()=>{
   const keys=new Set<string>();
   const down=(event:KeyboardEvent)=>{
-   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey||ignoresGameKeys(event.target))return;
+   if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey)return;
    const key=event.key.toLowerCase(),side=key==='a'||key==='arrowleft'?-1:key==='d'||key==='arrowright'?1:0;
+   const move=side!==0||['w','s','arrowup','arrowdown'].includes(key);
+   if(move?ignoresMoveKeys(event.target):ignoresGameKeys(event.target))return;
    if(!live.current.canAct){
     if(side&&live.current.canFace){event.preventDefault();if(!event.repeat&&live.current.me.facing!==side)client.send({type:'face',direction:side});}
     return;
@@ -151,7 +155,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const focus=(event:FocusEvent)=>{if(ignoresGameKeys(event.target)&&chargeSource.current==='keyboard')blur();};
   const visibility=()=>{if(document.hidden)blur();};
   const timer=setInterval(()=>{
-   if(!live.current.canAct||turnSubmitted.current||ignoresGameKeys(document.activeElement))return;
+   if(!live.current.canAct||turnSubmitted.current||ignoresMoveKeys(document.activeElement))return;
    if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
    if(keys.has('d')||keys.has('arrowright'))client.send({type:'walk',direction:1});
    if(keys.has('w')||keys.has('arrowup'))setAngle(Math.min(live.current.maxAngle,live.current.angle+1));

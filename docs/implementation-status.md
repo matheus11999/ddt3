@@ -351,3 +351,4 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Evidência: `tests/live-state.test.ts`; `npm run test:restart:integration` derruba o servidor real com SIGTERM e SIGKILL no meio de um treino e o jogador volta à mesma partida com a mesma vida.
 - Corrigido junto: adicionar bot na sala de treino quebrava com uma arma só no arsenal.
 - 18/10/2026: pausa de 1,2 s (`TURN_GAP_MS`) entre o fim do tiro (impacto, dano, queda) e o próximo turno em PvP, treino e expedições; câmera para no último impacto. Teste em `tests/fall.test.ts`.
+- 18/10/2026: virar o personagem no lugar (setas/A-D) funciona a qualquer momento da partida: turno de outro jogador, tiro no ar, pausa de 1,2 s e turno dos monstros da expedição; um botão do HUD focado não engole mais as setas. Testes em `tests/game.test.ts`, `tests/expedition.test.ts` e `npm run test:battle:browser`.
