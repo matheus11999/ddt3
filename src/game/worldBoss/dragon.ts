@@ -11,20 +11,20 @@ import type {DragonAct} from '../../../shared/worldBoss';
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist'|'flame';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
 export const DRAGON_PARTS:Record<Part,{src:string;pivot:[number,number];scale:number;frames?:number}>={
- body:{src:'/assets/world-boss/body.png',pivot:[560,1010],scale:.82},
- head:{src:'/assets/world-boss/head.png',pivot:[600,430],scale:.8},
- jaw:{src:'/assets/world-boss/jaw.png',pivot:[470,80],scale:.8},
- lid:{src:'/assets/world-boss/lid.png',pivot:[60,40],scale:.8},
- clawOpen:{src:'/assets/world-boss/claw-open.png',pivot:[300,560],scale:.72},
- clawFist:{src:'/assets/world-boss/claw-fist.png',pivot:[300,520],scale:.72},
+ body:{src:'/assets/world-boss/body.png',pivot:[420,905],scale:.75},
+ head:{src:'/assets/world-boss/head.png',pivot:[720,600],scale:.6},
+ jaw:{src:'/assets/world-boss/jaw.png',pivot:[620,105],scale:.48},
+ lid:{src:'/assets/world-boss/lid.png',pivot:[95,80],scale:.4},
+ clawOpen:{src:'/assets/world-boss/claw-open.png',pivot:[340,870],scale:.42},
+ clawFist:{src:'/assets/world-boss/claw-fist.png',pivot:[300,770],scale:.42},
  flame:{src:'/assets/world-boss/flame.png',pivot:[128,128],scale:1,frames:8},
 };
-/** Where the parts join, relative to the dragon fighter's (x, y): the neck, then points inside the head. */
+/** Where the parts join, relative to the dragon fighter's (x, y): the base of the neck (below the map), the head's neck pivot, then points inside the head. */
 export const DRAGON_RIG={
- body:[170,150] as const,
- neck:[110,-230] as const,
+ body:[430,250] as const,
+ neck:[180,-340] as const,
  /** In head space (world px from the neck pivot, head facing left, before rotation). */
- hinge:[-150,-10] as const,eye:[-205,-120] as const,mouth:[-400,-20] as const,nostril:[-440,-80] as const,
+ hinge:[-132,-48] as const,eye:[-252,-135] as const,mouth:[-408,-48] as const,nostril:[-381,-108] as const,
 };
 const images=new Map<Part,HTMLImageElement>();
 export function preloadDragon(){
@@ -109,7 +109,7 @@ export function dragonLift(b:Battle,fighterId:string,now:number){
 }
 /** Where the camera looks while the dragon acts (null: the scene's usual focus). */
 export function dragonFocus(b:Battle,f:Fighter,now:number,heroX:number,heroY:number):{x:number;y:number}|null{
- const a=act(b);if(!a)return null;const age=now-a.startedAt,head={x:f.x-140,y:f.y-330},tx=a.targetX??heroX,ty=(a.targetY??heroY)-120;
+ const a=act(b);if(!a)return null;const age=now-a.startedAt,head={x:f.x-60,y:f.y-400},tx=a.targetX??heroX,ty=(a.targetY??heroY)-120;
  if(age<0||age>DRAGON_ACTIONS[a.action].duration+300)return null;
  switch(a.action){
   case 'entrance':return age<3900?head:null;
@@ -129,9 +129,13 @@ function flame(c:CanvasRenderingContext2D,x:number,y:number,size:number,frame:nu
  else{const g=c.createRadialGradient(0,0,0,0,0,size/2);g.addColorStop(0,'#fff6b8');g.addColorStop(.35,'#ffb030');g.addColorStop(.75,'#e8401ccc');g.addColorStop(1,'#e8401c00');c.fillStyle=g;c.beginPath();c.arc(0,0,size/2,0,Math.PI*2);c.fill();}
  c.restore();
 }
-function drawPart(c:CanvasRenderingContext2D,part:Part,fallback:(c:CanvasRenderingContext2D)=>void){
+function drawPart(c:CanvasRenderingContext2D,part:Part,fallback:(c:CanvasRenderingContext2D)=>void,armAbove=0){
  const image=ready(part),def=DRAGON_PARTS[part];
- if(image)c.drawImage(image,-def.pivot[0]*def.scale,-def.pivot[1]*def.scale,image.naturalWidth*def.scale,image.naturalHeight*def.scale);else fallback(c);
+ if(!image){fallback(c);return;}
+ const x=-def.pivot[0]*def.scale,y=-def.pivot[1]*def.scale,w=image.naturalWidth*def.scale;
+ // The claws are painted with the forearm cut at the top: repeat its first scales upward, out of the screen.
+ if(armAbove>0){const rows=70,h=rows*def.scale;for(let top=y-h;top>y-h-armAbove;top-=h-1)c.drawImage(image,0,0,image.naturalWidth,rows,x,top,w,h);}
+ c.drawImage(image,x,y,w,image.naturalHeight*def.scale);
 }
 /** World position of a point given in head space. */
 function headPoint(f:Fighter,pose:DragonPose,point:readonly [number,number]){
@@ -171,7 +175,7 @@ export function drawDragonFront(c:CanvasRenderingContext2D,b:Battle,f:Fighter,po
   // The claw's shadow grows on the ground as it comes down: the player sees where it lands.
   const fall=clamp(1-(ground0-cl.y)/900);if(fall>0){c.save();c.globalAlpha=.32*fall*cl.alpha;c.fillStyle='#1a0d08';c.beginPath();c.ellipse(cl.x,ground0+4,40+110*fall,10+18*fall,0,0,Math.PI*2);c.fill();c.restore();}
   c.save();c.globalAlpha*=cl.alpha*pose.alpha;c.translate(cl.x,cl.y);c.rotate(cl.tilt);
-  drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}});
+  drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}},1100);
   c.restore();
  }
  if(!a||age<0)return;

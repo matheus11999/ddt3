@@ -69,7 +69,7 @@ html.mobile-landscape .world-boss-about{display:none}
 /* ── Battle: the global life in place of the enemy roster ── */
 .world-boss-bar{position:absolute;top:0;left:calc(50% + 108px);width:min(400px,calc(50% - 108px - 236px));display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:14px;background:linear-gradient(#5b2410e6,#2c0e04e6);border:2px solid #f2b56b;box-shadow:0 4px 10px #0008;color:#ffe9c2}
 .world-boss-bar-face{width:64px;height:64px;flex:none;border-radius:50%;overflow:hidden;background:radial-gradient(#c86a3c,#3b2440);box-shadow:0 0 0 2px #f2b56b}
-.world-boss-bar-face img{width:100%;height:100%;object-fit:cover;object-position:30% 40%}
+.world-boss-bar-face img{width:100%;height:100%;object-fit:cover;object-position:50% 45%}
 .world-boss-bar-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .world-boss-bar-body p{display:flex;justify-content:space-between;gap:8px;font:900 14px Nunito,sans-serif}
 .world-boss-bar-body p strong{font:700 15px Cinzel,serif;color:var(--wood-gold,#ffd36b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

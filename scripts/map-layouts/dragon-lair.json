@@ -1,0 +1,37 @@
+{
+ "name": "Covil do Dragão",
+ "subtitle": "Chefão Mundial",
+ "kind": "instance",
+ "source": "public/assets/maps/dragon-lair/source",
+ "background": [
+  "panorama-esquerda.png",
+  "panorama-direita.png"
+ ],
+ "mirror": false,
+ "width": 3072,
+ "sheets": {
+  "chao": "chao.png",
+  "pecas": "pecas.png"
+ },
+ "spawns": [
+  [
+   1450,
+   1300,
+   1600,
+   1150
+  ],
+  []
+ ],
+ "items": [
+  {
+   "id": "ground",
+   "sheet": "chao",
+   "piece": 0,
+   "x": 1480,
+   "top": 290,
+   "scale": 1.35,
+   "destructible": false,
+   "smooth": 120
+  }
+ ]
+}

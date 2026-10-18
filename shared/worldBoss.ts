@@ -21,7 +21,7 @@ export const WORLD_BOSS_MAP='dragon-lair';
 /** The `turnId` while the dragon acts. */
 export const DRAGON_TURN_ID='world-boss-turn';
 /** Where the dragon stands in the lair: its head is the target (a large hit circle around it). */
-export const DRAGON_BODY={x:2560,y:700,hitRadius:150,hitHeight:300} as const;
+export const DRAGON_BODY={x:2420,y:700,hitRadius:175,hitHeight:420} as const;
 /** Each round the dragon hits a little harder, so every attempt comes to an end. */
 export const DRAGON_RAGE_PER_ROUND=.08;
 

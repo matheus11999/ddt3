@@ -1,6 +1,7 @@
 import {SNOW_REGIONS} from './generated/snowTerrain';
 import {ANTHILL_1_REGIONS,ANTHILL_1_MONSTERS} from './generated/anthill-1Terrain';
 import {ANTHILL_2_REGIONS,ANTHILL_2_MONSTERS} from './generated/anthill-2Terrain';
+import {DRAGON_LAIR_REGIONS} from './generated/dragon-lairTerrain';
 import type {MonsterPlacement} from './expeditions';
 
 /** Maps in the game. Each is painted art assembled by `npm run build:map` (docs/maps-kit.md). */
@@ -56,10 +57,10 @@ export const MAP_DEFINITIONS:Partial<Record<MapId,MapDefinition>>&Record<Canonic
   art:{background:'/assets/maps/anthill-2/background.webp',terrain:'/assets/maps/anthill-2/terrain-world.png'},
   regions:ANTHILL_2_REGIONS,monsters:ANTHILL_2_MONSTERS},
  'dragon-lair':{id:'dragon-lair',name:'Covil do Dragão',subtitle:'Chefão Mundial',color:'#d0643c',
-  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1300],[0]],
-  lighting:{sky:'#3b2440',horizon:'#c86a3c',ambient:'#ffd2a8'},audio:{ambience:'wind',impact:{earth:'dust'}},
-  art:{background:'/assets/maps/anthill-2/background.webp',terrain:'/assets/maps/anthill-2/terrain-world.png'},
-  regions:ANTHILL_2_REGIONS},
+  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1450,1300,1600,1150],[]],
+  lighting:{sky:'#5a3a8a',horizon:'#f29a4a',ambient:'#ffd2a8'},audio:{ambience:'wind',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/dragon-lair/background.webp',terrain:'/assets/maps/dragon-lair/terrain-world.png'},
+  regions:DRAGON_LAIR_REGIONS},
 };
 /** The map a new room starts on and the one unknown ids fall back to (tests point it at their fixture map). */
 export const MAP_DEFAULT:{id:MapId}={id:'snow'};
