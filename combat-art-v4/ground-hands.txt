@@ -1,0 +1,16 @@
+Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
+
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin lying belly-down behind it, and two flat CYAN (#00FFFF) discs under the chin = where the two FISTS go.
+IMAGE 2 is the outfit to paint: the standing character shows the outfit design (ignore the head).
+IMAGE 3 is the POSE reference from DDTank: a tiny body lying behind a big head, the chin resting on TWO ROUND FISTS, the short forearms coming out of the sleeves and connecting the body to the fists. Copy only the pose, proportions and the look of the fists, never their clothes or art.
+IMAGE 4 is the same outfit already painted lying down by you: keep exactly the same design, colors and scale for the body.
+
+Return the same 1536x1024 canvas. Copy IMAGE 1 first and keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same outline and size, flat and untouched (the game puts the player's head there).
+
+Paint IMAGE 2's outfit as a SMALL chibi body exactly over each gray mannequin, covering the gray completely and not growing past it by more than a few pixels, facing RIGHT, feet to the LEFT, short and flat like DDTank.
+
+HANDS (the important part): over the two cyan discs paint TWO ROUND chibi FISTS, each a plump ball about the size of its cyan disc, skin colored (light peach like the attached references: bright highlight on top, peach middle, warmer shading underneath), warm dark-brown outline, a small curved line for the folded fingers, no separate fingers. The back fist is slightly larger, the front fist a bit smaller and lower, both resting side by side under the chin with their bottoms on the same line, drawn IN FRONT of the green chin. A short forearm in the outfit's SLEEVE comes out from the body under the head and connects to each fist with a little skin wrist, so the arm is clearly attached to the outfit. Cover the cyan completely; no cyan may remain. Same fists in all six frames, they may shift 1-2 px with the crawl.
+
+Six frames, left to right, top to bottom: 1 REST lying belly-down. 2-5 CRAWL: same pose, only the feet and fists shift 1-3 px between frames (follow the mannequin). 6 HURT: flattened, feet kicked up a little.
+
+Saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. No weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.
