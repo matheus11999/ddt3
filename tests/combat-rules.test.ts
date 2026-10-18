@@ -54,9 +54,9 @@ test('approach geometry distinguishes center contact, grazing and splash despite
  assert.ok(Math.abs(direct.flightTime-(300-28-77)/980*1000/PROJECTILE_SPEED_SCALE)<1e-8);
 });
 
-test('extra tools compose additively while their total direct damage budget remains bounded',()=>{
- assert.deepEqual(shotModifiers(['extra1','extra2','damage20','damage20']),{volleys:4,spread:[0],projectileMultiplier:.45,damageMultiplier:1.4});
- const boosted=shotModifiers(['extra2','extra2','trident','damage50','damage40']);assert.equal(boosted.volleys,5);assert.equal(boosted.spread.length,3);assert.equal(boosted.damageMultiplier,1.9);assert.ok(Math.abs(boosted.volleys*boosted.spread.length*boosted.projectileMultiplier-2.7)<1e-9);
+test('shot modes set the projectile penalty and percentage bonuses add up',()=>{
+ assert.deepEqual(shotModifiers(['extra1','damage20','damage20']),{volleys:2,spread:[0],projectileMultiplier:.9,damageMultiplier:1.4});
+ const boosted=shotModifiers(['extra2','trident','damage50','damage40']);assert.equal(boosted.volleys,3);assert.equal(boosted.spread.length,3);assert.equal(boosted.damageMultiplier,1.9);assert.ok(Math.abs(boosted.projectileMultiplier-.3)<1e-9);
 });
 
 test('splash is local with gradual falloff and no damage at or beyond its hitbox boundary',()=>{
@@ -135,9 +135,9 @@ test('a lethal hit kills at impact but the result waits for the shot to end, and
 
 test('repeated tools require the authoritative vigor budget and cannot mutate state during resolution',async()=>{
  const f=await fixture(),vigor=f.shooter.stamina;
- for(const boost of ['extra1','extra2'] as const)await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,['extra1','extra2']);assert.equal(f.shooter.stamina,vigor-220);
+ for(const boost of ['extra2','trident'] as const)await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,['extra2','trident']);assert.equal(f.shooter.stamina,vigor-220);
  const before=structuredClone(f.shooter);await f.game.command(f.shooter.id,{type:'boost',boost:'damage20'});assert.deepEqual(f.shooter,before);
- await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,1,2,3].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>3*VOLLEY_CADENCE_MS);
+ await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,0,0,1,1,1,2,2,2].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>2*VOLLEY_CADENCE_MS);
  const snapshot=structuredClone(f.match.state);await f.game.command(f.shooter.id,{type:'boost',boost:'damage50'});assert.deepEqual(f.match.state,snapshot);
  assert.equal(attributes(f.shooter.equipment).luck,105);
 });
