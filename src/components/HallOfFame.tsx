@@ -160,7 +160,7 @@ function Stage({row,guild,valueName,onDetails}:{row:HallRow|null;guild:boolean;v
  const place=row?.rank??0;
  return <>
   <section className="hof-stage" aria-label="Palco">
-   <div className="hof-title"><img src="/assets/ui/hall-title-plate.webp" alt="" draggable={false}/><GoldWord id="hof-title" text="Hall da Fama" width={420} height={84} size={54}/></div>
+   <div className="hof-title"><img src="/assets/ui/hall-title-plate.webp" alt="" draggable={false}/><GoldWord id="hof-title" text="Hall da Fama" width={420} height={84} size={64}/></div>
    {row?<>
     <div className="hof-place">{place>=1&&place<=3?<GoldWord id={`hof-place-${place}`} text={`${place}º lugar`} width={280} height={100} size={66} depth={8}/>:<GoldWord id="hof-place-n" text={`${place}º lugar`} width={280} height={100} size={66} depth={8}/>}</div>
     <div className="hof-figure">
@@ -176,8 +176,8 @@ function Stage({row,guild,valueName,onDetails}:{row:HallRow|null;guild:boolean;v
     {guild?<span><em>Líder</em><b>{row.leader??'—'}</b></span>:<span><em>Guilda</em><b className="guild">{row.guild??'—'}</b></span>}
    </div>
    <div className="hof-plate-actions">
-    <button onClick={onDetails}>{guild?<><Shield size={14}/>Ver guilda</>:<><Award size={14}/>Ver conquistas</>}</button>
-    {!guild&&row.id!==me?.id&&<button onClick={()=>{audio.play('click');client.openPlayerPanel('info',{id:row.id,name:row.name,context:'ranking'});}}><User size={14}/>Ver equipamento</button>}
+    <button title={guild?'Ver guilda':'Ver conquistas'} onClick={onDetails}>{guild?<><Shield size={14}/>Ver guilda</>:<><Award size={14}/>Ver conquistas</>}</button>
+    {!guild&&row.id!==me?.id&&<button title="Ver equipamento" onClick={()=>{audio.play('click');client.openPlayerPanel('info',{id:row.id,name:row.name,context:'ranking'});}}><User size={14}/>Ver equipamento</button>}
    </div>
   </>:<p className="hof-muted">Ninguém neste ranking ainda.</p>}</div>
  </>;
