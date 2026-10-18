@@ -10,7 +10,7 @@
  "shin": 150,
  "neckY": 650,
  "shoulderY": 690,
- "frameUnits": 14,
+ "frameUnits": 17,
  "frames": [
   {"name": "contact", "near": [28, 8], "far": [-22, -40], "nearArm": -24, "farArm": 24, "bob": 0},
   {"name": "down", "near": [14, 10], "far": [-10, -72], "nearArm": -14, "farArm": 14, "bob": 12},
