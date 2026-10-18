@@ -11,6 +11,7 @@ Cada arma do Brasa Arena é única, como no DDTank: arte própria em cada fase d
 | Ícone (inventário, loja, ferreiro) | `public/assets/weapons/<id>/icon-<fase>.png`, 512×512, objeto sem moldura; o jogo pinta o quadro |
 | Arma na mão | `public/assets/weapons/<id>/held-<fase>.png`, 1254×1254 (`weaponAssetPath`) |
 | Projétil, disparo e impacto | atlas `public/assets/weapons/<id>/effects.png`, 1448×1086, linhas projétil / disparo / impacto, colunas = fases |
+| Projétil e impacto do POW | atlas `public/assets/weapons/<id>/pow.png`, 1448×724, linhas projétil / impacto, colunas = fases (`powProjectile`, `powImpact` no kit). O POW é **sempre** um objeto diferente e maior que o tiro normal da fase, nunca o mesmo com mais brilho (regra do usuário, 18/10/2026); o validador recusa célula igual ao tiro normal. Sem esse arquivo o POW usa o projétil normal |
 
 | Por arma | Arquivo |
 | --- | --- |
