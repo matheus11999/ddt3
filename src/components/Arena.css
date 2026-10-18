@@ -292,3 +292,24 @@ html.mobile-landscape .pvp-room .preparation-divider span{font-size:9px}
 html.mobile-landscape .pvp-room .preparation-hint{margin-top:5px;font-size:9px}
 html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}
 .party-painted-menu{position:relative}.party-menu-count{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 10px Nunito,sans-serif;box-shadow:0 2px 3px #0005;pointer-events:none}
+/* Guilda abaixo do nome no card da sala (PvP e expedição) */
+.pvp-room .pr-card-names{display:grid;flex:1;min-width:0;line-height:1}
+.pvp-room .pr-card-names strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pvp-room .pr-card-name.has-guild strong{font-size:13px}
+.pvp-room .pr-card-guild{overflow:hidden;margin-top:1px;font-size:10.5px;font-weight:900;color:#fff4c9;letter-spacing:.02em;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px #8a3a07}
+.pvp-room .pr-card-guild::before{content:'◆ ';color:#7fc3ff}
+html.mobile-landscape .pvp-room .pr-card-name.has-guild strong{font-size:9.5px}
+html.mobile-landscape .pvp-room .pr-card-guild{margin-top:0;font-size:7.5px}
+/* GvG ao lado do Início */
+.pvp-room .pr-start-row{display:flex;gap:7px;align-items:stretch}
+.pvp-room .pr-start-row>.party-search-action,.pvp-room .pr-start-row>.party-spectator-status{flex:1;min-width:0}
+.pvp-room .pr-gvg{display:grid;place-content:center;gap:2px;flex:none;width:70px;padding:0;border:2px solid #fff3d6;border-radius:14px;background:linear-gradient(#fffaf0,#f3d9a9);box-shadow:inset 0 -3px #d9b880,0 2px #2a0f03;color:#8a3f0b;cursor:pointer}
+.pvp-room .pr-gvg strong{font:900 22px/1 'Lilita One','Nunito',sans-serif;letter-spacing:.02em;text-shadow:0 1px #fff}
+.pvp-room .pr-gvg small{font-size:10px;font-weight:900;text-transform:uppercase;opacity:.8}
+.pvp-room .pr-gvg.active{border-color:#d3f4ff;background:linear-gradient(#7cc0f0,#3d84d6 60%,#235aa0);box-shadow:inset 0 1px #d3f4ff,inset 0 -3px #173451,0 0 12px #7cc0f0aa,0 2px #2a0f03;color:#fff}
+.pvp-room .pr-gvg.active strong{text-shadow:0 2px #173451}
+.pvp-room .pr-gvg:disabled{cursor:var(--cursor-arrow);opacity:.6}
+.pvp-room .pr-gvg.active:disabled{opacity:.9}
+html.mobile-landscape .pvp-room .pr-gvg{width:52px;border-radius:11px}
+html.mobile-landscape .pvp-room .pr-gvg strong{font-size:16px}
+html.mobile-landscape .pvp-room .pr-gvg small{font-size:8px}

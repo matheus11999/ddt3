@@ -841,3 +841,17 @@ html.mobile-landscape .smith-window .smith-wallet > span { min-width: 0; height:
 html.mobile-landscape .smith-window .smith-wallet b { font-size: 11px; }
 html.mobile-landscape .smith-window .smith-hint { display: none; }
 
+/* Bônus do Ferreiro da Guilda, na ponta esquerda da barra de chance */
+.smith-window .forge-chance-track > .forge-guild-bonus {
+  position: absolute;
+  left: -4px;
+  top: -9px;
+  padding: 0 7px;
+  border: 1px solid #d3f4ff;
+  border-radius: 999px;
+  background: linear-gradient(#5aa6ea, #235aa0);
+  color: #fff;
+  font: 900 10.5px/16px 'Nunito', sans-serif;
+  text-shadow: 0 1px #173451;
+  box-shadow: 0 1px 3px #000a;
+}
