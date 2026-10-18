@@ -29,6 +29,8 @@ import type {AuctionHouse} from './auction';
 import type {GuildHall,Membership} from './guilds';
 import {GVG_CONTRIBUTION,smithBonus} from '../shared/guilds';
 import type {GuildMissionId} from '../shared/guilds';
+import type {GuildBoard,HallBoard,HallCategory,HallGuildProfile,HallLegends,HallPeriod,HallPlayerProfile,LegendBoard} from '../shared/hall';
+import type {MatchRecord} from './hall';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
@@ -36,10 +38,19 @@ import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_EN
 import type {InstanceRound} from '../shared/instanceTurn';
 import {monsterDamage} from '../shared/combat';
 import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
+import type {BattlePetEntry,PetKeeper,PetOutcome} from './pets';
+import {PET_CONFIG} from '../shared/petConfig';
+import {activatePetSkill,blocked as petBlocked,consumeShotBonus,createBattlePet,dispatchAll,dispatchPetTrigger,drainShield,incomingPetDamage,outgoingPetFactor,petStatBuffs,petTurnEnd,petTurnStart} from '../shared/petSkills';
+import type {PetApplication,PetBlockedAction,PetEngineContext,PetTrigger} from '../shared/petSkills';
+import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
+import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
+import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
 export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
 /** An expedition run: its stages, the current round of the instance turn and the monster turn's timed events. */
+/** A Chefão Mundial attempt: damage not yet sent to the global life and the dragon's timed blows. */
+interface WorldBossRun {occurrenceId:string;pending:number;events:{at:number;run:()=>void}[];last?:DragonAction;}
 interface ExpeditionRun {expedition:string;difficulty:Difficulty;stages:readonly StageDef[];stage:number;order:string[];round:InstanceRound;events:{at:number;run:()=>void}[];won?:boolean;}
 /** How long a dropped player keeps their place: the whole match while it runs (up to 5 min away), a bit longer after a restart. */
 const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
@@ -47,8 +58,16 @@ const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
 export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpacts'|'activeShot'|'pendingPower'|'savingRewards'|'instance'>&{invisibilityActivated?:[string,number][];instance?:Omit<ExpeditionRun,'events'>};
 export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
-const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch']);
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];}
+const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch','pet-skill']);
+/** What the game reads from the Hall da Fama (tests use a fake). */
+export interface HallService {
+ board(viewerId:string,q:{category:HallCategory;period?:HallPeriod;board?:GuildBoard;page?:number}):Promise<HallBoard>;
+ profile(playerId:string):Promise<HallPlayerProfile|null>;
+ guildProfile(guildId:number):Promise<HallGuildProfile|null>;
+ legends(board:LegendBoard,key?:string):Promise<HallLegends>;
+}
+const HALL_MIN_MS=150;
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
 
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
@@ -64,6 +83,17 @@ export class Game {
  auction?:AuctionHouse;
  /** Guildas (server/guilds.ts); without it guilds are closed. */
  guilds?:GuildHall;
+ /** Pets (server/pets.ts); without it the pet window stays empty and battles run without pets. */
+ pets?:PetKeeper;
+ /** Server roll for pet skill chances, uniform in [0, 1). */
+ petRoll:()=>number=()=>randomInt(1_000_000)/1_000_000;
+ /** Hall da Fama (server/hall.ts); without it the hall is closed. */
+ hall?:HallService;
+ private hallAt=new Map<string,number>();private hallQueued=new Map<string,Command>();
+ /** Chefão Mundial (server/worldBoss.ts); without it the event never opens. */
+ worldBoss?:WorldBossRealm;
+ /** Damage waiting to reach the global life, in order; each entry has its own ledger key, so a retry counts once. */
+ private worldBossQueue:WorldBossDamage[]=[];private worldBossFlushing=false;private worldBossRetryAt=0;private worldBossDirty=false;private worldBossSentAt=0;private worldBossRankingAt=new Map<string,number>();
  /** Each player's guild as last loaded: the name on their room card, the forge bonus and GvG pairing. */
  private memberships=new Map<string,Membership|null>();
  /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
@@ -78,9 +108,70 @@ export class Game {
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
-  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
+  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
-  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);return p;
+  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);void this.sendPets(p).catch(this.report);return p;
+ }
+ private requirePets(){if(!this.pets)throw Error('Os pets estão indisponíveis no momento.');return this.pets;}
+ private async sendPets(p:Peer){if(!this.pets||!p.connected)return;this.emit(p,{type:'pets',...await this.pets.list(p.profile.id)});}
+ /** A pet action or battle result: the new profile (its equipment carries the active pet), the list, the result; the room sees the new look and stats. */
+ private petOutcome(p:Peer,outcome:PetOutcome){
+  p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'pets',...outcome.state});this.emit(p,{type:'pet-result',result:outcome.result});
+  const room=p.roomId?this.rooms.get(p.roomId):undefined,seat=room?.players.find(s=>s.id===p.profile.id);
+  if(room&&seat&&room.status!=='playing'){seat.equipment={...p.profile.equipment};this.broadcastRoom(room);}
+  if(!p.roomId)this.sendLobby(p.channel);
+ }
+ // ── Pets in battle (shared/petSkills.ts does the rules; here they meet the match) ──
+ private petContext(m:Match):PetEngineContext{
+  return {fighters:m.state.players,mode:m.instance?'pve':'pvp',roll:this.petRoll,attackOf:f=>attributes(this.combatEquipment(f as Fighter),f.level).attack,
+   onDamage:(target,amount,source)=>{const t=target as Fighter,s=source as Fighter;if(t.hp<=0)t.powerArmed=false;if(amount>0&&t.team!==s.team){if(s.hp>0)s.powerCharge=chargeFromDamage(s.powerCharge??0,amount,t.maxHp);t.powerCharge=chargeFromDamage(t.powerCharge??0,amount,t.maxHp,true);}}};
+ }
+ /** The fighter's equipment with this battle's pet attribute changes, for one calculation. */
+ private combatEquipment(f:Fighter){const buffs=petStatBuffs(f);return buffs?{...f.equipment,battleBuffs:buffs}:f.equipment;}
+ private petEffect(m:Match,applications:PetApplication[]){if(!applications.length)return;const at=Date.now();for(const peer of this.matchPeers(m))this.emit(peer,{type:'pet-effect',battleId:m.state.id,at,applications});}
+ /** Battle start: each fighter's equipped, active pet gets its battle state (no pet: the fighter is untouched). */
+ private armPets(m:Match,first:Fighter|undefined){
+  const mode=m.instance?'pve':'pvp';let any=false;
+  for(const f of m.state.players){if(f.bot||f.monster)continue;const snapshot=f.equipment.pet;if(!snapshot||snapshot.vitality<=0)continue;const pet=createBattlePet({petId:snapshot.id,species:snapshot.species,skills:snapshot.skills},mode);if(pet){f.pet=pet;any=true;}}
+  if(!any)return;const ctx=this.petContext(m);
+  this.petEffect(m,[...dispatchAll(ctx,'battle-start'),...(first?petTurnStart(ctx,first):[])]);
+ }
+ private petTrigger(m:Match,trigger:PetTrigger,owner:Fighter,info:Parameters<typeof dispatchPetTrigger>[3]={},ctx=this.petContext(m)){return owner.pet?dispatchPetTrigger(ctx,trigger,owner,info):[];}
+ /** End of the turn that just ran: lingering effects tick on whoever played (the monsters together on their turn). Once per turn. */
+ private petTurnEnd(m:Match){
+  const s=m.state;if(m.petTurnEnded===s.turnNumber||s.phase==='finished')return;m.petTurnEnded=s.turnNumber;
+  const carriers=s.turnId===MONSTER_TURN_ID?s.players.filter(f=>f.monster):s.players.filter(f=>f.id===s.turnId);
+  if(!carriers.some(f=>f.pet||f.petEffects?.length))return;
+  const ctx=this.petContext(m);this.petEffect(m,carriers.flatMap(f=>petTurnEnd(ctx,f)));
+ }
+ private petTurnStart(m:Match,f:Fighter){if(f.pet)this.petEffect(m,petTurnStart(this.petContext(m),f));}
+ /** A pet skill or debuff can keep a fighter from acting. */
+ private assertPetFree(f:Fighter,action:PetBlockedAction){if(f.petEffects?.length&&petBlocked(f,action))throw Error('Um efeito impede esta ação neste turno.');}
+ private usePetSkill(m:Match,f:Fighter,skill:string,target?:string){
+  const {applications}=activatePetSkill(this.petContext(m),f,skill,target);
+  this.petEffect(m,applications);if(!this.checkWin(m))this.broadcastBattle(m);
+ }
+ /** Events of the hits that just landed, for the pets that listen (once per projectile; skills limit themselves per shot). */
+ private petHits(m:Match,shooter:Fighter,shotId:string,hits:(ShotHit&{dealt:number;died:boolean})[]){
+  if(!m.state.players.some(f=>f.pet))return;
+  const ctx=this.petContext(m),out:PetApplication[]=[];
+  for(const hit of hits){
+   const target=m.state.players.find(f=>f.id===hit.id);if(!target)continue;
+   const info={sourceId:shooter.id,targetId:target.id,amount:hit.dealt,critical:hit.critical,shotId};
+   if(hit.dealt>0&&target.team!==shooter.team){out.push(...this.petTrigger(m,'hit',shooter,info,ctx),...this.petTrigger(m,'damage-dealt',shooter,info,ctx));if(hit.critical)out.push(...this.petTrigger(m,'critical',shooter,info,ctx));}
+   if(hit.dealt>0){out.push(...this.petTrigger(m,'damaged',target,info,ctx),...this.petTrigger(m,'hp-below',target,info,ctx));if(hit.critical)out.push(...this.petTrigger(m,'critical-received',target,info,ctx));}
+   if(hit.shield)out.push(...this.petTrigger(m,'absorbed',target,{...info,amount:hit.shield},ctx));
+   if(hit.died){out.push(...this.petTrigger(m,'kill',shooter,info,ctx));for(const ally of m.state.players.filter(f=>f.team===target.team&&f.id!==target.id&&f.hp>0))out.push(...this.petTrigger(m,'ally-died',ally,info,ctx));}
+  }
+  if(new Set(hits.filter(h=>h.dealt>0).map(h=>h.id)).size>=2)out.push(...this.petTrigger(m,'multi-hit',shooter,{sourceId:shooter.id,shotId},ctx));
+  this.petEffect(m,out);
+ }
+ /** End of a battle: EXP and vitality for the pets that fought (once per battle and pet, see PetStore ledger). */
+ private async settlePets(m:Match,humans:Fighter[]){
+  if(!this.pets||m.practice&&!PET_CONFIG.battles.practice)return;
+  const run=m.instance,entries:BattlePetEntry[]=humans.filter(f=>f.pet&&f.equipment.pet).map(f=>({ownerId:f.id,petId:f.equipment.pet!.id,mode:run?'pve':'pvp',won:run?!!run.won:f.team===m.state.winner}));
+  if(!entries.length)return;
+  for(const [ownerId,outcome] of await this.pets.settleBattle(m.state.id,entries)){const peer=this.peers.get(ownerId);if(peer){peer.profile=outcome.profile;this.emit(peer,{type:'pets',...outcome.state});this.emit(peer,{type:'pet-result',result:outcome.result});}}
  }
  /** Sends a player their inbox (on connect, and when the admin panel mails them). */
  private async sendInbox(p:Peer){if(!this.mail||!p.connected)return;const {mails,unread}=await this.mail.inbox(p.profile.id);this.emit(p,{type:'mail',mails,unread});}
@@ -137,9 +228,11 @@ export class Game {
  /** Everything a restart must keep: rooms, who sits where and each match as of its last stable moment.
   * A match in the middle of a shot is left out (`stable:false`) so the saved copy stays at the start of that turn. */
  savedState(now=Date.now()){
-  const game:SavedGame={savedAt:now,nextRoomNumber:this.nextRoomNumber,rooms:[...this.rooms.values()],roomMatches:[...this.roomMatches],
-   peers:[...this.peers.values()].filter(p=>p.roomId&&this.rooms.has(p.roomId)).map(p=>({id:p.profile.id,roomId:p.roomId!,channel:p.channel,profile:p.profile}))};
-  const matches=[...this.matches.values()].map(m=>{
+  // A Chefão Mundial attempt is not kept: its damage is already in Postgres and the player comes back to the plaza.
+  const kept=this.publicRooms(),keptIds=new Set(kept.map(room=>room.id));
+  const game:SavedGame={savedAt:now,nextRoomNumber:this.nextRoomNumber,rooms:kept,roomMatches:[...this.roomMatches].filter(([roomId])=>keptIds.has(roomId)),
+   peers:[...this.peers.values()].filter(p=>p.roomId&&keptIds.has(p.roomId)).map(p=>({id:p.profile.id,roomId:p.roomId!,channel:p.channel,profile:p.profile}))};
+  const matches=[...this.matches.values()].filter(m=>!m.worldBoss).map(m=>{
    if(m.state.phase==='resolving')return {key:m.key,stable:false as const};
    const {terrain,invisibilityActivated,pendingImpacts:_impacts,activeShot:_shot,pendingPower:_power,savingRewards:_saving,instance,...rest}=m;
    const match:SavedMatch={...rest,...(invisibilityActivated?{invisibilityActivated:[...invisibilityActivated]}:{}),...(instance?{instance:{...instance,events:undefined} as Omit<ExpeditionRun,'events'>}:{})};
@@ -183,7 +276,9 @@ export class Game {
  lobby(channel:number):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y}));}
  private emit(p:Peer,e:ServerEvent){if(p.connected)p.send(e);}
  private sendLobby(channel:number){const players=this.lobby(channel);const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId)this.emit(p,{type:'lobby',players,online});}
- private broadcastRooms(){for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms:[...this.rooms.values()]});this.roomsDirty=false;}
+ private broadcastRooms(){const rooms=this.publicRooms();for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms});this.roomsDirty=false;}
+ /** Rooms listed in the halls: a Chefão Mundial attempt is a hidden solo room. */
+ private publicRooms(){return [...this.rooms.values()].filter(room=>room.kind!=='world-boss');}
  private countArena(){return [...this.peers.values()].filter(p=>p.connected&&(p.arenaOpen||(p.roomId!==null&&this.rooms.has(p.roomId)))).length;}
  private publishArenaPopulation(){const count=this.countArena();if(count===this.arenaPopulation)return;this.arenaPopulation=count;for(const peer of this.peers.values())this.emit(peer,{type:'arena-population',count});}
  private roomMembers(room:Room){return [...room.players,...(room.spectators??[])];}
@@ -243,7 +338,7 @@ export class Game {
    else if(!this.invitationAvailable(pending))this.finishInvitation(pending,'unavailable');
   }
   for(const [key,at] of this.invitePairAt)if(now-at>=ROOM_INVITE_PAIR_MS)this.invitePairAt.delete(key);
-  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt,this.playerInfoAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
+  for(const rates of [this.inviteSentAt,this.inviteListAt,this.onlineListAt,this.playerInfoAt,this.hallAt])for(const [id,at] of rates)if(now-at>=ROOM_INVITE_PAIR_MS)rates.delete(id);
  }
  private invitePlayer(p:Peer,playerId:string){
   this.pruneInvitations();const room=this.invitationRoom(p),now=Date.now(),id=p.profile.id,target=this.peers.get(playerId);
@@ -373,6 +468,11 @@ export class Game {
      const room:Room={id:randomUUID(),number:this.nextRoomNumber++,name:`Expedição de ${p.profile.name}`.slice(0,24),hostId:id,kind:'expedition',expedition:null,mode:'4v4',openSlots:[0,1,2,3],spectatorSlots:[],spectators:[],map:MAP_DEFAULT.id,status:'waiting',players:[this.seat(p,0,0)]};
      this.rooms.set(room.id,room);p.roomId=room.id;this.broadcastRoom(room);this.sendLobby(p.channel);this.publishArenaPopulation();break;
     }
+    case 'world-boss-enter':this.enterWorldBoss(p);break;
+    case 'world-boss-ranking':{
+     if(!this.worldBoss)return;const now=Date.now();if(now-(this.worldBossRankingAt.get(id)??-Infinity)<1000)return;this.worldBossRankingAt.set(id,now);
+     this.emit(p,{type:'world-boss-ranking',ranking:await this.worldBoss.ranking(id)});return;
+    }
     case 'expedition-select':{
      const room=this.room(p);if(room.kind!=='expedition')throw Error('Escolha expedições numa sala da Central de Expedições.');
      if(room.hostId!==id)throw Error('Somente o líder escolhe a expedição.');if(room.status!=='waiting')throw Error('Escolha a expedição entre as batalhas.');
@@ -385,7 +485,7 @@ export class Game {
     case 'join':{
      this.join(p,c.roomId);break;
     }
-    case 'spectate':if(this.rooms.get(c.roomId)?.kind==='expedition')throw Error('Expedições não têm espectadores.');this.spectate(p,c.roomId);break;
+    case 'spectate':if(this.rooms.get(c.roomId)?.kind==='expedition')throw Error('Expedições não têm espectadores.');if(this.rooms.get(c.roomId)?.kind==='world-boss')throw Error('Esta sala não está disponível para assistir.');this.spectate(p,c.roomId);break;
     case 'room-spectator-slot':{
      const room=this.room(p);if(room.hostId!==id)throw Error('Somente o líder pode abrir lugares para espectadores.');
      if(c.slot!==0&&c.slot!==1)throw Error('Lugar de espectador inválido.');
@@ -436,16 +536,16 @@ export class Game {
     case 'cancel-queue':{const r=this.room(p);if(r.hostId!==id)throw Error('Somente o líder pode cancelar a busca.');if(r.status!=='searching')throw Error('A equipe não está buscando partida.');this.cancelSearch(r);this.broadcastRoom(r);break;}
     case 'start':if(this.room(p).kind==='expedition')this.startExpedition(p);else this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
-    case 'ability':{const {m,f}=this.turn(p);this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
+    case 'ability':{const {m,f}=this.turn(p);this.assertPetFree(f,'ability');this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
     case 'flight':{const {m,f}=this.turn(p);if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
     case 'power':{const {m,f}=this.turn(p);this.armPower(f);this.broadcastBattle(m);break;}
-    case 'boost':{const {m,f}=this.turn(p);this.boost(f,c.boost);this.broadcastBattle(m);break;}
+    case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
      const {m,f}=this.turn(p);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
      adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;f.charging=c.charging;this.broadcastBattle(m);break;
     }
     case 'walk':{
-     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();
+     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();this.assertPetFree(f,'walk');
      // The first press toward the other side only turns around, for free.
      if(f.facing!==c.direction){f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;}
      if(f.stamina<3)throw Error('Vigor insuficiente.');const destination=walkPosition(m.terrain,f,c.direction);if(destination){const fromY=f.y;f.x=destination.x;f.y=destination.y;f.stamina-=3;if(f.y>WORLD.height){f.y=WORLD.height+150;f.hp=0;}this.animateFall(f,fromY,Date.now());}adjustAimToTerrain(f,m.terrain);if(!this.checkWin(m))this.broadcastBattle(m);break;
@@ -455,7 +555,7 @@ export class Game {
      const {m,f}=this.fighter(p,true);if(f.facing===c.direction||Date.now()-(p.lastFace??0)<65)return;p.lastFace=Date.now();
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
-    case 'fire':{const {m,f}=this.turn(p);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
+    case 'fire':{const {m,f}=this.turn(p);this.assertPetFree(f,'fire');adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
     case 'pass':{const {m,f}=this.turn(p);f.delay=(f.delay??0)+PASS_DELAY;this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
@@ -506,6 +606,40 @@ export class Game {
       }
      }finally{this.profileChanges.delete(id);}
      await this.sendAuctionMine(p);return;
+    }
+    case 'pet-list':this.emit(p,{type:'pets',...await this.requirePets().list(id)});return;
+    case 'pet-equip':
+    case 'pet-unequip':
+    case 'pet-rename':
+    case 'pet-lock':
+    case 'pet-release':
+    case 'pet-feed':
+    case 'pet-skill-slot':{
+     const pets=this.requirePets();
+     // The active pet's bonuses enter the battle snapshot: change it only between battles, like the equipment.
+     if(p.roomId&&!this.isSpectator(p)&&this.rooms.get(p.roomId)?.status==='playing')throw Error('Cuide dos seus pets entre as batalhas.');
+     if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     const worn=c.type==='pet-equip'||c.type==='pet-unequip'||c.type==='pet-feed'||c.type==='pet-skill-slot';
+     this.profileChanges.add(id);if(worn&&p.roomId&&!this.isSpectator(p)){const r=this.room(p);this.cancelSearch(r);r.players.forEach(s=>s.ready=s.bot);this.broadcastRoom(r);}
+     let outcome:PetOutcome;
+     try{
+      outcome=c.type==='pet-equip'?await pets.equip(id,c.pet):c.type==='pet-unequip'?await pets.unequip(id,c.pet):c.type==='pet-rename'?await pets.rename(id,c.pet,c.name):c.type==='pet-lock'?await pets.setLocked(id,c.pet,c.locked)
+       :c.type==='pet-release'?await pets.release(id,c.pet,c.name):c.type==='pet-feed'?await pets.feed(id,c.pet,c.food,c.quantity):await pets.setSkillSlot(id,c.pet,c.slot,c.skill);
+     }finally{this.profileChanges.delete(id);}
+     this.petOutcome(p,outcome);return;
+    }
+    case 'pet-skill':{const {m,f}=this.turn(p);this.usePetSkill(m,f,c.skill,c.target);break;}
+    case 'hall-board':case 'hall-profile':case 'hall-guild':case 'hall-legends':{
+     // Reading only. Asks closer than HALL_MIN_MS wait their turn and only the latest of each kind is answered,
+     // so a client clicking fast never hammers the database and never sees an error for it.
+     const hall=this.requireHall(),key=`${id}:${c.type}`,now=Date.now(),wait=HALL_MIN_MS-(now-(this.hallAt.get(key)??-Infinity));
+     if(wait>0){const queued=this.hallQueued.has(key);this.hallQueued.set(key,c);if(!queued)setTimeout(()=>{const next=this.hallQueued.get(key);this.hallQueued.delete(key);if(next)void this.command(id,next).catch(()=>{});},wait).unref?.();return;}
+     this.hallAt.set(key,now);
+     if(c.type==='hall-board')this.emit(p,{type:'hall-board',board:await hall.board(id,{category:c.category,period:c.period,board:c.board,page:c.page})});
+     else if(c.type==='hall-profile'){const profile=await hall.profile(c.playerId);if(!profile)throw Error('Jogador não encontrado.');this.emit(p,{type:'hall-profile',profile});}
+     else if(c.type==='hall-guild'){const guild=await hall.guildProfile(c.guildId);if(!guild)throw Error('Esta guilda não existe mais.');this.emit(p,{type:'hall-guild',guild});}
+     else this.emit(p,{type:'hall-legends',legends:await hall.legends(c.board,c.key)});
+     return;
     }
     case 'guild-state':await this.sendGuild(p);return;
     case 'guild-list':this.emit(p,{type:'guild-list',guilds:await this.requireGuilds().list(c.search)});return;
@@ -598,6 +732,7 @@ export class Game {
  }
  private leave(p:Peer){
   if(!p.roomId)return;const r=this.rooms.get(p.roomId),m=this.matchForRoom(p.roomId);
+  if(r?.kind==='world-boss'){if(m){if(m.state.phase!=='finished')this.queueWorldBossDamage(m);this.closeWorldBoss(m);}else{this.rooms.delete(r.id);this.detach(p);}return;}
   if(r?.spectators?.some(s=>s.id===p.profile.id)){r.spectators=r.spectators.filter(s=>s.id!==p.profile.id);this.detach(p);this.broadcastRoom(r);return;}
   if(r){this.cancelSearch(r);r.players=r.players.filter(s=>s.id!==p.profile.id);if(m){const f=m.state.players.find(f=>f.id===p.profile.id);if(f&&m.state.phase==='finished')f.connected=false;else if(f){f.hp=0;f.connected=false;f.powerArmed=false;f.left=true;}if(!this.checkWin(m)&&m.state.turnId===p.profile.id&&m.state.phase==='aiming')this.nextTurn(m);else this.broadcastBattle(m);}
    if(!r.players.some(s=>!s.bot)){for(const spectator of r.spectators??[]){const peer=this.peers.get(spectator.id);if(peer?.roomId===r.id)this.detach(peer);}r.spectators=[];this.rooms.delete(r.id);this.roomMatches.delete(r.id);if(m)this.cleanupMatch(m);}
@@ -658,9 +793,9 @@ export class Game {
   // In practice, the human takes the first turn so controls can be learned immediately.
   const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:nextByDelay(fighters)!;startDelayTurn(fighters,first,this.baseDelay(first));
   const key=this.matches.has(r.id)?randomUUID():r.id;
-  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
+  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,...(practiceSeats||rooms.some(room=>room.practice)?{practice:true}:{}),state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
   if(rooms.length===2&&rooms.every(room=>room.gvg)){const guilds=rooms.map(room=>this.partyGuild(room));if(guilds.every(g=>g!==null))m.gvg=guilds as [number,number];}
-  this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.broadcastBattle(m,true);
+  this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.armPets(m,first);this.broadcastBattle(m,true);
  }
  private startExpedition(p:Peer){
   const room=this.room(p);if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar a expedição.');if(room.status!=='waiting')throw Error('A expedição já começou.');
@@ -678,7 +813,7 @@ export class Game {
   const state:Battle={id:randomUUID(),roomId:room.id,map:played,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
   const key=this.matches.has(room.id)?randomUUID():room.id;
   const m:Match={key,roomIds:[room.id],state,terrain,resolveAt:0,botAt:Infinity,createdAt:now,instance:run};
-  this.matches.set(key,m);this.queueIds.delete(room.id);room.status='playing';room.matchStartedAt=now;room.map=setup.map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);this.broadcastBattle(m,true);
+  this.matches.set(key,m);this.queueIds.delete(room.id);room.status='playing';room.matchStartedAt=now;room.map=setup.map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);this.armPets(m,state.players.find(f=>f.id===state.turnId));this.broadcastBattle(m,true);
  }
  /** Instance turn: each living adventurer once per round, then the monsters together (shared/instanceTurn.ts). */
  private nextInstanceTurn(m:Match){
@@ -689,7 +824,8 @@ export class Game {
   s.instance!.round=run.round.round;
   const order=run.order.map(id=>s.players.find(f=>f.id===id)).filter((f):f is Fighter=>!!f),next=nextInstanceActor(order,run.round);
   if(next.kind==='monsters'){this.startMonsterTurn(m);return;}
-  const f=s.players.find(player=>player.id===next.id)!;f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;this.broadcastBattle(m,withTerrain);
+  const f=s.players.find(player=>player.id===next.id)!;f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;
+  this.petTurnStart(m,f);if(this.checkWin(m))return;this.broadcastBattle(m,withTerrain);
  }
  /** The monsters' shared turn: everyone walks at once, those already beside an adventurer bite, the queen shoots and summons. */
  private startMonsterTurn(m:Match){
@@ -706,7 +842,8 @@ export class Game {
   const bites=plan.bites.map((bite,index)=>({...bite,at:at+index*110}));
   bites.forEach((bite,index)=>{run.events.push({at:bite.at,run:()=>{
    const monster=s.players.find(f=>f.id===bite.id),target=s.players.find(f=>f.id===bite.targetId);if(!monster||monster.hp<=0||!target||target.hp<=0||!monster.monster)return;
-   const damage=Math.min(target.hp,monsterDamage(MONSTERS[monster.monster].attack,target.equipment,1,monster.level));target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
+   const guarded=incomingPetDamage(target,monsterDamage(MONSTERS[monster.monster].attack,this.combatEquipment(target),1,monster.level)),damage=Math.min(target.hp,guarded.damage),alive=target.hp>0;target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
+   this.petHits(m,monster,`bite:${turnId}`,[{id:target.id,damage,x:target.x,y:target.y,projectileIndex:index,critical:false,kind:'direct',quality:1,dealt:damage,died:alive&&target.hp<=0,...(guarded.absorbed?{shield:guarded.absorbed}:{})}]);
    target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);
    const hit:ShotHit={id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
    for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`bite:${turnId}`,projectileIndex:index,at:bite.at,hits:this.visibleHits(m,[hit],peer.profile.id)});
@@ -740,14 +877,15 @@ export class Game {
   queen.facing=aim.facing;const startedAt=Date.now(),id=randomUUID();
   const hits:ShotHit[]=[];
   for(const target of s.players){if(target.team!==0||target.hp<=0)continue;const exposure=impactExposure(target,result,ARROW.blast);if(exposure.attenuation<=0)continue;
-   hits.push({id:target.id,damage:monsterDamage(MONSTERS['ant-queen'].attack,target.equipment,exposure.attenuation,queen.level),x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality});}
+   const guarded=incomingPetDamage(structuredClone(target),monsterDamage(MONSTERS['ant-queen'].attack,this.combatEquipment(target),exposure.attenuation,queen.level));
+   hits.push({id:target.id,damage:guarded.damage,x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality,...(guarded.absorbed?{shield:guarded.absorbed}:{})});}
   const shot:Shot={id,shooterId:queen.id,startedAt,duration:result.flightTime+450,hits:[],impacted:[],projectiles:[{points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0},effect:'brick',monster:'arrow'}]};
   m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits,fragment:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:'brick',level:0}}];
   m.resolveAt=Math.max(m.resolveAt,startedAt+shot.duration+MONSTER_TURN_END_MS);
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
  }
  /** Base Delay a fighter adds when their turn starts, from their match equipment. */
- private baseDelay(f:Fighter){return attributes(f.equipment,f.level).delay;}
+ private baseDelay(f:Fighter){return attributes(this.combatEquipment(f),f.level).delay;}
  private wind(){return Math.round((Math.random()*2-1)*35)/10;}
  private boost(f:Fighter,id:BoostId){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
@@ -803,6 +941,9 @@ export class Game {
   if(powered){w.crater*=POWER_CRATER_MULTIPLIER;w.blast*=POWER_BLAST_MULTIPLIER;}
   const homing=f.homingArmed;f.homingArmed=false;
   const modifiers=shotModifiers(boostsForShot(f.equipment.weapon,f.boosts,powered)),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
+  // Pet bonuses of the whole shot: decided once, however many volleys or projectiles it has.
+  let petShot=1;if(f.pet||f.petEffects?.length){const ctx=this.petContext(m);this.petEffect(m,[...this.petTrigger(m,'before-fire',f,{sourceId:f.id,shotId:shot.id},ctx),...this.petTrigger(m,'before-damage',f,{sourceId:f.id,shotId:shot.id},ctx)]);petShot=consumeShotBonus(f)*outgoingPetFactor(f);}
+  const offense=this.combatEquipment(f);
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
   const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{
@@ -813,10 +954,12 @@ export class Game {
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
-    const critical=criticalFromRoll(attributes(f.equipment,f.level).luck,this.criticalRoll());let damage=damageAtImpact(f.equipment,target.equipment,{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
+    const critical=criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1)*petShot,critical});
     if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
-    if(damage<=0)continue;
-    hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
+    // Pet damage reduction and shields (the simulated copy spends the shield for the later projectiles; applyImpact repeats it on the real one).
+    const guarded=incomingPetDamage(target,damage);damage=guarded.damage;
+    if(damage<=0&&!guarded.absorbed)continue;
+    hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality,...(guarded.absorbed?{shield:guarded.absorbed}:{})});
    }
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
@@ -854,13 +997,18 @@ export class Game {
    }
    shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});this.broadcastBattle(m,true);return;
   }
+  const landed:(ShotHit&{dealt:number;died:boolean})[]=[];
   for(const planned of impact.hits){
    // Hits are only planned on fighters still alive when the projectile lands (killed ones are let through).
-   const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height||planned.damage<=0)continue;
-   const absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
+   const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height)continue;
+   if(planned.shield)drainShield(target,planned.shield);if(planned.damage<=0&&!planned.shield)continue;
+   // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
+   if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
+   const alive=target.hp>0,absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
    if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
-   hits.push({...planned,x:target.x,y:target.y-85});
+   hits.push({...planned,x:target.x,y:target.y-85});landed.push({...planned,dealt:absorbed,died:alive&&target.hp<=0});
   }
+  this.petHits(m,shooter,shot.id,landed);
   const dug=crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
@@ -877,27 +1025,32 @@ export class Game {
   target.fall=createFall(falling?fallPosition(previous,at):fromY,target.y,at,target.y>WORLD.height,falling?fallVelocity(previous,at):0);
  }
  private settle(m:Match,at?:number){for(const target of m.state.players){
+  if(target.boss)continue;
   const fromY=target.y;target.y=ground(m.terrain,target.x,Math.max(0,target.y-3));if(target.y>WORLD.height){target.y=WORLD.height+150;target.hp=0;}
   if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration+TURN_GAP_MS);}
   adjustAimToTerrain(target,m.terrain);
  }}
  private nextTurn(m:Match){
+  this.petTurnEnd(m);
   if(this.checkWin(m))return;
   if(m.instance){this.nextInstanceTurn(m);return;}
+  if(m.worldBoss){this.nextWorldBossTurn(m);return;}
   const s=m.state,withTerrain=s.phase==='resolving';
   const outgoing=s.players.find(p=>p.id===s.turnId);if(outgoing&&(outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
   // The living fighter with the lowest accumulated Delay plays, possibly the same one again (shared/turnDelay.ts).
   const f=nextByDelay(s.players,s.turnId)??outgoing!;startDelayTurn(s.players,f,this.baseDelay(f));
-  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;m.botAt=Date.now()+1800;this.broadcastBattle(m,withTerrain);
+  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;m.botAt=Date.now()+1800;
+  this.petTurnStart(m,f);if(this.checkWin(m))return;this.broadcastBattle(m,withTerrain);
  }
  private checkWin(m:Match){
   if(m.state.phase==='finished')return true;
   if(m.instance)return this.checkInstanceEnd(m);
+  if(m.worldBoss)return this.checkWorldBossEnd(m);
   const teams=new Set(m.state.players.filter(p=>p.hp>0).map(p=>p.team));
   const exhausted=m.state.turnNumber>=80;
   if(teams.size>1&&!exhausted)return false;
   delete m.pendingPower;delete m.pendingImpacts;delete m.state.powerCutIn;m.state.players.forEach(f=>{f.powerArmed=false;f.flightArmed=false;f.homingArmed=false;});
-  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:null;
+  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:null;m.finishedAt=Date.now();
   m.rewardDeck=Array.from({length:REWARD_CARD_COUNT},()=>({...CARD_PRIZES[randomInt(CARD_PRIZES.length)]}));
   const opensAt=Math.max(Date.now(),...m.state.players.map(player=>player.fall?player.fall.startedAt+player.fall.duration:0))+REWARD_RESULT_MS;m.state.rewards={opensAt,deadline:opensAt+REWARD_PICK_MS,phase:'picking',saved:false,cards:Array.from({length:REWARD_CARD_COUNT},(_,index)=>({index}))};
   // Bot choices occupy real slots too; prizes stay exclusively on the server until reveal.
@@ -939,10 +1092,11 @@ export class Game {
   const humans=m.state.players.filter(p=>!p.bot&&!p.left),winners=humans.filter(p=>p.team===m.state.winner).map(p=>p.id);
   const bonuses:MatchBonuses=Object.fromEntries(rewards.cards.filter(card=>card.playerId&&card.prize&&humans.some(p=>p.id===card.playerId)).map(card=>[card.playerId!,card.prize!]));
   const run=m.instance,award=run?.won?run.stages[run.stage].award:{coins:0,xp:0};
-  const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses);
+  const saving=run?(this.store.finishExpedition?.(m.state.id,humans.map(p=>p.id),award,bonuses)??Promise.resolve()):this.store.finishMatch(m.state.id,winners,humans.map(p=>p.id),bonuses,this.matchRecord(m));
   // GvG: every winner adds Riqueza to their guild (once per battle, like the match rewards).
   const gvgGuild=m.gvg&&m.state.winner!==null&&winners.length?m.gvg[m.state.winner]:undefined;
-  saving.then(async()=>{
+  // Pets settle right after the rewards (idempotent too, so a retry repeats both safely).
+  saving.then(()=>this.settlePets(m,humans)).then(async()=>{
    if(gvgGuild!==undefined&&this.guilds&&await this.guilds.gvgWin(m.state.id,gvgGuild,winners,GVG_CONTRIBUTION)){
     for(const winner of winners){const peer=this.peers.get(winner);if(peer)this.emit(peer,{type:'guild-result',message:`Vitória GvG! +${GVG_CONTRIBUTION} de Riqueza para a guilda.`});}
     await this.refreshGuild(gvgGuild);
@@ -950,10 +1104,20 @@ export class Game {
    const ids=humans.map(f=>f.id);
    if(run){if(run.won)await this.guildMission(ids,'expedition');}
    else{await this.guildMission(ids,'play');await this.guildMission(winners,'win');if(gvgGuild!==undefined)await this.guildMission(winners,'gvg');}
-   for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat)seat.level=profile.level;}}}
+   for(const f of humans){const p=this.peers.get(f.id);if(p){const profile=await this.store.getProfile(f.id);if(profile){p.profile=profile;this.emit(p,{type:'profile',profile});const seat=p.roomId?this.rooms.get(p.roomId)?.players.find(s=>s.id===f.id):undefined;if(seat){seat.level=profile.level;seat.equipment={...profile.equipment};}}}}
    rewards.saved=true;if(!run)void this.refreshRanking();this.broadcastBattle(m);for(const roomId of m.roomIds){const room=this.rooms.get(roomId);if(room&&this.matchForRoom(roomId)===m)this.broadcastRoom(room);}
   }).catch(error=>{this.report(error);m.retryRewardsAt=Date.now()+2000;}).finally(()=>{m.savingRewards=false;});
  }
+ /** The official result for the Hall da Fama: every human who fought (leavers too), the kind of battle and its end. */
+ matchRecord(m:Match):MatchRecord{
+  const fighters=m.state.players.filter(f=>!f.bot&&!f.monster),size=(team:0|1)=>m.state.players.filter(f=>f.team===team&&!f.monster).length;
+  const kind=m.gvg?'gvg':m.roomIds.length===2&&!m.practiceParty&&!m.state.players.some(f=>f.bot)?'pvp':'practice';
+  return {matchId:m.state.id,kind,mode:`${size(0)}v${size(1)}`,winnerTeam:m.state.winner===0||m.state.winner===1?m.state.winner:null,startedAt:m.createdAt,finishedAt:m.finishedAt??Date.now(),
+   participants:fighters.map(f=>({id:f.id,team:f.team as 0|1,left:!!f.left}))};
+ }
+ /** A board of the Hall da Fama changed: everyone with the hall open asks again (the client decides). */
+ hallChanged(categories:HallCategory[]){for(const peer of this.peers.values())if(peer.connected)this.emit(peer,{type:'hall-changed',categories});if(categories.includes('pvp'))void this.refreshRanking();}
+ private requireHall(){if(!this.hall)throw Error('O Hall da Fama está fechado no momento.');return this.hall;}
  /** Reloads the day's podium and tells everyone when it changed; also rolls over at midnight. */
  refreshRanking():Promise<void>{
   if(!this.store.dailyRanking)return Promise.resolve();
@@ -988,7 +1152,9 @@ export class Game {
    if(m.state.phase==='finished'&&m.state.rewards){const rewards=m.state.rewards;if(rewards.phase==='picking'&&now>=rewards.deadline)this.revealRewards(m,now);else if(rewards.phase==='revealed'&&!rewards.saved&&now>=(m.retryRewardsAt??0))this.saveRewards(m);if(rewards.saved&&now>=(rewards.revealedAt??Infinity)+REWARD_RETURN_MS){const run=m.instance,room=this.rooms.get(m.roomIds[0]);// Every stage ends back in the room; a win moves the room's choice on to the next stage (the last one starts over).
     if(run&&room?.expedition&&this.matchForRoom(room.id)===m&&run.won)room.expedition.stage=run.stage+1<run.stages.length?run.stage+1:0;this.returnParties(m);}this.cleanupMatch(m);}
    if(m.pendingPower&&now>=m.pendingPower.at){const pending=m.pendingPower;delete m.pendingPower;delete m.state.powerCutIn;const shooter=m.state.players.find(f=>f.id===pending.playerId);if(shooter&&shooter.hp>0&&m.state.phase==='resolving')this.resolveFire(m,shooter,pending.angle,pending.power,true,now);else if(m.state.phase!=='finished')this.nextTurn(m);}
+   if(m.state.worldBoss?.closesAt!==undefined&&now>=m.state.worldBoss.closesAt){this.closeWorldBoss(m);continue;}
    while(m.state.phase==='resolving'&&m.instance?.events.length&&m.instance.events[0].at<=now)m.instance.events.shift()!.run();
+   while(m.state.phase==='resolving'&&m.worldBoss?.events.length&&m.worldBoss.events[0].at<=now)m.worldBoss.events.shift()!.run();
    while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}
    if(m.state.phase==='resolving'&&now>=m.resolveAt)this.nextTurn(m);
    else if(m.state.phase==='aiming'){
@@ -997,5 +1163,114 @@ export class Game {
    }
   }
   if(this.roomsDirty)this.broadcastRooms();
+  if(this.worldBoss){
+   if(this.worldBossQueue.length&&now>=this.worldBossRetryAt)void this.flushWorldBoss();
+   if(this.worldBossDirty&&now-this.worldBossSentAt>=1000){this.worldBossDirty=false;this.worldBossSentAt=now;const status=this.worldBoss.status();for(const peer of this.peers.values())this.emit(peer,{type:'world-boss',status});}
+  }
+ }
+ /** Entrar: a solo attempt at the dragon in a hidden room; the battle opens with its entrance. */
+ private enterWorldBoss(p:Peer){
+  const realm=this.worldBoss;if(!realm)throw Error('O Chefão Mundial não está disponível no momento.');
+  if(p.roomId)throw Error('Saia da sala atual antes de enfrentar o Chefão Mundial.');
+  if(this.profileChanges.has(p.profile.id))throw Error('Aguarde a atualização do seu equipamento.');
+  const status=realm.status(),now=Date.now();
+  if(status.phase==='results')throw Error('O Chefão Mundial já terminou. Confira o ranking.');
+  if(status.phase!=='active'||!status.occurrenceId||status.hp<=0||(status.endsAt??0)<=now+3000)throw Error('O Chefão Mundial não está ativo agora.');
+  if(this.rooms.size>=600)throw Error('As salas estão cheias. Tente novamente em breve.');
+  const room:Room={id:randomUUID(),number:0,name:status.name.slice(0,24),hostId:p.profile.id,kind:'world-boss',mode:'1v1',openSlots:[0],spectatorSlots:[],spectators:[],map:WORLD_BOSS_MAP,status:'playing',players:[this.seat(p,0,0)],matchStartedAt:now};
+  const played=pinMap(WORLD_BOSS_MAP),terrain=createTerrain(played),seat=room.players[0],stats=attributes(seat.equipment,seat.level),x=getMap(played).spawns[0][0],abilityLoadout=normalizeAbilityLoadout(seat.abilityLoadout);
+  const hero:Fighter={...seat,equipment:structuredClone(seat.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};
+  adjustAimToTerrain(hero,terrain);
+  const dragon:Fighter={id:DRAGON_FIGHTER_ID,name:status.name,level:seat.level,equipment:{...DEFAULT_EQUIPMENT},ready:true,bot:true,team:1,slot:0,connected:true,x:DRAGON_BODY.x,y:DRAGON_BODY.y,hp:status.hp,maxHp:status.maxHp,stamina:0,maxStamina:0,facing:-1,boosts:[],boss:'dragon',hitRadius:DRAGON_BODY.hitRadius,hitHeight:DRAGON_BODY.hitHeight};
+  const entrance:DragonAct={id:randomUUID(),action:'entrance',startedAt:now,hits:[]},opening=DRAGON_ACTIONS.entrance.duration;
+  const state:Battle={id:randomUUID(),roomId:room.id,map:played,players:[hero,dragon],turnId:DRAGON_TURN_ID,turnNumber:1,wind:this.wind(),deadline:now+opening+TURN_SECONDS*1000,phase:'resolving',winner:null,
+   worldBoss:{occurrenceId:status.occurrenceId,name:status.name,hp:status.hp,maxHp:status.maxHp,endsAt:status.endsAt!,introUntil:now+opening,round:0,attemptDamage:0,act:entrance}};
+  const m:Match={key:room.id,roomIds:[room.id],state,terrain,resolveAt:now+opening,botAt:Infinity,createdAt:now,worldBoss:{occurrenceId:status.occurrenceId,pending:0,events:[]}};
+  this.rooms.set(room.id,room);this.matches.set(m.key,m);this.roomMatches.set(room.id,m.key);p.roomId=room.id;
+  this.emit(p,{type:'room',room});this.broadcastBattle(m,true);this.sendLobby(p.channel);this.publishArenaPopulation();
+  void realm.attempt(status.occurrenceId,p.profile.id,p.profile.name,p.profile.level).catch(this.report);
+ }
+ /** Player turn, then the dragon's act, then the player again; the player's damage goes out when their turn ends. */
+ private nextWorldBossTurn(m:Match){
+  const s=m.state,wb=s.worldBoss!,withTerrain=s.phase==='resolving',hero=s.players.find(f=>!f.boss)!;
+  delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});
+  if(s.turnId!==DRAGON_TURN_ID){
+   if((hero.invisibleTurns??0)>0&&m.invisibilityActivated?.get(hero.id)!==s.turnNumber)hero.invisibleTurns!--;
+   // The commit can end the event at once (this blow killed the dragon): then the dragon falls instead of acting.
+   this.queueWorldBossDamage(m);if(!wb.over)this.startDragonTurn(m);return;
+  }
+  wb.round++;delete wb.act;hero.stamina=hero.maxStamina;hero.boosts=[];
+  s.turnId=hero.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;this.broadcastBattle(m,withTerrain);
+ }
+ /** The dragon's act: one move a round (claw, grab, breath or the sweeping flames), never the same kind twice in a row. */
+ private startDragonTurn(m:Match){
+  const s=m.state,wb=s.worldBoss!,run=m.worldBoss!,now=Date.now(),hero=s.players.find(f=>!f.boss)!,dragon=s.players.find(f=>f.boss)!;
+  s.turnId=DRAGON_TURN_ID;s.turnNumber++;s.phase='resolving';
+  const action=pickDragonAction(run.last,Math.random());run.last=action;
+  // An invisible player is not found: the blow lands beside them.
+  const def=DRAGON_ACTIONS[action],hidden=(hero.invisibleTurns??0)>0,targetX=hidden?Math.max(60,hero.x+(hero.x>400?-1:1)*(200+Math.random()*150)):hero.x;
+  const at=now+(action==='firesweep'?sweepReachAt(hero.x,dragon.x-320,0):def.contact);
+  const damage=monsterDamage(def.attack*dragonRage(Math.max(1,wb.round)),hero.equipment,1,hero.level);
+  const act:DragonAct={id:randomUUID(),action,startedAt:now,targetId:hero.id,targetX,targetY:ground(m.terrain,targetX,0),hits:hidden&&action!=='firesweep'||!hero.hp?[]:[{at,targetId:hero.id,damage,x:hero.x,y:hero.y-85}]};
+  for(const [index,hit] of act.hits.entries())run.events.push({at:hit.at,run:()=>{
+   if(hero.hp<=0||hero.left||wb.over)return;const dealt=Math.min(hero.hp,hit.damage);hero.hp-=dealt;if(hero.hp<=0)hero.powerArmed=false;
+   hero.powerCharge=chargeFromDamage(hero.powerCharge??0,dealt,hero.maxHp,true);
+   const shown:ShotHit={id:hero.id,damage:dealt,x:hero.x,y:hero.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
+   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`dragon:${act.id}`,projectileIndex:index,at:hit.at,hits:[shown]});
+   if(!this.checkWin(m))this.broadcastBattle(m);
+  }});
+  run.events.sort((a,b)=>a.at-b.at);wb.act=act;m.resolveAt=now+def.duration+TURN_GAP_MS;this.broadcastBattle(m);
+ }
+ /** The attempt ends when the player falls (or leaves); the event ending is handled by `endWorldBossAttempt`. */
+ private checkWorldBossEnd(m:Match){
+  const s=m.state,wb=s.worldBoss!,hero=s.players.find(f=>!f.boss);
+  if(wb.over)return true;
+  if(hero&&hero.hp>0&&!hero.left&&s.turnNumber<400)return false;
+  this.queueWorldBossDamage(m);m.worldBoss!.events=[];delete m.pendingPower;delete m.pendingImpacts;delete s.powerCutIn;
+  s.phase='finished';s.winner=1;
+  const now=Date.now(),actEnd=wb.act?wb.act.startedAt+DRAGON_ACTIONS[wb.act.action].duration:now,fallEnd=hero?.fall?hero.fall.startedAt+hero.fall.duration:now;
+  // No result screen: the defeat plays out and the player goes back to the plaza with the event window open.
+  wb.closesAt=Math.max(now+2200,actEnd+500,fallEnd+1400);this.broadcastBattle(m,true);return true;
+ }
+ /** The event ended during the attempt: the dragon falls (killed) or flies away (time, or stopped in the panel). */
+ private endWorldBossAttempt(m:Match,reason:WorldBossEndReason){
+  const s=m.state,wb=s.worldBoss!,run=m.worldBoss!,now=Date.now(),dragon=s.players.find(f=>f.boss);
+  if(wb.over||wb.closesAt!==undefined)return;
+  run.events=[];run.pending=0;delete m.pendingPower;delete m.pendingImpacts;delete m.activeShot;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});
+  const action:DragonAction=reason==='defeated'?'death':'retreat';if(dragon&&reason==='defeated')dragon.hp=0;
+  wb.over=reason;wb.act={id:randomUUID(),action,startedAt:now,hits:[]};s.phase='finished';s.winner=reason==='defeated'?0:null;s.turnId=DRAGON_TURN_ID;
+  wb.closesAt=now+DRAGON_ACTIONS[action].duration+1500;this.broadcastBattle(m,true);
+ }
+ /** Closes the attempt: the room and battle go away and the client opens the event window again. */
+ private closeWorldBoss(m:Match){
+  this.matches.delete(m.key);
+  for(const roomId of m.roomIds){
+   const room=this.rooms.get(roomId);this.rooms.delete(roomId);this.roomMatches.delete(roomId);
+   for(const seat of room?.players??[]){const peer=this.peers.get(seat.id);if(peer?.roomId===roomId){this.detach(peer);this.emit(peer,{type:'world-boss-closed'});}}
+  }
+ }
+ /** Moves the turn's damage into the queue for Postgres. */
+ private queueWorldBossDamage(m:Match){
+  const run=m.worldBoss,hero=m.state.players.find(f=>!f.boss);if(!run||!hero||run.pending<=0)return;
+  this.worldBossQueue.push({occurrenceId:run.occurrenceId,battleId:m.state.id,turn:m.state.turnNumber,playerId:hero.id,name:hero.name,level:hero.level,damage:run.pending});run.pending=0;
+  void this.flushWorldBoss();
+ }
+ private async flushWorldBoss(){
+  if(this.worldBossFlushing||!this.worldBoss)return;this.worldBossFlushing=true;
+  try{while(this.worldBossQueue.length){await this.worldBoss.commit(this.worldBossQueue[0]);this.worldBossQueue.shift();this.followWorldBoss(this.worldBoss.status());}}
+  catch(error){this.report(error);this.worldBossRetryAt=Date.now()+2000;}
+  finally{this.worldBossFlushing=false;}
+ }
+ /** The event changed (start, end, global life): clients hear it within a second and running attempts follow it. */
+ worldBossChanged(status:WorldBossStatus){this.worldBossDirty=true;this.followWorldBoss(status);}
+ private followWorldBoss(status:WorldBossStatus){
+  for(const m of this.matches.values()){
+   const run=m.worldBoss,wb=m.state.worldBoss;if(!run||!wb||wb.over||wb.closesAt!==undefined)continue;
+   const same=status.occurrenceId===run.occurrenceId;
+   if(!same||status.phase!=='active'){this.endWorldBossAttempt(m,same?status.endReason??'time':'admin');continue;}
+   const queued=this.worldBossQueue.filter(entry=>entry.battleId===m.state.id).reduce((sum,entry)=>sum+entry.damage,0);
+   const dragon=m.state.players.find(f=>f.boss),hp=Math.max(0,status.hp-queued-run.pending);
+   if(dragon&&(dragon.hp!==hp||wb.hp!==status.hp||wb.endsAt!==status.endsAt)){dragon.hp=hp;dragon.maxHp=status.maxHp;wb.hp=status.hp;wb.maxHp=status.maxHp;wb.endsAt=status.endsAt??wb.endsAt;this.broadcastBattle(m);}
+  }
  }
 }

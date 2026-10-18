@@ -1,0 +1,141 @@
+/* Pets no layout da tela de pets do DDTank, no padrão da mochila (Backpack.css / WoodTheme.css):
+   à esquerda a fileira de pets, o palco do pet com atributos e as habilidades; à direita a grade de itens. */
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.pets-window[class] {
+  width: min(1000px, 100%);
+  height: min(640px, calc(100dvh - 32px));
+}
+.pets-window :is(.pets-layout, .pets-feedback),
+.pets-window .pets-layout :is(button, input, b, strong, small, dt, dd, h3, p, label, span) { font-family: 'Nunito', 'Trebuchet MS', sans-serif; }
+.pets-window .pets-layout { display: grid; grid-template-columns: minmax(0, 1.06fr) minmax(0, 1fr); gap: 8px; flex: 1; min-height: 0; margin-top: 7px; }
+.pets-window .pets-panel { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 6px; min-height: 0; padding: 8px; }
+
+/* Fileira de pets com setas */
+.pets-window .pets-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) 26px; align-items: center; gap: 6px; padding: 6px; border-radius: 10px; background: #5a2a0e66; box-shadow: inset 0 1px 3px #2c100488; }
+.pets-window .pets-arrow { height: 54px; border: 1px solid #ffd27a; border-radius: 7px; background: linear-gradient(#ffd34f, #f09a12); color: #6b2c05; display: grid; place-items: center; cursor: var(--cursor-arrow); box-shadow: 0 2px #3e1a0788; }
+.pets-window .pets-arrow:disabled { filter: saturate(.3) brightness(.85); opacity: .6; }
+.pets-window .pets-carousel { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.pets-window .pets-slot {
+  position: relative; width: 100%; aspect-ratio: 1.12; display: grid; place-items: center; padding: 0;
+  border: 2px solid #e2b77c; border-radius: 10px; background: linear-gradient(#fffaf0, #f3dcb0); color: #d3a97a; cursor: var(--cursor-arrow);
+  box-shadow: inset 0 2px 4px #b4702c33;
+}
+.pets-window .pets-slot.empty { opacity: .75; }
+.pets-window .pets-slot.selected { border-color: #f2a91f; box-shadow: 0 0 0 2px #ffd36b, inset 0 0 12px #ffd36b88; }
+.pets-window .pets-portrait { display: grid; place-items: center; color: #c9955b; overflow: hidden; }
+.pets-window .pets-portrait img { width: 100%; height: 100%; object-fit: contain; }
+
+/* Selo "Lutar" do pet que vai para a batalha */
+.pets-window .pets-stamp {
+  position: absolute; top: 8px; right: 10px; z-index: 2; padding: 6px 7px; border: 3px solid #d8331d; border-radius: 50%;
+  color: #d8331d; font-family: 'Lilita One', 'Nunito', sans-serif; font-size: 20px; letter-spacing: .5px; transform: rotate(-14deg);
+  background: radial-gradient(#ffeccf, #ffd9b0); box-shadow: 0 0 0 2px #fff6, 0 2px 6px #6b1a0a55; text-shadow: 0 1px #fff8;
+}
+.pets-window .pets-stamp.small { top: -6px; left: -6px; right: auto; padding: 2px 5px; border-width: 2px; border-radius: 6px; font-size: 11px; transform: rotate(-12deg); }
+
+/* Nome e botões */
+.pets-window .pets-header { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; padding: 0 2px; }
+.pets-window .pets-name { color: var(--wood-gold); font-size: 16px; text-shadow: 0 2px #2c1004; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pets-window .pets-chips { display: flex; gap: 5px; flex-shrink: 0; }
+.pets-window .pets-chip {
+  min-height: 26px; padding: 0 10px; border: 1px solid #ffc98c; border-radius: 6px; cursor: var(--cursor-arrow);
+  background: linear-gradient(#b8602a, #8a3f16); color: #ffe7bf; font-size: 12.5px; font-weight: 900; box-shadow: inset 0 1px #ffd2a088, 0 2px #3e1a0788;
+}
+.pets-window .pets-chip.green { background: linear-gradient(#5fbf3f, #2f8a22); border-color: #b9f08c; color: #fff; }
+.pets-window .pets-chip.orange { background: linear-gradient(#f39a3a, #c8611a); border-color: #ffd29a; color: #fff; }
+.pets-window .pets-chip:disabled { filter: saturate(.25) brightness(.9); opacity: .6; }
+.pets-window .pets-rename { display: flex; gap: 5px; }
+.pets-window input { min-height: 28px; padding: 0 9px; border: 2px solid #e2b77c; border-radius: 8px; background: #fffaf0; color: var(--wood-ink); font-weight: 800; }
+.pets-window .pets-release-confirm { position: absolute; z-index: 5; top: calc(100% + 4px); right: 0; width: 300px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 12px; border-radius: 12px; box-shadow: 0 8px 22px #2c100488; color: var(--wood-ink); }
+.pets-window .pets-release-confirm p { flex-basis: 100%; margin: 0; font-weight: 800; font-size: 13px; }
+
+/* Palco do pet + atributos */
+.pets-window .pets-middle { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 8px; min-height: 0; }
+.pets-window .pets-stage { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 54px; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 4px 6px; padding: 8px; border-radius: 12px; min-height: 0; }
+.pets-window .pets-gear { grid-row: 1 / 3; list-style: none; margin: 0; padding: 0; display: grid; align-content: start; gap: 6px; }
+.pets-window .pets-gear li { width: 46px; height: 46px; display: grid; place-items: center; border: 2px solid #d9b07a; border-radius: 8px; background: linear-gradient(#efe1c4, #dcc39a); box-shadow: inset 0 2px 4px #8a5a2a44; }
+.pets-window .pets-gear img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 1px 1px #0005); }
+.pets-window .pets-stars { grid-column: 2; display: flex; gap: 2px; min-height: 22px; }
+.pets-window .pets-stars svg { color: #d8b88d; }
+.pets-window .pets-stars svg.on { color: #c97a06; fill: #ffd34f; filter: drop-shadow(0 1px #8a4a0688); }
+.pets-window .pets-figure { grid-column: 2; grid-row: 2; display: grid; place-content: center; justify-items: center; gap: 4px; text-align: center; min-height: 0; }
+.pets-window .pets-figure > small { color: var(--wood-ink-soft); font-weight: 800; font-size: 12px; }
+.pets-window .pets-empty { display: grid; justify-items: center; gap: 4px; margin: 0; color: var(--wood-ink-soft); }
+.pets-window .pets-empty svg { color: #c9955b; }
+.pets-window .pets-empty strong { color: var(--wood-ink); font-size: 15px; }
+.pets-window .pets-empty p { margin: 0; font-weight: 800; font-size: 12.5px; }
+.pets-window .pets-food-slot { grid-column: 3; grid-row: 2; align-self: end; width: 50px; height: 50px; display: grid; place-items: center; border: 2px solid #b98a54; border-radius: 9px; background: linear-gradient(#f6ead2, #e2cba3); box-shadow: inset 0 2px 4px #8a5a2a44; color: #8a5a2a; }
+.pets-window .pets-food-slot.filled { border-color: #f2a91f; box-shadow: 0 0 0 2px #ffd36b; cursor: var(--cursor-arrow); }
+.pets-window .pets-food-slot img { width: 40px; height: 40px; object-fit: contain; }
+.pets-window .pets-food-slot .ghost { opacity: .35; }
+.pets-window .pets-stage-foot { grid-column: 1 / -1; display: flex; align-items: center; gap: 8px; }
+.pets-window .pets-level { white-space: nowrap; color: #6b3a10; font-family: 'Lilita One', 'Nunito', sans-serif; font-size: 18px; }
+.pets-window .pets-level b { font-family: inherit; font-size: 22px; color: #3e1a07; }
+.pets-window .pets-hearts { display: flex; gap: 1px; flex: 1; }
+.pets-window .pets-hearts svg { color: #d7a7a7; }
+.pets-window .pets-hearts svg.on { color: #b5122e; fill: #ff4d6d; filter: drop-shadow(0 1px #7a0a1c88); }
+.pets-window .pets-exp { grid-column: 1 / -1; display: flex; align-items: center; gap: 6px; font-weight: 900; color: #3e1a07; font-size: 12px; }
+.pets-window .pets-exp > div { position: relative; flex: 1; height: 16px; border-radius: 8px; background: #3e2a1a; overflow: hidden; box-shadow: inset 0 1px 3px #000a; }
+.pets-window .pets-exp i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(#7ae3f2, #1c9bc4); }
+.pets-window .pets-exp small { position: relative; display: block; text-align: center; line-height: 16px; font-size: 11px; color: #fff; text-shadow: 0 1px 2px #000; }
+
+.pets-window .pets-side { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; min-height: 0; }
+.pets-window .pets-stats { margin: 0; display: grid; align-content: start; gap: 3px; }
+.pets-window .pets-stats div { display: flex; justify-content: space-between; align-items: center; padding: 3px 10px; border-radius: 6px; background: linear-gradient(90deg, #6b2f0f, #8a4a1f); box-shadow: inset 0 1px #ffc98c44; }
+.pets-window .pets-stats dt { color: var(--wood-gold); font-weight: 900; font-size: 13px; text-shadow: 0 1px #2c1004; }
+.pets-window .pets-stats dd { margin: 0; color: #fff5df; font-weight: 900; font-size: 13.5px; }
+.pets-window .pets-call {
+  min-height: 46px; border: 2px solid #b6f2e6; border-radius: 12px; cursor: var(--cursor-arrow);
+  background: linear-gradient(#5fd8c2, #179a86 60%, #0f7a6a); color: #fff; font-family: 'Lilita One', 'Nunito', sans-serif; font-size: 20px; letter-spacing: .3px;
+  text-shadow: 0 2px #0a4a40; box-shadow: inset 0 2px #d9fff688, 0 3px #3e1a0799;
+}
+.pets-window .pets-call:not(:disabled):hover { filter: brightness(1.07); }
+.pets-window .pets-call:disabled { filter: saturate(.25) brightness(.9); opacity: .6; }
+
+/* Habilidades do pet e de batalha */
+.pets-window .pets-skills { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 8px; }
+.pets-window .pets-skills h3 { margin: 0 0 4px; color: var(--wood-gold); font-size: 13px; text-shadow: 0 1px #2c1004; }
+.pets-window .pets-learned-body { display: grid; grid-template-columns: minmax(0, 1fr) 20px; gap: 4px; padding: 6px; border-radius: 10px; background: #5a2a0e66; box-shadow: inset 0 1px 3px #2c100488; }
+.pets-window .pets-learned ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+.pets-window .pets-skill { width: 100%; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border: 2px solid #a8794a; border-radius: 8px; background: linear-gradient(#8a5a33, #6b4022); color: #ffe7bf; cursor: var(--cursor-arrow); box-shadow: inset 0 2px 4px #0004; }
+.pets-window .pets-skill.empty { background: linear-gradient(#7a4f2c, #5e3a1e); border-color: #8a6038; opacity: .8; }
+.pets-window .pets-skill img { width: 86%; height: 86%; object-fit: contain; }
+.pets-window .pets-skill.selected { border-color: #ffd36b; box-shadow: 0 0 0 2px #ffd36b; }
+.pets-window .pets-skill.unmet { filter: grayscale(.8); opacity: .6; }
+.pets-window .pets-scroll { display: grid; grid-template-rows: 1fr 1fr; gap: 4px; }
+.pets-window .pets-scroll button { border: 1px solid #ffd27a; border-radius: 5px; background: linear-gradient(#ffd34f, #f09a12); color: #6b2c05; font-size: 9px; cursor: var(--cursor-arrow); }
+.pets-window .pets-scroll button:disabled { filter: saturate(.3) brightness(.85); opacity: .55; }
+.pets-window .pets-ring { position: relative; width: 136px; height: 120px; margin: 0 auto; }
+.pets-window .pets-ring::before { content: ''; position: absolute; inset: 14px 22px; border: 6px solid #c98a3a; border-radius: 50%; box-shadow: 0 0 0 2px #6b3a10, inset 0 0 0 2px #ffd27a88; }
+.pets-window .pets-ring-center { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; translate: -50% -50%; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(#8a8f99, #4a4e57); color: #e8ecf2; box-shadow: 0 0 0 3px #c98a3a, 0 2px 4px #0008; }
+.pets-window .pets-ring-slot { position: absolute; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 3px solid #e2b04a; border-radius: 50%; background: radial-gradient(#7a6a5a, #3e3228); cursor: var(--cursor-arrow); box-shadow: 0 2px 4px #0008; overflow: hidden; }
+.pets-window .pets-ring-slot img { width: 70%; height: 70%; object-fit: contain; }
+.pets-window .pets-ring-slot.locked img { width: 58%; height: 58%; }
+.pets-window .pets-ring-slot.target { box-shadow: 0 0 0 3px #ffd36b, 0 2px 6px #0008; }
+.pets-window .pets-ring-slot.n0 { left: 0; top: 0; }
+.pets-window .pets-ring-slot.n1 { right: 0; top: 0; }
+.pets-window .pets-ring-slot.n2 { left: 0; bottom: 0; }
+.pets-window .pets-ring-slot.n3 { right: 0; bottom: 0; }
+
+/* Grade de itens à direita */
+.pets-window .pets-bag { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 7px; min-height: 0; padding: 8px; }
+.pets-window .pets-bag header { display: flex; justify-content: space-between; align-items: center; padding: 0 4px; }
+.pets-window .pets-bag header strong { color: var(--wood-gold); font-size: 16px; text-shadow: 0 2px #2c1004; }
+.pets-window .pets-bag header small { color: #ffe7bf; font-weight: 900; }
+.pets-window .pets-bag-grid { align-content: start; overflow: auto; padding: 8px; border-radius: 10px; background: linear-gradient(#fff8e8, var(--wood-cream-mid)); }
+.pets-window .pets-bag-grid .item-card svg { color: #8a5a2a; }
+.pets-window .pets-bag-grid .item-card.selected { box-shadow: 0 0 0 2px #ffd36b, inset 0 0 10px #ffd36b88; border-color: #f2a91f; }
+.pets-window .pets-wallet { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 10px; background: #5a2a0e66; }
+.pets-window .pets-wallet span { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 8px; background: #fff5df; color: var(--wood-ink); font-weight: 900; }
+.pets-window .pets-wallet .pets-count { margin-left: auto; background: transparent; color: #ffe7bf; }
+.pets-window .pets-feedback { margin: 6px 0 0; padding: 7px 12px; border-radius: 10px; background: #fff5dfee; color: var(--wood-ink); font-weight: 900; text-align: center; }
+
+@media (max-width: 760px) {
+  .pets-window .pets-layout { grid-template-columns: 1fr; overflow: auto; }
+}
+html.mobile-landscape .pets-window .pets-layout { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+html.mobile-landscape .pets-window .pets-ring { transform: scale(.85); }
+/* Celular em paisagem: a janela é baixa, então o painel do pet rola em vez de espremer as partes. */
+html.mobile-landscape .pets-window .pets-panel { overflow: auto; grid-template-rows: none; grid-auto-rows: max-content; }
+html.mobile-landscape .pets-window .pets-stage { min-height: 230px; }
+html.mobile-landscape .pets-window .pets-stats div { padding: 2px 8px; }
+html.mobile-landscape .pets-window .pets-call { min-height: 38px; font-size: 17px; }

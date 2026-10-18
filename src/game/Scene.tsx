@@ -19,11 +19,15 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
+import {drawPet} from './petSprite';
 import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {MONSTERS} from '../../shared/expeditions';
 import {drawSpeechBubble} from './speechBubble';
 import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
+import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,drawDragonPaw,preloadDragon} from './worldBoss/dragon';
+import type {DragonPose} from './worldBoss/dragon';
+import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
@@ -46,7 +50,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
  useEffect(()=>{
   const el=canvas.current!,c=el.getContext('2d')!;let frame=0;let state=client.state;
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}};
-  preloadMonsters();
+  preloadMonsters();preloadDragon();
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
@@ -58,7 +62,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
-   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle');if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
    // avoid repainting the full world at the monitor's refresh rate underneath.
@@ -104,11 +108,24 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(opening&&openingNow<b.instance!.introUntil){const boss=b.players.find(f=>f.id===b.instance!.boss),firstOut=opening.summons[0]?.at??opening.startedAt;
      if(boss&&openingNow<firstOut-300){focusX=boss.x-120;focusY=boss.y-220;}
      else if(openingNow<opening.startedAt+MONSTER_MOVE_MS){const walkers=b.players.filter(f=>opening.moves.some(m=>m.id===f.id)).map(f=>monsterView(b,f,terrain,openingNow));if(walkers.length){focusX=walkers.reduce((n,v)=>n+v.x,0)/walkers.length-160;focusY=walkers[0].y-140;}}}
+    // Chefão Mundial: on the player's turn the view holds both the player and the dragon's head, as in DDTank.
+    if(b.worldBoss&&focus&&!focus.boss){const boss=b.players.find(f=>f.boss);if(boss){focusX=Math.min(focus.x+560,(focus.x+boss.x-60)/2);focusY=Math.min(focusY,focus.y-200);}}
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}
      // Once everything has landed the camera rests on the last impact until the server opens the next turn.
      else{const landed=shot.projectiles.filter(p=>elapsed>=p.delay+flightTime(p)).sort((a,b)=>a.delay+flightTime(a)-b.delay-flightTime(b)).at(-1),last=landed?.points.at(-1);if(landed&&last&&!leftArena(landed.impact,terrainWidth(terrain!))){focusX=last[0];focusY=last[1]+70;}}}
+    // Chefão Mundial: the camera follows the dragon's act (its head while it winds up, then where the blow lands).
+    const dragon=b.worldBoss?b.players.find(f=>f.boss):undefined,dragonNow=Date.now()+state.offset;
+    if(dragon&&(b.turnId===DRAGON_TURN_ID||b.worldBoss!.over)){const hero=own??b.players.find(f=>!f.boss),view=dragonFocus(b,dragon,dragonNow,hero?.x??dragon.x-900,hero?.y??600);if(view){focusX=view.x;focusY=view.y;}}
+    let dragonHurt=-1;if(dragon)for(const impact of state.impacts)if(impact.hits.some(hit=>hit.id===dragon.id&&hit.damage>0))dragonHurt=Math.max(dragonHurt,impact.at);
+    const dragonHurtAge=dragonHurt<0?-1:dragonNow-dragonHurt,heroFloor=dragon?(own?.y??ground(terrain,dragon.x-900)):0;
+    const pose:DragonPose|null=dragon?dragonPose(b,dragon,dragonNow,t,dragonHurtAge,heroFloor):null;
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
-    updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
+    updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
+    if(pose&&pose.shake>0)c.translate(Math.sin(t*.091)*pose.shake,Math.cos(t*.077)*pose.shake*.6);
+    // The dragon rises from behind the lair's ridge: drawn before the terrain.
+    if(dragon&&pose)drawDragonBack(c,dragon,pose,dragonHurtAge,t);
+    environment!.drawTerrain(c,t);residues!.draw(c);
+    if(dragon&&pose)drawDragonPaw(c,pose,x=>ground(terrain,x,0));
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
@@ -119,6 +136,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
      if(f.hidden){entities.delete(f.id);continue;}
+     if(f.boss)continue;
      if(f.monster){
       // Expedition monsters: painted strips moved along the server's timeline (walk-in, shared monster turn).
       const falling=!!f.fall&&serverNow<f.fall.startedAt+f.fall.duration,view=monsterView(b,f,terrain,serverNow),summon=b.instance?.monsterTurn?.summons.find(s=>s.id===f.id);
@@ -134,7 +152,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      const previous=entities.get(f.id),teleport=state.abilityEffects.filter(effect=>effect.playerId===f.id&&effect.ability==='flight').at(-1);
      if(previous&&teleport&&teleport.at!==(previous.teleportedAt??0)){previous.x=f.x;previous.y=f.y;previous.lastX=f.x;previous.teleportedAt=teleport.at;}
      // HP and fall positions change only in the authoritative impact snapshot.
-     const falling=!!f.fall&&serverNow<f.fall.startedAt+f.fall.duration,hold=b.phase==='resolving'&&!!shot,y=falling?fallPosition(f.fall!,serverNow):f.y,hp=f.hp;
+     const falling=!!f.fall&&serverNow<f.fall.startedAt+f.fall.duration,hold=b.phase==='resolving'&&!!shot,lift=b.worldBoss?dragonLift(b,f.id,serverNow):0,y=(falling?fallPosition(f.fall!,serverNow):f.y)-lift,hp=f.hp;
      // Killed by one projectile of a multi-shot: the stone drops on that impact, not after the rest land.
      // Later hits dig under the body and it sinks with the crater as a stone, not as the avatar again.
      if(hp<=0&&!f.fall?.void){if(!fallenAt.has(f.id))fallenAt.set(f.id,shot&&b.phase==='resolving'&&shot.projectiles.some((_,i)=>!shot.impacted.includes(i))?t-TOMBSTONE_DELAY:t);const age=t-fallenAt.get(f.id)!-TOMBSTONE_DELAY;if(age>=0){const seen=entities.get(f.id);drawTombstone(c,seen?.x??f.x,y,age,f.facing);continue;}}else if(hp>0)fallenAt.delete(f.id);
@@ -149,6 +167,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       const hit=shot.hits.filter(h=>h.id===f.id&&exploded.has(h.projectileIndex??0)).at(-1);
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=p?elapsed-impactTime(p):500;if(age>=0&&age<500){pose='hit';poseTime=age;}}
      }
+     if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined,aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
@@ -157,13 +176,14 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
      const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
-     const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||entity?.motion.pose==='fall');
+     const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,f.aimSlope??0,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits.minAngle,limits.maxAngle,'front');
     }
     // Plates go on top of every fighter, stacked when neighbours stand close together.
     drawFighterPlates(c,plates,t);
+    if(dragon&&pose)drawDragonFront(c,b,dragon,pose,serverNow,t,x=>ground(terrain,x,0),quality==='high'?'high':'low');
     // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
     for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;
      const mouth=speaker.monster?MONSTERS[speaker.monster].mouth??{forward:0,up:MONSTERS[speaker.monster].sprite.height*.66}:{forward:10,up:110};drawSpeechBubble(c,line.text,speaker.x+speaker.facing*mouth.forward,speaker.y-mouth.up,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}

@@ -12,6 +12,9 @@ import {ReportStore} from './reports';
 import {MailStore} from './mail';
 import {AuctionStore} from './auction';
 import {GuildStore} from './guilds';
+import {PetStore} from './pets';
+import {HallStore} from './hall';
+import {WorldBossService} from './worldBoss';
 import {PlayerDirectory} from './adminPlayers';
 import {LiveState,PostgresLive,RedisLive} from './liveState';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
@@ -42,7 +45,15 @@ const reports=new ReportStore(store.pool);await reports.init();game.reports=repo
 const mail=new MailStore(store.pool);await mail.init();game.mail=mail;
 const auction=new AuctionStore(store.pool);await auction.init();game.auction=auction;
 const guilds=new GuildStore(store.pool);await guilds.init();game.guilds=guilds;
-await registerAdmin(app,{store:adminStore,reports,mail,players:new PlayerDirectory(store.pool),presence:()=>game.presence(),onMail:id=>{void game.mailArrived(id).catch(e=>app.log.error(e));},live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),pinnedMaps:()=>game.pinnedMaps(),
+// Pets: the system is live with zero species (docs/pets.md).
+const pets=new PetStore(store.pool);await pets.init();game.pets=pets;
+// Hall da Fama (docs/hall-of-fame.md): standings, PvP boards, closings and rewards run in the background.
+const hall=new HallStore(store.pool);await hall.init();store.hall=hall;game.hall=hall;
+hall.onChange=categories=>game.hallChanged(categories);hall.onMail=id=>{void game.mailArrived(id).catch(e=>app.log.error(e));};
+setInterval(()=>{void hall.tick().catch(e=>app.log.error(e));},2000).unref();void hall.tick().then(()=>game.refreshRanking()).catch(e=>app.log.error(e));
+// Chefão Mundial: life, schedules and ranking in Postgres; a restart picks the event up where it was.
+const worldBoss=new WorldBossService(store.pool);worldBoss.onChange=status=>game.worldBossChanged(status);await worldBoss.init();game.worldBoss=worldBoss;
+await registerAdmin(app,{store:adminStore,hall,reports,mail,worldBoss,players:new PlayerDirectory(store.pool),presence:()=>game.presence(),onMail:id=>{void game.mailArrived(id).catch(e=>app.log.error(e));},live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),pinnedMaps:()=>game.pinnedMaps(),
  onMapsChanged:()=>{const event=JSON.stringify({type:'maps'});for(const ws of connections.values())if(ws.readyState===WebSocket.OPEN)ws.send(event);}});
 const wss=new WebSocketServer({noServer:true,maxPayload:2048,perMessageDeflate:false});
 const upgradeLimit=new Map<string,{time:number,count:number}>();
@@ -73,7 +84,9 @@ app.server.on('upgrade',async(req,socket,head)=>{
 const tick=setInterval(()=>game.tick(),50);
 // Listings whose time ran out go back to their sellers by mail.
 const auctionSweep=setInterval(()=>{void game.auctionSweep().catch(e=>app.log.error(e));},15000);
+// Opens scheduled events and closes the ones whose time ran out.
+const worldBossTick=setInterval(()=>{void worldBoss.tick().catch(e=>app.log.error(e));},1000);
 const saving=setInterval(()=>{void live.save().catch(e=>app.log.error(e));},500);
 const presence=setInterval(()=>{redis.set('brasa:shard:1:online',connections.size,'EX',25).catch(e=>app.log.error(e));for(const [ip,l]of upgradeLimit)if(Date.now()-l.time>60000)upgradeLimit.delete(ip);},10000);
 await app.listen({port:Number(process.env.PORT??4107),host:'0.0.0.0'});
-for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(auctionSweep);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});
+for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(auctionSweep);clearInterval(worldBossTick);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});

@@ -1,0 +1,85 @@
+/* Chefão Mundial: the plaza button, the event window and the battle bar (docs/world-boss.md). */
+
+/* ── Plaza button: the dragon's painted face, a quiet warm glow while it is active ── */
+.world-boss-button{position:absolute;top:96px;right:26px;z-index:4;width:92px;height:104px;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.world-boss-button img{width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 3px 3px #000a) drop-shadow(0 0 1px #2a0c04);transition:transform .2s}
+.world-boss-button.is-active img{animation:world-boss-glow 2.6s ease-in-out infinite}
+.world-boss-button:hover img{transform:scale(1.06)}
+.world-boss-button.is-results img{filter:drop-shadow(0 3px 3px #000a) saturate(.75)}
+.world-boss-button-time{min-width:64px;padding:2px 9px;border-radius:10px;background:linear-gradient(#5b2410,#391405);border:1px solid #f2b56b;color:#ffe3a1;font:900 12px/1.25 Nunito,sans-serif;text-shadow:0 1px #000;box-shadow:0 2px 4px #0008}
+@keyframes world-boss-glow{0%,100%{filter:drop-shadow(0 3px 3px #000a) drop-shadow(0 0 2px #ff8a3a66)}50%{filter:drop-shadow(0 3px 3px #000a) drop-shadow(0 0 10px #ff8a3acc)}}
+html.mobile-landscape .world-boss-button{top:64px;right:12px;transform:scale(.82);transform-origin:top right}
+
+/* ── Event window ── */
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.world-boss-window[class]{width:min(1060px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px)}
+.world-boss-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;padding:14px;height:min(560px,calc(100dvh - 120px))}
+.world-boss-ranking{min-height:0}
+.world-boss-hero,.world-boss-ranking{border-radius:12px;padding:14px;display:flex;flex-direction:column;min-width:0}
+.world-boss-hero{align-items:stretch;gap:10px}
+.world-boss-portrait{position:relative;height:250px;margin:-4px -4px 0;border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 50% 70%,#ffbf6b55,transparent 60%),linear-gradient(#3b2440,#7b3424 70%,#c86a3c);box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 -30px 40px #2a0c0477}
+.world-boss-portrait img.is-missing{visibility:hidden}
+.world-boss-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 6px 6px #0009)}
+.world-boss-portrait.is-over img{filter:grayscale(.55) brightness(.85) drop-shadow(0 6px 6px #0009)}
+.world-boss-state{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-radius:9px;background:#f0d6a6;color:var(--wood-ink);font:800 14px Nunito,sans-serif;box-shadow:inset 0 0 0 1px var(--wood-edge)}
+.world-boss-state.is-active{background:linear-gradient(#ffcf7a,#f0a64a);color:#5a1f06}
+.world-boss-state b{font-variant-numeric:tabular-nums;font-size:15px}
+.world-boss-health{position:relative;height:24px;border-radius:12px;overflow:hidden;background:linear-gradient(#3a120a,#5b1c0e);box-shadow:inset 0 2px 4px #000a,0 0 0 2px #7a3a14,0 0 0 3px #f2b56b}
+.world-boss-health.big{height:30px;border-radius:15px}
+.world-boss-health i{position:absolute;inset:0 auto 0 0;background:linear-gradient(#ff9a5a,#e0401c 55%,#a81c0c);box-shadow:inset 0 2px 0 #ffd0a088;transition:width .5s ease-out}
+.world-boss-health span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#fff6df;font:900 13px Nunito,sans-serif;text-shadow:0 1px 2px #000,0 0 3px #000;font-variant-numeric:tabular-nums}
+.world-boss-health b{position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#ffe3a1;font:900 11px Nunito,sans-serif;text-shadow:0 1px 2px #000}
+.world-boss-health.big span{font-size:14px}
+.world-boss-lines{display:flex;flex-direction:column;gap:3px;color:var(--wood-ink-soft);font:700 13px Nunito,sans-serif}
+.world-boss-lines span{display:flex;align-items:center;gap:6px}
+.world-boss-about{color:var(--wood-ink);font:600 13px/1.4 Nunito,sans-serif}
+.world-boss-enter{margin-top:auto;min-height:52px;font-size:20px;gap:10px}
+.world-boss-ranking header{display:flex;align-items:center;gap:8px;color:var(--wood-ink);margin-bottom:8px}
+.world-boss-ranking h2{font:700 19px Cinzel,serif}
+.world-boss-table-wrap{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;border-radius:8px;box-shadow:inset 0 0 0 1px var(--wood-edge)}
+.world-boss-table{width:100%;border-collapse:collapse;font:700 14px Nunito,sans-serif;color:var(--wood-ink);font-variant-numeric:tabular-nums}
+.world-boss-table th{position:sticky;top:0;z-index:1;padding:7px 10px;text-align:left;background:linear-gradient(var(--wood-bar),var(--wood-bar-deep));color:var(--wood-gold);font:900 12px Nunito,sans-serif;letter-spacing:.4px;text-transform:uppercase}
+.world-boss-table td{padding:7px 10px;border-top:1px solid #d9a96a55}
+.world-boss-table tbody tr:nth-child(even):not(.podium):not(.is-me){background:#f7e4bd66}
+.world-boss-table td.rank{width:46px}
+.world-boss-table td.rank span{display:inline-grid;place-items:center;min-width:28px;height:24px;border-radius:12px;font-weight:900}
+.world-boss-table td.level{width:62px;color:var(--wood-ink-soft)}
+.world-boss-table td.damage{text-align:right;font-weight:900}
+.world-boss-table th:nth-child(4),.world-boss-table th:nth-child(5),.world-boss-table td.share{text-align:right}
+.world-boss-table td.share{width:74px;color:var(--wood-ink-soft)}
+.world-boss-table td.name strong{cursor:var(--cursor-arrow)}
+.world-boss-table td.name em{margin-left:6px;padding:1px 6px;border-radius:7px;background:#2f7bd0;color:#fff;font:800 10px Nunito,sans-serif;font-style:normal;vertical-align:middle}
+/* The podium: the top three rows in gold, silver and bronze. */
+.world-boss-table tr.podium td{font-size:15px}
+.world-boss-table tr.podium-1{background:linear-gradient(90deg,#ffd76a,#fff1c0 70%)}
+.world-boss-table tr.podium-2{background:linear-gradient(90deg,#d6dde6,#f3f6fa 70%)}
+.world-boss-table tr.podium-3{background:linear-gradient(90deg,#e7aa77,#f8dcc2 70%)}
+.world-boss-table tr.podium-1 td.rank span{background:linear-gradient(#ffe48a,#d99a1c);color:#5a3200;box-shadow:0 1px 0 #8a5a00}
+.world-boss-table tr.podium-2 td.rank span{background:linear-gradient(#f4f7fb,#9ea9b6);color:#2e3640;box-shadow:0 1px 0 #5d6672}
+.world-boss-table tr.podium-3 td.rank span{background:linear-gradient(#f2bd8c,#b0632c);color:#3d1a05;box-shadow:0 1px 0 #6e3612}
+.world-boss-table tr.is-me:not(.podium){background:#cfe6ff}
+.world-boss-table tr.is-me td{box-shadow:inset 0 1px 0 #2f7bd055,inset 0 -1px 0 #2f7bd055}
+.world-boss-mine{margin-top:8px;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px #2f7bd0}
+.world-boss-empty,.world-boss-hint{margin:auto;color:var(--wood-ink-soft);font:700 15px Nunito,sans-serif;text-align:center}
+.world-boss-hint{margin:8px 0 0;font-size:13px}
+@media (max-width:860px){.world-boss-layout{grid-template-columns:1fr;height:auto}.world-boss-portrait{height:170px}.world-boss-table-wrap{max-height:300px}}
+html.mobile-landscape .world-boss-layout{grid-template-columns:300px minmax(0,1fr);height:calc(100dvh - 90px);padding:10px;gap:10px}
+html.mobile-landscape .world-boss-portrait{height:150px}
+html.mobile-landscape .world-boss-about{display:none}
+
+/* ── Battle: the global life in place of the enemy roster ── */
+.world-boss-bar{position:absolute;top:0;left:calc(50% + 108px);width:min(400px,calc(50% - 108px - 236px));display:flex;align-items:center;gap:10px;padding:20px 8px 6px 4px;background:none;border:0;color:#fff3dc;text-shadow:0 1px 0 #2a0c04,0 0 3px #000,0 0 6px #000a}
+/* The dragon's head breaks out of the top of its frame: below the circle's middle the picture is cut to the circle, above it nothing cuts it. */
+.world-boss-bar-face{position:relative;width:64px;height:64px;flex:none}
+.world-boss-bar-face::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 40%,#8a2a0ecc,#2a0c06e6 70%);box-shadow:0 0 0 2px #f2b56bcc,0 3px 8px #000a}
+.world-boss-bar-face img{position:absolute;left:-10px;bottom:0;width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 2px 2px #000a);
+ -webkit-mask:radial-gradient(circle 32px at 42px 52px,#000 31px,#0000 32px),linear-gradient(#000,#000) top/100% 52px no-repeat;
+ mask:radial-gradient(circle 32px at 42px 52px,#000 31px,#0000 32px),linear-gradient(#000,#000) top/100% 52px no-repeat}
+.world-boss-bar-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.world-boss-bar-body p{display:flex;justify-content:space-between;gap:8px;font:900 14px Nunito,sans-serif}
+.world-boss-bar-body p strong{font:700 15px Cinzel,serif;color:var(--wood-gold,#ffd36b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.world-boss-bar-body p span{font-variant-numeric:tabular-nums;color:#ffd9a0}
+.world-boss-bar-body small{font:700 12px Nunito,sans-serif;color:#f7d7ae}
+.world-boss-bar-body small b{color:#fff3c4;font-variant-numeric:tabular-nums}
+.world-boss-bar .world-boss-health{height:20px}
+.world-boss-bar .world-boss-health span{font-size:12px}
+html.mobile-landscape .world-boss-bar{left:calc(50% + 80px);transform-origin:top left}

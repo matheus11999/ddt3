@@ -25,7 +25,7 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
 
 ## GvG
 
-- Botão **GvG** ao lado do **Início** na sala PvP. Só o líder liga, e só se todos da sala forem da mesma guilda; ninguém de fora entra numa sala GvG.
+- Seletor **Normal | GvG** no topo do quadro da sala PvP (sem botão ao lado do Início, pedido do matheus). Só o líder troca, e só se todos da sala forem da mesma guilda; ninguém de fora entra numa sala GvG. Em GvG o quadro mostra `public/assets/ui/gvg-room-banner.webp` (guerra de guildas, gerada pelo Codex; prompt em `/mnt/project-files/guildas/prompts/gvg-room-banner.md`) com o título "Guerra de Guildas GvG". Em telas menores o quadro fica e o chat diminui; no celular o quadro some e o seletor vai para a barra de título.
 - Com GvG ligado, a busca só encontra outra sala GvG do **mesmo tamanho** e de **outra guilda**. Salas normais nunca encontram salas GvG.
 - A partida guarda as duas guildas (`Match.gvg`, JSON, sobrevive a reinício como o resto da partida).
 
@@ -33,7 +33,7 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
 
 - `shared/guilds.ts`: regras, custos, comandos. `server/guilds.ts`: `GuildStore` (Postgres: `guilds`, `guild_members`, `guild_applications`, `guild_storage`, `guild_gvg`).
 - `server/game.ts`: comandos `guild-*` e `room-gvg`, nome da guilda no `Seat.guild` (cards das salas PvP e de expedição), bônus do ferreiro, pareamento GvG e Riqueza no fim da partida.
-- `src/components/Guild.tsx` (janela), `Arena.tsx` (botão GvG e nome da guilda no card), `Forge.tsx` (selo "+N% guilda" na barra de chance).
+- `src/components/Guild.tsx` (janela), `Arena.tsx` (seletor Normal | GvG no quadro e nome da guilda no card), `Forge.tsx` (selo "+N% guilda" na barra de chance).
 - Arte: `public/assets/ui/guild-shop.png`, `guild-smith.png`, `guild-storage.png` (construções) e `public/assets/items/necklace-guild-1.png` (colar). Sem a arte, a janela usa os botões da praça e o colar desenhado em código.
 
 ## Testes

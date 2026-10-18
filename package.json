@@ -11,6 +11,7 @@
     "test": "tsx --test --import ./tests/fixtures/weapons.ts --import ./tests/fixtures/maps.ts tests/*.test.ts",
     "test:integration": "tsx tests/integration.ts",
     "test:restart:integration": "tsx tests/restart.integration.ts",
+    "test:worldboss:integration": "tsx tests/worldBoss.integration.ts",
     "test:load": "tsx tests/load.ts",
     "check": "tsc --noEmit",
     "test:maps:integration": "tsx tests/maps.integration.ts",
@@ -47,7 +48,9 @@
     "test:mail:integration": "tsx tests/mail.integration.ts",
     "test:mail:browser": "node scripts/smoke-mail.mjs",
     "test:auction:integration": "tsx tests/auction.integration.ts",
-    "test:guilds:integration": "tsx tests/guilds.integration.ts"
+    "test:guilds:integration": "tsx tests/guilds.integration.ts",
+    "test:pets:integration": "tsx tests/pets.integration.ts",
+    "test:hall:integration": "tsx tests/hall.integration.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

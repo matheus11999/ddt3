@@ -14,15 +14,19 @@ import type {PlayerInfo} from '../shared/reports';
 import type {MailClaimResult,MailMessage} from '../shared/mail';
 import type {AuctionCurrency,AuctionMine,AuctionPage,AuctionResult,AuctionSource} from '../shared/auction';
 import type {GuildState,GuildSummary} from '../shared/guilds';
+import type {PetResult,PetsState} from '../shared/petProtocol';
+import type {PetApplication} from '../shared/petSkills';
+import type {GuildBoard,HallBoard,HallCategory,HallGuildProfile,HallLegends,HallPeriod,HallPlayerProfile,LegendBoard} from '../shared/hall';
+import type {WorldBossRanking,WorldBossStatus} from '../shared/worldBoss';
 export type GuildTab='home'|'shop'|'storage'|'manage'|'members';
 export type AuctionQuery={category?:string;page:number;search?:string};
 /** Right click on another player (portraits, plaza, rooms, online list, chat): the menu, then its window. */
 export type PlayerTarget={id:string;name:string;context:'lobby'|'hall'|'room'|'battle'|'chat'|'ranking'|'auction'};
 export type PlayerPanel=(PlayerTarget&{kind:'menu';x:number;y:number})|(PlayerTarget&{kind:'info'|'report'})|null;
 import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorChange,ColorResult} from '../shared/protocol';
-export interface State {/** Guildas: the window and its tab, my guild (null until loaded), the guild list and the last confirmation. */guildOpen:boolean;guildTab:GuildTab;guild:GuildState|null;guildList:GuildSummary[]|null;guildMessage:{text:string;at:number}|null;guildPending:boolean;/** The Leilão window: the page on screen, my listings and notices, and the last sale/purchase. */auctionOpen:boolean;auctionPage:AuctionPage|null;auctionMine:AuctionMine;auctionResult:(AuctionResult&{at:number})|null;auctionPending:boolean;/** Who the chat writes to privately ("Enviar mensagem" in the player menu). */chatTarget:{id:string;name:string}|null;/** The Correio window and its inbox (newest first). */mailOpen:boolean;mails:MailMessage[];mailUnread:number;mailLoaded:boolean;mailClaim:(MailClaimResult&{at:number})|null;mailPending:boolean;playerPanel:PlayerPanel;playerInfo:PlayerInfo|null;reportResult:{playerId:string;name:string;at:number}|null;ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
+export interface State {/** Pets: the window, my pets (null until loaded), the last result and the latest pet skills seen in battle. */petsOpen:boolean;pets:PetsState|null;petResult:{result:PetResult;at:number}|null;petPending:boolean;petEffects:{at:number;applications:PetApplication[]}|null;/** Hall da Fama: the window, the board on screen, the open profile or guild, the legends and the last change the server announced. */hallOpen:boolean;hallBoard:HallBoard|null;hallProfile:HallPlayerProfile|null;hallGuild:HallGuildProfile|null;hallLegends:HallLegends|null;hallChanged:{categories:HallCategory[];at:number}|null;/** Chefão Mundial: the event (null until the server says), its window and the window's table. */worldBoss:WorldBossStatus|null;worldBossOpen:boolean;worldBossRanking:WorldBossRanking|null;/** Guildas: the window and its tab, my guild (null until loaded), the guild list and the last confirmation. */guildOpen:boolean;guildTab:GuildTab;guild:GuildState|null;guildList:GuildSummary[]|null;guildMessage:{text:string;at:number}|null;guildPending:boolean;/** The Leilão window: the page on screen, my listings and notices, and the last sale/purchase. */auctionOpen:boolean;auctionPage:AuctionPage|null;auctionMine:AuctionMine;auctionResult:(AuctionResult&{at:number})|null;auctionPending:boolean;/** Who the chat writes to privately ("Enviar mensagem" in the player menu). */chatTarget:{id:string;name:string}|null;/** The Correio window and its inbox (newest first). */mailOpen:boolean;mails:MailMessage[];mailUnread:number;mailLoaded:boolean;mailClaim:(MailClaimResult&{at:number})|null;mailPending:boolean;playerPanel:PlayerPanel;playerInfo:PlayerInfo|null;reportResult:{playerId:string;name:string;at:number}|null;ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
- state:State={guildOpen:false,guildTab:'home',guild:null,guildList:null,guildMessage:null,guildPending:false,auctionOpen:false,auctionPage:null,auctionMine:{listings:[],notices:[],unseen:0},auctionResult:null,auctionPending:false,chatTarget:null,mailOpen:false,mails:[],mailUnread:0,mailLoaded:false,mailClaim:null,mailPending:false,playerPanel:null,playerInfo:null,reportResult:null,ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
+ state:State={petsOpen:false,pets:null,petResult:null,petPending:false,petEffects:null,hallOpen:false,hallBoard:null,hallProfile:null,hallGuild:null,hallLegends:null,hallChanged:null,worldBoss:null,worldBossOpen:false,worldBossRanking:null,guildOpen:false,guildTab:'home',guild:null,guildList:null,guildMessage:null,guildPending:false,auctionOpen:false,auctionPage:null,auctionMine:{listings:[],notices:[],unseen:0},auctionResult:null,auctionPending:false,chatTarget:null,mailOpen:false,mails:[],mailUnread:0,mailLoaded:false,mailClaim:null,mailPending:false,playerPanel:null,playerInfo:null,reportResult:null,ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
  private listeners=new Set<()=>void>();private ws:WebSocket|null=null;private started=false;private retry=0;private reconnectTimer=0;private pingTimer=0;
  private loadoutTimer=0;
  private inviteHandled=false;
@@ -62,8 +66,22 @@ class Client {
  private auctionQuery:AuctionQuery={page:1};
  openAuction(){this.update({auctionOpen:true,auctionResult:null});this.send({type:'auction-mine'});this.auctionList(this.auctionQuery);}
  closeAuction(){this.update({auctionOpen:false});}
+ openHall(){this.update({hallOpen:true,hallProfile:null,hallGuild:null});}
+ closeHall(){this.update({hallOpen:false,hallProfile:null,hallGuild:null});}
+ hallQuery(q:{category:HallCategory;period?:HallPeriod;board?:GuildBoard;page?:number}){this.send({type:'hall-board',...q});}
+ hallPlayer(playerId:string|null){this.update({hallProfile:null,hallGuild:null});if(playerId)this.send({type:'hall-profile',playerId});}
+ hallGuildProfile(guildId:number|null){this.update({hallGuild:null,hallProfile:null});if(guildId)this.send({type:'hall-guild',guildId});}
+ hallLegendsQuery(board:LegendBoard,key?:string){this.send({type:'hall-legends',board,...(key?{key}:{})});}
  openGuild(tab:GuildTab='home'){this.update({guildOpen:true,guildTab:tab,guildMessage:null});this.send({type:'guild-state'});}
  closeGuild(){this.update({guildOpen:false});}
+ openPets(){this.update({petsOpen:true,petResult:null});this.send({type:'pet-list'});}
+ closePets(){this.update({petsOpen:false});}
+ /** One pet action at a time; the server answers with the new list and a result. */
+ petAction(c:Extract<Command,{type:`pet-${string}`}>){if(this.state.petPending)return;this.update({error:null,petPending:true});this.send(c);}
+ openWorldBoss(){this.update({worldBossOpen:true});this.send({type:'world-boss-ranking'});}
+ closeWorldBoss(){this.update({worldBossOpen:false});}
+ refreshWorldBoss(){if(this.state.worldBossOpen&&this.ws?.readyState===WebSocket.OPEN)this.send({type:'world-boss-ranking'});}
+ enterWorldBoss(){this.update({error:null});this.send({type:'world-boss-enter'});}
  /** A guild action that changes the bag or the guild: one at a time, the server answers with the new state. */
  guildAction(c:Extract<Command,{type:`guild-${string}`}>){if(this.state.guildPending)return;this.update({error:null,guildPending:true});this.send(c);}
  auctionList(query:AuctionQuery){this.auctionQuery=query;this.send({type:'auction-list',page:query.page,...(query.category?{category:query.category}:{}),...(query.search?.trim()?{search:query.search.trim()}:{})});}
@@ -107,7 +125,7 @@ class Client {
   ws.onerror=()=>ws.close();
  }
  private receive(e:ServerEvent){switch(e.type){
-  case 'welcome':{const offset=e.serverTime-Date.now(),shot=e.battle?.activeShot??null;this.update({abilityEffects:[],profile:e.profile,players:e.players,rooms:e.rooms,arenaOnline:e.arenaOnline??0,ranking:e.ranking??[],room:e.room,battle:e.battle,channel:e.channel,offset,shot,shotReceivedAt:shot?shotClock(shot,offset):0,shotBaseline:{},impacts:shot?recoveredImpacts(shot):[]});
+  case 'welcome':{const offset=e.serverTime-Date.now(),shot=e.battle?.activeShot??null;this.update({abilityEffects:[],profile:e.profile,players:e.players,rooms:e.rooms,arenaOnline:e.arenaOnline??0,ranking:e.ranking??[],worldBoss:e.worldBoss??null,room:e.room,battle:e.battle,channel:e.channel,offset,shot,shotReceivedAt:shot?shotClock(shot,offset):0,shotBaseline:{},impacts:shot?recoveredImpacts(shot):[]});
    if(!this.inviteHandled){this.inviteHandled=true;const invite=readRoomInvite(location.href);if(invite.cleanUrl!==location.href)history.replaceState(history.state,'',invite.cleanUrl);if(invite.roomId&&!e.room&&!e.battle)this.send({type:'join',roomId:invite.roomId});else if(invite.roomId&&e.room?.id!==invite.roomId)this.update({error:'Saia da sua sala atual antes de aceitar outro convite.'});}
    break;}
   case 'profile':this.update({profile:e.profile});if(e.requestId&&this.customizationQueue.matches(e.requestId)){clearTimeout(this.customizationTimer);this.customizationQueue.acknowledge(e.requestId);}if(e.requestId&&this.abilityLoadoutQueue.matches(e.requestId)){clearTimeout(this.loadoutTimer);this.abilityLoadoutQueue.acknowledge(e.requestId);}break;
@@ -120,6 +138,10 @@ class Client {
   case 'rooms':this.update({rooms:e.rooms});break;
   case 'arena-population':this.update({arenaOnline:e.count});break;
   case 'ranking':this.update({ranking:e.ranking});break;
+  case 'world-boss':{const changed=e.status.occurrenceId!==this.state.worldBoss?.occurrenceId||e.status.phase!==this.state.worldBoss?.phase;this.update({worldBoss:e.status,...(e.status.phase==='idle'?{worldBossOpen:false}:{})});if(changed)this.refreshWorldBoss();break;}
+  case 'world-boss-ranking':this.update({worldBossRanking:e.ranking});break;
+  // The attempt ended (fell, or the event closed): back in the plaza with the event window open, nothing else to show.
+  case 'world-boss-closed':this.openWorldBoss();break;
   case 'maps':void syncPublishedMaps();break;
   case 'online-players':this.update({onlinePlayers:e.players,onlineTotal:e.total});break;
   case 'room-invite-list':if(this.state.room?.id===e.roomId)this.update({invitePlayers:e.players,inviteListRoomId:e.roomId});break;
@@ -143,8 +165,16 @@ class Client {
    this.update({abilityEffects:[...this.state.abilityEffects.slice(-15),e]});break;
   }
   case 'player-info':this.update({playerInfo:e.info});break;
+  case 'pets':{const {type:_type,...pets}=e;this.update({pets});break;}
+  case 'pet-result':this.update({petResult:{result:e.result,at:Date.now()},petPending:false});break;
+  case 'pet-effect':this.update({petEffects:{at:e.at,applications:e.applications}});break;
   case 'guild':{const {type:_type,...guild}=e;this.update({guild,guildPending:false});break;}
   case 'guild-list':this.update({guildList:e.guilds});break;
+  case 'hall-board':this.update({hallBoard:e.board});break;
+  case 'hall-profile':this.update({hallProfile:e.profile});break;
+  case 'hall-guild':this.update({hallGuild:e.guild});break;
+  case 'hall-legends':this.update({hallLegends:e.legends});break;
+  case 'hall-changed':if(this.state.hallOpen)this.update({hallChanged:{categories:e.categories,at:Date.now()}});break;
   case 'guild-result':this.update({guildMessage:{text:e.message,at:Date.now()},guildPending:false});break;
   case 'auction-page':this.update({auctionPage:e.page});break;
   // Something changed in my listings (a sale, a purchase, a withdrawal): the open table refreshes too.
@@ -154,7 +184,7 @@ class Client {
   case 'mail-claim-result':this.update({mailClaim:{...e.result,at:Date.now()},mailPending:false});break;
   case 'report-result':this.update({reportResult:{playerId:e.playerId,name:e.name,at:Date.now()}});break;
   case 'chat':this.update({chat:[...this.state.chat.slice(-79),e.message]});break;
-  case 'error':if(this.state.mailPending)this.update({mailPending:false});if(this.state.guildPending)this.update({guildPending:false});if(this.state.auctionPending)this.update({auctionPending:false});if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
+  case 'error':if(this.state.mailPending)this.update({mailPending:false});if(this.state.petPending)this.update({petPending:false});if(this.state.guildPending)this.update({guildPending:false});if(this.state.auctionPending)this.update({auctionPending:false});if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
   case 'pong':this.update({latency:Date.now()-e.time,offset:e.serverTime-(e.time+Date.now())/2});break;
  }}
  send(c:Command){if(c.type==='room-invite-list')this.update({invitePlayers:[],inviteListRoomId:null});if(this.ws?.readyState===WebSocket.OPEN)this.ws.send(JSON.stringify(c));else this.update({error:'Reconectando ao servidor…'});}

@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useState} from 'react';
-import {BarChart3,Boxes,Castle,Flag,Flame,LogOut,Map as MapIcon,ShieldCheck,ShoppingBag,Users,CalendarDays,Lock} from 'lucide-react';
+import {BarChart3,Boxes,Castle,Flag,Flame,LogOut,Map as MapIcon,ShieldCheck,ShoppingBag,Users,CalendarDays,Lock,Trophy} from 'lucide-react';
 import {api,ApiError,whenSignedOut} from './api';
 import {Dashboard} from './Dashboard';
 import {MapList} from './MapList';
@@ -8,6 +8,8 @@ import {LobbyEditor} from './LobbyEditor';
 import {AssetLibrary} from './AssetLibrary';
 import {Reports} from './Reports';
 import {Players} from './Players';
+import {Hall} from './Hall';
+import {Events} from './Events';
 import {LOBBY_MAP_ID} from '../../shared/mapAdmin';
 
 /** Tiny router over location.pathname: /admin, /admin/mapas, /admin/mapas/<id>, /admin/assets. */
@@ -44,12 +46,12 @@ function Login({enabled,onLogin}:{enabled:boolean;onLogin:(user:string)=>void}){
  </main>;
 }
 
-const SOON=[{icon:ShoppingBag,label:'Loja'},{icon:CalendarDays,label:'Eventos'}];
+const SOON=[{icon:ShoppingBag,label:'Loja'}];
 
 function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
  const path=useRoute(),editing=path.match(/^\/admin\/mapas\/([a-z0-9-]+)$/)?.[1];
  const link=useCallback((to:string)=>(e:React.MouseEvent)=>{e.preventDefault();navigate(to);},[]);
- const section=path.startsWith('/admin/mapas')?'maps':path.startsWith('/admin/assets')?'assets':path.startsWith('/admin/denuncias')?'reports':path.startsWith('/admin/jogadores')?'players':'home';
+ const section=path.startsWith('/admin/mapas')?'maps':path.startsWith('/admin/assets')?'assets':path.startsWith('/admin/denuncias')?'reports':path.startsWith('/admin/jogadores')?'players':path.startsWith('/admin/eventos')?'events':path.startsWith('/admin/hall')?'hall':'home';
  const report=Number(path.match(/^\/admin\/denuncias\/(\d+)$/)?.[1])||undefined;
  if(editing)return editing===LOBBY_MAP_ID?<LobbyEditor key={editing} onBack={()=>navigate('/admin/mapas')}/>:<MapEditor key={editing} id={editing} onBack={()=>navigate('/admin/mapas')}/>;
  return <div className="adm-shell">
@@ -60,7 +62,9 @@ function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
     <a href="/admin/jogadores" onClick={link('/admin/jogadores')} className={section==='players'?'active':''}><Users size={18}/>Jogadores</a>
     <a href="/admin/mapas" onClick={link('/admin/mapas')} className={section==='maps'?'active':''}><MapIcon size={18}/>Mapas</a>
     <a href="/admin/assets" onClick={link('/admin/assets')} className={section==='assets'?'active':''}><Boxes size={18}/>Assets</a>
+    <a href="/admin/hall" onClick={link('/admin/hall')} className={section==='hall'?'active':''}><Trophy size={18}/>Hall da Fama</a>
     <a href="/admin/denuncias" onClick={link('/admin/denuncias')} className={section==='reports'?'active':''}><Flag size={18}/>Denúncias</a>
+    <a href="/admin/eventos" onClick={link('/admin/eventos')} className={section==='events'?'active':''}><CalendarDays size={18}/>Eventos</a>
     <span className="adm-nav-title">Em breve</span>
     {SOON.map(({icon:Icon,label})=><span key={label} className="adm-nav-soon"><Icon size={18}/>{label}</span>)}
    </nav>
@@ -69,6 +73,6 @@ function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
     <button className="adm-btn ghost small" onClick={onLogout}><LogOut size={15}/>Sair</button>
    </div>
   </aside>
-  <main className="adm-main">{section==='maps'?<MapList/>:section==='assets'?<AssetLibrary/>:section==='reports'?<Reports id={report}/>:section==='players'?<Players/>:<Dashboard/>}</main>
+  <main className="adm-main">{section==='maps'?<MapList/>:section==='assets'?<AssetLibrary/>:section==='reports'?<Reports id={report}/>:section==='players'?<Players/>:section==='events'?<Events/>:section==='hall'?<Hall/>:<Dashboard/>}</main>
  </div>;
 }
