@@ -671,7 +671,7 @@ export class Game {
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
