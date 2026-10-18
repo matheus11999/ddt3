@@ -43,6 +43,11 @@
 - Evidência: `npm run check`, `npm test` (341 passando) e `npm run build`; navegador em 8097 iniciou treino, ativou +50%, confirmou a seleção autoritativa e verificou que o buffer reproduzido corresponde ao MP3 enviado (`test-results/verify-powerup.mjs`).
 
 
+## Hall da Fama — 18/10/2026
+
+- Hall da Fama (`docs/hall-of-fame.md`): Poder, PvP diário/semanal/geral, Guildas (poder dos 10 mais fortes, PvP dos 20 maiores contribuidores, GvG, nível), Evolução, Conquistas e Lendas; top 50 paginado, pódio com personagem real, posição própria, perfis de jogador e guilda; fechamento automático no fuso de Brasília com foto oficial, títulos e recompensas pelo Correio; alertas antifraude e anulação com auditoria no `/admin/hall`. O pódio da praça passou a usar o PvP diário do Hall.
+- Evidência: `tests/hall.test.ts`, `npm run test:hall:integration` (20 cenários) e `npx tsx scripts/preview-hall.ts` (capturas em `test-results/hall/`).
+
 ## Leilão e Cupons — 18/10/2026
 
 - Leilão (`docs/auction.md`): abas Comprar/Vender, menu de categorias que expande, busca, tabela paginada com item, vendedor (botão direito: informações, mensagem privada, denúncia), tempo e preço; venda por Ouro ou Cupons com taxa em ouro (2h/8h/24h), até 3 anúncios; sino de vendas; pagamento, devolução e retirada pelo Correio.
@@ -410,3 +415,5 @@ Power-ups clássicos (18/10/2026, `docs/power-ups.md`): +1 0,90 (2 disparos), +2
 Guildas (18/10/2026, `docs/guilds.md`): criação por ouro, níveis 0–10, Loja/Ferreiro/Depósito limitados pelo nível da guilda, Riqueza ganha em GvG (10 por membro vencedor, uma vez por partida), bônus do Ferreiro +2%/nível na chance, Colar da Guilda Nv. 1 (+5% Vida, 800 ouro), botão GvG na sala e nome da guilda nos cards. Testes: `tests/guilds.test.ts`, `npm run test:guilds:integration`, `scripts/smoke-guilds.mjs` (prévias em `test-results/guilds/`). Pendente: arte pintada do colar e das três construções (há fallback com os ícones do lobby).
 
 Chefão Mundial (18/10/2026, `docs/world-boss.md`): dragão com vida global e ranking no PostgreSQL (livro de dano idempotente, um evento ativo por vez), botão com o rosto do dragão na praça, janela com ranking em tabela e Entrar (tentativa solo, sem recompensa nem tela de resultado), resultado visível por 20 min, admin `/admin/eventos` (iniciar/parar agora, agendas em horário de Brasília, histórico). Testes: `tests/worldBoss.test.ts`, `npm run test:worldboss:integration`, `scripts/smoke-world-boss.mjs` (prévias em `test-results/world-boss/`). Arte pelo Codex (`docs/world-boss-art-prompts.md`). Pendente: sons do dragão.
+
+Pets (18/10/2026, `docs/pets.md`): infraestrutura completa sem nenhum pet. Configuração central (`shared/petConfig.ts`), definição/qualidade/alimento/instância (`shared/pets.ts`), motor de habilidades com gatilhos, custo, recarga, chance, escudo, DoT/HoT, imunidade, bloqueio e anti-loop (`shared/petSkills.ts`), serviço transacional e migrações versionadas (`server/pets.ts`: `player_pets`, `pet_events`, `pet_feedings`, `pet_battle_results`), contribuição do pet em `attributes()`/FC via `Equipment.pet`, retrato no início da partida, habilidade ativa no turno, EXP/vitalidade liquidadas uma vez por partida, janela Pets com 5 abas e botão de pata no menu da praça. Testes: `tests/pets-empty.test.ts`, `tests/pets.test.ts`, `npm run test:pets:integration`; prévias em `/mnt/project-files/pets/`. Pendente: botão pintado, primeira espécie e arte.
