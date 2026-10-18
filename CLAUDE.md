@@ -56,7 +56,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Padrão visual compartilhado
 
-- **Fontes** (`src/fonts.css`, `public/fonts/`): Nunito no corpo, Cinzel só em títulos de janela, Lilita One em textos de destaque 3D (resultado do Ferreiro, números de combate).
+- **Fontes** (`src/fonts.css`, `public/fonts/`): Nunito no corpo, Cinzel só em títulos de janela, Lilita One em textos de destaque 3D (resultado do Ferreiro, números de combate), Titan One no título 3D das expedições (escolhida por matheus em 18/10). Cuidado: `.pvp-hall`/`.pvp-room` forçam Nunito em `span`/`strong`; título 3D dentro delas precisa de seletor próprio.
 - **Estilo madeira**: mochila, ferreiro, loja, salão e sala PvP usam madeira laranja, barra de título escura com título dourado e painéis creme. Tokens e classes `wood-*` em `src/components/WoodTheme.css`; menus usam a moldura fina de `MenuFrame.css`.
 - **Componentes reaproveitados**: `InventoryTooltip` (exportado da mochila, prop `action`), cards de classe por `data-tier` (regras em `Backpack.css` com `:is(.bag-window, .smith-window, .shop-window)`), `UpgradeTag`, `LevelNumber`, `LevelBadge`, `VipBadge`, `Avatar` (`animated={false}` nas prévias). Se mudar card ou tooltip da mochila, confira ferreiro e loja.
 - Classes raiz: `.bag-window` (mochila), `.smith-window` (ferreiro), `.shop-window` (loja), `.pvp-hall` e `.pvp-room`.
