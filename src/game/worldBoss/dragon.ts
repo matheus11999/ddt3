@@ -1,23 +1,24 @@
 /**
- * The Chefão Mundial dragon in battle: a painted parts rig (body, head, lower jaw, eyelid, claw, flames) moved
+ * The Chefão Mundial dragon in battle: a painted parts rig (body, head, lower jaw, eyelid, paw) moved
  * along the server's act timeline, the way DDTank animates its world boss. Every client computes the same pose
  * from `act.startedAt` and the server time, so the blows land in sync with the damage numbers.
- * Art and pivots: public/assets/world-boss/ (docs/world-boss.md).
+ * Art and pivots: public/assets/world-boss/ (docs/world-boss.md). The fire is drawn in code (fire.ts).
  */
 import type {Battle,Fighter} from '../../../shared/protocol';
-import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX} from '../../../shared/worldBoss';
+import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
+import {glow,groundFire,hash,stream} from './fire';
 
-type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist'|'flame';
+type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
-export const DRAGON_PARTS:Record<Part,{src:string;pivot:[number,number];scale:number;frames?:number}>={
+export const DRAGON_PARTS:Record<Part,{src:string;pivot:[number,number];scale:number}>={
  body:{src:'/assets/world-boss/body.png',pivot:[420,905],scale:.75},
  head:{src:'/assets/world-boss/head.png',pivot:[720,600],scale:.6},
  jaw:{src:'/assets/world-boss/jaw.png',pivot:[620,105],scale:.48},
  lid:{src:'/assets/world-boss/lid.png',pivot:[95,80],scale:.4},
+ // The paw comes up out of the ground, drawn upside down: the pivot is the tip of the claws, the forearm goes down into the earth.
  clawOpen:{src:'/assets/world-boss/claw-open.png',pivot:[340,870],scale:.42},
- clawFist:{src:'/assets/world-boss/claw-fist.png',pivot:[300,770],scale:.42},
- flame:{src:'/assets/world-boss/flame.png',pivot:[128,128],scale:1,frames:8},
+ clawFist:{src:'/assets/world-boss/claw-fist.png',pivot:[314,860],scale:.42},
 };
 /** Where the parts join, relative to the dragon fighter's (x, y): the base of the neck (below the map), the head's neck pivot, then points inside the head. */
 export const DRAGON_RIG={
@@ -48,6 +49,8 @@ export interface DragonPose {
  lift:number;
 }
 const act=(b:Battle)=>b.worldBoss?.act;
+/** The paw, by the tip of its claws: hidden this far under the ground, risen this far above it, and how high the fist sits over a held player. */
+const PAW_HIDDEN=40,PAW_RISE=360,PAW_GRIP=120;
 const ageOf=(a:DragonAct|undefined,now:number)=>a?now-a.startedAt:Infinity;
 
 /** The pose at `now` (server time). `t` (page time) drives breathing and blinking, which need no sync. */
@@ -63,19 +66,22 @@ export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number
     const roar=bump(age,1900,3700);pose.headRot-=.2*roar;pose.headDY-=24*roar;pose.jaw+=.62*roar;pose.shake+=roar>.3?9*roar:0;
     break;}
    case 'claw':{
-    // Wind-up (the head pulls back), the claw drops from the sky onto the player, holds, then goes back up.
+    // The ground cracks under the player, then the paw bursts up out of it, holds a moment and sinks back into the earth.
     pose.headRot-=.08*bump(age,0,1000);pose.headDX+=20*bump(age,0,1000);pose.jaw+=.4*bump(age,800,1900);pose.headRot+=.06*bump(age,1000,1800);
-    const down=easeIn(span(age,850,1250)),up=easeIn(span(age,1750,2250));
-    if(age>=500&&age<2250){const drop=(1-down)*920+up*1000;pose.claw={x:tx+30,y:ty-drop,closed:false,alpha:clamp(span(age,500,800)-span(age,2150,2250)),tilt:-.15*(1-down)};}
-    pose.shake=age>=1250&&age<1700?16*(1-span(age,1250,1700)):0;
+    const up=backOut(span(age,950,1250)),down=easeIn(span(age,1700,2150));
+    if(age>=950&&age<2150)pose.claw={x:tx+20,y:ty+PAW_HIDDEN-PAW_RISE*up+(PAW_RISE+PAW_HIDDEN)*down,closed:false,alpha:1,tilt:.12*Math.sin(age/90)*(1-span(age,1250,1500))};
+    pose.shake=age>=500&&age<1250?2.5*span(age,500,1250):age>=1250&&age<1700?16*(1-span(age,1250,1700)):0;
     break;}
    case 'grab':{
+    // The paw bursts up open, closes around the player, lifts them high, slams them down and goes back under the ground.
     pose.headRot-=.07*bump(age,0,1100);pose.jaw+=.3*bump(age,1300,2600);
-    const down=easeIn(span(age,850,1350)),lift=easeInOut(span(age,1400,1900)),slam=easeIn(span(age,2180,2300)),up=easeIn(span(age,2650,3250));
+    const up=backOut(span(age,900,1250)),grip=easeInOut(span(age,1250,1400)),lift=easeInOut(span(age,1400,1900)),slam=easeIn(span(age,2180,2300)),down=easeIn(span(age,2650,3200));
     const hold=age>=1350&&age<2300?lift*(1-slam)*170:0;pose.lift=hold;
-    const squeeze=age>=1900&&age<2180?Math.sin(age/26)*5:0;
-    if(age>=500&&age<3250){const drop=(1-down)*920+up*1000;pose.claw={x:tx+30+squeeze,y:ty-drop-hold,closed:age>=1350&&age<2550,alpha:clamp(span(age,500,800)-span(age,3150,3250)),tilt:-.1*(1-down)};}
-    pose.shake=age>=2300&&age<2750?18*(1-span(age,2300,2750)):age>=1900&&age<2180?2:0;
+    const squeeze=age>=1900&&age<2180?Math.sin(age/26)*5:0,closed=age>=1350&&age<2550;
+    // Open, the claws stand above the player; closed, the fist sits around them.
+    const open=ty+PAW_HIDDEN-PAW_RISE*up,fist=ty-hold-PAW_GRIP;
+    if(age>=900&&age<3200)pose.claw={x:tx+20+squeeze,y:(age<1350?open+(fist-open)*grip:age<2650?fist:ty-PAW_GRIP)+(PAW_RISE+PAW_HIDDEN)*down,closed,alpha:1,tilt:0};
+    pose.shake=age>=500&&age<900?2.5*span(age,500,900):age>=2300&&age<2750?18*(1-span(age,2300,2750)):age>=1900&&age<2180?2:0;
     break;}
    case 'breath':{
     // Rears back breathing in (the throat glows), then breathes the fire stream onto the player.
@@ -121,14 +127,6 @@ export function dragonFocus(b:Battle,f:Fighter,now:number,heroX:number,heroY:num
  }
 }
 
-const flameFrame=(t:number,seed:number)=>Math.floor(t/55+seed)%(DRAGON_PARTS.flame.frames??8);
-/** A painted flame (or a soft fallback glow until the sheet is loaded), centered on (x, y). */
-function flame(c:CanvasRenderingContext2D,x:number,y:number,size:number,frame:number,rotation:number,alpha:number){
- if(alpha<=0||size<=1)return;const sheet=ready('flame');c.save();c.globalAlpha*=alpha;c.translate(x,y);c.rotate(rotation);
- if(sheet){const frames=DRAGON_PARTS.flame.frames??8,w=sheet.naturalWidth/frames,h=sheet.naturalHeight;c.drawImage(sheet,frame*w,0,w,h,-size/2,-size/2*h/w,size,size*h/w);}
- else{const g=c.createRadialGradient(0,0,0,0,0,size/2);g.addColorStop(0,'#fff6b8');g.addColorStop(.35,'#ffb030');g.addColorStop(.75,'#e8401ccc');g.addColorStop(1,'#e8401c00');c.fillStyle=g;c.beginPath();c.arc(0,0,size/2,0,Math.PI*2);c.fill();}
- c.restore();
-}
 function drawPart(c:CanvasRenderingContext2D,part:Part,fallback:(c:CanvasRenderingContext2D)=>void,armAbove=0){
  const image=ready(part),def=DRAGON_PARTS[part];
  if(!image){fallback(c);return;}
@@ -165,47 +163,69 @@ export function drawDragonBack(c:CanvasRenderingContext2D,f:Fighter,pose:DragonP
  c.restore();c.restore();
 }
 
-/** Claw, flames, smoke and dust: drawn over the fighters. */
+/** The breath: when the mouth starts and stops pouring fire (ms into the act; the first fire lands at contact). */
+const BREATH={from:1080,to:2250} as const;
+type Ctx=CanvasRenderingContext2D;
+/** A puff of dust thrown up from the ground at (x, y); `k` runs 0 to 1. */
+function dust(c:Ctx,x:number,y:number,k:number,size:number,high:boolean){
+ if(k<=0||k>=1)return;const count=high?9:5;
+ for(let i=0;i<count;i++){const dir=(i/(count-1)-.5)*2.6,r=size*(.4+.9*k);c.save();c.globalAlpha=.42*(1-k);c.fillStyle=i%2?'#c9a07a':'#a37b58';c.beginPath();c.arc(x+Math.sin(dir)*r*1.6,y-Math.cos(dir)*r*.55-8,size*.22*(1+k),0,Math.PI*2);c.fill();c.restore();}
+}
+/** Cracks opening in the ground where the paw will come out (`open` 0 to 1), closing again with `stay`. */
+function cracks(c:Ctx,x:number,y:number,open:number,stay:number){
+ const k=Math.min(open,stay);if(k<=0)return;
+ c.save();c.globalAlpha*=.85*Math.min(1,stay*1.5);c.strokeStyle='#2b1a0e';c.lineCap='round';c.lineJoin='round';
+ for(let i=0;i<7;i++){const dir=(i/6-.5)*2.9,len=(26+70*hash(i+1))*k;c.lineWidth=4-i%3;c.beginPath();c.moveTo(x,y+3);
+  for(let j=1;j<=3;j++){const d=len*j/3,wob=(hash(i*5+j)-.5)*14;c.lineTo(x+Math.sin(dir)*d+wob,y+3+Math.abs(Math.cos(dir))*d*.14);}c.stroke();}
+ c.restore();
+}
+/** Rocks thrown out of the ground when the paw bursts through (`age` ms since). */
+function rocks(c:Ctx,x:number,y:number,age:number,high:boolean){
+ if(age<0||age>900)return;const g=.0016;
+ for(let i=0;i<(high?10:6);i++){const vx=(hash(i*3)-.5)*.75,vy=-(.55+.5*hash(i*3+1)),size=5+8*hash(i*3+2),px=x+vx*age,py=y-4+vy*age+g*age*age/2;
+  if(py>y+10)continue;c.save();c.globalAlpha*=1-age/900;c.translate(px,py);c.rotate(age/120*(i%2?1:-1));c.fillStyle=i%3?'#8a6440':'#6b4a2e';c.beginPath();c.moveTo(-size,-size*.4);c.lineTo(-size*.2,-size);c.lineTo(size,-size*.3);c.lineTo(size*.6,size*.7);c.lineTo(-size*.7,size*.6);c.closePath();c.fill();c.restore();}
+}
+/** Paw, fire, smoke and dust: drawn over the fighters. */
 export function drawDragonFront(c:CanvasRenderingContext2D,b:Battle,f:Fighter,pose:DragonPose,now:number,t:number,ground:(x:number)=>number,quality:'low'|'high'){
  const a=act(b),age=ageOf(a,now),high=quality==='high';
  // Idle: a thin puff from the nostrils now and then.
  const puff=t%7000;if(!a&&puff<1600){const n=headPoint(f,pose,DRAGON_RIG.nostril);for(let i=0;i<(high?5:3);i++){const k=clamp((puff-i*140)/1300);if(k<=0||k>=1)continue;c.save();c.globalAlpha=.28*(1-k);c.fillStyle='#d8d2cc';c.beginPath();c.arc(n.x-30*k-i*6,n.y-50*k-i*4,10+26*k,0,Math.PI*2);c.fill();c.restore();}}
- if(pose.claw){
-  const cl=pose.claw,ground0=a?.targetY??ground(cl.x);
-  // The claw's shadow grows on the ground as it comes down: the player sees where it lands.
-  const fall=clamp(1-(ground0-cl.y)/900);if(fall>0){c.save();c.globalAlpha=.32*fall*cl.alpha;c.fillStyle='#1a0d08';c.beginPath();c.ellipse(cl.x,ground0+4,40+110*fall,10+18*fall,0,0,Math.PI*2);c.fill();c.restore();}
-  c.save();c.globalAlpha*=cl.alpha*pose.alpha;c.translate(cl.x,cl.y);c.rotate(cl.tilt);
-  drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}},1100);
-  c.restore();
- }
  if(!a||age<0)return;
- const dust=(x:number,y:number,k:number,size:number)=>{if(k<=0||k>=1)return;const count=high?9:5;for(let i=0;i<count;i++){const dir=(i/(count-1)-.5)*2.6,r=size*(.4+.9*k);c.save();c.globalAlpha=.42*(1-k);c.fillStyle=i%2?'#c9a07a':'#a37b58';c.beginPath();c.arc(x+Math.sin(dir)*r*1.6,y-Math.cos(dir)*r*.55-8,size*.22*(1+k),0,Math.PI*2);c.fill();c.restore();}};
- if(a.action==='claw')dust(a.targetX??f.x,(a.targetY??0)+2,span(age,1250,2000),90);
- if(a.action==='grab')dust(a.targetX??f.x,(a.targetY??0)+2,span(age,2300,3000),100);
- if(a.action==='entrance'&&age<2200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(x,ground(x),((age+x*3)%900)/900,60);
- if((a.action==='death'||a.action==='retreat')&&age>900&&age<4200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(x,ground(x),((age+x*3)%1000)/1000,70);
- if(a.action==='breath'){
-  const mouth=dragonMouth(f,pose),tx=a.targetX??f.x-900,ty=(a.targetY??ground(tx))-26;
-  const reach=easeOut(span(age,1100,1450)),tail=span(age,2150,2650),cx=(mouth.x+tx)/2,cy=Math.min(mouth.y,ty)-120;
-  if(reach>0&&tail<1){
-   const count=high?26:14;c.save();if(high)c.globalCompositeOperation='lighter';
-   for(let i=0;i<count;i++){const s=i/(count-1);if(s>reach||s<tail)continue;const u=1-s,x=u*u*mouth.x+2*u*s*cx+s*s*tx,y=u*u*mouth.y+2*u*s*cy+s*s*ty,dx=2*u*(cx-mouth.x)+2*s*(tx-cx),dy=2*u*(cy-mouth.y)+2*s*(ty-cy);
-    flame(c,x,y,60+130*s,flameFrame(t,i*3),Math.atan2(dy,dx)+Math.PI,.9);}
+ const tx=a.targetX??f.x-900,ty=a.targetY??ground(tx);
+ // The paw: cracks open in the ground first, rocks fly when it bursts out, dust when it goes back down.
+ if(a.action==='claw'||a.action==='grab'){
+  const burst=a.action==='claw'?950:900,sink=a.action==='claw'?1700:2650;
+  cracks(c,tx+20,ty,span(age,450,burst),1-span(age,sink+200,sink+900));
+  rocks(c,tx+20,ty,age-burst-150,high);
+  if(pose.claw){
+   const cl=pose.claw;c.save();
+   // Only what is above the ground shows: the forearm stays in the earth.
+   c.beginPath();c.moveTo(cl.x-320,-2000);c.lineTo(cl.x+320,-2000);for(let x=cl.x+320;x>=cl.x-320;x-=16)c.lineTo(x,ground(x)+6);c.closePath();c.clip();
+   c.globalAlpha*=cl.alpha*pose.alpha;c.translate(cl.x,cl.y);c.rotate(cl.tilt);c.scale(1,-1);
+   drawPart(c,cl.closed?'clawFist':'clawOpen',c=>{c.fillStyle='#1f6b4f';c.fillRect(-60,-700,120,640);c.beginPath();c.ellipse(0,-30,cl.closed?90:120,cl.closed?80:60,0,0,Math.PI*2);c.fill();c.fillStyle='#262626';for(let i=-2;i<=2;i++){c.beginPath();c.moveTo(i*40,0);c.lineTo(i*44-8,cl.closed?20:55);c.lineTo(i*40+10,0);c.fill();}},900);
    c.restore();
   }
-  const burst=span(age,1450,2500);if(burst>0&&burst<1){c.save();if(high)c.globalCompositeOperation='lighter';for(let i=0;i<(high?7:4);i++){const dir=(i/6-.5)*2.4;flame(c,tx+Math.sin(dir)*110*burst,ty-Math.cos(dir)*50*burst-30*burst,150*(1-burst*.5),flameFrame(t,i*5),0,(1-burst)*.95);}c.restore();
-   c.save();c.globalAlpha=.3*(1-burst);c.fillStyle='#5a5552';c.beginPath();c.arc(tx,ty-90*burst-20,40+90*burst,0,Math.PI*2);c.fill();c.restore();}
+  dust(c,tx+20,ty+2,span(age,burst+250,burst+1000),95,high);
+  dust(c,tx+20,ty+2,span(age,sink,sink+700),80,high);
+  if(a.action==='grab')dust(c,tx,ty+2,span(age,2300,3000),100,high);
+ }
+ if(a.action==='entrance'&&age<2200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(c,x,ground(x),((age+x*3)%900)/900,60,high);
+ if((a.action==='death'||a.action==='retreat')&&age>900&&age<4200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(c,x,ground(x),((age+x*3)%1000)/1000,70,high);
+ if(a.action==='breath'){
+  // A stream of fire from the mouth to the player; the fire there catches, burns while the breath lasts and dies out.
+  const mouth=dragonMouth(f,pose),to={x:tx,y:ty-30},via={x:(mouth.x+tx)/2,y:Math.min(mouth.y,to.y)-120},travel=420;
+  glow(c,mouth.x,mouth.y,70+40*span(age,BREATH.from-250,BREATH.from),1-span(age,BREATH.to,BREATH.to+200));
+  stream(c,mouth,via,to,age,BREATH.from,BREATH.to,travel,62,high);
+  groundFire(c,tx,ty,210,170,age-BREATH.from-travel,BREATH.to-BREATH.from,900,t,7,high);
  }
  if(a.action==='firesweep'){
-  const mouth=dragonMouth(f,pose),startX=f.x-320,front=sweepFrontX(age,startX,0),active=age>=FIRESWEEP_WINDOW.from-150&&age<FIRESWEEP_WINDOW.to+700;
-  if(active){c.save();if(high)c.globalCompositeOperation='lighter';
-   // The stream from the mouth to the ground where the flames start.
-   const stream=clamp(span(age,FIRESWEEP_WINDOW.from-150,FIRESWEEP_WINDOW.from)-span(age,FIRESWEEP_WINDOW.to,FIRESWEEP_WINDOW.to+300)),sy=ground(startX)-20;
-   for(let i=0;i<(high?8:5);i++){const s=i/(high?7:4);flame(c,mouth.x+(startX-mouth.x)*s,mouth.y+(sy-mouth.y)*s,50+60*s,flameFrame(t,i*2),Math.PI/2,stream*.9);}
-   // The flames run along the ground and die out behind the front: nothing keeps burning.
-   const fade=span(age,FIRESWEEP_WINDOW.to,FIRESWEEP_WINDOW.to+700),step=high?38:60;
-   for(let x=Math.max(0,front);x<=startX;x+=step){const behind=(x-front)/520;if(behind>1)continue;const life=(1-behind)*(1-fade),y=ground(x);flame(c,x,y-34-50*life,70+90*life,flameFrame(t,x/step),0,life);}
-   c.restore();}
+  // The dragon pours fire on the ground in front of it and the flames run towards the far side.
+  // Each spot catches when the front passes, burns a little and goes out: the fire moves on and leaves nothing burning.
+  const mouth=dragonMouth(f,pose),startX=f.x-320,W=FIRESWEEP_WINDOW,to={x:startX,y:ground(startX)-20};
+  stream(c,mouth,{x:(mouth.x+to.x)/2-40,y:(mouth.y+to.y)/2},to,age,W.from-260,W.to,260,48,high);
+  const step=high?44:70;
+  for(let x=startX;x>=0;x-=step){const caught=sweepReachAt(x,startX,0);if(age<caught)break;groundFire(c,x,ground(x),step*1.3,120,age-caught,420,750,t,x/step,high);}
+  groundFire(c,startX,ground(startX),110,150,age-W.from+200,W.to-W.from,800,t,99,high);
  }
 }
 

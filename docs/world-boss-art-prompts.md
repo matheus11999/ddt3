@@ -6,8 +6,8 @@ Gerar pelo Codex no PC do usuário (`codex exec`, `resume` para iterar), na orde
 modelo aprovado (01) e as peças já prontas como referência. Saída bruta em `test-results/codex-world-boss/<nn>/`.
 
 Rig usado pelo jogo (`src/game/worldBoss/dragon.ts`): corpo/pescoço, cabeça sem a mandíbula, mandíbula,
-pálpebra, garra aberta, garra fechada e uma tira de fogo. O movimento (respirar, rugir, abrir a boca, a garra
-descendo do céu, o agarrão, o sopro) é feito pelo jogo sobre essas pinturas.
+pálpebra, garra aberta e garra fechada (o fogo é desenhado em código). O movimento (respirar, rugir, abrir a boca, a pata
+saindo do chão, o agarrão, o sopro) é feito pelo jogo sobre essas pinturas.
 
 ## Bloco comum (início de todo prompt)
 
@@ -40,7 +40,7 @@ majestoso, nível de chefão final.
 | 05 | `lid.png` | 256×192 | A pálpebra fechada do olho (escamas verdes sobre o olho), do tamanho do olho da cabeça 03, para piscar por cima. |
 | 06 | `claw-open.png` | 768×1024 | A garra descendo do céu: o antebraço entra pela borda de cima, a mão aberta com os dedos espalmados para baixo, unhas pretas de ponta dourada, vista de lado de leve. |
 | 07 | `claw-fist.png` | 768×1024 | A mesma garra, mesmo antebraço e mesmo enquadramento, com a mão fechada (agarrando algo do tamanho de uma pessoa, o meio da mão vazio). |
-| 08 | `flame.png` | 2048×256 | Tira de 8 quadros de 256×256, da esquerda para a direita: uma bola de fogo pintada que pulsa em loop (laranja-dourado, miolo amarelo-claro, bordas vermelhas, línguas de fogo grandes), sem faíscas soltas demais. |
+| 08 | ~~`flame.png`~~ (descartado em 18/10: o fogo agora é desenhado em código) | 2048×256 | Tira de 8 quadros de 256×256, da esquerda para a direita: uma bola de fogo pintada que pulsa em loop (laranja-dourado, miolo amarelo-claro, bordas vermelhas, línguas de fogo grandes), sem faíscas soltas demais. |
 | 09 | `portrait.png` | 512×512 | A cabeça do dragão em 3/4 virada para a esquerda, boca entreaberta mostrando presas, enquadrada como retrato quadrado (a cabeça enche o quadro). |
 | 10 | `icon.png` | 128×128 (gerar 512 e reduzir) | Ícone do botão da praça no estilo dos ícones do menu (`public/assets/ui/*-button.png`): a cabeça do dragão de perfil com os chifres de coroa, contorno forte, legível pequeno. |
 
