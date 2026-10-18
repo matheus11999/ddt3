@@ -3,7 +3,7 @@ import {mkdir,rm,writeFile} from 'node:fs/promises';
 import {createServer} from 'vite';
 
 // Weapon kit validator (docs/weapon-kit.md). For every weapon × phase it checks the icon, the held art,
-// the projectile, launch and impact cells of the effect atlas, the terrain mark, the four sounds and the
+// the projectile, launch and impact cells of the effect atlas, the POW projectile and impact (pow.png), the terrain mark, the four sounds and the
 // POW × Tridente rule, then writes test-results/weapons/{report.md,report.json,sheet.png} and one
 // ChatGPT/ElevenLabs prompt per missing piece in test-results/weapons/prompts/.
 // Report mode by default; --strict exits 1 while anything is missing. --weapon=<id> limits the run.
@@ -54,6 +54,9 @@ try{
   const same=(a,b)=>{if(!a||!b)return false;let diff=0;for(let i=0;i<a.length;i++)diff+=Math.abs(a[i]-b[i]);return diff/a.length<4;};
   const thumb=(bitmap,x,y,w,h)=>{const canvas=document.createElement('canvas');canvas.width=canvas.height=96;canvas.getContext('2d').drawImage(bitmap,x,y,w,h,0,0,96,96);return canvas.toDataURL();};
   const weapons=[];
+  const atlasRow=slot=>K.ATLAS_ROWS[slot]??K.POW_ATLAS_ROWS[slot];
+  // The POW cells are checked against the normal shot of the same phase.
+  const POW_OF={powProjectile:'projectile',powImpact:'impact'};
   for(const weapon of WEAPONS){
    if(only&&weapon.id!==only)continue;
    const kit=K.weaponKit(weapon.id),entry={id:weapon.id,name:weapon.name,items:[],prompts:[]};weapons.push(entry);
@@ -61,26 +64,30 @@ try{
    if(!kit){add({group:'manifesto',slot:'kit',label:'Kit da arma',status:'falta',detail:'Arma sem entrada em WEAPON_KITS (shared/weaponKit.ts).'});continue;}
    const previous={};
    for(const phase of K.WEAPON_PHASES){
+    const current={};
     for(const slot of Object.keys(K.PHASE_ART_SLOTS)){
      const spec=K.PHASE_ART_SLOTS[slot],path=K.phaseArtPath(kit,phase.stage,slot),bitmap=await image(path);
      const item=add({group:phase.label,stage:phase.stage,slot,label:spec.label,path,status:'ok',detail:''});
      if(!bitmap){item.status='falta';item.detail=`Arquivo não encontrado: public${path}`;}
      else{
       let region=[0,0,bitmap.width,bitmap.height];
-      if(K.ATLAS_ROWS[slot]!==undefined){
-       const [aw,ah]=K.ATLAS_SIZE;
-       if(bitmap.width!==aw||bitmap.height!==ah){item.status='falta';item.detail=`Atlas com ${bitmap.width}×${bitmap.height}; o contrato é ${aw}×${ah} (4 colunas × 3 linhas).`;}
-       const cw=bitmap.width/4,ch=bitmap.height/3;region=[phase.tier*cw,K.ATLAS_ROWS[slot]*ch,cw,ch];item.cell=`linha ${K.ATLAS_ROWS[slot]+1}, coluna ${phase.tier+1}`;
+      if(atlasRow(slot)!==undefined){
+       const pow=K.POW_ATLAS_ROWS[slot]!==undefined,[aw,ah]=pow?K.POW_ATLAS_SIZE:K.ATLAS_SIZE,rows=pow?2:3;
+       if(bitmap.width!==aw||bitmap.height!==ah){item.status='falta';item.detail=`Atlas com ${bitmap.width}×${bitmap.height}; o contrato é ${aw}×${ah} (4 colunas × ${rows} linhas).`;}
+       const cw=bitmap.width/4,ch=bitmap.height/rows;region=[phase.tier*cw,atlasRow(slot)*ch,cw,ch];item.cell=`${pow?'pow.png, ':''}linha ${atlasRow(slot)+1}, coluna ${phase.tier+1}`;
       }else if(spec.size&&(bitmap.width!==spec.size[0]||bitmap.height!==spec.size[1])){item.status='aviso';item.detail=`Tamanho ${bitmap.width}×${bitmap.height}; o esperado é ${spec.size[0]}×${spec.size[1]}.`;}
       const m=measure(bitmap,...region);item.coverage=Math.round(m.coverage*1000)/10;item.thumb=thumb(bitmap,...region);
       if(item.status==='ok'&&m.coverage<.01){item.status='falta';item.detail='Imagem ou célula vazia (transparente).';}
       else if(item.status==='ok'&&m.coverage>.97){item.status='aviso';item.detail='Sem transparência: o fundo precisa ser transparente.';}
       else if(item.status==='ok'&&same(previous[slot],m.signature)){item.status='falta';item.detail='Igual à fase anterior: cada fase precisa de arte própria.';}
-      else if(item.status==='ok'&&K.ATLAS_ROWS[slot]===undefined&&(m.style.colors<350||m.style.flat>.3||m.style.softEdge<.003)){item.status='falta';item.detail=`Fora do estilo da casa: parece pixel art ou vetor chapado (${m.style.colors} cores, ${Math.round(m.style.flat*100)}% pixels repetidos, ${(m.style.softEdge*100).toFixed(1)}% borda suave). Refaça com o prompt.`;}
+      else if(item.status==='ok'&&POW_OF[slot]&&same(current[POW_OF[slot]],m.signature)){item.status='falta';item.detail='Igual ao tiro normal desta fase: o POW precisa ser sempre diferente.';}
+      else if(item.status==='ok'&&atlasRow(slot)===undefined&&(m.style.colors<350||m.style.flat>.3||m.style.softEdge<.003)){item.status='falta';item.detail=`Fora do estilo da casa: parece pixel art ou vetor chapado (${m.style.colors} cores, ${Math.round(m.style.flat*100)}% pixels repetidos, ${(m.style.softEdge*100).toFixed(1)}% borda suave). Refaça com o prompt.`;}
       item.style=m.style;
-      previous[slot]=m.signature;
+      previous[slot]=m.signature;current[slot]=m.signature;
      }
-     if(item.status!=='ok')entry.prompts.push(K.ATLAS_ROWS[slot]!==undefined
+     if(item.status!=='ok')entry.prompts.push(K.POW_ATLAS_ROWS[slot]!==undefined
+      ?{key:'pow',order:K.promptOrder('pow'),file:'atlas-pow.txt',title:'Atlas do POW (projétil e impacto, todas as fases)',kind:'imagem',text:K.artPrompt(weapon,kit,'pow')}
+      :K.ATLAS_ROWS[slot]!==undefined
       ?{key:'atlas',order:K.promptOrder('atlas'),file:`atlas-efeitos.txt`,title:'Atlas de projétil, disparo e impacto (todas as fases)',kind:'imagem',text:K.artPrompt(weapon,kit,'atlas')}
       :{key:`${slot}-${phase.stage}`,order:K.promptOrder(slot,phase.stage),file:`${slot}-${phase.stage}.txt`,title:`${spec.label} ${phase.label}`,kind:'imagem',text:K.artPrompt(weapon,kit,slot,phase.stage)});
     }
