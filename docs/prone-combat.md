@@ -1,5 +1,7 @@
 # Combate deitado: arrastar, arma nas costas e arremesso
 
+> Desde 18/10/2026 as roupas com atlas de combate usam os quadros pintados de `docs/combat-frames.md` (de pé para arremessar, como no DDTank). Este corpo recortado continua só como reserva para roupa sem atlas.
+
 Pedido do usuário em 17/10/2026: no combate os jogadores ficam deitados como no DDTank, se arrastam ao andar, a arma fica atrás do jogador e a mão arremessa o projétil. Tudo precisa funcionar igual em todas as roupas. Complemento do mesmo dia: armas de fogo e varinhas são tiradas das costas, seguradas na mão e disparam pela ponta; dinamite, tijolos e outras armas de arremesso continuam no arremesso com a mão.
 
 ## Como funciona
