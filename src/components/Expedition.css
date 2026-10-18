@@ -114,8 +114,7 @@ html.mobile-landscape .expedition-description{display:none}
 .artillery-hud .stage-banner .battle-3d-text{font-size:58px}
 .stage-banner.stage-banner-short{animation-duration:1.5s}
 @keyframes stage-banner{0%{opacity:0;transform:translate(-50%,-40%) scale(.9)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
-.monster-count{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#2c1004cc;color:#ffe2b0;font:900 13px/1 'Nunito',sans-serif;box-shadow:inset 0 0 0 1px #ffd36b66}
-.monster-count img{width:30px;height:26px;object-fit:cover;object-position:-7px 0}
+.boss-card .roster-face img{width:100%;height:100%;object-fit:cover;display:block}
 
 /* Instances: the stage goal sits under the minimap on a see-through panel. */
 .artillery-hud .instance-side{position:absolute;right:0;top:0;width:224px;display:grid;gap:6px;pointer-events:none}
