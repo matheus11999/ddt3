@@ -10,12 +10,12 @@ try{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));await page.goto(base,{waitUntil:'domcontentloaded'});
  const report=await page.evaluate(async()=>{
   const {asset,avatarRig}=await import('/src/game/appearance.ts');
-  const {COSTUMES,getCostumeFrame,getCostumePortrait}=await import('/src/game/costumes.ts');
+  const {COSTUMES,COSTUME_STEP,getCostumeFrame,getCostumePortrait}=await import('/src/game/costumes.ts');
   const {drawAvatar,createAvatarMotion}=await import('/src/game/avatar.ts');
-  const {DEFAULT_EQUIPMENT,starterEquipment,CATALOG}=await import('/shared/catalog.ts');
+  const {DEFAULT_EQUIPMENT,starterEquipment,CATALOG,weaponAssetPath}=await import('/shared/catalog.ts');
   const ids=Object.keys(COSTUMES),poses=['idle','walk','aim','charge','fire','hit','fall','prone','victory','defeat'];
   const load=path=>new Promise((resolve,reject)=>{const image=asset(path);if(image.complete&&image.naturalWidth)return resolve();image.addEventListener('load',resolve,{once:true});image.addEventListener('error',()=>reject(Error(path)),{once:true});});
-  await Promise.all([...Object.values(COSTUMES).map(c=>c.path),...Object.values(CATALOG).map(c=>c.visual?.asset).filter(Boolean),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/outfits/combat-prone.png','/assets/outfits/outfit-surfer-walk.png','/assets/weapon-ember-base.png'].map(load));
+  await Promise.all([...Object.values(COSTUMES).map(c=>c.path),...Object.values(CATALOG).map(c=>c.visual?.asset).filter(Boolean),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/outfits/combat-prone.png','/assets/outfits/outfit-surfer-walk.png',weaponAssetPath(DEFAULT_EQUIPMENT.weapon,0)].map(load));
   for(let i=0;i<10&&!avatarRig(DEFAULT_EQUIPMENT);i++)await new Promise(r=>setTimeout(r,80));
   const fixture=document.createElement('div');fixture.style.cssText='position:fixed;inset:0;z-index:999999;overflow:auto;background:#152941';document.body.append(fixture);
   const sheet=document.createElement('canvas');sheet.id='costume-sheet';sheet.width=1600;sheet.height=1400;fixture.append(sheet);const c=sheet.getContext('2d');
@@ -26,7 +26,7 @@ try{
    const eq={...DEFAULT_EQUIPMENT,costume:id,upgrade:0},before=JSON.stringify(eq),idle=drawCell(eq),later=drawCell(eq,'idle',false,1,6900,false),earlier=drawCell(eq,'idle',false,1,100,false);
    const male=drawCell({...starterEquipment('male'),costume:id}),female=drawCell({...starterEquipment('female'),costume:id});
    const hidden=drawCell({...eq,visibility:{costume:false}}),normal=drawCell({...eq,costume:'costume-none'});
-   const movement=[0,10,20,30].map(distance=>{const cv=document.createElement('canvas');cv.width=cv.height=310;const m=createAvatarMotion(1);m.walk=1;drawAvatar(cv.getContext('2d'),eq,165,295,265,1000,true,1,false,m,{pose:'walk',movementDistance:distance});return cv.toDataURL();});
+   const movement=[0,.5,1,1.5].map(step=>step*COSTUME_STEP).map(distance=>{const cv=document.createElement('canvas');cv.width=cv.height=310;const m=createAvatarMotion(1);m.walk=1;drawAvatar(cv.getContext('2d'),eq,165,295,265,1000,true,1,false,m,{pose:'walk',movementDistance:distance});return cv.toDataURL();});
    const poseCounts=poses.flatMap(pose=>[1,-1].flatMap(facing=>[false,true].map(combat=>({pose,facing,combat,pixels:count(drawCell(eq,pose,combat,facing))}))));
    return {id,frames:[0,1,2,3].map(i=>{const f=getCostumeFrame(id,i);return {width:f.canvas.width,height:f.canvas.height,pixels:count(f.canvas)};}),idlePixels:count(idle),portraitPixels:count(getCostumePortrait(id)),static:later.toDataURL()===earlier.toDataURL(),unisexIdentical:male.toDataURL()===female.toDataURL(),hideRestoresUnderlying:hidden.toDataURL()===normal.toDataURL(),inputUnchanged:JSON.stringify(eq)===before,walkingFrames:new Set(movement).size,weaponVisible:drawCell(eq,'aim',true,1,1600,true,true).toDataURL()!==drawCell(eq,'aim',true,1,1600,true,false).toDataURL(),poseCounts};
   });
