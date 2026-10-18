@@ -1,7 +1,7 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import {Clover,Flag,Flame,Footprints,Heart,IdCard,LoaderCircle,Send,Shield,ShieldCheck,Swords,X,Zap} from 'lucide-react';
-import {attributes,CATALOG,SLOT_NAMES,equippedCopy,isEmptyItem} from '../../shared/catalog';
+import {attributes,canStrengthen,CATALOG,SLOT_NAMES,equippedCopy,isEmptyItem} from '../../shared/catalog';
 import type {Slot} from '../../shared/catalog';
 import {REPORT_DETAILS_MAX,REPORT_REASONS} from '../../shared/reports';
 import type {PlayerInfo,ReportReason} from '../../shared/reports';
@@ -64,7 +64,7 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
   return <ItemCard key={slot} rarity={it?.rarity} empty={empty} data-slot={slot} className="bag-slot equipment-slot" aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} aria-describedby={!empty&&tip?.id===copy?'item-tooltip':undefined}
    onMouseEnter={show('hover')} onMouseLeave={()=>setTip(null)} onFocus={show('focus')} onBlur={()=>setTip(null)} onClick={event=>{if(tip?.id===copy)setTip(null);else show('touch')(event);}}>
    {empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?upgrade:0} size={60} color={info.itemColors[copy]} skin={equipment.skin} eyes={equipment.eyes}/>}
-   <span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={upgrade} className="bag-upgrade-tag"/>}
+   <span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{canStrengthen(it)&&!empty&&<UpgradeTag level={slot==='weapon'?upgrade:info.upgrades[copy]??0} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
  return <section className="bag-profile" aria-label={`Informações de ${info.name}`}>

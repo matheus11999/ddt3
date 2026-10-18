@@ -52,8 +52,8 @@ test('insufficient, unowned and invalid materials never write a forge outcome',a
  const {store,state}=await database();state.profile.stones['5']=0;state.profile.inventory=state.profile.inventory.filter(id=>id!=='crystal');
  const before=structuredClone(state.profile);
  await assert.rejects(store.forge(state.profile.id,'ember',{'5':1}),/não tem essas pedras/);
- await assert.rejects(store.forge(state.profile.id,'crystal',{'1':1}),/arma da sua mochila/);
- await assert.rejects(store.forge(state.profile.id,'hat-cap',{'1':1}),/arma da sua mochila/);
+ await assert.rejects(store.forge(state.profile.id,'crystal',{'1':1}),/arma, roupa ou chapéu da sua mochila/);
+ await assert.rejects(store.forge(state.profile.id,'glasses-sport',{'1':1}),/arma, roupa ou chapéu/);
  const connections=state.connections;
  await assert.rejects(store.forge(state.profile.id,'ember',{'1':20,'2':1}),/pedras válidas/);
  await assert.rejects(store.forge(state.profile.id,'ember',{'1':-1}),/pedras válidas/);
@@ -192,4 +192,23 @@ test('card payout database errors roll back the base reward, bonus and level tog
  const {store,state}=await database();state.failWrite=true;const before=structuredClone(state.profile),id=before.id;
  await assert.rejects(store.finishMatch(randomUUID(),[id],[id],{[id]:{kind:'coins',amount:100}}),/Database write failed/);
  assert.deepEqual(state.profile,before);assert.equal(state.queries.at(-1),'ROLLBACK');assert.equal(state.releases,1);
+});
+
+test('forge strengthens worn hats and outfits and their Armadura grows with the level',async()=>{
+ const {store,state}=await database(0),before=attributes(state.profile.equipment).armor;
+ for(const item of [state.profile.equipment.hat,state.profile.equipment.outfit]){
+  const outcome=await store.forge(state.profile.id,item,{'1':1});assert.equal(outcome.result.success,true);assert.equal(outcome.profile.upgrades[item],1);
+ }
+ assert.equal(state.profile.equipment.slotUpgrades?.hat,1);assert.equal(state.profile.equipment.slotUpgrades?.outfit,1);
+ assert.ok(attributes(state.profile.equipment).armor>before);
+});
+
+test('luck composition adds Sorte and old profiles receive the starter luck stones',async()=>{
+ const {store,state}=await database(0),base=attributes(state.profile.equipment).luck;
+ assert.equal(state.profile.compositionStones['luck-1'],3);
+ const outcome=await store.compose(state.profile.id,'ember','luck-1');assert.equal(outcome.result.success,true);
+ assert.equal(attributes(outcome.profile.equipment).luck,base+10);
+ const old=normalizeProfile({id:randomUUID(),name:'Antigo',contentVersion:13,compositionStones:{'attack-1':1}});
+ assert.deepEqual([old.compositionStones['luck-1'],old.compositionStones['luck-2'],old.compositionStones['luck-3'],old.compositionStones['attack-1']],[3,2,1,1]);
+ const again=normalizeProfile({...old,compositionStones:{...old.compositionStones,'luck-1':0}});assert.equal(again.compositionStones['luck-1'],0);
 });

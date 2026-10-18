@@ -15,7 +15,7 @@ import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnD
 import {clampHp,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
-import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
+import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
@@ -621,7 +621,7 @@ export class Game {
   f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');
   if(ability==='homing'&&f.homingArmed)throw Error('A mira assistida já está preparada.');
-  f.abilities[ability]--;let amount:number|undefined;
+  f.abilities[ability]--;f.delay=(f.delay??0)+(ABILITIES.find(entry=>entry.id===ability)?.delay??0);let amount:number|undefined;
   if(ability==='heal'){const healed=clampHp(f.hp+HEAL_AMOUNT,f.maxHp);amount=healed-f.hp;f.hp=healed;}
   if(ability==='homing')f.homingArmed=true;
   if(ability==='invisibility'){f.invisibleTurns=INVISIBILITY_TURNS;m.invisibilityActivated??=new Map();m.invisibilityActivated.set(f.id,m.state.turnNumber);}
