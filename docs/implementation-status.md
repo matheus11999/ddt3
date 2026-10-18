@@ -344,3 +344,4 @@ Sons menos robóticos (17/10/2026): o usuário achou os sons robotizados. Causa:
 - Quem cai no meio de uma partida mantém o lugar enquanto ela durar (até 5 min fora), em vez de sair após 30 s.
 - Evidência: `tests/live-state.test.ts`; `npm run test:restart:integration` derruba o servidor real com SIGTERM e SIGKILL no meio de um treino e o jogador volta à mesma partida com a mesma vida.
 - Corrigido junto: adicionar bot na sala de treino quebrava com uma arma só no arsenal.
+- 18/10/2026: pausa de 1,2 s (`TURN_GAP_MS`) entre o fim do tiro (impacto, dano, queda) e o próximo turno em PvP, treino e expedições; câmera para no último impacto. Teste em `tests/fall.test.ts`.
