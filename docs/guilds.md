@@ -18,7 +18,7 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
 ## Janela
 
 - Cabeçalho no topo: brasão com o nível, nome, líder, nível, membros e Riqueza. Abaixo, à esquerda, as três construções (Loja e Depósito abrem janelas próprias, Ferreiro abre o Ferreiro normal; nível 0 fica desativado), **Gerenciar** (para quem pode evoluir ou recrutar; abas Evoluir, Pedidos e Cargos, Cargos só para o líder) e Sair.
-- Membros com cargo, contribuição de hoje e total, posição pela contribuição; ordenação só pela setinha do título de cada coluna; sem barra de rolagem (páginas com as linhas que cabem). Quem pode trocar cargos vê um seletor na coluna Cargo.
+- Membros com cargo, contribuição de hoje e total, posição pela contribuição; ordenação só pela setinha do título de cada coluna; sem barra de rolagem (páginas com as linhas que cabem). Cada membro tem uma engrenagem com Ver informações, Promover e Rebaixar (um cargo por vez, para quem tem a permissão) e Expulsar (pede confirmação); sem caixa de seleção (pedido do matheus).
 - Missões diárias com barra de progresso e botão Receber.
 - A Loja da Guilda usa o visual da Loja da Brasa (provador, vitrine com cards, confirmação de compra).
 - O nome da guilda aparece no card da sala logo abaixo do nome, dentro da área creme.
