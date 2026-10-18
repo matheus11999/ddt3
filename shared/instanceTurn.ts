@@ -21,9 +21,10 @@ export const stageIntroMs=(stageIndex:number,taunts=0)=>taunts?bossOpening(taunt
  * Boss stage opening (ms from the stage start): the camera on the boss, one speech bubble per taunt,
  * then ants leave the nest and walk toward the party; the camera returns to the party before the first turn.
  */
-export const TAUNT_MS=1900,OPENING_SUMMON_GAP_MS=350;
+// The first balloon waits for the boss stage's short title to fade.
+export const TAUNT_START_MS=1500,TAUNT_MS=1900,OPENING_SUMMON_GAP_MS=350;
 export function bossOpening(taunts:number){
- const speech=Array.from({length:taunts},(_,n)=>({from:800+n*TAUNT_MS,to:800+(n+1)*TAUNT_MS-120})),summonAt=800+taunts*TAUNT_MS,walkAt=summonAt+700;
+ const speech=Array.from({length:taunts},(_,n)=>({from:TAUNT_START_MS+n*TAUNT_MS,to:TAUNT_START_MS+(n+1)*TAUNT_MS-120})),summonAt=TAUNT_START_MS+taunts*TAUNT_MS,walkAt=summonAt+700;
  return {speech,summonAt,walkAt,end:walkAt+MONSTER_MOVE_MS+700};
 }
 

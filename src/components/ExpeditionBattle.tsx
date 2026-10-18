@@ -19,7 +19,7 @@ export function ExpeditionFoes({battle}:{battle:Battle}){
 export function ExpeditionBanners({battle,intro}:{battle:Battle;intro:boolean}){
  const instance=battle.instance!;
  return <>
-  {intro&&<div key={`${battle.id}-stage`} className="stage-banner" role="status"><small>ESTÁGIO {instance.stage} DE {instance.stageCount}</small><BattleText>{instance.stageName}</BattleText></div>}
+  {intro&&<div key={`${battle.id}-stage`} className={`stage-banner${instance.boss?' stage-banner-short':''}`} role="status"><small>ESTÁGIO {instance.stage} DE {instance.stageCount}</small><BattleText>{instance.stageName}</BattleText></div>}
   {battle.turnId===MONSTER_TURN_ID&&battle.phase!=='finished'&&<div key={`${battle.id}-${battle.turnNumber}`} className="monster-turn-banner" role="status"><BattleText>{instance.boss?'VEZ DA RAINHA':'VEZ DAS FORMIGAS'}</BattleText><span>{instance.boss?'Ela atira flechas e chama formigas do ninho':'Elas avançam todas juntas'}</span></div>}
  </>;
 }
