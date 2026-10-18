@@ -1,6 +1,6 @@
 import {useCallback,useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Bot,Check,Crown,Eye,LoaderCircle,LogOut,LockKeyhole,Pencil,Shield,Swords,UserPlus,WifiOff,X} from 'lucide-react';
+import {Bot,Check,Eye,LoaderCircle,LogOut,LockKeyhole,Pencil,Shield,Swords,UserPlus,WifiOff,X} from 'lucide-react';
 import {normalizeAbilityLoadout} from '../../shared/abilities';
 import type {Seat} from '../../shared/protocol';
 import {client,useGame} from '../client';
@@ -20,10 +20,31 @@ import './Arena.css';
 const SLOT_INDICES=[0,1,2,3] as const;
 export {Arena} from './ArenaHall';
 
+/** The room leader's crown beside the name: gold with gems, drawn in the game's painted look (volume, highlight, brown outline). */
+function LeaderCrown(){
+ return <svg className="pr-host-crown" viewBox="0 0 40 32" role="img" aria-label="Líder da sala">
+  <defs>
+   <linearGradient id="crown-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff6b8"/><stop offset=".42" stopColor="#ffd23c"/><stop offset=".78" stopColor="#f0a114"/><stop offset="1" stopColor="#c9700a"/></linearGradient>
+   <linearGradient id="crown-band" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffe27a"/><stop offset="1" stopColor="#d27a0c"/></linearGradient>
+   <radialGradient id="crown-ruby" cx=".35" cy=".3" r=".8"><stop offset="0" stopColor="#ffd0d0"/><stop offset=".35" stopColor="#ff3b3b"/><stop offset="1" stopColor="#a10f1f"/></radialGradient>
+   <radialGradient id="crown-sapphire" cx=".35" cy=".3" r=".8"><stop offset="0" stopColor="#d8f1ff"/><stop offset=".4" stopColor="#3aa2ff"/><stop offset="1" stopColor="#1546a8"/></radialGradient>
+  </defs>
+  <g stroke="#5b2306" strokeWidth="1.8" strokeLinejoin="round">
+   <path d="M5 24 L3 9 L12.5 16 L20 5 L27.5 16 L37 9 L35 24 Z" fill="url(#crown-gold)"/>
+   <rect x="4.5" y="22.5" width="31" height="6.5" rx="2.2" fill="url(#crown-band)"/>
+   <circle cx="3" cy="8.5" r="2.6" fill="url(#crown-gold)"/><circle cx="20" cy="4.2" r="2.9" fill="url(#crown-gold)"/><circle cx="37" cy="8.5" r="2.6" fill="url(#crown-gold)"/>
+   <circle cx="20" cy="17" r="3.4" fill="url(#crown-ruby)" strokeWidth="1.3"/>
+   <circle cx="11" cy="25.8" r="1.9" fill="url(#crown-sapphire)" strokeWidth="1"/><circle cx="20" cy="25.8" r="2.1" fill="url(#crown-ruby)" strokeWidth="1"/><circle cx="29" cy="25.8" r="1.9" fill="url(#crown-sapphire)" strokeWidth="1"/>
+  </g>
+  <path d="M7 21 L6 13 L12 17.5 M20 9 L15.5 15.5" fill="none" stroke="#fffbe0" strokeWidth="1.3" strokeLinecap="round" opacity=".85"/>
+  <path d="M7 24.2 H33" stroke="#fff4c0" strokeWidth="1" strokeLinecap="round" opacity=".8"/>
+ </svg>;
+}
+
 export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
  return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} {...playerMenuProps(seat?{id:seat.id,name:seat.name,context:'room'}:null)} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
-  {seat?<><header className="pr-card-name wood-ribbon"><span className="pr-card-names">{owner&&<Crown className="pr-host-crown" size={17} strokeWidth={2.4} aria-label="Líder da sala"/>}<strong title={seat.name}>{seat.name}</strong></span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
+  {seat?<><header className="pr-card-name wood-ribbon"><span className="pr-card-names">{owner&&<LeaderCrown/>}<strong title={seat.name}>{seat.name}</strong></span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
    <div className="pr-card-stage">
     <div className="pr-card-tags">
      {seat.guild&&<span className="pr-card-guild" title={`Guilda ${seat.guild}`}><Shield size={12} aria-hidden="true"/>{seat.guild}</span>}
@@ -33,7 +54,7 @@ export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|und
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>
    {/* Ready: a diagonal sash over the lower-left corner (matheus, 18/10). The leader has the crown instead. */}
-   {seat.connected&&ready&&!owner&&<div className="party-player-state ready pr-ready-sash" role="img" aria-label="Pronto" title="Pronto"><span aria-hidden="true"><Check size={14} strokeWidth={3.2}/>Pronto</span></div>}
+   {seat.connected&&ready&&!owner&&<div className="party-player-state ready pr-ready-sash" role="img" aria-label="Pronto" title="Pronto"><span aria-hidden="true">Pronto</span></div>}
   </>:<>
    <header className="pr-card-name pr-card-name--vacant"><span>Vaga {slot+1}</span></header>
    <div className="pr-card-stage pr-card-vacant"><button type="button" className="party-slot-toggle" disabled={!canManage||slot===0} aria-label={`${open?'Fechar':'Abrir'} vaga ${slot+1}`} title={canManage?(open?'Fechar vaga':'Abrir vaga'):undefined} onClick={()=>client.send({type:'room-slot',slot,open:!open})}><span className="party-vacant-emblem" aria-hidden="true">{open?<UserPlus size={34} strokeWidth={2}/>:<LockKeyhole size={34} strokeWidth={2}/>}</span></button><span className="pr-vacant-caption" aria-hidden="true">{open?'Vaga aberta':'Vaga fechada'}</span></div>
