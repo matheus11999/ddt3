@@ -320,13 +320,17 @@ function emitted(p:Projectile,sample:number,clock:number,count:number,life:numbe
   if(at)draw(at[0],at[1],at[2],age,n);
  }
 }
+/** On-screen brick size per upgrade (square root of its painted area, so a squat brick and a long one read the same).
+ * It grows only a little: upgrades must not look like a bigger hitbox (the hit radius is the same at every phase).
+ * POW is a different, bigger object by design. */
+const BRICK_SIZE=[22,23,24,25],POW_BRICK_SCALE=1.35;
 /** Per upgrade, the brick's trail is drawn live, never painted: +0 clay dust, +10 dust and brass sparks,
  * +12 a short ember comet, +15 a full fire tail with smoke and rising embers. POW doubles down, and its +0
  * shot spins inside a white wind spiral. The painted brick itself (trail cut away) tumbles at the tip. */
 function drawBrickProjectile(c:CanvasRenderingContext2D,p:Projectile,sample:number,tier:number,clock:number,options:WeaponEffectOptions){
  const pow=!!p.powered,low=options.quality==='low'||reduced(options),more=(n:number)=>Math.max(1,Math.round(n*(low?.45:1)*(pow?1.4:1)));
  const sheet:Sheet=pow&&atlasFor(p.effect,'pow').cells[tier]?'pow':'effects',atlas=atlasFor(p.effect,sheet),cell=atlas.cells[tier];
- const size=FAMILY.brick.size[tier]*1.2*(pow?1.16*POW_SPRITE_SCALE:1),brick=size*(cell?.core?.width??.5),tip=pathAt(p.points,sample);if(!tip)return;
+ const art=cell?.core?.image,brick=BRICK_SIZE[tier]*(pow?POW_BRICK_SCALE:1)*(art?Math.sqrt(art.width/art.height):1.4),tip=pathAt(p.points,sample);if(!tip)return;
  const side=(angle:number,offset:number):[number,number]=>[-Math.sin(angle)*offset,Math.cos(angle)*offset];
  c.save();
  // A tapered streak along the path: what reads as the trail at a glance, longer and warmer each upgrade.
