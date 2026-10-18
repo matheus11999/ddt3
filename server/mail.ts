@@ -1,5 +1,6 @@
 import type pg from 'pg';
-import {CATALOG,nextCopyKey,WEAPONS} from '../shared/catalog';
+import {CATALOG,isArmorSlot,MAX_UPGRADE,nextCopyKey,WEAPONS} from '../shared/catalog';
+import {canCompose,normalizeCompositions} from '../shared/composition';
 import {MAX_COLOR_TICKETS} from '../shared/colors';
 import {MAIL_DEFAULT_SENDER,MAIL_INBOX_LIMIT} from '../shared/mail';
 import type {MailAttachment,MailClaimResult,MailMessage} from '../shared/mail';
@@ -21,16 +22,30 @@ export interface MailBox {
 export function applyAttachments(profile:Profile,attachments:readonly MailAttachment[]){
  for(const a of attachments){
   if(a.kind==='coins')profile.gold+=a.amount;
+  else if(a.kind==='coupons')profile.coupons+=a.amount;
   else if(a.kind==='stone'){const tier=String(a.level);profile.stones[tier]=(profile.stones[tier]??0)+a.amount;}
   else if(a.kind==='composition')profile.compositionStones[a.stone]=(profile.compositionStones[a.stone]??0)+a.amount;
   else if(a.kind==='ticket')profile.colorTickets=Math.min(MAX_COLOR_TICKETS,profile.colorTickets+a.amount);
   else if(a.kind==='item'){
    // An item removed from the game after it was sent is simply skipped.
    if(!Object.hasOwn(CATALOG,a.item))continue;
-   const weapon=WEAPONS.some(w=>w.id===a.item);
-   for(let i=0;i<a.quantity;i++){const key=nextCopyKey(profile.inventory,a.item);profile.inventory.push(key);if(weapon)profile.upgrades[key]=a.upgrade??0;}
+   const item=CATALOG[a.item],weapon=WEAPONS.some(w=>w.id===a.item),level=Math.max(0,Math.min(MAX_UPGRADE,Math.floor(a.upgrade??0)));
+   const compositions=a.compositions&&canCompose(item)?normalizeCompositions({[a.item]:a.compositions},[item])[a.item]:undefined;
+   for(let i=0;i<a.quantity;i++){
+    const key=nextCopyKey(profile.inventory,a.item);profile.inventory.push(key);
+    if(weapon)profile.upgrades[key]=level;else if(isArmorSlot(item.slot)&&level)profile.upgrades[key]=level;
+    if(compositions)profile.compositions[key]=compositions;
+    if(a.color&&/^#[0-9a-f]{6}$/.test(a.color))profile.itemColors[key]=a.color;
+   }
   }
  }
+}
+
+/** Writes a letter; inside a transaction when given its client (the Leilão pays and returns goods this way). */
+export async function insertMail(db:Pick<pg.Pool,'query'>,mail:NewMail):Promise<number>{
+ const r=await db.query('INSERT INTO player_mail(player_id,sender,subject,body,attachments,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',
+  [mail.playerId,mail.sender??MAIL_DEFAULT_SENDER,mail.subject,mail.body,JSON.stringify(mail.attachments),mail.createdBy]);
+ return Number(r.rows[0].id);
 }
 
 const message=(row:Record<string,unknown>):MailMessage=>({id:Number(row.id),sender:row.sender as string,subject:row.subject as string,body:row.body as string,createdAt:new Date(row.created_at as string).toISOString(),
@@ -45,11 +60,7 @@ export class MailStore implements MailBox {
    read_at timestamptz,claimed_at timestamptz,deleted_at timestamptz,created_by varchar(64) NOT NULL);
   CREATE INDEX IF NOT EXISTS player_mail_inbox ON player_mail(player_id,id DESC);
  `);}
- async send(mail:NewMail):Promise<number>{
-  const r=await this.pool.query('INSERT INTO player_mail(player_id,sender,subject,body,attachments,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id',
-   [mail.playerId,mail.sender??MAIL_DEFAULT_SENDER,mail.subject,mail.body,JSON.stringify(mail.attachments),mail.createdBy]);
-  return Number(r.rows[0].id);
- }
+ async send(mail:NewMail):Promise<number>{return insertMail(this.pool,mail);}
  async inbox(playerId:string){
   const rows=await this.pool.query('SELECT * FROM player_mail WHERE player_id=$1 AND deleted_at IS NULL ORDER BY id DESC LIMIT $2',[playerId,MAIL_INBOX_LIMIT]);
   const mails=rows.rows.map(message);

@@ -28,7 +28,7 @@ export const REPORT_STATUSES=['open','resolved','dismissed'] as const;
 export type ReportStatus=typeof REPORT_STATUSES[number];
 export const REPORT_STATUS_NAMES:Record<ReportStatus,string>={open:'Aberta',resolved:'Resolvida',dismissed:'Descartada'};
 
-export const reportCommandSchema=z.object({type:z.literal('report'),playerId:z.string().uuid(),reason:z.enum(REPORT_REASON_IDS),details:z.string().trim().max(REPORT_DETAILS_MAX).optional(),context:z.enum(['lobby','hall','room','battle','chat','ranking']).optional()}).strict();
+export const reportCommandSchema=z.object({type:z.literal('report'),playerId:z.string().uuid(),reason:z.enum(REPORT_REASON_IDS),details:z.string().trim().max(REPORT_DETAILS_MAX).optional(),context:z.enum(['lobby','hall','room','battle','chat','ranking','auction']).optional()}).strict();
 export const REPORT_CONTEXT_NAMES:Record<string,string>={lobby:'Praça',hall:'Salão PvP',room:'Sala PvP',battle:'Batalha',chat:'Chat',ranking:'Pódio'};
 export const reportUpdateSchema=z.object({status:z.enum(REPORT_STATUSES),note:z.string().trim().max(500).optional()}).strict();
 
@@ -43,7 +43,7 @@ export interface PlayerInfo {
  upgrades:Record<string,number>;compositions:Compositions;itemColors:Record<string,string>;
 }
 /** One line the reported player wrote; `room` is the room number when it was the room chat. */
-export interface ReportChatLine {at:number;channel:'world'|'room';text:string;room?:number;}
+export interface ReportChatLine {at:number;channel:'world'|'room'|'private';text:string;room?:number;/** Private message: who it went to. */to?:string;}
 export interface ReportSummary {
  id:number;status:ReportStatus;reason:ReportReason;details:string;createdAt:string;
  reporter:{id:string;name:string};target:{id:string;name:string;level:number};

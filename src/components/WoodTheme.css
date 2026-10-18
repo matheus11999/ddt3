@@ -277,3 +277,9 @@
   .wood-sigil { animation: none; }
   .wood-button, .wood-quiet { transition: none; }
 }
+
+/* Private messages ("Enviar mensagem" in the player menu): pink names, and the "Para Nome" pill in the input. */
+.wood-chat .chat-messages .chat-private strong { color: #c2368f; cursor: pointer; }
+.lobby-chat.wood-chat .chat-messages .chat-private strong { color: #ff9be0; }
+.wood-chat .chat-input > button.chat-target.chat-target { flex: none; display: inline-flex; align-items: center; gap: 3px; width: auto; max-width: 45%; height: 20px; margin-right: 6px; padding: 0 7px; overflow: hidden; border: 1px solid #f3a6d8; border-radius: 10px; background: linear-gradient(#d24b9f, #93276b); color: #fff; font: 800 11px/1 Nunito, sans-serif; white-space: nowrap; text-overflow: ellipsis; box-shadow: none; }
+.wood-chat .chat-input > button.chat-target svg { flex: none; width: 11px; height: 11px; }
