@@ -12,14 +12,18 @@ OUT = 'public/assets/expeditions/anthill/picker-art.webp'
 def stage(name, x0, top=None, w=None, h=None):
     top, w, h = top if top is not None else TOP, w or W, h or H
     art = Image.open(f'test-results/maps-kit/{name}/montage.png').convert('RGBA').crop((x0, top, x0 + w, top + h))
-    terrain = Image.open(f'public/assets/maps/{name}/terrain-world.png').split()[-1]
-    return art, terrain
+    return art, name
 
 def ground(terrain, x):
-    for y in range(terrain.height):
-        if terrain.getpixel((x, y)) > 128:
-            return y
-    return terrain.height
+    """Where a creature stands: the game's own collision (decoration such as the throne's leaves has none)."""
+    return COLLISION[terrain][x]
+
+# Ground heights from shared/physics.ts for each map, so the art matches what players see in battle.
+import json, subprocess
+COLLISION = {}
+for name in ('anthill-1', 'anthill-2'):
+    code = f"import {{createTerrain,ground}} from './shared/physics.ts';const t=createTerrain('{name}');console.log(JSON.stringify(Array.from({{length:3072}},(_,x)=>ground(t,x))))"
+    COLLISION[name] = json.loads(subprocess.run(['npx', 'tsx', '-e', code], capture_output=True, text=True, check=True).stdout)
 
 def frame(kind, index=0):
     strip = Image.open(f'public/assets/expeditions/anthill/{kind}.png').convert('RGBA')
