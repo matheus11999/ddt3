@@ -1,3 +1,4 @@
+import {TURN_GAP_MS} from './combat';
 import {ground,walkPosition,WORLD} from './physics';
 import {MONSTERS} from './expeditions';
 import type {MonsterKind} from './expeditions';
@@ -9,7 +10,7 @@ import type {MonsterKind} from './expeditions';
  */
 export const MONSTER_TURN_ID='monsters';
 /** Monster turn timeline: walking, then bites, then the queen's arrow and summons. */
-export const MONSTER_MOVE_MS=1500,MONSTER_BITE_WINDUP_MS=320,MONSTER_ATTACK_MS=1900,MONSTER_TURN_END_MS=900;
+export const MONSTER_MOVE_MS=1500,MONSTER_BITE_WINDUP_MS=320,MONSTER_ATTACK_MS=1900,MONSTER_TURN_END_MS=TURN_GAP_MS;
 /** The queen draws her bow this long before the arrow leaves (her turn opens the monster turn). */
 export const QUEEN_DRAW_MS=900;
 /** Monsters walk in from the map sides when a stage opens; the first adventurer plays after it. */
