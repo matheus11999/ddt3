@@ -47,11 +47,11 @@ export interface MonsterDef {
 }
 export const MONSTERS:Record<MonsterKind,MonsterDef>={
  'ant-worker':{kind:'ant-worker',name:'Formiga Operária',hp:450,attack:120,toughness:1,reach:84,stride:175,hitRadius:36,hitHeight:48,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-worker.png',height:108,feet:.97,faces:1}},
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-worker-walk.png',cycle:56},src:'/assets/expeditions/anthill/ant-worker.png',height:108,feet:.97,faces:1}},
  'ant-soldier':{kind:'ant-soldier',name:'Formiga Soldado',hp:750,attack:170,toughness:1.1,reach:92,stride:115,hitRadius:44,hitHeight:58,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-soldier-walk.png',cycle:60},src:'/assets/expeditions/anthill/ant-soldier.png',height:128,feet:.97,faces:1}},
  'ant-brute':{kind:'ant-brute',name:'Formiga Guerreira',hp:1200,attack:240,toughness:1.25,reach:104,stride:65,hitRadius:54,hitHeight:74,behavior:'melee',
-  sprite:{src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
+  sprite:{walk:{src:'/assets/expeditions/anthill/ant-brute-walk.png',cycle:48},src:'/assets/expeditions/anthill/ant-brute.png',height:156,feet:.97,faces:1}},
  'ant-queen':{kind:'ant-queen',name:'Rainha Formiga',hp:5200,attack:260,toughness:1.2,reach:0,stride:0,hitRadius:70,hitHeight:170,behavior:'queen',muzzle:{forward:85,up:128},
   sprite:{src:'/assets/expeditions/anthill/ant-queen.png',height:260,feet:.98,faces:-1}},
 };
