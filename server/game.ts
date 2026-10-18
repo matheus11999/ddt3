@@ -350,16 +350,16 @@ export class Game {
     }
     case 'forge':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para fortalecer sua arma.');
-     // Guild members also reach the forge from the guild window; the Ferreiro da Guilda adds to the chance.
+     // Members of a guild with a built Ferreiro reach the forge from the guild window, with its bonus on the chance.
      const guild=this.memberships.get(id);
-     if(!guild&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     if(!guild?.smith&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
      const outcome=await this.store.forge(id,c.item,c.stones,smithBonus(guild?.smith??0));p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'forge-result',result:outcome.result});this.sendLobby(p.channel);await this.guildMission([id],'forge');return;
     }
     case 'compose':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para compor seu equipamento.');
      const guild=this.memberships.get(id);
-     if(!guild&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     if(!guild?.smith&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
      const outcome=await this.store.compose(id,c.item,c.stone,smithBonus(guild?.smith??0));p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'composition-result',result:outcome.result});this.sendLobby(p.channel);await this.guildMission([id],'forge');return;
     }

@@ -112,10 +112,12 @@ test('daily guild missions count up to the goal, pay once and renew each day in 
 }); 
 
 test('guild members reach the forge from the guild window and get the Ferreiro bonus',async()=>{
- const f=fixture(2),[member,loner]=f.players;f.join(member,7,'Ferreiros');await f.connect();
+ const f=fixture(3),[member,loner,unbuilt]=f.players;f.join(member,7,'Ferreiros');f.join(unbuilt,0,'Sem Ferreiro');await f.connect();
  await f.game.command(member.id,{type:'forge',item:'brick',stones:{'1':1}});assert.deepEqual(f.forged,[smithBonus(7)]);
  assert.deepEqual(f.missions,[{ids:[member.id],mission:'forge'}]);
  await f.game.command(loner.id,{type:'forge',item:'brick',stones:{'1':1}});assert.match(f.error(loner)!,/Aproxime-se/);
+ // A guild whose Ferreiro is still level 0 gives no remote forge.
+ await f.game.command(unbuilt.id,{type:'forge',item:'brick',stones:{'1':1}});assert.match(f.error(unbuilt)!,/Aproxime-se/);
 });
 
 test('guild commands are validated by the protocol',()=>{
