@@ -27,7 +27,7 @@ try{
  assert.equal((await guilds.state(owner.id)).guild!.applications!.length,1);
  await guilds.answer(owner.id,member.id,true);
  const view=(await guilds.state(member.id)).guild!;assert.equal(view.members.length,2);assert.equal(view.applications,undefined);
- await assert.rejects(guilds.upgrade(member.id,'guild'),/Só o dono/);
+ await assert.rejects(guilds.upgrade(member.id,'guild'),/permissão/);
 
  // Level 0: nothing can be raised without Riqueza, and buildings wait for the guild level.
  await assert.rejects(guilds.upgrade(owner.id,'guild'),/Faltam/);
@@ -57,10 +57,32 @@ try{
  const taken=await guilds.withdraw(owner.id,stored[0].id);assert.ok(taken.profile.inventory.includes('necklace-guild-1'));
  await assert.rejects(guilds.withdraw(member.id,stored[0].id),/já retirou/);
 
+ // Cargos: a Recrutador answers requests but cannot kick; the Vice-Líder can, except the leader; only the leader edits ranks.
+ const recruit=(await store.createGuest('male')).profile,newbie=(await store.createGuest('female')).profile;
+ await guilds.apply(recruit.id,guildId);await guilds.answer(owner.id,recruit.id,true);
+ assert.equal((await guilds.state(recruit.id)).guild!.applications,undefined);
+ await guilds.setRank(owner.id,recruit.id,2);assert.equal((await guilds.state(recruit.id)).guild!.myRank,2);
+ await guilds.apply(newbie.id,guildId);assert.equal((await guilds.state(recruit.id)).guild!.applications!.length,1);
+ await guilds.answer(recruit.id,newbie.id,true);
+ await assert.rejects(guilds.kick(recruit.id,newbie.id),/permissão/);
+ await guilds.setRank(owner.id,member.id,1);
+ await assert.rejects(guilds.kick(member.id,owner.id),/abaixo do seu/);await assert.rejects(guilds.setRank(member.id,recruit.id,1),/abaixo do seu/);
+ await guilds.kick(member.id,newbie.id);await assert.rejects(guilds.disband(member.id),/Só o líder/);
+ const ranks=(await guilds.state(owner.id)).guild!.ranks.map(r=>r.id===2?{...r,name:'Comandante',permissions:['recruit' as const,'kick' as const]}:r);
+ await assert.rejects(guilds.saveRanks(member.id,ranks),/Só o líder/);
+ await guilds.saveRanks(owner.id,ranks);const renamed=(await guilds.state(recruit.id)).guild!;
+ assert.equal(renamed.ranks[2].name,'Comandante');assert.deepEqual(renamed.ranks[2].permissions,['recruit','kick']);assert.equal(renamed.ranks[0].permissions.length,5);
+ await assert.rejects(guilds.saveRanks(owner.id,ranks.map(r=>({...r,name:'Igual'}))),/nome diferente/);
+ await guilds.kick(member.id,recruit.id);
+
  // The owner leaving hands the guild over; the last one out closes it.
- await guilds.kick(member.id,owner.id).then(()=>assert.fail('member kicked owner'),e=>assert.match(e.message,/Só o dono/));
- await guilds.leave(owner.id);assert.equal((await guilds.membership(member.id))!.role,'owner');
+ await guilds.kick(member.id,owner.id).then(()=>assert.fail('member kicked owner'),e=>assert.match(e.message,/abaixo do seu/));
+ await guilds.leave(owner.id);assert.equal((await guilds.membership(member.id))!.role,'owner');assert.equal((await guilds.state(member.id)).guild!.myRank,0);
  const closed=await guilds.leave(member.id);assert.equal(closed.dissolved,true);assert.equal(await guilds.membership(member.id),null);
  assert.ok(!(await guilds.list(name)).length);
+ // The leader can also close the guild outright.
+ const other=`Fim ${randomUUID().slice(0,6)}`;await gold(rival.id,GUILD_CREATE_COST);const made=await guilds.create(rival.id,other);
+ await guilds.apply(owner.id,made.guildId);await guilds.answer(rival.id,owner.id,true);
+ const gone=await guilds.disband(rival.id);assert.deepEqual([...gone.members].sort(),[owner.id,rival.id].sort());assert.equal(await guilds.membership(owner.id),null);
  console.log('guilds integration ok');
 }finally{await store.pool.end();}

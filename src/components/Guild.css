@@ -25,26 +25,29 @@
 .guild-window .guild-count { position: absolute; top: -7px; right: -7px; min-width: 20px; height: 20px; padding: 0 4px; border: 2px solid #fff; border-radius: 10px; background: #d1281b; color: #fff; font-size: 11px; line-height: 16px; }
 
 /* Tela inicial: brasão e construções | membros | missões */
-.guild-window .guild-main { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr) minmax(0, 290px); gap: 10px; flex: 1; min-height: 0; margin-top: 8px; }
-.guild-window .guild-side { display: grid; grid-template-rows: 1fr auto auto; gap: 10px; min-height: 0; }
-.guild-window .guild-crest {
-  position: relative; display: grid; align-content: center; justify-items: center; gap: 2px; padding: 10px 10px 12px; overflow: hidden;
-  border: 2px solid #fff0c9; border-radius: 16px;
-  background: radial-gradient(circle at 50% 30%, #ffd98a, #f39a2c 62%, #d4701a);
-  box-shadow: inset 0 1px #fff7d9, inset 0 -3px #b45d12, 0 3px #5d290c88; text-align: center;
+.guild-window .guild-page { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 8px; flex: 1; min-height: 0; margin-top: 8px; }
+/* Cabeçalho da guilda: brasão com o nível, nome, líder, nível, membros e Riqueza */
+.guild-window .guild-banner {
+  display: flex; align-items: center; gap: 12px; padding: 4px 14px 4px 8px;
+  border: 2px solid #fff0c9; border-radius: 14px;
+  background: linear-gradient(#ffc566, #f39a2c 60%, #d4701a);
+  box-shadow: inset 0 1px #fff7d9, inset 0 -3px #b45d12, 0 3px #5d290c88;
 }
-.guild-window .guild-crest > * { position: relative; }
-.guild-window .guild-crest-badge { display: grid; place-items: center; width: 112px; height: 112px; }
-.guild-window .guild-crest-shield { grid-area: 1 / 1; color: #fff3d6; fill: #1f5ba6; filter: drop-shadow(0 3px 0 #0e2f5c) drop-shadow(0 6px 8px #3b180699); }
-.guild-window .guild-crest-level { position: relative; grid-area: 1 / 1; padding-bottom: 6px; font-family: 'Lilita One', 'Nunito', sans-serif !important; font-size: 50px; font-weight: 400; line-height: 1; color: #ffe27a; -webkit-text-stroke: 2px #6b2f05; paint-order: stroke fill; text-shadow: 0 3px 0 #8a3f0b, 0 5px 6px #1a0c0499; }
-.guild-window .guild-crest-caption { margin-top: -4px; font-size: 11px; font-weight: 900; color: #fff4c9; letter-spacing: .06em; text-transform: uppercase; text-shadow: 0 1px #8a3f0b; }
-.guild-window .guild-crest-name { max-width: 100%; margin: 2px 0 0; overflow: hidden; font-family: 'Lilita One', 'Nunito', sans-serif !important; font-size: 26px; font-weight: 400; line-height: 1.1; color: #fff; text-overflow: ellipsis; white-space: nowrap; -webkit-text-stroke: 1.5px #7a3a0a; paint-order: stroke fill; text-shadow: 0 2px 0 #7a3a0a, 0 4px 5px #5d290c99; }
+.guild-window .guild-banner-name { display: grid; flex: 1; min-width: 0; gap: 2px; }
+.guild-window .guild-main { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr) minmax(0, 280px); gap: 10px; min-height: 0; }
+.guild-window .guild-side { display: grid; grid-template-rows: minmax(0, 1fr) auto; gap: 8px; min-width: 0; min-height: 0; }
+.guild-window .guild-side > * { min-width: 0; }
+.guild-window .guild-side-actions { display: grid !important; gap: 6px; }
+.guild-window .guild-crest-badge { display: grid; place-items: center; flex: none; width: 70px; height: 70px; }
+.guild-window .guild-crest-shield { grid-area: 1 / 1; color: #fff3d6; fill: #1f5ba6; filter: drop-shadow(0 2px 0 #0e2f5c) drop-shadow(0 4px 5px #3b180699); }
+.guild-window .guild-crest-level { position: relative; grid-area: 1 / 1; padding-bottom: 4px; font-family: 'Lilita One', 'Nunito', sans-serif !important; font-size: 32px; font-weight: 400; line-height: 1; color: #ffe27a; -webkit-text-stroke: 1.5px #6b2f05; paint-order: stroke fill; text-shadow: 0 2px 0 #8a3f0b, 0 4px 5px #1a0c0499; }
+.guild-window .guild-crest-name { max-width: 100%; margin: 0; overflow: hidden; font-family: 'Lilita One', 'Nunito', sans-serif !important; font-size: 28px; font-weight: 400; line-height: 1.05; color: #fff; text-overflow: ellipsis; white-space: nowrap; -webkit-text-stroke: 1.5px #7a3a0a; paint-order: stroke fill; text-shadow: 0 2px 0 #7a3a0a, 0 4px 5px #5d290c99; }
 .guild-window .guild-crest-owner { display: inline-flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 900; color: #6b2f05; }
-.guild-window .guild-crest-stats { display: flex; gap: 6px; margin-top: 6px; }
-.guild-window .guild-crest-stats > span { display: inline-flex; align-items: center; gap: 5px; height: 28px; padding: 0 10px; border: 1px solid #fff0c9; border-radius: 999px; background: #fff7e4; color: #6b2f05; font-size: 14px; font-weight: 900; box-shadow: 0 2px #8a3f0b55; }
-.guild-window .guild-buildings { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.guild-window .guild-crest-stats { display: flex; flex: none; gap: 6px; }
+.guild-window .guild-crest-stats > span { display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 12px; border: 1px solid #fff0c9; border-radius: 999px; background: #fff7e4; color: #6b2f05; font-size: 14px; font-weight: 900; box-shadow: 0 2px #8a3f0b55; }
+.guild-window .guild-buildings { display: grid; grid-template-rows: repeat(3, minmax(0, 1fr)); gap: 6px; min-height: 0; }
 .guild-window .guild-building {
-  position: relative; display: grid; justify-items: center; gap: 3px; padding: 6px 4px 8px;
+  position: relative; display: grid; align-content: center; justify-items: center; gap: 3px; min-height: 0; padding: 6px 4px 8px;
   border: 2px solid #f6d29b; border-radius: 14px;
   background: radial-gradient(circle at 50% 38%, #fff6dc, #f3d6a4 70%, #e4b674);
   box-shadow: inset 0 1px #fff, 0 3px #5d290c88; color: var(--wood-ink); cursor: pointer; transition: transform .12s, filter .12s;
@@ -52,14 +55,12 @@
 .guild-window .guild-building:not(:disabled):hover { transform: translateY(-2px); filter: brightness(1.05); }
 .guild-window .guild-building:disabled { cursor: var(--cursor-arrow); opacity: .6; }
 .guild-window .guild-building.unbuilt .guild-building-art { filter: saturate(.25) brightness(.9); }
-.guild-window .guild-building-stage { display: grid; place-items: center; height: 60px; }
+.guild-window .guild-building-stage { display: grid; place-items: center; height: 64px; }
 .guild-window .guild-building-art { object-fit: contain; filter: drop-shadow(0 4px 4px #5d290c66); }
-.guild-window .guild-building-stage .guild-building-art { width: 60px; height: 60px; }
+.guild-window .guild-building-stage .guild-building-art { width: 64px; height: 64px; }
 .guild-window .guild-building-plate svg { display: none; }
 .guild-window .guild-building-plate { display: inline-flex; align-items: center; gap: 3px; max-width: 100%; padding: 1px 6px; border: 1px solid #fff0c9; border-radius: 999px; background: linear-gradient(#ffc566, #e5801c); color: #fff; font-size: 10px; white-space: nowrap; text-shadow: 0 1px #9a4510; }
 .guild-window .guild-building em { position: absolute; top: 4px; right: 5px; padding: 0 5px; border-radius: 6px; background: #1f5ba6; color: #fff; font-size: 10px; font-style: normal; font-weight: 900; }
-.guild-window .guild-side-actions { display: flex; gap: 6px; }
-.guild-window .guild-side-actions .guild-leave:only-child { flex: 1; }
 .guild-window .guild-manage-button { position: relative; flex: 1; min-height: 40px !important; font-size: 14px !important; }
 .guild-window .guild-leave { min-height: 40px !important; }
 
@@ -79,6 +80,11 @@
 .guild-window .guild-table { table-layout: fixed; }
 .guild-window .guild-table col.c-rank { width: 30px; }
 .guild-window .guild-table col.c-level { width: 50px; }
+.guild-window .guild-table col.c-role { width: 112px; }
+.guild-window .guild-rank-select { width: 100%; height: 24px; padding: 0 2px; border: 1px solid #e2b276; border-radius: 7px; background: #fffdf6; color: #7a3a0a; font-family: 'Nunito', sans-serif; font-size: 12px; font-weight: 900; }
+.guild-window .guild-role-cell .guild-role { overflow: hidden; text-overflow: ellipsis; }
+.guild-window .guild-role[data-rank='1'] { color: #b4341d; }
+.guild-window .guild-role[data-rank='2'] { color: #2f6fbf; }
 .guild-window .guild-table col.c-today { width: 54px; }
 .guild-window .guild-table col.c-total { width: 66px; }
 .guild-window .guild-table col.c-act { width: 38px; }
@@ -111,6 +117,7 @@
 /* Missões diárias */
 .guild-window .guild-missions { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 8px; }
 .guild-window .guild-missions h3 { margin: 0; }
+.guild-window .guild-missions h3 small { display: none; }
 .guild-window .guild-missions ul { display: grid; align-content: start; gap: 6px; margin: 0; padding: 0; overflow: auto; list-style: none; }
 .guild-window .guild-missions li { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'text text' 'reward action'; align-items: center; gap: 5px 8px; padding: 7px 8px; border: 1px solid #e8b97e; border-radius: 12px; background: linear-gradient(#fffaf0, #f6e2bf); }
 .guild-window .guild-missions li.ready { border-color: #4cb36d; box-shadow: 0 0 0 2px #4cb36d44; }
@@ -192,7 +199,6 @@
 .guild-window .guild-danger { background: linear-gradient(#e25b3d, #b4341d); }
 
 /* Gerenciar */
-.guild-window .guild-manage { display: grid; grid-template-columns: minmax(0, 60fr) minmax(0, 40fr); gap: 10px; }
 .guild-window .guild-upgrades ul,
 .guild-window .guild-applications ul { display: grid; gap: 6px; margin: 0; padding: 0; list-style: none; }
 .guild-window .guild-upgrades li { display: grid; grid-template-columns: 50px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; padding: 6px 8px; border: 1px solid #e8b97e; border-radius: 12px; background: linear-gradient(#fffaf0, #f6e2bf); }
@@ -212,16 +218,25 @@
 @media (max-width: 760px), (max-height: 520px) {
   .guild-window .guild-lobby,
   .guild-window .guild-manage { grid-template-columns: 1fr; overflow: auto; }
-  .guild-window .guild-main { grid-template-columns: minmax(0, 200px) minmax(0, 1fr) minmax(0, 220px); gap: 6px; margin-top: 4px; }
+  .guild-window .guild-page { gap: 5px; margin-top: 4px; }
+  .guild-window .guild-banner { gap: 8px; padding: 2px 8px 2px 4px; }
+  .guild-window .guild-crest-stats > span { height: 22px; padding: 0 7px; font-size: 11px; }
+  .guild-window .guild-main { grid-template-columns: minmax(0, 96px) minmax(0, 1fr) minmax(0, 210px); gap: 6px; }
+  .guild-window .guild-buildings { gap: 4px; }
+  .guild-window .guild-building { padding: 2px; }
+  .guild-window .guild-building em { top: 2px; right: 2px; font-size: 8px; }
   .guild-window .guild-side { gap: 6px; overflow: auto; }
-  .guild-window .guild-crest { padding: 4px 6px 6px; }
-  .guild-window .guild-crest-badge { width: 64px; height: 64px; }
-  .guild-window .guild-crest-shield { width: 64px; height: 64px; }
-  .guild-window .guild-crest-level { font-size: 30px; }
-  .guild-window .guild-crest-name { font-size: 18px; }
-  .guild-window .guild-crest-stats > span { height: 22px; padding: 0 7px; font-size: 12px; }
-  .guild-window .guild-building-stage { height: 36px; }
-  .guild-window .guild-building-stage .guild-building-art { width: 36px; height: 36px; }
+  .guild-window .guild-crest-badge, .guild-window .guild-crest-shield { width: 40px; height: 40px; }
+  .guild-window .guild-crest-level { font-size: 19px; }
+  .guild-window .guild-crest-name { font-size: 17px; }
+  .guild-window .guild-crest-owner { font-size: 9px; }
+  .guild-window .guild-table col.c-role { width: 82px; }
+  .guild-window .guild-manage-button, .guild-window .guild-leave { min-height: 28px !important; padding: 0 4px !important; gap: 3px !important; font-size: 11px !important; }
+  .guild-window .guild-side-actions svg { width: 13px; height: 13px; }
+  .guild-window .guild-building { min-width: 0; }
+  .guild-window .guild-rank-select { font-size: 10px; height: 20px; }
+  .guild-window .guild-building-stage { height: 34px; }
+  .guild-window .guild-building-stage .guild-building-art { width: 34px; height: 34px; }
   .guild-window .guild-building-plate { padding: 1px 4px; font-size: 8.5px; }
   .guild-window .guild-building-plate svg { display: none; }
   .guild-window .guild-manage-button, .guild-window .guild-leave { min-height: 32px !important; }
@@ -235,5 +250,30 @@
   .guild-window .guild-table col.c-level { width: 34px; } .guild-window .guild-table col.c-today { width: 40px; } .guild-window .guild-table col.c-total { width: 52px; } .guild-window .guild-table col.c-rank { width: 24px; }
   .guild-window .guild-missions li { padding: 5px 6px; }
   .guild-window .guild-mission-text b { font-size: 11px; }
-  .guild-window .guild-missions h3 small { display: none; }
+
 }
+
+/* Gerenciar: abas Evoluir, Pedidos e Cargos */
+.guild-window .guild-manage { display: grid; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr); gap: 8px; }
+.guild-window .guild-manage-tabs { display: flex; gap: 4px; }
+.guild-window .guild-manage-tabs button { position: relative; height: 34px; padding: 0 16px; border: 1px solid #f2b56b; border-radius: 10px; background: linear-gradient(#a85524, #87401a); color: #ffe2b0; font-size: 14px; font-weight: 900; cursor: pointer; }
+.guild-window .guild-manage-tabs button.active { border-color: #fff0c9; background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c); color: #fff; text-shadow: 0 1px #9a4510; }
+.guild-window .guild-ranks { display: grid; grid-template-rows: auto auto auto auto; gap: 8px; align-content: start; }
+.guild-window .guild-ranks-table { width: 100%; border-collapse: separate; border-spacing: 0; border: 1px solid #e8b97e; border-radius: 10px; overflow: hidden; background: #fffaf0; }
+.guild-window .guild-ranks-table th { padding: 6px; background: #f3d6a4; color: #7a3a0a; font-size: 12px; font-weight: 900; text-align: center; }
+.guild-window .guild-ranks-table th:first-child { text-align: left; }
+.guild-window .guild-ranks-table td { padding: 4px 6px; border-top: 1px solid #ecd2a0; text-align: center; }
+.guild-window .guild-rank-name { display: flex; align-items: center; gap: 4px; color: #d08a00; }
+.guild-window .guild-rank-name input { width: 100%; min-width: 0; height: 30px; padding: 0 8px; border: 2px solid #e2b276; border-radius: 8px; background: #fffdf6; color: var(--wood-ink); font-size: 14px; font-weight: 900; }
+.guild-window .guild-check { position: relative; display: inline-grid; place-items: center; width: 26px; height: 26px; cursor: pointer; }
+.guild-window .guild-check input { position: absolute; inset: 0; margin: 0; opacity: 0; cursor: pointer; }
+.guild-window .guild-check i { display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid #e2b276; border-radius: 7px; background: #fffdf6; color: transparent; }
+.guild-window .guild-check input:checked + i { border-color: #2f8a55; background: linear-gradient(#5cc77c, #2f8a55); color: #fff; }
+.guild-window .guild-check input:disabled + i { opacity: .55; }
+.guild-window .guild-check input:focus-visible + i { outline: 2px solid #2f6fbf; outline-offset: 1px; }
+.guild-window .guild-ranks-foot { display: flex; align-items: center; gap: 8px; }
+.guild-window .guild-ranks-foot small { flex: 1; color: var(--wood-ink-soft); font-size: 12px; font-weight: 800; }
+.guild-window .guild-danger-zone { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px dashed #d9785f; border-radius: 10px; background: #fff1ea; }
+.guild-window .guild-danger-zone > span { display: grid; flex: 1; }
+.guild-window .guild-danger-zone b { color: #b4341d; font-size: 14px; }
+.guild-window .guild-danger-zone small { color: var(--wood-ink-soft); font-size: 12px; font-weight: 800; }

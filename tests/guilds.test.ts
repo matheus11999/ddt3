@@ -7,7 +7,7 @@ import type {GuildHall,Membership} from '../server/guilds';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
-import {addMissionProgress,claimMission,dailyFor,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,BUILDING_LEVEL_COSTS,GVG_CONTRIBUTION,guildChance,guildDay,smithBonus,validGuildName} from '../shared/guilds';
+import {addMissionProgress,claimMission,dailyFor,guildRanks,rankCan,validRankName,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,BUILDING_LEVEL_COSTS,GVG_CONTRIBUTION,guildChance,guildDay,smithBonus,validGuildName} from '../shared/guilds';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
@@ -56,7 +56,7 @@ function fixture(count:number){
  const guilds:GuildHall={membership:async id=>members.get(id)??null,state:async()=>({guild:null,applied:[]}),list:async()=>[],memberIds:async guildId=>[...members].filter(([,m])=>m.guildId===guildId).map(([id])=>id),
   create:unused,apply:unused,cancelApply:unused,answer:unused,kick:unused,leave:unused,upgrade:unused,buy:unused,deposit:unused,withdraw:unused,
   gvgWin:async(matchId,guildId,winners,amount)=>{won.push({matchId,guildId,winners,amount});return true;},
-  missionProgress:async(ids,mission)=>{missions.push({ids:[...ids],mission});return ids;},claimMission:unused};
+  missionProgress:async(ids,mission)=>{missions.push({ids:[...ids],mission});return ids;},claimMission:unused,setRank:unused,saveRanks:unused,disband:unused};
  const game=new Game(store);game.guilds=guilds;
  const players=Array.from({length:count},(_,i)=>normalizeProfile({id:randomUUID(),name:`Jogador ${i}`}));
  const join=(p:Profile,guildId:number,name:string)=>members.set(p.id,{guildId,name,role:'member',smith:guildId});
@@ -126,4 +126,13 @@ test('guild commands are validated by the protocol',()=>{
  assert.equal(commandSchema.safeParse({type:'guild-buy',item:'necklace-star'}).success,false);
  assert.equal(commandSchema.safeParse({type:'room-gvg',active:true}).success,true);
  assert.equal(commandSchema.safeParse({type:'guild-mission',mission:'forge'}).success,true);assert.equal(commandSchema.safeParse({type:'guild-mission',mission:'sleep'}).success,false);
+});
+
+test('ranks keep the leader with every permission and fill missing ranks with the defaults',()=>{
+ const ranks=guildRanks([{id:0,name:'Rei',permissions:[]},{id:2,name:'Comandante',permissions:['recruit','bogus'] as never}]);
+ assert.equal(ranks.length,5);assert.equal(ranks[0].name,'Rei');assert.equal(ranks[0].permissions.length,5);
+ assert.deepEqual(ranks[2],{id:2,name:'Comandante',permissions:['recruit']});assert.equal(ranks[1].name,'Vice-Líder');
+ assert.equal(rankCan(ranks,2,'recruit'),true);assert.equal(rankCan(ranks,2,'kick'),false);assert.equal(rankCan(ranks,0,'kick'),true);
+ assert.throws(()=>validRankName('a'),/de 2 a 16/);
+ assert.equal(commandSchema.safeParse({type:'guild-rank-set',playerId:randomUUID(),rank:0}).success,false);
 });
