@@ -33,13 +33,14 @@ O terreno ocupa uma grade 512×288 de células de 3 pixels. O servidor integra t
 | --- | ---: | --- |
 | +1 | 110 | 2 disparos, 90% do dano por disparo |
 | +2 | 110 | 3 disparos, 60% do dano por disparo |
-| Tridente | 110 | 3 projéteis em leque, 50% do dano por projétil |
+| Tridente | 110 | 3 projéteis simultâneos, 50% do dano por projétil |
 | +50% | 85 | Aumenta o multiplicador de dano em 0,50 |
 | +40% | 80 | Aumenta o multiplicador de dano em 0,40 |
 | +30% | 70 | Aumenta o multiplicador de dano em 0,30 |
 | +20% | 55 | Aumenta o multiplicador de dano em 0,20 |
+| +10% | 50 | Aumenta o multiplicador de dano em 0,10 |
 
-Os custos e as reduções dos disparos seguem a referência pública [VNG — guia de ferramentas de DDTank Origin](https://ddtank.vnggames.in.th/news/guide/x1-x2-x3-max-pow.html). As demais fórmulas e o balanceamento estão definidos no código deste projeto. +1 e +2 são mutuamente exclusivos; uma ferramenta não pode ser repetida no mesmo turno. Tridente pode combinar com disparos adicionais. Andar consome vigor e o início do próximo turno do jogador restaura sua reserva.
+Os custos e as reduções dos disparos seguem a referência pública [VNG — guia de ferramentas de DDTank Origin](https://ddtank.vnggames.in.th/news/guide/x1-x2-x3-max-pow.html). As demais fórmulas e o balanceamento estão definidos no código deste projeto. Regras e fórmulas completas em [power-ups.md](power-ups.md): +1 e +2 são mutuamente exclusivos e valem uma vez por turno; Tridente uma vez por turno e combina com +1/+2; bônus de dano se repetem enquanto houver Vigor. Andar consome vigor e o início do próximo turno do jogador restaura sua reserva.
 
 ## Inventário e fortalecimento
 

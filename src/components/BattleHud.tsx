@@ -11,6 +11,7 @@ import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
+import {powerUpConflict} from '../../shared/powerUps';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
 import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
@@ -87,7 +88,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[cancelCharge]);
  const useBoost=useCallback((id:BoostId)=>{
   const boost=BOOSTS.find(item=>item.id===id)!,fighter=live.current.me;
-  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||(id==='trident'&&fighter.boosts.includes(id))||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||fighter.stamina<boost.cost)return;
+  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||fighter.stamina<boost.cost)return;
   client.send({type:'boost',boost:id});
  },[]);
 
@@ -201,7 +202,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
-     const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(boost.id==='trident'&&selected)||powBlocks(boost.id)||me.stamina<boost.cost;
+     const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(b.turnId===me.id&&!!powerUpConflict(me.boosts,boost.id))||powBlocks(boost.id)||me.stamina<boost.cost;
     const damage=boost.id.startsWith('damage'),symbol=boost.id==='trident'?'×3':boost.label;
     return <button type="button" key={boost.id} data-boost={boost.id} data-count={count} aria-label={`${boost.name}, ${boost.cost} vigor${count?`, ${count} ${count===1?'uso':'usos'}`:''}`} aria-pressed={selected} title={`${boost.name}\n${boost.detail}\n${boost.cost} de vigor${count?`\n${count} ${count===1?'uso preparado':'usos preparados'}`:''}`} className={`boost ${selected?'selected':''}`} disabled={disabled} onClick={event=>{useBoost(boost.id);if(event.detail>0)event.currentTarget.blur();}}>
      <span className="boost-painted-icon" aria-hidden="true" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>

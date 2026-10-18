@@ -64,15 +64,16 @@ test('a player cannot fire, walk, boost or pass during the opponent turn',async(
  assert.ok(errors(f.events.get(other.id)!).every(e=>e.message==='Aguarde a sua vez.'));
 });
 
-test('boosts repeat while vigor lasts, reject overspending and keep trident unique',async()=>{
+test('power-ups follow the combination matrix, the Vigor budget and keep the trident unique',async()=>{
  const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,stamina=player.stamina;
  await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.stamina,stamina-110);
- await f.game.command(player.id,{type:'boost',boost:'extra1'});await f.game.command(player.id,{type:'boost',boost:'extra2'});
- assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','extra1']);
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/\+1 já/);
+ await f.game.command(player.id,{type:'boost',boost:'extra2'});assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/não combinam/);
  await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-220);
- await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','extra1']);
- assert.equal(errors(f.events.get(player.id)!).length,3);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','trident']);
+ assert.equal(errors(f.events.get(player.id)!).length,3);assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/Vigor insuficiente/);
  await f.game.command(player.id,{type:'pass'});while(f.match.state.turnId!==player.id)await f.game.command(f.match.state.turnId,{type:'pass'});
+ assert.deepEqual(player.boosts,[]);assert.equal(player.stamina,player.maxStamina);
  await f.game.command(player.id,{type:'boost',boost:'trident'});await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-110);assert.deepEqual(player.boosts,['trident']);assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/tridente já/);
 });
 
