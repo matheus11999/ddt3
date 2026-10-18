@@ -12,7 +12,7 @@ try {
  const starter=await store.getProfile(id);
  assert.ok(starter.inventory.every(item=>!isEmptyItem(item)));
  assert.ok(SLOTS.every(slot=>isEmptyItem(starter.equipment[slot])||starter.inventory.includes(starter.equipment[slot])));
- assert.ok(!starter.inventory.includes('volt')&&!starter.inventory.includes('outfit-dancer'));
+ assert.ok(!starter.inventory.includes('volt')&&!starter.inventory.includes('face-wink'));
  assert.ok(starter.compositionStones['attack-1']>0);
  const seed={...starter,gold:1000,level:50,xp:18540};
  await store.pool.query('UPDATE players SET profile=$2 WHERE id=$1 AND name=$3',[id,seed,'TEST Economy Integration']);
@@ -20,7 +20,7 @@ try {
  const purchases=await Promise.allSettled([store.buy(id,['volt']),store.buy(id,['volt'])]);
  assert.equal(purchases.filter(p=>p.status==='fulfilled').length,1);
  let profile=await store.getProfile(id);assert.equal(profile.gold,640);assert.equal(profile.inventory.filter(item=>item==='volt').length,1);
- const before=structuredClone(profile);await assert.rejects(store.buy(id,['crystal','outfit-executive']),/insuficientes/);assert.deepEqual(await store.getProfile(id),before);
+ const before=structuredClone(profile);await assert.rejects(store.buy(id,['crystal','outfit-cartographer']),/insuficientes/);assert.deepEqual(await store.getProfile(id),before);
  const maxSeed={...profile,level:69,xp:20690};await store.pool.query('UPDATE players SET profile=$2 WHERE id=$1 AND name=$3',[id,maxSeed,'TEST Economy Integration']);
  const bonus={[id]:{kind:'coins',amount:150}};
  await Promise.all([store.finishMatch(matchId,[id],[id],bonus),store.finishMatch(matchId,[id],[id],bonus)]);

@@ -72,10 +72,6 @@ export const WEAPONS: Weapon[] = [
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
  {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',attack:8,defense:14,agility:0,armor:10},
- {id:'outfit-surfer',name:'Surfista da Maré',slot:'outfit',rarity:'rare',color:'#00b8c8',description:'Bermuda, sandálias e o jeito tranquilo de quem vive na praia.',attack:6,defense:16,agility:18,armor:16},
- {id:'outfit-executive',name:'Executivo',slot:'outfit',rarity:'rare',color:'#215bd1',description:'Terno alinhado, sapatos sociais e uma postura de confiança.',attack:14,defense:26,agility:6,armor:28},
- {id:'outfit-racer',name:'Piloto Relâmpago',slot:'outfit',rarity:'rare',color:'#1265e8',description:'Macacão azul e laranja, luvas e uma postura firme com as mãos na cintura.',attack:8,defense:20,agility:16,armor:20,visual:{variant:'racer',pose:'racer',asset:'/assets/outfits/shop-outfits.png'}},
- {id:'outfit-dancer',name:'Dançarina Rubi',slot:'outfit',rarity:'rare',color:'#ec2447',description:'Jaqueta rubi, tênis de cano alto e uma pose de dança exclusiva.',attack:8,defense:16,agility:20,armor:16,visual:{variant:'dancer',pose:'dancer',asset:'/assets/outfits/shop-outfits.png'}},
  {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
  cosmetic('face-wink','Piscadela Confiante','face','wink','#e6a16f','rare',{asset:'/assets/faces/face-wink.png'}),
  cosmetic('hair-undercut','Corte Tempestade','hair','undercut','#1555c2','rare',{asset:'/assets/shop-accessories.png'}),
@@ -117,14 +113,12 @@ export const ITEMS: Item[] = [...WEAPONS,
 const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
  'face-brave':'male','face-taunt':'male','face-fierce':'male',
  'face-smile':'female','face-serene':'female','face-wink':'female',
- 'outfit-surfer':'male','outfit-executive':'male','outfit-racer':'male','outfit-dancer':'female','outfit-cartographer':'male',
- 'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
+  'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
  'hair-undercut':'male','hair-ponytail':'female','hair-wavy':'female','hair-horizon':'male',
  'glasses-navigator':'male'
 };
 for(const item of ITEMS){
  if(GENDERED_ITEMS[item.id])item.gender=GENDERED_ITEMS[item.id];
- if(item.slot==='outfit'&&!item.visual)item.visual={variant:item.id.replace('outfit-',''),asset:`/assets/${item.id}-body.png`,pose:item.id==='outfit-surfer'?'surfer':'executive',color:item.color};
 }
 export const CATALOG = Object.fromEntries(ITEMS.map(i=>[i.id,i]));
 /** Unknown IDs never grant compatibility; omitted item gender means explicitly shared equipment. */
@@ -137,9 +131,9 @@ export function isEmptyItem(item:Item|string):boolean {const value=typeof item==
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
 /** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
 export const STARTER_WEAPON='brick';
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-surfer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
- return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',outfit:'outfit-dancer',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
+ return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
 }
 /** Retired prototypes are rejected by the live catalog; existing ownership is exchanged once. */
 export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
@@ -147,10 +141,14 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
  'hair-spiky':'hair-undercut','hair-silver':'hair-ponytail',
  'glasses-round':'glasses-sport','glasses-pilot':'glasses-cat'
 };
+/** The game keeps a single outfit (matheus, 18/10): the others were retired and become the Cartógrafo once. */
+export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
+ 'outfit-surfer':'outfit-cartographer','outfit-executive':'outfit-cartographer','outfit-racer':'outfit-cartographer','outfit-dancer':'outfit-cartographer'
+};
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
-export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
-export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
-export const CONTENT_VERSION=14;
+export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
+export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile'}:{...UNEQUIP};}
+export const CONTENT_VERSION=15;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */

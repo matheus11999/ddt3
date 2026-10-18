@@ -9,10 +9,10 @@ try{
  const page=await browser.newPage({viewport:{width:1800,height:1500},deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));await enterGame(page,base);await page.waitForLoadState('networkidle');
  const report=await page.evaluate(async()=>{
   const {asset,avatarRig,AVATAR_UNIT}=await import('/src/game/appearance.ts'),{drawAvatar,createAvatarMotion,sampleWalkingLeg}=await import('/src/game/avatar.ts'),{DEFAULT_EQUIPMENT}=await import('/shared/catalog.ts');
-  const ids=['outfit-surfer','outfit-executive'];
+  const ids=['outfit-cartographer'];
   await Promise.all(['/assets/character-base.png','/assets/shop-accessories.png','/assets/faces/face-brave.png',...ids.flatMap(id=>[`/assets/${id}-body.png`,`/assets/outfits/${id}-walk.png`])].map(path=>new Promise((resolve,reject)=>{const i=asset(path);if(i.complete&&i.naturalWidth)return resolve();i.addEventListener('load',resolve,{once:true});i.addEventListener('error',()=>reject(new Error(path)),{once:true});})));
   const results=ids.map(id=>{
-   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-surfer'?12:11;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
+   const rig=avatarRig({...DEFAULT_EQUIPMENT,outfit:id}),step=id==='outfit-cartographer'?12:11;let maxJointError=0,maxGroundError=0,maxLift=0,plantedFeet=0;
    for(let i=0;i<120;i++){
     const phase=i*Math.PI/60;let contacts=0;
     for(const [leg,offset] of [[rig.walking.near,0],[rig.walking.far,Math.PI]]){
@@ -28,7 +28,7 @@ try{
   for(let row=0;row<4;row++){
    const id=ids[Math.floor(row/2)],direction=row%2===0?1:-1,y=70+row*360;c.fillStyle='#f9e3a1';c.font='bold 17px Arial';c.fillText(`${id} ${direction>0?'→':'←'}`,24,y+20);
    for(let n=0;n<8;n++){
-    const phase=n*Math.PI/4,cell=document.createElement('canvas');cell.width=240;cell.height=320;const ctx=cell.getContext('2d'),motion=createAvatarMotion(direction);motion.walk=1;motion.phase=phase;motion.lastTime=1000;motion.pose='walk';motion.bodyY=id==='outfit-surfer'?1.8:2;
+    const phase=n*Math.PI/4,cell=document.createElement('canvas');cell.width=240;cell.height=320;const ctx=cell.getContext('2d'),motion=createAvatarMotion(direction);motion.walk=1;motion.phase=phase;motion.lastTime=1000;motion.pose='walk';motion.bodyY=id==='outfit-cartographer'?1.8:2;
     ctx.strokeStyle='#75a6a4';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(5,300.5);ctx.lineTo(235,300.5);ctx.stroke();drawAvatar(ctx,{...DEFAULT_EQUIPMENT,outfit:id,hat:'hat-none'},120,300,249,1000,true,direction,false,motion,{pose:'walk',movementDistance:0});c.drawImage(cell,n*240,y+28);
    }
   }

@@ -51,9 +51,9 @@ try{
   });
   const dependencies=[...new Set([
    '/assets/character-base.png','/assets/hair-wavy.png',
-   '/assets/outfit-surfer-body.png','/assets/outfit-executive-body.png',
-   '/assets/outfits/outfit-surfer-walk.png','/assets/outfits/outfit-executive-walk.png','/assets/outfits/combat-prone.png',
-   '/assets/outfits/shop-outfits.png','/assets/outfits/shop-walking-legs.png',
+   '/assets/outfits/cartographer-atlas.png',
+   '/assets/outfits/cartographer-walk.png','/assets/outfits/combat-prone.png',
+   
    '/assets/hat-cap.png','/assets/hat-mage.png','/assets/shop-hats.png','/assets/shop-accessories.png',
    ...requiredAtlases,...ITEMS.filter(item=>['face','hair','hat','outfit'].includes(item.slot)).map(item=>item.visual?.asset).filter(Boolean)
   ])];
@@ -85,7 +85,7 @@ try{
     const hat=kind==='baseline'?'hat-none':hats[hatStart+(kind==='poses'?row:col)];
     const hair=kind==='baseline'?hairs[index]:kind==='poses'?hairs[(hatStart+row)%hairs.length]:hairs[hairStart+row];
     if(!hat||!hair)continue;
-    const outfit=kind==='poses'?(row?'outfit-dancer':'outfit-racer'):'outfit-surfer';
+    const outfit=kind==='poses'?(row?'outfit-cartographer':'outfit-cartographer'):'outfit-cartographer';
     const eq={...DEFAULT_EQUIPMENT,face,hat,hair,outfit,glasses:`glasses-${glasses}`};
     const rig=avatarRig(eq);
     if(!rig?.modular||!rig.head||!rig.combat||!rig.walking)throw new Error(`Incomplete rig: ${hat}/${hair}/${outfit}`);

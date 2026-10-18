@@ -192,7 +192,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }else{
     if(matchId)stopEnvironmentAudio();environment=null;residues=null;matchId='';terrainSource='';shotId='';
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
-    const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat,outfit:`outfit-${k.outfit}`}}));
+    const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
     // The day's top three stand on their podium, half again the size of a walker in the plaza, facing the middle; drawn just after the podium itself.
     const podiums=lobby.podiums(),ranked=state.ranking.flatMap(entry=>{const spot=podiums.find(p=>p.rank===entry.rank);return spot?[{entry,spot}]:[];});

@@ -18,7 +18,7 @@ try{
   const A=await import('/src/game/appearance.ts');
   const {FACE_KEEPOUT,FIT_ZONES,HEAD_ANCHORS,HEAD_WIDTH,RIG_VERSION}=await import('/src/game/rig/anchors.ts');
   const {DEFAULT_EQUIPMENT}=await import('/shared/catalog.ts');
-  for(const path of ['/assets/character-base.png','/assets/faces/face-brave.png','/assets/outfit-surfer-body.png','/assets/outfits/combat-prone.png'])await new Promise(resolve=>{const image=A.asset(path);if(image.complete&&image.naturalWidth)resolve();else image.addEventListener('load',resolve,{once:true});});
+  for(const path of ['/assets/character-base.png','/assets/faces/face-brave.png','/assets/outfits/cartographer-atlas.png','/assets/outfits/combat-prone.png'])await new Promise(resolve=>{const image=A.asset(path);if(image.complete&&image.naturalWidth)resolve();else image.addEventListener('load',resolve,{once:true});});
   const rig=A.avatarRig({...DEFAULT_EQUIPMENT,face:'face-brave',hat:'hat-none',hair:'hair-none',glasses:'glasses-none'});
   if(!rig?.modular)throw new Error('Universal head is not ready');
   const SIZE=HEAD_ANCHORS.atlasSize,center=(HEAD_ANCHORS.templeNear[0]+HEAD_ANCHORS.templeFar[0])/2,out={};
