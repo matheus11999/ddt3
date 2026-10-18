@@ -72,7 +72,7 @@ test('boosts repeat while vigor lasts, reject overspending and keep trident uniq
  await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-220);
  await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.stamina,stamina-220);assert.deepEqual(player.boosts,['extra1','extra1']);
  assert.equal(errors(f.events.get(player.id)!).length,3);
- await f.game.command(player.id,{type:'pass'});await f.game.command(f.match.state.turnId,{type:'pass'});
+ await f.game.command(player.id,{type:'pass'});while(f.match.state.turnId!==player.id)await f.game.command(f.match.state.turnId,{type:'pass'});
  await f.game.command(player.id,{type:'boost',boost:'trident'});await f.game.command(player.id,{type:'boost',boost:'trident'});assert.equal(player.stamina,stamina-110);assert.deepEqual(player.boosts,['trident']);assert.match(errors(f.events.get(player.id)!).at(-1)!.message,/tridente já/);
 });
 
@@ -89,8 +89,8 @@ test('+2 and trident produce nine authoritative projectiles and lock further inp
 test('turn changes restore vigor and clear previously used tools',async()=>{
  const f=await battleFixture(),first=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
  await f.game.command(first.id,{type:'boost',boost:'damage50'});await f.game.command(first.id,{type:'pass'});
- const second=f.match.state.turnId;assert.notEqual(second,first.id);await f.game.command(second,{type:'pass'});
- assert.equal(f.match.state.turnId,first.id);assert.equal(first.stamina,first.maxStamina);assert.deepEqual(first.boosts,[]);
+ const second=f.match.state.turnId;assert.notEqual(second,first.id);while(f.match.state.turnId!==first.id)await f.game.command(f.match.state.turnId,{type:'pass'});
+ assert.equal(first.stamina,first.maxStamina);assert.deepEqual(first.boosts,[]);
 });
 
 test('forge checks actual server position and lobby presence before accessing materials',async()=>{
@@ -287,4 +287,11 @@ test('a kill on the first projectile of a +2 lets the rest fly through the body,
   return;
  }
  assert.fail('some power lands the first projectile on the target');
+});
+
+test('tools, passing and shots add their Delay to the fighter who used them',async()=>{
+ const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,start=player.delay!;
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+110);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+165);
+ await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+265);
 });

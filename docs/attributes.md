@@ -26,7 +26,7 @@ O multiplicador é exato (não arredondado a cada nível) e sempre parte do valo
 
 Ataque, Defesa, Agilidade e Sorte **da arma** só mudam nos marcos: até +9 ficam no original; +10 e +11 = truncar(original × 1,2); +12 a +15 = truncar(valor do +10 × 1,3). 100 → 120 → 156; 40 → 48 → 62. Roupas e chapéus não têm marcos. A composição é somada depois, sem multiplicar.
 
-O nível do chapéu e da roupa vestidos vai em `Equipment.slotUpgrades` (derivado no servidor de `Profile.upgrades`, como `Equipment.upgrade` para a arma). Hoje o Ferreiro só fortalece armas, então esses níveis ficam em 0 até ele aceitar chapéu e roupa.
+O Ferreiro fortalece arma, roupa e chapéu (`canStrengthen` em `shared/catalog.ts`), com as mesmas pedras, chances e custos. O nível do chapéu e da roupa vestidos vai em `Equipment.slotUpgrades` (derivado no servidor de `Profile.upgrades`, como `Equipment.upgrade` para a arma).
 
 ## Dano
 
@@ -54,6 +54,16 @@ Cada lutador tem `Fighter.delay`. No início todos têm o Delay base. A cada tur
 3. ele recebe o próprio Delay base (uma vez por turno);
 4. atirar soma `segundos usados × 20` (até 30 s) + `shotDelay` da arma; passar soma 100; ferramentas somam o `delay` delas; tempo esgotado não soma nada.
 
-Quem continua com menor Delay joga de novo (turnos seguidos). Não há sorteio de turno extra. `shotDelay` das armas e `delay` das ferramentas estão em 0 porque o projeto não tinha esses valores e não há valor histórico comprovado; podem ser ajustados no catálogo.
+Quem continua com menor Delay joga de novo (turnos seguidos). Não há sorteio de turno extra.
+
+Valores de Delay das ações (escolha de balanceamento do Brasa, sem valor histórico comprovado; ajustáveis):
+
+| Ação | Delay |
+| --- | --- |
+| Tiro do Quebra-Tijolos (`shotDelay` em `WEAPONS`) | 150 + segundos × 20 |
+| Passar o turno | 100 |
+| +1, +2, Tridente (`BOOSTS`) | 110 cada |
+| Dano +50% / +40% / +30% / +20% | 85 / 80 / 70 / 55 (igual ao Vigor gasto) |
+| Cura / Míssil teleguiado / Invisibilidade (`ABILITIES`) | 150 / 100 / 150 |
 
 Expedições continuam com o turno da instância (`shared/instanceTurn.ts`): cada aventureiro uma vez por rodada, por Agilidade, e os monstros juntos.
