@@ -5,7 +5,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Equipment} from '../shared/catalog';
-import {MAP_IDS,getMap} from '../shared/maps';
+import {MAP_IDS,baseMapId,getMap} from '../shared/maps';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
@@ -56,7 +56,7 @@ test('legacy client-selected map/mode cannot control PvP; queue payload cannot s
  await f.game.command(f.players[0].id,{type:'create',name:'Requested override',mode:'4v4',map:'valley'});
  const ra=f.roomFor(f.players[0]);assert.equal(ra.mode,'1v1');assert.equal(ra.map,'garden');assert.equal(ra.practice,false);
  const rb=await f.party([f.players[1]]);await f.game.command(f.players[0].id,{type:'queue'});await f.game.command(f.players[1].id,{type:'queue'});
- const match=[...f.game.matches.values()][0];assert.ok(MAP_IDS.some(id=>id===match.state.map));assert.equal(ra.map,match.state.map);assert.equal(rb.map,match.state.map);
+ const match=[...f.game.matches.values()][0];assert.ok(MAP_IDS.some(id=>id===baseMapId(match.state.map)));assert.equal(ra.map,baseMapId(match.state.map));assert.equal(rb.map,baseMapId(match.state.map));
  assert.equal(commandSchema.safeParse({type:'create',name:'Fresh party'}).success,true);
  assert.equal(commandSchema.safeParse({type:'queue',map:'celestial'}).success,false);
  assert.equal(commandSchema.safeParse({type:'cancel-queue',roomId:ra.id}).success,false);
@@ -187,5 +187,5 @@ test('practice remains explicit and does not enter matchmaking or borrow a queue
  await f.game.command(f.players[1].id,{type:'create',practice:true,name:'Training',map:'celestial',mode:'1v1'});const practice=f.roomFor(f.players[1]);
  await f.game.command(f.players[1].id,{type:'queue'});assert.match(f.error(f.players[1])!,/treino/);assert.equal(practice.status,'waiting');
  await f.game.command(f.players[1].id,{type:'bot'});await f.game.command(f.players[1].id,{type:'start'});
- assert.equal(party.status,'searching');assert.equal(practice.status,'playing');assert.equal(f.game.matches.size,1);assert.equal([...f.game.matches.values()][0].state.map,'celestial');
+ assert.equal(party.status,'searching');assert.equal(practice.status,'playing');assert.equal(f.game.matches.size,1);assert.equal([...f.game.matches.values()][0].state.map,'celestial@0');
 });

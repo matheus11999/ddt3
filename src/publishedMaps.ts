@@ -1,4 +1,4 @@
-import {applyMapOverride,removeMapOverride} from '../shared/maps';
+import {applyMapOverride,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
 import type {MapOverride} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
@@ -13,6 +13,8 @@ export function applyPublishedMaps(data:PublishedMaps){
  const next=new Set(data.maps.map(m=>m.id));
  for(const id of applied)if(!next.has(id))removeMapOverride(id);
  for(const map of data.maps)applyMapOverride(map as MapOverride);
+ // A match in progress keeps the version it started on (`Battle.map` = `snow@12`).
+ releasePinnedMaps((data.pinned??[]).map(map=>registerPinnedMap({...map,revision:map.revision} as MapOverride&{revision:number})));
  applyLobbyLayout(data.lobby?.lobby??shipped);
  applied=next;
 }

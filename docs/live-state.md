@@ -23,6 +23,8 @@ Salas e partidas (PvP, treino e expedições) continuam depois que o servidor re
 - `npm test` (`tests/live-state.test.ts`): restaurar partida, tiro em voo, cópia mais nova, queda longa.
 - `npm run test:restart:integration`: sobe o servidor de verdade (precisa de `DATABASE_URL` e `REDIS_URL`), começa um treino, derruba com SIGTERM e com SIGKILL e confere que o jogador volta para a mesma partida com a mesma vida.
 
+A partida guarda a versão do mapa em que começou (`state.map` = `snow@12`). Na volta, `server/admin.ts` (`keepPinned`) carrega do Postgres a revisão que ela usa se o painel já publicou outra; `@0` é o mapa do repositório.
+
 ## Escala
 
 Um servidor atende todas as partidas (shard 1). Gravar só o que mudou mantém o custo baixo: uma partida parada não grava nada, o terreno só é regravado quando muda de turno. Para vários servidores no futuro, cada um usaria sua própria chave (`brasa:live:<shard>`) e o jogador seria levado ao shard da sua partida.

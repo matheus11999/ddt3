@@ -72,7 +72,8 @@ export interface PublishedMap {
  monsters?:{kind:(typeof MONSTER_KINDS)[number]|(typeof MARKER_KINDS)[number];x:number;y?:number}[];
 }
 export interface PublishedLobby {id:string;kind:'lobby';name:string;revision:number;lobby:LobbyLayout;}
-export interface PublishedMaps {maps:PublishedMap[];lobby:PublishedLobby|null;}
+export interface PublishedMaps {maps:PublishedMap[];lobby:PublishedLobby|null;
+ /** Older versions running matches still play (a match keeps the map it started on). */pinned?:PublishedMap[];}
 
 /** Summary row of the admin map list. */
 export interface AdminMapSummary {

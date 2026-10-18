@@ -25,7 +25,7 @@ Tipos: **PvP** (entra no sorteio das partidas), **Instância** (dungeons; guarda
 
 Usa o mesmo montador do `npm run build:map` (`shared/mapBuilder.ts`): as peças saem das folhas em magenta de `public/assets/maps/<id>/source/`, a colisão é traçada do alfa e os avisos são os mesmos (objeto flutuando, peça escondida, spawn sem chão, colado em objeto ou com obstáculo). Ao salvar, o editor monta o terreno e a prévia e manda para o servidor, que confere de novo os spawns e os limites da colisão; com spawn sem chão o mapa não pode ser publicado.
 
-- Arrastar peças, objetos e spawns; Shift trava o eixo; setas movem 1 px (Shift: 10 px); Del apaga; Ctrl+D duplica; Ctrl+Z/Ctrl+Y desfaz e refaz; Ctrl+S salva; arrastar o fundo navega. A lista completa abre no botão de teclado ou em `?`.
+- Arrastar peças, objetos e spawns; Shift trava o eixo; setas movem 1 px (Shift: 10 px); Del apaga; Ctrl+C/Ctrl+V copia e cola a peça ou o monstro onde está o mouse (Ctrl+X recorta; a área de transferência fica no navegador, então cola também em outro mapa, levando a folha junto); Ctrl+D duplica; Ctrl+Z/Ctrl+Y desfaz e refaz; Ctrl+S salva; arrastar o fundo navega. A lista completa abre no botão de teclado ou em `?`.
 - Zoom: roda do mouse no cursor (a página não dá zoom junto), pinça de dois dedos no touch, botões − / % / + e ajustar à tela; teclas `+`, `-`, `0` (mapa inteiro) e `1` (tamanho real).
 - Barras laterais recolhem (botões nas pontas da barra de cima, teclas `[` e `]`); a escolha fica salva no navegador.
 - Ajudas: grade de 96 px (`G`), encaixe de 8 px ao arrastar (`M`), régua do 1x1 entre as posições 1 dos dois times (`R`, verde dentro de 900–1200), retângulo de uma tela do jogo em volta do cursor (`T`), pôr a peça no centro do mapa. Na lista de itens, travar (`L`) impede mover a peça pelo mapa e esconder (`H`) tira a peça só da vista do editor; as duas valem só no editor.
@@ -64,6 +64,7 @@ Lista e detalhe das denúncias enviadas pelos jogadores, com o chat do denunciad
 ## Onde está o código
 
 - Servidor: `server/admin.ts` (rotas e aplicação dos mapas publicados), `server/adminAuth.ts` (senha, limite de tentativas), `server/adminStore.ts` (tabelas `admin_sessions`, `admin_audit`, `game_maps`, `game_map_revisions` e as estatísticas).
+- **Batalhas em andamento não mudam**: cada partida guarda a versão do mapa em que começou (`Battle.map` = `snow@12`, `pinMap` em `shared/maps.ts`). Publicar só vale para a próxima batalha; o servidor continua servindo a versão antiga (`pinned` em `GET /api/maps` e a imagem do terreno) enquanto alguma partida a usa, inclusive depois de reiniciar (busca a revisão no Postgres).
 - Formatos e validação: `shared/mapAdmin.ts`. Mapas publicados no jogo: `applyMapOverride`/`pvpRotation` em `shared/maps.ts`, `applyLobbyLayout` em `shared/lobby.ts`, cliente em `src/publishedMaps.ts`.
 - Interface: `admin.html` e `src/admin/`. No nginx, `/admin` serve `admin.html` e `/api/admin/` aceita corpo de até 32 MB (o terreno montado).
 - Jogadores e correio: `server/adminPlayers.ts`, `server/mail.ts`, `src/admin/Players.tsx`; teste `ADMIN_PASSWORD=<senha> npm run test:mail:browser`.

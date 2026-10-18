@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
-import {MAP_IDS,getMap} from '../shared/maps';
+import {MAP_IDS,baseMapId,getMap} from '../shared/maps';
 import {crater,createTerrain,ground,packTerrain,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,walkPosition,WORLD} from '../shared/physics';
 import {WEAPONS} from '../shared/catalog';
 import {Game} from '../server/game';
@@ -79,6 +79,6 @@ for(const map of MAP_IDS)test(`${map}: two clients receive identical impacts and
  const local=before.slice();for(const p of shotA.projectiles){assert.ok(p.impact.material);crater(local,p.impact.x,p.impact.y,p.impact.radius,map);}assert.deepEqual(local,match.terrain);
  assert.notDeepEqual(match.terrain,before);
  game.disconnect(a.id);const resumed:ServerEvent[]=[];game.connect(a,e=>resumed.push(e));const welcome=resumed.find((e):e is Extract<ServerEvent,{type:'welcome'}>=>e.type==='welcome')!;
- assert.equal(welcome.battle?.map,map);assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),match.terrain);
+ assert.equal(baseMapId(welcome.battle!.map),map);assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),match.terrain);
  await game.command(a.id,{type:'leave'});await game.command(b.id,{type:'leave'});for(const match of game.matches.values())if(match.state.rewards)game.tick(match.state.rewards.deadline+1);await new Promise(resolve=>setImmediate(resolve));game.tick(Date.now()+30000);assert.equal(game.matches.size,0);
 });
