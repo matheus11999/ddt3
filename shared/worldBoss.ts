@@ -9,7 +9,7 @@ export const WORLD_BOSS_ID='dragon';
 /** After the event ends (time out, stopped or the dragon killed) the window and its ranking stay open this long. */
 export const WORLD_BOSS_RESULTS_MS=20*60_000;
 export const WORLD_BOSS_DEFAULT_NAME='Dragão Ancestral';
-export const WORLD_BOSS_DEFAULT_HP=50_000_000;
+export const WORLD_BOSS_DEFAULT_HP=1_000_000;
 export const WORLD_BOSS_MAX_HP=2_100_000_000;
 /** Shortest and longest event the admin panel may open. */
 export const WORLD_BOSS_MIN_MINUTES=5,WORLD_BOSS_MAX_MINUTES=24*60;

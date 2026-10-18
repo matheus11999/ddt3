@@ -11,11 +11,13 @@
 html.mobile-landscape .world-boss-button{top:64px;right:12px;transform:scale(.82);transform-origin:top right}
 
 /* ── Event window ── */
-.world-boss-window{width:min(1060px,calc(100vw - 32px))}
-.world-boss-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;padding:14px;min-height:520px}
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.world-boss-window[class]{width:min(1060px,calc(100vw - 32px));height:auto;max-height:calc(100dvh - 32px)}
+.world-boss-layout{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;padding:14px;height:min(560px,calc(100dvh - 120px))}
+.world-boss-ranking{min-height:0}
 .world-boss-hero,.world-boss-ranking{border-radius:12px;padding:14px;display:flex;flex-direction:column;min-width:0}
 .world-boss-hero{align-items:stretch;gap:10px}
 .world-boss-portrait{position:relative;height:250px;margin:-4px -4px 0;border-radius:10px;overflow:hidden;background:radial-gradient(ellipse at 50% 70%,#ffbf6b55,transparent 60%),linear-gradient(#3b2440,#7b3424 70%,#c86a3c);box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 -30px 40px #2a0c0477}
+.world-boss-portrait img.is-missing{visibility:hidden}
 .world-boss-portrait img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 6px 6px #0009)}
 .world-boss-portrait.is-over img{filter:grayscale(.55) brightness(.85) drop-shadow(0 6px 6px #0009)}
 .world-boss-state{display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 10px;border-radius:9px;background:#f0d6a6;color:var(--wood-ink);font:800 14px Nunito,sans-serif;box-shadow:inset 0 0 0 1px var(--wood-edge)}
@@ -33,7 +35,7 @@ html.mobile-landscape .world-boss-button{top:64px;right:12px;transform:scale(.82
 .world-boss-enter{margin-top:auto;min-height:52px;font-size:20px;gap:10px}
 .world-boss-ranking header{display:flex;align-items:center;gap:8px;color:var(--wood-ink);margin-bottom:8px}
 .world-boss-ranking h2{font:700 19px Cinzel,serif}
-.world-boss-table-wrap{flex:1;min-height:0;max-height:430px;overflow:auto;scrollbar-width:thin;border-radius:8px;box-shadow:inset 0 0 0 1px var(--wood-edge)}
+.world-boss-table-wrap{flex:1;min-height:0;overflow:auto;scrollbar-width:thin;border-radius:8px;box-shadow:inset 0 0 0 1px var(--wood-edge)}
 .world-boss-table{width:100%;border-collapse:collapse;font:700 14px Nunito,sans-serif;color:var(--wood-ink);font-variant-numeric:tabular-nums}
 .world-boss-table th{position:sticky;top:0;z-index:1;padding:7px 10px;text-align:left;background:linear-gradient(var(--wood-bar),var(--wood-bar-deep));color:var(--wood-gold);font:900 12px Nunito,sans-serif;letter-spacing:.4px;text-transform:uppercase}
 .world-boss-table td{padding:7px 10px;border-top:1px solid #d9a96a55}
@@ -59,11 +61,10 @@ html.mobile-landscape .world-boss-button{top:64px;right:12px;transform:scale(.82
 .world-boss-mine{margin-top:8px;border-radius:8px;overflow:hidden;box-shadow:inset 0 0 0 1px #2f7bd0}
 .world-boss-empty,.world-boss-hint{margin:auto;color:var(--wood-ink-soft);font:700 15px Nunito,sans-serif;text-align:center}
 .world-boss-hint{margin:8px 0 0;font-size:13px}
-@media (max-width:860px){.world-boss-layout{grid-template-columns:1fr;min-height:0}.world-boss-portrait{height:170px}.world-boss-table-wrap{max-height:300px}}
-html.mobile-landscape .world-boss-layout{grid-template-columns:300px minmax(0,1fr);min-height:0;padding:10px;gap:10px}
+@media (max-width:860px){.world-boss-layout{grid-template-columns:1fr;height:auto}.world-boss-portrait{height:170px}.world-boss-table-wrap{max-height:300px}}
+html.mobile-landscape .world-boss-layout{grid-template-columns:300px minmax(0,1fr);height:calc(100dvh - 90px);padding:10px;gap:10px}
 html.mobile-landscape .world-boss-portrait{height:150px}
 html.mobile-landscape .world-boss-about{display:none}
-html.mobile-landscape .world-boss-table-wrap{max-height:calc(100dvh - 170px)}
 
 /* ── Battle: the global life in place of the enemy roster ── */
 .world-boss-bar{position:absolute;top:0;left:calc(50% + 108px);width:min(400px,calc(50% - 108px - 236px));display:flex;align-items:center;gap:10px;padding:6px 12px 6px 6px;border-radius:14px;background:linear-gradient(#5b2410e6,#2c0e04e6);border:2px solid #f2b56b;box-shadow:0 4px 10px #0008;color:#ffe9c2}

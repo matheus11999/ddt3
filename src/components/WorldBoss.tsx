@@ -66,7 +66,7 @@ export function WorldBossWindow(){
  return <Modal title={status.name} subtitle="Chefão Mundial" onClose={close} className="bag-window world-boss-window" viewport>
   <div className="world-boss-layout">
    <section className="world-boss-hero wood-cream" aria-label="O chefão">
-    <div className={`world-boss-portrait ${active?'':'is-over'}`}><img src={DRAGON_PORTRAIT} alt={status.name} draggable={false}/></div>
+    <div className={`world-boss-portrait ${active?'':'is-over'}`}><img src={DRAGON_PORTRAIT} alt="" draggable={false} onError={event=>event.currentTarget.classList.add('is-missing')}/></div>
     <div className={`world-boss-state ${active?'is-active':''}`}>{active?<><Flame size={16}/>Ativo · termina em <b>{clock((status.endsAt??now)-now)}</b></>:<><Trophy size={16}/>{ending(status)}</>}</div>
     <HealthBar hp={status.hp} maxHp={status.maxHp} big/>
     <p className="world-boss-lines"><span><Users size={15}/>{number(status.fighters)} {status.fighters===1?'aventureiro atacou':'aventureiros atacaram'}</span>
