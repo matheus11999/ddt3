@@ -11,12 +11,13 @@ import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
 import {guildChance} from '../shared/guilds';
+import type {HallStore,MatchRecord} from './hall';
 import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
 /** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
 export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
@@ -130,6 +131,8 @@ export function removeCopy(profile:Profile,item:string):{upgrade?:number;composi
 const ALWAYS_WORN=new Set(['weapon','outfit','face']);
 
 export class Store implements ProfileStore {
+ /** Hall da Fama: records PvP results with each battle and serves the lobby podium. */
+ hall?:HallStore;
  pool=new pg.Pool({connectionString:process.env.DATABASE_URL??'postgres://brasa:brasa_local@localhost:5447/brasa',max:12});
  constructor(private readonly roll:()=>number=()=>randomInt(1000)){}
  async init(){await this.pool.query(`
@@ -294,10 +297,11 @@ export class Store implements ProfileStore {
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
  /**
-  * Top three of today's PvP ranking (Brasília day): most wins, ties to whoever got
-  * there first. Every saved match counts, including training against bots.
+  * Top three of today's PvP ranking (Brasília day). With the Hall da Fama it is the top of its daily PvP board
+  * (official results only); the fallback counts every saved match, including training against bots.
   */
  async dailyRanking():Promise<RankingEntry[]>{
+  if(this.hall)return this.hall.podium();
   const r=await this.pool.query(`SELECT w.id,count(*)::int AS wins,p.profile,p.name FROM matches m CROSS JOIN LATERAL jsonb_array_elements_text(m.winners) AS w(id) JOIN players p ON p.id::text=w.id
    WHERE m.finished_at>=(date_trunc('day',now() AT TIME ZONE '${RANKING_TIME_ZONE}') AT TIME ZONE '${RANKING_TIME_ZONE}')
    GROUP BY w.id,p.profile,p.name ORDER BY wins DESC,max(m.finished_at) ASC,w.id LIMIT 3`);
@@ -315,9 +319,10 @@ export class Store implements ProfileStore {
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
  async rename(id:string,name:string){await this.pool.query('UPDATE players SET name=$2 WHERE id=$1',[id,name]);}
- async finishMatch(matchId:string,winners:string[],players:string[],bonuses:MatchBonuses={}){
+ async finishMatch(matchId:string,winners:string[],players:string[],bonuses:MatchBonuses={},record?:MatchRecord){
   const c=await this.pool.connect();try{
    await c.query('BEGIN');const inserted=await c.query('INSERT INTO matches(id,winners,players) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING id',[matchId,JSON.stringify(winners),JSON.stringify(players)]);
+   if(inserted.rowCount&&record&&this.hall)await this.hall.record(c,record);
    if(inserted.rowCount)for(const id of [...players].sort()){
     const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);if(!r.rows[0])continue;
     const p=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}),win=winners.includes(id);p.matches++;p.wins+=win?1:0;p.xp+=win?120:50;p.gold+=win?80:25;applyPrize(p,bonuses[id]);p.level=Math.max(p.level,levelForXp(p.xp));

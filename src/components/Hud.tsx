@@ -32,6 +32,7 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   {id:'quests',label:'Missões',art:'arena-quests.png',count:pendingQuests,action:()=>toggle('quests'),pressed:menu==='quests'},
   {id:'mail',label:'Correio',art:'arena-mail.png',count:mailUnread,action:()=>{setMenu(null);client.openMail();audio.play('click');}},
   {id:'guild',label:'Guilda',art:'arena-guild.png',action:()=>{setMenu(null);client.openGuild();audio.play('click');}},
+  {id:'hall',label:'Hall da Fama',art:'hall-button.png',action:()=>{setMenu(null);client.openHall();audio.play('click');}},
   {id:'settings',label:'Ajustes',art:'settings-button.png',action:onSettings},
  ];
  return <><div className="top-vignette"/><button className="player-hud" onClick={onInventory} title="Abrir mochila"><div className="portrait"><div className="portrait-crop"><Avatar equipment={p.equipment} size={87} portrait animated={false} weapon={false}/></div><div className="profile-level-badge"><LevelBadge level={p.level} size={40}/></div></div><div className="profile-lines"><div className="profile-name"><strong>{p.name}</strong><small>AVENTUREIRO</small></div><div className="resource-bar health"><i/><span><b>HP</b>{stats.hp} / {stats.hp}</span></div><div className="resource-bar stamina"><i/><span><b>VIGOR</b>{stats.stamina} / {stats.stamina}</span></div><div className="profile-power" title="Poder do jogador"><PowerIcon size={24}/> {stats.power.toLocaleString('pt-BR')}</div></div></button>

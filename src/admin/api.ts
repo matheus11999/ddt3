@@ -2,6 +2,7 @@ import type {AdminMapSummary,AdminRevision,MapSave} from '../../shared/mapAdmin'
 import type {ReportDetail,ReportStatus,ReportSummary} from '../../shared/reports';
 import type {AdminPlayerDetail,AdminPlayerRow,PlayerSort} from '../../shared/adminPlayers';
 import type {MailAttachment,MailMessage} from '../../shared/mail';
+import type {HallAdminMatch,HallAlert,HallClosing,HallConfig} from '../../shared/hall';
 
 /** Admin API client. Every call is same-origin; the session cookie is scoped to /api/admin. */
 export class ApiError extends Error {constructor(message:string,public status:number){super(message);}}
@@ -31,7 +32,15 @@ export interface SentMail extends MailMessage {createdBy:string;claimedAt:string
 export interface MailDraft {sender?:string;subject:string;body:string;attachments:MailAttachment[];}
 export type RevisionData=Record<string,unknown>&{kind:string;name:string;subtitle?:string;enabled?:boolean};
 
+export interface HallAdmin {config:HallConfig;closings:HallClosing[];audit:{at:string;admin:string|null;action:string;detail:Record<string,unknown>}[];}
 export const api={
+ hall:()=>call<HallAdmin>('GET','/api/admin/hall'),
+ hallConfig:(config:HallConfig)=>call<{config:HallConfig}>('PUT','/api/admin/hall/config',config),
+ hallAlerts:(status:'open'|'all')=>call<{alerts:HallAlert[]}>('GET',`/api/admin/hall/alerts?status=${status}`),
+ hallAlert:(id:number,status:'open'|'dismissed')=>call<{ok:true}>('POST',`/api/admin/hall/alerts/${id}`,{status}),
+ hallMatches:(page:number,player?:string)=>call<{matches:HallAdminMatch[];page:number}>('GET',`/api/admin/hall/matches?page=${page}${player?`&player=${encodeURIComponent(player)}`:''}`),
+ hallVoid:(id:string,reason:string,restore=false)=>call<{ok:true}>('POST',`/api/admin/hall/matches/${id}/void`,{reason,...(restore?{restore}:{})}),
+ hallRebuild:()=>call<{ok:true}>('POST','/api/admin/hall/rebuild',{}),
  me:()=>call<{username:string|null;enabled:boolean}>('GET','/api/admin/me'),
  login:(username:string,password:string)=>call<{username:string}>('POST','/api/admin/login',{username,password}),
  logout:()=>call<{ok:true}>('POST','/api/admin/logout',{}),

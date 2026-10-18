@@ -17,6 +17,9 @@ import type {PlayerDirectory} from './adminPlayers';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {attachmentLabel,mailSendSchema} from '../shared/mail';
 import {canEquipItem,CATALOG} from '../shared/catalog';
+import type {HallStore} from './hall';
+import {hallAlertSchema,hallConfigSchema,hallVoidSchema} from '../shared/hall';
+import type {HallConfig} from '../shared/hall';
 
 /**
  * Admin panel API (/api/admin/*) and the published maps the game reads (/api/maps).
@@ -32,7 +35,8 @@ const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;
  /** Map versions running matches play (`snow@12`, shared/maps.ts pinMap). */pinnedMaps?:()=>string[];
  /** Players page: the table, the mail it sends and where each online player is. */
- players?:PlayerDirectory;mail?:MailStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;}
+ players?:PlayerDirectory;mail?:MailStore;
+ /** Hall da Fama: its settings, review alerts, battle corrections and closings. */hall?:HallStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;}
 
 const png=(base64:string)=>{const buffer=Buffer.from(base64,'base64');if(buffer.length<24||buffer.readUInt32BE(0)!==0x89504e47)throw new Error('Imagem inválida.');return {buffer,width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20)};};
 const ipOf=(req:FastifyRequest)=>req.ip??'unknown';
@@ -160,6 +164,42 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   if(!ctx.reports||!await ctx.reports.setStatus(id,parsed.data.status,name,parsed.data.note))return reply.code(404).send({error:'Denúncia não encontrada.'});
   await store.audit(name,ipOf(req),'report-status',{id,status:parsed.data.status});
   return {report:await ctx.reports.get(id)};
+ });
+
+ // ── Hall da Fama: settings, alerts and corrections (every change goes to the hall's own audit trail) ──
+ const hallOff=(reply:FastifyReply)=>reply.code(503).send({error:'Hall da Fama indisponível.'});
+ app.get('/api/admin/hall',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!ctx.hall)return hallOff(reply);
+  return {config:ctx.hall.config,closings:await ctx.hall.closings(),audit:await ctx.hall.auditLog()};
+ });
+ app.put('/api/admin/hall/config',{bodyLimit:32*1024},async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!ctx.hall)return hallOff(reply);
+  const parsed=hallConfigSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:parsed.error.issues[0]?.message??'Configuração inválida.'});
+  const config=await ctx.hall.saveConfig(parsed.data as HallConfig,name);await store.audit(name,ipOf(req),'hall-config');return {config};
+ });
+ app.get('/api/admin/hall/alerts',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!ctx.hall)return hallOff(reply);
+  return {alerts:await ctx.hall.alertList((req.query as Record<string,unknown>)?.status==='all'?'all':'open')};
+ });
+ app.post<{Params:{id:string}}>('/api/admin/hall/alerts/:id',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!ctx.hall)return hallOff(reply);
+  const id=Number(req.params.id),parsed=hallAlertSchema.safeParse(req.body);if(!parsed.success||!Number.isSafeInteger(id))return reply.code(400).send({error:'Dados inválidos.'});
+  if(!await ctx.hall.setAlert(id,parsed.data.status,name))return reply.code(404).send({error:'Alerta não encontrado.'});return {ok:true};
+ });
+ app.get('/api/admin/hall/matches',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!ctx.hall)return hallOff(reply);
+  const q=(req.query??{}) as Record<string,unknown>;
+  return ctx.hall.matchList({playerId:typeof q.player==='string'?q.player:undefined,page:Number(q.page)||0});
+ });
+ app.post<{Params:{id:string}}>('/api/admin/hall/matches/:id/void',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!ctx.hall)return hallOff(reply);
+  const parsed=hallVoidSchema.safeParse(req.body);if(!parsed.success||!/^[0-9a-f-]{36}$/i.test(req.params.id))return reply.code(400).send({error:'Explique o motivo (3 a 200 letras).'});
+  try{await ctx.hall.voidMatch(req.params.id,parsed.data.reason,name,parsed.data.restore===true);}catch(error){return reply.code(409).send({error:error instanceof Error?error.message:'Não foi possível corrigir.'});}
+  await store.audit(name,ipOf(req),parsed.data.restore?'hall-restore':'hall-void',{match:req.params.id,reason:parsed.data.reason});return {ok:true};
+ });
+ app.post('/api/admin/hall/rebuild',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!ctx.hall)return hallOff(reply);
+  await ctx.hall.rebuild(name);await store.audit(name,ipOf(req),'hall-rebuild');return {ok:true};
  });
 
  // ── Players and their mail (items and coins sent from the panel arrive as mail attachments) ──

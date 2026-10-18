@@ -386,3 +386,16 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-cut-areas .adm-toggle-row{display:grid}
 .adm-cut-area{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 10px;border-radius:9px;border:1px dashed #ff5a4a88;background:#ff5a4a14;color:var(--muted);font-size:12px}
 .adm-cut-area .adm-icon{width:28px;height:28px}
+/* Hall da Fama */
+.adm-hall-config{display:grid;gap:10px;align-content:start;min-width:0}
+.adm-hall-config h3{margin:6px 0 0;font-size:14px}
+.adm-hall-config input{width:100%}
+.adm-hall-rewards{display:grid;gap:6px}
+.adm-hall-form{grid-template-columns:minmax(0,1fr) minmax(0,1.25fr)}
+@media(max-width:1100px){.adm-hall-form{grid-template-columns:minmax(0,1fr)}}
+.adm-hall-rewards{min-width:0}
+.adm-hall-rewards table{width:100%;min-width:0;table-layout:fixed}
+.adm-hall-rewards :is(th,td){padding-left:4px;padding-right:4px}
+.adm-hall-rewards input{width:100%;min-width:0;padding-left:8px;padding-right:4px}
+.adm-hall-rewards td:last-child,.adm-hall-rewards th:last-child{width:88px}
+.adm-hall-actions{display:flex;gap:6px}
