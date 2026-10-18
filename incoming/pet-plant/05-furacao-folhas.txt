@@ -1,0 +1,14 @@
+Folha de arte de efeito de jogo 2D, estilo pintado do DDTank (cores vivas, volume, contorno suave), mesma direção de arte das imagens de referência anexadas (a Verdália: Broto, Botão e Flor).
+
+Fundo: magenta puro #FF00FF chapado em toda a folha, sem gradiente, sem sombra, sem chão.
+Tamanho: 1536 x 1024. Grade de 3 colunas x 2 linhas, cada célula 512 x 512, com bastante magenta separando tudo (nada encostando na borda da célula).
+Nada de texto, números, letras, personagens ou chão.
+
+LINHA 1 (o efeito principal): um FURACÃO CIRCULAR DE FOLHAS visto de frente: um redemoinho redondo e compacto de folhas girando em espiral em volta de um centro claro, com faixas de vento verde-claro curvas acompanhando o giro (como um pequeno tornado de folhas visto de cima/de frente, formato de círculo). Simples e limpo, NÃO carregado. Ocupa um círculo de uns 360 px dentro da célula.
+- Coluna 1 (Broto): bem básico, 8 a 10 folhinhas verde-limão pequenas, 2 ou 3 faixas de vento finas, centro verde-claro suave.
+- Coluna 2 (Botão): um pouco mais cheio, folhas verdes médias e mais escuras, 3 ou 4 botõezinhos rosados pequenos girando junto, faixas de vento mais marcadas.
+- Coluna 3 (Flor): o mais bonito, folhas verdes vivas misturadas com pétalas rosa-coral e algumas faíscas douradas pequenas, centro dourado claro.
+
+LINHA 2 (partículas soltas da mesma coluna/estágio): 6 peças soltas e separadas entre si por magenta, espalhadas na célula: folhinhas individuais (Broto), folhas e um botão rosado (Botão), pétalas rosa-coral e folhas (Flor).
+
+Regras de cor: nunca usar magenta/fúcsia puro nas peças (o fundo é magenta); rosa sempre puxado para coral/salmão. Brilho pintado em formas sólidas, sem halo transparente, sem névoa, sem fumaça, bordas nítidas para recortar do magenta.
