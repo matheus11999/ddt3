@@ -21,7 +21,7 @@ const SCREEN_WIDTH=1536,SNAP=8,MIN_ZOOM=.1,MAX_ZOOM=4;
 interface Ui {left:boolean;right:boolean;snap:boolean;ruler:boolean;screen:boolean;}
 const UI_KEY='brasa-admin-map-editor';
 const loadUi=():Ui=>{const fallback={left:true,right:true,snap:false,ruler:true,screen:false};try{return {...fallback,...JSON.parse(localStorage.getItem(UI_KEY)??'{}')};}catch{return fallback;}};
-const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
+const SHORTCUTS:[string,string][]=[['Arrastar','move a peça ou o spawn'],['Shift + arrastar','trava o eixo'],['Cantos da peça','arraste para mudar o tamanho'],['Setas','move 1 px (Shift: 10 px)'],['Roda do mouse','zoom no cursor (Shift: anda para o lado)'],['Dois dedos','zoom e navegação no touch'],['Arrastar o fundo','navega (também botão do meio ou direito)'],['+ / −','zoom'],['0','ver o mapa inteiro'],['1','tamanho real'],['[ e ]','recolhe as barras laterais'],['G · M · R · T','grade · encaixe · régua · tela do jogo'],['L · H','trava · esconde a peça'],['Ctrl+D','duplica'],['Del','apaga'],['Ctrl+Z / Ctrl+Y','desfaz / refaz'],['Ctrl+S','salva'],['Esc','tira a seleção']];
 
 type Selection={type:'item';index:number}|{type:'spawn';team:number;slot:number}|{type:'monster';index:number}|null;
 /** Instance maps: names and sprites of the monsters the editor places (the nest is a marker, not a creature). */
@@ -33,7 +33,7 @@ interface Doc {layout:MapLayout;meta:Meta;}
 /** A sheet of this layout (by its key in layout.sheets), with where it comes from and its piece names. */
 interface Sheet {name:string;pieces:LibraryPiece[];label:string;folder:string;foreign:boolean;names:Record<string,string[]>;sheet:string;}
 interface View {scale:number;x:number;y:number;}
-type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'monster';index:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View}|{kind:'cut';index:number;startX:number;startY:number;x:number;y:number};
+type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'monster';index:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View}|{kind:'cut';index:number;startX:number;startY:number;x:number;y:number}|{kind:'resize';index:number;anchorX:number;anchorY:number;fromTop:boolean;origin:LayoutItem;width:number;moved:boolean};
 
 type PieceSave=Extract<MapSave,{layout:unknown}>;
 const clone=<T,>(v:T):T=>structuredClone(v);
@@ -185,7 +185,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    c.lineWidth=(selected?2.5:2)/v.scale;c.strokeStyle=selected?(p.mirrored?'rgba(255,214,120,.7)':'#ffd166'):'#ff6b5a';if(p.mirrored||!selected&&warned)c.setLineDash([8/v.scale,6/v.scale]);
    if(p.mirrored&&!overlay.ghost&&!warned){c.setLineDash([]);continue;}
    c.strokeRect(p.left,p.top,p.w,p.h);c.setLineDash([]);
-   if(selected&&!p.mirrored){c.fillStyle='#ffd166';for(const [hx,hy] of [[p.left,p.top],[p.left+p.w,p.top],[p.left,p.top+p.h],[p.left+p.w,p.top+p.h]]){c.fillRect(hx-4/v.scale,hy-4/v.scale,8/v.scale,8/v.scale);}}
+   if(selected&&!p.mirrored){c.fillStyle='#ffd166';c.strokeStyle='#3b2410';c.lineWidth=1.5/v.scale;for(const [hx,hy] of [[p.left,p.top],[p.left+p.w,p.top],[p.left,p.top+p.h],[p.left+p.w,p.top+p.h]]){c.fillRect(hx-6/v.scale,hy-6/v.scale,12/v.scale,12/v.scale);c.strokeRect(hx-6/v.scale,hy-6/v.scale,12/v.scale,12/v.scale);}}
   }
   // Spawns: a capsule standing on the ground, numbered like spawns.png.
   const s=1/Math.max(.45,v.scale);
@@ -229,12 +229,17 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const pointers=useRef(new Map<number,{x:number;y:number}>()),pinchRef=useRef<{dist:number;mx:number;my:number;view:View}|null>(null);
  const pinchState=()=>{const [a,b]=[...pointers.current.values()],r=canvasRef.current!.getBoundingClientRect();return {dist:Math.hypot(a.x-b.x,a.y-b.y)||1,mx:(a.x+b.x)/2-r.left,my:(a.y+b.y)/2-r.top};};
  const snap=(v:number)=>ui.snap?Math.round(v/SNAP)*SNAP:Math.round(v);
+ // The selected piece's corner squares resize it (the opposite corner stays put).
+ const hitHandle=(x:number,y:number)=>{if(selection?.type!=='item'||locked.has(doc?.layout.items[selection.index]?.id??''))return null;const p=placed.find(q=>q.source===selection.index&&!q.mirrored);if(!p||!p.w)return null;
+  const r=10/viewRef.current.scale;for(const [hx,hy] of [[p.left,p.top],[p.left+p.w,p.top],[p.left,p.top+p.h],[p.left+p.w,p.top+p.h]])if(Math.abs(x-hx)<=r&&Math.abs(y-hy)<=r)return {p,right:hx>p.left+p.w/2,bottom:hy>p.top+p.h/2};return null;};
  const onPointerDown=(e:React.PointerEvent)=>{
   if(!doc)return;(e.target as HTMLElement).setPointerCapture(e.pointerId);pointers.current.set(e.pointerId,{x:e.clientX,y:e.clientY});
   if(pointers.current.size===2){dragRef.current=null;pinchRef.current={...pinchState(),view:{...viewRef.current}};return;}
   const {x,y}=toWorld(e);
   if(e.button===1||e.button===2||e.altKey){dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};return;}
   if(cutting&&selection?.type==='item'){dragRef.current={kind:'cut',index:selection.index,startX:x,startY:y,x,y};return;}
+  const handle=hitHandle(x,y);if(handle&&selection?.type==='item'){const {p,right,bottom}=handle,origin=clone(doc.layout.items[selection.index]);origin.top=Math.round(p.top);
+   dragRef.current={kind:'resize',index:selection.index,anchorX:right?p.left:p.left+p.w,anchorY:bottom?p.top:p.top+p.h,fromTop:!bottom,origin,width:p.w,moved:false};return;}
   const spawn=hitSpawn(x,y);if(spawn){setSelection({type:'spawn',...spawn});dragRef.current={kind:'spawn',...spawn,startX:x,origin:doc.layout.spawns[spawn.team][spawn.slot],moved:false};return;}
   const monster=hitMonster(x,y);if(monster!==null){setSelection({type:'monster',index:monster});dragRef.current={kind:'monster',index:monster,startX:x,origin:doc.layout.monsters![monster].x,moved:false};return;}
   const item=hitItem(x,y);
@@ -249,10 +254,14 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(pinchRef.current&&pointers.current.size>=2){const p=pinchRef.current,now=pinchState(),scale=Math.max(MIN_ZOOM,Math.min(MAX_ZOOM,p.view.scale*now.dist/p.dist));
    viewRef.current={scale,x:now.mx-(p.mx-p.view.x)*scale/p.view.scale,y:now.my-(p.my-p.view.y)*scale/p.view.scale};redraw(n=>n+1);return;}
   if(ui.screen){hoverRef.current=toWorld(e);if(!dragRef.current)redraw(n=>n+1);}
+  if(!dragRef.current&&canvasRef.current){const h=hitHandle(toWorld(e).x,toWorld(e).y);canvasRef.current.style.cursor=h?(h.right===h.bottom?'nwse-resize':'nesw-resize'):cutting?'crosshair':'';}
   const drag=dragRef.current;if(!drag)return;
   if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
   const {x,y}=toWorld(e);
   if(drag.kind==='cut'){drag.x=x;drag.y=y;redraw(n=>n+1);return;}
+  if(drag.kind==='resize'){const base=drag.origin.scale??1,scale=Math.max(.05,Math.min(4,Math.round(base*Math.max(12,Math.abs(x-drag.anchorX))/drag.width*100)/100));
+   const w=drag.width*scale/base,h=(placed.find(q=>q.source===drag.index&&!q.mirrored)?.piece?.h??0)*scale,left=x<drag.anchorX?drag.anchorX-w:drag.anchorX;
+   change(d=>{const item=d.layout.items[drag.index];item.scale=scale;item.x=Math.round(left+w/2);item.top=Math.round(drag.fromTop?drag.anchorY-h:drag.anchorY);},!drag.moved);drag.moved=true;return;}
   if(drag.kind==='spawn'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
   if(drag.kind==='monster'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{const m=d.layout.monsters![drag.index];m.x=nx;delete m.y;},!drag.moved);drag.moved=true;return;}
   let dx=x-drag.startX,dy=y-drag.startY;if(e.shiftKey){if(Math.abs(dx)>Math.abs(dy))dy=0;else dx=0;}
@@ -435,7 +444,7 @@ function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange
   </div></div>
   <label className="adm-field"><span>Nome</span><input value={item.id} maxLength={48} onChange={e=>onChange({id:e.target.value.replace(/[^a-z0-9_-]/gi,'-')})}/></label>
   <div className="adm-pair"><Num label="X (centro)" value={item.x} onChange={v=>onChange({x:v})}/><Num label="Topo" value={item.top} onChange={v=>onChange({top:v})}/></div>
-  <label className="adm-field"><span>Escala</span><span className="adm-range"><input type="range" min={.1} max={2} step={.01} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)},false)} onPointerUp={e=>onChange({scale:Number((e.target as HTMLInputElement).value)})}/><input type="number" step={.01} min={.05} max={4} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)||1})}/></span></label>
+  <label className="adm-field"><span>Escala</span><span className="adm-range"><input type="range" min={.1} max={4} step={.01} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)},false)} onPointerUp={e=>onChange({scale:Number((e.target as HTMLInputElement).value)})}/><input type="number" step={.01} min={.05} max={4} value={item.scale??1} onChange={e=>onChange({scale:Number(e.target.value)||1})}/></span></label>
   <Toggle label="Virar" hint="Espelha a peça no lugar" value={!!item.flip} onChange={v=>onChange({flip:v||undefined})}/>
   {mirrorMap&&<Toggle label="Repetir no outro time" hint="Cópia espelhada do outro lado do centro" value={mirrored} onChange={v=>onChange({mirror:v?undefined:false})}/>}
   {mirrored&&<label className="adm-field"><span>Peça do lado espelhado</span><select value={item.mirrorAs?.piece??-1} onChange={e=>{const v=Number(e.target.value);onChange({mirrorAs:v<0?undefined:{...item.mirrorAs,piece:v}});}}><option value={-1}>A mesma</option>{pieces.map((p,n)=><option key={n} value={n}>{pieceLabel(sheets[sheet],n)} · {p.w}×{p.h}</option>)}</select><small>Varia os dois lados para não ficarem iguais.</small></label>}
