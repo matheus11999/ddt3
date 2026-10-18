@@ -79,7 +79,8 @@ export function ExpeditionRoom({onInventory}:{onInventory:()=>void}){
     <button type="button" className="pr-banner-art expedition-banner-art" disabled={!online} onClick={()=>setPicking(true)} aria-label={choice?`Expedição ${choice.name}, ${DIFFICULTY_NAMES[room.expedition!.difficulty]}, estágio ${stageIndex+1}. Ver expedições`:'Selecionar uma expedição'}>
      <img src={choice?choice.board:'/assets/expeditions/room-banner.webp'} alt="" draggable={false}/>
      {!stage&&<h2 aria-hidden="true"><span>Central de</span><strong data-text="Expedições">Expedições</strong></h2>}
-     {choice&&stage?<div className="expedition-banner-choice"><StageBadge stage={stageIndex+1}/><span className="expedition-difficulty-tag" data-difficulty={room.expedition!.difficulty}>{DIFFICULTY_NAMES[room.expedition!.difficulty]}</span><BattleText className="expedition-title">{choice.name}</BattleText><ExpeditionDrops expedition={choice}/></div>
+     {choice&&stage&&<span className="expedition-difficulty-tag expedition-board-difficulty" data-difficulty={room.expedition!.difficulty}>{DIFFICULTY_NAMES[room.expedition!.difficulty]}</span>}
+     {choice&&stage?<div className="expedition-banner-choice"><StageBadge stage={stageIndex+1}/><BattleText className="expedition-title">{choice.name}</BattleText><ExpeditionDrops expedition={choice}/></div>
       :<div className="expedition-banner-call"><Compass size={28} aria-hidden="true"/><strong>Selecione uma expedição</strong><span>{host?'Clique aqui para ver as expedições':'O líder escolhe para onde a equipe vai'}</span></div>}
     </button>
    </section>
