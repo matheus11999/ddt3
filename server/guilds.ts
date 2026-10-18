@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import {canEquipItem,nextCopyKey} from '../shared/catalog';
-import {BUILDING_NAMES,buildingLevelCost,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_MAX_LEVEL,GUILD_OFFER_BY_ID,GUILD_PAGE_SIZE,guildLevelCost,guildMemberCap,storageCapacity,validGuildName} from '../shared/guilds';
-import type {GuildApplication,GuildBuilding,GuildMember,GuildRole,GuildState,GuildStored,GuildSummary,GuildView} from '../shared/guilds';
+import {addMissionProgress,BUILDING_NAMES,buildingLevelCost,claimMission,dailyFor,guildDay,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_MAX_LEVEL,GUILD_OFFER_BY_ID,GUILD_PAGE_SIZE,guildLevelCost,guildMemberCap,storageCapacity,validGuildName} from '../shared/guilds';
+import type {GuildApplication,GuildBuilding,GuildMissionId,GuildMember,GuildRole,GuildState,GuildStored,GuildSummary,GuildView} from '../shared/guilds';
 import type {AuctionGoods,AuctionSource} from '../shared/auction';
 import type {Profile} from '../shared/protocol';
 import {goodsAttachment,takeGoods} from './auction';
@@ -29,6 +29,10 @@ export interface GuildHall {
  withdraw(playerId:string,id:number):Promise<{profile:Profile;guildId:number}>;
  /** GvG win: each winner adds Riqueza to the guild and contribution to their own record, once per battle. */
  gvgWin(matchId:string,guildId:number,winners:string[],amount:number):Promise<boolean>;
+ /** Daily mission progress for these players (members only); returns who counted. */
+ missionProgress(playerIds:string[],mission:GuildMissionId,amount?:number):Promise<string[]>;
+ /** Claims a finished daily mission: contribution for the member, the same Riqueza for the guild. */
+ claimMission(playerId:string,mission:GuildMissionId):Promise<{guildId:number;reward:number}>;
 }
 type Buildings=Record<GuildBuilding,number>;
 interface GuildRow {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Buildings;createdAt:string;}
@@ -68,6 +72,7 @@ export class GuildStore implements GuildHall {
   CREATE TABLE IF NOT EXISTS guild_members(player_id uuid PRIMARY KEY REFERENCES players(id) ON DELETE CASCADE,guild_id int NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
    role varchar(8) NOT NULL DEFAULT 'member',contribution bigint NOT NULL DEFAULT 0,joined_at timestamptz NOT NULL DEFAULT now());
   CREATE INDEX IF NOT EXISTS guild_members_guild ON guild_members(guild_id);
+  ALTER TABLE guild_members ADD COLUMN IF NOT EXISTS daily jsonb NOT NULL DEFAULT '{}';
   CREATE TABLE IF NOT EXISTS guild_applications(guild_id int NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,
    created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(guild_id,player_id));
   CREATE TABLE IF NOT EXISTS guild_storage(id bigserial PRIMARY KEY,guild_id int NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,goods jsonb NOT NULL,by_name varchar(24) NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
@@ -97,16 +102,16 @@ export class GuildStore implements GuildHall {
  async memberIds(guildId:number){return (await this.pool.query('SELECT player_id FROM guild_members WHERE guild_id=$1',[guildId])).rows.map(row=>row.player_id as string);}
  async state(playerId:string):Promise<GuildState>{
   const applied=(await this.pool.query('SELECT guild_id FROM guild_applications WHERE player_id=$1',[playerId])).rows.map(row=>Number(row.guild_id));
-  const r=await this.pool.query('SELECT g.*,m.role FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1',[playerId]);
+  const r=await this.pool.query('SELECT g.*,m.role,m.daily FROM guild_members m JOIN guilds g ON g.id=m.guild_id WHERE m.player_id=$1',[playerId]);
   if(!r.rows[0])return {guild:null,applied};
-  const g=guildRow(r.rows[0]),owner=r.rows[0].role==='owner';
-  const members=(await this.pool.query(`SELECT m.player_id,m.role,m.contribution,m.joined_at,p.name,p.profile->>'level' AS level FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=$1 ORDER BY (m.role='owner') DESC,m.contribution DESC,m.joined_at`,[g.id])).rows
-   .map((row):GuildMember=>({id:row.player_id,name:row.name,level:Number(row.level??1),role:row.role,contribution:Number(row.contribution),joinedAt:new Date(row.joined_at).toISOString()}));
+  const g=guildRow(r.rows[0]),owner=r.rows[0].role==='owner',day=guildDay();
+  const members=(await this.pool.query(`SELECT m.player_id,m.role,m.contribution,m.joined_at,m.daily,p.name,p.profile->>'level' AS level FROM guild_members m JOIN players p ON p.id=m.player_id WHERE m.guild_id=$1 ORDER BY (m.role='owner') DESC,m.contribution DESC,m.joined_at`,[g.id])).rows
+   .map((row):GuildMember=>({id:row.player_id,name:row.name,level:Number(row.level??1),role:row.role,contribution:Number(row.contribution),today:dailyFor(row.daily,day).today,joinedAt:new Date(row.joined_at).toISOString()}));
   const storage=(await this.pool.query('SELECT * FROM guild_storage WHERE guild_id=$1 ORDER BY id',[g.id])).rows
    .map((row):GuildStored=>({id:Number(row.id),goods:row.goods as AuctionGoods,by:row.by_name,at:new Date(row.created_at).toISOString()}));
   const applications=owner?(await this.pool.query(`SELECT a.player_id,a.created_at,p.name,p.profile->>'level' AS level FROM guild_applications a JOIN players p ON p.id=a.player_id WHERE a.guild_id=$1 ORDER BY a.created_at`,[g.id])).rows
    .map((row):GuildApplication=>({playerId:row.player_id,name:row.name,level:Number(row.level??1),at:new Date(row.created_at).toISOString()})):undefined;
-  const view:GuildView={id:g.id,name:g.name,level:g.level,riqueza:g.riqueza,ownerId:g.ownerId,buildings:g.buildings,members,storage,createdAt:g.createdAt,...(applications?{applications}:{})};
+  const view:GuildView={id:g.id,name:g.name,level:g.level,riqueza:g.riqueza,ownerId:g.ownerId,ownerName:members.find(m=>m.id===g.ownerId)?.name??'',daily:dailyFor(r.rows[0].daily,day),buildings:g.buildings,members,storage,createdAt:g.createdAt,...(applications?{applications}:{})};
   return {guild:view,applied};
  }
  async list(search=''){
@@ -218,9 +223,28 @@ export class GuildStore implements GuildHall {
   return this.transaction(async c=>{
    const inserted=await c.query('INSERT INTO guild_gvg(match_id,guild_id,winners,amount) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING RETURNING match_id',[matchId,guildId,JSON.stringify(winners),amount]);
    if(!inserted.rowCount)return false;
-   const r=await c.query('UPDATE guild_members SET contribution=contribution+$3 WHERE guild_id=$1 AND player_id=ANY($2::uuid[]) RETURNING player_id',[guildId,winners,amount]);
-   await c.query('UPDATE guilds SET riqueza=riqueza+$2 WHERE id=$1',[guildId,amount*r.rowCount!]);
+   const r=await c.query('SELECT player_id,daily FROM guild_members WHERE guild_id=$1 AND player_id=ANY($2::uuid[]) FOR UPDATE',[guildId,winners]),day=guildDay();
+   for(const row of r.rows){const daily=dailyFor(row.daily,day);daily.today+=amount;await c.query('UPDATE guild_members SET contribution=contribution+$2,daily=$3 WHERE player_id=$1',[row.player_id,amount,JSON.stringify(daily)]);}
+   await c.query('UPDATE guilds SET riqueza=riqueza+$2 WHERE id=$1',[guildId,amount*r.rows.length]);
    return true;
+  });
+ }
+ async missionProgress(playerIds:string[],mission:GuildMissionId,amount=1){
+  if(!playerIds.length)return [];
+  return this.transaction(async c=>{
+   const r=await c.query('SELECT player_id,daily FROM guild_members WHERE player_id=ANY($1::uuid[]) FOR UPDATE',[playerIds]),day=guildDay();
+   for(const row of r.rows)await c.query('UPDATE guild_members SET daily=$2 WHERE player_id=$1',[row.player_id,JSON.stringify(addMissionProgress(dailyFor(row.daily,day),mission,amount))]);
+   return r.rows.map(row=>row.player_id as string);
+  });
+ }
+ async claimMission(playerId:string,mission:GuildMissionId){
+  return this.transaction(async c=>{
+   const g=await this.myGuild(c,playerId);
+   const row=(await c.query('SELECT daily FROM guild_members WHERE player_id=$1 FOR UPDATE',[playerId])).rows[0];
+   const daily=dailyFor(row.daily,guildDay()),reward=claimMission(daily,mission);
+   await c.query('UPDATE guild_members SET contribution=contribution+$2,daily=$3 WHERE player_id=$1',[playerId,reward,JSON.stringify(daily)]);
+   await c.query('UPDATE guilds SET riqueza=riqueza+$2 WHERE id=$1',[g.id,reward]);
+   return {guildId:g.id,reward};
   });
  }
 }

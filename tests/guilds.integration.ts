@@ -34,10 +34,15 @@ try{
  const match=randomUUID();
  assert.equal(await guilds.gvgWin(match,guildId,[owner.id,member.id],100),true);
  assert.equal(await guilds.gvgWin(match,guildId,[owner.id,member.id],100),false);
- let g=(await guilds.state(owner.id)).guild!;assert.equal(g.riqueza,200);assert.deepEqual(g.members.map(m=>m.contribution),[100,100]);
+ let g=(await guilds.state(owner.id)).guild!;assert.equal(g.riqueza,200);assert.deepEqual(g.members.map(m=>m.contribution),[100,100]);assert.deepEqual(g.members.map(m=>m.today),[100,100]);
+ // Daily missions: progress only for members, claimed once, reward to the member and the guild.
+ assert.deepEqual(await guilds.missionProgress([member.id,rival.id],'forge',2),[member.id]);
+ await assert.rejects(guilds.claimMission(member.id,'play'),/Termine/);
+ assert.deepEqual(await guilds.claimMission(member.id,'forge'),{guildId,reward:4});await assert.rejects(guilds.claimMission(member.id,'forge'),/já recebeu/);
+ const mine=(await guilds.state(member.id)).guild!;assert.deepEqual(mine.daily.claimed,['forge']);assert.equal(mine.members.find(m=>m.id===member.id)!.today,104);assert.equal(mine.riqueza,204);assert.equal(mine.ownerName,owner.name);
  await assert.rejects(guilds.upgrade(owner.id,'shop'),/nível da guilda \(0\)/);
  await guilds.upgrade(owner.id,'guild');await guilds.upgrade(owner.id,'shop');
- g=(await guilds.state(owner.id)).guild!;assert.equal(g.level,1);assert.equal(g.buildings.shop,1);assert.equal(g.riqueza,200-GUILD_LEVEL_COSTS[0]-BUILDING_LEVEL_COSTS[0]);
+ g=(await guilds.state(owner.id)).guild!;assert.equal(g.level,1);assert.equal(g.buildings.shop,1);assert.equal(g.riqueza,204-GUILD_LEVEL_COSTS[0]-BUILDING_LEVEL_COSTS[0]);
  await assert.rejects(guilds.upgrade(owner.id,'shop'),/nível da guilda \(1\)/);
 
  // Members-only shop: the necklace for gold.
