@@ -53,7 +53,7 @@ html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name h1{font-size:12
 .pvp-room .pr-team-grid{--cols:2;--rows:2;--gap:12px;--card-w:min(310px,calc((100cqh - var(--gap) * (var(--rows) - 1)) / var(--rows) * .8),calc((100cqw - var(--gap) * (var(--cols) - 1)) / var(--cols)));display:grid;grid-template-columns:repeat(var(--cols),var(--card-w));grid-auto-rows:calc(var(--card-w) * 1.25);gap:var(--gap)}
 
 /* ---------- Cartas dos aliados ---------- */
-.pvp-room .pr-card{position:relative;display:grid;grid-template-rows:30px minmax(0,1fr) 28px;min-width:0;min-height:0;border:2px solid #f2b56b;border-radius:13px;background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 -3px #e9c991,0 3px #a75a2355,0 4px 10px #8a431826;overflow:hidden}
+.pvp-room .pr-card{position:relative;display:grid;grid-template-rows:30px minmax(0,1fr);min-width:0;min-height:0;border:2px solid #f2b56b;border-radius:13px;background:linear-gradient(#fffdf6,#fbecd0);box-shadow:inset 0 -3px #e9c991,0 3px #a75a2355,0 4px 10px #8a431826;overflow:hidden}
 .pvp-room .pr-card.is-me{border-color:#ffd36b;box-shadow:inset 0 -3px #e9c991,0 0 0 3px #ffb44f66,0 4px 12px #c2610f44}
 .pvp-room .pr-card-name{display:flex;align-items:center;justify-content:flex-start;gap:6px;min-width:0;padding:0 8px;border-width:0 0 1px;border-radius:0;font-size:14px;font-weight:900}
 .pvp-room .pr-card-name strong{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -66,9 +66,6 @@ html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name h1{font-size:12
 .pvp-room .pr-card-portrait{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:1}
 .pvp-room .pr-card-portrait>canvas{flex:none;width:auto!important;height:min(118cqh,110cqw)!important;max-width:none;aspect-ratio:1;margin-bottom:-2%;pointer-events:none}
 .pvp-room .pr-card-insignia{position:absolute;top:6px;right:6px;z-index:2;display:grid;justify-items:center;gap:0}
-.pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
-.pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
-.pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
 .pvp-room .pr-card.vacant{grid-template-rows:30px minmax(0,1fr)}
 /* Vaga aberta: clara, dourada, com o "+" verde pulsando, convida a entrar. */
 .pvp-room .pr-card.open-slot{border-color:#f2b56b;background:linear-gradient(#fffdf6,#fbecd0)}
@@ -219,14 +216,12 @@ html.mobile-landscape .pvp-room .pr-pane-title h2 svg{width:12px;height:12px}
 html.mobile-landscape .pvp-room .pr-ready-count{height:21px;font-size:11px}
 html.mobile-landscape .pvp-room .pr-team-cards{padding:5px}
 html.mobile-landscape .pvp-room .pr-team-grid{--cols:4;--rows:1;--gap:6px}
-html.mobile-landscape .pvp-room .pr-card{grid-template-rows:22px minmax(0,1fr) 20px;border-radius:10px}
+html.mobile-landscape .pvp-room .pr-card{grid-template-rows:22px minmax(0,1fr);border-radius:10px}
 html.mobile-landscape .pvp-room .pr-card.vacant{grid-template-rows:22px minmax(0,1fr)}
 html.mobile-landscape .pvp-room .pr-card-name{gap:3px;padding:0 4px;font-size:10px}
 html.mobile-landscape .pvp-room .pr-card-name>svg{width:10px;height:10px}
 html.mobile-landscape .pvp-room .pr-card-kick{top:2px;right:2px;width:18px;height:18px;border-radius:5px}
 html.mobile-landscape .pvp-room .pr-card-insignia{top:2px;right:2px;gap:2px;transform:scale(.62);transform-origin:top right}
-html.mobile-landscape .pvp-room .pr-card-state{gap:3px;font-size:9px}
-html.mobile-landscape .pvp-room .pr-card-state svg{width:11px;height:11px}
 html.mobile-landscape .pvp-room .pr-card-vacant{margin:4px;border-radius:8px}
 html.mobile-landscape .pvp-room .party-vacant-emblem{width:40px;height:40px}
 html.mobile-landscape .pvp-room .party-vacant-emblem svg{width:22px;height:22px}
@@ -317,3 +312,9 @@ html.mobile-landscape .pvp-room .pr-gvg small{font-size:8px}
 /* Room leader: only a gold crown beside the name (matheus, 18/10). */
 .pvp-room .pr-host-crown{flex:none;margin-right:3px;vertical-align:-2px;fill:#fff06a;stroke:#5b2306;filter:drop-shadow(0 0 2px #fff6c0) drop-shadow(0 1px 0 #5b2a0e)}
 html.mobile-landscape .pvp-room .pr-host-crown{width:11px;height:11px}
+/* Ready sash across the lower-left corner of the card. */
+.pvp-room .pr-ready-sash{position:absolute;left:-50px;bottom:31px;z-index:3;width:192px;height:30px;display:flex;align-items:center;justify-content:center;transform:rotate(45deg);border-block:2px solid #b8f5c9;background:linear-gradient(#63d487,#2f9d58 55%,#23824a);box-shadow:0 2px 0 #145c33,0 4px 8px #0f3d2255;pointer-events:none}
+.pvp-room .pr-ready-sash span{display:inline-flex;align-items:center;gap:3px;color:#fff;font-family:'Lilita One','Nunito',sans-serif;letter-spacing:.06em;font-size:17px;text-transform:uppercase;text-shadow:0 1px 0 #145c33,0 0 3px #145c33}
+html.mobile-landscape .pvp-room .pr-ready-sash{left:-30px;bottom:16px;width:112px;height:18px;border-block-width:1px}
+html.mobile-landscape .pvp-room .pr-ready-sash span{font-size:10px}
+html.mobile-landscape .pvp-room .pr-ready-sash svg{width:10px;height:10px}

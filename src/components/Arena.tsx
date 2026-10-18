@@ -32,7 +32,8 @@ export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|und
     {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>
-   {seat.connected&&ready?<footer className="party-player-state ready pr-card-state" role="img" aria-label="Pronto" title="Pronto"><Check size={15} strokeWidth={3} aria-hidden="true"/><span aria-hidden="true">{owner?'Líder':'Pronto'}</span></footer>:<footer className="pr-card-state waiting"><span>{seat.connected?'Preparando':'Reconectando'}</span></footer>}
+   {/* Ready: a diagonal sash over the lower-left corner (matheus, 18/10). The leader has the crown instead. */}
+   {seat.connected&&ready&&!owner&&<div className="party-player-state ready pr-ready-sash" role="img" aria-label="Pronto" title="Pronto"><span aria-hidden="true"><Check size={14} strokeWidth={3.2}/>Pronto</span></div>}
   </>:<>
    <header className="pr-card-name pr-card-name--vacant"><span>Vaga {slot+1}</span></header>
    <div className="pr-card-stage pr-card-vacant"><button type="button" className="party-slot-toggle" disabled={!canManage||slot===0} aria-label={`${open?'Fechar':'Abrir'} vaga ${slot+1}`} title={canManage?(open?'Fechar vaga':'Abrir vaga'):undefined} onClick={()=>client.send({type:'room-slot',slot,open:!open})}><span className="party-vacant-emblem" aria-hidden="true">{open?<UserPlus size={34} strokeWidth={2}/>:<LockKeyhole size={34} strokeWidth={2}/>}</span></button><span className="pr-vacant-caption" aria-hidden="true">{open?'Vaga aberta':'Vaga fechada'}</span></div>
