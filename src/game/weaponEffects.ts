@@ -304,7 +304,9 @@ function pathAt(points:readonly number[][],position:number):[number,number,numbe
 const FLAME_STOPS={
  hot:[[0,'#ffffff',1],[.2,'#fff3a6',1],[.48,'#ffac30',.95],[.76,'#ff6316',.55],[1,'#e0320a',0]],
  ember:[[0,'#ffc04a',1],[.4,'#ff7a1e',.9],[.75,'#d8401a',.45],[1,'#8c1a0a',0]],
- brass:[[0,'#fff4c4',1],[.35,'#ffd062',.9],[1,'#d98a1c',0]]
+ brass:[[0,'#fff4c4',1],[.35,'#ffd062',.9],[1,'#d98a1c',0]],
+ crimson:[[0,'#ff7a6a',1],[.4,'#e0283a',.9],[.75,'#a0102e',.45],[1,'#5a0820',0]],
+ rose:[[0,'#ffffff',1],[.22,'#ffd0d0',1],[.5,'#ff5a64',.9],[1,'#c0102a',0]]
 } as const;
 type Flame=keyof typeof FLAME_STOPS;
 const flameCache=new Map<Flame,HTMLCanvasElement>();
@@ -324,64 +326,77 @@ function emitted(p:Projectile,sample:number,clock:number,count:number,life:numbe
  * It grows only a little: upgrades must not look like a bigger hitbox (the hit radius is the same at every phase).
  * POW is a different, bigger object by design. */
 const BRICK_SIZE=[22,23,24,25],POW_BRICK_SCALE=1.35;
-/** Per upgrade, the brick's trail is drawn live, never painted: +0 clay dust, +10 dust and brass sparks,
- * +12 a short ember comet, +15 a full fire tail with smoke and rising embers. POW doubles down, and its +0
- * shot spins inside a white wind spiral. The painted brick itself (trail cut away) tumbles at the tip. */
+/** Each upgrade has its own trail, told apart by kind and colour at a glance:
+ * +0 clay dust, +10 a glitter of brass, +12 a crimson ember comet, +15 a full orange fire with smoke. */
+const BRICK_TRAIL=[
+ {ribbon:['#fff4dc','#e8c9a0'],spark:'',glow:'',spiral:'#ffffff'},
+ {ribbon:['#fffbe6','#f2c443'],spark:'#ffe07a',glow:'#ffcc44',spiral:'#ffe07a'},
+ {ribbon:['#ffd6dc','#e2283e'],spark:'#ff6a7e',glow:'#ff2d4a',spiral:'#ff8090'},
+ {ribbon:['#fff4c0','#ff6a1a'],spark:'#ffd47a',glow:'#ff9a2a',spiral:'#ffd47a'}
+] as const;
+/** A four-point twinkle. */
+function sparkle(c:CanvasRenderingContext2D,x:number,y:number,r:number,color:string){
+ c.fillStyle=color;c.beginPath();c.moveTo(x,y-r);c.quadraticCurveTo(x,y,x+r,y);c.quadraticCurveTo(x,y,x,y+r);c.quadraticCurveTo(x,y,x-r,y);c.quadraticCurveTo(x,y,x,y-r);c.fill();
+}
+/** Per upgrade, the brick's trail is drawn live, never painted (themes in BRICK_TRAIL). POW keeps the theme,
+ * a little denser, wrapped in a spiral of its colour. The painted brick itself (trail cut away) tumbles at the tip. */
 function drawBrickProjectile(c:CanvasRenderingContext2D,p:Projectile,sample:number,tier:number,clock:number,options:WeaponEffectOptions){
  const pow=!!p.powered,low=options.quality==='low'||reduced(options),more=(n:number)=>Math.max(1,Math.round(n*(low?.45:1)*(pow?1.4:1)));
- const sheet:Sheet=pow&&atlasFor(p.effect,'pow').cells[tier]?'pow':'effects',atlas=atlasFor(p.effect,sheet),cell=atlas.cells[tier];
+ const sheet:Sheet=pow&&atlasFor(p.effect,'pow').cells[tier]?'pow':'effects',atlas=atlasFor(p.effect,sheet),cell=atlas.cells[tier],theme=BRICK_TRAIL[tier];
  const art=cell?.core?.image,brick=BRICK_SIZE[tier]*(pow?POW_BRICK_SCALE:1)*(art?Math.sqrt(art.width/art.height):1.4),tip=pathAt(p.points,sample);if(!tip)return;
  const side=(angle:number,offset:number):[number,number]=>[-Math.sin(angle)*offset,Math.cos(angle)*offset];
  c.save();
- // A tapered streak along the path: what reads as the trail at a glance, longer and warmer each upgrade.
- {const [inner,outer]=([['#fff4dc','#e8c9a0'],['#fff1c0','#ffc45a'],['#ffe6a0','#ff7a2a'],['#fff4c0','#ff6a1a']] as const)[tier],span=Math.round([12,15,18,22][tier]*(pow?1.3:1)*(low?.7:1));
-  for(const [color,width,alpha] of [[outer,.5,tier?.55:.45],[inner,.22,.75]] as const){
+ // A tapered streak along the path: what reads as the trail at a glance.
+ {const [inner,outer]=theme.ribbon,span=Math.round([12,16,18,22][tier]*(pow?1.3:1)*(low?.7:1));
+  for(const [color,width,alpha] of [[outer,tier===1?.32:.5,tier?.6:.45],[inner,.18,.8]] as const){
    c.strokeStyle=color;c.lineCap='round';
    for(let j=0;j<span;j++){const a=pathAt(p.points,sample-j),b=pathAt(p.points,sample-j-1);if(!a||!b)break;const fade=1-j/span;c.globalAlpha=fade*fade*alpha;c.lineWidth=brick*width*(.35+fade*.65);c.beginPath();c.moveTo(a[0],a[1]);c.lineTo(b[0],b[1]);c.stroke();}
   }
   c.globalAlpha=1;}
- // Smoke behind the fire (+15, POW from +12).
- if(tier>=3)emitted(p,sample,clock,more(6),700,1,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*5)-.5)*brick*.5*(1+age));puff(c,x+ox,y+oy-age*brick*.7,brick*(.18+age*.4),n%2?'#9a8a82':'#b3a198',(1-age)*Math.min(1,age*4)*.16);});
- // Clay dust: the whole trail at +0, a lighter haze from +10.
- if(tier<3)emitted(p,sample,clock,more(tier?6:10),tier?420:520,2,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*3)-.5)*brick*.45*(1+age));puff(c,x+ox,y+oy-age*brick*.25,brick*(.16+age*.4),n%3?'#d9b08a':'#efd9bb',Math.pow(1-age,1.2)*(tier?.4:.62));});
- // Fire: from a flicker of embers at +10 to a full tail at +15.
- if(tier>=1){
-  const count=more([0,5,16,26][tier]),life=[0,200,320,440][tier],reach=[0,.22,.3,.36][tier]*(pow?.9:1);
+ if(tier===0){
+  // +0: clay dust puffs that drift up and spread.
+  emitted(p,sample,clock,more(10),520,2,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*3)-.5)*brick*.45*(1+age));puff(c,x+ox,y+oy-age*brick*.25,brick*(.16+age*.42),n%3?'#d9b08a':'#efd9bb',Math.pow(1-age,1.2)*.62);});
+ }else if(tier===1){
+  // +10: brass glitter left hanging in the air, twinkling as it fades.
+  emitted(p,sample,clock,more(18),640,6,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*3)-.5)*brick*.8*(.4+age)),px=x+ox,py=y+oy+age*age*brick*.3,r=brick*(.24-age*.12)*(.7+noise(n*7)*.6);const twinkle=.6+.4*Math.sin(clock/50+n*2.7);
+   c.globalAlpha=(1-age)*twinkle;glow(c,px,py,r*1.4,'#ffcc44',.5);sparkle(c,px,py,r,n%3?'#ffd54a':'#fff6c8');});
+ }else{
+  // +12 crimson embers, +15 orange fire with smoke behind it.
+  if(tier===3)emitted(p,sample,clock,more(6),700,1,(x,y,angle,age,n)=>{const [ox,oy]=side(angle,(noise(n*5)-.5)*brick*.5*(1+age));puff(c,x+ox,y+oy-age*brick*.7,brick*(.18+age*.4),n%2?'#9a8a82':'#b3a198',(1-age)*Math.min(1,age*4)*.16);});
+  const count=more(tier===2?14:26),life=tier===2?300:440,reach=(tier===2?.26:.36)*(pow?.9:1);
   emitted(p,sample,clock,count,life,4,(x,y,angle,age,n)=>{
    const wobble=Math.sin(clock/45+n*2.1)*.12,[ox,oy]=side(angle,(noise(n*11)-.5)*brick*.28*(1+age)),r=brick*reach*(1-age*.65)*(.75+noise(n*13)*.5)*(1+wobble);
-   // Flames sit just behind the brick, never ahead of it.
-   const back=brick*.22*(1-age),fx=x+ox-Math.cos(angle)*back,fy=y+oy-Math.sin(angle)*back-age*age*brick*.6;
-   // Young flames stretch along the path; older ones round off as they cool.
-   const stretch=1.9-age*.8;
-   flame(c,fx,fy,r*1.2,'ember',(1-age)*.8,angle,stretch);
-   if(age<.55)flame(c,fx,fy,r*.85,tier===1?'brass':'hot',1-age/.55,angle,stretch);
+   // Flames sit just behind the brick, never ahead of it; young ones stretch along the path, older ones round off.
+   const back=brick*.22*(1-age),fx=x+ox-Math.cos(angle)*back,fy=y+oy-Math.sin(angle)*back-age*age*brick*(tier===2?.2:.6),stretch=1.9-age*.8;
+   flame(c,fx,fy,r*1.2,tier===2?'crimson':'ember',(1-age)*.8,angle,stretch);
+   if(age<.55)flame(c,fx,fy,r*.85,tier===2?'rose':'hot',1-age/.55,angle,stretch);
   });
  }
  c.restore();
- // Sparks and embers glow over the fire.
+ // Sparks over the trail, in the phase's colour: +12 embers fall, +15 embers rise.
  c.save();c.globalCompositeOperation='screen';c.lineCap='round';
- if(tier>=1||pow)emitted(p,sample,clock,more(tier>=3?10:6),tier>=3?620:420,5,(x,y,angle,age,n)=>{
-  const spread=(noise(n*19)-.5)*2.2,dir=angle+Math.PI+spread,speed=brick*(.5+noise(n*23)*.9),sx=x+Math.cos(dir)*speed*age,sy=y+Math.sin(dir)*speed*age-(tier>=3?age*brick*.9:-age*age*brick*.5);
+ if(tier>=1)emitted(p,sample,clock,more(tier===3?10:tier===2?8:4),tier===3?620:460,5,(x,y,angle,age,n)=>{
+  const spread=(noise(n*19)-.5)*2.2,dir=angle+Math.PI+spread,speed=brick*(.5+noise(n*23)*.9),sx=x+Math.cos(dir)*speed*age,sy=y+Math.sin(dir)*speed*age-(tier===3?age*brick*.9:-age*age*brick*.6);
   const flicker=.6+.4*Math.sin(clock/30+n*5),length=brick*.12*(1-age);
-  c.globalAlpha=(1-age)*flicker;c.strokeStyle=n%3?'#ffd47a':'#fff3c0';c.lineWidth=tier>=3?1.6:1.2;c.beginPath();c.moveTo(sx,sy);c.lineTo(sx-Math.cos(dir)*length,sy-Math.sin(dir)*length);c.stroke();
+  c.globalAlpha=(1-age)*flicker;c.strokeStyle=n%3?theme.spark:'#fff3e0';c.lineWidth=tier===3?1.6:1.2;c.beginPath();c.moveTo(sx,sy);c.lineTo(sx-Math.cos(dir)*length,sy-Math.sin(dir)*length);c.stroke();
  });
  c.restore();
- // POW: a spiral wrapped around the path, white wind at +0, sparks of the phase's fire above that.
+ // POW: a spiral wrapped around the path in the phase's colour.
  if(pow){
-  const color=tier?'#ffd47a':'#ffffff',span=Math.round(28*(low?.7:1)),step=.5;
+  const span=Math.round(28*(low?.7:1)),step=.5;
   c.save();c.lineCap='round';if(tier)c.globalCompositeOperation='screen';
   for(const phase of [0,Math.PI])for(let j=0;j<span;j++){
    const a=pathAt(p.points,sample-j*step),b=pathAt(p.points,sample-(j+1)*step);if(!a||!b)break;
    const fade=1-j/span,turn=(k:number)=>k*step*.75-clock/55+phase,offset=(k:number)=>Math.sin(turn(k))*brick*.42*(.5+fade*.5),[ax,ay]=side(a[2],offset(j)),[bx,by]=side(b[2],offset(j+1));
    // The half of the spiral behind the path is fainter, so it reads as wrapping around it.
-   c.globalAlpha=fade*(tier?.75:.7)*(Math.cos(turn(j))>0?1:.3);c.strokeStyle=color;c.lineWidth=(tier?1.8:2.4)*fade+.4;
+   c.globalAlpha=fade*(tier?.75:.7)*(Math.cos(turn(j))>0?1:.3);c.strokeStyle=theme.spiral;c.lineWidth=(tier?1.8:2.4)*fade+.4;
    c.beginPath();c.moveTo(a[0]+ax,a[1]+ay);c.lineTo(b[0]+bx,b[1]+by);c.stroke();
   }
   c.restore();
  }
- // Heat around the brick.
+ // Heat or shine around the brick, in the phase's colour.
  const pulse=Math.sin(clock/70)*.5+.5;
- if(tier>=1)glow(c,tip[0],tip[1],brick*(.5+tier*.12),tier>=3?'#ff9a2a':FAMILY.brick.mid,.12+tier*.07+pulse*.05);
+ if(theme.glow)glow(c,tip[0],tip[1],brick*(.5+tier*.12),theme.glow,.12+tier*.07+pulse*.05);
  // The brick tumbles end over end; the atlas tilt is undone so it starts level with its path.
  const spin=reduced(options)?0:(sample*(pow?.11:.16)+noise(Math.floor(p.points[0][0]))*TAU);
  c.save();c.translate(tip[0],tip[1]);c.rotate(tip[2]+atlas.tilt+spin);
