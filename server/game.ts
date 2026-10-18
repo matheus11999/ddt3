@@ -1,4 +1,5 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
+import {powerUpConflict} from '../shared/powerUps';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -15,7 +16,7 @@ import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnD
 import {clampHp,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
-import {HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
+import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
@@ -643,7 +644,7 @@ export class Game {
  private boost(f:Fighter,id:BoostId){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
   const b=BOOSTS.find(b=>b.id===id)!;
-  if(id==='trident'&&f.boosts.includes(id))throw Error('O tridente já foi usado neste turno.');
+  const combination=powerUpConflict(f.boosts,id);if(combination)throw Error(combination);
   // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
   const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
@@ -662,7 +663,7 @@ export class Game {
   f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');
   if(ability==='homing'&&f.homingArmed)throw Error('A mira assistida já está preparada.');
-  f.abilities[ability]--;let amount:number|undefined;
+  f.abilities[ability]--;f.delay=(f.delay??0)+(ABILITIES.find(entry=>entry.id===ability)?.delay??0);let amount:number|undefined;
   if(ability==='heal'){const healed=clampHp(f.hp+HEAL_AMOUNT,f.maxHp);amount=healed-f.hp;f.hp=healed;}
   if(ability==='homing')f.homingArmed=true;
   if(ability==='invisibility'){f.invisibleTurns=INVISIBILITY_TURNS;m.invisibilityActivated??=new Map();m.invisibilityActivated.set(f.id,m.state.turnNumber);}
@@ -712,7 +713,7 @@ export class Game {
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{

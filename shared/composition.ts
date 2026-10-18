@@ -1,14 +1,14 @@
 import type {Item} from './catalog';
 
-export const COMPOSITION_STATS = ['attack','defense','agility','armor'] as const;
+export const COMPOSITION_STATS = ['attack','defense','agility','luck','armor'] as const;
 export type CompositionStat = typeof COMPOSITION_STATS[number];
 export type CompositionBonus = Partial<Record<CompositionStat,number>>;
 export type Compositions = Record<string,CompositionBonus>;
-export const COMPOSITION_STAT_NAMES:Record<CompositionStat,string> = {attack:'Ataque',defense:'Defesa',agility:'Agilidade',armor:'Armadura'};
+export const COMPOSITION_STAT_NAMES:Record<CompositionStat,string> = {attack:'Ataque',defense:'Defesa',agility:'Agilidade',luck:'Sorte',armor:'Armadura'};
 export interface CompositionStone {id:string;stat:CompositionStat;name:string;tier:number;value:number;chance:number;cost:number;color:string;}
 const minerals:Record<CompositionStat,{name:string;color:string}> = {
  attack:{name:'Rubi da Fúria',color:'#f52c65'},defense:{name:'Safira Guardiã',color:'#168cff'},
- agility:{name:'Esmeralda do Vento',color:'#0cdf98'},armor:{name:'Ametista de Aço',color:'#b36bff'}
+ agility:{name:'Esmeralda do Vento',color:'#0cdf98'},luck:{name:'Topázio da Fortuna',color:'#ffb61c'},armor:{name:'Ametista de Aço',color:'#b36bff'}
 };
 export const COMPOSITION_STONES:CompositionStone[] = COMPOSITION_STATS.flatMap(stat=>[1,2,3].map(tier=>({
  id:`${stat}-${tier}`,stat,name:`${minerals[stat].name} ${['I','II','III'][tier-1]}`,tier,value:tier*10,

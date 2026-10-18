@@ -3,7 +3,7 @@ import {COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COL
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {ARMOR_SLOTS,isArmorSlot,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -64,6 +64,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  // Each extra copy keeps its own compositions under its copy key.
  for(const key of inventory.filter(isCopyKey)){const own=normalizeCompositions({[copyBase(key)]:(raw.compositions as Record<string,unknown>|undefined)?.[key]},[CATALOG[copyBase(key)]])[copyBase(key)];if(own)compositions[key]=own;}
  const compositionStones=Object.fromEntries(COMPOSITION_STONES.map(stone=>[stone.id,raw.compositionStones?integer(raw.compositionStones[stone.id]):(raw.contentVersion??0)<8?STARTER_COMPOSITION_STONES[stone.id]:0]));
+ // Sorte stones arrived with content version 14: existing adventurers get the same starter set once.
+ if((raw.contentVersion??0)<14&&raw.compositionStones)for(const stone of COMPOSITION_STONES)if(stone.stat==='luck')compositionStones[stone.id]=Math.max(compositionStones[stone.id],STARTER_COMPOSITION_STONES[stone.id]);
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
   const saved=raw.equipment?.[slot],id=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
@@ -180,8 +182,8 @@ export class Store implements ProfileStore {
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
-   if(!WEAPONS.some(w=>w.id===copyBase(item))||!profile.inventory.includes(item))throw Error('Escolha uma arma da sua mochila.');
-   const level=profile.upgrades[item]??0;if(level>=MAX_UPGRADE)throw Error('Esta arma já está no nível máximo.');
+   if(!canStrengthen(CATALOG[copyBase(item)])||!profile.inventory.includes(item))throw Error('Escolha uma arma, roupa ou chapéu da sua mochila.');
+   const level=profile.upgrades[item]??0;if(level>=MAX_UPGRADE)throw Error('Este equipamento já está no nível máximo.');
    for(const [tier,quantity] of Object.entries(consumed))if((profile.stones[tier]??0)<quantity)throw Error('Você não tem essas pedras na mochila.');
    const chance=upgradeChance(level,consumed),success=this.roll()<Math.round(chance*10);
    for(const [tier,quantity] of Object.entries(consumed))profile.stones[tier]-=quantity;

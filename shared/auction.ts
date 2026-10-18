@@ -71,7 +71,7 @@ const id=z.number().int().positive();
 export const auctionSourceSchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('item'),key:z.string().min(1).max(48)}).strict(),
  z.object({kind:z.literal('stone'),level:z.number().int().min(1).max(STONES.length),amount:z.number().int().min(1).max(9999)}).strict(),
- z.object({kind:z.literal('composition'),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/),amount:z.number().int().min(1).max(9999)}).strict(),
+ z.object({kind:z.literal('composition'),stone:z.string().refine(id=>Object.hasOwn(COMPOSITION_STONE_BY_ID,id),'Pedra de composição inválida.'),amount:z.number().int().min(1).max(9999)}).strict(),
 ]);
 export type AuctionSource=z.infer<typeof auctionSourceSchema>;
 export const auctionCommandSchemas=[

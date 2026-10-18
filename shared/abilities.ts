@@ -18,10 +18,10 @@ export const HOMING_TURN_RATE=6;
 export const HOMING_MIN_SPEED=520;
 export const INVISIBILITY_TURNS=3;
 export const HIDDEN_POSITION=-10000;
-export const ABILITIES:readonly {id:AbilityId;name:string;detail:string;uses:number;cost:number}[]=[
- {id:'heal',name:'Cura',detail:'Recupera até 300 de vida. Uma vez por partida.',uses:1,cost:0},
- {id:'homing',name:'Mira assistida',detail:'Ímã: todo projétil do tiro que passar a até 220 de um inimigo trava nele e curva até o alvo. Uma vez por partida.',uses:1,cost:0},
- {id:'invisibility',name:'Invisibilidade',detail:'Oculta sua posição dos inimigos por três turnos próprios completos. Uma vez por partida.',uses:1,cost:0}
+export const ABILITIES:readonly {id:AbilityId;name:string;detail:string;uses:number;cost:number;/** Delay added when used (turn order, shared/turnDelay.ts). */delay:number}[]=[
+ {id:'heal',name:'Cura',detail:'Recupera até 300 de vida. Uma vez por partida.',uses:1,cost:0,delay:150},
+ {id:'homing',name:'Mira assistida',detail:'Ímã: todo projétil do tiro que passar a até 220 de um inimigo trava nele e curva até o alvo. Uma vez por partida.',uses:1,cost:0,delay:100},
+ {id:'invisibility',name:'Invisibilidade',detail:'Oculta sua posição dos inimigos por três turnos próprios completos. Uma vez por partida.',uses:1,cost:0,delay:150}
 ];
 export function initialAbilities(loadout?:unknown):Record<AbilityId,number>{const slots=normalizeAbilityLoadout(loadout);return {heal:slots.includes('heal')?1:0,homing:slots.includes('homing')?1:0,invisibility:slots.includes('invisibility')?1:0};}
 export interface AbilityEffect {playerId:string;ability:AbilityId|'flight';x:number;y:number;amount?:number;at:number;hidden?:boolean;}
