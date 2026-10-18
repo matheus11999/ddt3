@@ -7,7 +7,7 @@ type WeaponSound=import('../../shared/catalog').WeaponEffect;
 const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/assets/audio/sfx/impact-crack.mp3',volume:.3}] as const;
 const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp3`);
 /** Battle cues with a few recorded variations each; one is picked at random every time. */
-const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.22},powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:variants('launch'),volume:.3},click:{urls:variants('ui-click'),volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
+const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.22},powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:variants('ui-click'),volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
 export type AudioCue=keyof typeof CUES;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
