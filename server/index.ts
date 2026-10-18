@@ -12,6 +12,7 @@ import {ReportStore} from './reports';
 import {MailStore} from './mail';
 import {AuctionStore} from './auction';
 import {GuildStore} from './guilds';
+import {PetStore} from './pets';
 import {HallStore} from './hall';
 import {WorldBossService} from './worldBoss';
 import {PlayerDirectory} from './adminPlayers';
@@ -44,6 +45,8 @@ const reports=new ReportStore(store.pool);await reports.init();game.reports=repo
 const mail=new MailStore(store.pool);await mail.init();game.mail=mail;
 const auction=new AuctionStore(store.pool);await auction.init();game.auction=auction;
 const guilds=new GuildStore(store.pool);await guilds.init();game.guilds=guilds;
+// Pets: the system is live with zero species (docs/pets.md).
+const pets=new PetStore(store.pool);await pets.init();game.pets=pets;
 // Hall da Fama (docs/hall-of-fame.md): standings, PvP boards, closings and rewards run in the background.
 const hall=new HallStore(store.pool);await hall.init();store.hall=hall;game.hall=hall;
 hall.onChange=categories=>game.hallChanged(categories);hall.onMail=id=>{void game.mailArrived(id).catch(e=>app.log.error(e));};

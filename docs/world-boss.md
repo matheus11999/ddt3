@@ -30,13 +30,13 @@ Prompts da arte: `docs/world-boss-art-prompts.md`.
   um `Fighter` com `boss: 'dragon'`; os golpes dele são uma linha do tempo (`DragonAct`, `shared/worldBoss.ts`) que o
   servidor decide e todos os clientes desenham no mesmo tempo. Ele nunca repete a mesma família de golpe duas vezes
   seguidas e fica mais forte a cada rodada (`DRAGON_RAGE_PER_ROUND`).
-- Golpes: entrada (sobe e ruge), garra do céu, agarrão (levanta e esmaga), sopro de fogo e fogo varrendo o chão (o
+- Golpes: entrada (sobe e ruge), garra que rompe o chão sob o jogador, agarrão (a pata sai do chão, levanta e esmaga), sopro de fogo e fogo varrendo o chão (o
   chão não queima). Tempos e dano em `DRAGON_ACTIONS`.
 
 ## Cliente
 
 - `src/game/worldBoss/dragon.ts`: rig de partes pintadas (corpo, cabeça, mandíbula, pálpebra, garra aberta e fechada,
-  fogo em 8 quadros) em `public/assets/world-boss/`; respiração, piscar, recuo ao levar dano e cada golpe. Os pivôs
+  em `public/assets/world-boss/`; o fogo é desenhado em código em `src/game/worldBoss/fire.ts`, com vida própria: acende, queima e apaga); respiração, piscar, recuo ao levar dano e cada golpe. Os pivôs
   ficam em `DRAGON_PARTS`/`DRAGON_RIG` (medir de novo se a arte mudar). Sem a arte o jogo desenha formas simples.
 - Na batalha a barra do chefe substitui a lista de inimigos (`WorldBossBar`) e o relógio mostra "DRAGÃO" no turno dele.
 
