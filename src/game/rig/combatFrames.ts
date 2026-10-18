@@ -30,6 +30,8 @@ export const COMBAT_TEMPLATE=contract.template;
  * i/columns, each cell with the contact point at `origin`, `pixelsPerUnit` px per avatar unit. */
 /** Universal fist size in avatar units. */
 export const COMBAT_FIST_SIZE=contract.fist.size;
+/** The gray guide body the outfits are painted over; its sleeves end at the elbow, where the forearm starts. */
+export const COMBAT_MANNEQUIN=contract.mannequin as unknown as Readonly<Record<CombatFrameName,{sleeves:readonly [readonly [Point,Point],readonly [Point,Point]]}>>;
 export const COMBAT_ATLAS=contract.atlas as unknown as {columns:number;rows:number;cell:Point;origin:Point;pixelsPerUnit:number};
 /** The universal head's silhouette box in the 1254 px head template (character-base.png). */
 export const HEAD_SILHOUETTE=contract.headSilhouette;

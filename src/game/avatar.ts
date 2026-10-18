@@ -64,8 +64,8 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
 /** Half the distance a planted foot slides back under the body, in avatar units.
  * One stride cycle covers 4× this, so the cadence follows the walking speed. */
 const WALK_STEP=11;
-/** How far each foot's lane moves from the painted 3/4 spread toward the middle while walking. */
-const WALK_LANE_PULL=.75;
+/** How far each foot's lane moves toward the middle while walking. The Cartógrafo's painted legs are already close, and moving whole legs away opened gaps under the coat. */
+const WALK_LANE_PULL=0;
 
 function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose?:'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
@@ -299,6 +299,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001){
    c.save();c.globalAlpha*=walkBlend;
+   if(rig.walking.hollow){c.save();c.translate(0,rootY);c.translate(0,-32);c.rotate(m.lean);c.translate(0,32);drawPart(c,rig.walking.hollow);c.restore();}
    // The painted stance spreads the legs for a 3/4 view. Walking from that spread
    // makes one step a wide split and the next a scissor where the feet cross, so
    // each whole leg (hip and foot) moves to a lane closer to the middle; a little depth stays.
