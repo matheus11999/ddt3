@@ -86,7 +86,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const level=Math.max(normalizeLevel(integer(raw.level,1)),levelForXp(xp));
  const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),coupons:integer(raw.coupons),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
   itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS),
-  petFood:Object.fromEntries(Object.entries(raw.petFood??{}).filter(([food,n])=>PET_FOODS.has(food)&&integer(n)>0).map(([food,n])=>[food,integer(n)]))};
+  petFood:Object.fromEntries(Object.entries(raw.petFood??{}).filter(([food,n])=>PET_FOODS.has(food)&&integer(n)>0).map(([food,n])=>[food,integer(n)])),
+  ...(Array.isArray(raw.petGifts)?{petGifts:[...new Set(raw.petGifts.filter((g:unknown):g is string=>typeof g==='string'&&/^[a-z0-9-]{1,40}$/.test(g)))].slice(0,50)}:{})};
  // The active pet's snapshot is written only by server/pets.ts; here it is just checked.
  const pet=normalizePetSnapshot(raw.equipment?.pet);if(pet)profile.equipment.pet=pet;
  refreshWorn(profile);return profile;

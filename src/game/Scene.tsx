@@ -20,6 +20,7 @@ import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
+import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact} from './petEffects';
 import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {MONSTERS} from '../../shared/expeditions';
 import {drawSpeechBubble} from './speechBubble';
@@ -58,6 +59,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
   let residues:TerrainResidues|null=null;
   const boomerangBursts=new Map<string,{projectile:Projectile;at:number;level:number}>();
+  // When each pet projectile landed (its own clock or the server's impact, whichever comes first).
+  const petLandings=new Map<string,number>();
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
@@ -76,7 +79,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
    }
    if(b){
-    if(matchId!==b.id)boomerangBursts.clear();
+    if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();}
     if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
@@ -196,6 +199,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       const origin=p.points[0],seen=shooter&&!p.fragment?entities.get(shooter.id):undefined,muzzle=seen&&origin?heldMuzzle(shooter!.equipment.weapon,shooter!.facing,112,-(shooter!.aimSlope??0)*shooter!.facing*Math.PI/180):null;
       const offset=muzzle&&origin?[seen!.x+muzzle[0]-origin[0],seen!.y+muzzle[1]-origin[1]]:[0,0],ease=1-Math.min(1,age/140)**2;
       if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)playShotSound(p.effect,level,p.powered);}drawMuzzle(c,origin?origin[0]+offset[0]-27*shooter.facing:shooter.x,origin?origin[1]+offset[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
+      if(p.pet){
+       const key=`${shot.id}:${i}`;if(!petLandings.has(key)&&(age>=flightTime(p)||shot.impacted.includes(i)))petLandings.set(key,t);
+       const landed=petLandings.get(key);
+       if(landed===undefined){c.save();c.translate(offset[0]*ease,offset[1]*ease);drawPetProjectile(c,p,index,t);c.restore();}else drawPetProjectileImpact(c,p,t-landed);return;}
       if(age<flightTime(p)){c.save();c.translate(offset[0]*ease,offset[1]*ease);drawProjectile(c,p,index,level,t,{quality:quality==='high'?'high':'low'});c.restore();}
       else if(p.effect==='boomerang'){
        const key=`${shot.id}:${i}`,at=shotStart+impactTime(p);
@@ -206,6 +213,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Let the complete impact finish even when the server has already advanced the turn.
     for(const [key,burst] of boomerangBursts){const age=t-burst.at;if(age>=BOOMERANG_IMPACT_DURATION){boomerangBursts.delete(key);continue;}drawImpact(c,burst.projectile,age,burst.level,burst.projectile.impact.material,{quality:quality==='high'?'high':'low'});}
     // Each hit of a multi-shot gets its own number, stacked above the earlier ones on the same fighter.
+    // Pet skills with art: the area attack where it rose, heals on the fighter.
+    for(const batch of state.petEffects){const age=Date.now()+state.offset-batch.at;for(const app of batch.applications){const seen=entities.get(app.targetId);drawPetApplication(c,app,age,seen?{x:seen.x,y:seen.y}:undefined,(x,y)=>ground(terrain,x,y));}}
     for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=state.impacts.reduce((n,other)=>other.shotId===impact.shotId&&(other.at<impact.at||(other.at===impact.at&&other.projectileIndex<impact.projectileIndex))?n+other.hits.filter(h=>h.id===hit.id&&!h.hidden&&h.damage>0).length:n,0);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     c.restore();environment!.drawFront(c,t,camera);

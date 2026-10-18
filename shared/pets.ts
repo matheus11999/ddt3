@@ -48,7 +48,8 @@ export const petDefinitionSchema=z.object({
  /** Caps on the final attributes (before vitality). */
  limits:stats.default({}),
  /** Skills this species can learn and when. */
- skills:z.array(z.object({skill:z.string(),level:z.number().int().min(1).default(1),stage:z.number().int().min(0).default(0),stars:z.number().int().min(0).default(0)}).strict()).default([]),
+ skills:z.array(z.object({skill:z.string(),level:z.number().int().min(1).default(1),stage:z.number().int().min(0).default(0),stars:z.number().int().min(0).default(0),
+  /** Innate: works as soon as it is learned, without taking a skill slot (the species' signature passive). */innate:z.boolean().default(false)}).strict()).default([]),
  /** Range of the individual trait rolled per attribute when a pet is obtained (0 = none). */
  traitRange:stats.default({}),
  /** Pet gear slots this species accepts (when gear opens). */
@@ -125,14 +126,22 @@ export function petLevelProgress(pet:Pick<PlayerPet,'level'|'xp'|'species'>,conf
  if(pet.level>=max)return {current:0,required:0,percent:100,capped:true};
  const required=xpToNext(pet.level,config.progression.curve),current=Math.max(0,pet.xp-start);return {current,required,percent:Math.min(100,current/required*100),capped:false};
 }
-export interface XpOutcome {gained:number;levelsGained:number;from:number;to:number;capped:boolean;unlockedSkills:string[];unlockedSlots:number[];}
+export interface XpOutcome {gained:number;levelsGained:number;from:number;to:number;capped:boolean;unlockedSkills:string[];unlockedSlots:number[];/** Set when the pet evolved on its own (stage numbers). */evolved?:{from:number;to:number};}
 /** Adds EXP (once validated by the caller): may climb several levels; at the cap the extra EXP is not kept. */
 export function gainPetXp(pet:PlayerPet,amount:number,config:PetConfig=PET_CONFIG):XpOutcome{
  const def=petSpecies(pet.species),max=petMaxLevel(def,config),cap=xpForLevel(max,config.progression.curve),from=pet.level;
  const before=pet.xp,gain=Math.max(0,Math.floor(finite(amount)*config.progression.multiplier));
  pet.xp=Math.min(cap,pet.xp+gain);pet.level=levelForPetXp(pet.xp,max,config.progression.curve);
- const unlockedSkills=refreshKnownSkills(pet),unlockedSlots=config.skillSlots.map((slot,i)=>({slot,i})).filter(({slot})=>slot.unlockLevel>from&&slot.unlockLevel<=pet.level).map(({i})=>i);
- return {gained:pet.xp-before,levelsGained:pet.level-from,from,to:pet.level,capped:pet.level>=max,unlockedSkills,unlockedSlots};
+ const evolved=evolveByLevel(pet);
+ const unlockedSkills=refreshKnownSkills(pet);placeLearned(pet,config);
+ const unlockedSlots=config.skillSlots.map((slot,i)=>({slot,i})).filter(({slot})=>slot.unlockLevel>from&&slot.unlockLevel<=pet.level).map(({i})=>i);
+ return {gained:pet.xp-before,levelsGained:pet.level-from,from,to:pet.level,capped:pet.level>=max,unlockedSkills,unlockedSlots,...(evolved?{evolved}:{})};
+}
+/** Stages that ask only for level and stars (no items) are reached on their own, like a weapon's phases. Never goes back. */
+export function evolveByLevel(pet:PlayerPet):{from:number;to:number}|undefined{
+ const def=petSpecies(pet.species);if(!def)return undefined;const from=pet.stage;let to=from;
+ for(let i=from+1;i<def.stages.length;i++){const need=def.stages[i].requires;if(Object.keys(need.items).length||pet.level<need.level||pet.stars<need.stars)break;to=i;}
+ if(to===from)return undefined;pet.stage=to;(pet.evolution.history??=[]).push({at:new Date().toISOString(),kind:'level',from,to});return {from,to};
 }
 /** Learns every species skill whose level, stage and stars are met. Never forgets one. */
 export function refreshKnownSkills(pet:PlayerPet):string[]{
@@ -143,6 +152,17 @@ export function refreshKnownSkills(pet:PlayerPet):string[]{
   if(pet.level>=Math.max(entry.level,need.petLevel)&&pet.stage>=Math.max(entry.stage,need.stage)&&pet.stars>=Math.max(entry.stars,need.stars)){pet.knownSkills.push({id:entry.skill,level:1});learned.push(entry.skill);}
  }
  return learned;
+}
+/** Innate skills of the pet's species (never in a slot). */
+export function innateSkills(species:string){return new Set((petSpecies(species)?.skills??[]).filter(s=>s.innate).map(s=>s.skill));}
+/** Puts learned skills that are not in a slot yet into the open empty slots, in learning order (a new pet comes ready to fight). */
+export function placeLearned(pet:PlayerPet,config:PetConfig=PET_CONFIG){
+ const innate=innateSkills(pet.species);
+ for(const known of pet.knownSkills){
+  if(innate.has(known.id)||pet.equippedSkills.includes(known.id))continue;
+  const slot=pet.equippedSkills.findIndex((id,i)=>!id&&i<config.skillSlots.length&&!skillSlotProblem(pet,i,known.id,config));if(slot<0)continue;
+  pet.equippedSkills[slot]=known.id;
+ }
 }
 export function openSkillSlots(level:number,config:PetConfig=PET_CONFIG){return config.skillSlots.filter(slot=>slot.unlockLevel<=level).length;}
 /** Why a skill cannot sit in a slot right now (null when it can). */
@@ -156,11 +176,12 @@ export function skillSlotProblem(pet:PlayerPet,slot:number,skillId:string,config
  return null;
 }
 /** Skills that work now: equipped, in an open slot and with their requirements met. */
-export function activeSkills(pet:Pick<PlayerPet,'level'|'stage'|'stars'|'knownSkills'|'equippedSkills'>,config:PetConfig=PET_CONFIG):PetSkillEntry[]{
- const out:PetSkillEntry[]=[];
+export function activeSkills(pet:Pick<PlayerPet,'species'|'level'|'stage'|'stars'|'knownSkills'|'equippedSkills'>,config:PetConfig=PET_CONFIG):PetSkillEntry[]{
+ const out:PetSkillEntry[]=[],innate=innateSkills(pet.species);
+ for(const known of pet.knownSkills)if(innate.has(known.id)&&petSkill(known.id))out.push({...known});
  pet.equippedSkills.forEach((id,slot)=>{
   if(!id||slot>=config.skillSlots.length||pet.level<config.skillSlots[slot].unlockLevel)return;
-  const skill=petSkill(id),known=pet.knownSkills.find(s=>s.id===id);if(!skill||!known)return;
+  const skill=petSkill(id),known=pet.knownSkills.find(s=>s.id===id);if(!skill||!known||innate.has(id))return;
   const need=skill.requirements;if(pet.level<need.petLevel||pet.stage<need.stage||pet.stars<need.stars)return;
   out.push({...known});
  });
