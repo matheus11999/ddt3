@@ -4,7 +4,7 @@ import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {ARMOR_SLOTS,isArmorSlot,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
+import {ARMOR_SLOTS,canStrengthen,isArmorSlot,slotUpgrade,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../../shared/catalog';
 import {COLOR_TICKET,equippedColors} from '../../shared/colors';
 import {canCompose} from '../../shared/composition';
@@ -91,7 +91,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
   const wornSlot=slot??worn,fallback=wornSlot?unequip[wornSlot]:undefined,removable=!!wornSlot&&!!fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback))&&equipment[wornSlot]!==fallback;
   if(!worn)actions.push({id:'equip',label:'Equipar',icon:MENU_ICONS.equip,disabled:locked||!fits,title:fits?undefined:'Incompatível com este personagem',onSelect:()=>equipItem(key)});
   else if(removable)actions.push({id:'unequip',label:'Remover',icon:MENU_ICONS.equip,disabled:locked,onSelect:()=>removeFromSlot(wornSlot!)});
-  if(it.slot==='weapon'||canCompose(it))actions.push({id:'forge',label:'Aprimorar',icon:MENU_ICONS.forge,disabled:!!state.room||pending,title:state.room?'Volte à praça para visitar o ferreiro':undefined,onSelect:()=>onForge(key)});
+  if(canStrengthen(it)||canCompose(it))actions.push({id:'forge',label:'Aprimorar',icon:MENU_ICONS.forge,disabled:!!state.room||pending,title:state.room?'Volte à praça para visitar o ferreiro':undefined,onSelect:()=>onForge(key)});
   if(canRecolor(key)&&fits)actions.push({id:'color',label:'Trocar cor',icon:MENU_ICONS.color,disabled:locked,onSelect:()=>setStudio({kind:'item',key})});
   const last=['weapon','outfit','face'].includes(it.slot)&&p.inventory.filter(other=>CATALOG[copyBase(other)]?.slot===it.slot&&canEquipItem(copyBase(other),p.gender)).length<=1;
   actions.push({id:'discard',label:'Excluir',icon:MENU_ICONS.discard,danger:true,disabled:locked||last,title:last?`Você precisa ficar com pelo menos um item de ${SLOT_NAMES[it.slot].toLowerCase()}`:undefined,onSelect:()=>setDiscarding(key)});
@@ -121,7 +121,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
    {...(empty?{onContextMenu:(event:React.MouseEvent)=>event.preventDefault()}:{...tooltipEvents(copy),onContextMenu:(event:React.MouseEvent<HTMLElement>)=>openMenu(event,copy,slot)})}
    onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'copy':'none';}}}
    onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG),dropped=CATALOG[copyBase(id)];if(slotAccepts(slot,dropped))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[dropped?.slot]??'equipamento'}.`);}}>
-   {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60} color={p.itemColors[copy]} skin={preview.skin} eyes={preview.eyes}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{slot==='weapon'&&!empty&&<UpgradeTag level={preview.upgrade} className="bag-upgrade-tag"/>}
+   {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60} color={p.itemColors[copy]} skin={preview.skin} eyes={preview.eyes}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{canStrengthen(it)&&!empty&&<UpgradeTag level={slotUpgrade(preview,slot)} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
  const progress=levelProgress(p.level,p.xp),stoneTotal=Object.values(p.stones).reduce((sum,count)=>sum+count,0);
@@ -172,7 +172,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
        onDragStart={e=>{if(genderLocked){e.preventDefault();return;}e.dataTransfer.setData(ITEM_DRAG,id);e.dataTransfer.effectAllowed='copy';setDragging(id);setTooltip(null);}} onDragEnd={()=>setDragging(null)}
        onClick={()=>equipItem(id)} {...tooltipEvents(id)}>
        {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={it.id} upgrade={level} size={60} color={p.itemColors[id]} skin={preview.skin} eyes={preview.eyes}/>:id===COLOR_TICKET.id?<TicketIcon size={55}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
-       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{it?.slot==='weapon'&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}{id===COLOR_TICKET.id&&<b className="slot-quantity">{p.colorTickets}</b>}
+       {equipped&&<span className="equipped-mark saved"><Check size={11}/></span>}{canStrengthen(it)&&<UpgradeTag level={level} className="bag-upgrade-tag"/>}{st&&<b className="slot-quantity">{p.stones[String(st.level)]??0}</b>}{id===COLOR_TICKET.id&&<b className="slot-quantity">{p.colorTickets}</b>}
       </ItemCard>;
      })}{!entries.length&&<span className="inventory-no-items">Nenhum item encontrado</span>}</div>
      <nav className="bag-tabs" aria-label="Tipo de item">{BAG_TABS.map(({id,name,Icon})=><button key={id} aria-pressed={tab===id} className={tab===id?'active':''} onClick={()=>{setTab(id);setCategory('all');setActiveSlot(null);setPage(0);setTooltip(null);}}><Icon size={19} aria-hidden="true"/><span>{name}</span></button>)}</nav>
@@ -219,7 +219,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
     <small>{item?SLOT_NAMES[item.slot]:ticket?'Consumível':'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
     {item&&!hideGender&&itemGender(item)!=='unisex'&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
    </div>
-   {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
+   {canStrengthen(item)&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
   </header>
   {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
   {item?<>

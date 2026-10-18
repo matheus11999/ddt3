@@ -33,6 +33,8 @@ export type EquipmentVisibility=Partial<Record<typeof VISIBILITY_SLOTS[number],b
 export const ARMOR_SLOTS=['hat','outfit'] as const;
 export type ArmorSlot=typeof ARMOR_SLOTS[number];
 export function isArmorSlot(slot:Slot):slot is ArmorSlot {return (ARMOR_SLOTS as readonly Slot[]).includes(slot);}
+/** The forge strengthens weapons (Dano) and hats and outfits (Armadura). */
+export function canStrengthen(item:Item|undefined):boolean {return !!item&&(item.slot==='weapon'||isArmorSlot(item.slot))&&!(item.id.endsWith('-none')&&item.visual?.variant==='none');}
 export type EquipmentCopies=Partial<Record<Slot,string>>;
 export type Equipment = Record<Slot, string> & {upgrade:number;/** Forge level of the worn hat and outfit copies (derived by the server, like `upgrade` for the weapon). */ slotUpgrades?:Partial<Record<ArmorSlot,number>>;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
 /** Buying an item again adds a separate copy: the first keeps the item id, later ones are `id~2`, `id~3`… */
@@ -62,9 +64,9 @@ export interface ItemAttributes {attack:number;defense:number;agility:number;luc
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
 export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
-export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; /** Delay added by each shot (DDTank ball Delay + weapon Property8); 0 until a value is set for the weapon. */ shotDelay?:number; }
+export interface Weapon extends Item { damage:number; crater:number; blast:number; gravity:number; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; /** Delay added by each shot (DDTank ball Delay + weapon Property8); 0 when omitted. */ shotDelay?:number; }
 export const WEAPONS: Weapon[] = [
- {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:.04,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:65}
+ {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:.04,blast:92,gravity:345,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:65,shotDelay:150}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
@@ -145,7 +147,7 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-surfer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-dancer'}:{...UNEQUIP};}
-export const CONTENT_VERSION=13;
+export const CONTENT_VERSION=14;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
@@ -199,15 +201,15 @@ export function weaponFragmentCount(weapon:Weapon,level:number,powered=false):nu
 /** Every weapon keeps its art in public/assets/weapons/<id>/ (contract: shared/weaponKit.ts). */
 export function weaponAssetPath(id:string,level=0):string {return `/assets/weapons/${id}/held-${weaponVisualStage(level)}.png`;}
 export function weaponIconPath(id:string,level=0):string {return `/assets/weapons/${id}/icon-${weaponVisualStage(level)}.png`;}
-/** Tools spend Vigor (`cost`) and may add Delay (`delay`, DDTank item Property5); no Delay value is set for them yet. */
+/** Tools spend Vigor (`cost`) and add Delay (`delay`, like DDTank item Property5). Brasa balance: Delay equals the Vigor cost. */
 export const BOOSTS = [
- {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'Adiciona 1 disparo · repetível · dano distribuído',key:'1',delay:0},
- {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'Adiciona 2 disparos · repetível · dano distribuído',key:'2',delay:0},
- {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis em leque · 50% de dano · uma vez',key:'3',delay:0},
- {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:0},
- {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:0},
- {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:0},
- {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:0}
+ {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'Adiciona 1 disparo · repetível · dano distribuído',key:'1',delay:110},
+ {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'Adiciona 2 disparos · repetível · dano distribuído',key:'2',delay:110},
+ {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis em leque · 50% de dano · uma vez',key:'3',delay:110},
+ {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:85},
+ {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:80},
+ {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:70},
+ {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:55}
 ] as const;
 export type BoostId = typeof BOOSTS[number]['id'];
 export {MAPS} from './maps';

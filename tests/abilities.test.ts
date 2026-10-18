@@ -93,7 +93,7 @@ test('invisibility redacts snapshots, aims, effects, shot origins and reconnect 
 
 test('invisibility expires after three subsequent own turns, never on opponents turns or activation turn',async()=>{
  const f=await fixture();await f.game.command(f.actor.id,{type:'ability',ability:'invisibility'});await f.game.command(f.actor.id,{type:'pass'});assert.equal(f.actor.invisibleTurns,3);
- for(let remaining=2;remaining>=0;remaining--){await f.game.command(f.enemy.id,{type:'pass'});assert.equal(f.actor.invisibleTurns,remaining+1);await f.game.command(f.actor.id,{type:'pass'});assert.equal(f.actor.invisibleTurns,remaining);}
+ for(let remaining=2;remaining>=0;remaining--){while(f.match.state.turnId!==f.actor.id){await f.game.command(f.match.state.turnId,{type:'pass'});assert.equal(f.actor.invisibleTurns,remaining+1);}await f.game.command(f.actor.id,{type:'pass'});assert.equal(f.actor.invisibleTurns,remaining);}
  assert.equal(f.latest(f.enemy.id).players.find(player=>player.id===f.actor.id)!.hidden,undefined);assert.equal(f.actor.abilities!.invisibility,0);
 });
 
@@ -149,4 +149,9 @@ test('flight that falls into the void kills the shooter',async()=>{
  await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
  const impact=f.match.pendingImpacts![0];impact.mark.x=900;impact.mark.y=300;f.match.activeShot!.projectiles[0].points=[[880,310],[900,300]];
  f.game.tick(impact.at);assert.equal(f.actor.x,900);assert.equal(f.actor.hp,0);assert.ok(f.actor.fall?.void);assert.ok(f.match.activeShot?.hits.some(hit=>hit.id===f.actor.id&&hit.kind==='fall'));
+});
+
+test('abilities add their Delay when used',async()=>{
+ const f=await fixture(),start=f.actor.delay!;f.actor.hp-=100;
+ await f.game.command(f.actor.id,{type:'ability',ability:'heal'});assert.equal(f.actor.delay,start+150);
 });

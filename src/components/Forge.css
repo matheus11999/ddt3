@@ -530,7 +530,7 @@
 
 .smith-window .smith-console.composition-current {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 6px;
   padding: 6px;
   border-radius: 10px;
@@ -540,10 +540,10 @@
 .smith-window .composition-current > span {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
   min-width: 0;
   height: 28px;
-  padding: 0 8px 0 4px;
+  padding: 0 6px 0 3px;
   border-radius: 8px;
   background: linear-gradient(#fffdf5, #f5e3be);
   box-shadow: inset 0 -2px #d9b880, 0 1px 2px #1d0a0288;
@@ -652,7 +652,7 @@
 .smith-window .smith-section-heading span { font-size: 11px; font-weight: 800; color: var(--bag-ink-soft); }
 
 .smith-window .composition-minerals { display: grid; gap: 10px; }
-.smith-window .composition-attributes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.smith-window .composition-attributes { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
 .smith-window .composition-attributes button {
   display: flex;
   align-items: center;
