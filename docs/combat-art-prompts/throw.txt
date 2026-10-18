@@ -1,18 +1,14 @@
 Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
 
-IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background, and in every cell a flat lime-green (#00FF00) HEAD placeholder.
-IMAGE 2 is the outfit to paint: the standing character on the left shows the outfit design (ignore the bald head).
-IMAGES 3 and 4 are POSE references from DDTank (getting up to throw, throwing): copy only the poses and proportions, never their clothes or art.
-IMAGE 5 is the same outfit already painted lying down by you (keep exactly the same design, colors and scale).
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin KNEELING under it, and two flat CYAN (#00FFFF) discs.
+IMAGE 2 is the outfit to paint: the standing character shows the outfit design (ignore the bald head).
+IMAGE 3 is a POSE and PROPORTION reference from DDTank (crouched throw): a tiny body under a big head, fists floating in front. Copy only the pose and proportions, never their clothes or art.
+IMAGE 4 is the same outfit already painted lying down by you: keep exactly the same design, colors and scale.
 
-Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same shape and size, flat pure #00FF00, untouched: the game replaces it with the player's own head. Paint ONLY the neck-down body of the outfit attached under each green head, the collar/neck touching the green chin, facing RIGHT, feet on the ground under the body. Chibi DDTank proportions: the standing body below the head is a little shorter than the head is tall, short legs, big fists.
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head and every cyan disc EXACTLY where they are, same shape and size, flat and untouched: the game replaces the green with the player's own head and the cyan with the same skin-colored fists for every character. Do NOT paint hands or forearms: the sleeves end at the elbow, short stubs.
 
-Six frames, left to right, top to bottom:
-1 RISE: getting up from lying: on one knee, torso half upright, near hand still touching the ground in front.
-2 READY: standing, feet apart, near arm stretched forward at chest height with a closed fist (holding the projectile), far arm bent at the chest.
-3 WIND-UP: standing, the near (throwing) arm raised up and back behind the head with a closed fist, far arm forward for balance, torso twisted back.
-4 RELEASE: the throwing arm whipped forward, fist straight ahead at chest height pointing right, torso leaning forward, back foot lifting.
-5 FOLLOW-THROUGH: throwing arm forward and slightly lowered, open hand, weight on the front foot.
-6 SETTLE: standing again, both fists back at the chest.
+Paint IMAGE 2's outfit as a SMALL chibi body exactly over each gray mannequin, same size and pose, covering the gray completely and not growing past it by more than a few pixels. The character never stands up: it throws from a low KNEEL, front foot flat on the ground with the knee bent up, back knee on the ground with the shin behind. Collar touching the green chin, facing RIGHT, short torso, the whole body below the chin about half the head's height.
 
-Same outfit design, colors, saturated painted volume and warm dark-brown outlines as IMAGE 2. All six figures stand on the same ground line. No weapon, no props, no floor, no shadow, no text, nothing crossing a cell border or touching the image edge.
+Six frames, left to right, top to bottom: 1 RISE: getting from lying onto the knees, leaning forward. 2 READY: kneeling, torso upright. 3 WIND-UP: kneeling, torso twisted slightly back. 4 RELEASE: kneeling, torso leaning forward. 5 FOLLOW-THROUGH: kneeling, leaning forward. 6 SETTLE: kneeling upright.
+
+Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. All six on the same ground line. No hands, no weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.

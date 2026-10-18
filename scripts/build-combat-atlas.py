@@ -1,18 +1,20 @@
 """Packs an outfit's two Codex combat sheets (docs/combat-frames.md) into the game's combat atlas.
 
-Each sheet is 3x2 cells of 512 px on magenta with the head as a flat green silhouette. Per frame this
-script keys the magenta out, finds the green head (top and width; fists may cover the chin), scales the
+Each sheet is 3x2 cells of 512 px on magenta with the head as a flat green silhouette and the two fists
+as cyan discs (the game draws the universal fists there). Per frame this script keys the magenta and the
+cyan out, finds the green head (top and width; fists may cover the chin), scales the
 sheet so the head matches the universal head, removes the green, and places the body in its atlas cell
 with the head at the contract's x and the lowest painted row on the ground line. The measured head
 height of every frame goes to src/game/combatAtlas.json, so the game puts the player's head exactly
 where the painting expects it. No per-outfit numbers.
 
 Usage: python3 scripts/build-combat-atlas.py <outfit-id> [ground.png throw.png]
+       python3 scripts/build-combat-atlas.py --fist fist.png   (the universal fist, docs/combat-art-prompts/fist.txt)
 Default input: test-results/codex-combat/out/<id without outfit->-{ground,throw}.png
 Output: public/assets/outfits/combat/<id>.png, src/game/combatAtlas.json, test-results/combat/<id>/"""
 import json, os, sys
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 contract = json.load(open('src/game/rig/combatFrames.json'))
 T, A, HS = contract['template'], contract['atlas'], contract['headSilhouette']
@@ -40,6 +42,21 @@ def unkey(rgb):
     return np.dstack([r, g, b, alpha * 255])
 
 
+if sys.argv[1] == '--fist':
+    rgba = unkey(np.asarray(Image.open(sys.argv[2]).convert('RGB')))
+    fist = Image.fromarray(rgba.astype('uint8'), 'RGBA')
+    fist = fist.crop(fist.getbbox())
+    fist.thumbnail((64, 64), Image.LANCZOS)
+    fist.save('public/assets/outfits/combat/fist.png', optimize=True)
+    print('public/assets/outfits/combat/fist.png', fist.size)
+    sys.exit(0)
+
+
+def grow(mask, size):
+    """Dilates a mask by size//2 px: the key colors' anti-aliased rim must go with them."""
+    return np.asarray(Image.fromarray((mask * 255).astype('uint8')).filter(ImageFilter.MaxFilter(size))) > 0
+
+
 def greenness(rgb):
     r, g, b = (rgb[..., k].astype(float) for k in range(3))
     return g - np.maximum(r, b)
@@ -48,6 +65,7 @@ def greenness(rgb):
 issues, frames_meta, warnings = [], [None] * len(NAMES), []
 atlas = Image.new('RGBA', (A['columns'] * A['cell'][0], A['rows'] * A['cell'][1]), (0, 0, 0, 0))
 silhouette = None
+size_limits = []
 for sheet, path in zip(contract['sheets'], inputs):
     src = Image.open(path).convert('RGB')
     if src.size != (T['cell'] * T['columns'], T['cell'] * T['rows']):
@@ -56,6 +74,10 @@ for sheet, path in zip(contract['sheets'], inputs):
     rgba = unkey(rgb)
     green = greenness(rgb)
     head_mask = (green > 90) & (rgb[..., 1] > 150)
+    # Cyan discs mark the universal fists: nothing of the outfit is painted there.
+    r_, g_, b_ = (rgb[..., k].astype(float) for k in range(3))
+    cyan = (np.minimum(g_, b_) - r_ > 60) & (g_ > 120) & (b_ > 120)
+    rgba[grow(cyan, 7), 3] = 0
     # Anti-aliased rim between the green head and the body or the background.
     rim = (green > 35) & ~head_mask
     measured = []
@@ -85,7 +107,7 @@ for sheet, path in zip(contract['sheets'], inputs):
             warnings.append(f'{sheet["name"]} {name}: cabeça {m[2] / median:.0%} da mediana da prancha')
     scale = head_px / median
     clean = rgba.copy()
-    clean[head_mask | rim, 3] = 0
+    clean[grow(head_mask | rim, 7), 3] = 0
     for i, (m, name) in enumerate(zip(measured, sheet['frames'])):
         if not m:
             continue
@@ -102,6 +124,10 @@ for sheet, path in zip(contract['sheets'], inputs):
             issues.append(f'{sheet["name"]} {name}: corpo quase vazio')
             continue
         ground = solid[0].max() + 1
+        # DDTank proportions: the body stays the size of the gray mannequin of the template.
+        tall = (ground - solid[0].min()) * head_px / median / A['pixelsPerUnit']
+        wide = (solid[1].max() - solid[1].min() + 1) * head_px / median / A['pixelsPerUnit']
+        size_limits.append((name, wide, tall))
         piece = Image.fromarray(figure.astype('uint8'), 'RGBA')
         piece = piece.resize((round(T['cell'] * scale), round(T['cell'] * scale)), Image.LANCZOS)
         index = NAMES.index(name)
@@ -121,6 +147,17 @@ for sheet, path in zip(contract['sheets'], inputs):
         atlas.alpha_composite(own, box)
         head_y = (hy - cy - ground) * scale / A['pixelsPerUnit']
         frames_meta[index] = {'head': [spec['head'][0], round(head_y, 2)]}
+
+def mannequin_size(body):
+    """Width and height of the template's gray body in avatar units (same widths as make-combat-templates.py)."""
+    pts = [(*body['neck'], 12), (*body['hip'], 12)] + [(*p, 6) for leg in (body['near'], body['far']) for p in leg] + [(*p, 5) for s in body['sleeves'] for p in s]
+    return (max(x + r for x, _, r in pts) - min(x - r for x, _, r in pts), max(y + r for _, y, r in pts) - min(y - r for _, y, r in pts))
+
+
+limits = {name: mannequin_size(body) for name, body in contract['mannequin'].items()}
+for name, wide, tall in size_limits:
+    if name in limits and (wide > limits[name][0] * 1.3 or tall > limits[name][1] * 1.3):
+        warnings.append(f'{name}: corpo {wide:.0f}x{tall:.0f} maior que o boneco cinza {limits[name][0]:.0f}x{limits[name][1]:.0f} (unidades)')
 
 atlas_path = f'public/assets/outfits/combat/{outfit}.png'
 complete = all(frames_meta) and not issues

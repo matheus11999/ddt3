@@ -35,9 +35,10 @@ import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
 const PODIUM_AVATAR=186;
 import {LOBBY_SPAWN} from '../../shared/lobby';
 import {chaseLobbyPosition} from './lobbyMotion';
+import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
 const W=1536,H=864;
-type Entity={x:number;y:number;lastX:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
+type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
  const blockedRef=useRef(blocked);blockedRef.current=blocked;
@@ -56,6 +57,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
+   else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
    else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   const render=(t:number)=>{
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
@@ -136,7 +138,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // Killed by one projectile of a multi-shot: the stone drops on that impact, not after the rest land.
      // Later hits dig under the body and it sinks with the crater as a stone, not as the avatar again.
      if(hp<=0&&!f.fall?.void){if(!fallenAt.has(f.id))fallenAt.set(f.id,shot&&b.phase==='resolving'&&shot.projectiles.some((_,i)=>!shot.impacted.includes(i))?t-TOMBSTONE_DELAY:t);const age=t-fallenAt.get(f.id)!-TOMBSTONE_DELAY;if(age>=0){const seen=entities.get(f.id);drawTombstone(c,seen?.x??f.x,y,age,f.facing);continue;}}else if(hp>0)fallenAt.delete(f.id);
-     const entity=entities.get(f.id),walking=entity&&Math.abs(f.x-entity.x)>.8;
+     const entity=entities.get(f.id),walking=entity&&(Math.abs(f.x-entity.x)>.8||entity.movedAt!==undefined&&t-entity.movedAt<CRAWL_LINGER_MS);
      const slope=f.aimSlope!==undefined?-f.aimSlope*f.facing*Math.PI/180:Math.max(-.5,Math.min(.5,Math.atan2(ground(terrain,f.x+12,Math.max(0,y-40))-ground(terrain,f.x-12,Math.max(0,y-40)),24)));
      let pose:AvatarContext['pose']=walking?'walk':b.turnId===f.id&&b.phase==='aiming'?(f.charging?'charge':'aim'):'idle',poseTime=0;
      if(Math.abs(slope)>.43&&!walking)pose='prone';

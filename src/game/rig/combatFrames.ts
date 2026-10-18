@@ -11,21 +11,25 @@ type Point=readonly [number,number];
 import contract from './combatFrames.json';
 export const COMBAT_FRAME_NAMES=['rest','crawl1','crawl2','crawl3','crawl4','hurt','rise','ready','windup','release','follow','settle'] as const;
 export type CombatFrameName=typeof COMBAT_FRAME_NAMES[number];
+/** A fist: centre and tilt (radians). The game draws the same skin-colored fist for every outfit. */
+export type Fist=readonly [number,number,number];
 export interface CombatFrameSpec {
  /** Where the template places the head; each outfit's painted head is measured, this is the target. */
  head:Point;
- /** Fist that holds and releases the projectile (charge glow, throw trail). */
- hand:Point;
+ /** The fist behind the body, then the fist in front (it holds and releases the projectile). */
+ fists:readonly [Fist,Fist];
  /** Centre of the weapon strapped on the back, and its tilt (radians, negative leans it back). */
  back:Point;backAngle:number;
 }
-/** Frames 0-5 lie on the ground, 6-11 rise to throw. Shared with scripts/build-combat-atlas.py. */
+/** Frames 0-5 lie on the ground, 6-11 kneel to throw. Shared with scripts/build-combat-atlas.py. */
 export const COMBAT_FRAMES=contract.frames as unknown as Readonly<Record<CombatFrameName,CombatFrameSpec>>;
 /** Codex paints two sheets per outfit, 3×2 cells of 512 px on magenta, with the head as a flat
  * green silhouette at the template position (docs/templates/combat-*.png). */
 export const COMBAT_TEMPLATE=contract.template;
 /** Packed atlas written by scripts/build-combat-atlas.py: frame i at column i%columns, row
  * i/columns, each cell with the contact point at `origin`, `pixelsPerUnit` px per avatar unit. */
+/** Universal fist size in avatar units. */
+export const COMBAT_FIST_SIZE=contract.fist.size;
 export const COMBAT_ATLAS=contract.atlas as unknown as {columns:number;rows:number;cell:Point;origin:Point;pixelsPerUnit:number};
 /** The universal head's silhouette box in the 1254 px head template (character-base.png). */
 export const HEAD_SILHOUETTE=contract.headSilhouette;
@@ -45,19 +49,30 @@ export const COMBAT_STEP_MS=70;
  * so the wind-up is a single short step. */
 const THROW_STEPS=[50,110,120,140] as const;
 
-/** Frame for a pose. `phase` is the crawl cycle (2π per stride), `walk` 0..1 how much it crawls. */
 /** After a release the fighter keeps holding until the server's shot starts the throw. */
 export const COMBAT_RELEASE_HOLD_MS=600;
-export function combatFrame(pose:AvatarPose,poseTime:number,phase:number,walk:number,sinceCharge=Infinity):CombatFrameName {
+/** The drawing for a pose, the one that follows it and how far (0..1) the motion is towards it:
+ * the painting changes on the drawing, the code-drawn fists glide between the two. */
+export interface CombatFrameBlend {name:CombatFrameName;next:CombatFrameName;mix:number;}
+const still=(name:CombatFrameName):CombatFrameBlend=>({name,next:name,mix:0});
+const smooth=(t:number)=>t*t*(3-2*t);
+/** `phase` is the crawl cycle (2π per stride), `walk` 0..1 how much it crawls. */
+export function combatFrameBlend(pose:AvatarPose,poseTime:number,phase:number,walk:number,sinceCharge=Infinity):CombatFrameBlend {
  const t=Math.max(0,poseTime);
- if((pose==='aim'||pose==='idle')&&sinceCharge<COMBAT_RELEASE_HOLD_MS)return 'ready';
- if(pose==='charge'){const step=Math.floor(t/COMBAT_STEP_MS);return COMBAT_SEQUENCES.showThrow[Math.min(step,COMBAT_SEQUENCES.showThrow.length-1)];}
+ if((pose==='aim'||pose==='idle')&&sinceCharge<COMBAT_RELEASE_HOLD_MS)return still('ready');
+ if(pose==='charge')return t<COMBAT_STEP_MS*2?{name:'rise',next:'ready',mix:smooth(t/(COMBAT_STEP_MS*2))}:still('ready');
  if(pose==='fire'){
-  let at=0;for(let i=0;i<THROW_STEPS.length;i++){at+=THROW_STEPS[i];if(t<at)return COMBAT_SEQUENCES.throws[i];}
-  return t<at+COMBAT_STEP_MS?COMBAT_SEQUENCES.hideThrow[0]:'rest';
+  const steps=COMBAT_SEQUENCES.throws;let at=0;
+  for(let i=0;i<THROW_STEPS.length;i++){const end=at+THROW_STEPS[i];if(t<end)return {name:steps[i],next:steps[i+1]??'rise',mix:smooth((t-at)/THROW_STEPS[i])};at=end;}
+  return t<at+COMBAT_STEP_MS?{name:'rise',next:'rest',mix:smooth((t-at)/COMBAT_STEP_MS)}:still('rest');
  }
- if(pose==='hit'||pose==='fall'||pose==='defeat')return 'hurt';
- if(walk>.35){const cycle=COMBAT_SEQUENCES.walk,turn=((phase/(Math.PI*2))%1+1)%1;return cycle[Math.floor(turn*cycle.length)%cycle.length];}
- return 'rest';
+ if(pose==='hit'||pose==='fall'||pose==='defeat')return still('hurt');
+ if(walk>.35){
+  // Four drawings, each held for two steps as in DDTank's WALK; the fists keep gliding through them.
+  const cycle=['crawl1','crawl2','crawl3','crawl4'] as const,turn=((phase/(Math.PI*2))%1+1)%1*cycle.length,i=Math.floor(turn)%cycle.length;
+  return {name:cycle[i],next:cycle[(i+1)%cycle.length],mix:turn-Math.floor(turn)};
+ }
+ return still('rest');
 }
+export const combatFrame=(pose:AvatarPose,poseTime:number,phase:number,walk:number,sinceCharge=Infinity)=>combatFrameBlend(pose,poseTime,phase,walk,sinceCharge).name;
 export const combatFrameIndex=(name:CombatFrameName)=>COMBAT_FRAME_NAMES.indexOf(name);
