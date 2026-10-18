@@ -46,8 +46,11 @@ export const COMBAT_STEP_MS=70;
 const THROW_STEPS=[50,110,120,140] as const;
 
 /** Frame for a pose. `phase` is the crawl cycle (2π per stride), `walk` 0..1 how much it crawls. */
-export function combatFrame(pose:AvatarPose,poseTime:number,phase:number,walk:number):CombatFrameName {
+/** After a release the fighter keeps holding until the server's shot starts the throw. */
+export const COMBAT_RELEASE_HOLD_MS=600;
+export function combatFrame(pose:AvatarPose,poseTime:number,phase:number,walk:number,sinceCharge=Infinity):CombatFrameName {
  const t=Math.max(0,poseTime);
+ if((pose==='aim'||pose==='idle')&&sinceCharge<COMBAT_RELEASE_HOLD_MS)return 'ready';
  if(pose==='charge'){const step=Math.floor(t/COMBAT_STEP_MS);return COMBAT_SEQUENCES.showThrow[Math.min(step,COMBAT_SEQUENCES.showThrow.length-1)];}
  if(pose==='fire'){
   let at=0;for(let i=0;i<THROW_STEPS.length;i++){at+=THROW_STEPS[i];if(t<at)return COMBAT_SEQUENCES.throws[i];}

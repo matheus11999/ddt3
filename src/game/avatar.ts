@@ -11,8 +11,8 @@ import {HEAD_SCALE} from './rig/anchors';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
 export interface AvatarContext {pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
-export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;}
-export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0};}
+export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;chargedAt:number;}
+export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0,chargedAt:-1e9};}
 const sigils=new Map<number,HTMLCanvasElement>();
 const auraSigils={5:asset('/assets/ui/aura-green-sigil.png?v=4'),9:asset('/assets/ui/aura-purple-sigil.png?v=2'),12:asset('/assets/ui/aura-gold-sigil.png?v=2')};
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -69,7 +69,7 @@ const WALK_LANE_PULL=.75;
 
 function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
- const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}
+ const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}if(pose==='charge')m.chargedAt=time;
  m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=walkStep(outfitPose)*4;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
  const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/170);
  const poseTime=context.poseTime??time-m.poseAt,stride=Math.sin(m.phase),aiming=pose==='aim'||pose==='charge'||pose==='fire',recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,slope=clamp(context.slope??0,-.5,.5);
@@ -288,7 +288,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
   // Painted DDTank-style combat frames (docs/combat-frames.md); outfits without them keep the cut-out rig.
-  if(context.combat&&hasCombatFrames(eq.outfit)&&drawCombatBody(c,eq,rig.head,{pose,poseTime,phase:m.phase,walk,time,power:context.power??0,face:context.face,lively,weapon,modular:rig.modular})){c.restore();return;}
+  if(context.combat&&hasCombatFrames(eq.outfit)&&drawCombatBody(c,eq,rig.head,{pose,poseTime,sinceCharge:time-m.chargedAt,phase:m.phase,walk,time,power:context.power??0,face:context.face,lively,weapon,modular:rig.modular})){c.restore();return;}
   if(context.combat&&rig.combat){
    const painted=rig.combat,crawl=walk,cycle=m.phase,stroke=Math.sin(cycle),breath=Math.sin(time/900)*.28*(1-crawl),hit=pose==='hit'?Math.exp(-Math.max(0,context.poseTime??0)/210):0;
    // Crawl: the chest surges forward on each stroke while the legs drag and

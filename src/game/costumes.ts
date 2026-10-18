@@ -14,7 +14,7 @@ interface CostumeDefinition {path:string;height:number;combatHeight:number;walk?
 const sheet=(path:string):CostumeSheet=>({path,columns:3,rows:2});
 export const COSTUMES:Readonly<Record<string,CostumeDefinition>>={
  'costume-thunder-chick':{path:'/assets/costumes/costume-thunder-chick.png',height:155,combatHeight:109,walk:sheet('/assets/costumes/costume-thunder-chick-walk.png'),prone:sheet('/assets/costumes/costume-thunder-chick-prone.png')},
- 'costume-arcane-fox':{path:'/assets/costumes/costume-arcane-fox.png',height:155,combatHeight:109,walk:sheet('/assets/costumes/costume-arcane-fox-walk.png'),prone:sheet('/assets/costumes/costume-arcane-fox-prone.png')}
+ 'costume-arcane-fox':{path:'/assets/costumes/costume-arcane-fox.png',height:155,combatHeight:109,walk:sheet('/assets/costumes/costume-arcane-fox-walk.png'),prone:sheet('/assets/costumes/costume-arcane-fox-prone.png'),throw:sheet('/assets/costumes/costume-arcane-fox-throw.png')}
 };
 /** Atlas cells: 0 idle, 1 and 2 the two walking contacts, 3 combat. Used only without a walk sheet. */
 export const COSTUME_WALK_FRAMES=[1,2] as const;
@@ -72,7 +72,7 @@ const atlasOf=(definition:CostumeDefinition):CostumeSheet=>({path:definition.pat
 export function getCostumeFrame(id:string,index=0):CostumeFrame|null {
  const definition=COSTUMES[id];if(!definition)return null;
  // Start loading the walk and belly-down sheets with the first painting, before they are needed.
- if(definition.walk)asset(definition.walk.path);if(definition.prone)asset(definition.prone.path);
+ if(definition.walk)asset(definition.walk.path);if(definition.prone)asset(definition.prone.path);if(definition.throw)asset(definition.throw.path);
  const frame=costumeFrame(atlasOf(definition),index);if(!frame)return null;
  const image=asset(definition.path);return {...frame,scale:definition.height/(image.naturalHeight/2*.97)};
 }
@@ -83,11 +83,13 @@ export function getCostumeWalkFrame(id:string,index:number):CostumeFrame|null {
  return {...frame,scale:idle.canvas.height*idle.scale/((a.canvas.height+b.canvas.height)/2)};
 }
 /** Belly-down combat frame, scaled so the resting painting is COSTUME_PRONE_HEIGHT units tall. */
-/** Standing throw frame (rise..settle), scaled so the ready painting is as tall as the standing combat costume. */
+/** Height of the standing throw painting (ready frame) in avatar units, as tall as an outfit risen to throw with its head. */
+export const COSTUME_THROW_HEIGHT=150;
+/** Standing throw frame (rise..settle), scaled so the ready painting is COSTUME_THROW_HEIGHT units tall. */
 export function getCostumeThrowFrame(id:string,index:number):CostumeFrame|null {
- const definition=COSTUMES[id],sheet=definition?.throw;if(!sheet)return null;
+ const sheet=COSTUMES[id]?.throw;if(!sheet)return null;
  const ready=costumeFrame(sheet,1,'ground'),frame=costumeFrame(sheet,index,'ground');if(!ready||!frame)return null;
- return {...frame,scale:definition.combatHeight/ready.canvas.height};
+ return {...frame,scale:COSTUME_THROW_HEIGHT/ready.canvas.height};
 }
 export function getCostumeProneFrame(id:string,index:number):CostumeFrame|null {
  const sheet=COSTUMES[id]?.prone;if(!sheet)return null;

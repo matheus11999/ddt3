@@ -33,12 +33,12 @@ const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynam
 /** Weapon art is drawn this many avatar units across on the back. */
 const BACK_WEAPON_SIZE=74;
 
-export interface CombatBodyState {pose:AvatarPose;poseTime:number;phase:number;walk:number;time:number;power:number;face?:FaceState;lively:number;weapon:boolean;modular:boolean;}
+export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since the fighter last charged: it stays up while the shot reaches the server. */sinceCharge:number;phase:number;walk:number;time:number;power:number;face?:FaceState;lively:number;weapon:boolean;modular:boolean;}
 /** Draws the combat fighter facing right in avatar units from its contact point. Returns false
  * when the outfit has no combat atlas (yet), so the caller can fall back to the cut-out rig. */
 export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:AvatarPart,state:CombatBodyState):boolean {
  const atlas=combatAtlas(eq),entry=ATLASES[eq.outfit];if(!atlas||!entry)return false;
- const name=combatFrame(state.pose,state.poseTime,state.phase,state.walk),index=combatFrameIndex(name),spec=COMBAT_FRAMES[name];
+ const name=combatFrame(state.pose,state.poseTime,state.phase,state.walk,state.sinceCharge),index=combatFrameIndex(name),spec=COMBAT_FRAMES[name];
  const measured=entry.frames[index]?.head??spec.head,dx=measured[0]-spec.head[0],dy=measured[1]-spec.head[1];
  const hit=state.pose==='hit'?Math.exp(-Math.max(0,state.poseTime)/210):0,breath=name==='rest'?Math.sin(state.time/900)*.35:0;
  const weapon=WEAPONS.find(item=>item.id===eq.weapon),color=effectColor[weapon?.effect??'brick']??'#ffe5a0';

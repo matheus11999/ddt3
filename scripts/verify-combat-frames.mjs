@@ -20,9 +20,9 @@ try{
   const atlases=(await import('/src/game/combatAtlas.json')).default;
   const {DEFAULT_EQUIPMENT,ITEMS,weaponAssetPath}=await import('/shared/catalog.ts');
   const load=path=>new Promise(resolve=>{const image=A.asset(path);if(image.complete&&image.naturalWidth)return resolve();image.addEventListener('load',resolve,{once:true});image.addEventListener('error',resolve,{once:true});});
-  const outfits=Object.keys(atlases);
+  const C=await import('/src/game/costumes.ts'),costumes=Object.keys(C.COSTUMES),outfits=[...Object.keys(atlases),...costumes];
   const weapons=['brick','love-boomerang'];
-  await Promise.all([...new Set(['/assets/character-base.png','/assets/hair-covered-atlas.png','/assets/outfits/combat-prone.png','/assets/outfits/shop-walking-legs.png','/assets/outfits/cartographer-walk.png',...Object.values(atlases).map(a=>a.path),...ITEMS.map(item=>item.visual?.asset).filter(Boolean),...weapons.map(w=>weaponAssetPath(w,0))])].map(load));
+  await Promise.all([...new Set(['/assets/character-base.png','/assets/hair-covered-atlas.png',...Object.values(C.COSTUMES).flatMap(d=>[d.path,d.prone?.path,d.throw?.path,d.walk?.path]).filter(Boolean),'/assets/outfits/combat-prone.png','/assets/outfits/shop-walking-legs.png','/assets/outfits/cartographer-walk.png',...Object.values(atlases).map(a=>a.path),...ITEMS.map(item=>item.visual?.asset).filter(Boolean),...weapons.map(w=>weaponAssetPath(w,0))])].map(load));
   await new Promise(resolve=>{const image=new Image();image.onload=resolve;image.onerror=resolve;image.src='/assets/headwear-worn-atlas.png';});
   await new Promise(resolve=>setTimeout(resolve,500));
   const looks=[{hair:'hair-undercut',hat:'hat-cap',glasses:'glasses-none',face:'face-brave'},{hair:'hair-ponytail',hat:'hat-none',glasses:'glasses-sport',face:'face-smile'},{hair:'hair-wavy',hat:'hat-mage',glasses:'glasses-none',face:'face-wink'},{hair:'hair-horizon',hat:'hat-tropical',glasses:'glasses-navigator',face:'face-fierce'}];
@@ -34,9 +34,9 @@ try{
   c.font='12px Arial';columns.forEach(([, , ,label],i)=>{c.fillStyle='#e8f2ff';c.fillText(label,130+i*W+W/2-c.measureText(label).width/2,52);});
   const ready=[];
   outfits.forEach((outfit,o)=>[1,-1].forEach((facing,f)=>{
-   const row=o*2+f,y=60+row*H,look=looks[(o+f)%looks.length],eq={...DEFAULT_EQUIPMENT,...look,outfit,weapon:weapons[(o+f)%weapons.length]};
-   ready.push({outfit,ready:B.combatBodyReady(eq)});
-   c.fillStyle='#e8f2ff';c.font='13px Arial';c.fillText(outfit.replace('outfit-',''),10,y+H/2);c.fillText(facing>0?'→':'←',10,y+H/2+18);
+   const costume=costumes.includes(outfit),row=o*2+f,y=60+row*H,look=looks[(o+f)%looks.length],eq={...DEFAULT_EQUIPMENT,...look,...(costume?{costume:outfit}:{outfit}),weapon:weapons[(o+f)%weapons.length]};
+   if(!costume)ready.push({outfit,ready:B.combatBodyReady(eq)});
+   c.fillStyle='#e8f2ff';c.font='13px Arial';c.fillText(outfit.replace(/^(outfit|costume)-/,''),10,y+H/2);c.fillText(facing>0?'→':'←',10,y+H/2+18);
    columns.forEach(([pose,poseTime,phase],i)=>{
     const x=130+i*W;c.fillStyle='#2f4870';c.fillRect(x+2,y+2,W-4,H-4);c.fillStyle='#5b3a24';c.fillRect(x+2,y+H-22,W-4,20);
     const motion=V.createAvatarMotion(facing);motion.phase=phase;motion.walk=pose==='walk'?1:0;motion.lastTime=1000;motion.turn=1;

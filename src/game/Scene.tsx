@@ -142,7 +142,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(Math.abs(slope)>.43&&!walking)pose='prone';
      if(falling)pose='fall';
      if(shot&&hold){
-      const launch=shot.projectiles.filter(p=>!p.fragment&&elapsed>=p.delay&&elapsed-p.delay<350).at(-1);
+      const launch=shot.projectiles.filter(p=>!p.fragment&&elapsed>=p.delay&&elapsed-p.delay<500).at(-1);
       if(f.id===shot.shooterId&&launch){pose='fire';poseTime=elapsed-launch.delay;}
       const hit=shot.hits.filter(h=>h.id===f.id&&exploded.has(h.projectileIndex??0)).at(-1);
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=p?elapsed-impactTime(p):500;if(age>=0&&age<500){pose='hit';poseTime=age;}}
