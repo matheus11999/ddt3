@@ -11,7 +11,7 @@ import './Hud.css';
 type LobbyMenu='quests'|'guild';
 const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',guild:'Guilda'};
 export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onExpeditions:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
- const {profile,channel,room,mailUnread}=useGame();const p=profile!;const stats=attributes(p.equipment),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);
+ const {profile,channel,room,mailUnread}=useGame();const p=profile!;const stats=attributes(p.equipment,p.level),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);
  const pendingQuests=Number(!p.equippedOnce)+Number(!p.matches);const [menu,setMenu]=useState<LobbyMenu|null>(null);const dock=useRef<HTMLElement>(null);
  useEffect(()=>{
   if(!menu)return;

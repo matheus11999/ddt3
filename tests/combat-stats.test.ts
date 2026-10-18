@@ -12,22 +12,23 @@ import type {ProfileStore} from '../server/store';
 
 test('starter totals and impact damage follow the published balance without counting upgrades twice',()=>{
  // Painted starter cap: 8 DEF / 8 AGI / 5 armor. Retired pilot cap is no longer equipped.
- assert.deepEqual(attributes(DEFAULT_EQUIPMENT),{attack:236,defense:109,agility:146,luck:105,damage:230,armor:41,hp:1527,stamina:244,power:3377});
- assert.equal(damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),286);
- const upgraded=attributes({...DEFAULT_EQUIPMENT,upgrade:12});assert.equal(upgraded.attack,284);assert.equal(upgraded.damage,285);
+ assert.deepEqual(attributes(DEFAULT_EQUIPMENT),{attack:236,defense:109,agility:146,luck:105,damage:230,armor:41,hp:1010,stamina:244,delay:1493,power:3377});
+ assert.equal(damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),264);
+ // +12: Dano × 1.1^12 and Ataque 150 → 180 (+10) → 234 (+12), from the original values only.
+ const upgraded=attributes({...DEFAULT_EQUIPMENT,upgrade:12});assert.equal(upgraded.attack,320);assert.equal(upgraded.damage,722);
  for(const weapon of WEAPONS){
   const tooltip=itemAttributes(weapon,12),totals=attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:12}),base=attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:0});
-  assert.equal(totals.damage,tooltip.damage);assert.equal(totals.attack-base.attack,48);assert.equal(tooltip.attack,weapon.attack+48);
+  assert.equal(totals.damage-base.damage,tooltip.damage-weapon.damage);assert.equal(totals.attack-base.attack,tooltip.attack-weapon.attack);assert.equal(tooltip.attack,Math.trunc(Math.trunc(weapon.attack*1.2)*1.3+1e-9));
  }
 });
 
 test('falloff, multishot penalty and damage boosts combine before final rounding',()=>{
  const damage=(modifiers:Parameters<typeof damageAtImpact>[2])=>damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT,modifiers);
- // Raw impact is 230 * 1.472 / 1.109 / (1 + 41/600), before one final rounding.
- assert.equal(damage({attenuation:.5}),143);assert.equal(damage({attenuation:.15}),43);
- assert.equal(damage({shotMultiplier:.3}),86);assert.equal(damage({boostMultiplier:1.5}),429);
- assert.equal(damage({attenuation:.5,shotMultiplier:.3,boostMultiplier:1.5}),64);
- assert.equal(damage({attenuation:3}),286);assert.equal(damage({attenuation:0}),0);assert.equal(damage({attenuation:1e-12}),0);
+ // Raw impact is 230 × 1.236 × (1 − Defesa 0.63% ∘ Armadura 6.71%) ≈ 263.5, before one final rounding.
+ assert.equal(damage({attenuation:.5}),132);assert.equal(damage({attenuation:.15}),40);
+ assert.equal(damage({shotMultiplier:.3}),79);assert.equal(damage({boostMultiplier:1.5}),395);
+ assert.equal(damage({attenuation:.5,shotMultiplier:.3,boostMultiplier:1.5}),59);
+ assert.equal(damage({attenuation:3}),264);assert.equal(damage({attenuation:0}),0);assert.equal(damage({attenuation:1e-12}),0);
  assert.equal(damage({attenuation:.001}),0,'sub-half-point exposure must not become an artificial minimum hit');assert.equal(damage({attenuation:.002}),1,'one point remains valid when the final combined damage rounds to one');
  for(const invalid of [-1,NaN,Infinity,-Infinity])assert.equal(damage({attenuation:invalid}),0);
  for(const key of ['shotMultiplier','boostMultiplier'] as const)for(const invalid of [0,-1,NaN,Infinity,-Infinity])assert.equal(damage({[key]:invalid}),0);

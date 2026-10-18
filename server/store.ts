@@ -3,7 +3,7 @@ import {COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COL
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -52,6 +52,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
  const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');
  const upgrades=Object.fromEntries([...WEAPONS.map(w=>w.id),...weaponCopies].map(key=>[key,integer(raw.upgrades?.[key],0,MAX_UPGRADE)]));
+ // Hats and outfits keep a forge level only once they have one (their Armadura grows with it, shared/stats.ts).
+ for(const key of inventory)if(isArmorSlot(CATALOG[copyBase(key)]?.slot)){const level=integer(raw.upgrades?.[key],0,MAX_UPGRADE);if(level>0)upgrades[key]=level;}
  const stones=Object.fromEntries(STONES.map(s=>[String(s.level),raw.stones?integer(raw.stones[String(s.level)]):STARTER_STONES[String(s.level)]]));
  const migratedCompositions={...raw.compositions};
  for(const [oldId,newId] of Object.entries(replacements))if(raw.inventory?.includes(oldId)&&raw.compositions?.[oldId]){
@@ -96,6 +98,8 @@ function validCopies(value:unknown,equipment:Record<Slot,string>,inventory:reado
 function refreshWorn(profile:Profile){
  const equipment=profile.equipment;
  equipment.upgrade=profile.upgrades[equippedCopy(equipment,'weapon')]??0;
+ const slotUpgrades=Object.fromEntries(ARMOR_SLOTS.map(slot=>[slot,profile.upgrades[equippedCopy(equipment,slot)]??0]).filter(([,level])=>level));
+ if(Object.keys(slotUpgrades).length)equipment.slotUpgrades=slotUpgrades;else delete equipment.slotUpgrades;
  delete equipment.compositions;delete equipment.colors;delete equipment.skin;delete equipment.eyes;delete (equipment as {dyes?:unknown}).dyes;
  const worn=equippedCompositions(equipment,profile.compositions);if(Object.keys(worn).length)equipment.compositions=worn;
  const colors=equippedColors(equipment,profile.itemColors);if(Object.keys(colors).length)equipment.colors=colors;

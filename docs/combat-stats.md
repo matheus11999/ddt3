@@ -1,46 +1,23 @@
 # Atributos, mira e dano — Brasa Arena
 
-Contrato conferido em `shared/catalog.ts`, `shared/combat.ts`, `shared/aim.ts`, `shared/physics.ts`, `shared/fall.ts` e `server/game.ts` em 16/10/2026. Os coeficientes são balanceamento próprio de Brasa, não uma reprodução verificada da fórmula proprietária do DDTank.
+Contrato conferido em `shared/catalog.ts`, `shared/stats.ts`, `shared/combat.ts`, `shared/aim.ts`, `shared/physics.ts`, `shared/fall.ts` e `server/game.ts`. Desde 18/10/2026 atributos, fortalecimento, Vida, Vigor, dano, crítico e Delay seguem o perfil clássico do DDTank descrito em [Matemática dos atributos](attributes.md).
 
 ## Atributos compartilhados
 
-`itemAttributes(item, level, composition)` e `attributes(equipment)` são usados na interface e no servidor. Ataque, Defesa, Agilidade, Sorte, Dano e Armadura são campos distintos. A soma inicial do personagem é Ataque 80, Defesa 30, Agilidade 50, Sorte 20 e Armadura 20; o dano base vem da arma.
-
-As quatro armas sem fortalecimento têm o mesmo **orçamento de 360 pontos em Ataque + Defesa + Agilidade + Sorte**. Dano, explosão, cratera, gravidade e raio do projétil são balanceados separadamente; 360 não é vigor nem uma promessa de dano idêntico.
-
-| Arma | Ataque | Defesa | Agilidade | Sorte | Dano base |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Dragão de Brasa | 150 | 55 | 70 | 85 | 230 |
-| Tempestade | 100 | 45 | 120 | 95 | 215 |
-| Flor de Cristal | 110 | 130 | 55 | 65 | 220 |
-| Cesto de Pavio | 120 | 85 | 75 | 80 | 225 |
-
-`weaponStats` limita o fortalecimento ao inteiro **0–12**. Cada nível acrescenta **4 de Ataque** e **2% do dano base**, arredondando o dano calculado da arma. Em +12 são +48 de Ataque e ×1,24 de Dano; não se reaplica esse bônus sobre um valor já fortalecido. Defesa, Agilidade e Sorte da arma não sobem com o fortalecimento.
+`itemAttributes(item, level, composition)` e `attributes(equipment, level)` são usados na interface e no servidor. Ataque, Defesa, Agilidade, Sorte, Dano e Armadura são campos distintos. A soma inicial do personagem é Ataque 80, Defesa 30, Agilidade 50, Sorte 20 e Armadura 20; o dano base vem da arma.
 
 ```text
-Vida = 1200 + 3 × Defesa
-Vigor = 240 + piso(Agilidade / 30)
 Poder do perfil = arredondar(6 × Ataque + 4 × Defesa + 3 × Agilidade
                             + 3 × Sorte + 3 × Dano + 2 × Armadura)
 ```
 
 Rosto, cabelo e fantasia são visuais. Chapéu, roupa e joias podem conceder atributos conforme o catálogo; ocultar um item não remove seus atributos. O Poder do perfil é um índice comparativo, separado da carga Power do combate e da força escolhida na régua.
 
-Exemplo verificável com `DEFAULT_EQUIPMENT` masculino, sem composição e Brasa +0: Ataque 236, Defesa 109, Agilidade 146, Sorte 105, Dano 230, Armadura 41, Vida 1527, Vigor 244 e Poder 3377. Contra o mesmo equipamento, com exposição 1, sem crítico ou ferramentas, `damageAtImpact` retorna **286**. Outras roupas e o kit feminino têm totais próprios.
+Exemplo verificável com `DEFAULT_EQUIPMENT` dos testes (Dragão de Brasa +0), nível 1: Ataque 236, Defesa 109, Agilidade 146, Sorte 105, Dano 230, Armadura 41, Vida 1010, Vigor 244, Delay base 1493 e Poder 3377. Contra o mesmo equipamento, com exposição 1, sem crítico ou ferramentas, `damageAtImpact` retorna **264**.
 
 ## Dano e crítico
 
-```text
-dano bruto = Dano × (1 + Ataque / 500)
-             ÷ (1 + Defesa do alvo / 1000)
-             ÷ (1 + Armadura do alvo / 600)
-             × exposição × multiplicador por projétil × bônus de ferramentas
-             × (1,5 se crítico; 1 caso contrário)
-```
-
-O servidor arredonda apenas o resultado final dessa fórmula, **sem mínimo de 1**. Dano bruto abaixo de 0,5 arredonda para zero, inclusive resíduos numéricos na borda da explosão. Um resultado zero não reduz HP, não aparece em `ShotHit` e não carrega Power. Dano 1 continua legítimo quando a fórmula arredonda para 1 ou quando resta apenas 1 HP ao alvo. O dano efetivamente aplicado é limitado à vida restante; é esse valor que entra no evento e na carga Power. Defesa e Armadura têm retornos decrescentes.
-
-A chance de crítico é `min(30%, 2% + 0,1 ponto percentual × Sorte)`: Sorte 0 dá 2%, Sorte 100 dá 12%, e o teto é 30%. O sorteio ocorre no servidor por impacto/alvo elegível, não pela animação. O kit do exemplo, com Sorte 105, tem 12,5%. `ShotHit.critical` informa o resultado autoritativo e o multiplicador é 1,5.
+Fórmulas em [Matemática dos atributos](attributes.md). O servidor arredonda apenas o resultado final, **sem mínimo de 1**. Dano bruto abaixo de 0,5 arredonda para zero, inclusive resíduos numéricos na borda da explosão. Um resultado zero não reduz HP, não aparece em `ShotHit` e não carrega Power. O dano efetivamente aplicado é limitado à vida restante; é esse valor que entra no evento e na carga Power. O sorteio do crítico ocorre no servidor por impacto/alvo elegível, não pela animação; `ShotHit.critical` informa o resultado autoritativo.
 
 ### Acerto direto, raspão e explosão próxima
 
@@ -116,7 +93,7 @@ Ao caminhar, inverter a direção, aterrissar ou mudar o apoio por uma cratera, 
 
 Power começa em 0 e vai até 100. O ganho usa HP efetivamente perdido por um inimigo, nunca dano excedente: atacar concede `dano / HP máximo do alvo × 60`; receber concede `dano / HP máximo × 100`, limitado a 100.
 
-Com carga cheia, vivo e no próprio turno, o comando `power` consome a carga e arma o próximo tiro. A animação central dura 1400ms antes do lançamento; o tiro recebe ×1,65 de dano, ×1,15 no raio de explosão e ×1,18 na cratera. Voo e Power não combinam. A validação e a transição de turno continuam no servidor.
+Com carga cheia, vivo e no próprio turno, o comando `power` consome a carga e arma o próximo tiro. A animação central dura 1400ms antes do lançamento; o tiro recebe ×1,65 de dano, ×1,15 no raio de explosão e ×1,05 na cratera. Voo e Power não combinam. A validação e a transição de turno continuam no servidor.
 
 ## Progressão e composição
 
