@@ -5,7 +5,9 @@ import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 
 type Effect=Projectile['effect'];
-type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number};
+/** A painted chunk cut from an impact cell: its own image, its center and width as shares of the cell width. */
+type Piece={image:HTMLCanvasElement;x:number;y:number;width:number};
+type Cell={solid:HTMLCanvasElement;energy:HTMLCanvasElement[];width:number;height:number;pieces:Piece[];body?:HTMLCanvasElement};
 /** tilt: radians the painted projectiles point above horizontal, undone when drawing the top row. */
 type Atlas={cells:Cell[];ready:Promise<void>;tilt:number};
 /** `effects`: projectile / launch / impact rows. `pow`: the POW shot's own projectile / impact rows, so POW never looks like a normal shot. */
@@ -32,6 +34,40 @@ function clamp(value:number,min=0,max=1){return Math.max(min,Math.min(max,value)
 const noise=(n:number)=>{const value=Math.sin(n*127.1+311.7)*43758.5453;return value-Math.floor(value);};
 const canvas=(width:number,height:number)=>{const out=document.createElement('canvas');out.width=Math.max(1,Math.round(width));out.height=Math.max(1,Math.round(height));return out;};
 
+/** Cuts the solid chunks (bricks, shards: saturated or dark outlined paint) out of an impact painting, so they can
+ * fly away on their own while the rest (dust, flash) pops and fades. Returns the pieces and that remaining body. */
+function paintedPieces(image:ImageData):{pieces:Piece[];body:HTMLCanvasElement}{
+ const {width,height,data}=image,size=width*height,solid=new Uint8Array(size);
+ for(let i=0;i<size;i++){
+  const r=data[i*4]/255,g=data[i*4+1]/255,b=data[i*4+2]/255,a=data[i*4+3],max=Math.max(r,g,b),min=Math.min(r,g,b),light=(max+min)/2,saturation=max===min?0:(max-min)/(1-Math.abs(2*light-1));
+  solid[i]=a>200&&((saturation>.45&&light<.62)||light<.3)?1:0;
+ }
+ // Thin painted lines (outlines, trails) join the bricks: erode them away, label the cores, then grow each core back
+ // over its own outline and glowing cracks.
+ const core=new Uint8Array(size);
+ for(let y=1;y<height-1;y++)for(let x=1;x<width-1;x++){const i=y*width+x;core[i]=solid[i]&solid[i-1]&solid[i+1]&solid[i-width]&solid[i+width];}
+ const label=new Int32Array(size).fill(-1),stack=new Int32Array(size),islands:{x0:number;y0:number;x1:number;y1:number;n:number}[]=[];
+ for(let start=0;start<size;start++){
+  if(label[start]>=0||!core[start])continue;
+  const id=islands.length;let top=0;stack[top++]=start;label[start]=id;
+  while(top){const i=stack[--top],x=i%width,y=(i-x)/width;for(const j of [x>0?i-1:-1,x<width-1?i+1:-1,y>0?i-width:-1,y<height-1?i+width:-1])if(j>=0&&label[j]<0&&core[j]){label[j]=id;stack[top++]=j;}}
+  islands.push({x0:width,y0:height,x1:0,y1:0,n:0});
+ }
+ let front:number[]=[];for(let i=0;i<size;i++)if(label[i]>=0)front.push(i);
+ for(let step=0;step<3;step++){const next:number[]=[];for(const i of front){const x=i%width;for(const j of [x>0?i-1:-1,x<width-1?i+1:-1,i-width,i+width])if(j>=0&&j<size&&label[j]<0&&data[j*4+3]>120){label[j]=label[i];next.push(j);}}front=next;}
+ for(let i=0;i<size;i++){const id=label[i];if(id<0)continue;const isle=islands[id],x=i%width,y=(i-x)/width;isle.n++;isle.x0=Math.min(isle.x0,x);isle.x1=Math.max(isle.x1,x);isle.y0=Math.min(isle.y0,y);isle.y1=Math.max(isle.y1,y);}
+ const kept=islands.map((isle,id)=>({isle,id})).filter(({isle})=>isle.n>=10&&isle.n<size*.2).sort((a,b)=>b.isle.n-a.isle.n).slice(0,16),taken=new Set(kept.map(({id})=>id));
+ const pieces=kept.map(({isle,id})=>{
+  const w=isle.x1-isle.x0+1,h=isle.y1-isle.y0+1,piece=canvas(w,h),context=piece.getContext('2d')!,out=context.createImageData(w,h);
+  for(let y=0;y<h;y++)for(let x=0;x<w;x++){const i=(isle.y0+y)*width+isle.x0+x;if(label[i]===id)for(let n=0;n<4;n++)out.data[(y*w+x)*4+n]=data[i*4+n];}
+  context.putImageData(out,0,0);
+  return {image:piece,x:(isle.x0+w/2-width/2)/width,y:(isle.y0+h/2-height/2)/width,width:w/width};
+ });
+ const body=canvas(width,height),context=body.getContext('2d')!,rest=context.createImageData(width,height);rest.data.set(data);
+ for(let i=0;i<size;i++)if(taken.has(label[i]))rest.data[i*4+3]=0;
+ context.putImageData(rest,0,0);
+ return {pieces,body};
+}
 function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
  const key=`${effect}:${sheet}`,rows=SHEET_ROWS[sheet],cached=atlases.get(key);if(cached)return cached;
  const image=new Image();const weapon=WEAPONS.find(item=>item.effect===effect),atlas:Atlas={cells:[],ready:Promise.resolve(),tilt:(weapon&&weaponKit(weapon.id)?.projectileTilt||0)*Math.PI/180};
@@ -63,7 +99,8 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
      }
      context.putImageData(out,0,0);energy.push(layer);
     }
-    atlas.cells.push({solid:row===0?solid:energy[0],energy,width,height});
+    const cut=row===rows-1?paintedPieces(original):undefined;
+    atlas.cells.push({solid,energy,width,height,pieces:cut?.pieces??[],body:cut?.body});
    }
    image.onload=null;image.onerror=null;resolve();
   };
@@ -229,15 +266,65 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
 }
 
 export const WEAPON_IMPACT_DURATION=690;
+const puffCache=new Map<string,HTMLCanvasElement>();
+/** A soft opaque dust puff (normal blending, unlike `glow`, which only lightens). */
+function puff(c:CanvasRenderingContext2D,x:number,y:number,radius:number,color:string,opacity:number){
+ let art=puffCache.get(color);if(!art){art=canvas(96,96);const ctx=art.getContext('2d')!,gradient=ctx.createRadialGradient(48,44,0,48,48,48);gradient.addColorStop(0,color+'f0');gradient.addColorStop(.55,color+'b0');gradient.addColorStop(1,color+'00');ctx.fillStyle=gradient;ctx.fillRect(0,0,96,96);puffCache.set(color,art);}
+ c.save();c.globalAlpha*=opacity;c.drawImage(art,x-radius,y-radius,radius*2,radius*2);c.restore();
+}
+const easeOut=(k:number)=>1-Math.pow(1-clamp(k),3);
+/** Brick impact: the painted burst pops, then breaks into wedges that fly out and fall under gravity,
+ * over a flash, a ground shock ring and clay dust that lingers. POW uses its own painting (pow.png) and hits harder. */
+function drawBrickImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,tier:number,options:WeaponEffectOptions){
+ const pow=!!p.powered,duration=pow?1000:800,t=elapsed;if(t<0||t>=duration)return;
+ const k=t/duration,still=reduced(options),radius=Math.min(130,Math.max(10,p.impact.radius))*(pow?1.18:1);
+ const atlas=pow&&atlasFor(p.effect,'pow').cells[4+tier]?atlasFor(p.effect,'pow'):atlasFor(p.effect),cell=atlas.cells[(atlas===atlasFor(p.effect)?8:4)+tier];
+ const size=radius*2.2*(1+tier*.06)*(pow?POW_SPRITE_SCALE:1);
+ c.save();c.translate(p.impact.x,p.impact.y);
+ // Dust first, so the burst sits on top of it.
+ const puffs=options.quality==='low'?(pow?5:3):(pow?9:6);
+ for(let n=0;n<puffs;n++){
+  const start=30+n*14,life=clamp((t-start)/(duration-start));if(t<start)continue;
+  const angle=Math.PI+(n+.5)/puffs*Math.PI+(noise(n*5+1)-.5)*.4,reach=radius*(.35+easeOut(life)*(pow?1.6:1.2))*(.8+noise(n*7)*.4),x=Math.cos(angle)*reach,y=radius*.2+Math.sin(angle)*reach*.45-life*radius*.35;
+  puff(c,x,y,radius*(.28+easeOut(life)*(pow?.6:.45)),n%3?'#d9b08a':'#efd9bb',(1-life)*(pow?.6:.5));
+ }
+ // Ground shock ring.
+ for(let ring=0;ring<(pow?2:1);ring++){
+  const life=clamp((t-ring*90)/(pow?380:300));if(life>0&&life<1){c.save();c.globalAlpha*=(1-life)*.8;c.strokeStyle=ring?'#fff1c8':'#f6dcae';c.lineWidth=(pow?3:2)*(1-life)+.5;c.beginPath();c.ellipse(0,radius*.2,radius*(.5+easeOut(life)*(pow?2.6:1.9)),radius*(.14+easeOut(life)*(pow?.6:.42)),0,0,TAU);c.stroke();c.restore();}
+ }
+ // Hot core flash.
+ const flash=pow?170:120;if(t<flash){glow(c,0,-radius*.1,radius*(.7+t/flash*(pow?2:1.4)),'#fff3c4',(1-t/flash)*(pow?1:.85));glow(c,0,-radius*.1,radius*(.5+t/flash*.9),'#ffffff',(1-t/flash)*.7);}
+ if(cell){
+  // The painting pops with a slight overshoot and fades; its loose chunks keep flying out and drop under gravity.
+  const pop=t<110?.45+.75*easeOut(t/110):1.2+.12*easeOut((t-110)/300),fade=1-clamp((t-70)/(pow?190:140)),width=size*pop,height=width*cell.height/cell.width;
+  // Whole painting while the chunks still sit in it, then only the dust and flash around them.
+  const whole=1-clamp((t-40)/50);
+  if(fade>0){c.save();c.globalAlpha*=fade;if(whole<1)c.drawImage(cell.body??cell.solid,-width/2,-height/2,width,height);if(whole>0){c.globalAlpha*=whole;c.drawImage(cell.solid,-width/2,-height/2,width,height);}c.restore();}
+  const flight=Math.max(0,t)/1000,seed=Math.floor(p.impact.x*7+p.impact.y*13);
+  cell.pieces.forEach((piece,n)=>{
+   const x=piece.x*width,y=piece.y*width,length=Math.hypot(x,y)||1,speed=size*(pow?2.4:1.9)*(.7+noise(seed+n)*.6),life=clamp((t-60)/(duration-60));
+   const px=still?x:x+x/length*speed*flight,py=still?y:y+(y/length*speed*.75-size*.9)*flight+size*(pow?5.5:4.5)*flight*flight,spin=still?0:(noise(seed+n*3)-.5)*flight*14;
+   // Chunks that drop below the impact sink into the ground instead of falling over it.
+   c.save();c.globalAlpha*=(1-clamp((life-.6)/.4))*(1-clamp((py-radius*.4)/(radius*.7)));c.translate(px,py);c.rotate(spin);const w=piece.width*width,h=w*piece.image.height/piece.image.width;c.drawImage(piece.image,-w/2,-h/2,w,h);c.restore();
+  });
+ }
+ // Sparks from +10 on, and always on POW.
+ if(tier||pow){c.save();c.globalCompositeOperation='screen';c.strokeStyle='#ffd47a';c.lineCap='round';
+  const sparks=options.quality==='low'?4:(pow?12:6+tier);
+  for(let n=0;n<sparks;n++){const life=clamp(t/(pow?520:420));if(life>=1)break;const a=n*2.39996+.3,d=radius*(.3+easeOut(life)*(pow?3:2.2)*(.7+noise(n*9)*.5)),x=Math.cos(a)*d,y=Math.sin(a)*d*.75+life*life*radius;c.globalAlpha=(1-life)*.9;c.lineWidth=1.4;c.beginPath();c.moveTo(x,y);c.lineTo(x-Math.cos(a)*6*(1-life),y-Math.sin(a)*6*(1-life));c.stroke();}
+  c.restore();}
+ c.restore();
+}
 export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,level:number,material='earth',options:WeaponEffectOptions={}){
  if(p.fragment){drawBrickFragmentImpact(c,p,elapsed,strength(level),material,options);return;}
+ if(p.effect==='brick'){drawBrickImpact(c,p,elapsed,strength(level),options);return;}
  const tier=strength(level),duration=630+tier*20,age=elapsed/duration;if(age<0||age>=1)return;
  const family=FAMILY[p.effect],radius=Math.min(130,Math.max(10,p.impact.radius))*(p.powered?1.18:1),open=1-Math.pow(1-clamp(age*3),3),fade=clamp(age/.045)*Math.pow(1-age,.68),motion=reduced(options)?age*.4:age;
  c.save();c.translate(p.impact.x,p.impact.y);c.globalAlpha*=fade;c.lineCap='round';c.lineJoin='round';
  glow(c,0,0,radius*(.35+open*.7),family.mid,.24*(1-age));
- const lift=p.effect==='fire'?-radius*age*.36:p.effect==='dynamite'?-radius*age*.15:p.effect==='brick'?-radius*age*.12:0,rotation=p.effect==='electric'?motion*.8:p.effect==='fire'?motion*.3:p.effect==='crystal'?motion*.08:0;
+ const lift=p.effect==='fire'?-radius*age*.36:p.effect==='dynamite'?-radius*age*.15:0,rotation=p.effect==='electric'?motion*.8:p.effect==='fire'?motion*.3:p.effect==='crystal'?motion*.08:0;
  // The painting becomes a light layer, then erodes; particles continue its motion.
- const size=radius*(p.effect==='crystal'?2.05:p.effect==='brick'?2.2:1.9)*(.48+open*.52)*(1+tier*.06);
+ const size=radius*(p.effect==='crystal'?2.05:1.9)*(.48+open*.52)*(1+tier*.06);
  const pow=!!p.powered&&sprite(c,p.effect,1,tier,0,lift,size*POW_SPRITE_SCALE,rotation,.5,.98,clamp((age-.04)/.84),true,'pow');
  if(!pow)sprite(c,p.effect,2,tier,0,lift,size,rotation,.5,.98,clamp((age-.04)/.84));
  if(tier>=2&&options.quality!=='low'&&p.effect!=='dynamite')sprite(c,p.effect,pow?1:2,tier,0,lift*.55,size*1.13*(pow?POW_SPRITE_SCALE:1),-rotation*.7,.5,.16*(1-age),clamp((age+.1)/.9),true,pow?'pow':'effects');
@@ -248,7 +335,7 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
   c.beginPath();for(let n=0;n<=18;n++){const theta=n*TAU/18,r=ring*(.78+noise(n+Math.floor(elapsed/50)*31)*.22),x=Math.cos(theta)*r,y=Math.sin(theta)*r*.72;if(!n)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();
  }else if(p.effect==='crystal'){
   for(let side=0;side<(tier>=2?2:1);side++){c.beginPath();for(let n=0;n<=6;n++){const theta=n*TAU/6+motion*.2,r=ring*(1-side*.23),x=Math.cos(theta)*r,y=Math.sin(theta)*r*.6;if(!n)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();}
- }else if(p.effect==='dynamite'||p.effect==='brick'){c.strokeStyle=p.effect==='brick'?'#e5b981':'#ffd88b';c.beginPath();c.ellipse(0,radius*.1,ring,ring*.25,0,0,TAU);c.stroke();}
+ }else if(p.effect==='dynamite'){c.strokeStyle='#ffd88b';c.beginPath();c.ellipse(0,radius*.1,ring,ring*.25,0,0,TAU);c.stroke();}
  else{for(let n=0;n<2+tier;n++){const theta=n*TAU/(2+tier)+motion*2;c.beginPath();c.ellipse(0,-radius*age*.2,ring*(.8+n*.035),ring*.5,theta,theta,theta+.7);c.stroke();}}
  c.restore();
  const count=Math.min(limits(options).impactParticles,7+tier*6);
@@ -259,12 +346,10 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
   if(p.effect==='electric'){c.beginPath();c.moveTo(-length*1.8,0);c.lineTo(-length*.7,2);c.lineTo(-length*.3,-2);c.lineTo(length*.4,0);c.stroke();}
   else if(p.effect==='crystal'){c.beginPath();c.moveTo(-length,0);c.lineTo(0,-length*.25);c.lineTo(length*.6,0);c.lineTo(0,length*.25);c.closePath();c.globalAlpha*=.75;c.fill();c.stroke();}
   else if(p.effect==='fire'){c.beginPath();c.moveTo(-length*2,Math.sin(life*12+n)*3);c.quadraticCurveTo(-length*.5,-length*.35,length*.5,0);c.stroke();if(n%5===0)glow(c,0,0,length*.8,family.mid,.2);}
-   else if(p.effect==='brick'){c.globalCompositeOperation='source-over';if(n%3===0)brickChunk(c,0,0,2+length*.7,theta+life*4,tier,elapsed);else{c.strokeStyle=n%2?'#c1744d':'#e5c599';c.beginPath();c.moveTo(-length,0);c.lineTo(length*.5,0);c.stroke();}}
    else{if(n%3===0){c.globalCompositeOperation='source-over';c.fillStyle=n%2?'#ef6a45':'#d8bb89';c.fillRect(-length*.3,-1,length*.7,2);}else{c.beginPath();c.moveTo(-length,0);c.lineTo(length*.5,0);c.stroke();}}
   c.restore();
  }
  if(p.effect==='dynamite'&&age>.12){const count=options.quality==='low'?2:4;for(let n=0;n<count;n++){const theta=n*TAU/count+.4;glow(c,Math.cos(theta)*radius*age*.55,-radius*age*.4+Math.sin(theta)*radius*age*.3,radius*(.13+age*.2),'#c9b7a2',.07*(1-age));}}
- if(p.effect==='brick'&&age>.1){const count=options.quality==='low'?3:7;for(let n=0;n<count;n++){const theta=Math.PI+n*Math.PI/(count-1),r=radius*(.3+open*1.15);glow(c,Math.cos(theta)*r,radius*.18+Math.sin(theta)*r*.22,radius*(.2+open*.28),n%2?'#ead2ac':'#cf9f74',.11*(1-age));}}
  c.save();c.globalAlpha*=.48;materialDebris(c,material,elapsed,radius,tier,options);c.restore();c.restore();
 }
 
