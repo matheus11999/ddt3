@@ -1,6 +1,7 @@
 import {CouponIcon,RewardIcon} from './RewardIcon';
 import {useEffect,useRef,useState} from 'react';
-import {Send,MapPin,Volume2,VolumeX,Settings,Expand,ChevronDown,Check,X} from 'lucide-react';
+import {Send,MapPin,Volume2,VolumeX,Settings,Expand,ChevronDown,Check,X,PawPrint} from 'lucide-react';
+import type {ReactNode} from 'react';
 import {PowerIcon} from './PowerIcon';
 import {LevelBadge} from './LevelBadge';
 import {levelProgress} from '../../shared/progression';
@@ -22,13 +23,15 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
  },[menu]);
  const toggle=(id:LobbyMenu)=>{setMenu(value=>value===id?null:id);audio.play('click');};
  // Painted icons in the PvP room menu style (prompts in docs/lobby-art-prompts.md).
- const buttons:{id:string;label:string;art:string;count?:number;action:()=>void;disabled?:boolean;pressed?:boolean}[]=[
+ const buttons:{id:string;label:string;art?:string;icon?:ReactNode;count?:number;action:()=>void;disabled?:boolean;pressed?:boolean}[]=[
   {id:'arena',label:'Arena',art:'arena-button.png',action:onArena},
   {id:'expeditions',label:'Expedições',art:'expedition-button.png',action:onExpeditions},
   {id:'bag',label:'Mochila',art:'backpack-button.png',action:onInventory},
   {id:'shop',label:'Loja',art:'shop-button.png',action:onShop},
   {id:'auction',label:'Leilão',art:'auction-button.png',count:auctionMine.unseen,action:()=>{setMenu(null);client.openAuction();audio.play('click');}},
   {id:'forge',label:'Ferreiro',art:'forge-button.png',action:onForge,disabled:!!room},
+  // Pets: drawn paw until the painted pet-button.png exists (docs/pets.md).
+  {id:'pets',label:'Pets',icon:<PawPrint className="lobby-dock-icon" size={30} strokeWidth={2.4}/>,action:()=>{setMenu(null);client.openPets();audio.play('click');}},
   {id:'quests',label:'Missões',art:'arena-quests.png',count:pendingQuests,action:()=>toggle('quests'),pressed:menu==='quests'},
   {id:'mail',label:'Correio',art:'arena-mail.png',count:mailUnread,action:()=>{setMenu(null);client.openMail();audio.play('click');}},
   {id:'guild',label:'Guilda',art:'arena-guild.png',action:()=>{setMenu(null);client.openGuild();audio.play('click');}},
@@ -38,7 +41,7 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   <div className="channel-chip"><MapPin size={13}/> Praça Celeste <i/> Canal {String(channel).padStart(2,'0')}</div>
   <div className="top-right"><div className="currency"><span title="Ouro (Moedas Brasa)" className="currency-gold"><RewardIcon size={20}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span className="currency-divider"/><span className="currency-coupons" title="Cupons"><CouponIcon size={24}/><b>{p.coupons.toLocaleString('pt-BR')}</b></span></div><button className="round-button" aria-label={sound?'Desativar som':'Ativar som'} onClick={()=>{audio.setEnabled(!sound);setSound(!sound);}}>{sound?<Volume2 size={19}/>:<VolumeX size={19}/>}</button><button className="round-button" aria-label="Tela cheia" onClick={()=>{if(document.fullscreenElement)void document.exitFullscreen();else void document.documentElement.requestFullscreen().catch(()=>{});}}><Expand size={18}/></button><button className="round-button" aria-label="Configurações" onClick={onSettings}><Settings size={19}/></button></div>
   <div className={`chat-shell lobby-chat wood-pane wood-chat ${chatOpen?'':'collapsed'}`}><button className="chat-collapse" aria-label={chatOpen?'Minimizar chat':'Abrir chat'} onClick={()=>setChatOpen(!chatOpen)}><ChevronDown size={15}/></button><Chat/></div>
-  <nav ref={dock} className="bottom-dock lobby-dock" aria-label="Menus da praça">{buttons.map(button=><button key={button.id} className={`lobby-dock-button ${button.id} ${button.pressed?'active':''}`} aria-label={button.label} title={button.label} aria-expanded={button.pressed===undefined?undefined:button.pressed} disabled={button.disabled} onClick={button.action}><span className="lobby-dock-tile"><img src={`/assets/ui/${button.art}`} alt="" draggable={false}/>{button.count?<b className="lobby-dock-count">{button.count}</b>:null}</span><span className="lobby-dock-label">{button.label}</span></button>)}
+  <nav ref={dock} className="bottom-dock lobby-dock" aria-label="Menus da praça">{buttons.map(button=><button key={button.id} className={`lobby-dock-button ${button.id} ${button.pressed?'active':''}`} aria-label={button.label} title={button.label} aria-expanded={button.pressed===undefined?undefined:button.pressed} disabled={button.disabled} onClick={button.action}><span className="lobby-dock-tile">{button.art?<img src={`/assets/ui/${button.art}`} alt="" draggable={false}/>:button.icon}{button.count?<b className="lobby-dock-count">{button.count}</b>:null}</span><span className="lobby-dock-label">{button.label}</span></button>)}
    {menu&&<section className="lobby-dock-popover" role="dialog" aria-label={LOBBY_MENU_NAMES[menu]}><header><strong>{LOBBY_MENU_NAMES[menu]}</strong><button type="button" aria-label={`Fechar ${LOBBY_MENU_NAMES[menu]}`} onClick={()=>setMenu(null)}><X size={17}/></button></header>{menu==='quests'?<div className="lobby-quest-list"><button type="button" onClick={()=>{setMenu(null);onInventory();}}><span className={p.equippedOnce?'done':''}>{p.equippedOnce?<Check size={15}/>:'1'}</span><div><strong>Vista sua aventura</strong><small>Equipe um item na mochila</small></div></button><button type="button" onClick={()=>{setMenu(null);onArena();}}><span className={p.matches?'done':''}>{p.matches?<Check size={15}/>:'2'}</span><div><strong>Entre na arena</strong><small>Conclua sua primeira batalha</small></div></button></div>:<p>Em breve</p>}</section>}
   </nav>
   <div className="xp-bottom"><div style={{width:`${progress.percent}%`}}/><span>{progress.capped?`NÍVEL ${p.level} · MÁXIMO`:`EXP ${progress.current} / ${progress.required}`}</span></div>

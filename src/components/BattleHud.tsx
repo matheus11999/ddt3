@@ -3,6 +3,7 @@ import {powBoostConflict} from '../../shared/weaponKit';
 import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
+import {PetSkillBar} from './PetSkillBar';
 import {AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
@@ -205,6 +206,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <button type="button" className={`flight-control ${me.flightArmed?'flight-armed':''}`} data-flight={!!me.flightArmed} disabled={flightBlocked} aria-pressed={!!me.flightArmed} aria-label={me.flightArmed?'Cancelar voo':'Ativar voo'} title="Voo: mire e lance o avião para se deslocar. Substitui seu disparo e não causa dano. Combina com andar, cura e invisibilidade." onClick={event=>{cancelCharge();if(!flightBlocked)client.send({type:'flight',active:!me.flightArmed});if(event.detail>0)event.currentTarget.blur();}}><img src="/assets/abilities/flight.png" alt="" draggable={false}/><span>{me.flightArmed?'ATIVO':'VOO'}</span></button>
   </aside>
 
+  <PetSkillBar fighter={me} canAct={canAct} mode={instance?'pve':'pvp'}/>
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{

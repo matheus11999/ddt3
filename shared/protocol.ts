@@ -19,8 +19,11 @@ import type {MailClaimResult,MailMessage} from './mail';
 import {auctionCommandSchemas} from './auction';
 import type {AuctionMine,AuctionPage,AuctionResult} from './auction';
 import {guildCommandSchemas} from './guilds';
+import {petCommandSchemas} from './petProtocol';
+import type {PetsState,PetResult} from './petProtocol';
+import type {BattlePetState,PetApplication,PetEffect} from './petSkills';
 import type {GuildState,GuildSummary} from './guilds';
-export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
+export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;/** Pet food stacks (shared/pets.ts PET_FOODS), counted like stones. */petFood:Record<string,number>;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
 export interface ColorResult {changes:ColorChange[];tickets:number;}
@@ -37,7 +40,7 @@ export interface RoomInvitePlayer {id:string;name:string;level:number;}
 export interface OnlinePlayer {id:string;name:string;level:number;gender:CharacterGender;}
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
-export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;/** PvP accumulated Delay (shared/turnDelay.ts): the lowest living one plays next. */delay?:number;}
+export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;/** PvP accumulated Delay (shared/turnDelay.ts): the lowest living one plays next. */delay?:number;/** The active pet's battle state (Magia, cooldowns), built at the start from the equipment snapshot. */pet?:BattlePetState;/** Pet buffs, debuffs and shields on this fighter. */petEffects?:PetEffect[];}
 export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};instance?:BattleInstance;}
 /** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
 export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};/** Speech bubbles (boss opening), server time. */speech?:{id:string;text:string;from:number;to:number}[];monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
@@ -45,7 +48,7 @@ export interface Projectile {points:number[][];delay:number;flightTime:number;im
 /** scorch: the shot hit ground or an object that does not break, so it leaves an irregular burn instead of a crater mark. */
 export interface TerrainMark {id:string;x:number;y:number;radius:number;roughness?:number;stretch?:number;scorch?:boolean;effect:Projectile['effect'];level:number;}
 export type HitKind='direct'|'graze'|'splash'|'fall';
-export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;}
+export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;/** Damage a pet shield soaked (already left out of `damage`). */shield?:number;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
 export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:'world'|'room'|'private';time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;}
 import {LOBBY_WALK} from './lobby';
@@ -71,6 +74,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('mail-list')}).strict(),
  ...auctionCommandSchemas,
  ...guildCommandSchemas,
+ ...petCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  // Without an id: "Receber tudo".
@@ -155,5 +159,9 @@ export type ServerEvent =
  | ({type:'guild'} & GuildState)
  | {type:'guild-list';guilds:GuildSummary[]}
  | {type:'guild-result';message:string}
+ /** Pets: my pets and food, the result of the last action, and pet skills playing in battle. */
+ | ({type:'pets'} & PetsState)
+ | {type:'pet-result';result:PetResult}
+ | {type:'pet-effect';battleId:string;at:number;applications:PetApplication[]}
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};

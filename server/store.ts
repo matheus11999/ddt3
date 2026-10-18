@@ -11,6 +11,7 @@ import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
 import {levelForXp,normalizeLevel} from '../shared/progression';
 import {guildChance} from '../shared/guilds';
+import {normalizePetSnapshot,PET_FOODS} from '../shared/pets';
 import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
@@ -84,7 +85,10 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  // Experience earned at the former cap immediately counts toward the new levels.
  const level=Math.max(normalizeLevel(integer(raw.level,1)),levelForXp(xp));
  const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),coupons:integer(raw.coupons),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
-  itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS)};
+  itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS),
+  petFood:Object.fromEntries(Object.entries(raw.petFood??{}).filter(([food,n])=>PET_FOODS.has(food)&&integer(n)>0).map(([food,n])=>[food,integer(n)]))};
+ // The active pet's snapshot is written only by server/pets.ts; here it is just checked.
+ const pet=normalizePetSnapshot(raw.equipment?.pet);if(pet)profile.equipment.pet=pet;
  refreshWorn(profile);return profile;
 }
 
@@ -170,7 +174,8 @@ export class Store implements ProfileStore {
    const selected=Object.fromEntries((Object.keys(SLOT_NAMES) as Slot[]).map(slot=>[slot,equipment[slot]])) as Record<Slot,string>;
    const copies=validCopies(equipment.copies,selected,profile.inventory);
    if(Object.keys(equipment.copies??{}).some(slot=>!copies[slot as Slot]&&isCopyKey(String(equipment.copies?.[slot as Slot]))))throw Error('Esta cópia não está na sua mochila.');
-   profile.equipment={...selected,visibility:normalizeVisibility(visibility.data),upgrade:0,...(Object.keys(copies).length?{copies}:{})};
+   // The pet snapshot never comes from the client: it stays as server/pets.ts saved it.
+   profile.equipment={...selected,visibility:normalizeVisibility(visibility.data),upgrade:0,...(Object.keys(copies).length?{copies}:{}),...(profile.equipment.pet?{pet:profile.equipment.pet}:{})};
    refreshWorn(profile);
    profile.equippedOnce=true;
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return profile;

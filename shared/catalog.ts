@@ -1,3 +1,6 @@
+import {petContribution} from './pets';
+import type {PetSnapshot} from './pets';
+import type {PetStats} from './petConfig';
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
 import type {ColorSlot} from './colors';
@@ -36,7 +39,7 @@ export function isArmorSlot(slot:Slot):slot is ArmorSlot {return (ARMOR_SLOTS as
 /** The forge strengthens weapons (Dano) and hats and outfits (Armadura). */
 export function canStrengthen(item:Item|undefined):boolean {return !!item&&(item.slot==='weapon'||isArmorSlot(item.slot))&&!(item.id.endsWith('-none')&&item.visual?.variant==='none');}
 export type EquipmentCopies=Partial<Record<Slot,string>>;
-export type Equipment = Record<Slot, string> & {upgrade:number;/** Forge level of the worn hat and outfit copies (derived by the server, like `upgrade` for the weapon). */ slotUpgrades?:Partial<Record<ArmorSlot,number>>;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies};
+export type Equipment = Record<Slot, string> & {upgrade:number;/** Forge level of the worn hat and outfit copies (derived by the server, like `upgrade` for the weapon). */ slotUpgrades?:Partial<Record<ArmorSlot,number>>;compositions?:Compositions;/** Derived by the server from the worn copies' ticket colors and the character's body colors. */ colors?:Partial<Record<ColorSlot,string>>;skin?:string;eyes?:string;visibility?:EquipmentVisibility;copies?:EquipmentCopies;/** The active pet as the server last saved it (server/pets.ts): its bonuses enter `attributes`. */pet?:PetSnapshot;/** Temporary pet-skill attribute changes, only on the copy a battle builds for one calculation. */battleBuffs?:PetStats};
 /** Buying an item again adds a separate copy: the first keeps the item id, later ones are `id~2`, `id~3`… */
 export const COPY_SEPARATOR='~';
 export function copyBase(key:string):string {const at=key.indexOf(COPY_SEPARATOR);return at<0?key:key.slice(0,at);}
@@ -229,5 +232,8 @@ export function slotUpgrade(eq:Equipment,slot:Slot):number {return slot==='weapo
 export function attributes(eq:Equipment,level=1) {
  const stats:ItemAttributes={...CHARACTER_BASE};let hpPercent=0;
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){const item=CATALOG[eq[slot]];if(item){hpPercent+=item.hpPercent??0;const values=itemAttributes(item,slotUpgrade(eq,slot),eq.compositions?.[item.id]);for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=values[key];}}
- return {...stats,hp:maxHpFor(level,stats.defense,1+hpPercent/100),stamina:maxStaminaFor(stats.agility),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
+ // The active pet adds like one more item (scaled by its vitality, shared/pets.ts); battle buffs last only for that battle.
+ const pet=petContribution(eq.pet),buffs=eq.battleBuffs??{};
+ for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=(pet[key]??0)+(buffs[key]??0);
+ return {...stats,hp:maxHpFor(level,stats.defense,1+hpPercent/100)+(pet.hp??0),stamina:maxStaminaFor(stats.agility)+(pet.stamina??0)+(buffs.stamina??0),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
 }
