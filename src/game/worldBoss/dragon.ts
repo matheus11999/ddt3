@@ -7,7 +7,7 @@
 import type {Battle,Fighter} from '../../../shared/protocol';
 import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
-import {glow,groundFire,hash,puff,stream,tongue} from './fire';
+import {glow,groundFire,hash,stream} from './fire';
 
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
@@ -153,11 +153,10 @@ function mouthGap(jaw:number){const tip=jawTip(jaw),lip=DRAGON_RIG.mouth;return 
 export function dragonMouth(f:Fighter,pose:DragonPose){return headPoint(f,pose,mouthGap(pose.jaw));}
 /** Fire roaring inside the open mouth, from the throat to the teeth: drawn between the jaw and the skull, so the teeth stay in front of it. */
 function mouthFire(c:CanvasRenderingContext2D,pose:DragonPose,t:number){
- const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),dx=gap[0]-THROAT[0],dy=gap[1]-THROAT[1],angle=Math.atan2(dx,-dy),open=clamp(pose.jaw/.6);
- glow(c,gap[0]-10,gap[1],90*k,.8*k);
- for(let i=0;i<7;i++){const u=i/6,x=THROAT[0]+dx*u,y=THROAT[1]+dy*u,r=(20+30*u)*(.5+.5*open)*(.7+.3*k);
-  puff(c,x,y,r*1.1,.6,.7*k);tongue(c,x,y,r*2.4,r*1.3,t,40+i,k,0,angle);}
- for(let i=0;i<12;i++){const u=i/11,w=Math.sin(t/70+i*1.7)*.35;puff(c,THROAT[0]+dx*u-dy*.04*w,THROAT[1]+dy*u+dx*.04*w,(24+18*u)*(.5+.5*open)*(1+.15*Math.sin(t/55+i)),.97,.95*k);}
+ const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),from={x:THROAT[0],y:THROAT[1]},to={x:gap[0],y:gap[1]};
+ // The same jet as outside, poured without pause while the mouth breathes fire: it reaches the teeth as wide as the stream leaving them.
+ glow(c,gap[0]-10,gap[1],70*k,.6*k);
+ c.save();c.globalAlpha*=k;stream(c,from,{x:(from.x+to.x)/2,y:(from.y+to.y)/2},to,t,t-2000,t+2000,120,20,true,t);c.restore();
 }
 
 /** Body, head and jaw: drawn before the terrain so the ridge in front hides where the dragon rises from. */
