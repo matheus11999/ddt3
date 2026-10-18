@@ -193,6 +193,30 @@ for name, wide, tall in size_limits:
     if name in limits and (wide > limits[name][0] * 1.3 or tall > limits[name][1] * 1.3):
         warnings.append(f'{name}: corpo {wide:.0f}x{tall:.0f} maior que o boneco cinza {limits[name][0]:.0f}x{limits[name][1]:.0f} (unidades)')
 
+def painted_fists(index, name):
+    """Centre of each painted fist in the atlas cell (avatar units from the contact point): the game lifts
+    the fists out of the painting lying down (one over the chin, one behind the face)."""
+    box = ((index % A['columns']) * A['cell'][0], (index // A['columns']) * A['cell'][1])
+    cell = np.asarray(atlas.crop((*box, box[0] + A['cell'][0], box[1] + A['cell'][1]))).astype(int)
+    r, g, b, a = (cell[..., k] for k in range(4))
+    ys, xs = np.nonzero((a > 200) & (r > 200) & (g > 150) & (b > 110) & (r > g) & (g > b) & (r - b > 40))
+    X, Y = (xs - A['origin'][0]) / A['pixelsPerUnit'], (ys - A['origin'][1]) / A['pixelsPerUnit']
+    found = []
+    for fx, fy, _ in contract['frames'][name]['fists']:
+        cx, cy = fx, fy
+        for _ in range(8):
+            near = (X - cx) ** 2 + (Y - cy) ** 2 < 81
+            if not near.any():
+                break
+            cx, cy = float(X[near].mean()), float(Y[near].mean())
+        found.append([round(cx, 1), round(cy, 1)])
+    return found
+
+
+for index, name in enumerate(NAMES):
+    if frames_meta[index] and frames_meta[index].get('hands'):
+        frames_meta[index]['fists'] = painted_fists(index, name)
+
 atlas_path = f'public/assets/outfits/combat/{outfit}.png'
 complete = all(frames_meta) and not issues
 if complete:
