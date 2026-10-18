@@ -184,13 +184,13 @@ html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name h1{font-size:12
 
 /* ---------- Telas menores (desktop) ---------- */
 @media(max-width:1180px){
- html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:calc(var(--card-fit) * 2 + 52px) minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr);grid-template-areas:"team chat side"}
- html:not(.mobile-landscape) .pvp-room .pr-banner{display:none}
+ html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:calc(var(--card-fit) * 2 + 52px) minmax(0,1fr) 320px;grid-template-rows:minmax(0,1fr) clamp(120px,20vh,160px)}
 }
 @media(max-width:760px){
  html:not(.mobile-landscape) .arena-room-portal .pvp-room{grid-template-rows:56px minmax(0,1fr);overflow:auto}
  html:not(.mobile-landscape) .pvp-room .pr-body{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(420px,62vh) 170px auto;grid-template-areas:"team" "chat" "side"}
  html:not(.mobile-landscape) .pvp-room :is(.pr-format,.pr-room-state){display:none}
+ html:not(.mobile-landscape) .pvp-room .pr-banner{display:none}
 }
 
 /* ---------- Celular em paisagem ---------- */
@@ -322,7 +322,7 @@ html.mobile-landscape .pvp-room .pr-ready-sash span{color:#fffbe8;font-family:'L
 .pvp-room .pr-mode-banner{position:absolute;top:10px;left:50%;transform:translateX(-50%);z-index:2}
 .pvp-room .pr-banner-art:has(.pr-mode-banner)>h2{top:calc(4% + 40px)}
 .pvp-room .pr-mode-title{display:none}
-@media(max-width:1180px){html:not(.mobile-landscape) .pvp-room .pr-mode-title{display:inline-flex}}
+@media(max-width:760px){html:not(.mobile-landscape) .pvp-room .pr-mode-title{display:inline-flex}}
 html.mobile-landscape .pvp-room .pr-mode-title{display:inline-flex}
 html.mobile-landscape .pvp-room .pr-mode button{height:22px;padding:0 9px;font-size:11px}
 html.mobile-landscape .pvp-room .pr-mode button svg{width:11px;height:11px}

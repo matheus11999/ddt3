@@ -113,8 +113,8 @@ try{
  assert.equal(await member.page.locator('.pr-mode-banner').getByRole('radio',{name:'Normal'}).isDisabled(),true,'only the leader picks the battle type');
  await member.page.getByRole('button',{name:'Estou pronto'}).click();await owner.page.waitForTimeout(800);
  await owner.page.screenshot({path:`${output}/9-sala-gvg.png`});
- // Smaller screens hide the board: the toggle moves to the title bar.
- await owner.page.setViewportSize({width:1100,height:700});await owner.page.locator('.pr-mode-title').getByRole('radio',{name:'GvG',checked:true}).waitFor();
+ // Smaller desktop screens keep the board above a shorter chat; phones hide it and the toggle moves to the title bar.
+ await owner.page.setViewportSize({width:1100,height:700});await owner.page.locator('.pr-mode-banner').getByRole('radio',{name:'GvG',checked:true}).waitFor();
  await owner.page.waitForTimeout(300);await owner.page.screenshot({path:`${output}/9c-sala-gvg-pequena.png`});
  assert.deepEqual(errors,[]);
  console.log(`guild smoke ok: ${output}`);
