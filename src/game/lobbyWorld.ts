@@ -393,13 +393,18 @@ export class LobbyWorld {
   }
  }
  /**
-  * The whole plaza at once (admin editor): each column is drawn with the camera that
-  * centres it, the way a player walking past sees it.
+  * The whole plaza at once (admin editor): each spot shows the layers as a player
+  * standing there sees them, so the slower layers are squeezed toward the middle.
   */
  drawWhole(c:CanvasRenderingContext2D,t:number){
   if(!this.deep()){for(let x=0;x<LOBBY_WIDTH;x+=LOBBY_W)this.drawBack(c,t,x);return;}
-  const step=8;
-  for(let x=0;x<LOBBY_WIDTH;x+=step){c.save();c.beginPath();c.rect(x,0,step+.5,LOBBY_H);c.clip();this.drawDepth(c,t,LobbyWorld.camera(x+step/2),x,x+step);c.restore();}
+  const half=LOBBY_W/2,range=LOBBY_WIDTH-LOBBY_W,step=8;
+  const local=(x:number,f:number)=>x-LobbyWorld.camera(x)*(1-f),world=(l:number,f:number)=>l<half?l:l>half+range*f?l+range*(1-f):(l-half*(1-f))/f;
+  for(const {factor,layer,floater,image} of this.depth){
+   if(floater){const f=floater,phase=t/f.period*Math.PI*2+f.x*.01,x=world(f.x+Math.sin(phase*.5)*f.drift,factor);c.drawImage(image,x-f.w/2,f.y+Math.sin(phase)*f.bob-f.h/2,f.w,f.h);continue;}
+   const k=image.naturalWidth/layer!.width;
+   for(let x=0;x<LOBBY_WIDTH;x+=step){const a=local(x,factor),b=local(x+step,factor);c.drawImage(image,a*k,0,(b-a)*k,image.naturalHeight,x,layer!.y,step+.5,layer!.height);}
+  }
   this.drawFloor(c,0,LOBBY_WIDTH);
  }
  private drawFloor(c:CanvasRenderingContext2D,x0:number,w:number){

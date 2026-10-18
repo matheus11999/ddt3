@@ -31,7 +31,11 @@ try{
   const piece=(sheet,n)=>{
    if(!cut[sheet])throw new Error(`folha ${sheet} não carregada`);
    const p=cut[sheet][n];if(!p)throw new Error(`${sheet}: não existe a peça ${n} (a folha tem ${cut[sheet].length})`);return p;};
+  // Sheets listed in `despill` lose the pink cast the magenta leaves on mist and foam.
+  const despill=p=>{const g=p.canvas.getContext('2d'),px=g.getImageData(0,0,p.w,p.h),d=px.data;
+   for(let i=0;i<d.length;i+=4){const m=Math.min(d[i],d[i+2])-d[i+1];if(m>6&&d[i+3]>0){d[i]-=m;d[i+2]-=m;}}g.putImageData(px,0,0);};
   for(const [name,data] of Object.entries(images)){if(/ceu-(esquerda|direita)/.test(name))continue;const r=B.cutSheet(await B.loadImage(data));cut[name]=r.pieces;sheetReports[name]=enc(r.report,'image/png');
+   if((layout.despill??[]).includes(name))r.pieces.forEach(despill);
    r.pieces.forEach((p,n)=>{if(p.touchesEdge)warnings.push(`${name}: a peça ${n} encosta na borda da folha (pode estar cortada)`);});}
   const layers=[];
   for(const layer of layout.layers){
@@ -44,15 +48,15 @@ try{
     if(y>0)warnings.push(`${layer.id}: o céu começa em y ${y.toFixed(0)}, abaixo do topo da tela`);
     g.drawImage(backdrop,0,y*D,W*D,h*D);top=Math.max(0,y);bottom=Math.min(H,y+h);
    }
-   const place=(p,{x,bottom:b,height,flip})=>{const k=height/p.h,w=p.w*k,left=x-w/2,t=b-height;
+   const place=(p,{x,bottom:b,height,flip},row=false)=>{const k=height/p.h,w=p.w*k,left=x-w/2,t=b-height;
     g.save();if(flip){g.translate((x*2)*D,0);g.scale(-1,1);}g.drawImage(p.canvas,left*D,t*D,w*D,height*D);g.restore();
     top=Math.min(top,t);bottom=Math.max(bottom,b);
-    if(left+w<0||left>W)warnings.push(`${layer.id}: peça fora da camada (x ${x})`);};
+    if(!row&&(left+w<0||left>W))warnings.push(`${layer.id}: peça fora da camada (x ${x})`);};
    for(const row of layer.rows??[]){
     // A straight run repeated edge to edge, a post covering every joint (posts cycle through the list).
     const run=piece(...row.run),rw=run.w*row.height/run.h;
-    for(let x=row.from,n=0;x<row.to;x+=rw,n++)place(run,{x:x+rw/2,bottom:row.bottom,height:row.height});
-    if(row.posts)for(let x=row.from,n=0;x<=row.to+1;x+=rw,n++){const [sheet,i]=row.posts[n%row.posts.length];place(piece(sheet,i),{x,bottom:row.postBottom??row.bottom,height:row.postHeight});}
+    for(let x=row.from,n=0;x<row.to;x+=rw,n++)place(run,{x:x+rw/2,bottom:row.bottom,height:row.height},true);
+    if(row.posts)for(let x=row.from,n=0;x<=row.to+1;x+=rw,n++){const [sheet,i]=row.posts[n%row.posts.length];place(piece(sheet,i),{x,bottom:row.postBottom??row.bottom,height:row.postHeight},true);}
    }
    for(const item of layer.items??[])place(piece(item.sheet,item.piece),item);
    top=Math.max(0,Math.floor(top)-2);bottom=Math.min(H,Math.ceil(bottom)+2);
@@ -65,12 +69,15 @@ try{
   // Whole plaza as the player sees it walking: each column drawn with the camera that centres it.
   const whole=B.canvas(VIEW+RANGE,H),w=whole.getContext('2d'),loaded=await Promise.all(layers.map(l=>B.loadImage('data:image/webp;base64,'+l.data)));
   const items=[...layers.map((l,n)=>({...l,image:loaded[n]})),...await Promise.all(floaters.map(async f=>({...f,image:await B.loadImage('data:image/webp;base64,'+f.data),floater:true})))].sort((a,b)=>a.factor-b.factor);
-  for(let x=0;x<VIEW+RANGE;x+=4){const cam=Math.max(0,Math.min(RANGE,x-VIEW/2));
-   w.save();w.beginPath();w.rect(x,0,4,H);w.clip();
-   for(const it of items){const left=cam*(1-it.factor);
-    if(it.floater)w.drawImage(it.image,left+it.x-it.w/2,it.y-it.h/2,it.w,it.h);else w.drawImage(it.image,left,it.y,it.width,it.height);}
-   w.restore();}
-  return {warnings,sheetReports,layers,floaters,montage:enc(whole,'image/png')};
+  // Layer x seen at world x x with the camera centred there; the montage squeezes each layer by that map.
+  const local=(x,f)=>x-Math.max(0,Math.min(RANGE,x-VIEW/2))*(1-f),world=(l,f)=>l<VIEW/2?l:l>VIEW/2+RANGE*f?l+RANGE*(1-f):(l-VIEW/2*(1-f))/f;
+  for(const it of items){
+   if(it.floater){const x=world(it.x,it.factor);w.drawImage(it.image,x-it.w/2,it.y-it.h/2,it.w,it.h);continue;}
+   const k=it.image.width/it.width;
+   for(let x=0;x<VIEW+RANGE;x+=4){const a=local(x,it.factor),b=local(x+4,it.factor);w.drawImage(it.image,a*k,0,(b-a)*k,it.image.height,x,it.y,4.5,it.height);}
+  }
+  const sizes=Object.fromEntries(Object.entries(cut).map(([name,list])=>[name,list.map((p,n)=>`${n}:${p.w}x${p.h}@${p.x},${p.y}`).join(' ')]));
+  return {warnings,sheetReports,sizes,layers,floaters,montage:enc(whole,'image/png')};
  },{layout,images});
 }finally{await browser.close();}
 
@@ -94,6 +101,7 @@ export const LOBBY_FLOATERS:readonly LobbyFloater[]=[
 ${floaters.map(f=>` ${round(f)}`).join(',\n')}
 ];
 `);
+for(const [name,size] of Object.entries(out.sizes))console.log(`${name}: ${size}`);
 console.log(`${layers.length} camadas (${layers.map(l=>`${l.id}×${l.factor}`).join(', ')}), ${floaters.length} peças voando`);
 for(const warning of out.warnings)console.warn(`AVISO: ${warning}`);
 console.log(`Relatório: ${report}/montage.png e sheet-*.png`);
