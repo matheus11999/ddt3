@@ -11,13 +11,14 @@ import {AbilityLoadoutQueue} from './abilityLoadout';
 import {readRoomInvite} from './roomInvite';
 import {recoveredImpacts,shotClock} from './game/shotPlayback';
 import type {PlayerInfo} from '../shared/reports';
+import type {MailClaimResult,MailMessage} from '../shared/mail';
 /** Right click on another player (portraits, plaza, rooms, online list, chat): the menu, then its window. */
 export type PlayerTarget={id:string;name:string;context:'lobby'|'hall'|'room'|'battle'|'chat'|'ranking'};
 export type PlayerPanel=(PlayerTarget&{kind:'menu';x:number;y:number})|(PlayerTarget&{kind:'info'|'report'})|null;
 import type {Battle,ChatLine,Command,LobbyPlayer,OnlinePlayer,Profile,RankingEntry,Room,RoomInvitePlayer,RoomInvitation,RoomInviteResult,ServerEvent,Shot,ForgeResult,CompositionResult,ShopResult,ColorChange,ColorResult} from '../shared/protocol';
-export interface State {playerPanel:PlayerPanel;playerInfo:PlayerInfo|null;reportResult:{playerId:string;name:string;at:number}|null;ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
+export interface State {/** The Correio window and its inbox (newest first). */mailOpen:boolean;mails:MailMessage[];mailUnread:number;mailLoaded:boolean;mailClaim:(MailClaimResult&{at:number})|null;mailPending:boolean;playerPanel:PlayerPanel;playerInfo:PlayerInfo|null;reportResult:{playerId:string;name:string;at:number}|null;ranking:RankingEntry[];onlinePlayers:OnlinePlayer[];onlineTotal:number;invitePlayers:RoomInvitePlayer[];inviteListRoomId:string|null;roomInvitations:RoomInvitation[];inviteResults:RoomInviteResult[];abilityLoadoutDraft:AbilityLoadout|null;abilityLoadoutPending:boolean;abilityEffects:AbilityEffect[];impacts:Extract<ServerEvent,{type:'impact'}>[];customizationEquipment:Equipment|null;customizationPending:boolean;status:'connecting'|'online'|'offline'|'replaced';needsCharacter:boolean;creatingCharacter:boolean;profile:Profile|null;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;chat:ChatLine[];online:number;arenaOnline:number;channel:number;latency:number;offset:number;shot:Shot|null;shotReceivedAt:number;shotBaseline:Record<string,{x:number;y:number;hp:number}>;error:string|null;colorResult:ColorResult|null;discardResult:{item:string;at:number}|null;forgeResult:ForgeResult|null;compositionResult:CompositionResult|null;shopResult:ShopResult|null;}
 class Client {
- state:State={playerPanel:null,playerInfo:null,reportResult:null,ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
+ state:State={mailOpen:false,mails:[],mailUnread:0,mailLoaded:false,mailClaim:null,mailPending:false,playerPanel:null,playerInfo:null,reportResult:null,ranking:[],onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,shopResult:null};
  private listeners=new Set<()=>void>();private ws:WebSocket|null=null;private started=false;private retry=0;private reconnectTimer=0;private pingTimer=0;
  private loadoutTimer=0;
  private inviteHandled=false;
@@ -52,6 +53,12 @@ class Client {
   if(kind==='info')this.send({type:'player-info',playerId:target.id});
  }
  closePlayerPanel(){this.update({playerPanel:null});}
+ openMail(){this.update({mailOpen:true,mailClaim:null});this.send({type:'mail-list'});}
+ closeMail(){this.update({mailOpen:false});}
+ readMail(id:number){const mail=this.state.mails.find(m=>m.id===id);if(mail&&!mail.read){this.update({mails:this.state.mails.map(m=>m.id===id?{...m,read:true}:m)});this.send({type:'mail-read',id});}}
+ /** Receives one letter's attachments, or every letter's ("Receber tudo"). */
+ claimMail(id?:number){if(this.state.mailPending)return;this.update({error:null,mailClaim:null,mailPending:true});this.send({type:'mail-claim',...(id!==undefined?{id}:{})});}
+ deleteMail(id:number){this.update({error:null});this.send({type:'mail-delete',id});}
  paint(changes:ColorChange[]){this.update({error:null,colorResult:null});this.send({type:'paint',changes});}
  discard(item:string){this.update({error:null});this.send({type:'discard',item});}
  customize(patch:CustomizationPatch){
@@ -116,9 +123,11 @@ class Client {
    this.update({abilityEffects:[...this.state.abilityEffects.slice(-15),e]});break;
   }
   case 'player-info':this.update({playerInfo:e.info});break;
+  case 'mail':this.update({mails:e.mails,mailUnread:e.unread,mailLoaded:true,mailPending:false});break;
+  case 'mail-claim-result':this.update({mailClaim:{...e.result,at:Date.now()},mailPending:false});break;
   case 'report-result':this.update({reportResult:{playerId:e.playerId,name:e.name,at:Date.now()}});break;
   case 'chat':this.update({chat:[...this.state.chat.slice(-79),e.message]});break;
-  case 'error':if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
+  case 'error':if(this.state.mailPending)this.update({mailPending:false});if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
   case 'pong':this.update({latency:Date.now()-e.time,offset:e.serverTime-(e.time+Date.now())/2});break;
  }}
  send(c:Command){if(c.type==='room-invite-list')this.update({invitePlayers:[],inviteListRoomId:null});if(this.ws?.readyState===WebSocket.OPEN)this.ws.send(JSON.stringify(c));else this.update({error:'Reconectando ao servidor…'});}

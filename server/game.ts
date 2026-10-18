@@ -21,6 +21,8 @@ import {createFall,fallPosition,fallVelocity} from '../shared/fall';
 import {REPORT_CHAT_WINDOW_MS} from '../shared/reports';
 import type {PlayerInfo,ReportChatLine} from '../shared/reports';
 import type {ReportSink} from './reports';
+import type {MailBox} from './mail';
+import type {PlayerPresence} from '../shared/adminPlayers';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
 import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_END_MS,MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,QUEEN_DRAW_MS} from '../shared/instanceTurn';
@@ -49,6 +51,8 @@ export class Game {
  private ranking:RankingEntry[]=[];private rankingAt=0;private rankingLoading:Promise<void>|null=null;
  /** Where reports go (the admin panel's store); without it reports are refused. */
  reports?:ReportSink;
+ /** Player mail (server/mail.ts); without it the inbox stays empty. */
+ mail?:MailBox;
  /** Each player's own chat lines of the last 30 minutes, sent along with a report against them. */
  private chatLog=new Map<string,ReportChatLine[]>();private chatLogPrunedAt=0;private playerInfoAt=new Map<string,number>();
  private roomInvitations=new Map<string,PendingRoomInvitation>();private inviteSentAt=new Map<string,number>();private invitePairAt=new Map<string,number>();private inviteListAt=new Map<string,number>();private onlineListAt=new Map<string,number>();
@@ -63,7 +67,17 @@ export class Game {
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
   send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:[...this.rooms.values()],room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
-  this.sendLobby(p.channel);this.publishArenaPopulation();return p;
+  this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);return p;
+ }
+ /** Sends a player their inbox (on connect, and when the admin panel mails them). */
+ private async sendInbox(p:Peer){if(!this.mail||!p.connected)return;const {mails,unread}=await this.mail.inbox(p.profile.id);this.emit(p,{type:'mail',mails,unread});}
+ /** New mail from the admin panel reaches an online player right away. */
+ async mailArrived(playerId:string){const p=this.peers.get(playerId);if(p?.connected)await this.sendInbox(p);}
+ /** Where each connected player is, for the admin panel's player table. */
+ presence():Map<string,PlayerPresence>{
+  const result=new Map<string,PlayerPresence>();
+  for(const [id,p] of this.peers){if(!p.connected)continue;const room=p.roomId?this.rooms.get(p.roomId):undefined;result.set(id,!room?'lobby':this.matchForRoom(room.id)?'battle':'room');}
+  return result;
  }
  disconnect(id:string){const p=this.peers.get(id);if(!p)return;p.connected=false;p.arenaOpen=false;p.lastSeen=Date.now();if(p.roomId){const r=this.rooms.get(p.roomId);const s=r?.players.find(x=>x.id===id);if(s){s.connected=false;s.ready=false;}const observer=r?.spectators?.find(x=>x.id===id);if(observer)observer.connected=false;const fighter=this.matchForRoom(p.roomId)?.state.players.find(s=>s.id===id);if(fighter)fighter.connected=false;if(r){if(!observer)this.cancelSearch(r);this.broadcastRoom(r);}}this.pruneInvitations();this.sendLobby(p.channel);this.publishArenaPopulation();}
  /** A fighter of a running match keeps their place while away (their turns just time out); anyone else has 30 s. */
@@ -408,6 +422,17 @@ export class Game {
      const msg={id:randomUUID(),playerId:id,name:p.profile.name,text:c.text,channel:c.channel,time:Date.now()};
      if(c.channel==='room'){const r=this.room(p);this.logChat(id,{at:msg.time,channel:'room',text:c.text,room:r.number});const m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
      else{this.logChat(id,{at:msg.time,channel:'world',text:c.text});for(const peer of this.peers.values())if(peer.channel===p.channel)this.emit(peer,{type:'chat',message:msg});}break;
+    }
+    case 'mail-list':await this.sendInbox(p);return;
+    case 'mail-read':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.markRead(id,c.id);await this.sendInbox(p);return;
+    case 'mail-delete':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.remove(id,c.id);await this.sendInbox(p);return;
+    case 'mail-claim':{
+     if(!this.mail)throw Error('Correio indisponível no momento.');
+     if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');
+     this.profileChanges.add(id);
+     try{const outcome=await this.mail.claim(id,c.id===undefined?null:[c.id]);p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'mail-claim-result',result:outcome.result});}
+     finally{this.profileChanges.delete(id);}
+     await this.sendInbox(p);return;
     }
     case 'player-info':{
      const now=Date.now();if(now-(this.playerInfoAt.get(id)??-Infinity)<PLAYER_INFO_MS)return;this.playerInfoAt.set(id,now);

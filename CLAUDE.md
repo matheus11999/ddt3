@@ -75,7 +75,8 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 
 ## Pendências para continuar
 
-- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild. Próximas áreas previstas: jogadores, loja, eventos.
+- **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild; página **Jogadores** (18/10) com tabela, filtro online e envio de moedas, itens e mensagens. Próximas áreas previstas: loja, eventos.
+- **Correio** (18/10, `docs/mail.md`): caixa de entrada do jogador (botão Correio da praça e da sala). Tudo que o admin envia (moedas, itens, mensagens) chega como carta com anexos; Receber/Receber tudo resgatam no servidor uma vez só (tabela `player_mail`). Recompensa nova que deva chegar por carta usa `MailStore.send`.
 
 - **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
 - Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).

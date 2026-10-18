@@ -12,6 +12,11 @@ import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMaps} from '../
 import type {ReportStore} from './reports';
 import {REPORT_STATUSES,reportUpdateSchema} from '../shared/reports';
 import type {ReportStatus} from '../shared/reports';
+import type {MailStore} from './mail';
+import type {PlayerDirectory} from './adminPlayers';
+import type {PlayerPresence} from '../shared/adminPlayers';
+import {attachmentLabel,mailSendSchema} from '../shared/mail';
+import {canEquipItem,CATALOG} from '../shared/catalog';
 
 /**
  * Admin panel API (/api/admin/*) and the published maps the game reads (/api/maps).
@@ -24,7 +29,9 @@ const BUILT_IN_NAMES:Record<string,string>={[LOBBY_MAP_ID]:'Praça Celeste'};
 /** Station spots of the plaza as shipped (src/game/lobbyWorld.ts); only the forge moves a server rule (SMITH_POSITION). */
 const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 
-export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;}
+export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;
+ /** Players page: the table, the mail it sends and where each online player is. */
+ players?:PlayerDirectory;mail?:MailStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;}
 
 const png=(base64:string)=>{const buffer=Buffer.from(base64,'base64');if(buffer.length<24||buffer.readUInt32BE(0)!==0x89504e47)throw new Error('Imagem inválida.');return {buffer,width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20)};};
 const ipOf=(req:FastifyRequest)=>req.ip??'unknown';
@@ -129,6 +136,32 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   if(!ctx.reports||!await ctx.reports.setStatus(id,parsed.data.status,name,parsed.data.note))return reply.code(404).send({error:'Denúncia não encontrada.'});
   await store.audit(name,ipOf(req),'report-status',{id,status:parsed.data.status});
   return {report:await ctx.reports.get(id)};
+ });
+
+ // ── Players and their mail (items and coins sent from the panel arrive as mail attachments) ──
+ const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+ const presence=()=>ctx.presence?.()??new Map<string,PlayerPresence>();
+ app.get('/api/admin/players',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!ctx.players)return reply.code(503).send({error:'Jogadores indisponíveis.'});
+  const q=(req.query??{}) as Record<string,unknown>;
+  return ctx.players.list({search:typeof q.search==='string'?q.search:undefined,online:q.online==='1'||q.online==='true',sort:typeof q.sort==='string'?q.sort:undefined,page:Number(q.page)||0},presence());
+ });
+ app.get<{Params:{id:string}}>('/api/admin/players/:id',async(req,reply)=>{
+  if(!await guard(req,reply))return;if(!UUID.test(req.params.id))return reply.code(404).send({error:'Jogador não encontrado.'});
+  const player=await ctx.players?.get(req.params.id,presence());if(!player)return reply.code(404).send({error:'Jogador não encontrado.'});
+  return {player,mail:await ctx.mail?.history(player.id)??[]};
+ });
+ app.post<{Params:{id:string}}>('/api/admin/players/:id/mail',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!ctx.mail||!ctx.players)return reply.code(503).send({error:'Correio indisponível.'});
+  if(!UUID.test(req.params.id))return reply.code(404).send({error:'Jogador não encontrado.'});
+  const parsed=mailSendSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:parsed.error.issues[0]?.message??'Dados inválidos.'});
+  const player=await ctx.players.get(req.params.id,presence());if(!player)return reply.code(404).send({error:'Jogador não encontrado.'});
+  const wrong=parsed.data.attachments.find(a=>a.kind==='item'&&!canEquipItem(a.item,player.gender));
+  if(wrong?.kind==='item')return reply.code(400).send({error:`${CATALOG[wrong.item].name} não serve no personagem ${player.gender==='male'?'masculino':'feminino'} de ${player.name}.`});
+  const id=await ctx.mail.send({playerId:player.id,...parsed.data,createdBy:name});
+  await store.audit(name,ipOf(req),'mail-send',{player:player.id,name:player.name,mail:id,subject:parsed.data.subject,attachments:parsed.data.attachments.map(attachmentLabel)});
+  ctx.onMail?.(player.id);
+  return {id,mail:await ctx.mail.history(player.id)};
  });
 
  // ── Maps ──

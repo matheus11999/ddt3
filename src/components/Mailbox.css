@@ -1,0 +1,222 @@
+/* Correio no padrão da mochila (Backpack.css): moldura de madeira laranja, painéis
+   de madeira, áreas creme e botões laranja. À esquerda a caixa de entrada; à direita
+   a carta aberta, com remetente, texto e anexos nas mesmas células da mochila. */
+.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.mail-window[class] {
+  width: min(980px, 100%);
+  height: min(640px, calc(100dvh - 32px));
+}
+.mail-window .mail-layout,
+.mail-window .mail-layout :is(button, b, strong, small, dt, dd, h2, h3, p) { font-family: 'Nunito', 'Trebuchet MS', sans-serif; }
+.mail-window .mail-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 38fr) minmax(0, 62fr);
+  gap: 8px;
+  flex: 1;
+  min-height: 0;
+  margin-top: 7px;
+}
+.mail-window .mail-pane {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+  min-height: 0;
+  padding: 8px;
+  border: 2px solid #f2b56b;
+  border-radius: 14px;
+  background: linear-gradient(#a85524, #87401a);
+  box-shadow: inset 0 1px #ffc98c88, inset 0 0 0 1px #5a280c, 0 2px #3e1a0788;
+}
+.mail-window .mail-inbox { grid-template-rows: auto minmax(0, 1fr) auto; }
+.mail-window .mail-reader { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+
+/* Cabeçalho laranja da caixa de entrada */
+.mail-window .mail-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 52px;
+  padding: 0 10px 0 8px;
+  border: 1px solid #fff0c9;
+  border-radius: 10px;
+  background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c);
+  box-shadow: inset 0 1px #fff7d9, inset 0 -2px #c76413, 0 2px #5d290c66;
+}
+.mail-window .mail-head-icon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 2px solid #fff3d6;
+  border-radius: 50%;
+  background: linear-gradient(#a3521f, #6e3210);
+  color: var(--bag-gold);
+}
+.mail-window .mail-head small { display: block; font-size: 11px; font-weight: 800; color: #8a3f0b; }
+.mail-window .mail-head h2 { margin: 0; font-size: 18px; font-weight: 900; color: #fff; text-shadow: 0 1px #a14d10, 0 2px 3px #7a3a0a88; }
+
+/* Lista de cartas */
+.mail-window .mail-list {
+  display: grid;
+  align-content: start;
+  gap: 5px;
+  margin: 0;
+  padding: 7px;
+  overflow: auto;
+  list-style: none;
+  scrollbar-width: thin;
+  scrollbar-color: #d38a43 transparent;
+}
+.mail-window .mail-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 9px;
+  border: 1px solid #e8b97e;
+  border-radius: 10px;
+  background: linear-gradient(#fffaf0, #f6e2bf);
+  box-shadow: 0 2px #c98a4a55;
+  color: var(--bag-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.mail-window .mail-row:hover { border-color: #f39a2c; }
+.mail-window .mail-row.selected {
+  border-color: #fff;
+  background: linear-gradient(#ffd27e, #f6a540);
+  box-shadow: 0 0 0 2px #e5701b, 0 2px #8a3f0b66;
+}
+.mail-window .mail-envelope {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(#a3521f, #6e3210);
+  color: #ffe2b0;
+}
+.mail-window .mail-row.unread .mail-envelope { background: linear-gradient(#ff8a3d, #d1471a); color: #fff; box-shadow: 0 0 0 2px #ffe2b0, 0 0 10px #ff8a3d88; }
+.mail-window .mail-row-text { display: grid; min-width: 0; line-height: 1.15; }
+.mail-window .mail-row-text b { overflow: hidden; font-size: 14px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.mail-window .mail-row.unread .mail-row-text b::before { content: ''; display: inline-block; width: 7px; height: 7px; margin: 0 6px 2px 0; border-radius: 50%; background: #e5451b; }
+.mail-window .mail-row-text small { overflow: hidden; font-size: 12px; font-weight: 800; color: var(--bag-ink-soft); text-overflow: ellipsis; white-space: nowrap; }
+.mail-window .mail-row-side { display: grid; justify-items: end; gap: 3px; font-size: 11px; font-weight: 800; color: var(--bag-ink-soft); }
+.mail-window .mail-gift { color: #d1471a; filter: drop-shadow(0 1px #fff); }
+.mail-window .mail-empty { display: grid; place-items: center; gap: 8px; padding: 40px 10px; font-weight: 800; color: var(--bag-ink-soft); text-align: center; }
+.mail-window .mail-spin { animation: mail-spin 1s linear infinite; }
+@keyframes mail-spin { to { transform: rotate(360deg); } }
+
+/* Botões laranja (Receber tudo, Receber) e madeira (Apagar) */
+.mail-window :is(.mail-claim-all, .mail-claim, .mail-delete) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 44px;
+  padding: 0 18px;
+  border: 2px solid #fff0c9;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 900;
+  cursor: pointer;
+}
+.mail-window :is(.mail-claim-all, .mail-claim) {
+  background: linear-gradient(#ffc566, #f39a2c 55%, #d96b14);
+  box-shadow: inset 0 1px #fff7d9, inset 0 -3px #b5560f, 0 3px #4a210a;
+  color: #fff;
+  text-shadow: 0 1px #9a4510, 0 2px 3px #6d300a99;
+}
+.mail-window .mail-delete {
+  border-color: #f2b56b;
+  background: linear-gradient(#8f4a1d, #64300f);
+  box-shadow: inset 0 1px #ffc98c66, 0 3px #3b1806;
+  color: #ffe9c6;
+}
+.mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):hover:not(:disabled) { filter: brightness(1.08); }
+.mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):active:not(:disabled) { transform: translateY(1px); }
+.mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):disabled { filter: grayscale(.7); opacity: .6; cursor: default; }
+.mail-window .mail-claim-all b { min-width: 24px; height: 24px; padding: 0 6px; border: 2px solid #fff; border-radius: 12px; background: #d1281b; font-size: 13px; line-height: 20px; text-shadow: none; }
+
+/* Carta aberta */
+.mail-window .mail-letter-head { display: grid; gap: 4px; padding: 10px 14px; }
+.mail-window .mail-letter-head h2 { margin: 0; font-size: 20px; font-weight: 900; color: #7a3a0a; }
+.mail-window .mail-letter-head dl { display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 0; font-size: 12.5px; }
+.mail-window .mail-letter-head dl div { display: flex; gap: 5px; }
+.mail-window .mail-letter-head dt { font-weight: 800; color: var(--bag-ink-soft); }
+.mail-window .mail-letter-head dd { margin: 0; font-weight: 900; }
+.mail-window .mail-letter {
+  min-height: 0;
+  padding: 12px 16px;
+  overflow: auto;
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.45;
+  background: repeating-linear-gradient(transparent 0 27px, #e2b47a55 27px 28px), linear-gradient(#fffaf0, #f8e7c6);
+  scrollbar-width: thin;
+}
+.mail-window .mail-letter p { margin: 0 0 6px; overflow-wrap: anywhere; }
+.mail-window .mail-letter-quiet { margin: 0; font-weight: 800; color: var(--bag-ink-soft); }
+.mail-window .mail-attachments { display: grid; gap: 7px; padding: 8px 12px 10px; }
+.mail-window .mail-attachments h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: 14px; font-weight: 900; color: #7a3a0a; }
+.mail-window .mail-attachments h3 small { margin-left: auto; font-size: 11px; font-weight: 800; color: var(--bag-ink-soft); }
+.mail-window .mail-attachment-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.mail-window .mail-attachment { display: grid; justify-items: center; gap: 3px; width: 76px; }
+.mail-window .mail-attachment small { display: -webkit-box; overflow: hidden; font-size: 10.5px; font-weight: 800; line-height: 1.15; text-align: center; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.mail-window .mail-attachment-card.item-card[data-rarity][data-card-variant] { position: relative; display: grid; place-items: center; width: 64px; height: 64px; padding: 3px; border-radius: 11px; }
+.mail-window .mail-attachment-card .item-art { width: 84% !important; height: 84% !important; object-fit: contain; }
+.mail-window .mail-attachment-count {
+  position: absolute;
+  right: 3px;
+  bottom: 1px;
+  z-index: 4;
+  font-size: 13px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 0 3px #4a210a, 0 1px 0 #4a210a, 1px 0 0 #4a210a, -1px 0 0 #4a210a, 0 -1px 0 #4a210a;
+}
+.mail-window .mail-attachment.claimed .mail-attachment-card > :not(.mail-attachment-done, .item-card-gloss, .item-card-ornament) { filter: grayscale(.8); opacity: .55; }
+.mail-window .mail-attachment-done { position: absolute; z-index: 5; display: grid; place-items: center; width: 28px; height: 28px; border: 2px solid #fff; border-radius: 50%; background: #3fae3a; color: #fff; }
+.mail-window .mail-actions { display: flex; justify-content: flex-end; gap: 8px; }
+.mail-window .mail-reader-empty { display: grid; grid-row: 1 / -1; place-content: center; justify-items: center; gap: 10px; color: var(--bag-ink-soft); font-weight: 800; text-align: center; }
+.mail-window .mail-reader-empty p { max-width: 280px; margin: 0; }
+
+/* "Você recebeu": os anexos sobem no centro da janela por um instante */
+.mail-window .mail-received {
+  position: absolute;
+  inset: 58px 0 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle, #2b120588, #2b120533 70%, transparent);
+  pointer-events: none;
+  animation: mail-received-in .25s ease-out;
+}
+.mail-window .mail-received > div {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  max-width: 520px;
+  padding: 16px 22px;
+  border: 2px solid #fff0c9;
+  border-radius: 16px;
+  background: linear-gradient(#fff8e8, #f7e4bd);
+  box-shadow: 0 0 0 3px #c66d2c, 0 14px 40px #1a0c04aa;
+}
+.mail-window .mail-received strong { font: 400 28px/1 'Lilita One', 'Nunito', sans-serif; color: #fff; -webkit-text-stroke: 1.5px #9a4510; paint-order: stroke fill; text-shadow: 0 3px #6d300a; letter-spacing: .5px; }
+.mail-window .mail-received .mail-attachment-grid { justify-content: center; }
+@keyframes mail-received-in { from { opacity: 0; transform: scale(.92); } }
+
+@media (max-width: 760px), (max-height: 520px) {
+  .mail-window .mail-layout { grid-template-columns: minmax(0, 40fr) minmax(0, 60fr); gap: 6px; }
+  .mail-window .mail-head { height: 42px; }
+  .mail-window .mail-head-icon { display: none; }
+  .mail-window .mail-row { min-height: 42px; padding: 4px 7px; }
+  .mail-window .mail-envelope { width: 28px; height: 28px; }
+  .mail-window :is(.mail-claim-all, .mail-claim, .mail-delete) { height: 36px; font-size: 14px; }
+  .mail-window .mail-attachment { width: 62px; }
+  .mail-window .mail-attachment-card.item-card[data-rarity][data-card-variant] { width: 52px; height: 52px; }
+}
+/* A força da arma anexada fica sempre visível (na mochila ela só aparece no hover). */
+.mail-window .item-card .bag-upgrade-tag { left: -8px; bottom: -8px; opacity: 1; transform: none; }
