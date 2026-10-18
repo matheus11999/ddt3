@@ -334,3 +334,7 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-monster-list li button small{margin-left:auto}
 .adm-monster-list li button.on{border-color:#ffd166;background:#ffd16622}
 .adm-monster-list .warn{color:#ff6b5a}
+.adm-cut-areas{display:grid;gap:6px}
+.adm-cut-areas .adm-toggle-row{display:grid}
+.adm-cut-area{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 10px;border-radius:9px;border:1px dashed #ff5a4a88;background:#ff5a4a14;color:var(--muted);font-size:12px}
+.adm-cut-area .adm-icon{width:28px;height:28px}
