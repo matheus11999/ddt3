@@ -36,11 +36,11 @@ def mannequin(draw, body, at):
             x, y = P(q); r = width * ppu / 2
             draw.ellipse([x - r, y - r, x + r, y + r], fill=GRAY)
     for leg in (body['far'], body['near']):
-        limb(leg[0], leg[1], 11); limb(leg[1], leg[2], 9)
-        x, y = P(leg[2]); draw.ellipse([x - 6 * ppu, y - 4 * ppu, x + 6 * ppu, y + 4 * ppu], fill=GRAY)
-    limb(body["neck"], body["hip"], 24)
+        limb(leg[0], leg[1], 9); limb(leg[1], leg[2], 8)
+        x, y = P(leg[2]); draw.ellipse([x - 5 * ppu, y - 3.5 * ppu, x + 5 * ppu, y + 3.5 * ppu], fill=GRAY)
+    limb(body["neck"], body["hip"], 20)
     for a, b in body['sleeves']:
-        limb(a, b, 10)
+        limb(a, b, 8)
 
 
 for sheet in contract['sheets']:
