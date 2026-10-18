@@ -3,6 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
 import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
 import {normalizeProfile,Store} from '../server/store';
+import {SHOP_OFFER_BY_ID} from '../shared/shop';
 
 async function database(roll=999){
  const store=new Store(()=>roll);await store.pool.end();
@@ -150,6 +151,20 @@ test('shop purchase atomically deducts the server price and grants all selected 
  assert.deepEqual(outcome.profile.equipment,before.equipment);assert.match(state.queries[1],/FOR UPDATE$/);assert.equal(state.queries.at(-1),'COMMIT');
  const again=await store.buy(before.id,['volt']);assert.equal(again.profile.gold,100);assert.deepEqual(again.result.items,['volt']);
  assert.ok(again.profile.inventory.includes('volt~2'));assert.equal(again.profile.upgrades['volt~2'],0);
+});
+
+test('Love Boomerang is purchased with server price, never granted by migration, and owned copies persist',async()=>{
+ for(const contentVersion of [undefined,0,9,12,13,14]){
+  const legacy=normalizeProfile({id:randomUUID(),name:'Legado',contentVersion,gold:999,inventory:['brick'],upgrades:{brick:10}});
+  assert.equal(legacy.inventory.includes('love-boomerang'),false);assert.equal(legacy.equipment.weapon,'brick');assert.equal(legacy.upgrades.brick,10);assert.equal(legacy.gold,999);
+ }
+ const {store,state}=await database(),before=structuredClone(state.profile),offer=SHOP_OFFER_BY_ID['love-boomerang'];
+ assert.ok(offer);assert.equal(offer.price,480);assert.equal(before.inventory.includes(offer.id),false);
+ await assert.rejects(store.saveEquipment(before.id,{...before.equipment,weapon:offer.id}),/mochila|possui|possuir|pertence/);
+ const outcome=await store.buy(before.id,[offer.id]);assert.equal(outcome.result.spent,offer.price);assert.equal(outcome.profile.gold,before.gold-offer.price);
+ assert.ok(outcome.profile.inventory.includes(offer.id));assert.deepEqual(outcome.profile.equipment,before.equipment);
+ const worn=await store.saveEquipment(before.id,{...outcome.profile.equipment,weapon:offer.id});assert.equal(worn.equipment.weapon,offer.id);
+ const reloaded=normalizeProfile(worn);assert.ok(reloaded.inventory.includes(offer.id));assert.equal(reloaded.equipment.weapon,offer.id);assert.equal(reloaded.gold,worn.gold);
 });
 test('repeat purchases become separate copies with their own forge level, compositions and equip state',async()=>{
  const {store,state}=await database(0);state.profile.gold=2000;const id=state.profile.id,base=attributes(state.profile.equipment);

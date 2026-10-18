@@ -3,6 +3,7 @@ import {WEAPONS,weaponPhaseTier} from '../../shared/catalog';
 import {weaponEffectsPath,weaponKit,weaponPowPath} from '../../shared/weaponKit';
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
+import {drawBoomerangImpact,preloadBoomerangImpacts} from './boomerangImpact';
 
 type Effect=Projectile['effect'];
 /** A painted chunk cut from an impact cell: its own image, its center and width as shares of the cell width. */
@@ -25,7 +26,8 @@ const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly numb
  electric:{hot:'#c1fdff',mid:'#25caff',dark:'#4154ea',size:[35,40,47,54],trail:[5,11,17,24]},
  dynamite:{hot:'#fff3b4',mid:'#ffaf24',dark:'#d84b2a',size:[30,36,42,48],trail:[8,12,16,21]},
  crystal:{hot:'#e6caff',mid:'#ed58ff',dark:'#7033d9',size:[51,58,65,73],trail:[5,10,15,21]},
- brick:{hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]}
+ brick:{hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]},
+ boomerang:{hot:'#fff0dd',mid:'#ff70ae',dark:'#af2773',size:[38,44,51,59],trail:[6,10,15,20]}
 };
 const atlases=new Map<string,Atlas>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -139,7 +141,7 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
  atlases.set(key,atlas);return atlas;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
-export function preloadWeaponEffects(){return Promise.all([...new Set(WEAPONS.map(weapon=>weapon.effect))].flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready]));}
+export function preloadWeaponEffects(){return Promise.all([preloadBoomerangImpacts(),...[...new Set(WEAPONS.map(weapon=>weapon.effect))].flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready])]);}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
 if(typeof Image!=='undefined')void preloadWeaponEffects();
@@ -277,9 +279,9 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
   }
   c.restore();
  }
- const solid=p.effect==='dynamite'||p.effect==='crystal',spin=p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
+ const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid)c.scale(1,1+pulse*.09);
- const anchor=p.effect==='dynamite'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
+ const anchor=p.effect==='dynamite'||p.effect==='boomerang'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
  const painted=(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
@@ -458,6 +460,7 @@ function drawBrickImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,
  c.restore();
 }
 export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,level:number,material='earth',options:WeaponEffectOptions={}){
+ if(p.effect==='boomerang'){drawBoomerangImpact(c,p.impact.x,p.impact.y,elapsed,!!p.powered,reduced(options));return;}
  if(p.fragment){drawBrickFragmentImpact(c,p,elapsed,strength(level),material,options);return;}
  if(p.effect==='brick'){drawBrickImpact(c,p,elapsed,strength(level),options);return;}
  const tier=strength(level),duration=630+tier*20,age=elapsed/duration;if(age<0||age>=1)return;

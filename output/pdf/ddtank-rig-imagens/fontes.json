@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-18",
+  "source_root": "C:\\Users\\Alienware\\Desktop\\DDTank4.1-main\\Source Flash\\scripts",
+  "archived_manifest": "C:\\Users\\Alienware\\.codex\\temporary-artifacts\\ddtank-galleries-20261018\\public\\ddtank-character-lab\\manifest.json",
+  "assets": {
+    "assets/original/image/arm/boomerang/1/1/game.png": "109fbd385de0bb7386d67f196b6ce7bd6ddc2183bd1e306b97798d0c90b5e206",
+    "assets/original/image/equip/m/face/default/1/game.png": "55c4d53747011117cee2f5dae1a37cc22707bad7e2695f7435b54d8e86ac9437",
+    "assets/original/image/equip/m/hair/default/1/B/game.png": "53a9ddfa8002bd58396ccaaeababf48be65cb87964e934e9fa0dfc73f46fed3e",
+    "assets/original/image/equip/m/cloth/default/1/game.png": "bc6ce2309fc85933b744a381348233206367daf066bf6d7750b1508bafe9b932",
+    "assets/original/image/equip/m/eff/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/m/head/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/m/glass/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/m/cloth/cloth1/1/game.png": "430fa18e7adf8b54680deaa8c5f13b89a179f69b9b5762418a8a1301f8d06045",
+    "assets/original/image/equip/f/face/default/1/game.png": "8bdea53d6a543e51c5549051270fbd43153e2be1f8a9a796e1575ce9f826237f",
+    "assets/original/image/equip/f/hair/default/1/B/game.png": "88a90fd71a284de509682fbd0618b5323718ed93156d626c37fbea6cc89b68f9",
+    "assets/original/image/equip/f/cloth/default/1/game.png": "31076313d94a9b4880408af4b95b9e9dc592d773e187b3725bdc9b0318224fe1",
+    "assets/original/image/equip/f/eff/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/f/head/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/f/glass/default/1/game.png": "8e02cf196744307b200883dbf7d273661e8500e50cecbfd68f57fc7b0aac47dd",
+    "assets/original/image/equip/f/cloth/cloth1/1/game.png": "9e999c3eccf9c71cfb2f3ab471ebbb4c8db66123d8594a1531b50d89649815e8",
+    "assets/original/image/equip/m/hair/hair1/1/A/game.png": "c9f242d4a5884193d28bb7577ebab259fbfbbaa18b594556a00c76b2e2e9e230",
+    "assets/original/image/equip/m/head/head1/1/game.png": "8a27475642dcfae9d85a7ef109bf865fc18a682382dd6c3a3e4cceae90651bd5",
+    "assets/original/image/equip/m/glass/glass1/1/game.png": "0225639a0ec88f64cbd2ad4154d02c85158e03b3623cc27d86fdddff87770f49",
+    "assets/original/image/equip/m/cloth/cloth1/1/show.png": "54f9b742c4b6da56fc092f13f7d789c6db94eb7e4b0b3120ffcb855b57bb3663"
+  },
+  "method": "PIL alpha composition; layer 1; no additional dye; frames zero-based"
+}

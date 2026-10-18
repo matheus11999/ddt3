@@ -24,12 +24,13 @@ async function fixture(roll=.99){
 }
 const impacts=(events:ServerEvent[])=>events.filter((event):event is Extract<ServerEvent,{type:'impact'}>=>event.type==='impact');
 
-test('all weapon families have equal four-stat budgets, distinct roles and bounded upgrades',()=>{
- // Fixture families keep the former 360 budget; the starter Quebra-Tijolos is a balanced 350 for early and mid game.
- const budgets=WEAPONS.map(weapon=>weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0));assert.deepEqual(budgets,[360,360,360,360,350]);
+test('weapon families retain their declared four-stat budgets, fixture roles and bounded upgrades',()=>{
+ // Original combat fixtures keep their budget and roles; the real arsenal has its own stat contracts.
+ const budgets=Object.fromEntries(WEAPONS.map(weapon=>[weapon.id,weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0)]));assert.deepEqual(budgets,{ember:360,volt:360,crystal:360,dynamite:360,brick:350,'love-boomerang':460});
  const [ember,volt,crystal,dynamite]=WEAPONS;
- assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.attack)),ember.attack);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.defense)),crystal.defense);
- assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.agility)),volt.agility);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.luck??0)),volt.luck);
+ const fixtures=[ember,volt,crystal,dynamite];assert.deepEqual(fixtures.map(w=>w.id),['ember','volt','crystal','dynamite']);
+ assert.equal(Math.max(...fixtures.map(weapon=>weapon.attack)),ember.attack);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.defense)),crystal.defense);
+ assert.equal(Math.max(...fixtures.map(weapon=>weapon.agility)),volt.agility);assert.equal(Math.max(...fixtures.map(weapon=>weapon.luck??0)),volt.luck);
  assert.ok(Math.max(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)-Math.min(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)<=45);
  for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);for(const key of ['attack','defense','agility','luck'] as const)assert.equal(max[key],Math.trunc(Math.trunc(weapon[key]!*1.2)*1.3+1e-9));assert.equal(max.damage,Math.round(weapon.damage*1.1**MAX_UPGRADE));}
 });

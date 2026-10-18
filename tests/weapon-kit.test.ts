@@ -32,6 +32,26 @@ test('every kit has a brief for every phase and sound, and every real weapon has
  }
 });
 
+test('Love Boomerang keeps its original stat and angle identity, distinct phase art and exclusive POW',()=>{
+ const weapon=CATALOG['love-boomerang'] as Weapon;
+ assert.equal(STARTER_WEAPON,'brick');assert.equal(weapon.effect,'boomerang');
+ assert.deepEqual([weapon.attack,weapon.defense,weapon.agility,weapon.luck],[145,25,145,145]);
+ assert.deepEqual([weapon.minAngle,weapon.maxAngle,weapon.projectileRadius],[15,65,5]);
+ assert.equal(powTridentRule(weapon.id),'exclusivo');assert.match(powBoostConflict(weapon.id,'trident')!,/não combina Power com Tridente/);
+ for(const boost of ['extra1','extra2','damage50'] as BoostId[])assert.equal(powBoostConflict(weapon.id,boost),undefined);
+ const kit=WEAPON_KITS[weapon.id];assert.deepEqual(kit.powSounds,['fire','impact']);
+ for(const phase of WEAPON_PHASES)assert.notEqual(kit.phases[phase.stage].projectile,kit.phases[phase.stage].powProjectile);
+});
+
+test('server refuses both orders of combining Love Boomerang POW and Tridente',async()=>{
+ for(const powerFirst of [true,false]){
+  const f=await fixture();f.shooter.equipment.weapon='love-boomerang';f.shooter.powerCharge=100;
+  if(powerFirst){await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,true);await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.deepEqual(f.shooter.boosts,[]);}
+  else{await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.deepEqual(f.shooter.boosts,['trident']);await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,false);}
+  assert.match(lastError(f.events)!.message,/não combina Power com Tridente/);
+ }
+});
+
 test('generated prompts chain references in order, name where to save and never ask for text',()=>{
  const weapon=CATALOG.brick as Weapon,kit=WEAPON_KITS.brick;
  const first=artPrompt(weapon,kit,'icon',0);assert.match(first,/FIRST piece/);assert.match(first,/Save as public\/assets\/weapons\/brick\/icon-0\.png/);assert.match(first,/No text/);

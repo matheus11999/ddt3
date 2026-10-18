@@ -6,8 +6,9 @@ type WeaponSound=import('../../shared/catalog').WeaponEffect;
 /** Recorded layers shared by every weapon's impact: a deep boom and a mid-range crack that still reads on phone speakers. */
 const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/assets/audio/sfx/impact-crack.mp3',volume:.3}] as const;
 const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp3`);
-/** Battle cues with a few recorded variations each; one is picked at random every time. */
-const CUES={pow:{urls:variants('pow-activate'),volume:.4},boost:{urls:variants('boost-select'),volume:.22},powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:variants('ui-click'),volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
+/** POW and ordinary power-ups share the activation sample supplied by the user. */
+const POWERUP_CUE={urls:['/assets/audio/sfx/powerup.mp3'],volume:.22} as const;
+const CUES={pow:POWERUP_CUE,boost:POWERUP_CUE,powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:['/assets/audio/sfx/ui-click.mp3'],volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
 export type AudioCue=keyof typeof CUES;
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
@@ -77,7 +78,7 @@ class AudioEngine {
  private loadSamples(context:AudioContext){
   if(this.loading===context||typeof fetch==='undefined')return;
   this.loading=context;this.samples.clear();
-  for(const url of [...IMPACT_LAYERS.map(layer=>layer.url),...Object.values(CUES).flatMap(cue=>cue.urls)])void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
+  for(const url of new Set([...IMPACT_LAYERS.map(layer=>layer.url),...Object.values(CUES).flatMap(cue=>cue.urls)]))void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
  }
  /** Plays the recorded impact layers with a small random pitch so repeated hits do not sound identical. Returns false until they are decoded. */
  private playImpactLayers(c:AudioContext,t:number,gain:number){

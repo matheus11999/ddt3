@@ -1,5 +1,41 @@
 # Estado da entrega — 16/10/2026
 
+## Relatório do compositor de combate — 18/10/2026
+
+- Relatório ilustrado em `output/pdf/DDTank-rig-corpo-combate.pdf`, com seis páginas verificadas por renderização: atlas de 39 células de 114×95, camadas, caminhada, preparação e arremesso. Figuras e proveniência em `output/pdf/ddtank-rig-imagens/`.
+- A análise distingue o compositor original por quadros do rig atual de recortes/transformações do projeto. Não integra um port completo nem altera o combate. Arquivos intermediários de autoria ficam em `tmp/`, fora do versionamento.
+
+## Praça única, desempenho e áudio compartilhado — 18/10/2026
+
+- A praça usa somente as camadas atuais de parallax e o piso. Removidos o carregamento do panorama antigo `plaza.webp` (3,2 MB), duas telas procedurais alocadas no construtor e o código do cenário antigo. O arquivo legado foi retirado de `public/`. Fallbacks independentes dos NPCs/estações continuam preservados. Navegador verificou zero pedidos do panorama antigo e capturou a praça atual em `test-results/current-plaza.png`.
+- `Scene` não redesenha a praça oculta por menus/salas e não pinta com a página oculta; estado do servidor continua sendo recebido e combate mantém desenho normal. Medição em navegador: trabalho na loja estabilizada passou de 234 ms para 37 ms por cerca de um segundo/120 frames; zero erros JS e nenhuma resposta HTTP com erro na verificação. Resultados em `test-results/performance-{before-scene-pause,report}.json`. Os tempos são da máquina/teste, não garantia de FPS para todos os dispositivos.
+- Polling do Vite em Docker: código a cada 1000 ms e binários a cada 5000 ms, preservando HMR e bind mounts. Foram observados picos do servidor web durante atualizações e um reinício externo do motor Docker durante o diagnóstico, sem OOM nos containers do jogo; backend respondeu normalmente fora desse intervalo.
+- POW e power-ups usam o mesmo objeto de cue, arquivo e volume: `/assets/audio/sfx/powerup.mp3`. URLs do preload de áudio são deduplicadas. Teste confirmou dois acionamentos usando o mesmo AudioBuffer e uma única requisição do MP3.
+- Recursos em execução ficam no projeto: efeitos/imagens/sons em `public/assets/`, metadados dos impactos em `src/game/boomerangImpactData.json`. Corrigida a importação desses metadados da pasta pública, que gerava avisos/erros no Vite de desenvolvimento. Nenhuma dependência de galerias ou arquivos temporários externos no renderer.
+
+## Bumerangue e som dos menus — 18/10/2026
+
+- Impactos normal e POW do bumerangue usam as timelines originais 461/471: 51 quadros a 24 fps, com pivôs (160,123)/(157,128.95) preservados e escala adaptada ao jogo. Atlas WebP estático sem perdas em `public/assets/weapons/love-boomerang/` e mapa de quadros em `src/game/boomerangImpactData.json`; seleção por tempo em `boomerangImpact.ts`, sem relógios de GIF/WebP animado nem efeitos de fogo. Todas as fases comuns compartilham 461/471, conforme a configuração original.
+- `Scene.tsx` mantém o efeito visual até completar 2125 ms mesmo quando o servidor já avançou o turno. Isso não atrasa dano, turno ou recursos. Movimento reduzido usa um quadro curto estático. Sons de impacto normal/POW existentes foram preservados.
+- O clique de loja, mochila e demais menus passa a usar a cópia exata de `test-results/ddtank-audio/power-up-clique-Sound008.mp3`, em `public/assets/audio/sfx/ui-click.mp3`; cue `click` continua respeitando a preferência de som.
+- A pedido do usuário, servidores de galeria encerrados e galerias, scripts auxiliares e extrações temporárias retirados do checkout. Exclusão em lote foi rejeitada pela revisão automática; a alternativa reversível moveu-os para `C:/Users/Alienware/.codex/temporary-artifacts/ddtank-galleries-20261018/`. Assets usados no jogo e o arquivo de áudio fornecido pelo usuário foram preservados. Milhares de arquivos públicos eram monitorados a cada 250 ms pelo Vite no Docker.
+- Pesquisa da forja: Normal 7035→70351→70352→70354; Verdadeiro 7024→70241→70242→70248; Super 7089→70891→70892→70894 em +10/+12/+15. Não há promoção de família no +9 nas tabelas examinadas. `boomerang4` e `superboomerang5` existem mas não são selecionados nessas cadeias. Arquivos CDN 62/63 de fogo foram rejeitados como não correspondentes e não entram no jogo.
+- Verificação: `npm run check`, 344 testes e `npm run build` passaram. Renderer real no navegador confirmou quadros normal/POW 0/8/20/50 e fim em 2125 ms (`test-results/boomerang-impact-renderer-qa/`); não é teste de partida. Loja/mochila tocaram exatamente o buffer do clique fornecido; preferência off permaneceu silenciosa após reload (`test-results/menu-click/`). Ao concluir, Docker Desktop estava desligado; conferência em partida permanece pendente, sem reabrir Docker automaticamente.
+- Som de início do próprio turno encontrado em `Source Flash/scripts/game/actions/ChangePlayerAction.as:221–224`: `LocalPlayer` toca `016`, enquanto a outra condição toca `038`. `Sound016` é o símbolo 42 de `Web/Flash/audio.swf`; extração de prévia fora do checkout em `C:/Users/Alienware/.codex/temporary-artifacts/ddtank-turn-sound/minha-vez-Sound016.mp3`. Apenas identificado/extraído, sem substituir o cue de turno do jogo.
+- O usuário rejeitou Sound016 como a referência procurada. Não tratar a identificação de uma chamada de código como aprovação do som. Para POW: `PrepareShootAction.as` chama `map.spellKill` quando `isSpecialSkill`; `MapView.as:320` toca `097` na animação antes do disparo. `DanderStrip.as:238` usa `008` no clique do botão. Sound097 (símbolo 4 de audio.swf) foi extraído fora do checkout para `ativacao-POW-Sound097.mp3`; cue POW do jogo não foi substituído sem pedido de integração.
+- Docker Desktop iniciado e desenvolvimento retomado a pedido do usuário com `docker compose -f compose.yaml -f compose.dev.yaml up -d --build`, preservando banco e volumes. Frontend 8097 e `/api/health` responderam 200. Nenhuma galeria ou servidor 8191 foi reaberto.
+
+## Badges de nível em HTML/CSS — 17/10/2026
+
+- `LevelBadge` compõe os números originais 1–60 com cinco atlas de animação a 24 fps em `public/assets/ui/levels/`, extraídos do `levelicon.swf` local a pedido do usuário. Preserva as origens de cada efeito e a mistura aditiva do 41 em diante, sem Flash. 61–70 mantêm os números dourados do jogo com o último efeito. `prefers-reduced-motion` pausa a animação.
+- `LevelNumber` agora encaminha para o mesmo componente: cartas das salas PvP/expedição, salões e ficha do jogador também exibem a arte nova, além de HUD/mochila/loja/combate/convites.
+- Evidência: `npm run check`, `npm test` (341 passando) e `npm run build`; navegador em 8097 verificou todos os 70 níveis, carregamento das 60 imagens, avanço da animação, mistura aditiva e movimento reduzido (`test-results/verify-level-badges.mjs`); a sala real usa o novo badge (`verify-room-level.mjs`). Retrato/HUD em DPR 1 e 3 passou (`scripts/verify-avatar-portrait.mjs`).
+
+## Som de ativação dos power-ups — 17/10/2026
+
+- `public/assets/audio/sfx/powerup.mp3` é a cópia exata do arquivo enviado pelo usuário (`Desktop/powerup.mp3`). O cue `boost` usa esse som para as ferramentas (+1/+2, Tridente e bônus de dano), mantendo o acionamento após confirmação do servidor em `Scene.tsx` e a preferência de áudio do jogador.
+- Evidência: `npm run check`, `npm test` (341 passando) e `npm run build`; navegador em 8097 iniciou treino, ativou +50%, confirmou a seleção autoritativa e verificou que o buffer reproduzido corresponde ao MP3 enviado (`test-results/verify-powerup.mjs`).
+
 
 ## Leilão e Cupons — 18/10/2026
 

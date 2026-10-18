@@ -9,3 +9,4 @@ playwright-report/
 *.pem
 *.key
 dump.rdb
+/tmp/

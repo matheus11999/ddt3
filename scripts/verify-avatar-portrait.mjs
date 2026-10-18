@@ -14,7 +14,7 @@ try{
  await expect(page.locator('.player-hud canvas')).toHaveAttribute('aria-label','Retrato do personagem');
  const inspectHud=target=>target.locator('.player-hud').evaluate(element=>{
   const canvas=element.querySelector('canvas'),badge=element.querySelector('.profile-level-badge'),number=element.querySelector('.level-badge-number');
-  return {backing:canvas.width,cssWidth:canvas.getBoundingClientRect().width,dpr:devicePixelRatio,smoothing:canvas.getContext('2d').imageSmoothingQuality,badgeOpacity:getComputedStyle(badge).opacity,badgeBackground:getComputedStyle(badge).backgroundColor,badgeBorder:getComputedStyle(badge).borderTopWidth,badgeLeft:getComputedStyle(badge).left,badgeBottom:getComputedStyle(badge).bottom,numberBackground:getComputedStyle(number).backgroundImage};
+  return {backing:canvas.width,cssWidth:canvas.getBoundingClientRect().width,dpr:devicePixelRatio,smoothing:canvas.getContext('2d').imageSmoothingQuality,badgeOpacity:getComputedStyle(badge).opacity,badgeBackground:getComputedStyle(badge).backgroundColor,badgeBorder:getComputedStyle(badge).borderTopWidth,badgeLeft:getComputedStyle(badge).left,badgeBottom:getComputedStyle(badge).bottom,numberSource:number.getAttribute('src'),numberLoaded:number instanceof HTMLImageElement&&number.complete&&number.naturalWidth>0};
  });
  const hudResolution=await inspectHud(page);
  assert.ok(hudResolution.backing>=174,'The small 87px head must supersample on a 1x display');
@@ -22,7 +22,8 @@ try{
  assert.equal(hudResolution.badgeBackground,'rgba(0, 0, 0, 0)','Preserve the original badge silhouette without a rectangular backing');
  assert.equal(hudResolution.badgeBorder,'0px','Do not add a frame around the original level badge');
  assert.equal(hudResolution.badgeLeft,'25px');assert.equal(hudResolution.badgeBottom,'-24px');
- assert.match(hudResolution.numberBackground,/linear-gradient/,'Preserve the original metallic numeral finish');
+ assert.match(hudResolution.numberSource,/\/assets\/ui\/levels\/level-\d+\.webp$/,'Use the original numbered badge');
+ assert.equal(hudResolution.numberLoaded,true,'The numbered badge must actually load');
  const hud=await page.locator('.player-hud').boundingBox();
  await page.screenshot({path:'test-results/avatar-portrait/lobby-hud.png',clip:{x:Math.max(0,hud.x-5),y:Math.max(0,hud.y-5),width:hud.width+10,height:hud.height+50}});
  const retina=await browser.newPage({viewport:{width:1440,height:980},deviceScaleFactor:3});

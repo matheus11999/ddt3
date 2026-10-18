@@ -5,6 +5,7 @@ export interface ShopOffer {id:string;price:number;gender?:ItemGender;}
 export const MAX_SHOP_ITEMS=20;
 export const SHOP_OFFERS:readonly ShopOffer[]=[
  {id:'brick',price:300},
+ {id:'love-boomerang',price:480},
  {id:'outfit-surfer',price:280},{id:'outfit-executive',price:340},
  {id:'outfit-racer',price:360},{id:'outfit-dancer',price:360},
  {id:'outfit-cartographer',price:360},

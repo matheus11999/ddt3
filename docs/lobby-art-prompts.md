@@ -1,5 +1,7 @@
 # Praça Celeste — lobby (17/10/2026)
 
+Atualização de 18/10/2026: o cenário em execução usa somente as camadas de parallax atuais e `floor.webp`. O panorama antigo `plaza.webp` e a praça procedural foram retirados do renderer e não são carregados como fallback. As referências históricas ao panorama abaixo descrevem a etapa anterior.
+
 Pedidos do usuário, em ordem: lobby parecido com a foto de referência de lobby clássico de artilharia; a primeira versão por código ficou "simples, de jogo infantil"; a pintura gerada pelo Codex ficou no nível certo, mas com NPCs pintados. Decisões finais:
 
 - **Cenário vazio** em panorama e cada ponto de interação como camada separada, para poder adicionar NPCs no futuro.
