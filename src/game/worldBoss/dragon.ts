@@ -7,7 +7,7 @@
 import type {Battle,Fighter} from '../../../shared/protocol';
 import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
-import {glow,groundFire,hash,stream} from './fire';
+import {glow,groundFire,hash,jet} from './fire';
 
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
@@ -45,6 +45,8 @@ export interface DragonPose {
  bodyDX:number;bodyDY:number;breath:number;headDX:number;headDY:number;headRot:number;jaw:number;blink:number;glow:number;alpha:number;gray:number;
  /** How hard fire is pouring out of the mouth right now (0 to 1). */
  fire:number;
+ /** The jet of fire of this act: when it pours (ms into the act), how long a bit takes to reach `to`, how wide it gets. */
+ jet?:{age:number;start:number;stop:number;travel:number;size:number;to:{x:number;y:number}};
  claw?:{x:number;y:number;closed:boolean;alpha:number;tilt:number};
  shake:number;
  /** How far up the claw holds the player (grab), in px. */
@@ -56,7 +58,7 @@ const PAW_HIDDEN=40,PAW_RISE=360,PAW_GRIP=120;
 const ageOf=(a:DragonAct|undefined,now:number)=>a?now-a.startedAt:Infinity;
 
 /** The pose at `now` (server time). `t` (page time) drives breathing and blinking, which need no sync. */
-export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number,heroGround:number):DragonPose{
+export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number,heroGround:number,ground?:(x:number)=>number):DragonPose{
  const breathing=Math.sin(t*Math.PI*2/3400),a=act(b),age=ageOf(a,now);
  const pose:DragonPose={bodyDX:0,bodyDY:0,breath:breathing,headDX:0,headDY:-6*breathing,headRot:.018*breathing,jaw:.03+.025*Math.max(0,breathing),blink:0,glow:0,alpha:1,gray:0,shake:0,lift:0,fire:0};
  const blinkAt=t%5200;if(blinkAt<170)pose.blink=Math.sin(blinkAt/170*Math.PI);
@@ -86,15 +88,17 @@ export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number
     pose.shake=age>=500&&age<900?2.5*span(age,500,900):age>=2300&&age<2750?18*(1-span(age,2300,2750)):age>=1900&&age<2180?2:0;
     break;}
    case 'breath':{
-    // Rears back breathing in (the throat glows), then breathes the fire stream onto the player.
+    // Rears back breathing in (the throat glows), then breathes the jet of fire onto the player.
     const inhale=easeInOut(span(age,0,1100)),out=span(age,1100,1300)-span(age,2300,2800);
     pose.headRot-=.14*inhale*(1-span(age,1100,1350))-.1*out;pose.headDX+=26*inhale*(1-span(age,1100,1350));pose.jaw+=.18*inhale+.5*clamp(out);pose.glow=clamp(inhale+out);
     pose.fire=span(age,BREATH.from-140,BREATH.from)-span(age,BREATH.to,BREATH.to+160);
+    pose.jet={age,start:BREATH.from,stop:BREATH.to,travel:BREATH_TRAVEL,size:80,to:{x:tx,y:ty-30}};
     pose.shake=age>=1450&&age<2200?4:0;
     break;}
    case 'firesweep':{
     const lower=easeInOut(span(age,0,900))-easeInOut(span(age,2700,3300));pose.headRot+=.2*lower;pose.headDY+=70*lower;pose.headDX-=30*lower;pose.jaw+=.55*clamp(lower*1.2);pose.glow=clamp(lower);
     pose.fire=span(age,FIRESWEEP_WINDOW.from-400,FIRESWEEP_WINDOW.from-260)-span(age,FIRESWEEP_WINDOW.to,FIRESWEEP_WINDOW.to+160);
+    {const x=f.x-320;pose.jet={age,start:FIRESWEEP_WINDOW.from-SWEEP_TRAVEL,stop:FIRESWEEP_WINDOW.to,travel:SWEEP_TRAVEL,size:64,to:{x,y:(ground?ground(x):ty)-20}};}
     pose.shake=age>=FIRESWEEP_WINDOW.from&&age<FIRESWEEP_WINDOW.to?3:0;
     break;}
    case 'death':{
@@ -151,12 +155,12 @@ const JAW_LENGTH=280,THROAT=[-170,-26] as const;
 function mouthGap(jaw:number){const tip=jawTip(jaw),lip=DRAGON_RIG.mouth;return [(lip[0]+tip[0])/2+6,(lip[1]+tip[1])/2+4] as const;}
 /** World point where the fire leaves the mouth. */
 export function dragonMouth(f:Fighter,pose:DragonPose){return headPoint(f,pose,mouthGap(pose.jaw));}
-/** Fire roaring inside the open mouth, from the throat to the teeth: drawn between the jaw and the skull, so the teeth stay in front of it. */
-function mouthFire(c:CanvasRenderingContext2D,pose:DragonPose,t:number){
- const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),from={x:THROAT[0],y:THROAT[1]},to={x:gap[0],y:gap[1]};
- // The same jet as outside, poured without pause while the mouth breathes fire: it reaches the teeth as wide as the stream leaving them.
- glow(c,gap[0]-10,gap[1],70*k,.6*k);
- c.save();c.globalAlpha*=k;stream(c,from,{x:(from.x+to.x)/2,y:(from.y+to.y)/2},to,t,t-2000,t+2000,120,20,true,t);c.restore();
+/** How long a bit of the breath or of the sweep takes from the throat to where it lands. */
+const BREATH_TRAVEL=480,SWEEP_TRAVEL=300;
+/** The act's jet of fire, inside the mouth (between the jaw and the skull, so the teeth cover it) or outside it. */
+function dragonJet(c:CanvasRenderingContext2D,f:Fighter,pose:DragonPose,part:'inside'|'outside',high:boolean){
+ const j=pose.jet;if(!j)return;
+ jet(c,headPoint(f,pose,THROAT),headPoint(f,pose,mouthGap(pose.jaw)),j.to,j.age,j.start,j.stop,j.travel,j.size,high,part);
 }
 
 /** Body, head and jaw: drawn before the terrain so the ridge in front hides where the dragon rises from. */
@@ -167,10 +171,11 @@ export function drawDragonBack(c:CanvasRenderingContext2D,f:Fighter,pose:DragonP
  drawPart(c,'body',c=>{c.fillStyle='#1f6b4f';c.beginPath();c.ellipse(-40,-380,330,420,0,0,Math.PI*2);c.fill();c.fillStyle='#e9c98a';c.beginPath();c.ellipse(-140,-300,120,300,.15,0,Math.PI*2);c.fill();});
  c.restore();
  const flash=hurtAge>=0&&hurtAge<260?(1-hurtAge/260)*.45:0;
+ const world=c.getTransform();
  c.save();c.translate(f.x+DRAGON_RIG.neck[0]+pose.bodyDX+pose.headDX,f.y+DRAGON_RIG.neck[1]+pose.bodyDY+pose.headDY);c.rotate(pose.headRot);
  const head=()=>{
   // Fire inside the mouth goes first: the jaw below and the skull above cover it, so it only shows between the teeth.
-  mouthFire(c,pose,t);
+  if(pose.jet){c.save();c.setTransform(world);dragonJet(c,f,pose,'inside',true);c.restore();}
   // The lower jaw hangs from its hinge behind the skull; opening is a rotation.
   c.save();c.translate(DRAGON_RIG.hinge[0],DRAGON_RIG.hinge[1]);c.rotate(-pose.jaw);drawPart(c,'jaw',c=>{c.fillStyle='#185a43';c.beginPath();c.moveTo(0,0);c.lineTo(-260,40);c.lineTo(-250,75);c.lineTo(10,60);c.fill();});c.restore();
   if(pose.glow>0){const m=DRAGON_RIG.mouth,g=c.createRadialGradient(m[0]+70,m[1]+20,0,m[0]+70,m[1]+20,170);g.addColorStop(0,`rgba(255,226,120,${.75*pose.glow})`);g.addColorStop(.5,`rgba(255,120,30,${.35*pose.glow})`);g.addColorStop(1,'rgba(255,90,20,0)');c.fillStyle=g;c.beginPath();c.arc(m[0]+70,m[1]+20,170,0,Math.PI*2);c.fill();}
@@ -233,17 +238,17 @@ export function drawDragonFront(c:CanvasRenderingContext2D,b:Battle,f:Fighter,po
  if(a.action==='entrance'&&age<2200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(c,x,ground(x),((age+x*3)%900)/900,60,high);
  if((a.action==='death'||a.action==='retreat')&&age>900&&age<4200)for(let x=f.x-260;x<=f.x+400;x+=130)dust(c,x,ground(x),((age+x*3)%1000)/1000,70,high);
  if(a.action==='breath'){
-  // A stream of fire from the mouth to the player; the fire there catches, burns while the breath lasts and dies out.
-  const mouth=dragonMouth(f,pose),to={x:tx,y:ty-30},via={x:(mouth.x+tx)/2,y:Math.min(mouth.y,to.y)-120},travel=420;
+  // One jet of fire from the throat to the player; the fire there catches, burns while the breath lasts and dies out.
+  const mouth=dragonMouth(f,pose);
   glow(c,mouth.x,mouth.y,70+40*span(age,BREATH.from-250,BREATH.from),1-span(age,BREATH.to,BREATH.to+200));
-  stream(c,mouth,via,to,age,BREATH.from,BREATH.to,travel,62,high);
-  groundFire(c,tx,ty,210,170,age-BREATH.from-travel,BREATH.to-BREATH.from,900,t,7,high);
+  dragonJet(c,f,pose,'outside',high);
+  groundFire(c,tx,ty,230,180,age-BREATH.from-BREATH_TRAVEL,BREATH.to-BREATH.from,900,t,7,high);
  }
  if(a.action==='firesweep'){
   // The dragon pours fire on the ground in front of it and the flames run towards the far side.
   // Each spot catches when the front passes, burns a little and goes out: the fire moves on and leaves nothing burning.
-  const mouth=dragonMouth(f,pose),startX=f.x-320,W=FIRESWEEP_WINDOW,to={x:startX,y:ground(startX)-20};
-  stream(c,mouth,{x:(mouth.x+to.x)/2-40,y:(mouth.y+to.y)/2},to,age,W.from-260,W.to,260,48,high);
+  const startX=f.x-320,W=FIRESWEEP_WINDOW;
+  dragonJet(c,f,pose,'outside',high);
   const step=high?44:70;
   for(let x=startX;x>=0;x-=step){const caught=sweepReachAt(x,startX,0);if(age<caught)break;groundFire(c,x,ground(x),step*1.3,120,age-caught,420,750,t,x/step,high);}
   groundFire(c,startX,ground(startX),110,150,age-W.from+200,W.to-W.from,800,t,99,high);

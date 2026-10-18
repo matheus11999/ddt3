@@ -118,7 +118,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(dragon&&(b.turnId===DRAGON_TURN_ID||b.worldBoss!.over)){const hero=own??b.players.find(f=>!f.boss),view=dragonFocus(b,dragon,dragonNow,hero?.x??dragon.x-900,hero?.y??600);if(view){focusX=view.x;focusY=view.y;}}
     let dragonHurt=-1;if(dragon)for(const impact of state.impacts)if(impact.hits.some(hit=>hit.id===dragon.id&&hit.damage>0))dragonHurt=Math.max(dragonHurt,impact.at);
     const dragonHurtAge=dragonHurt<0?-1:dragonNow-dragonHurt,heroFloor=dragon?(own?.y??ground(terrain,dragon.x-900)):0;
-    const pose:DragonPose|null=dragon?dragonPose(b,dragon,dragonNow,t,dragonHurtAge,heroFloor):null;
+    const pose:DragonPose|null=dragon?dragonPose(b,dragon,dragonNow,t,dragonHurtAge,heroFloor,x=>ground(terrain,x,0)):null;
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
     if(pose&&pose.shake>0)c.translate(Math.sin(t*.091)*pose.shake,Math.cos(t*.077)*pose.shake*.6);
