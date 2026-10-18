@@ -104,6 +104,8 @@ test('an expedition room picks an expedition, starts both stages and pays withou
  assert.equal(s.turnId,second.id);
  await f.game.command(second.id,{type:'pass'});
  assert.equal(s.turnId,MONSTER_TURN_ID);assert.ok(s.instance!.monsterTurn!.moves.length>0);
+ // Adventurers may still turn in place while the monsters move.
+ {const me=s.players.find(p=>p.id===first.id)!,direction=(me.facing===1?-1:1) as 1|-1;await f.game.command(first.id,{type:'face',direction});assert.equal(me.facing,direction);}
  const before=new Map(ants.map(a=>[a.id,a.x]));
  assert.ok(ants.some(a=>a.x!==before.get(a.id))||s.instance!.monsterTurn!.moves.every(move=>move.to[0]===ants.find(a=>a.id===move.id)!.x));
  f.game.tick(m.resolveAt+1);assert.equal(s.turnId,first.id);assert.equal(s.instance!.round,2);
