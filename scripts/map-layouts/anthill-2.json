@@ -28,8 +28,8 @@
    "sheet": "chao",
    "piece": 0,
    "x": 1536,
-   "top": 206,
-   "scale": 2,
+   "top": 296,
+   "scale": 1,
    "destructible": false
   },
   {
@@ -37,7 +37,7 @@
    "sheet": "pecas",
    "piece": 3,
    "x": 1280,
-   "top": 330,
+   "top": 420,
    "scale": 0.7,
    "destructible": false
   },
@@ -46,7 +46,7 @@
    "sheet": "pecas",
    "piece": 2,
    "x": 1790,
-   "top": 400,
+   "top": 490,
    "scale": 0.75,
    "destructible": false,
    "rest": true,

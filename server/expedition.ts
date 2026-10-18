@@ -3,7 +3,7 @@ import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
 import type {Weapon} from '../shared/catalog';
 import {expeditionStages,isMonsterKind,MONSTERS,partyHpScale} from '../shared/expeditions';
 import type {Difficulty,MonsterKind,StageDef} from '../shared/expeditions';
-import {stageIntroMs} from '../shared/instanceTurn';
+import {bossOpening,OPENING_SUMMON_GAP_MS,planMonsterTurn,stageIntroMs} from '../shared/instanceTurn';
 import {getMap} from '../shared/maps';
 import type {MapId} from '../shared/maps';
 import {ground,trajectory,WORLD} from '../shared/physics';
@@ -34,20 +34,32 @@ export function setupStage(seats:readonly Seat[],expedition:string,difficulty:Di
   const monster=monsterFighter(placement.kind,placement.x,placement.y??ground(terrain,placement.x),level,players.length,monsters.length,centre>=placement.x?1:-1);
   if(MONSTERS[placement.kind].behavior==='queen')boss=monster.id;monsters.push(monster);
  }
+ // Boss opening: the boss taunts (speech bubbles), then ants leave the nest and walk toward the party.
+ // They are placed where they end up (the server is authoritative); clients replay the walk from the timeline.
+ const taunts=boss&&stage.boss?.taunts?.length?stage.boss.taunts:[],opening=bossOpening(taunts.length);let speech:BattleInstance['speech'],monsterTurn:BattleInstance['monsterTurn'];
+ if(boss&&taunts.length){
+  speech=taunts.map((text,n)=>({id:boss!,text,from:now+opening.speech[n].from,to:now+opening.speech[n].to}));
+  const queen=monsters.find(f=>f.id===boss)!,from=nest??{x:queen.x-200,y:queen.y},kinds=stage.boss!.summonKinds,summoned:Fighter[]=[];
+  for(let n=0;n<(stage.boss!.openingSummons??0);n++){const x=from.x+(n?-1:1)*n*36,kind=kinds[n%kinds.length];summoned.push(monsterFighter(kind,x,ground(terrain,x,Math.max(0,from.y-40)),level,players.length,monsters.length+n,-1));}
+  const plan=planMonsterTurn(terrain,[...players,...monsters.filter(f=>f.id!==boss),...summoned]),moves=plan.moves.filter(move=>summoned.some(f=>f.id===move.id));
+  for(const move of moves){const f=summoned.find(x=>x.id===move.id)!;f.x=move.to[0];f.y=move.to[1];f.facing=move.facing;}
+  monsters.push(...summoned);
+  monsterTurn={id:'opening',startedAt:now+opening.walkAt,moves,bites:[],summons:summoned.map((f,n)=>({id:f.id,at:now+opening.summonAt+n*OPENING_SUMMON_GAP_MS}))};
+ }
  const order=[...players].sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility).map(p=>p.id);
- return {map,stage,fighters:[...players,...monsters],order,instance:{expedition,difficulty,stage:stageIndex+1,stageCount:stages.length,stageName:stage.name,round:1,introUntil:now+stageIntroMs(stageIndex),...(boss?{boss}:{}),...(nest?{nest}:{})}};
+ return {map,stage,fighters:[...players,...monsters],order,instance:{expedition,difficulty,stage:stageIndex+1,stageCount:stages.length,stageName:stage.name,round:1,introUntil:now+stageIntroMs(stageIndex,taunts.length),...(boss?{boss}:{}),...(nest?{nest}:{}),...(speech?{speech}:{}),...(monsterTurn?{monsterTurn}:{})}};
 }
 
 export function stageDeck(stage:StageDef):CardPrize[]{return Array.from({length:stage.cards},()=>({...stage.prizes[randomInt(stage.prizes.length)]}));}
 
 /**
  * The queen aims at an adventurer (lowest health first, ties at random) with a bounded search, then
- * misses a little on purpose: on Fácil she is a threat, not a sniper.
+ * misses a little on purpose: on Fácil she is a threat, not a sniper. The arrow leaves from her bow (`muzzle`).
  */
 export function queenAim(terrain:Uint8Array,queen:Fighter,targets:readonly Fighter[],wind:number,error=5){
  const living=targets.filter(t=>t.hp>0&&!t.left&&!(t.invisibleTurns??0));if(!living.length)return null;
  const lowest=Math.min(...living.map(t=>t.hp)),pool=living.filter(t=>t.hp<=lowest*1.35),target=pool[randomInt(pool.length)];
- const facing:1|-1=target.x>=queen.x?1:-1,origin={x:queen.x,y:queen.y-(queen.hitHeight??60)+10,facing};
+ const facing:1|-1=target.x>=queen.x?1:-1,muzzle=MONSTERS[queen.monster??'ant-queen'].muzzle??{forward:0,up:(queen.hitHeight??60)-10},origin={x:queen.x+facing*(muzzle.forward-27),y:queen.y-muzzle.up+40,facing}; // shots leave 27 px ahead of and 40 px above the origin (shared/physics.ts volley)
  let best={score:Infinity,angle:30,power:60};
  for(let angle=-35;angle<=75;angle+=5)for(let power=20;power<=100;power+=4){const r=trajectory(terrain,origin,angle,power,wind,ARROW,[target]);const score=r.hitId===target.id?0:Math.hypot(r.x-target.x,r.y-(target.y-30));if(score<best.score)best={score,angle,power};}
  const power=Math.max(10,Math.min(100,best.power+(Math.random()*2-1)*error));

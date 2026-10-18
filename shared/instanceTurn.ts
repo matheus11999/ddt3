@@ -10,11 +10,22 @@ import type {MonsterKind} from './expeditions';
 export const MONSTER_TURN_ID='monsters';
 /** Monster turn timeline: walking, then bites, then the queen's arrow and summons. */
 export const MONSTER_MOVE_MS=1500,MONSTER_BITE_WINDUP_MS=320,MONSTER_ATTACK_MS=1900,MONSTER_TURN_END_MS=900;
+/** The queen draws her bow this long before the arrow leaves (her turn opens the monster turn). */
+export const QUEEN_DRAW_MS=900;
 /** Monsters walk in from the map sides when a stage opens; the first adventurer plays after it. */
 export const INSTANCE_INTRO_MS=2600;
 /** Later stages skip the walk-in: the monsters are already in place and only the stage title shows. */
 export const STAGE_TITLE_MS=1600;
-export const stageIntroMs=(stageIndex:number)=>stageIndex===0?INSTANCE_INTRO_MS:STAGE_TITLE_MS;
+export const stageIntroMs=(stageIndex:number,taunts=0)=>taunts?bossOpening(taunts).end:stageIndex===0?INSTANCE_INTRO_MS:STAGE_TITLE_MS;
+/**
+ * Boss stage opening (ms from the stage start): the camera on the boss, one speech bubble per taunt,
+ * then ants leave the nest and walk toward the party; the camera returns to the party before the first turn.
+ */
+export const TAUNT_MS=1900,OPENING_SUMMON_GAP_MS=350;
+export function bossOpening(taunts:number){
+ const speech=Array.from({length:taunts},(_,n)=>({from:800+n*TAUNT_MS,to:800+(n+1)*TAUNT_MS-120})),summonAt=800+taunts*TAUNT_MS,walkAt=summonAt+700;
+ return {speech,summonAt,walkAt,end:walkAt+MONSTER_MOVE_MS+700};
+}
 
 export interface InstanceRound {round:number;acted:string[];}
 export interface TurnActor {id:string;hp:number;team:0|1;left?:boolean;}
@@ -75,6 +86,7 @@ export function planMonsterTurn(terrain:Uint8Array,bodies:readonly MonsterBody[]
 
 /** Where a moving monster is drawn at `elapsed` ms into the monster turn (clients interpolate the same way). */
 export function monsterStep(move:MonsterMove,elapsed:number):{x:number;y:number;moving:boolean}{
- const k=Math.max(0,Math.min(1,elapsed/MONSTER_MOVE_MS)),moving=k>0&&k<1&&(move.from[0]!==move.to[0]);
+ // Eases in and out (half linear, half smoothstep) so ants start and stop instead of snapping to speed.
+ const t=Math.max(0,Math.min(1,elapsed/MONSTER_MOVE_MS)),k=t*.5+t*t*(3-2*t)*.5,moving=t>0&&t<1&&(move.from[0]!==move.to[0]);
  return {x:move.from[0]+(move.to[0]-move.from[0])*k,y:move.from[1]+(move.to[1]-move.from[1])*k,moving};
 }
