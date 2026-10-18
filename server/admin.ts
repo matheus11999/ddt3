@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {adminAccount,checkCredentials,LoginThrottle} from './adminAuth';
 import {AdminStore,ADMIN_SESSION_HOURS} from './adminStore';
 import type {StoredMap,StoredRevision} from './adminStore';
-import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,pinMap,pinnedMap,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
+import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,WORLD_BOSS_MAP_IDS,pinMap,pinnedMap,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
 import type {MapId,MapOverride,MapRegion} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
@@ -17,6 +17,8 @@ import type {PlayerDirectory} from './adminPlayers';
 import type {PlayerPresence} from '../shared/adminPlayers';
 import {attachmentLabel,mailSendSchema} from '../shared/mail';
 import {canEquipItem,CATALOG} from '../shared/catalog';
+import type {WorldBossService} from './worldBoss';
+import {worldBossScheduleSchema,worldBossSettingsSchema,worldBossStartSchema,worldBossStopSchema} from '../shared/worldBoss';
 
 /**
  * Admin panel API (/api/admin/*) and the published maps the game reads (/api/maps).
@@ -32,7 +34,9 @@ const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{online:number;rooms:number;battles:number};onMapsChanged:()=>void;
  /** Map versions running matches play (`snow@12`, shared/maps.ts pinMap). */pinnedMaps?:()=>string[];
  /** Players page: the table, the mail it sends and where each online player is. */
- players?:PlayerDirectory;mail?:MailStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;}
+ players?:PlayerDirectory;mail?:MailStore;presence?:()=>ReadonlyMap<string,PlayerPresence>;onMail?:(playerId:string)=>void;
+ /** Eventos page: the Chefão Mundial. */
+ worldBoss?:WorldBossService;}
 
 const png=(base64:string)=>{const buffer=Buffer.from(base64,'base64');if(buffer.length<24||buffer.readUInt32BE(0)!==0x89504e47)throw new Error('Imagem inválida.');return {buffer,width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20)};};
 const ipOf=(req:FastifyRequest)=>req.ip??'unknown';
@@ -143,6 +147,39 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  // ── Statistics ──
  app.get('/api/admin/stats',async(req,reply)=>{if(!await guard(req,reply))return;return {live:ctx.live(),...await store.stats(),audit:await store.recentAudit(12),openReports:await ctx.reports?.openCount()??0};});
 
+ // ── Eventos: Chefão Mundial (start now, stop now, schedules, settings). Every write is audited. ──
+ const events=()=>{if(!ctx.worldBoss)throw Object.assign(Error('Eventos indisponíveis.'),{statusCode:503});return ctx.worldBoss;};
+ const fail=(reply:FastifyReply,error:unknown)=>reply.code((error as {statusCode?:number}).statusCode??400).send({error:error instanceof Error?error.message:'Não foi possível concluir.'});
+ app.get('/api/admin/events/world-boss',async(req,reply)=>{if(!await guard(req,reply))return;try{return await events().adminState();}catch(e){return fail(reply,e);}});
+ app.post('/api/admin/events/world-boss/start',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const parsed=worldBossStartSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:'Dados inválidos.'});
+  try{
+   const outcome=await events().startNow(parsed.data.requestId,parsed.data.endsAt,name,{name:parsed.data.name,maxHp:parsed.data.maxHp});
+   if(!outcome.repeated)await store.audit(name,ipOf(req),'world-boss-start',{occurrence:outcome.id,endsAt:new Date(parsed.data.endsAt).toISOString(),...(parsed.data.maxHp?{maxHp:parsed.data.maxHp}:{})});
+   return await events().adminState();
+  }catch(e){return fail(reply,e);}
+ });
+ app.post('/api/admin/events/world-boss/stop',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const parsed=worldBossStopSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:'Dados inválidos.'});
+  try{const {stopped}=await events().stopNow(parsed.data.occurrenceId,name);if(stopped)await store.audit(name,ipOf(req),'world-boss-stop',{occurrence:parsed.data.occurrenceId});return await events().adminState();}catch(e){return fail(reply,e);}
+ });
+ app.post('/api/admin/events/world-boss/settings',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const parsed=worldBossSettingsSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:'Dados inválidos.'});
+  try{await events().saveSettings(parsed.data,name);await store.audit(name,ipOf(req),'world-boss-settings',parsed.data);return await events().adminState();}catch(e){return fail(reply,e);}
+ });
+ app.post('/api/admin/events/world-boss/schedules',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const parsed=worldBossScheduleSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:parsed.error.issues[0]?.message??'Dados inválidos.'});
+  try{const id=await events().addSchedule(parsed.data,name);await store.audit(name,ipOf(req),'world-boss-schedule-add',{schedule:id,...parsed.data});return await events().adminState();}catch(e){return fail(reply,e);}
+ });
+ app.post<{Params:{id:string}}>('/api/admin/events/world-boss/schedules/:id',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;const parsed=worldBossScheduleSchema.safeParse(req.body);if(!parsed.success||!/^\d{1,18}$/.test(req.params.id))return reply.code(400).send({error:parsed.success?'Dados inválidos.':parsed.error.issues[0]?.message??'Dados inválidos.'});
+  try{await events().updateSchedule(req.params.id,parsed.data);await store.audit(name,ipOf(req),'world-boss-schedule-edit',{schedule:req.params.id,...parsed.data});return await events().adminState();}catch(e){return fail(reply,e);}
+ });
+ app.delete<{Params:{id:string}}>('/api/admin/events/world-boss/schedules/:id',async(req,reply)=>{
+  const name=await guard(req,reply);if(!name)return;if(!/^\d{1,18}$/.test(req.params.id))return reply.code(400).send({error:'Dados inválidos.'});
+  try{await events().removeSchedule(req.params.id);await store.audit(name,ipOf(req),'world-boss-schedule-remove',{schedule:req.params.id});return await events().adminState();}catch(e){return fail(reply,e);}
+ });
+
  // ── Player reports (sent from the game with the reported player's last 30 minutes of chat) ──
  app.get('/api/admin/reports',async(req,reply)=>{
   if(!await guard(req,reply))return;if(!ctx.reports)return reply.code(503).send({error:'Denúncias indisponíveis.'});
@@ -189,8 +226,9 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  });
 
  // ── Maps ──
- const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id)||(INSTANCE_MAP_IDS as readonly string[]).includes(id);
- const builtInKind=(id:string)=>id===LOBBY_MAP_ID?'lobby' as const:(INSTANCE_MAP_IDS as readonly string[]).includes(id)?'instance' as const:'pvp' as const;
+ const instanceIds:readonly string[]=[...INSTANCE_MAP_IDS,...WORLD_BOSS_MAP_IDS];
+ const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id)||instanceIds.includes(id);
+ const builtInKind=(id:string)=>id===LOBBY_MAP_ID?'lobby' as const:instanceIds.includes(id)?'instance' as const:'pvp' as const;
  const summary=(id:string,row:(StoredMap&{draft?:StoredRevision['data']|null})|null):AdminMapSummary=>{
   const live=published.maps.find(m=>m.id===id),isLobby=id===LOBBY_MAP_ID,draft=row?.draft,original=!isLobby&&builtIn(id)?getMap(id as MapId):null;
   const layout=draft?.layout as EditableLayout|undefined;
@@ -201,7 +239,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  };
  app.get('/api/admin/maps',async(req,reply)=>{
   if(!await guard(req,reply))return;
-  const rows=await store.maps(),ids=[...MAP_IDS,...INSTANCE_MAP_IDS,LOBBY_MAP_ID,...rows.map(r=>r.id)];
+  const rows=await store.maps(),ids=[...MAP_IDS,...instanceIds,LOBBY_MAP_ID,...rows.map(r=>r.id)];
   return {maps:[...new Set(ids)].map(id=>summary(id,rows.find(r=>r.id===id)??null))};
  });
  app.get<{Params:{id:string}}>('/api/admin/maps/:id',async(req,reply)=>{

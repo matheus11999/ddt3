@@ -386,3 +386,15 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-cut-areas .adm-toggle-row{display:grid}
 .adm-cut-area{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 10px;border-radius:9px;border:1px dashed #ff5a4a88;background:#ff5a4a14;color:var(--muted);font-size:12px}
 .adm-cut-area .adm-icon{width:28px;height:28px}
+/* Eventos: Chefão Mundial */
+.adm-events{display:grid;gap:16px}
+.adm-event-status{display:grid;gap:14px}
+.adm-event-title{display:flex;align-items:center;gap:12px}.adm-event-title>div{flex:1;display:grid;gap:2px}.adm-event-title small{color:var(--muted)}
+.adm-event-hp{display:grid;gap:6px}.adm-event-hp>div{height:14px;border-radius:999px;background:#0d0b09;border:1px solid var(--line2);overflow:hidden}.adm-event-hp i{display:block;height:100%;background:linear-gradient(90deg,#e0401c,#ff9a5a)}.adm-event-hp span{font-size:13px;color:var(--muted)}
+.adm-event-status footer{display:flex;gap:10px;flex-wrap:wrap}
+.adm-event-grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(280px,1fr);gap:16px;align-items:start}
+.adm-event-schedules,.adm-event-settings{display:grid;gap:12px}
+.adm-event-settings label,.adm-event-add label{display:grid;gap:5px;font-weight:700;font-size:13px;color:var(--muted)}
+.adm-event-settings label small{font-weight:600;color:var(--faint);font-size:12px}
+.adm-event-add{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
+@media (max-width:980px){.adm-event-grid{grid-template-columns:1fr}}

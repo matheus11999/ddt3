@@ -20,6 +20,7 @@ import {auctionCommandSchemas} from './auction';
 import type {AuctionMine,AuctionPage,AuctionResult} from './auction';
 import {guildCommandSchemas} from './guilds';
 import type {GuildState,GuildSummary} from './guilds';
+import type {BattleWorldBoss,WorldBossRanking,WorldBossStatus} from './worldBoss';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
@@ -32,13 +33,13 @@ export interface Seat {id:string;name:string;level:number;equipment:Equipment;re
 /** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
 export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
 export interface RoomSpectator {id:string;name:string;level:number;slot:0|1;connected:boolean;}
-export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;/** GvG: the party only meets parties of another guild (everyone in the room must share one guild). */gvg?:boolean;/** Expedition Center room: co-op party against an expedition's monsters, chosen by the leader. */kind?:'expedition';expedition?:{id:string;difficulty:Difficulty;/** Stage the next start opens (0-based); a won stage moves it on, the last one back to 0. */stage:number}|null;}
+export interface Room {id:string;number:number;name:string;hostId:string;mode:RoomMode;openSlots:number[];map:MapId;status:'waiting'|'searching'|'playing';players:Seat[];spectatorSlots?:number[];spectators?:RoomSpectator[];practice?:boolean;matchStartedAt?:number;searchStartedAt?:number;/** GvG: the party only meets parties of another guild (everyone in the room must share one guild). */gvg?:boolean;/** Expedition Center room: co-op party against an expedition's monsters, chosen by the leader. world-boss: a hidden solo room for one attempt at the Chefão Mundial. */kind?:'expedition'|'world-boss';expedition?:{id:string;difficulty:Difficulty;/** Stage the next start opens (0-based); a won stage moves it on, the last one back to 0. */stage:number}|null;}
 export interface RoomInvitePlayer {id:string;name:string;level:number;}
 export interface OnlinePlayer {id:string;name:string;level:number;gender:CharacterGender;}
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
-export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;/** PvP accumulated Delay (shared/turnDelay.ts): the lowest living one plays next. */delay?:number;}
-export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};instance?:BattleInstance;}
+export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;/** The Chefão Mundial dragon: drawn by the world boss renderer, never falls, its life is the event's global life. */boss?:'dragon';/** PvP accumulated Delay (shared/turnDelay.ts): the lowest living one plays next. */delay?:number;}
+export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};instance?:BattleInstance;/** Chefão Mundial attempt (shared/worldBoss.ts). */worldBoss?:BattleWorldBoss;}
 /** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
 export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};/** Speech bubbles (boss opening), server time. */speech?:{id:string;text:string;from:number;to:number}[];monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
 export interface Projectile {points:number[][];delay:number;flightTime:number;impact:{x:number;y:number;radius:number;material?:import('./maps').MaterialId;destructible?:boolean;region?:string;dig?:{x:number;y:number;radius:number;stretch?:number};roughness?:number};effect:import('./catalog').WeaponEffect;powered?:boolean;kind?:'weapon'|'flight';fragment?:boolean;/** Shot by a monster (the queen's arrow): drawn by the expedition renderer, no crater. */monster?:'arrow';}
@@ -90,6 +91,8 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','snow','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
  z.object({type:z.literal('create-expedition')}).strict(),
+ z.object({type:z.literal('world-boss-enter')}).strict(),
+ z.object({type:z.literal('world-boss-ranking')}).strict(),
  z.object({type:z.literal('expedition-select'),expedition:z.string().regex(/^[a-z][a-z0-9-]{1,31}$/),difficulty:z.enum(DIFFICULTIES),stage:z.number().int().min(0).max(19).optional()}).strict(),
  z.object({type:z.literal('queue')}).strict(),z.object({type:z.literal('cancel-queue')}).strict(),
  z.object({type:z.literal('room-slot'),slot:z.number().int().min(1).max(3),open:z.boolean()}).strict(),
@@ -119,7 +122,7 @@ export const commandSchema=z.discriminatedUnion('type',[
 ]);
 export type Command=z.infer<typeof commandSchema>;
 export type ServerEvent =
- | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number;ranking?:RankingEntry[]}
+ | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number;ranking?:RankingEntry[];worldBoss?:WorldBossStatus}
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
@@ -130,6 +133,10 @@ export type ServerEvent =
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}
+ /** Chefão Mundial: the event as everyone sees it, the window's table, and the end of one's attempt (the window opens again). */
+ | {type:'world-boss';status:WorldBossStatus}
+ | {type:'world-boss-ranking';ranking:WorldBossRanking}
+ | {type:'world-boss-closed'}
  /** Maps were published in the admin panel: reload GET /api/maps. */
  | {type:'maps'}
  | {type:'online-players';players:OnlinePlayer[];total:number}
