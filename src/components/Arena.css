@@ -66,7 +66,6 @@ html.mobile-landscape .pvp-room .pr-room-plaque .party-room-name h1{font-size:12
 .pvp-room .pr-card-portrait{position:absolute;inset:0;display:flex;align-items:flex-end;justify-content:center;z-index:1}
 .pvp-room .pr-card-portrait>canvas{flex:none;width:auto!important;height:min(118cqh,110cqw)!important;max-width:none;aspect-ratio:1;margin-bottom:-2%;pointer-events:none}
 .pvp-room .pr-card-insignia{position:absolute;top:6px;right:6px;z-index:2;display:grid;justify-items:center;gap:0}
-.pvp-room .pr-host-tag{position:absolute;top:6px;left:7px;z-index:2;display:inline-flex;align-items:center;gap:4px;padding:3px 9px 3px 7px;border:1px solid #fff0b8;border-radius:999px;background:linear-gradient(#ffe07a,#f2a91f 60%,#e48d12);box-shadow:inset 0 -2px #c06d0a,0 1px #5b2a0e66;color:#fff;font-size:12px;font-style:italic;font-weight:900;white-space:nowrap;text-shadow:0 1px #8a3a07}
 .pvp-room .pr-card-state{display:flex;align-items:center;justify-content:center;gap:5px;border-top:1px solid #efcf9a;background:linear-gradient(#fbe5bd,#f6d6a0);font-size:12px;font-weight:900}
 .pvp-room .pr-card-state.ready{background:linear-gradient(#5cc77f,#33a05b);border-top-color:#9be6b1;color:#fff;text-shadow:0 1px #1f6b3b}
 .pvp-room .pr-card-state.waiting{color:var(--wood-ink-soft)}
@@ -226,8 +225,6 @@ html.mobile-landscape .pvp-room .pr-card-name{gap:3px;padding:0 4px;font-size:10
 html.mobile-landscape .pvp-room .pr-card-name>svg{width:10px;height:10px}
 html.mobile-landscape .pvp-room .pr-card-kick{top:2px;right:2px;width:18px;height:18px;border-radius:5px}
 html.mobile-landscape .pvp-room .pr-card-insignia{top:2px;right:2px;gap:2px;transform:scale(.62);transform-origin:top right}
-html.mobile-landscape .pvp-room .pr-host-tag{top:3px;left:3px;gap:2px;padding:2px 6px 2px 4px;font-size:8px}
-html.mobile-landscape .pvp-room .pr-host-tag svg{width:9px;height:9px}
 html.mobile-landscape .pvp-room .pr-card-state{gap:3px;font-size:9px}
 html.mobile-landscape .pvp-room .pr-card-state svg{width:11px;height:11px}
 html.mobile-landscape .pvp-room .pr-card-vacant{margin:4px;border-radius:8px}
@@ -293,11 +290,10 @@ html.mobile-landscape .pvp-room .preparation-hint{margin-top:5px;font-size:9px}
 html.mobile-landscape .pvp-room .party-menu-button{width:38px;height:38px;padding:3px;border-radius:10px}
 .party-painted-menu{position:relative}.party-menu-count{position:absolute;top:-4px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:11px;display:grid;place-items:center;background:linear-gradient(#ff6b5a,#d4231b);border:2px solid #fff3cf;color:#fff;font:900 10px Nunito,sans-serif;box-shadow:0 2px 3px #0005;pointer-events:none}
 /* Guilda abaixo do nome no card da sala (PvP e expedição) */
-.pvp-room .pr-card-names{display:grid;flex:1;min-width:0;line-height:1}
+.pvp-room .pr-card-names{display:flex;align-items:center;flex:1;min-width:0;line-height:1}
 .pvp-room .pr-card-names strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 /* Guilda logo abaixo do nome, dentro da área creme, acima da etiqueta de líder */
 .pvp-room .pr-card-tags{position:absolute;top:6px;left:7px;right:64px;z-index:2;display:grid;justify-items:start;gap:4px}
-.pvp-room .pr-card-tags .pr-host-tag{position:static}
 .pvp-room .pr-card-guild{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:0 2px;color:#1d4f8f;text-shadow:0 1px #fff;font-size:12px;font-weight:900;white-space:nowrap}
 .pvp-room .pr-card-guild svg{flex:none;color:#2f6fbf}
 .pvp-room .pr-card-guild{overflow:hidden;text-overflow:ellipsis}
@@ -317,3 +313,7 @@ html.mobile-landscape .pvp-room .pr-card-guild svg{width:9px;height:9px}
 html.mobile-landscape .pvp-room .pr-gvg{width:52px;border-radius:11px}
 html.mobile-landscape .pvp-room .pr-gvg strong{font-size:16px}
 html.mobile-landscape .pvp-room .pr-gvg small{font-size:8px}
+
+/* Room leader: only a gold crown beside the name (matheus, 18/10). */
+.pvp-room .pr-host-crown{flex:none;margin-right:3px;vertical-align:-2px;fill:#fff06a;stroke:#5b2306;filter:drop-shadow(0 0 2px #fff6c0) drop-shadow(0 1px 0 #5b2a0e)}
+html.mobile-landscape .pvp-room .pr-host-crown{width:11px;height:11px}
