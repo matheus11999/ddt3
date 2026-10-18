@@ -7,7 +7,9 @@ import type {MonsterPlacement} from './expeditions';
 export const MAP_IDS = ['snow'] as const;
 /** Expedition stage maps (kind 'instance'): never in the PvP draw. */
 export const INSTANCE_MAP_IDS = ['anthill-1','anthill-2'] as const;
-export type CanonicalMapId = typeof MAP_IDS[number] | typeof INSTANCE_MAP_IDS[number];
+/** Chefão Mundial maps (kind 'instance' in the panel): never in the PvP draw nor in an expedition. */
+export const WORLD_BOSS_MAP_IDS = ['dragon-lair'] as const;
+export type CanonicalMapId = typeof MAP_IDS[number] | typeof INSTANCE_MAP_IDS[number] | typeof WORLD_BOSS_MAP_IDS[number];
 /** Ids of removed maps still arrive from old clients and saved rooms; they resolve to a real map. */
 export type LegacyMapId = 'garden'|'park'|'celestial'|'sky'|'valley';
 export type MapId = CanonicalMapId | LegacyMapId;
@@ -53,6 +55,11 @@ export const MAP_DEFINITIONS:Partial<Record<MapId,MapDefinition>>&Record<Canonic
   lighting:{sky:'#6b3c2a',horizon:'#c98a55',ambient:'#ffd8a8'},audio:{ambience:'wind',impact:{earth:'dust'}},
   art:{background:'/assets/maps/anthill-2/background.webp',terrain:'/assets/maps/anthill-2/terrain-world.png'},
   regions:ANTHILL_2_REGIONS,monsters:ANTHILL_2_MONSTERS},
+ 'dragon-lair':{id:'dragon-lair',name:'Covil do Dragão',subtitle:'Chefão Mundial',color:'#d0643c',
+  dimensions:{width:3072,height:864},camera:{minZoom:1,maxZoom:1.65},spawns:[[1300],[0]],
+  lighting:{sky:'#3b2440',horizon:'#c86a3c',ambient:'#ffd2a8'},audio:{ambience:'wind',impact:{earth:'dust'}},
+  art:{background:'/assets/maps/anthill-2/background.webp',terrain:'/assets/maps/anthill-2/terrain-world.png'},
+  regions:ANTHILL_2_REGIONS},
 };
 /** The map a new room starts on and the one unknown ids fall back to (tests point it at their fixture map). */
 export const MAP_DEFAULT:{id:MapId}={id:'snow'};
@@ -64,7 +71,7 @@ export const MAPS:{id:MapId;name:string;subtitle:string;color:string}[]=[];
  * collision and terrain art, or add a new map based on another one's art. Server and client apply the same list.
  */
 export interface MapOverride {id:string;kind:'pvp'|'instance';name:string;subtitle:string;enabled:boolean;base:string;width:number;spawns:[number[],number[]];regions:readonly MapRegion[];terrain:string;monsters?:MonsterPlacement[];/** Published revision (0 or absent: the repository version). */revision?:number;}
-const BUILT_IN=new Map<string,MapDefinition>([...MAP_IDS,...INSTANCE_MAP_IDS].map(id=>[id,MAP_DEFINITIONS[id]]));
+const BUILT_IN=new Map<string,MapDefinition>([...MAP_IDS,...INSTANCE_MAP_IDS,...WORLD_BOSS_MAP_IDS].map(id=>[id,MAP_DEFINITIONS[id]]));
 const status=new Map<string,{kind:'pvp'|'instance';enabled:boolean}>();
 /** Revision each map currently plays (absent: the repository version, revision 0). */
 const revisions=new Map<string,number>();
@@ -110,7 +117,7 @@ export function registerPinnedMap(o:MapOverride&{revision:number}){
 export function releasePinnedMaps(inUse:Iterable<string>){
  const keep=new Set(inUse);for(const key of pins)if(!keep.has(key)){delete MAP_DEFINITIONS[key as MapId];pins.delete(key);}
 }
-export function mapStatus(id:string){return status.get(id)??{kind:(INSTANCE_MAP_IDS as readonly string[]).includes(id)?'instance' as const:'pvp' as const,enabled:true};}
+export function mapStatus(id:string){return status.get(id)??{kind:([...INSTANCE_MAP_IDS,...WORLD_BOSS_MAP_IDS] as readonly string[]).includes(id)?'instance' as const:'pvp' as const,enabled:true};}
 /** Maps a PvP match may be drawn on: built-in and published PvP maps that are switched on. */
 export function pvpRotation():MapId[]{
  const ids=[...new Set([...MAP_IDS,...status.keys()])].filter(id=>MAP_DEFINITIONS[id as MapId]&&mapStatus(id).kind==='pvp'&&mapStatus(id).enabled) as MapId[];

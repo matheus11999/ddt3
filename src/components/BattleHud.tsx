@@ -7,6 +7,8 @@ import {AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
+import {DRAGON_TURN_ID} from '../../shared/worldBoss';
+import {WorldBossBanner,WorldBossBar} from './WorldBoss';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
@@ -29,8 +31,9 @@ const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!ta
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
  const {battle,profile,offset,status}=useGame();
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
- const opponents=b.players.filter(player=>player.team!==me.team),instance=b.instance,monsterTurn=b.turnId===MONSTER_TURN_ID;
- const [intro,setIntro]=useState(()=>!!instance&&instance.introUntil-Date.now()-offset>0);
+ const opponents=b.players.filter(player=>player.team!==me.team),instance=b.instance,worldBoss=b.worldBoss,monsterTurn=b.turnId===MONSTER_TURN_ID||b.turnId===DRAGON_TURN_ID;
+ const introUntil=instance?.introUntil??worldBoss?.introUntil;
+ const [intro,setIntro]=useState(()=>introUntil!==undefined&&introUntil-Date.now()-offset>0);
  // Limits remain authoritative equipment data; equipment itself is not part of the HUD.
  // With the paper plane armed the plane's wider envelope replaces the weapon's.
  const weapon=aimSource(me),aimSlope=me.aimSlope??0;
@@ -40,7 +43,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const [submitted,setSubmitted]=useState<'shot'|'pass'|null>(null);
  const mine=b.turnId===me.id&&b.phase==='aiming';
  // A fallen fighter keeps watching until the end (and keeps the reward) but plays no more.
- const fallen=me.hp<=0&&b.phase!=='finished';
+ const fallen=me.hp<=0&&b.phase!=='finished'&&!worldBoss;
  const canAct=mine&&!intro&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
  // Turning in place is free and allowed at any time of the match: anyone's turn, a shot in flight, the monsters' turn (the server checks it too).
  const canFace=b.phase!=='finished'&&!blocked&&!exit&&status==='online'&&me.hp>0;
@@ -102,9 +105,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[b.deadline,offset]);
  // Expeditions open with the monsters walking in; nobody plays until they arrive (the server agrees).
  useEffect(()=>{
-  const until=instance?.introUntil??0,left=until-Date.now()-offset;setIntro(left>0);if(left<=0)return;
+  const until=introUntil??0,left=until-Date.now()-offset;setIntro(left>0);if(left<=0)return;
   const timer=setTimeout(()=>setIntro(false),left);return()=>clearTimeout(timer);
- },[instance?.introUntil,offset]);
+ },[introUntil,offset]);
  useEffect(()=>{
   if(!charging)return;
   let frame=0;
@@ -176,11 +179,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <div className="battle-top">
    {turn&&<ActivePortrait fighter={turn} mine={turn.id===me.id} resolving={b.phase==='resolving'} ally={turn.team===me.team}/>}
    <FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="ally"/>
-   {instance?<ExpeditionFoes battle={b}/>:<FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>}
+   {worldBoss?<WorldBossBar battle={b}/>:instance?<ExpeditionFoes battle={b}/>:<FighterRoster players={b.players} myTeam={me.team} turnId={b.turnId} side="enemy"/>}
    <div className="battle-center-status">
    <WindGauge wind={b.wind} last={lastWind}/>
    <div className={`turn-clock ${mine?'your-turn':''} ${seconds<=10&&b.phase==='aiming'?'urgent':''} ${seconds<=5&&b.phase==='aiming'?'critical-time':''}`}>
-    <span>{b.phase==='finished'?'FINAL':monsterTurn?'MONSTROS':intro?'CHEGANDO':b.phase==='resolving'?'DISPARO':mine?'SUA VEZ':'AGUARDE'}</span>
+    <span>{b.phase==='finished'?'FINAL':b.turnId===DRAGON_TURN_ID?'DRAGÃO':monsterTurn?'MONSTROS':intro?'CHEGANDO':b.phase==='resolving'?'DISPARO':mine?'SUA VEZ':'AGUARDE'}</span>
     <b key={`${b.turnNumber}-${seconds}`} aria-label={b.phase==='aiming'?`${seconds} segundos`:undefined}><BattleText className="clock-face">{b.phase==='aiming'?String(seconds):b.phase==='finished'?'◆':'···'}</BattleText></b>
     <small>TURNO {b.turnNumber}</small>
    </div>
@@ -190,6 +193,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     :<Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>}
   </div>
   {instance&&<ExpeditionBanners battle={b} intro={intro}/>}
+  {worldBoss&&<WorldBossBanner battle={b}/>}
   {mine&&!intro&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
 
   {fallen&&<div className="fallen-banner" role="status"><strong>VOCÊ CAIU</strong><span>{me.left?'Você saiu da partida':'Assista até o fim para receber a recompensa'}</span></div>}
@@ -250,8 +254,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} blocked={powerOrbBlock} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
-  {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
+  {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{worldBoss?'O dano que você já causou continua no ranking.':b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
   <PowerCutIn battle={b} offset={offset}/>
-  {b.phase==='finished'&&<BattleRewards battle={b} me={me}/>}
+  {b.phase==='finished'&&!worldBoss&&<BattleRewards battle={b} me={me}/>}
  </div>;
 }

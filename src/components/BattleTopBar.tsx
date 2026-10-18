@@ -69,6 +69,7 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
    const nest=b.instance?.nest;if(nest){c.beginPath();c.arc(nest.x*sx,(nest.y-10)*sy,4.5,0,Math.PI*2);c.strokeStyle='#e3a25a';c.lineWidth=2;c.stroke();}
    for(const player of b.players){
     if(player.hidden||player.hp<=0)continue;
+    if(player.boss){c.beginPath();c.arc(player.x*sx,(player.y-(player.hitHeight??0))*sy,7,0,Math.PI*2);c.fillStyle='#ff5a2a';c.fill();c.lineWidth=2;c.strokeStyle='#ffd36b';c.stroke();continue;}
     if(player.monster){const queen=player.id===b.instance?.boss,x=player.x*sx,y=(player.y-(queen?40:10))*sy;c.beginPath();c.arc(x,y,queen?5.5:2.6,0,Math.PI*2);c.fillStyle=queen?'#ff5a2a':'#ff3b3b';c.fill();c.lineWidth=queen?2:1;c.strokeStyle=queen?'#ffd36b':'#0b1426';c.stroke();continue;}
     const x=player.x*sx,y=(player.y-14)*sy,ally=player.team===team,active=player.id===b.turnId;
     if(active){c.beginPath();c.arc(x,y,6+Math.sin(now/180)*1.2,0,Math.PI*2);c.strokeStyle='#fff3a0';c.lineWidth=1.5;c.stroke();}
