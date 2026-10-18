@@ -1,0 +1,17 @@
+Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
+
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background, and in every cell a flat lime-green (#00FF00) HEAD placeholder.
+IMAGE 2 is the outfit to paint: the standing character on the left shows the outfit design (ignore the bald head), the small figure on the right is our current belly-down combat body.
+IMAGES 3 and 4 are POSE references from DDTank (lying, crawling): copy only the poses and proportions, never their clothes or art.
+
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same shape and size, flat pure #00FF00, untouched: the game replaces it with the player's own head. Paint ONLY the neck-down body of IMAGE 2's outfit attached under each green head, the collar/neck touching the green chin, facing RIGHT. The green head sets the scale: chibi proportions like DDTank, the body lying on the ground is about 1.6 head-widths long behind the head.
+
+Six frames, left to right, top to bottom:
+1 REST: lying belly-down, feet to the LEFT, chest under the head, both forearms on the ground with both fists stacked right under the chin (the fists may overlap the bottom of the green head), legs stretched behind, knees slightly bent, feet raised a little.
+2 CRAWL A: same lying pose, near elbow pushed forward, far knee drawn up.
+3 CRAWL B: chest pushed slightly up and forward, both forearms dragging.
+4 CRAWL C: far elbow forward, near knee drawn up (mirror of A).
+5 CRAWL D: chest low, legs stretched, arms pulled back under the chest.
+6 HURT: flattened on the ground flinching, shoulders hunched, legs kicked up.
+
+Same outfit design, colors, saturated painted volume and warm dark-brown outlines as IMAGE 2. Belly-down frames keep the same ground line. No weapon, no props, no floor, no shadow, no text, nothing crossing a cell border or touching the image edge.

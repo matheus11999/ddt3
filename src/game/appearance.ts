@@ -314,10 +314,15 @@ function drawFaceState(c:CanvasRenderingContext2D,eq:Equipment,state:FaceState){
  const overlay=eq.skin?skinnedOverlay(painted,eq.skin):painted;
  const [x,y,w,h]=FACE_OVERLAY_RECT,[px,py]=headPoint([x,y]);c.drawImage(overlay,px,py,w*AVATAR_UNIT,h*AVATAR_UNIT);
 }
-export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean,face?:FaceState){
+/** `pass` splits the stack for the combat frames, where the outfit sits between the hair and the
+ * glasses/hat as in DDTank's GameCharacterLoader (face, hair, cloth, hat, glasses). */
+export function drawHeadLayers(c:CanvasRenderingContext2D,eq:Equipment,time:number,_emotion:string,isModular:boolean,face?:FaceState,pass:'all'|'hair'|'top'='all'){
  const hair=visual(eq,'hair'),hat=visual(eq,'hat');
- if(isModular&&face)drawFaceState(c,eq,face);
- if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>drawHair(c,eq,hair,getHeadwearProfile(eq)==='covered'));
+ if(pass!=='top'){
+  if(isModular&&face)drawFaceState(c,eq,face);
+  if(isModular&&hair.variant!=='none'&&!hat.hideHair)layer(c,hair,()=>drawHair(c,eq,hair,getHeadwearProfile(eq)==='covered'));
+ }
+ if(pass==='hair')return;
  drawGlasses(c,visual(eq,'glasses'),time,eq.colors?.glasses);
  if(!drawWornHat(c,eq))drawHat(c,eq);
 }

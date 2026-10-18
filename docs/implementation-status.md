@@ -1,5 +1,11 @@
 # Estado da entrega — 16/10/2026
 
+## Combate em quadros pintados (rig do DDTank) — 18/10/2026
+
+- A partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: compositor por quadros como o `GameCharacter` do DDTank. Contrato de 12 quadros em `src/game/rig/combatFrames.json`, sequências portadas (WALK, SHOWTHROWS, THROWS, HIDETHROWS) em `combatFrames.ts`, desenho em `src/game/combatBody.ts` (arma nas costas → cabeça e cabelo → roupa → óculos e chapéu).
+- Arte das 5 roupas e do arremesso da Raposa Arcana gerada pelo Codex no PC do usuário sobre os moldes `docs/templates/combat-*.png`; atlas montados por `scripts/build-combat-atlas.py`. Pintinho do Trovão: gerador barrou (moderação), segue com o arremesso deitado.
+- Verificação: `npm run check`, `npm test` (348), `npm run build`; prancha `node scripts/verify-combat-frames.mjs` com todas as roupas × ações; partida de treino real mostrou o jogador se levantando ao carregar e segurando até o disparo.
+
 ## Relatório do compositor de combate — 18/10/2026
 
 - Relatório ilustrado em `output/pdf/DDTank-rig-corpo-combate.pdf`, com seis páginas verificadas por renderização: atlas de 39 células de 114×95, camadas, caminhada, preparação e arremesso. Figuras e proveniência em `output/pdf/ddtank-rig-imagens/`.
