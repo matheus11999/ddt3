@@ -95,7 +95,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(opening&&openingNow<b.instance!.introUntil){const boss=b.players.find(f=>f.id===b.instance!.boss),firstOut=opening.summons[0]?.at??opening.startedAt;
      if(boss&&openingNow<firstOut-300){focusX=boss.x-120;focusY=boss.y-220;}
      else if(openingNow<opening.startedAt+MONSTER_MOVE_MS){const walkers=b.players.filter(f=>opening.moves.some(m=>m.id===f.id)).map(f=>monsterView(b,f,terrain,openingNow));if(walkers.length){focusX=walkers.reduce((n,v)=>n+v.x,0)/walkers.length-160;focusY=walkers[0].y-140;}}}
-    if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
+    if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}
+     // Once everything has landed the camera rests on the last impact until the server opens the next turn.
+     else{const landed=shot.projectiles.filter(p=>elapsed>=p.delay+flightTime(p)).sort((a,b)=>a.delay+flightTime(a)-b.delay-flightTime(b)).at(-1),last=landed?.points.at(-1);if(landed&&last&&!leftArena(landed.impact,terrainWidth(terrain!))){focusX=last[0];focusY=last[1]+70;}}}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
     const serverNow=Date.now()+state.offset;
