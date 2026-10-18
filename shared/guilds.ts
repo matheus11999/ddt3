@@ -37,13 +37,47 @@ export const GUILD_SHOP:readonly GuildOffer[]=[{id:'necklace-guild-1',price:800,
 export const GUILD_OFFER_BY_ID:Readonly<Record<string,GuildOffer>>=Object.fromEntries(GUILD_SHOP.map(offer=>[offer.id,offer]));
 export const GUILD_PAGE_SIZE=20;
 
+/** Missões diárias da guilda: each one, done and claimed, adds its reward to the member's contribution and the
+ * same amount of Riqueza to the guild. They renew at midnight in Brasília, like the daily ranking. */
+export const GUILD_MISSIONS=[
+ {id:'play',name:'Jogue 3 batalhas na Arena',goal:3,reward:5},
+ {id:'win',name:'Vença 2 batalhas na Arena',goal:2,reward:8},
+ {id:'gvg',name:'Vença 1 batalha GvG',goal:1,reward:10},
+ {id:'expedition',name:'Vença 1 estágio de expedição',goal:1,reward:6},
+ {id:'forge',name:'Use o Ferreiro 2 vezes',goal:2,reward:4},
+] as const;
+export type GuildMissionId=typeof GUILD_MISSIONS[number]['id'];
+export const GUILD_MISSION_IDS=GUILD_MISSIONS.map(m=>m.id) as [GuildMissionId,...GuildMissionId[]];
+/** One member's day: mission progress, missions already claimed and the contribution earned today. */
+export interface GuildDaily {day:string;progress:Partial<Record<GuildMissionId,number>>;claimed:GuildMissionId[];today:number;}
+const DAY_FORMAT=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
+/** The guild day (YYYY-MM-DD in Brasília). */
+export const guildDay=(at=Date.now())=>DAY_FORMAT.format(at);
+/** A stored day, or a fresh one when the date changed. */
+export function dailyFor(raw:unknown,day:string):GuildDaily{
+ const d=raw as Partial<GuildDaily>|null;
+ if(!d||d.day!==day)return {day,progress:{},claimed:[],today:0};
+ return {day,progress:{...d.progress},claimed:[...(d.claimed??[])],today:Number(d.today??0)};
+}
+export function addMissionProgress(daily:GuildDaily,mission:GuildMissionId,amount=1){
+ const goal=GUILD_MISSIONS.find(m=>m.id===mission)!.goal;
+ daily.progress[mission]=Math.min(goal,(daily.progress[mission]??0)+Math.max(0,amount));return daily;
+}
+/** Claims a finished mission; returns its reward. */
+export function claimMission(daily:GuildDaily,mission:GuildMissionId){
+ const m=GUILD_MISSIONS.find(entry=>entry.id===mission)!;
+ if(daily.claimed.includes(mission))throw Error('Você já recebeu esta missão hoje.');
+ if((daily.progress[mission]??0)<m.goal)throw Error('Termine a missão antes de receber.');
+ daily.claimed.push(mission);daily.today+=m.reward;return m.reward;
+}
+
 export type GuildRole='owner'|'member';
 export interface GuildSummary {id:number;name:string;level:number;members:number;capacity:number;ownerName:string;}
-export interface GuildMember {id:string;name:string;level:number;role:GuildRole;contribution:number;joinedAt:string;online?:boolean;}
+export interface GuildMember {id:string;name:string;level:number;role:GuildRole;contribution:number;/** Contribution earned today (missions and GvG). */today:number;joinedAt:string;online?:boolean;}
 export interface GuildApplication {playerId:string;name:string;level:number;at:string;}
 /** One stored copy or stack in the Depósito; `by` is who put it there. */
 export interface GuildStored {id:number;goods:AuctionGoods;by:string;at:string;}
-export interface GuildView {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Record<GuildBuilding,number>;members:GuildMember[];storage:GuildStored[];/** Only the owner sees who asked to join. */applications?:GuildApplication[];createdAt:string;}
+export interface GuildView {id:number;name:string;level:number;riqueza:number;ownerId:string;buildings:Record<GuildBuilding,number>;members:GuildMember[];storage:GuildStored[];/** Only the owner sees who asked to join. */applications?:GuildApplication[];createdAt:string;ownerName:string;/** The viewer's own daily missions. */daily:GuildDaily;}
 /** My guild (null without one) and the guilds I asked to join. */
 export interface GuildState {guild:GuildView|null;applied:number[];}
 
@@ -71,5 +105,6 @@ export const guildCommandSchemas=[
  z.object({type:z.literal('guild-buy'),item:z.string().refine(id=>Object.hasOwn(GUILD_OFFER_BY_ID,id),'Item não está na loja da guilda.')}).strict(),
  z.object({type:z.literal('guild-deposit'),source:auctionSourceSchema}).strict(),
  z.object({type:z.literal('guild-withdraw'),id:z.number().int().positive()}).strict(),
+ z.object({type:z.literal('guild-mission'),mission:z.enum(GUILD_MISSION_IDS)}).strict(),
  z.object({type:z.literal('room-gvg'),active:z.boolean()}).strict(),
 ] as const;

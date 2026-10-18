@@ -12,6 +12,15 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
   - **Loja da Guilda**: itens só para membros, pagos em ouro. Nível 1: **Colar da Guilda Nv. 1** (800 de ouro, +5% de Vida; `hpPercent` no catálogo, somado em `attributes`).
   - **Depósito da Guilda**: 10 espaços por nível (fechado no nível 0). Qualquer membro guarda itens não equipados e pedras; qualquer membro retira.
 - **Sair**: o membro sai quando quiser; o dono que sai passa a guilda para o membro com mais contribuição; o último a sair encerra a guilda e recebe o que estava no depósito.
+- **Missões diárias** (`GUILD_MISSIONS`): jogar 3 batalhas na Arena (+5), vencer 2 (+8), vencer 1 GvG (+10), vencer 1 estágio de expedição (+6), usar o Ferreiro 2 vezes (+4). Ao receber, o valor vira contribuição do membro e a mesma Riqueza para a guilda. Renovam à meia-noite de Brasília (`guild_members.daily`, campo `today` = contribuição do dia).
+
+## Janela
+
+- Tela inicial: brasão com o **nível em destaque**, nome, dono, membros e Riqueza; as três construções (Loja e Depósito abrem janelas próprias, Ferreiro abre o Ferreiro normal); **Gerenciar** (só o dono, janela própria) e Sair.
+- Membros com contribuição de hoje e total, posição pela contribuição, busca, "Só online" e ordenação por contribuição total, de hoje, nível ou nome (também clicando no cabeçalho).
+- Missões diárias com barra de progresso e botão Receber.
+- A Loja da Guilda usa o visual da Loja da Brasa (provador, vitrine com cards, confirmação de compra).
+- O nome da guilda aparece no card da sala logo abaixo do nome, dentro da área creme.
 
 ## GvG
 
@@ -29,5 +38,5 @@ Pedido do matheus em 18/10/2026. Botão **Guilda** na praça (e no menu da sala)
 ## Testes
 
 - `npm test` (`tests/guilds.test.ts`): custos, nível das construções, colar +5% de Vida, bônus do ferreiro, nome no card, pareamento GvG e Riqueza.
-- `npm run test:guilds:integration` (Postgres): fundar, pedir/aceitar, evoluir em ordem, loja, depósito, Riqueza uma vez por batalha, sair/encerrar.
+- `npm run test:guilds:integration` (Postgres): fundar, pedir/aceitar, evoluir em ordem, loja, depósito, Riqueza uma vez por batalha, missões diárias, sair/encerrar.
 - `node scripts/smoke-guilds.mjs` (jogo rodando + `DATABASE_URL`): fluxo completo no navegador, capturas em `test-results/guilds/`.

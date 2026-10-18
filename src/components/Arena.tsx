@@ -23,9 +23,12 @@ export {Arena} from './ArenaHall';
 export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|undefined;slot:number;open:boolean;hostId:string;mine:boolean;canManage:boolean}){
  const owner=seat?.id===hostId,ready=!!seat&&(seat.ready||owner);
  return <article className={`arena-player-card party-player-card pr-card ${seat?'occupied':open?'vacant open-slot':'vacant closed-slot'} ${mine?'is-me':''}`} data-slot={slot} data-slot-state={seat?'occupied':open?'open':'closed'} {...playerMenuProps(seat?{id:seat.id,name:seat.name,context:'room'}:null)} aria-label={`Sua equipe, posição ${slot+1}, ${seat?.name??(open?'vaga aberta':'vaga fechada')}`}>
-  {seat?<><header className={`pr-card-name wood-ribbon ${seat.guild?'has-guild':''}`}><span className="pr-card-names"><strong title={seat.name}>{seat.name}</strong>{seat.guild&&<small className="pr-card-guild" title={`Guilda ${seat.guild}`}>{seat.guild}</small>}</span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
+  {seat?<><header className="pr-card-name wood-ribbon"><span className="pr-card-names"><strong title={seat.name}>{seat.name}</strong></span>{!seat.connected&&<WifiOff size={13} aria-label="Reconectando"/>}{canManage&&!owner&&<button className="party-kick pr-card-kick" aria-label={`Expulsar ${seat.name}`} title="Expulsar da sala" onClick={()=>client.send({type:'kick',playerId:seat.id})}><X size={13}/></button>}</header>
    <div className="pr-card-stage">
-    {owner&&<span className="pr-host-tag" aria-label="Líder da sala"><Crown size={12} aria-hidden="true"/>Líder da sala</span>}
+    <div className="pr-card-tags">
+     {seat.guild&&<span className="pr-card-guild" title={`Guilda ${seat.guild}`}><Shield size={12} aria-hidden="true"/>{seat.guild}</span>}
+     {owner&&<span className="pr-host-tag" aria-label="Líder da sala"><Crown size={12} aria-hidden="true"/>Líder da sala</span>}
+    </div>
     <div className="pr-card-insignia"><LevelNumber level={seat.level} size={44}/><VipBadge level={seat.vipLevel??0} size={54}/></div>
     {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>

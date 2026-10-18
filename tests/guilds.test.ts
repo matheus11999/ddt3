@@ -7,7 +7,7 @@ import type {GuildHall,Membership} from '../server/guilds';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
-import {GUILD_CREATE_COST,GUILD_LEVEL_COSTS,BUILDING_LEVEL_COSTS,GVG_CONTRIBUTION,guildChance,smithBonus,validGuildName} from '../shared/guilds';
+import {addMissionProgress,claimMission,dailyFor,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,BUILDING_LEVEL_COSTS,GVG_CONTRIBUTION,guildChance,guildDay,smithBonus,validGuildName} from '../shared/guilds';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
@@ -45,7 +45,7 @@ test('the Ferreiro da Guilda adds its points to an existing chance, up to 100%',
 });
 
 function fixture(count:number){
- const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),forged:number[]=[],won:{matchId:string;guildId:number;winners:string[];amount:number}[]=[];
+ const missions:{ids:string[];mission:string}[]=[],profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),forged:number[]=[],won:{matchId:string;guildId:number;winners:string[];amount:number}[]=[];
  const store:ProfileStore={
   saveAbilityLoadout:async()=>{throw Error('unused');},buy:async()=>{throw Error('unused');},getProfile:async id=>profiles.get(id)??null,
   saveEquipment:async()=>{throw Error('unused');},rename:async()=>{},finishMatch:async()=>{},
@@ -55,7 +55,8 @@ function fixture(count:number){
  const unused=async()=>{throw Error('unused');};
  const guilds:GuildHall={membership:async id=>members.get(id)??null,state:async()=>({guild:null,applied:[]}),list:async()=>[],memberIds:async guildId=>[...members].filter(([,m])=>m.guildId===guildId).map(([id])=>id),
   create:unused,apply:unused,cancelApply:unused,answer:unused,kick:unused,leave:unused,upgrade:unused,buy:unused,deposit:unused,withdraw:unused,
-  gvgWin:async(matchId,guildId,winners,amount)=>{won.push({matchId,guildId,winners,amount});return true;}};
+  gvgWin:async(matchId,guildId,winners,amount)=>{won.push({matchId,guildId,winners,amount});return true;},
+  missionProgress:async(ids,mission)=>{missions.push({ids:[...ids],mission});return ids;},claimMission:unused};
  const game=new Game(store);game.guilds=guilds;
  const players=Array.from({length:count},(_,i)=>normalizeProfile({id:randomUUID(),name:`Jogador ${i}`}));
  const join=(p:Profile,guildId:number,name:string)=>members.set(p.id,{guildId,name,role:'member',smith:guildId});
@@ -70,7 +71,7 @@ function fixture(count:number){
   for(const p of team.slice(1))await game.command(p.id,{type:'ready'});
   return r;
  };
- return {game,players,events,forged,won,join,connect,party,roomFor,error};
+ return {game,players,events,forged,won,missions,join,connect,party,roomFor,error};
 }
 
 test('room cards carry the guild name and GvG only meets parties of another guild',async()=>{
@@ -97,11 +98,23 @@ test('room cards carry the guild name and GvG only meets parties of another guil
  f.game.tick(m.state.rewards!.deadline+1);await flush();await flush();
  assert.equal(f.won.length,1);assert.equal(f.won[0].guildId,1);assert.equal(f.won[0].amount,GVG_CONTRIBUTION);assert.deepEqual([...f.won[0].winners].sort(),winners);
  assert.ok(f.events.get(winners[0])!.some(e=>e.type==='guild-result'&&/Vitória GvG/.test(e.message)));
+ // Daily missions: everyone in the battle played, the winners won, and won a GvG.
+ const counted=(mission:string)=>f.missions.filter(x=>x.mission===mission).flatMap(x=>x.ids).sort();
+ assert.deepEqual(counted('play'),[...m.state.players.map(x=>x.id)].sort());assert.deepEqual(counted('win'),winners);assert.deepEqual(counted('gvg'),winners);
 });
+
+test('daily guild missions count up to the goal, pay once and renew each day in Brasília',()=>{
+ const day=guildDay(Date.UTC(2026,9,18,2,30));assert.equal(day,'2026-10-17');
+ const d=dailyFor(null,day);addMissionProgress(d,'play',2);assert.throws(()=>claimMission(d,'play'),/Termine/);
+ addMissionProgress(d,'play',5);assert.equal(d.progress.play,3);assert.equal(claimMission(d,'play'),5);assert.equal(d.today,5);
+ assert.throws(()=>claimMission(d,'play'),/já recebeu/);
+ assert.deepEqual(dailyFor(d,day),d);assert.deepEqual(dailyFor(d,'2026-10-18'),{day:'2026-10-18',progress:{},claimed:[],today:0});
+}); 
 
 test('guild members reach the forge from the guild window and get the Ferreiro bonus',async()=>{
  const f=fixture(2),[member,loner]=f.players;f.join(member,7,'Ferreiros');await f.connect();
  await f.game.command(member.id,{type:'forge',item:'brick',stones:{'1':1}});assert.deepEqual(f.forged,[smithBonus(7)]);
+ assert.deepEqual(f.missions,[{ids:[member.id],mission:'forge'}]);
  await f.game.command(loner.id,{type:'forge',item:'brick',stones:{'1':1}});assert.match(f.error(loner)!,/Aproxime-se/);
 });
 
@@ -110,4 +123,5 @@ test('guild commands are validated by the protocol',()=>{
  assert.equal(commandSchema.safeParse({type:'guild-upgrade',target:'castle'}).success,false);
  assert.equal(commandSchema.safeParse({type:'guild-buy',item:'necklace-star'}).success,false);
  assert.equal(commandSchema.safeParse({type:'room-gvg',active:true}).success,true);
+ assert.equal(commandSchema.safeParse({type:'guild-mission',mission:'forge'}).success,true);assert.equal(commandSchema.safeParse({type:'guild-mission',mission:'sleep'}).success,false);
 });

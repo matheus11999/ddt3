@@ -22,7 +22,7 @@ async function player(label,gender,gold){
  return {page,profile};
 }
 const setGoldDef=async(id,gold)=>{await db.query(`UPDATE players SET profile=jsonb_set(profile,'{gold}',to_jsonb($2::int)) WHERE id=$1`,[id,gold]);};
-const openGuild=async page=>{await page.locator('.lobby-dock-button.guild').click();const w=page.locator('.guild-window');await w.waitFor();return w;};
+const openGuild=async page=>{await page.locator('.lobby-dock-button.guild').click();const w=page.locator('.guild-window:not(.guild-sub-window)');await w.waitFor();return w;};
 try{
  const owner=await player('dono','female',5000),member=await player('membro','male',3000);
  const name=`Brasa ${owner.profile.id.slice(0,4)}`;
@@ -31,40 +31,49 @@ try{
  let w=await openGuild(owner.page);await w.locator('.guild-create').waitFor();await owner.page.waitForTimeout(400);
  await owner.page.screenshot({path:`${output}/1-sem-guilda.png`});
  await w.getByLabel('Nome da guilda').fill(name);await w.getByRole('button',{name:'Fundar guilda'}).click();
- await w.locator('.guild-head h2',{hasText:name}).waitFor();await owner.page.waitForTimeout(600);
+ await w.locator('.guild-crest-name',{hasText:name}).waitFor();await owner.page.waitForTimeout(600);
  await owner.page.screenshot({path:`${output}/2-guilda-nivel-0.png`});
 
  // Another player asks to join; the owner accepts in Gerenciar.
  const mw=await openGuild(member.page);await mw.locator('.guild-list li',{hasText:name}).getByRole('button',{name:'Pedir para entrar'}).click();
  await mw.getByRole('button',{name:'Pedido enviado'}).waitFor();
- await w.getByRole('button',{name:/^Gerenciar/}).click();await w.locator('.guild-applications li',{hasText:member.profile.name}).waitFor();
+ const manage=owner.page.locator('.guild-sub-window');
+ await w.getByRole('button',{name:/^Gerenciar/}).click();await manage.locator('.guild-applications li',{hasText:member.profile.name}).waitFor();
  await owner.page.screenshot({path:`${output}/3-gerenciar-pedido.png`});
- await w.locator('.guild-applications li').getByRole('button',{name:'Aceitar'}).click();
- await mw.locator('.guild-head h2',{hasText:name}).waitFor();
+ await manage.locator('.guild-applications li').getByRole('button',{name:'Aceitar'}).click();
+ await mw.locator('.guild-crest-name',{hasText:name}).waitFor();
 
  // Riqueza from GvG wins raises the guild first, then the buildings (never past the guild level).
  const guildId=(await db.query('SELECT id FROM guilds WHERE name=$1',[name])).rows[0].id;
  await db.query('UPDATE guilds SET riqueza=1000 WHERE id=$1',[guildId]);
- await owner.page.locator('.guild-window .close-button').click();w=await openGuild(owner.page);await w.getByRole('button',{name:/^Gerenciar/}).click();
- const TARGETS={Guilda:'guild',Loja:'shop',Ferreiro:'smith','Depósito':'storage'},row=label=>w.locator(`.guild-upgrades li[data-target="${TARGETS[label]}"]`);
+ await manage.locator('.close-button').click();await owner.page.locator('.guild-window:not(.guild-sub-window) > .window-header .close-button').click();w=await openGuild(owner.page);await w.getByRole('button',{name:/^Gerenciar/}).click();
+ const TARGETS={Guilda:'guild',Loja:'shop',Ferreiro:'smith','Depósito':'storage'},row=label=>manage.locator(`.guild-upgrades li[data-target="${TARGETS[label]}"]`);
  assert.ok(await row('Loja').getByRole('button',{name:'Evoluir'}).isDisabled(),'Loja waits for the guild level');
- await row('Guilda').getByRole('button',{name:'Evoluir'}).click();await w.locator('.guild-head small',{hasText:'Nível 1'}).waitFor();
+ await row('Guilda').getByRole('button',{name:'Evoluir'}).click();await row('Guilda').locator('em',{hasText:'Nv. 1'}).waitFor();
  for(const label of ['Loja','Ferreiro','Depósito']){await row(label).getByRole('button',{name:'Evoluir'}).click();await row(label).locator('em',{hasText:'Nv. 1'}).waitFor();}
  await owner.page.waitForTimeout(500);await owner.page.screenshot({path:`${output}/4-gerenciar-evoluido.png`});
- await w.getByRole('button',{name:'Guilda',exact:true}).click();await owner.page.waitForTimeout(400);await owner.page.screenshot({path:`${output}/5-construcoes.png`});
+ await manage.locator('.close-button').click();await w.locator('.guild-crest-level',{hasText:'1'}).waitFor();
+ // Daily missions and contributions: the member finished two missions; the list ranks by contribution.
+ await db.query(`UPDATE guild_members SET daily=jsonb_build_object('day',to_char(now() AT TIME ZONE 'America/Sao_Paulo','YYYY-MM-DD'),'progress',jsonb_build_object('play',3,'forge',2,'win',1),'claimed','[]'::jsonb,'today',0),contribution=contribution+40 WHERE player_id=$1`,[member.profile.id]);
+ await member.page.locator('.guild-window:not(.guild-sub-window) > .window-header .close-button').click();const m2=await openGuild(member.page);
+ await m2.locator('[data-mission="play"]').getByRole('button',{name:'Receber'}).click();await m2.locator('[data-mission="play"] .guild-mission-done').waitFor();
+ assert.equal(await m2.locator('.guild-table tbody tr').first().locator('b').textContent(),member.profile.name,'most contribution first');
+ await member.page.waitForTimeout(500);await member.page.screenshot({path:`${output}/5-guilda.png`});
 
  // The member buys the necklace in the Loja da Guilda and puts it in the Depósito.
- await member.page.locator('.guild-window .close-button').click();const m2=await openGuild(member.page);
- await m2.getByRole('button',{name:'Loja',exact:true}).click();await m2.locator('.guild-offers li',{hasText:'Colar da Guilda'}).getByRole('button').click();
- await m2.getByRole('alertdialog').getByRole('button',{name:'Comprar'}).click();await m2.locator('.guild-toast',{hasText:'Compra concluída'}).waitFor();
+ await m2.locator('.guild-building',{hasText:'Loja'}).click();const shop=member.page.locator('.guild-shop-window');await shop.waitFor();await member.page.waitForTimeout(500);
  await member.page.screenshot({path:`${output}/6-loja.png`});
- await m2.getByRole('button',{name:'Depósito',exact:true}).click();await m2.getByRole('button',{name:'Guardar item'}).click();
- await m2.locator('.guild-picker [title="Colar da Guilda Nv. 1"]').click();await m2.locator('.guild-storage-grid button').first().waitFor();
+ await shop.locator('[data-shop-item="necklace-guild-1"] .shop-buy').click();
+ await shop.getByRole('alertdialog').getByRole('button',{name:'Comprar'}).click();await shop.locator('.guild-toast',{hasText:'Compra concluída'}).waitFor();
+ await shop.locator('.close-button').first().click();
+ await m2.locator('.guild-building',{hasText:'Depósito'}).click();const store=member.page.locator('.guild-sub-window');await store.getByRole('button',{name:'Guardar item'}).click();
+ await store.locator('.guild-picker [title="Colar da Guilda Nv. 1"]').click();await store.locator('.guild-storage-grid button').first().waitFor();
  await member.page.waitForTimeout(400);await member.page.screenshot({path:`${output}/7-deposito.png`});
- await m2.locator('.guild-storage-grid button').first().click();await m2.locator('.guild-toast',{hasText:'retirado'}).waitFor();
+ await store.locator('.guild-storage-grid button').first().click();await store.locator('.guild-toast',{hasText:'retirado'}).waitFor();
+ await store.locator('.close-button').click();
 
  // The Ferreiro button opens the normal forge, with the guild bonus on the chance.
- await m2.getByRole('button',{name:'Guilda',exact:true}).click();await m2.locator('.guild-building',{hasText:'Ferreiro'}).click();
+ await m2.locator('.guild-building',{hasText:'Ferreiro'}).click();
  const forge=member.page.locator('.smith-window');await forge.waitFor();
  await forge.locator('.item-card',{has:member.page.locator('[alt="Quebra-Tijolos"],[aria-label="Quebra-Tijolos"]')}).first().click();
  await forge.locator('[aria-label^="Pedra de Fortificação I,"]').click();await forge.locator('[aria-label^="Pedra de Fortificação I,"]').click();
@@ -73,7 +82,7 @@ try{
  await member.page.keyboard.press('Escape');
 
  // PvP room: guild under the name and the GvG switch beside Início.
- await owner.page.locator('.guild-window .close-button').click();await createArenaRoom(owner.page);
+ await owner.page.locator('.guild-window:not(.guild-sub-window) > .window-header .close-button').click();await createArenaRoom(owner.page);
  await owner.page.getByRole('button',{name:'Abrir vaga 2',exact:true}).click();
  await member.page.locator('.bottom-dock').getByRole('button',{name:/^Arena(?:\s|$)/}).click();
  const search=member.page.getByRole('button',{name:'Pesquisar salas',exact:true});if(await search.isVisible())await search.click();
