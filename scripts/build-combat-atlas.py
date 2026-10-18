@@ -1,14 +1,14 @@
 """Packs an outfit's two Codex combat sheets (docs/combat-frames.md) into the game's combat atlas.
 
-Each sheet is 3x2 cells of 512 px on magenta with the head as a flat green silhouette and the two fists
-as cyan discs (the game draws the universal fists there). Per frame this script keys the magenta and the
+Each sheet is 3x2 cells of 512 px on magenta with the head as a flat green silhouette; the hands are painted
+in the sheet over the template's skin discs, like DDTank (older sheets left cyan discs for code-drawn fists). Per frame this script keys the magenta and the
 cyan out, finds the green head (top and width; fists may cover the chin), scales the
 sheet so the head matches the universal head, removes the green, and places the body in its atlas cell
 with the head at the contract's x and the lowest painted row on the ground line. The measured head
 height of every frame goes to src/game/combatAtlas.json, so the game puts the player's head exactly
 where the painting expects it. No per-outfit numbers.
 
-Usage: python3 scripts/build-combat-atlas.py <outfit-id> [ground.png throw.png]
+Usage: python3 scripts/build-combat-atlas.py <outfit-id> [ground.png throw.png]   ('-' keeps that sheet's frames from the current atlas)
        python3 scripts/build-combat-atlas.py --fist fist.png   (the universal fist, docs/combat-art-prompts/fist.txt)
 Default input: test-results/codex-combat/out/<id without outfit->-{ground,throw}.png
 Output: public/assets/outfits/combat/<id>.png, src/game/combatAtlas.json, test-results/combat/<id>/"""
@@ -66,7 +66,22 @@ issues, frames_meta, warnings = [], [None] * len(NAMES), []
 atlas = Image.new('RGBA', (A['columns'] * A['cell'][0], A['rows'] * A['cell'][1]), (0, 0, 0, 0))
 silhouette = None
 size_limits = []
+previous = json.load(open('src/game/combatAtlas.json')).get(outfit) if os.path.exists('src/game/combatAtlas.json') else None
 for sheet, path in zip(contract['sheets'], inputs):
+    if path == '-':
+        # Keep this sheet as it is in the current atlas (repainting one sheet at a time).
+        old = Image.open(f'public/assets/outfits/combat/{outfit}.png').convert('RGBA')
+        (ow, oh), (oox, ooy) = previous.get('cell', [260, 180]), previous.get('origin', [160, 160])
+        for name in sheet['frames']:
+            index = NAMES.index(name)
+            box = ((index % A['columns']) * A['cell'][0], (index // A['columns']) * A['cell'][1])
+            src = ((index % A['columns']) * ow, (index // A['columns']) * oh)
+            piece = old.crop((*src, src[0] + ow, src[1] + oh))
+            layer = Image.new('RGBA', tuple(A['cell']), (0, 0, 0, 0))
+            layer.paste(piece, (A['origin'][0] - oox, A['origin'][1] - ooy))
+            atlas.alpha_composite(layer, box)
+            frames_meta[index] = previous['frames'][index]
+        continue
     src = Image.open(path).convert('RGB')
     if src.size != (T['cell'] * T['columns'], T['cell'] * T['rows']):
         src = src.resize((T['cell'] * T['columns'], T['cell'] * T['rows']), Image.LANCZOS)
@@ -78,6 +93,8 @@ for sheet, path in zip(contract['sheets'], inputs):
     r_, g_, b_ = (rgb[..., k].astype(float) for k in range(3))
     cyan = (np.minimum(g_, b_) - r_ > 60) & (g_ > 120) & (b_ > 120)
     rgba[grow(cyan, 7), 3] = 0
+    # Fists painted in the skin tone over the template's discs: the game draws no hands on these frames.
+    hands = cyan.sum() < 200
     # Anti-aliased rim between the green head and the body or the background.
     rim = (green > 35) & ~head_mask
     measured = []
@@ -118,6 +135,15 @@ for sheet, path in zip(contract['sheets'], inputs):
         sw, sh = median, median * aspect
         mask = Image.new('L', (T['cell'], T['cell']), 0)
         ImageDraw.Draw(mask).ellipse([hx - cx - sw / 2, hy - cy - sh / 2, hx - cx + sw / 2, hy - cy + sh * .2], fill=255)
+        # ...except the painted arms and fists, which may cross the head's lower half (the wind-up).
+        keep = ImageDraw.Draw(mask)
+        ox_, oy_ = sheet['origin']
+        for k_, (fx, fy, _) in enumerate(contract['frames'][name]['fists']):
+            elbow = contract['mannequin'][name]['sleeves'][k_][1]
+            P = lambda q: (ox_ + q[0] * T['pixelsPerUnit'], oy_ + q[1] * T['pixelsPerUnit'])
+            keep.line([P(elbow), P((fx, fy))], fill=0, width=round(10 * T['pixelsPerUnit']))
+            r = contract['fist']['size'] * .7 * T['pixelsPerUnit']
+            x, y = P((fx, fy)); keep.ellipse([x - r, y - r, x + r, y + r], fill=0)
         figure[np.asarray(mask) > 0, 3] = 0
         # Optional per-sheet shrink of an older, bigger painting: the body scales about the chin, so the
         # neck stays under the head and the head comes down with the smaller body.
@@ -154,7 +180,7 @@ for sheet, path in zip(contract['sheets'], inputs):
             warnings.append(f'{name}: {lost} px fora da célula do atlas')
         atlas.alpha_composite(own, box)
         head_y = (hy - cy - ground) * scale / A['pixelsPerUnit']
-        frames_meta[index] = {'head': [spec['head'][0], round(head_y, 2)]}
+        frames_meta[index] = {'head': [spec['head'][0], round(head_y, 2)], **({'hands': True} if hands else {})}
 
 def mannequin_size(body):
     """Width and height of the template's gray body in avatar units (same widths as make-combat-templates.py)."""
@@ -173,7 +199,7 @@ if complete:
     atlas.save(atlas_path, optimize=True)
     meta_path = 'src/game/combatAtlas.json'
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
-    meta[outfit] = {'path': '/' + atlas_path.removeprefix('public/'), 'frames': frames_meta}
+    meta[outfit] = {**meta.get(outfit, {}), 'path': '/' + atlas_path.removeprefix('public/'), 'cell': A['cell'], 'origin': A['origin'], 'frames': frames_meta}
     json.dump(dict(sorted(meta.items())), open(meta_path, 'w'), indent=1)
 atlas.save(f'{report_dir}/atlas.png')
 json.dump({'outfit': outfit, 'complete': complete, 'issues': issues, 'warnings': warnings, 'frames': dict(zip(NAMES, frames_meta))}, open(f'{report_dir}/report.json', 'w'), indent=1)

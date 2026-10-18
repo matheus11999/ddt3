@@ -15,7 +15,7 @@ import atlases from './combatAtlas.json';
  * action, the universal head where that painting expects it, the universal skin-colored fists and the
  * weapon strapped on the back. */
 type Point=readonly [number,number];
-interface AtlasEntry {path:string;frames:{head:[number,number]}[];/** The painted sleeve's cloth color, continued by the code-drawn forearm. */sleeve?:string;}
+interface AtlasEntry {path:string;frames:{head:[number,number];/** Arms and fists are painted in this frame (DDTank): the game draws no hands. */hands?:boolean}[];/** The painted sleeve's cloth color, continued by the code-drawn forearm. */sleeve?:string;}
 const ATLASES=atlases as unknown as Record<string,AtlasEntry>;
 const tinted=new Map<string,HTMLCanvasElement>();
 
@@ -64,18 +64,19 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const cloth=eq.colors?.outfit??entry.sleeve??CATALOG[eq.outfit]?.color??'#2b3f9e';
  const arm=(k:0|1,to:Fist)=>{const [shoulder,elbow]=COMBAT_MANNEQUIN[name].sleeves[k],at=(p:Point):Point=>[p[0]+dx,p[1]+dy+breath*.4];
   drawArm(c,at(shoulder),at(elbow),to,cloth,eq.skin);};
- if(!prone){arm(0,fist(0));drawFist(c,eq.skin,fist(0),.9);}
+ const drawnHands=!entry.frames[index]?.hands;
+ if(drawnHands&&!prone){arm(0,fist(0));drawFist(c,eq.skin,fist(0),.9);}
  const atHead=(draw:()=>void)=>{c.save();c.translate(measured[0],measured[1]+breath);c.rotate(state.lively+hit*.05);c.scale(HEAD_SCALE,HEAD_SCALE);
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
  atHead(()=>{drawHeadRearLayers(c,eq,state.time,state.pose,state.modular);drawPart(c,head);drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'hair');});
- if(prone)arm(0,fist(0));
- arm(1,fist(1));
+ if(drawnHands&&prone)arm(0,fist(0));
+ if(drawnHands)arm(1,fist(1));
  c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
  // The near fist goes over everything, under the chin while lying, like in DDTank.
- if(prone)drawFist(c,eq.skin,fist(0),1);
- const front=fist(1);drawFist(c,eq.skin,front,1,prone?.8:1);
+ if(drawnHands&&prone)drawFist(c,eq.skin,fist(0),1);
+ const front=fist(1);if(drawnHands)drawFist(c,eq.skin,front,1,prone?.8:1);
  if(state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
