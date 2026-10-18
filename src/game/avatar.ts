@@ -29,7 +29,7 @@ export function getUpgradeAura(level:number):HTMLCanvasElement|null{
 }
 export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
  const art=getUpgradeAura(level);if(!art)return;const reduced=motionPreference?.matches??false,t=reduced?0:time;
- const tier=level>=12?2:level>=9?1:0,size=[168,182,198][tier],period=[18000,15000,12000][tier],rotation=t/period*Math.PI*2;
+ const tier=level>=12?2:level>=9?1:0,size=[146,158,172][tier],period=[27000,22500,18000][tier],rotation=t/period*Math.PI*2;
  const color=['#71ed9b','#c399ff','#ffde7a'][tier],deep=['#16a24f','#7a2fd6','#f09a12'][tier],pulse=1+Math.sin(t/1800)*.022,r=size/2;
  c.save();c.translate(0,-88);
  // Soft bloom behind the sigil gives the ring depth on light and dark panels alike.
