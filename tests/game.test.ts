@@ -255,21 +255,21 @@ test('on your own turn the first press to the other side only turns, without spe
  f.game.peers.get(me.id)!.lastWalk=0;await f.game.command(me.id,{type:'walk',direction});assert.notEqual(me.x,x);assert.equal(me.stamina,stamina-3);
 });
 
-test('a kill on the first projectile of a +2 keeps the match running until every projectile lands, showing real damage',async()=>{
+test('a kill on the first projectile of a +2 lets the rest fly through the body, and the match waits for all of them',async()=>{
  for(let power=20;power<=100;power+=2){
   const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
   shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;target.hp=1;
   await f.game.command(shooter.id,{type:'boost',boost:'extra2'});await f.game.command(shooter.id,{type:'fire',angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
-  if(shot.projectiles.filter(p=>p.impact.dig).length<2)continue;
+  if(!shot.projectiles[0].impact.dig||shot.projectiles.length<3)continue;
+  assert.ok(shot.projectiles.slice(1).every(p=>!p.impact.dig),'the projectiles after the kill do not stop on the body');
   const pending=[...f.match.pendingImpacts!];
   for(const impact of pending){f.game.tick(impact.at);assert.equal(f.match.state.phase,'resolving','the match waits for the remaining projectiles');}
   assert.equal(target.hp,0);
   const hits=f.events.get(shooter.id)!.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact').flatMap(e=>e.hits).filter(hit=>hit.id===target.id&&hit.kind!=='fall');
-  assert.ok(hits.length>=2,'projectiles after the kill still hit the body');
-  assert.ok(hits.every(hit=>hit.damage>1),'each hit shows the full damage, not the hp that was left');
+  assert.equal(hits.length,1,'only the killing projectile hits the target');
   f.game.tick(f.match.resolveAt);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.winner,shooter.team);
   return;
  }
- assert.fail('some power lands two direct hits');
+ assert.fail('some power lands the first projectile on the target');
 });
