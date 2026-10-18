@@ -8,10 +8,10 @@ import {attributes} from '../../shared/catalog';import {client,useGame} from '..
 import {playerMenuProps} from './PlayerActions';
 import './WoodTheme.css';
 import './Hud.css';
-type LobbyMenu='quests'|'mail'|'guild';
-const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',mail:'Correio',guild:'Guilda'};
+type LobbyMenu='quests'|'guild';
+const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',guild:'Guilda'};
 export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onExpeditions:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
- const {profile,channel,room}=useGame();const p=profile!;const stats=attributes(p.equipment),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);
+ const {profile,channel,room,mailUnread}=useGame();const p=profile!;const stats=attributes(p.equipment),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);
  const pendingQuests=Number(!p.equippedOnce)+Number(!p.matches);const [menu,setMenu]=useState<LobbyMenu|null>(null);const dock=useRef<HTMLElement>(null);
  useEffect(()=>{
   if(!menu)return;
@@ -29,7 +29,7 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   {id:'shop',label:'Loja',art:'shop-button.png',action:onShop},
   {id:'forge',label:'Ferreiro',art:'forge-button.png',action:onForge,disabled:!!room},
   {id:'quests',label:'Missões',art:'arena-quests.png',count:pendingQuests,action:()=>toggle('quests'),pressed:menu==='quests'},
-  {id:'mail',label:'Correio',art:'arena-mail.png',action:()=>toggle('mail'),pressed:menu==='mail'},
+  {id:'mail',label:'Correio',art:'arena-mail.png',count:mailUnread,action:()=>{setMenu(null);client.openMail();audio.play('click');}},
   {id:'guild',label:'Guilda',art:'arena-guild.png',action:()=>toggle('guild'),pressed:menu==='guild'},
   {id:'settings',label:'Ajustes',art:'settings-button.png',action:onSettings},
  ];

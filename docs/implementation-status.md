@@ -1,6 +1,12 @@
 # Estado da entrega — 16/10/2026
 
 
+## Jogadores no painel e Correio — 18/10/2026
+
+- `/admin/jogadores`: tabela paginada de todos os jogadores com status ao vivo (praça, sala, batalha), nível, moedas, vitórias, partidas, itens, tickets e pedras; busca, aba Online, ordenação e ficha com mochila e cartas enviadas. Botões de moedas, itens (catálogo por categoria, bloqueia item do outro gênero, arma com nível de forja) e mensagem.
+- Correio no jogo (`docs/mail.md`): caixa de entrada estilo e-mail na moldura de madeira, contador no botão da praça e da sala, carta com remetente, texto e anexos, Receber, Receber tudo e Apagar. Anexos resgatados no servidor numa transação que trava cartas e jogador (sem resgate duplo).
+- Evidência: `tests/mail.test.ts`, `npm run test:mail:integration` (dois resgates simultâneos da mesma carta: só um recebe) e `npm run test:mail:browser` (painel envia três cartas, jogador recebe tudo; capturas em `test-results/mail/`).
+
 ## Painel do administrador — 17/10/2026
 
 - `/admin` com login próprio (credenciais em `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH`, scrypt, sessão de 8 h no Postgres, trava após 5 erros), visão geral com estatísticas do dia e dos últimos 14 dias, e editor de mapas PvP/instância/lobby com rascunhos, histórico e publicação no jogo sem rebuild (`docs/admin-panel.md`).

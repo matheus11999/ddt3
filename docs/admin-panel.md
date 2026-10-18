@@ -1,6 +1,6 @@
 # Painel do administrador (`/admin`)
 
-Painel separado do jogo, com login próprio. Primeira versão (17/10/2026): visão geral com estatísticas e editor de mapas. Jogadores, loja e eventos aparecem como "em breve".
+Painel separado do jogo, com login próprio. Primeira versão (17/10/2026): visão geral com estatísticas e editor de mapas; jogadores e correio em 18/10. Loja e eventos aparecem como "em breve".
 
 ## Acesso e segurança
 
@@ -45,6 +45,17 @@ No editor, a aba **Peças** tem a mesma busca, começa em "Este mapa" e pode mos
 
 Desenha a praça com o próprio `LobbyWorld` do jogo. Move as estações (barracas, pódios, portal da arena, ferreiro) e muda a altura delas; move e redimensiona as pegadas no chão que os jogadores contornam (com "levar a pegada junto" ligado, a pegada acompanha a estação); move a entrada dos jogadores e os limites da área de caminhada. O ponto de usar o ferreiro anda junto com a barraca do ferreiro.
 
+## Jogadores
+
+`/admin/jogadores`: tabela de todos os jogadores (50 por página) com status (offline, na praça, na sala, em batalha), nível, moedas, vitórias, partidas, itens, tickets e pedras; busca por nome ou código, aba **Online** e ordenação (mais novos, nome, nível, moedas, vitórias, partidas). Clicar na linha abre a ficha: dados, mochila e as cartas já enviadas com a situação de cada uma.
+
+Os três botões da linha enviam uma carta para o Correio do jogador (`docs/mail.md`):
+- **Adicionar moedas**: quantidade com atalhos (100 a 10.000).
+- **Enviar itens**: catálogo de todos os itens do jogo separados por categoria (armas, roupas, chapéus, cabelos, rostos, óculos, fantasias, acessórios, pedras de forja, pedras de composição, Ticket de Cor, moedas), com busca; itens do outro gênero aparecem bloqueados. Até 10 anexos com quantidade, e arma com nível de forja.
+- **Enviar mensagem**: só texto, com remetente e assunto.
+
+Cada envio fica em "Atividade do painel" (`mail-send`).
+
 ## Denúncias
 
 Lista e detalhe das denúncias enviadas pelos jogadores, com o chat do denunciado dos 30 minutos anteriores. Ver `docs/player-reports.md`.
@@ -54,4 +65,5 @@ Lista e detalhe das denúncias enviadas pelos jogadores, com o chat do denunciad
 - Servidor: `server/admin.ts` (rotas e aplicação dos mapas publicados), `server/adminAuth.ts` (senha, limite de tentativas), `server/adminStore.ts` (tabelas `admin_sessions`, `admin_audit`, `game_maps`, `game_map_revisions` e as estatísticas).
 - Formatos e validação: `shared/mapAdmin.ts`. Mapas publicados no jogo: `applyMapOverride`/`pvpRotation` em `shared/maps.ts`, `applyLobbyLayout` em `shared/lobby.ts`, cliente em `src/publishedMaps.ts`.
 - Interface: `admin.html` e `src/admin/`. No nginx, `/admin` serve `admin.html` e `/api/admin/` aceita corpo de até 32 MB (o terreno montado).
+- Jogadores e correio: `server/adminPlayers.ts`, `server/mail.ts`, `src/admin/Players.tsx`; teste `ADMIN_PASSWORD=<senha> npm run test:mail:browser`.
 - Teste no navegador: `ADMIN_PASSWORD=<senha> npm run test:admin:browser` (login, estatísticas, abre o Sonho Nevado, move a torre, salva, publica, confere `/api/maps` e volta ao original). Unidade: `tests/admin.test.ts`.
