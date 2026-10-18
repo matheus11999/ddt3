@@ -94,3 +94,14 @@ Salve como public/assets/ui/<nome>.png. Não altere código.
 Gere um cursor de mouse para jogo de navegador no estilo DDTank, PNG 128x128 com FUNDO TRANSPARENTE. Uma seta de ponteiro clássica (ponta no canto SUPERIOR ESQUERDO, a 6 px das bordas), corpo dourado polido com brilho creme na borda esquerda, contorno marrom-escuro grosso e contínuo para ler bem sobre céu azul e sobre pedra clara, pequena gema vermelha perto da base da seta. Forma simples e limpa que continue legível reduzida para 32x32. Sem fogo, sem chamas, sem faíscas, sem sombra projetada, sem texto, sem fundo.
 Salve como public/assets/ui/cursor.png. Não altere código.
 ```
+
+## Parallax (18/10)
+
+Pedido do matheus: fundo novo com resolução maior e parallax para dar profundidade, **mantendo o piso** (`floor.webp`, de y 548 para baixo, igual).
+
+- Arte: 8 imagens do Codex (prompts em `docs/lobby-parallax-prompts/`), fontes em `public/assets/lobby/parallax/source/`: céu e mar em duas metades opacas (emenda só com céu e mar) e folhas de peças sobre magenta (ilhas distantes, cidade do castelo, ilhas do meio, dirigível e balões, balaustrada, árvores).
+- Montagem: `npm run build:lobby` lê `scripts/lobby-layout.json` (camada, folha, número da peça, x no centro, `bottom`, `height` em px do mundo, `flip`), corta o magenta, monta uma imagem 2× por camada em `public/assets/lobby/parallax/` e escreve `shared/generated/lobbyParallax.ts`. Os números das peças estão em `test-results/lobby-parallax/sheet-*.png`; a praça inteira em `montage.png`.
+- Camadas: céu ×0,1, ilhas distantes ×0,3, cidade e ilhas ×0,6, árvores ×0,85, balaustrada ×1 (anda com o piso). Uma camada com fator f anda f px a cada px da câmera e tem 1536 + 3072·f px de largura. Dirigível, balões e pedrinhas flutuam (`floaters`, com balanço `bob` e deriva `drift`).
+- `rows` repete uma peça lado a lado (balaustrada, sebe) com pilares cobrindo cada junta; `despill` tira o tom rosa do magenta da névoa e da espuma.
+- Sem as camadas carregadas, o jogo usa `plaza.webp` (panorama antigo) como reserva. O editor do lobby no `/admin` desenha a praça inteira como o jogador a vê em cada ponto (`LobbyWorld.drawWhole`).
+- Prévia sem servidor: `npx vite --port 5177` e `node scripts/preview-lobby.mjs` (câmera em vários pontos e a praça inteira, em `test-results/lobby-preview/`).
