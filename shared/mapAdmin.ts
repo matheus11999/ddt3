@@ -25,6 +25,8 @@ export const layoutItemSchema=z.object({
  mirror:z.boolean().optional(),flip:z.boolean().optional(),
  mirrorAs:z.object({sheet:sheetName.optional(),piece:z.number().int().min(0).max(199).optional(),scale:z.number().finite().min(.05).max(4).optional(),top:coordinate(864).optional()}).strict().optional(),
  rest:z.boolean().optional(),sink:z.number().finite().min(-100).max(200).optional(),solid:z.boolean().optional(),
+ passThrough:z.array(z.object({x:coordinate(MAX_MAP_WIDTH),y:coordinate(864),w:z.number().finite().min(1).max(MAX_MAP_WIDTH),h:z.number().finite().min(1).max(864)}).strict()).max(20).optional(),
+ smooth:z.number().finite().min(8).max(600).optional(),
 }).strict();
 export const mapLayoutSchema=z.object({
  name:text(40),subtitle:z.string().trim().max(80).optional(),kind:z.enum(MAP_KINDS).optional(),
