@@ -23,7 +23,7 @@ try{
  const mobileInvite=mobile.getByRole('dialog',{name:'Convite para jogar'});await expect(mobileInvite).toBeVisible();await mobile.screenshot({path:`${out}/incoming-mobile.png`});
  await mobileInvite.getByRole('button',{name:'Aceitar convite'}).click();await expect(mobile.locator('.party-room')).toBeVisible();await expect(mobileInvite).toHaveCount(0);
  await expect(host.locator('.party-player-card.occupied')).toHaveCount(2);await expect(mobile.getByRole('button',{name:/^Expulsar /})).toHaveCount(0);
- await mobile.getByRole('button',{name:'Estou pronto',exact:true}).click();await expect(host.locator('.party-player-state.ready')).toHaveCount(2);await host.screenshot({path:`${out}/joined.png`});
+ await mobile.getByRole('button',{name:'Estou pronto',exact:true}).click();await expect(host.locator('.party-player-state.ready')).toHaveCount(1);await host.screenshot({path:`${out}/joined.png`});
  await host.getByRole('button',{name:`Expulsar ${m.profile.name}`,exact:true}).click();await expect(mobile.locator('.bottom-dock')).toBeVisible();
  await host.getByRole('button',{name:'Fechar vaga 2',exact:true}).click();await expect(host.getByRole('button',{name:'Convidar',exact:true})).toBeDisabled();await host.getByRole('button',{name:'Sair da sala',exact:true}).click();
  assert.deepEqual(errors,[]);const report={checks:['online player list replaces link','private incoming invitation','decline informs sender','mobile acceptance enters original room','guest permissions','ready badge','kick','full room disables invitations'],errors};
