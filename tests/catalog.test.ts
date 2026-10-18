@@ -41,9 +41,10 @@ test('all weapon upgrades keep weapon identity and apply the same attribute rule
  for(const weapon of WEAPONS){
   const base=structuredClone(weapon),upgraded=weaponStats(weapon,12);
   assert.equal(upgraded.id,base.id);assert.equal(upgraded.effect,base.effect);assert.equal(upgraded.crater,base.crater);
-  assert.equal(upgraded.attack,base.attack+48);assert.equal(upgraded.damage,Math.round(base.damage*1.24));
+  const milestone=Math.trunc(Math.trunc(base.attack*12/10)*13/10);
+  assert.equal(upgraded.attack,milestone);assert.equal(upgraded.damage,Math.round(base.damage*1.1**12));
   assert.deepEqual(weapon,base);assert.deepEqual(weaponStats(weapon,0),weapon);
-  assert.equal(attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:12}).attack-attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:0}).attack,48);
+  assert.equal(attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:12}).attack-attributes({...DEFAULT_EQUIPMENT,weapon:weapon.id,upgrade:0}).attack,milestone-base.attack);
  }
 });
 

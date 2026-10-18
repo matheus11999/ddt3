@@ -22,7 +22,7 @@ export interface StageSetup {map:MapId;fighters:Fighter[];order:string[];instanc
 /** A stage's opening: the party on the map's spawns at full health, the monsters where the map places them. */
 export function setupStage(seats:readonly Seat[],expedition:string,difficulty:Difficulty,stageIndex:number,terrain:Uint8Array,now=Date.now()):StageSetup{
  const stages=expeditionStages(expedition,difficulty),stage=stages[stageIndex],map=stage.map as MapId,def=getMap(map),width=def.dimensions.width;
- const players:Fighter[]=seats.map((s,index)=>{const stats=attributes(s.equipment),x=def.spawns[0][s.slot]??def.spawns[0][index%def.spawns[0].length];
+ const players:Fighter[]=seats.map((s,index)=>{const stats=attributes(s.equipment,s.level),x=def.spawns[0][s.slot]??def.spawns[0][index%def.spawns[0].length];
   return {...s,team:0,equipment:structuredClone(s.equipment),x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:x<width/2?1:-1,boosts:[],powerCharge:0,powerArmed:false,homingArmed:false,flightArmed:false,invisibleTurns:0};});
  const level=Math.max(1,Math.round(players.reduce((n,p)=>n+p.level,0)/Math.max(1,players.length)));
  const monsters:Fighter[]=[];let boss:string|undefined,nest:{x:number;y:number}|undefined;

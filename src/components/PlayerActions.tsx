@@ -54,7 +54,7 @@ function PlayerInfoWindow({target,self}:{target:PlayerTarget;self:boolean}){
 }
 
 function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;setTip:(tip:Tip|null)=>void;onReport?:()=>void}){
- const equipment=info.equipment,stats=attributes(equipment),upgrade=equipment.upgrade??0;
+ const equipment=info.equipment,stats=attributes(equipment,info.level),upgrade=equipment.upgrade??0;
  // No title system yet: the plate shows the character's class name, like the plaza HUD.
  const title=info.bot?'Bot do jogo':info.gender==='female'?'Aventureira':'Aventureiro';
  useEffect(()=>{if(!tip)return;const outside=(event:Event)=>{if(!tip.anchor.contains(event.target as Node))setTip(null);};window.addEventListener('pointerdown',outside,true);window.addEventListener('scroll',()=>setTip(null),true);return()=>window.removeEventListener('pointerdown',outside,true);},[tip,setTip]);

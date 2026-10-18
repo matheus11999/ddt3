@@ -4,7 +4,7 @@ import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
-import {attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../../shared/catalog';
 import {COLOR_TICKET,equippedColors} from '../../shared/colors';
 import {canCompose} from '../../shared/composition';
@@ -47,8 +47,8 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
  const [previewFlash,setPreviewFlash]=useState<{id:string;key:number}|null>(null);
  const [displayOptions,setDisplayOptions]=useState(false),optionsRef=useRef<HTMLDivElement>(null),optionsButton=useRef<HTMLButtonElement>(null);
  const locked=!!state.battle||state.status!=='online';
- const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equippedCopy(equipment,'weapon')]??0,compositions:equippedCompositions(equipment,p.compositions),colors:equippedColors(equipment,p.itemColors),skin:p.bodyColors.skin,eyes:p.bodyColors.eyes}),[equipment,p.upgrades,p.compositions,p.itemColors,p.bodyColors]);
- const stats=attributes(preview),item=CATALOG[copyBase(selected)],unequip=unequipForGender(p.gender);
+ const preview=useMemo(()=>({...equipment,upgrade:p.upgrades[equippedCopy(equipment,'weapon')]??0,slotUpgrades:Object.fromEntries(ARMOR_SLOTS.map(slot=>[slot,p.upgrades[equippedCopy(equipment,slot)]??0])),compositions:equippedCompositions(equipment,p.compositions),colors:equippedColors(equipment,p.itemColors),skin:p.bodyColors.skin,eyes:p.bodyColors.eyes}),[equipment,p.upgrades,p.compositions,p.itemColors,p.bodyColors]);
+ const stats=attributes(preview,p.level),item=CATALOG[copyBase(selected)],unequip=unequipForGender(p.gender);
  // Every owned copy is its own card (repeat purchases), listed right after the first one.
  const entries=[...ITEMS.filter(i=>!isEmptyItem(i)&&p.inventory.includes(i.id)&&(tab==='all'||tab==='weapons'&&i.slot==='weapon'||tab==='style'&&i.slot!=='weapon')&&(category==='all'||i.slot===category)&&searchable(i.name).includes(searchable(query))).flatMap(i=>p.inventory.filter(key=>copyBase(key)===i.id)),...(tab==='all'&&category==='all'&&p.colorTickets>0&&searchable(COLOR_TICKET.name).includes(searchable(query))?[COLOR_TICKET.id]:[]),...((tab==='all'||tab==='stones')&&category==='all'?STONES.filter(s=>(p.stones[String(s.level)]??0)>0&&searchable(s.name).includes(searchable(query))).map(s=>`stone-${s.level}`):[])];
  const pages=Math.max(1,Math.ceil(entries.length/PAGE_SIZE)),currentPage=Math.min(page,pages-1),visible=entries.slice(currentPage*PAGE_SIZE,(currentPage+1)*PAGE_SIZE);
@@ -201,7 +201,7 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
  const values=item?itemAttributes(item,level,compositions?.[id]):null,bare=item?itemAttributes(item,level):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
  const target=item?(anchor.dataset.slot as Slot|undefined)??targetSlotForItem(equipment,item):undefined;
  // `equipment` already carries the worn copies' compositions; the candidate swaps in this copy's own.
- const current=attributes(equipment),candidate=item&&target?attributes({...equipment,compositions:{...equipment.compositions,[base]:compositions?.[id]??{}},[target]:base,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
+ const current=attributes(equipment),candidate=item&&target?attributes({...equipment,compositions:{...equipment.compositions,[base]:compositions?.[id]??{}},[target]:base,upgrade:item.slot==='weapon'?level:equipment.upgrade,...(isArmorSlot(target)?{slotUpgrades:{...equipment.slotUpgrades,[target]:level}}:{})}):current;
  useLayoutEffect(()=>{
   const element=ref.current;if(!element)return;const box=anchor.getBoundingClientRect(),bounds=element.getBoundingClientRect(),edge=10;
   let x=box.right+12,y=box.top;

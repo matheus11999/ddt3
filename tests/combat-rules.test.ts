@@ -5,7 +5,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {attributes,DEFAULT_EQUIPMENT,WEAPONS,weaponStats,MAX_UPGRADE} from '../shared/catalog';
-import {CRITICAL_CHANCE_CAP,criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
+import {criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {PROJECTILE_SPEED_SCALE,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
@@ -31,14 +31,15 @@ test('all weapon families have equal four-stat budgets, distinct roles and bound
  assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.attack)),ember.attack);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.defense)),crystal.defense);
  assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.agility)),volt.agility);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.luck??0)),volt.luck);
  assert.ok(Math.max(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)-Math.min(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)<=45);
- for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);assert.equal(max.luck,weapon.luck);assert.equal(max.agility,weapon.agility);assert.equal(max.defense,weapon.defense);assert.ok(max.damage/weapon.damage<1.31);assert.equal(max.attack-weapon.attack,MAX_UPGRADE*4);}
+ for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);for(const key of ['attack','defense','agility','luck'] as const)assert.equal(max[key],Math.trunc(Math.trunc(weapon[key]!*1.2)*1.3+1e-9));assert.equal(max.damage,Math.round(weapon.damage*1.1**MAX_UPGRADE));}
 });
 
-test('critical chance grows with luck, caps at30 percent, and uses an explicit server roll',()=>{
- assert.equal(criticalChance(0),.02);assert.equal(criticalChance(100),.12);assert.equal(criticalChance(10000),CRITICAL_CHANCE_CAP);
- assert.ok(criticalChance(40)<criticalChance(80));assert.equal(criticalFromRoll(100,.119),true);assert.equal(criticalFromRoll(100,.12),false);
+test('critical chance follows 45 × Sorte / (800 + Sorte) and uses an explicit server roll',()=>{
+ assert.equal(criticalChance(0),0);assert.equal(criticalChance(800),.225);assert.ok(Math.abs(criticalChance(100)-.05)<1e-12);assert.ok(criticalChance(1e9)<.45);
+ assert.ok(criticalChance(40)<criticalChance(80));assert.equal(criticalFromRoll(100,.049),true);assert.equal(criticalFromRoll(100,.05),false);
  for(const roll of [-1,NaN,Infinity,1])assert.equal(criticalFromRoll(100,roll),false);
- const normal=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),critical=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT,{critical:true});assert.ok(Math.abs(critical-normal*1.5)<=1);
+ const luck=attributes(DEFAULT_EQUIPMENT).luck,normal=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),critical=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT,{critical:true});
+ assert.ok(Math.abs(critical-normal*(1.5+luck*.00015))<=1.5);
 });
 
 test('approach geometry distinguishes center contact, grazing and splash despite identical surface radius',()=>{
@@ -85,7 +86,7 @@ test('a ground strike beside the fighter deals substantial near-hit damage insid
  const target={id:'target',x:300,y:400},weapon=WEAPONS[0],exposure=impactExposure(target,{x:300,y:400},weapon.blast);
  assert.equal(exposure.kind,'splash');assert.ok(exposure.attenuation>.77&&exposure.attenuation<.80);
  const full=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),near=damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT,{attenuation:exposure.attenuation});
- assert.ok(near>=220&&near<full,`${near} versus full ${full}`);
+ assert.ok(near>=full*.75&&near<full,`${near} versus full ${full}`);
  assert.equal(impactExposure(target,{x:300,y:400+22+weapon.blast*.60+.001},weapon.blast).attenuation,0);
 });
 
