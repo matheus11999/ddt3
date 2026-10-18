@@ -1,7 +1,7 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {ArrowUpCircle,Check,ChevronDown,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,Search,Settings,Shield,ShoppingBag,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
+import {ArrowUpCircle,Check,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,Search,Settings,Shield,ShoppingBag,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES} from '../../shared/catalog';
 import {goodsName} from '../../shared/auction';
 import {BUILDING_LEVEL_COSTS,BUILDING_NAMES,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,GUILD_MAX_LEVEL,GUILD_MISSIONS,GUILD_NAME_MAX,GUILD_SHOP,guildMemberCap,smithBonus,SMITH_BONUS_PER_LEVEL,storageCapacity} from '../../shared/guilds';
@@ -97,8 +97,6 @@ function GuildLobby({applied}:{applied:number[]}){
 }
 
 type SortKey='contribution'|'today'|'level'|'name';
-const SORTS:{id:SortKey;label:string}[]=[{id:'contribution',label:'Contribuição total'},{id:'today',label:'Contribuição de hoje'},{id:'level',label:'Nível'},{id:'name',label:'Nome'}];
-const searchable=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
 
 /** Tela inicial: o brasão com o nível em destaque, as construções, os membros com as contribuições e as missões do dia. */
 function GuildHome({guild,owner,onForge}:{guild:GuildView;owner:boolean;onForge:()=>void}){
@@ -111,7 +109,6 @@ function GuildHome({guild,owner,onForge}:{guild:GuildView;owner:boolean;onForge:
   <aside className="guild-side">
    <section className="guild-crest" aria-label={`Guilda ${guild.name}, nível ${guild.level}`}>
     <span className="guild-crest-badge" aria-hidden="true"><Shield className="guild-crest-shield" size={112} strokeWidth={1.4}/><b className="guild-crest-level">{guild.level}</b></span>
-    <small className="guild-crest-caption">Nível da guilda</small>
     <h2 className="guild-crest-name">{guild.name}</h2>
     <span className="guild-crest-owner"><Crown size={13}/>{guild.ownerName||'Sem dono'}</span>
     <div className="guild-crest-stats">
@@ -119,8 +116,8 @@ function GuildHome({guild,owner,onForge}:{guild:GuildView;owner:boolean;onForge:
      <span title="Riqueza: moeda da guilda. O dono usa para evoluir a guilda e as construções."><RiquezaIcon size={16}/>{money(guild.riqueza)}</span>
     </div>
    </section>
-   <div className="guild-buildings">{GUILD_BUILDINGS.map(building=>{const level=guild.buildings[building],Icon=BUILDING_ICONS[building],blocked=building==='smith'&&!!room;
-    return <button key={building} className={`guild-building ${level?'':'unbuilt'}`} disabled={blocked} title={blocked?'Volte à praça para usar o ferreiro':buildingEffect(building,level)} onClick={()=>open(building)}>
+   <div className="guild-buildings">{GUILD_BUILDINGS.map(building=>{const level=guild.buildings[building],Icon=BUILDING_ICONS[building],blocked=!level||building==='smith'&&!!room;
+    return <button key={building} className={`guild-building ${level?'':'unbuilt'}`} disabled={blocked} title={!level?`${SHORT_NAMES[building]} ainda não foi construído. O dono constrói em Gerenciar.`:blocked?'Volte à praça para usar o ferreiro':buildingEffect(building,level)} onClick={()=>open(building)}>
      <span className="guild-building-stage"><BuildingArt building={building} size={64}/></span>
      <span className="guild-building-plate"><Icon size={14}/><b>{SHORT_NAMES[building]}</b></span>
      <em>Nv. {level}</em>
@@ -146,37 +143,42 @@ function LeaveGuild({guild}:{guild:GuildView}){
  </section></div>;
 }
 
-/** Membros com as contribuições: busca, só online e ordenação por qualquer coluna. */
+/** Membros com as contribuições, ordenados pela setinha de cada título; sem barra de rolagem: cada página tem as linhas que cabem. */
 function GuildRoster({guild,owner}:{guild:GuildView;owner:boolean}){
  const {profile,guildPending:pending}=useGame(),me=profile!.id;
- const [sort,setSort]=useState<SortKey>('contribution'),[desc,setDesc]=useState(true),[onlineOnly,setOnlineOnly]=useState(false),[query,setQuery]=useState('');
+ const [sort,setSort]=useState<SortKey>('contribution'),[desc,setDesc]=useState(true),[page,setPage]=useState(0),[pageSize,setPageSize]=useState(10);
+ const box=useRef<HTMLDivElement>(null);
+ useLayoutEffect(()=>{
+  const element=box.current;if(!element)return;
+  const fit=()=>{const head=element.querySelector('thead')?.getBoundingClientRect().height??30,row=element.querySelector('tbody tr')?.getBoundingClientRect().height||32;setPageSize(Math.max(3,Math.floor((element.clientHeight-head)/row)));};
+  fit();const observer=new ResizeObserver(fit);observer.observe(element);return()=>observer.disconnect();
+ },[]);
  const rows=useMemo(()=>{
   const ranked=[...guild.members].sort((a,b)=>b.contribution-a.contribution||a.name.localeCompare(b.name)).map((m,i)=>({...m,rank:i+1}));
-  const shown=ranked.filter(m=>(!onlineOnly||m.online||m.id===me)&&searchable(m.name).includes(searchable(query)));
-  const value=(m:typeof shown[number])=>sort==='name'?0:m[sort];
-  return shown.sort((a,b)=>{const d=sort==='name'?a.name.localeCompare(b.name,'pt-BR'):value(a)-value(b);return (desc?-d:d)||a.rank-b.rank;});
- },[guild.members,sort,desc,onlineOnly,query,me]);
- const by=(key:SortKey)=>{if(key===sort)setDesc(!desc);else{setSort(key);setDesc(key!=='name');}audio.play('click');};
- const head=(key:SortKey,label:string)=><th aria-sort={sort===key?(desc?'descending':'ascending'):'none'}><button onClick={()=>by(key)}>{label}{sort===key&&(desc?<ChevronDown size={13}/>:<ChevronUp size={13}/>)}</button></th>;
+  const value=(m:typeof ranked[number])=>sort==='name'?0:m[sort];
+  return ranked.sort((a,b)=>{const d=sort==='name'?a.name.localeCompare(b.name,'pt-BR'):value(a)-value(b);return (desc?-d:d)||a.rank-b.rank;});
+ },[guild.members,sort,desc]);
+ const pages=Math.max(1,Math.ceil(rows.length/pageSize)),current=Math.min(page,pages-1),visible=rows.slice(current*pageSize,(current+1)*pageSize);
+ const by=(key:SortKey)=>{if(key===sort)setDesc(!desc);else{setSort(key);setDesc(key!=='name');}setPage(0);audio.play('click');};
+ const head=(key:SortKey,label:string,className='')=><th className={className} aria-sort={sort===key?(desc?'descending':'ascending'):'none'}><button onClick={()=>by(key)}>{label}{sort===key?(desc?<ChevronDown size={13}/>:<ChevronUp size={13}/>):<ChevronDown size={13} className="guild-sort-idle"/>}</button></th>;
  const online=guild.members.filter(m=>m.online).length;
  return <section className="guild-pane guild-roster wood-cream" aria-label="Membros">
   <header className="guild-roster-head">
    <h3>Membros <small>{online} online</small></h3>
-   <label className="guild-roster-search"><Search size={14}/><input value={query} placeholder="Buscar" aria-label="Buscar membro" onChange={e=>setQuery(e.target.value)}/></label>
-   <button className={`guild-chip ${onlineOnly?'active':''}`} aria-pressed={onlineOnly} onClick={()=>{setOnlineOnly(!onlineOnly);audio.play('click');}}><i aria-hidden="true"/>Só online</button>
-   <label className="guild-roster-sort"><span>Ordenar</span><select value={sort} aria-label="Ordenar membros" onChange={e=>{const key=e.target.value as SortKey;setSort(key);setDesc(key!=='name');}}>{SORTS.map(o=><option key={o.id} value={o.id}>{o.label}</option>)}</select></label>
+   {pages>1&&<div className="guild-pager"><button aria-label="Página anterior" disabled={current===0} onClick={()=>setPage(current-1)}><ChevronLeft size={15}/></button><span>{current+1} / {pages}</span><button aria-label="Próxima página" disabled={current===pages-1} onClick={()=>setPage(current+1)}><ChevronRight size={15}/></button></div>}
   </header>
-  <div className="guild-roster-scroll">
-   <table className="guild-table"><thead><tr><th>#</th>{head('name','Membro')}{head('level','Nível')}<th>Cargo</th>{head('today','Hoje')}{head('contribution','Contribuição')}{owner&&<th aria-label="Ações"/>}</tr></thead>
-    <tbody>{rows.map(m=><tr key={m.id} className={m.id===me?'me':''}>
+  <div className="guild-roster-box" ref={box}>
+   <table className={`guild-table ${owner?'with-actions':''}`}>
+    <colgroup><col className="c-rank"/><col/><col className="c-level"/><col className="c-today"/><col className="c-total"/>{owner&&<col className="c-act"/>}</colgroup>
+    <thead><tr><th>#</th>{head('name','Membro')}{head('level','Nível')}{head('today','Hoje')}{head('contribution','Total')}{owner&&<th aria-label="Ações"/>}</tr></thead>
+    <tbody>{visible.map(m=><tr key={m.id} className={m.id===me?'me':''}>
      <td className="guild-rank"><span data-rank={m.rank<=3?m.rank:undefined}>{m.rank}</span></td>
-     <td><span className={`guild-dot ${m.online?'on':''}`} title={m.online?'Online':'Offline'}/><b {...playerMenuProps(m.id!==me?{id:m.id,name:m.name,context:'hall'}:null)}>{m.name}</b></td><td>{m.level}</td>
-     <td>{m.role==='owner'?<span className="guild-role owner"><Crown size={13}/>Dono</span>:<span className="guild-role">Membro</span>}</td>
+     <td><span className="guild-member"><span className={`guild-dot ${m.online?'on':''}`} title={m.online?'Online':'Offline'}/><b title={m.name} {...playerMenuProps(m.id!==me?{id:m.id,name:m.name,context:'hall'}:null)}>{m.name}</b>{m.role==='owner'&&<Crown className="guild-owner-crown" size={14} aria-label="Dono"/>}</span></td>
+     <td>{m.level}</td>
      <td className="guild-num">{m.today?`+${money(m.today)}`:'0'}</td>
-     <td className="guild-num"><RiquezaIcon size={15}/> {money(m.contribution)}</td>
-     {owner&&<td>{m.role!=='owner'&&<button className="guild-icon-button" title={`Expulsar ${m.name}`} aria-label={`Expulsar ${m.name}`} disabled={pending} onClick={()=>client.guildAction({type:'guild-kick',playerId:m.id})}><UserMinus size={15}/></button>}</td>}
+     <td className="guild-num"><RiquezaIcon size={14}/> {money(m.contribution)}</td>
+     {owner&&<td>{m.role!=='owner'&&<button className="guild-icon-button" title={`Expulsar ${m.name}`} aria-label={`Expulsar ${m.name}`} disabled={pending} onClick={()=>client.guildAction({type:'guild-kick',playerId:m.id})}><UserMinus size={14}/></button>}</td>}
     </tr>)}</tbody></table>
-   {!rows.length&&<p className="guild-empty"><Users size={24}/>Ninguém encontrado.</p>}
   </div>
  </section>;
 }

@@ -35,7 +35,7 @@ try{
  await owner.page.screenshot({path:`${output}/2-guilda-nivel-0.png`});
 
  // Another player asks to join; the owner accepts in Gerenciar.
- const mw=await openGuild(member.page);await mw.locator('.guild-list li',{hasText:name}).getByRole('button',{name:'Pedir para entrar'}).click();
+ const mw=await openGuild(member.page);await mw.getByLabel('Buscar guilda').fill(name);await mw.getByRole('button',{name:'Buscar',exact:true}).click();await mw.locator('.guild-list li',{hasText:name}).getByRole('button',{name:'Pedir para entrar'}).click();
  await mw.getByRole('button',{name:'Pedido enviado'}).waitFor();
  const manage=owner.page.locator('.guild-sub-window');
  await w.getByRole('button',{name:/^Gerenciar/}).click();await manage.locator('.guild-applications li',{hasText:member.profile.name}).waitFor();
