@@ -57,7 +57,11 @@ try{
  await page.screenshot({path:`${output}/confirmar.png`});
  await win.locator('.auction-confirm').getByRole('button',{name:'Comprar'}).click();await win.locator('.auction-confirm').waitFor({state:'detached'});await page.waitForTimeout(500);
  await page.screenshot({path:`${output}/comprado.png`});
- await win.getByRole('button',{name:'Vender'}).click();await win.locator('.auction-bag-cell').first().click();
+ await win.getByRole('button',{name:'Arma',exact:true}).first().click();await win.getByRole('button',{name:'Arma Secundária'}).click();await win.locator('.auction-empty').waitFor();await page.waitForTimeout(400);
+ await page.screenshot({path:`${output}/vazio.png`});await win.getByRole('button',{name:'Todos os itens'}).click();
+ await win.getByRole('button',{name:'Vender'}).click();await page.waitForTimeout(300);await page.screenshot({path:`${output}/vender-inicio.png`});
+ await win.getByRole('button',{name:'Selecionar item'}).click();await win.locator('.auction-picker').waitFor();await page.waitForTimeout(300);
+ await page.screenshot({path:`${output}/selecionar.png`});await win.locator('.auction-bag-cell').first().click();
  await win.getByRole('button',{name:'Cupons'}).click();await win.getByLabel('Preço').fill('250');await page.waitForTimeout(300);
  await page.screenshot({path:`${output}/vender.png`});
  await win.getByRole('button',{name:'Anunciar'}).click();await win.locator('.auction-mine li').first().waitFor();await page.waitForTimeout(400);
