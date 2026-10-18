@@ -10,6 +10,7 @@ import {AdminStore} from './adminStore';
 import {registerAdmin} from './admin';
 import {ReportStore} from './reports';
 import {MailStore} from './mail';
+import {AuctionStore} from './auction';
 import {PlayerDirectory} from './adminPlayers';
 import {LiveState,PostgresLive,RedisLive} from './liveState';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
@@ -38,6 +39,7 @@ const connections=new Map<string,WebSocket>();
 const adminStore=new AdminStore(store.pool);await adminStore.init();
 const reports=new ReportStore(store.pool);await reports.init();game.reports=reports;
 const mail=new MailStore(store.pool);await mail.init();game.mail=mail;
+const auction=new AuctionStore(store.pool);await auction.init();game.auction=auction;
 await registerAdmin(app,{store:adminStore,reports,mail,players:new PlayerDirectory(store.pool),presence:()=>game.presence(),onMail:id=>{void game.mailArrived(id).catch(e=>app.log.error(e));},live:()=>({online:connections.size,rooms:game.rooms.size,battles:game.matches.size}),
  onMapsChanged:()=>{const event=JSON.stringify({type:'maps'});for(const ws of connections.values())if(ws.readyState===WebSocket.OPEN)ws.send(event);}});
 const wss=new WebSocketServer({noServer:true,maxPayload:2048,perMessageDeflate:false});
@@ -67,7 +69,9 @@ app.server.on('upgrade',async(req,socket,head)=>{
  }catch(e){app.log.error(e);socket.destroy();}
 });
 const tick=setInterval(()=>game.tick(),50);
+// Listings whose time ran out go back to their sellers by mail.
+const auctionSweep=setInterval(()=>{void game.auctionSweep().catch(e=>app.log.error(e));},15000);
 const saving=setInterval(()=>{void live.save().catch(e=>app.log.error(e));},500);
 const presence=setInterval(()=>{redis.set('brasa:shard:1:online',connections.size,'EX',25).catch(e=>app.log.error(e));for(const [ip,l]of upgradeLimit)if(Date.now()-l.time>60000)upgradeLimit.delete(ip);},10000);
 await app.listen({port:Number(process.env.PORT??4107),host:'0.0.0.0'});
-for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});
+for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(auctionSweep);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});

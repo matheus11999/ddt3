@@ -22,6 +22,7 @@ const when=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',mon
 function attachmentName(a:MailAttachment){
  if(a.kind==='item')return CATALOG[a.item]?.name??'Item';
  if(a.kind==='coins')return 'Moedas Brasa';
+ if(a.kind==='coupons')return 'Cupons';
  if(a.kind==='stone')return STONES[a.level-1]?.name??'Pedra de Fortificação';
  if(a.kind==='ticket')return 'Ticket de Cor';
  return COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??'Pedra de composição';

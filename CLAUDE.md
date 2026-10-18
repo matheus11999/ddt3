@@ -78,7 +78,8 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - **Painel do administrador** (`/admin`, `docs/admin-panel.md`, 17/10): login por `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` (`npm run admin:password`), estatísticas e editor de mapas (PvP, instância e lobby) que publica no jogo sem rebuild; página **Jogadores** (18/10) com tabela, filtro online e envio de moedas, itens e mensagens. Próximas áreas previstas: loja, eventos.
 - **Correio** (18/10, `docs/mail.md`): caixa de entrada do jogador (botão Correio da praça e da sala). Tudo que o admin envia (moedas, itens, mensagens) chega como carta com anexos; Receber/Receber tudo resgatam no servidor uma vez só (tabela `player_mail`). Recompensa nova que deva chegar por carta usa `MailStore.send`.
 
-- **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido.
+- **Leilão** (18/10, `docs/auction.md`): botão na praça, abas Comprar/Vender, menu de categorias que expande, tabela paginada, sino de vendas; venda por Ouro ou **Cupons** (moeda cash, `Profile.coupons`, ícone `coupon.png` gerado pelo Codex); taxa em ouro por tempo (2h/8h/24h), até 3 anúncios; pagamento e item não vendido chegam pelo Correio. "Enviar mensagem" no menu de jogador abre o chat privado (aba Privado).
+- **VIP no servidor**: o escudo VIP existe só na interface; não há dado de VIP persistido (o limite de 3 anúncios do leilão é o de jogador comum).
 - Comprar de novo item que já possui: feito (PR #27). Cada compra repetida vira cópia separada (`id~2`, `id~3`…) com forja e composição próprias; `equipment.copies` diz qual cópia está vestida (ver `docs/shop.md`).
 - **Rabo de cavalo sob chapéu**: com chapéu o penteado perde o rabo; falta arte do rabo visível abaixo do chapéu (gerar pelo fluxo de cosméticos).
 - Lápide no lugar do jogador morto (sem barra de vida; pode assistir até o fim e receber recompensa, ou sair e perder a recompensa): em andamento numa thread em 17/10/2026.
