@@ -123,7 +123,7 @@ try{
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
  await expect(bag.locator('.stat-grid>span').filter({hasText:'Ataque'}).locator('b')).toHaveText(String(savedAttack+4+10));
  await bag.getByRole('combobox',{name:'Categoria'}).selectOption('weapon');await bag.getByRole('button',{name:'Dragão de Brasa',exact:true}).hover();
- await expect(page.getByRole('tooltip')).toContainText('Composição: Ataque +10');
+ await expect(page.getByRole('tooltip').locator('.bag-tip-stats div').filter({hasText:'Ataque'}).locator('.bag-tip-bonus')).toHaveText('+10');
  await page.screenshot({path:'test-results/composition-inventory.png'});
  await bag.getByRole('button',{name:'Fechar',exact:true}).click();
  await page.locator('.bottom-dock').getByRole('button',{name:/Arena/}).click();
