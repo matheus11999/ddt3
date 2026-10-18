@@ -14,6 +14,10 @@ export interface LayoutItem {
  rest?:boolean;sink?:number;
  /** false draws the art without collision. */
  solid?:boolean;
+ /** Map-space boxes where this item's art does not collide (decoration on top, like leaves around the throne). */
+ passThrough?:{x:number;y:number;w:number;h:number}[];
+ /** Flat ground: bumps on the top surface narrower than this many px (pebbles) stay as art but nobody climbs them. */
+ smooth?:number;
 }
 export interface MapLayout {
  name:string;source?:string;background:string|string[];backgroundBlend?:number;mid?:string;mirror?:boolean;width?:number;
@@ -44,6 +48,13 @@ export const loadImage=(src:string)=>new Promise<HTMLImageElement>((resolve,reje
 const ctx=(c:HTMLCanvasElement)=>c.getContext('2d',{willReadFrequently:true})!;
 interface Band {bx:number;bw:number;h:number;data:Uint8ClampedArray;}
 /** The pixels of columns x0..x1 (clamped to the canvas), full height `h`. */
+/** Clears the collision of bumps on the surface: each column's top drops to the median top of its neighbours with ground. */
+function smoothTop(c:CanvasRenderingContext2D,x0:number,x1:number,window:number){
+ const b=band(c,x0,x1,c.canvas.height),tops=new Int32Array(b.bw).fill(-1),half=Math.round(window/2);
+ for(let x=0;x<b.bw;x++)for(let y=0;y<b.h;y++)if(b.data[(y*b.bw+x)*4+3]>128){tops[x]=y;break;}
+ for(let x=0;x<b.bw;x++){if(tops[x]<0)continue;const near:number[]=[];for(let k=Math.max(0,x-half);k<=Math.min(b.bw-1,x+half);k++)if(tops[k]>=0)near.push(tops[k]);
+  near.sort((a,z)=>a-z);const flat=near[near.length>>1];if(flat>tops[x])c.clearRect(b.bx+x,0,1,flat);}
+}
 function band(c:CanvasRenderingContext2D,x0:number,x1:number,h:number):Band{const bx=Math.max(0,Math.min(c.canvas.width-1,Math.floor(x0))),bw=Math.max(1,Math.min(c.canvas.width,Math.ceil(x1))-bx);return {bx,bw,h,data:c.getImageData(bx,0,bw,h).data};}
 const opaqueIn=(b:Band,x:number,y:number)=>x>=b.bx&&x<b.bx+b.bw&&y>=0&&y<b.h&&b.data[(y*b.bw+(x-b.bx))*4+3]>128;
 
@@ -85,7 +96,7 @@ export function expandItems(layout:MapLayout){
  return layout.items.flatMap((item,source)=>{
   const own={item,source,mirrored:false};
   if(!layout.mirror||item.mirror===false)return [own];
-  return [own,{item:{...item,...item.mirrorAs,id:`${item.id}-r`,x:W-item.x,flip:!item.flip},source,mirrored:true}];
+  return [own,{item:{...item,...item.mirrorAs,id:`${item.id}-r`,x:W-item.x,flip:!item.flip,...(item.passThrough?{passThrough:item.passThrough.map(box=>({...box,x:W-box.x-box.w}))}:{})},source,mirrored:true}];
  });
 }
 
@@ -121,7 +132,7 @@ export function assemble(layout:MapLayout,sheetPieces:Record<string,Piece[]>):As
   const entry:PlacedItem={id:item.id,source,mirrored,item,sheet,piece,left,right:left+w,top,bottom:top+h,w,h};
   if(item.solid===false){draw(wc,top);placed.push(entry);continue;}
   const one=canvas(W,H),oc=ctx(one);oc.imageSmoothingQuality='high';draw(oc,top);
-  wc.drawImage(one,0,0);gc.drawImage(one,0,0);placed.push(entry);
+  wc.drawImage(one,0,0);for(const box of item.passThrough??[])oc.clearRect(box.x,box.y,box.w,box.h);if(item.smooth)smoothTop(oc,left,left+w+1,item.smooth);gc.drawImage(one,0,0);placed.push(entry);
   const col=Math.max(0,Math.floor(left/CELL)),row=Math.max(0,Math.floor(top/CELL)),cols=Math.min(COLS,Math.ceil((left+w)/CELL))-col,rows=Math.min(ROWS,Math.ceil((top+h)/CELL))-row;
   if(cols<=0||rows<=0){warnings.push({text:`${item.id}: fora do mapa`,item:source});continue;}
   const alpha=oc.getImageData(col*CELL,row*CELL,cols*CELL,rows*CELL).data,stride=cols*CELL;

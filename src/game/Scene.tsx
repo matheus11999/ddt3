@@ -157,7 +157,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     drawFighterPlates(c,plates,t);
     // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
     for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;
-     const height=speaker.monster?MONSTERS[speaker.monster].sprite.height:150;drawSpeechBubble(c,line.text,speaker.x+speaker.facing*14,speaker.y-height*.66,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}
+     const mouth=speaker.monster?MONSTERS[speaker.monster].mouth??{forward:0,up:MONSTERS[speaker.monster].sprite.height*.66}:{forward:10,up:110};drawSpeechBubble(c,line.text,speaker.x+speaker.facing*mouth.forward,speaker.y-mouth.up,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.monster==='arrow'){if(age<flightTime(p))drawArrow(c,p.points,index);else drawArrowImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}

@@ -33,10 +33,14 @@ interface Doc {layout:MapLayout;meta:Meta;}
 /** A sheet of this layout (by its key in layout.sheets), with where it comes from and its piece names. */
 interface Sheet {name:string;pieces:LibraryPiece[];label:string;folder:string;foreign:boolean;names:Record<string,string[]>;sheet:string;}
 interface View {scale:number;x:number;y:number;}
-type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'monster';index:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View};
+type Drag={kind:'item';index:number;mirrored:boolean;startX:number;startY:number;origin:LayoutItem;moved:boolean}|{kind:'spawn';team:number;slot:number;startX:number;origin:number;moved:boolean}|{kind:'monster';index:number;startX:number;origin:number;moved:boolean}|{kind:'pan';startX:number;startY:number;view:View}|{kind:'cut';index:number;startX:number;startY:number;x:number;y:number};
 
 type PieceSave=Extract<MapSave,{layout:unknown}>;
 const clone=<T,>(v:T):T=>structuredClone(v);
+const cutBox=(d:{startX:number;startY:number;x:number;y:number})=>({x:Math.round(Math.min(d.startX,d.x)),y:Math.round(Math.min(d.startY,d.y)),w:Math.round(Math.abs(d.x-d.startX)),h:Math.round(Math.abs(d.y-d.startY))});
+function drawCutBox(c:CanvasRenderingContext2D,box:{x:number;y:number;w:number;h:number},scale:number,drawing:boolean){
+ c.save();c.fillStyle=drawing?'rgba(255,90,90,.28)':'rgba(255,90,90,.16)';c.fillRect(box.x,box.y,box.w,box.h);c.setLineDash([8/scale,6/scale]);c.lineWidth=2/scale;c.strokeStyle='#ff6b5a';c.strokeRect(box.x,box.y,box.w,box.h);c.restore();
+}
 const round=(v:number)=>Math.round(v*10)/10;
 
 export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
@@ -47,6 +51,8 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  const [overlay,setOverlay]=useState({collision:false,grid:false,centre:true,ghost:true}),[panel,setPanel]=useState<'pieces'|'layers'>('pieces'),[showHistory,setShowHistory]=useState(false),[confirm,setConfirm]=useState<null|{warnings:string[]}>(null);
  const [ui,setUi]=useState<Ui>(loadUi),[showKeys,setShowKeys]=useState(false);
  // Lock and hide only help while editing (by item name, per map in this browser); they are not part of the map.
+ // Marking an area of the selected piece that does not collide (leaves, ornaments): drag a box on the map.
+ const [cutting,setCutting]=useState(false);
  const [locked,setLocked]=useState<Set<string>>(()=>new Set()),[hidden,setHidden]=useState<Set<string>>(()=>new Set());
  useEffect(()=>{try{localStorage.setItem(UI_KEY,JSON.stringify(ui));}catch{/* private window */}},[ui]);
  const toggleUi=(key:keyof Ui)=>setUi(u=>({...u,[key]:!u[key]}));
@@ -162,6 +168,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(overlay.grid){c.strokeStyle='rgba(255,255,255,.12)';c.lineWidth=1/v.scale;for(let x=0;x<=W;x+=96){c.beginPath();c.moveTo(x,0);c.lineTo(x,MAP_HEIGHT);c.stroke();}for(let y=0;y<=MAP_HEIGHT;y+=96){c.beginPath();c.moveTo(0,y);c.lineTo(W,y);c.stroke();}}
   for(const p of placed){if(!p.piece||p.hidden)continue;c.save();c.translate(p.item.x,p.top);if(p.item.flip)c.scale(-1,1);if(p.item.solid===false)c.globalAlpha=.75;c.drawImage(p.piece.canvas,-p.w/2,0,p.w,p.h);c.restore();}
   if(overlay.collision&&collisionLayer){c.imageSmoothingEnabled=false;c.drawImage(collisionLayer,0,0,W,MAP_HEIGHT);c.imageSmoothingEnabled=true;}
+  // Areas without collision: the selected piece's (or every piece's with the collision overlay on), and the box being drawn.
+  const cut=dragRef.current?.kind==='cut'?cutBox(dragRef.current):null;
+  doc.layout.items.forEach((item,index)=>{if(!overlay.collision&&!(selection?.type==='item'&&selection.index===index))return;for(const box of item.passThrough??[])drawCutBox(c,box,v.scale,false);});
+  if(cut)drawCutBox(c,cut,v.scale,true);
   c.restore();
   // Frame, centre and the death line.
   c.lineWidth=2/v.scale;c.strokeStyle='rgba(255,255,255,.35)';c.strokeRect(0,0,W,MAP_HEIGHT);
@@ -224,6 +234,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   if(pointers.current.size===2){dragRef.current=null;pinchRef.current={...pinchState(),view:{...viewRef.current}};return;}
   const {x,y}=toWorld(e);
   if(e.button===1||e.button===2||e.altKey){dragRef.current={kind:'pan',startX:e.clientX,startY:e.clientY,view:{...viewRef.current}};return;}
+  if(cutting&&selection?.type==='item'){dragRef.current={kind:'cut',index:selection.index,startX:x,startY:y,x,y};return;}
   const spawn=hitSpawn(x,y);if(spawn){setSelection({type:'spawn',...spawn});dragRef.current={kind:'spawn',...spawn,startX:x,origin:doc.layout.spawns[spawn.team][spawn.slot],moved:false};return;}
   const monster=hitMonster(x,y);if(monster!==null){setSelection({type:'monster',index:monster});dragRef.current={kind:'monster',index:monster,startX:x,origin:doc.layout.monsters![monster].x,moved:false};return;}
   const item=hitItem(x,y);
@@ -241,13 +252,17 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   const drag=dragRef.current;if(!drag)return;
   if(drag.kind==='pan'){viewRef.current={...drag.view,x:drag.view.x+e.clientX-drag.startX,y:drag.view.y+e.clientY-drag.startY};redraw(n=>n+1);return;}
   const {x,y}=toWorld(e);
+  if(drag.kind==='cut'){drag.x=x;drag.y=y;redraw(n=>n+1);return;}
   if(drag.kind==='spawn'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{d.layout.spawns[drag.team][drag.slot]=nx;},!drag.moved);drag.moved=true;return;}
   if(drag.kind==='monster'){const nx=Math.max(0,Math.min(W,snap(drag.origin+x-drag.startX)));change(d=>{const m=d.layout.monsters![drag.index];m.x=nx;delete m.y;},!drag.moved);drag.moved=true;return;}
   let dx=x-drag.startX,dy=y-drag.startY;if(e.shiftKey){if(Math.abs(dx)>Math.abs(dy))dy=0;else dx=0;}
   if(drag.mirrored)dx=-dx;
   change(d=>{const item=d.layout.items[drag.index];item.x=snap(drag.origin.x+dx);item.top=snap(drag.origin.top+dy);},!drag.moved);drag.moved=true;
  };
- const onPointerUp=(e:React.PointerEvent)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchRef.current=null;dragRef.current=null;};
+ const onPointerUp=(e:React.PointerEvent)=>{pointers.current.delete(e.pointerId);if(pointers.current.size<2)pinchRef.current=null;
+  const drag=dragRef.current;dragRef.current=null;
+  if(drag?.kind==='cut'){const box=cutBox(drag);if(box.w>=8&&box.h>=8)change(d=>{const item=d.layout.items[drag.index];item.passThrough=[...(item.passThrough??[]),box];});redraw(n=>n+1);}
+ };
  const zoom100=()=>{const wrap=wrapRef.current!,v=viewRef.current,cx=(wrap.clientWidth/2-v.x)/v.scale;viewRef.current={scale:1,x:wrap.clientWidth/2-cx,y:(wrap.clientHeight-MAP_HEIGHT)/2};redraw(n=>n+1);};
 
  // ── Save and publish ──
@@ -271,7 +286,9 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
  };
  const askPublish=()=>{const warnings=built?.warnings.map(w=>w.text)??[];if(warnings.length)setConfirm({warnings});else void publish();};
  const restoreOriginal=async()=>{if(!window.confirm(summary?.builtIn?'Voltar o jogo para a versão original deste mapa? Os rascunhos continuam no histórico.':'Tirar este mapa do jogo?'))return;
-  setBusy('Voltando…');try{await api.unpublish(id);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);setNotice(summary?.builtIn?'O jogo voltou a usar o mapa original.':'Mapa fora do jogo.');}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+  setBusy('Voltando…');try{await api.unpublish(id);const m=await api.map(id);setSummary(m.map);setRevisions(m.revisions);if(summary?.builtIn)openShipped(false);setNotice(summary?.builtIn?'O jogo voltou a usar o mapa original, e o editor abriu o original. Seus rascunhos continuam no Histórico.':'Mapa fora do jogo.');}catch(e){setError((e as Error).message);}finally{setBusy('');}};
+ // The repository layout (scripts/map-layouts) in the editor, replacing a stale draft; saving makes it the new draft.
+ const openShipped=(notice=true)=>{const layout=shippedLayout(id);if(!layout)return;change(d=>{d.layout={...layout,name:d.meta.name};});setSelection(null);setDirty(true);if(notice)setNotice('Original aberto no editor. Salve e publique para usá-lo com suas mudanças.');};
  const deleteMap=async()=>{if(!window.confirm('Apagar este mapa e todo o histórico? Não dá para desfazer.'))return;try{await api.remove(id);onBack();}catch(e){setError((e as Error).message);}};
  const openRevision=async(revision:number)=>{try{const r=await api.revision(id,revision);const data=r.revision.data;if(!data.layout)return;
   change(d=>{d.layout=data.layout as MapLayout;d.meta={name:data.name,subtitle:String(data.subtitle??''),kind:data.kind==='instance'?'instance':'pvp',enabled:data.enabled!==false};});setShowHistory(false);setNotice(`Versão ${revision} aberta no editor. Salve para usá-la.`);}catch(e){setError((e as Error).message);}};
@@ -298,7 +315,7 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
    if(selection?.type==='spawn'&&doc&&(e.key==='ArrowLeft'||e.key==='ArrowRight')){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{d.layout.spawns[selection.team][selection.slot]=Math.max(0,Math.min(W,d.layout.spawns[selection.team][selection.slot]+step));});}
    if(selection?.type==='monster'&&doc){if(e.key==='Delete'||e.key==='Backspace'){e.preventDefault();removeMonster(selection.index);return;}
     if(e.key==='ArrowLeft'||e.key==='ArrowRight'){e.preventDefault();const step=(e.shiftKey?10:1)*(e.key==='ArrowLeft'?-1:1);change(d=>{const m=d.layout.monsters![selection.index];m.x=Math.max(0,Math.min(W,m.x+step));});}}
-   if(e.key==='Escape'){setSelection(null);setShowKeys(false);}
+   if(e.key==='Escape'){setSelection(null);setShowKeys(false);setCutting(false);}
    if(mod||e.altKey)return;
    if(e.key==='+'||e.key==='='){zoomAt(viewRef.current.scale*1.25);return;}
    if(e.key==='-'||e.key==='_'){zoomAt(viewRef.current.scale/1.25);return;}
@@ -379,10 +396,10 @@ export function MapEditor({id,onBack}:{id:string;onBack:()=>void}){
   </div>
 
   <aside className="adm-editor-right">
-   {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} width={W} locked={locked.has(selectedItem.id)} onLock={()=>toggleIn(setLocked,selectedItem.id)} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1}/>
+   {selectedItem&&selection?.type==='item'?<ItemInspector item={selectedItem} index={selection.index} mirrorMap={!!doc.layout.mirror} sheets={sheets} width={W} locked={locked.has(selectedItem.id)} onLock={()=>toggleIn(setLocked,selectedItem.id)} onChange={(patch,record)=>updateItem(selection.index,patch,record)} onDuplicate={()=>duplicate(selection.index)} onRemove={()=>removeItem(selection.index)} onMove={by=>move(selection.index,by)} last={doc.layout.items.length-1} cutting={cutting} onCut={()=>setCutting(on=>!on)}/>
    :selection?.type==='spawn'?<SpawnInspector doc={doc} team={selection.team} slot={selection.slot} width={W} ground={surfaceAt(doc.layout.spawns[selection.team][selection.slot])} problems={spawnWarnings.get(`${selection.team}-${selection.slot}`)??[]} onChange={x=>change(d=>{d.layout.spawns[selection.team][selection.slot]=x;})} onMirror={()=>change(d=>{d.layout.spawns[1]=d.layout.spawns[0].map(x=>W-x);})}/>
    :selection?.type==='monster'&&doc.layout.monsters?.[selection.index]?<MonsterInspector monster={doc.layout.monsters[selection.index] as MonsterPlacement} width={W} ground={surfaceAt(doc.layout.monsters[selection.index].x)} problems={(built?.warnings??[]).filter(w=>w.monster===selection.index).map(w=>w.text)} onChange={patch=>change(d=>{Object.assign(d.layout.monsters![selection.index],patch);})} onRemove={()=>removeMonster(selection.index)}/>
-   :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onDelete={deleteMap}/>}
+   :<MapInspector doc={doc} id={id} summary={summary} onChange={change} onRestore={restoreOriginal} onOpenShipped={()=>{if(window.confirm('Abrir no editor a versão original deste mapa? O que não foi salvo se perde; os rascunhos salvos continuam no Histórico.'))openShipped();}} onDelete={deleteMap}/>}
    <section className="adm-warnings"><h4>{warnings.length?<><AlertTriangle size={15}/>{warnings.length} {warnings.length===1?'aviso':'avisos'}</>:<><Eye size={15}/>Sem avisos</>}</h4>
     {warnings.length?<ul>{warnings.map((w,n)=><li key={n}><button onClick={()=>w.item!==undefined?setSelection({type:'item',index:w.item}):w.spawn?setSelection({type:'spawn',team:w.spawn[0],slot:w.spawn[1]}):w.monster!==undefined?setSelection({type:'monster',index:w.monster}):undefined}>{w.text}</button></li>)}</ul>:<p>Nenhum objeto flutuando, peça escondida ou spawn obstruído.</p>}
     {built&&<small>{built.regions.length} regiões de colisão · {doc.layout.items.length} itens</small>}
@@ -408,7 +425,7 @@ function Toggle({label,hint,value,onChange}:{label:string;hint?:string;value:boo
  return <label className="adm-toggle-row"><span><b>{label}</b>{hint&&<small>{hint}</small>}</span><button type="button" className={`adm-toggle ${value?'on':''}`} aria-pressed={value} onClick={()=>onChange(!value)}><i/></button></label>;
 }
 
-function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange,onDuplicate,onRemove,onMove,last}:{item:LayoutItem;index:number;mirrorMap:boolean;sheets:Record<string,Sheet>;width:number;locked:boolean;onLock:()=>void;onChange:(patch:Partial<LayoutItem>,record?:boolean)=>void;onDuplicate:()=>void;onRemove:()=>void;onMove:(by:number)=>void;last:number}){
+function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange,onDuplicate,onRemove,onMove,last,cutting,onCut}:{item:LayoutItem;index:number;mirrorMap:boolean;sheets:Record<string,Sheet>;width:number;locked:boolean;onLock:()=>void;onChange:(patch:Partial<LayoutItem>,record?:boolean)=>void;onDuplicate:()=>void;onRemove:()=>void;onMove:(by:number)=>void;last:number;cutting:boolean;onCut:()=>void}){
  const sheet=item.sheet??Object.keys(sheets)[0],pieces=sheets[sheet]?.pieces??[],mirrored=mirrorMap&&item.mirror!==false;
  return <section className="adm-inspector">
   <header><h3>{item.id}</h3><span><button className="adm-icon" onClick={()=>onMove(-1)} disabled={index===0} title="Desenhar antes (para trás)"><ArrowDown size={15}/></button><button className="adm-icon" onClick={()=>onMove(1)} disabled={index===last} title="Desenhar depois (para frente)"><ArrowUp size={15}/></button><button className={`adm-icon ${locked?'on':''}`} onClick={onLock} title={locked?'Destravar ( L )':'Travar: não move pelo mapa ( L )'}>{locked?<Lock size={15}/>:<Unlock size={15}/>}</button><button className="adm-icon" onClick={()=>onChange({x:width/2,mirror:mirrorMap?false:item.mirror})} title="Pôr no centro do mapa (sem cópia espelhada)"><AlignCenterVertical size={15}/></button><button className="adm-icon" onClick={onDuplicate} title="Duplicar (Ctrl+D)"><Copy size={15}/></button><button className="adm-icon danger" onClick={onRemove} title="Apagar (Del)"><Trash2 size={15}/></button></span></header>
@@ -426,6 +443,11 @@ function ItemInspector({item,index,mirrorMap,sheets,width,locked,onLock,onChange
   {item.rest&&<Num label="Afundar" value={item.sink??8} suffix="px" onChange={v=>onChange({sink:v})}/>}
   <Toggle label="Quebra com tiros" value={item.destructible!==false} onChange={v=>onChange({destructible:v})}/>
   <Toggle label="Tem colisão" hint="Desligado: só enfeite, sem chão" value={item.solid!==false} onChange={v=>onChange({solid:v?undefined:false})}/>
+  {item.solid!==false&&<Toggle label="Chão liso" hint="Pedrinhas e calombos em cima ficam só de enfeite: ninguém escala" value={!!item.smooth} onChange={v=>onChange({smooth:v?160:undefined})}/>}
+  {item.solid!==false&&<div className="adm-cut-areas">
+   <label className="adm-toggle-row"><span><b>Marcar área sem colisão</b><small>Ligado, cada retângulo arrastado sobre a peça vira uma área: ali ninguém pisa nem bate (folhas, enfeites). Desligue para voltar a mover peças</small></span><button type="button" className={`adm-toggle ${cutting?'on':''}`} aria-pressed={cutting} onClick={onCut}><i/></button></label>
+   {(item.passThrough??[]).map((box,n)=><div key={n} className="adm-cut-area"><span>Área {n+1} · x {box.x} · y {box.y} · {box.w}×{box.h}</span><button type="button" className="adm-icon" title="Devolver a colisão desta área" onClick={()=>{const rest=(item.passThrough??[]).filter((_,k)=>k!==n);onChange({passThrough:rest.length?rest:undefined});}}><Trash2 size={14}/></button></div>)}
+  </div>}
  </section>;
 }
 
@@ -452,7 +474,7 @@ function MonsterInspector({monster,width,ground,problems,onChange,onRemove}:{mon
  </section>;
 }
 
-function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onDelete:()=>void}){
+function MapInspector({doc,id,summary,onChange,onRestore,onOpenShipped,onDelete}:{doc:Doc;id:string;summary:AdminMapSummary|null;onChange:(u:(d:Doc)=>void)=>void;onRestore:()=>void;onOpenShipped:()=>void;onDelete:()=>void}){
  const W=doc.layout.width??1536;
  return <section className="adm-inspector">
   <header><h3>Mapa</h3></header>
@@ -465,6 +487,7 @@ function MapInspector({doc,id,summary,onChange,onRestore,onDelete}:{doc:Doc;id:s
   <dl className="adm-facts"><dt>Código</dt><dd>{id}</dd><dt>Arte de</dt><dd>{summary?.base??id}</dd><dt>Peças</dt><dd>{doc.layout.source}</dd></dl>
   <p className="adm-hint">Selecione uma peça ou um spawn no mapa para editar. Peças novas de arte entram pelo Codex (docs/maps-kit.md).</p>
   <div className="adm-danger-zone">
+   {summary?.builtIn&&summary.draftRevision&&<button className="adm-btn ghost wide" onClick={onOpenShipped}><RotateCcw size={15}/>Abrir o original no editor</button>}
    {summary?.publishedRevision&&<button className="adm-btn ghost wide" onClick={onRestore}><RotateCcw size={15}/>{summary.builtIn?'Voltar ao original no jogo':'Tirar do jogo'}</button>}
    {summary&&!summary.builtIn&&<button className="adm-btn danger wide" onClick={onDelete}><Trash2 size={15}/>Apagar mapa</button>}
   </div>

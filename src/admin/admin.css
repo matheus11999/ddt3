@@ -382,3 +382,7 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-qty .adm-icon{width:26px;height:26px}
 .adm-upgrade{display:flex;align-items:center;gap:2px;font-weight:900;color:var(--gold2)}.adm-upgrade select{width:auto;height:30px;padding:0 6px}
 @media (max-width:900px){.adm-compose.with-catalog .adm-compose-body{grid-template-columns:1fr}.adm-catalog{height:320px}.adm-player-drawer{width:100%}}
+.adm-cut-areas{display:grid;gap:6px}
+.adm-cut-areas .adm-toggle-row{display:grid}
+.adm-cut-area{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 4px 4px 10px;border-radius:9px;border:1px dashed #ff5a4a88;background:#ff5a4a14;color:var(--muted);font-size:12px}
+.adm-cut-area .adm-icon{width:28px;height:28px}

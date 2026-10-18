@@ -30,7 +30,16 @@
    "x": 1536,
    "top": 296,
    "scale": 1,
-   "destructible": false
+   "destructible": false,
+   "passThrough": [
+    {
+     "x": 2360,
+     "y": 290,
+     "w": 600,
+     "h": 180
+    }
+   ],
+   "smooth": 160
   },
   {
    "id": "root-ledge",

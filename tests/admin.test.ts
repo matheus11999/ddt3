@@ -1,3 +1,4 @@
+import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {checkCredentials,hashPassword,LoginThrottle,verifyPassword} from '../server/adminAuth';
@@ -70,6 +71,9 @@ test('map saves are validated before they reach the database',()=>{
  assert.ok(!mapSaveSchema.safeParse({...base,layout:{...base.layout,width:1537}}).success);
  assert.ok(!mapSaveSchema.safeParse({...base,kind:'lobby'}).success);
  assert.ok(!mapSaveSchema.safeParse({...base,extra:1}).success);
+ // Areas without collision and flat ground from the editor save and publish.
+ assert.ok(mapSaveSchema.safeParse({...base,layout:{...base.layout,items:[{id:'ground',piece:0,x:1536,top:296,passThrough:[{x:2360,y:290,w:600,h:180}],smooth:160}]}}).success);
+ for(const shipped of ['anthill-1','anthill-2','snow'])assert.ok(mapSaveSchema.safeParse({...base,kind:shipped==='snow'?'pvp':'instance',layout:JSON.parse(readFileSync(`scripts/map-layouts/${shipped}.json`,'utf8'))}).success,`${shipped}: o layout do repositório precisa salvar no editor`);
 });
 
 test('a map can borrow a sheet from another map folder by a relative path',()=>{
