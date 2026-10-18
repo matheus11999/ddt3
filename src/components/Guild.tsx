@@ -1,15 +1,16 @@
 import {useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {ArrowUpCircle,Check,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,Search,Settings,Shield,ShoppingBag,Trash2,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
+import {ArrowUpCircle,Check,ChevronDown,ChevronLeft,ChevronRight,ChevronUp,Coins,Crown,Hammer,LoaderCircle,LockKeyhole,LogOut,PackageOpen,PackagePlus,ArrowDownCircle,IdCard,Search,Settings,Shield,ShoppingBag,Trash2,UserMinus,UserPlus,Users,Warehouse,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES} from '../../shared/catalog';
 import {goodsName} from '../../shared/auction';
 import {BUILDING_LEVEL_COSTS,BUILDING_NAMES,canRaiseBuilding,GUILD_BUILDINGS,GUILD_CREATE_COST,GUILD_LEVEL_COSTS,GUILD_MAX_LEVEL,GUILD_MISSIONS,GUILD_NAME_MAX,GUILD_PERMISSIONS,GUILD_SHOP,guildMemberCap,LEADER_RANK,PERMISSION_NAMES,RANK_NAME_MAX,RANK_NAME_MIN,rankCan,smithBonus,SMITH_BONUS_PER_LEVEL,storageCapacity} from '../../shared/guilds';
-import type {GuildBuilding,GuildPermission,GuildRank,GuildView} from '../../shared/guilds';
+import type {GuildBuilding,GuildMember,GuildPermission,GuildRank,GuildView} from '../../shared/guilds';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {bagGoods,GoodsArt,GoodsCard,goodsRarity} from './Auction';
 import {Avatar} from './Avatar';
+import {BagContextMenu} from './ColorStudio';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
 import {ItemCard,ItemCardFrame,itemTier,rarityLabel} from './ItemCard';
@@ -149,7 +150,8 @@ function LeaveGuild({guild}:{guild:GuildView}){
 
 /** Membros com as contribuições, ordenados pela setinha de cada título; sem barra de rolagem: cada página tem as linhas que cabem. */
 function GuildRoster({guild}:{guild:GuildView}){
- const {profile,guildPending:pending}=useGame(),me=profile!.id,mine=guild.myRank,canKick=rankCan(guild.ranks,mine,'kick'),canPromote=rankCan(guild.ranks,mine,'promote'),actions=canKick;
+ const {profile,guildPending:pending}=useGame(),me=profile!.id,mine=guild.myRank,canKick=rankCan(guild.ranks,mine,'kick'),canPromote=rankCan(guild.ranks,mine,'promote');
+ const [menu,setMenu]=useState<{member:GuildMember;x:number;y:number}|null>(null),[kicking,setKicking]=useState<GuildMember|null>(null);
  const [sort,setSort]=useState<SortKey>('contribution'),[desc,setDesc]=useState(true),[page,setPage]=useState(0),[pageSize,setPageSize]=useState(10);
  const box=useRef<HTMLDivElement>(null);
  useLayoutEffect(()=>{
@@ -172,21 +174,36 @@ function GuildRoster({guild}:{guild:GuildView}){
    {pages>1&&<div className="guild-pager"><button aria-label="Página anterior" disabled={current===0} onClick={()=>setPage(current-1)}><ChevronLeft size={15}/></button><span>{current+1} / {pages}</span><button aria-label="Próxima página" disabled={current===pages-1} onClick={()=>setPage(current+1)}><ChevronRight size={15}/></button></div>}
   </header>
   <div className="guild-roster-box" ref={box}>
-   <table className={`guild-table ${actions?'with-actions':''}`}>
-    <colgroup><col className="c-rank"/><col/><col className="c-role"/><col className="c-level"/><col className="c-today"/><col className="c-total"/>{actions&&<col className="c-act"/>}</colgroup>
-    <thead><tr><th>#</th>{head('name','Membro')}{head('rank','Cargo')}{head('level','Nível')}{head('today','Hoje')}{head('contribution','Total')}{actions&&<th aria-label="Ações"/>}</tr></thead>
+   <table className="guild-table with-actions">
+    <colgroup><col className="c-rank"/><col/><col className="c-role"/><col className="c-level"/><col className="c-today"/><col className="c-total"/><col className="c-act"/></colgroup>
+    <thead><tr><th>#</th>{head('name','Membro')}{head('rank','Cargo')}{head('level','Nível')}{head('today','Hoje')}{head('contribution','Total')}<th aria-label="Opções"/></tr></thead>
     <tbody>{visible.map(m=><tr key={m.id} className={m.id===me?'me':''}>
      <td className="guild-rank"><span data-rank={m.place<=3?m.place:undefined}>{m.place}</span></td>
      <td><span className="guild-member"><span className={`guild-dot ${m.online?'on':''}`} title={m.online?'Online':'Offline'}/><b title={m.name} {...playerMenuProps(m.id!==me?{id:m.id,name:m.name,context:'hall'}:null)}>{m.name}</b>{m.rank===LEADER_RANK&&<Crown className="guild-owner-crown" size={14} aria-label={guild.ranks[0].name}/>}</span></td>
-     <td className="guild-role-cell">{canPromote&&m.id!==me&&m.rank>mine?<select className="guild-rank-select" value={m.rank} disabled={pending} aria-label={`Cargo de ${m.name}`} onChange={e=>client.guildAction({type:'guild-rank-set',playerId:m.id,rank:Number(e.target.value)})}>{guild.ranks.filter(r=>r.id>mine).map(r=><option key={r.id} value={r.id}>{r.name}</option>)}</select>
-      :<span className={`guild-role ${m.rank===LEADER_RANK?'owner':''}`} data-rank={m.rank}>{guild.ranks[m.rank]?.name}</span>}</td>
+     <td className="guild-role-cell"><span className={`guild-role ${m.rank===LEADER_RANK?'owner':''}`} data-rank={m.rank}>{guild.ranks[m.rank]?.name}</span></td>
      <td>{m.level}</td>
      <td className="guild-num">{m.today?`+${money(m.today)}`:'0'}</td>
      <td className="guild-num"><RiquezaIcon size={14}/> {money(m.contribution)}</td>
-     {actions&&<td>{m.id!==me&&m.rank>mine&&<button className="guild-icon-button" title={`Expulsar ${m.name}`} aria-label={`Expulsar ${m.name}`} disabled={pending} onClick={()=>client.guildAction({type:'guild-kick',playerId:m.id})}><UserMinus size={14}/></button>}</td>}
+     <td>{m.id!==me&&<button className="guild-icon-button guild-gear" title="Opções" aria-label={`Opções de ${m.name}`} aria-haspopup="menu" aria-expanded={menu?.member.id===m.id} onClick={e=>{const box=e.currentTarget.getBoundingClientRect();setMenu({member:m,x:box.right-4,y:box.bottom+4});audio.play('click');}}><Settings size={15}/></button>}</td>
     </tr>)}</tbody></table>
   </div>
+  {menu&&createPortal(<BagContextMenu x={menu.x} y={menu.y} title={menu.member.name} onClose={()=>setMenu(null)} actions={memberActions(menu.member)}/>,document.body)}
+  {kicking&&<div className="guild-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setKicking(null);}}><section className="guild-confirm" role="alertdialog" aria-label={`Expulsar ${kicking.name}`}>
+   <strong>Expulsar {kicking.name}?</strong>
+   <p>A contribuição de {kicking.name} fica com a guilda.</p>
+   <div><button className="wood-quiet" onClick={()=>setKicking(null)}>Voltar</button><button className="wood-button guild-danger" disabled={pending} onClick={()=>{client.guildAction({type:'guild-kick',playerId:kicking.id});setKicking(null);}}>Expulsar</button></div>
+  </section></div>}
  </section>;
+ /** Ver informações for everyone; promote, demote and kick only on members below the viewer's rank. */
+ function memberActions(m:GuildMember){
+  const below=m.rank>mine,up=guild.ranks[m.rank-1],down=guild.ranks[m.rank+1],rank=(r:number)=>()=>{client.guildAction({type:'guild-rank-set',playerId:m.id,rank:r});audio.play('click');};
+  return [
+   {id:'info',label:'Ver informações',icon:<IdCard size={16}/>,onSelect:()=>{client.openPlayerPanel('info',{id:m.id,name:m.name,context:'hall'});audio.play('click');}},
+   ...(canPromote&&below&&up&&up.id>mine?[{id:'promote',label:`Promover a ${up.name}`,icon:<ArrowUpCircle size={16}/>,disabled:pending,onSelect:rank(up.id)}]:[]),
+   ...(canPromote&&below&&down?[{id:'demote',label:`Rebaixar a ${down.name}`,icon:<ArrowDownCircle size={16}/>,disabled:pending,onSelect:rank(down.id)}]:[]),
+   ...(canKick&&below?[{id:'kick',label:'Expulsar',icon:<UserMinus size={16}/>,danger:true,disabled:pending,onSelect:()=>setKicking(m)}]:[]),
+  ];
+ }
 }
 
 /** Missões diárias: cada uma concluída e recebida soma contribuição ao membro e a mesma Riqueza à guilda. */

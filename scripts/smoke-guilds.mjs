@@ -58,7 +58,18 @@ try{
  await manage.getByLabel('Nome do cargo 3').fill('Comandante');await manage.getByRole('button',{name:'Salvar cargos'}).click();await manage.locator('.guild-toast',{hasText:'Cargos salvos'}).waitFor();
  await owner.page.waitForTimeout(400);await owner.page.screenshot({path:`${output}/4b-cargos.png`});
  await manage.locator('.close-button').click();await w.locator('.guild-crest-level',{hasText:'1'}).waitFor();
- await w.getByLabel(`Cargo de ${member.profile.name}`).selectOption({label:'Comandante'});await w.locator('.guild-toast',{hasText:'Cargo alterado'}).waitFor();
+ // Engrenagem do membro: Ver informações, Promover, Rebaixar e Expulsar (pede confirmação).
+ await w.getByLabel(`Opções de ${member.profile.name}`).click();const gear=owner.page.getByRole('menu',{name:member.profile.name});
+ for(const label of ['Ver informações','Promover a Veterano','Expulsar'])await gear.getByRole('menuitem',{name:label}).waitFor();
+ await owner.page.waitForTimeout(200);await owner.page.screenshot({path:`${output}/4c-engrenagem.png`});
+ await gear.getByRole('menuitem',{name:'Promover a Veterano'}).click();await w.locator('tr',{hasText:member.profile.name}).locator('.guild-role',{hasText:'Veterano'}).waitFor();
+ await w.getByLabel(`Opções de ${member.profile.name}`).click();await owner.page.getByRole('menuitem',{name:'Promover a Comandante'}).click();await w.locator('.guild-toast',{hasText:'Cargo alterado'}).waitFor();
+ await w.locator('tr',{hasText:member.profile.name}).locator('.guild-role',{hasText:'Comandante'}).waitFor();
+ await w.getByLabel(`Opções de ${member.profile.name}`).click();await owner.page.getByRole('menuitem',{name:'Expulsar'}).click();
+ await owner.page.getByRole('alertdialog',{name:`Expulsar ${member.profile.name}`}).getByRole('button',{name:'Voltar'}).click();
+ await w.getByLabel(`Opções de ${member.profile.name}`).click();await owner.page.getByRole('menuitem',{name:'Ver informações'}).click();
+ await owner.page.locator('.player-info-window').getByText(member.profile.name).first().waitFor();await owner.page.waitForTimeout(300);await owner.page.screenshot({path:`${output}/4d-info.png`});
+ await owner.page.locator('.player-info-window .close-button').click();
  // Daily missions and contributions: the member finished two missions; the list ranks by contribution.
  await db.query(`UPDATE guild_members SET daily=jsonb_build_object('day',to_char(now() AT TIME ZONE 'America/Sao_Paulo','YYYY-MM-DD'),'progress',jsonb_build_object('play',3,'forge',2,'win',1),'claimed','[]'::jsonb,'today',0),contribution=contribution+40 WHERE player_id=$1`,[member.profile.id]);
  await member.page.locator('.guild-window:not(.guild-sub-window) > .window-header .close-button').click();const m2=await openGuild(member.page);
