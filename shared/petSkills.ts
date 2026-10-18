@@ -9,12 +9,13 @@ import type {PetConfig,PetStatKey,PetStats} from './petConfig';
 export const PET_SKILL_KINDS=['active','passive','permanent','conditional'] as const;
 export type PetSkillKind=typeof PET_SKILL_KINDS[number];
 /** Battle events a passive or conditional skill can listen to. Add new ones at the end. */
-export const PET_TRIGGERS=['battle-start','turn-start','turn-end','before-fire','before-damage','hit','multi-hit','damage-dealt','critical','damaged','critical-received','absorbed','healed','heal-ally','debuff-applied','debuff-removed','kill','ally-died','hp-below','battle-won','battle-end'] as const;
+export const PET_TRIGGERS=['battle-start','turn-start','turn-end','before-fire','before-damage','hit','multi-hit','damage-dealt','critical','damaged','critical-received','absorbed','healed','heal-ally','debuff-applied','debuff-removed','kill','ally-died','hp-below','battle-won','battle-end',
+ /** The owner's shot is over: every projectile landed (event carries the main impact point). */'shot-end'] as const;
 export type PetTrigger=typeof PET_TRIGGERS[number];
 /** Who an effect lands on. `event-source`/`event-target`: the two sides of the event that triggered a passive. */
 export const PET_TARGETS=['self','ally','allies','enemy','enemies','event-source','event-target'] as const;
 export type PetTarget=typeof PET_TARGETS[number];
-export const PET_ACTIONS=['fire','walk','boost','ability','pet-skill'] as const;
+export const PET_ACTIONS=['fire','walk','boost','ability','power','flight','pet-skill'] as const;
 export type PetBlockedAction=typeof PET_ACTIONS[number];
 
 const amount=z.number().finite().min(0).max(1_000_000);
@@ -34,9 +35,13 @@ export const petEffectSchema=z.discriminatedUnion('kind',[
  /** Outgoing/incoming damage multipliers for some turns (0.8 incoming = 20% less damage taken). */
  z.object({kind:z.literal('damage-modifier'),...effectBase,outgoing:z.number().positive().max(10).optional(),incoming:z.number().min(0).max(10).optional(),turns}).strict(),
  z.object({kind:z.literal('shield'),...effectBase,amount:amount.optional(),maxHpPercent:amount.optional(),turns}).strict(),
- /** Damage (dot) or healing (hot) at the end of each of the carrier's turns. */
- z.object({kind:z.literal('dot'),...effectBase,amount,turns}).strict(),
- z.object({kind:z.literal('hot'),...effectBase,amount,turns}).strict(),
+ /** Damage (dot) or healing (hot) at the end (default) or the start of each of the carrier's turns. */
+ z.object({kind:z.literal('dot'),...effectBase,amount:amount.optional(),maxHpPercent:amount.optional(),at:z.enum(['turn-start','turn-end']).optional(),turns}).strict(),
+ z.object({kind:z.literal('hot'),...effectBase,amount:amount.optional(),maxHpPercent:amount.optional(),at:z.enum(['turn-start','turn-end']).optional(),turns}).strict(),
+ /** Damage to every enemy within `radius` px of the event's point (no projectile: the effect rises where the shot landed). */
+ z.object({kind:z.literal('area-damage'),...effectBase,radius:z.number().positive().max(600),amount:amount.optional(),attackPercent:amount.optional(),maxHpPercent:amount.optional()}).strict(),
+ /** The carrier's next shot becomes the pet's own projectile: one projectile, no tools, damage × multiplier, optionally always critical. */
+ z.object({kind:z.literal('special-shot'),...effectBase,projectile:z.string().regex(/^[a-z0-9-]{1,32}$/),multiplier:z.number().positive().max(10).default(1),critical:z.boolean().default(false),turns:turns.default(1)}).strict(),
  z.object({kind:z.literal('immunity'),...effectBase,against:z.array(z.string().regex(/^[a-z0-9-]{1,24}$/)).min(1).max(6),turns}).strict(),
  z.object({kind:z.literal('block'),...effectBase,actions:z.array(z.enum(PET_ACTIONS)).min(1),turns}).strict(),
  z.object({kind:z.literal('cleanse'),...effectBase,remove:z.enum(['debuffs','buffs']),count:z.number().int().min(1).max(20)}).strict(),
@@ -64,6 +69,8 @@ export const petSkillSchema=z.object({
  conditions:z.object({hpBelowPercent:z.number().min(0).max(100).optional(),minDamage:z.number().min(0).optional(),critical:z.boolean().optional()}).strict().default({}),
  requirements:z.object({petLevel:z.number().int().min(1).default(1),stage:z.number().int().min(0).default(0),stars:z.number().int().min(0).default(0)}).strict().default({petLevel:1,stage:0,stars:0}),
  modes:z.array(z.enum(['pvp','pve'])).min(1).default(['pvp','pve']),
+ /** Battle level follows the pet's evolution stage (stage 0 → level 1, stage 1 → level 2…), capped by `levels`. */
+ stageScaling:z.boolean().default(false),
  /** Higher runs first when several skills listen to the same event. */
  priority:z.number().int().min(-100).max(100).default(0),
  limits:z.object({perTurn:z.number().int().min(1).optional(),perShot:z.number().int().min(1).optional(),perBattle:z.number().int().min(1).optional()}).strict().default({}),
@@ -71,7 +78,10 @@ export const petSkillSchema=z.object({
  allowFromSkills:z.boolean().default(false),
  /** Level 1 is `levels[0]`; later levels are full parameter sets (more power, less cost, longer…). */
  levels:z.array(levelSchema).min(1).max(20),
- visual:z.object({icon:z.string().max(120).optional(),effect:z.string().max(120).optional(),sound:z.string().max(120).optional()}).strict().optional()
+ /** Art: `{stage}` in a path is replaced by the pet's evolution stage. `effect` is a horizontal strip of `frames` cells played
+  *  in `duration` ms, `size` px wide in the world; `projectile` (2 frames) and `impact` belong to a special shot. */
+ visual:z.object({icon:z.string().max(120).optional(),effect:z.string().max(120).optional(),frames:z.number().int().min(1).max(32).optional(),duration:z.number().int().min(100).max(5000).optional(),size:z.number().positive().max(800).optional(),
+  projectile:z.string().max(120).optional(),impact:z.string().max(120).optional(),sound:z.string().max(120).optional()}).strict().optional()
 }).strict().superRefine((skill,ctx)=>{
  const listens=skill.kind==='passive'||skill.kind==='conditional';
  if(listens&&!skill.triggers.length)ctx.addIssue({code:'custom',message:`${skill.id}: habilidade passiva precisa de um gatilho.`});
@@ -95,15 +105,18 @@ export function skillLevel(skill:PetSkillDefinition,level:number):PetSkillLevel{
 // ── Battle state ──
 /** The pet's temporary battle state, kept on its owner's Fighter (plain JSON: survives restarts, docs/live-state.md). */
 export interface BattlePetSkill {id:string;level:number;/** Owner turn from which it can be used again. */readyAt:number;uses:number;}
-export interface BattlePetState {petId:string;species:string;mana:number;maxMana:number;regen:number;/** Turns of the owner started in this battle. */turns:number;skills:BattlePetSkill[];/** Passive activations per skill: turn counted, count this turn, shots seen. */fired?:Record<string,{turn:number;count:number;shots:string[]}>;}
+export interface BattlePetState {petId:string;species:string;/** Evolution stage at battle start (picks the art of its effects). */stage?:number;mana:number;maxMana:number;regen:number;/** Turns of the owner started in this battle. */turns:number;skills:BattlePetSkill[];/** Passive activations per skill: turn counted, count this turn, shots seen. */fired?:Record<string,{turn:number;count:number;shots:string[]}>;}
 /** A buff, debuff or lingering effect on a fighter (from any pet, own or enemy). */
-export interface PetEffect {id:string;kind:Exclude<PetEffectDef['kind'],'damage'|'heal'|'cleanse'|'mana'|'delay'>;skill:string;sourceId:string;stackKey:string;stacks:number;turns?:number;debuff?:boolean;tags?:string[];
- value?:number;stat?:PetStatKey;outgoing?:number;incoming?:number;multiplier?:number;shots?:number;shield?:number;against?:string[];actions?:PetBlockedAction[];}
+export interface PetEffect {id:string;kind:Exclude<PetEffectDef['kind'],'damage'|'heal'|'cleanse'|'mana'|'delay'|'area-damage'>;skill:string;sourceId:string;stackKey:string;stacks:number;turns?:number;debuff?:boolean;tags?:string[];
+ value?:number;stat?:PetStatKey;outgoing?:number;incoming?:number;multiplier?:number;shots?:number;shield?:number;against?:string[];actions?:PetBlockedAction[];
+ /** dot/hot: when it ticks. */at?:'turn-start'|'turn-end';/** dot/hot: share of the carrier's Vida per tick. */maxHpPercent?:number;
+ /** special-shot */projectile?:string;critical?:boolean;}
 /** What the engine needs from a fighter; the game's Fighter matches it. */
-export interface PetCombatant {id:string;team:number;hp:number;maxHp:number;level:number;delay?:number;left?:boolean;pet?:BattlePetState;petEffects?:PetEffect[];}
+export interface PetCombatant {id:string;team:number;hp:number;maxHp:number;level:number;x?:number;y?:number;delay?:number;left?:boolean;pet?:BattlePetState;petEffects?:PetEffect[];}
 /** One visible result, sent to clients (`pet-effect`) so future art can play it. */
-export interface PetApplication {skill:string;kind:PetEffectDef['kind']|'activate';sourceId:string;targetId:string;amount?:number;absorbed?:number;killed?:boolean;}
-export interface PetEventInfo {sourceId?:string;targetId?:string;amount?:number;critical?:boolean;shotId?:string;/** Set when the event was caused by a pet skill (loop prevention). */origin?:{skill:string;depth:number};}
+export interface PetApplication {skill:string;kind:PetEffectDef['kind']|'activate';sourceId:string;targetId:string;amount?:number;absorbed?:number;killed?:boolean;
+ /** Where an area effect rises, and the stage of the pet that cast it (for its art). */x?:number;y?:number;radius?:number;stage?:number;}
+export interface PetEventInfo {sourceId?:string;targetId?:string;amount?:number;critical?:boolean;shotId?:string;/** Where it happened (shot-end: the main impact). */point?:{x:number;y:number};/** Set when the event was caused by a pet skill (loop prevention). */origin?:{skill:string;depth:number};}
 export interface PetEngineContext {fighters:PetCombatant[];mode:'pvp'|'pve';roll:()=>number;config?:PetConfig;/** Fresh ids for effects. */id?:()=>string;
  /** Activations left for the current player action (shared by the whole chain). */budget?:{left:number};
 /** The fighter's official Ataque, for effects that scale with it. */attackOf?:(f:PetCombatant)=>number;
@@ -112,10 +125,10 @@ export interface PetEngineContext {fighters:PetCombatant[];mode:'pvp'|'pve';roll
 let counter=0;const nextId=()=>`pe-${Date.now().toString(36)}-${(counter++).toString(36)}`;
 const alive=(f:PetCombatant)=>f.hp>0&&!f.left;
 /** Builds the battle state of an equipped pet, or nothing when it cannot fight (unknown species, no vitality, mode closed). */
-export function createBattlePet(input:{petId:string;species:string;skills:{id:string;level:number}[]}|undefined,mode:'pvp'|'pve',config:PetConfig=PET_CONFIG):BattlePetState|undefined{
+export function createBattlePet(input:{petId:string;species:string;stage?:number;skills:{id:string;level:number}[]}|undefined,mode:'pvp'|'pve',config:PetConfig=PET_CONFIG):BattlePetState|undefined{
  if(!input)return undefined;
- const skills=input.skills.filter(s=>{const def=petSkill(s.id);return def&&(def.kind==='active'||def.kind==='passive'||def.kind==='conditional')&&def.modes.includes(mode);}).map(s=>({id:s.id,level:Math.max(1,Math.floor(s.level)),readyAt:0,uses:0}));
- return {petId:input.petId,species:input.species,mana:config.mana.initial,maxMana:config.mana.max,regen:config.mana.regenPerTurn,turns:0,skills};
+ const skills=input.skills.filter(s=>{const def=petSkill(s.id);return def&&(def.kind==='active'||def.kind==='passive'||def.kind==='conditional')&&def.modes.includes(mode);}).map(s=>{const def=petSkill(s.id)!,own=Math.max(1,Math.floor(s.level));return {id:s.id,level:def.stageScaling?Math.max(own,(input.stage??0)+1):own,readyAt:0,uses:0};});
+ return {petId:input.petId,species:input.species,stage:input.stage??0,mana:config.mana.initial,maxMana:config.mana.max,regen:config.mana.regenPerTurn,turns:0,skills};
 }
 function targetsFor(ctx:PetEngineContext,owner:PetCombatant,target:PetTarget,event?:PetEventInfo,chosen?:string):PetCombatant[]{
  const byId=(id?:string)=>id?ctx.fighters.find(f=>f.id===id):undefined;
@@ -156,6 +169,19 @@ function damage(ctx:PetEngineContext,source:PetCombatant,target:PetCombatant,raw
 function applyEffects(ctx:PetEngineContext,owner:PetCombatant,skill:PetSkillDefinition,level:PetSkillLevel,event:PetEventInfo|undefined,chosen:string|undefined,depth:number):PetApplication[]{
  const out:PetApplication[]=[],follow:{trigger:PetTrigger;owner:PetCombatant;info:PetEventInfo}[]=[];
  for(const effect of level.effects){
+  if(effect.kind==='area-damage'){
+   const point=event?.point;if(!point)continue;
+   out.push({skill:skill.id,kind:'area-damage',sourceId:owner.id,targetId:owner.id,x:point.x,y:point.y,radius:effect.radius,...(owner.pet?.stage!==undefined?{stage:owner.pet.stage}:{})});
+   const origin={skill:skill.id,depth:depth+1};
+   for(const target of ctx.fighters.filter(f=>f.team!==owner.team&&alive(f)&&f.x!==undefined&&Math.hypot((f.x??0)-point.x,(f.y??0)-40-point.y)<=effect.radius)){
+    if(immune(target,effect))continue;
+    const raw=(effect.amount??0)+(effect.attackPercent??0)/100*(ctx.attackOf?.(owner)??0)+(effect.maxHpPercent??0)/100*target.maxHp;
+    const hit={...damage(ctx,owner,target,raw,skill.id),kind:'area-damage' as const};out.push(hit);
+    if(hit.amount)follow.push({trigger:'damage-dealt',owner,info:{sourceId:owner.id,targetId:target.id,amount:hit.amount,origin}},{trigger:'damaged',owner:target,info:{sourceId:owner.id,targetId:target.id,amount:hit.amount,origin}});
+    if(hit.killed){follow.push({trigger:'kill',owner,info:{sourceId:owner.id,targetId:target.id,origin}});for(const ally of ctx.fighters.filter(f=>f.team===target.team&&f.id!==target.id&&alive(f)))follow.push({trigger:'ally-died',owner:ally,info:{sourceId:owner.id,targetId:target.id,origin}});}
+   }
+   continue;
+  }
   for(const target of targetsFor(ctx,owner,effect.target,event,chosen)){
    if(!alive(target)&&effect.kind!=='cleanse')continue;
    if(target.team!==owner.team&&immune(target,effect))continue;
@@ -179,7 +205,8 @@ function applyEffects(ctx:PetEngineContext,owner:PetCombatant,skill:PetSkillDefi
       ...(effect.kind==='stat'?{stat:effect.stat,value:effect.value}:{}),
       ...(effect.kind==='damage-modifier'?{...(effect.outgoing!==undefined?{outgoing:effect.outgoing}:{}),...(effect.incoming!==undefined?{incoming:effect.incoming}:{})}:{}),
       ...(effect.kind==='next-shot'?{multiplier:effect.multiplier,shots:effect.shots}:{}),
-      ...(effect.kind==='dot'||effect.kind==='hot'?{value:effect.amount}:{}),
+      ...(effect.kind==='dot'||effect.kind==='hot'?{value:effect.amount??0,...(effect.maxHpPercent?{maxHpPercent:effect.maxHpPercent}:{}),...(effect.at?{at:effect.at}:{})}:{}),
+      ...(effect.kind==='special-shot'?{projectile:effect.projectile,multiplier:effect.multiplier,critical:effect.critical,shots:1}:{}),
       ...(effect.kind==='immunity'?{against:effect.against}:{}),
       ...(effect.kind==='block'?{actions:effect.actions}:{})};
      if(addEffect(ctx,target,lasting,effect.stack)){out.push({skill:skill.id,kind:effect.kind,sourceId:owner.id,targetId:target.id,...(lasting.value!==undefined?{amount:lasting.value}:{})});
@@ -286,21 +313,36 @@ export function drainShield(target:PetCombatant,amount:number){
  let left=amount;for(const e of target.petEffects??[])if(e.kind==='shield'&&left>0){const take=Math.min(e.shield??0,left);e.shield=(e.shield??0)-take;left-=take;}
  if(target.petEffects)target.petEffects=target.petEffects.filter(e=>e.kind!=='shield'||(e.shield??0)>0);
 }
-/** Start of the owner's turn: Magia regenerates and cooldowns advance; then `turn-start` passives. */
-export function petTurnStart(ctx:PetEngineContext,f:PetCombatant){
- if(!f.pet)return [];
- f.pet.turns++;f.pet.mana=Math.min(f.pet.maxMana,f.pet.mana+f.pet.regen);
- return dispatchPetTrigger(ctx,'turn-start',f,{sourceId:f.id});
+/** One tick of the dot/hot effects of `f` that run at `at`; then those effects lose a turn. */
+function tickPeriodic(ctx:PetEngineContext,f:PetCombatant,at:'turn-start'|'turn-end'):PetApplication[]{
+ const out:PetApplication[]=[];const mine=(e:PetEffect)=>(e.kind==='dot'||e.kind==='hot')&&(e.at??'turn-end')===at;
+ for(const e of f.petEffects??[]){
+  if(!alive(f))break;if(!mine(e))continue;
+  const value=Math.round(((e.value??0)+(e.maxHpPercent??0)/100*f.maxHp)*e.stacks);
+  if(e.kind==='dot'){const source=ctx.fighters.find(x=>x.id===e.sourceId)??f;out.push(damage(ctx,source,f,value,e.skill));}
+  else{const healed=Math.max(0,Math.min(f.maxHp-f.hp,value));f.hp+=healed;out.push({skill:e.skill,kind:'hot',sourceId:e.sourceId,targetId:f.id,amount:healed});}
+ }
+ if(at==='turn-start'&&f.petEffects){for(const e of f.petEffects)if(mine(e)&&e.turns!==undefined)e.turns--;f.petEffects=f.petEffects.filter(e=>e.turns===undefined||e.turns>0);if(!f.petEffects.length)delete f.petEffects;}
+ return out;
 }
+/** Start of a fighter's turn: turn-start heals and damage tick; for the pet's owner Magia regenerates, cooldowns advance and `turn-start` passives run. */
+export function petTurnStart(ctx:PetEngineContext,f:PetCombatant){
+ const out=tickPeriodic(ctx,f,'turn-start');
+ if(!f.pet)return out;
+ f.pet.turns++;f.pet.mana=Math.min(f.pet.maxMana,f.pet.mana+f.pet.regen);
+ return [...out,...dispatchPetTrigger(ctx,'turn-start',f,{sourceId:f.id})];
+}
+/** The pending special shot of a fighter (spent by `consumeSpecialShot` when it fires). */
+export function specialShot(f:PetCombatant){return (f.petEffects??[]).find(e=>e.kind==='special-shot'&&(e.shots??0)>0);}
+export function consumeSpecialShot(f:PetCombatant){const e=specialShot(f);if(!e)return undefined;f.petEffects=(f.petEffects??[]).filter(x=>x!==e);if(!f.petEffects.length)delete f.petEffects;return e;}
+/** Does any active skill level of this skill arm a special shot? (Such skills cannot mix with tools.) */
+export function armsSpecialShot(skillId:string,level:number){const def=petSkill(skillId);return !!def&&skillLevel(def,level).effects.some(e=>e.kind==='special-shot');}
+/** Does this pet listen to the end of its owner's shot? */
+export function listensTo(pet:BattlePetState|undefined,trigger:PetTrigger){return !!pet?.skills.some(s=>petSkill(s.id)?.triggers.includes(trigger));}
 /** End of the carrier's turn: periodic damage and healing, then durations run down and expire. */
 export function petTurnEnd(ctx:PetEngineContext,f:PetCombatant):PetApplication[]{
- const out:PetApplication[]=[];const list=f.petEffects??[];
- for(const e of list){
-  if(!alive(f))break;
-  if(e.kind==='dot'){const source=ctx.fighters.find(x=>x.id===e.sourceId)??f;out.push(damage(ctx,source,f,(e.value??0)*e.stacks,e.skill));}
-  if(e.kind==='hot'){const healed=Math.max(0,Math.min(f.maxHp-f.hp,Math.round((e.value??0)*e.stacks)));f.hp+=healed;out.push({skill:e.skill,kind:'hot',sourceId:e.sourceId,targetId:f.id,amount:healed});}
- }
- if(f.petEffects){for(const e of f.petEffects)if(e.turns!==undefined)e.turns--;f.petEffects=f.petEffects.filter(e=>e.turns===undefined||e.turns>0);if(!f.petEffects.length)delete f.petEffects;}
+ const out=tickPeriodic(ctx,f,'turn-end');
+ if(f.petEffects){for(const e of f.petEffects)if(e.turns!==undefined&&!((e.kind==='dot'||e.kind==='hot')&&e.at==='turn-start'))e.turns--;f.petEffects=f.petEffects.filter(e=>e.turns===undefined||e.turns>0);if(!f.petEffects.length)delete f.petEffects;}
  if(f.pet&&alive(f))out.push(...dispatchPetTrigger(ctx,'turn-end',f,{sourceId:f.id}));
  return out;
 }

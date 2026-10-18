@@ -40,13 +40,17 @@ import {monsterDamage} from '../shared/combat';
 import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
 import type {BattlePetEntry,PetKeeper,PetOutcome} from './pets';
 import {PET_CONFIG} from '../shared/petConfig';
-import {activatePetSkill,blocked as petBlocked,consumeShotBonus,createBattlePet,dispatchAll,dispatchPetTrigger,drainShield,incomingPetDamage,outgoingPetFactor,petStatBuffs,petTurnEnd,petTurnStart} from '../shared/petSkills';
+import {activatePetSkill,blocked as petBlocked,consumeShotBonus,createBattlePet,dispatchAll,dispatchPetTrigger,drainShield,incomingPetDamage,outgoingPetFactor,armsSpecialShot,consumeSpecialShot,listensTo,specialShot,petStatBuffs,petTurnEnd,petTurnStart} from '../shared/petSkills';
 import type {PetApplication,PetBlockedAction,PetEngineContext,PetTrigger} from '../shared/petSkills';
 import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
 export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
-interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;}
+interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
+/** Index of the pet's after-shot attack in the impact events (never a real projectile). */
+const PET_STRIKE_INDEX=1000;
+/** How long the pet's area attack plays before the turn may move on. */
+const PET_STRIKE_MS=900;
 interface PendingRoomInvitation {invite:RoomInvitation;playerId:string;}
 /** An expedition run: its stages, the current round of the instance turn and the monster turn's timed events. */
 /** A Chefão Mundial attempt: damage not yet sent to the global life and the dragon's timed blows. */
@@ -113,7 +117,13 @@ export class Game {
   this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);void this.sendPets(p).catch(this.report);return p;
  }
  private requirePets(){if(!this.pets)throw Error('Os pets estão indisponíveis no momento.');return this.pets;}
- private async sendPets(p:Peer){if(!this.pets||!p.connected)return;this.emit(p,{type:'pets',...await this.pets.list(p.profile.id)});}
+ /** One-time pet gifts (the starter pet, shared/petContent.ts); the server entry sets them. */
+ petGifts:readonly {key:string;species:string;food?:Readonly<Record<string,number>>}[]=[];
+ private async sendPets(p:Peer){
+  if(!this.pets||!p.connected)return;
+  for(const gift of this.petGifts)if(!p.profile.petGifts?.includes(gift.key)){const outcome=await this.pets.gift(p.profile.id,{...gift,food:{...gift.food}});if(outcome){this.petOutcome(p,outcome);return;}}
+  this.emit(p,{type:'pets',...await this.pets.list(p.profile.id)});
+ }
  /** A pet action or battle result: the new profile (its equipment carries the active pet), the list, the result; the room sees the new look and stats. */
  private petOutcome(p:Peer,outcome:PetOutcome){
   p.profile=outcome.profile;this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'pets',...outcome.state});this.emit(p,{type:'pet-result',result:outcome.result});
@@ -132,7 +142,7 @@ export class Game {
  /** Battle start: each fighter's equipped, active pet gets its battle state (no pet: the fighter is untouched). */
  private armPets(m:Match,first:Fighter|undefined){
   const mode=m.instance?'pve':'pvp';let any=false;
-  for(const f of m.state.players){if(f.bot||f.monster)continue;const snapshot=f.equipment.pet;if(!snapshot||snapshot.vitality<=0)continue;const pet=createBattlePet({petId:snapshot.id,species:snapshot.species,skills:snapshot.skills},mode);if(pet){f.pet=pet;any=true;}}
+  for(const f of m.state.players){if(f.bot||f.monster)continue;const snapshot=f.equipment.pet;if(!snapshot||snapshot.vitality<=0)continue;const pet=createBattlePet({petId:snapshot.id,species:snapshot.species,stage:snapshot.stage,skills:snapshot.skills},mode);if(pet){f.pet=pet;any=true;}}
   if(!any)return;const ctx=this.petContext(m);
   this.petEffect(m,[...dispatchAll(ctx,'battle-start'),...(first?petTurnStart(ctx,first):[])]);
  }
@@ -148,6 +158,9 @@ export class Game {
  /** A pet skill or debuff can keep a fighter from acting. */
  private assertPetFree(f:Fighter,action:PetBlockedAction){if(f.petEffects?.length&&petBlocked(f,action))throw Error('Um efeito impede esta ação neste turno.');}
  private usePetSkill(m:Match,f:Fighter,skill:string,target?:string){
+  // A pet projectile replaces the shot: it never mixes with tools, POW, flight or homing.
+  const slot=f.pet?.skills.find(s=>s.id===skill);
+  if(slot&&armsSpecialShot(skill,slot.level)&&(f.boosts.length||f.powerArmed||f.homingArmed||f.flightArmed||specialShot(f)))throw Error('Este ataque do pet não combina com outros poderes neste turno.');
   const {applications}=activatePetSkill(this.petContext(m),f,skill,target);
   this.petEffect(m,applications);if(!this.checkWin(m))this.broadcastBattle(m);
  }
@@ -537,8 +550,8 @@ export class Game {
     case 'start':if(this.room(p).kind==='expedition')this.startExpedition(p);else this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
     case 'ability':{const {m,f}=this.turn(p);this.assertPetFree(f,'ability');this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
-    case 'flight':{const {m,f}=this.turn(p);if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
-    case 'power':{const {m,f}=this.turn(p);this.armPower(f);this.broadcastBattle(m);break;}
+    case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
+    case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
      const {m,f}=this.turn(p);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
@@ -940,9 +953,12 @@ export class Game {
   const w=weaponStats(WEAPONS.find(w=>w.id===f.equipment.weapon)!,f.equipment.upgrade);
   if(powered){w.crater*=POWER_CRATER_MULTIPLIER;w.blast*=POWER_BLAST_MULTIPLIER;}
   const homing=f.homingArmed;f.homingArmed=false;
-  const modifiers=shotModifiers(boostsForShot(f.equipment.weapon,f.boosts,powered)),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
+  // The pet's special shot: one projectile of its own, no tools, its multiplier, maybe always critical.
+  const special=consumeSpecialShot(f);
+  const modifiers=shotModifiers(special?[]:boostsForShot(f.equipment.weapon,f.boosts,powered)),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
   // Pet bonuses of the whole shot: decided once, however many volleys or projectiles it has.
   let petShot=1;if(f.pet||f.petEffects?.length){const ctx=this.petContext(m);this.petEffect(m,[...this.petTrigger(m,'before-fire',f,{sourceId:f.id,shotId:shot.id},ctx),...this.petTrigger(m,'before-damage',f,{sourceId:f.id,shotId:shot.id},ctx)]);petShot=consumeShotBonus(f)*outgoingPetFactor(f);}
+  if(special)petShot*=special.multiplier??1;
   const offense=this.combatEquipment(f);
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
   const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
@@ -954,7 +970,7 @@ export class Game {
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
-    const critical=criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1)*petShot,critical});
+    const critical=special?.critical||criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1)*petShot,critical});
     if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
     // Pet damage reduction and shields (the simulated copy spends the shield for the later projectiles; applyImpact repeats it on the real one).
     const guarded=incomingPetDamage(target,damage);damage=guarded.damage;
@@ -969,9 +985,10 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing?{targets:homingTargets(simulated.state.players,shooter)}:undefined);
-  shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered}));
-  const shardCount=weaponFragmentCount(w,f.equipment.upgrade,powered);
+  },delays,homing&&!special?{targets:homingTargets(simulated.state.players,shooter)}:undefined);
+  const petProjectile=special&&f.pet?{projectile:special.projectile!,species:f.pet.species,stage:f.pet.stage??0,skill:special.skill}:undefined;
+  shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered,...(petProjectile?{pet:petProjectile}:{})}));
+  const shardCount=special?0:weaponFragmentCount(w,f.equipment.upgrade,powered);
   if(shardCount&&w.fragments)for(let parent=0;parent<results.length;parent++){
    const result=results[parent];if(result.x<0||result.x>terrainWidth(m.terrain)||result.y>WORLD.height)continue;
    const start=delays[parent]+result.flightTime,base=shot.projectiles.length,shardImpacts:Shot['projectiles'][number]['impact'][]=[];
@@ -980,13 +997,22 @@ export class Game {
    });
    pieces.forEach((piece,index)=>shot.projectiles.push({points:piece.points,delay:start,flightTime:piece.flightTime,impact:shardImpacts[index],effect:w.effect,powered,fragment:true}));
   }
-  shot.duration=Math.max(...shot.projectiles.map(projectile=>projectile.delay+projectile.flightTime))+450;m.activeShot=shot;m.pendingImpacts=pending.sort((a,b)=>a.at-b.at||a.projectileIndex-b.projectileIndex);m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
+  shot.duration=Math.max(...shot.projectiles.map(projectile=>projectile.delay+projectile.flightTime))+450;
+  // A pet that answers the end of the shot attacks where the first projectile landed, after the last one.
+  const main=impacts[0];
+  if(listensTo(f.pet,'shot-end')&&main&&main.x>=0&&main.x<=terrainWidth(m.terrain)&&main.y<=WORLD.height&&pending.length){
+   const at=Math.max(...pending.map(p=>p.at))+350;
+   pending.push({at,projectileIndex:PET_STRIKE_INDEX,hits:[],petStrike:{x:main.x,y:main.y},mark:{id:`${shot.id}:pet`,x:main.x,y:main.y,radius:0,effect:w.effect,level:f.equipment.upgrade}});
+   shot.duration=Math.max(shot.duration,at-startedAt+PET_STRIKE_MS);
+  }
+  m.activeShot=shot;m.pendingImpacts=pending.sort((a,b)=>a.at-b.at||a.projectileIndex-b.projectileIndex);m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});
   this.broadcastBattle(m);
  }
  private applyImpact(m:Match,impact:PendingImpact){
   const shot=m.activeShot;if(!shot||m.state.phase!=='resolving'||shot.impacted.includes(impact.projectileIndex))return;
   const shooter=m.state.players.find(player=>player.id===shot.shooterId)!,hits:ShotHit[]=[];
+  if(impact.petStrike){this.petStrike(m,shot,shooter,impact);return;}
   if(impact.flight){
    const landing=shooter.hp>0?flightLanding(m.terrain,{...impact.mark,points:shot.projectiles[impact.projectileIndex]?.points}):null;
    if(landing){
@@ -1017,6 +1043,18 @@ export class Game {
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});
   // The match only ends in nextTurn, once every projectile of the shot has landed and settled.
   this.broadcastBattle(m,true);
+ }
+ /** The pet's attack after its owner's shot: the shot-end passives run at the main impact; their damage shows as numbers like a hit. */
+ private petStrike(m:Match,shot:Shot,shooter:Fighter,impact:PendingImpact){
+  shot.impacted.push(impact.projectileIndex);
+  if(shooter.hp<=0||!shooter.pet)return;
+  const before=new Map(m.state.players.map(p=>[p.id,p.hp])),applications=this.petTrigger(m,'shot-end',shooter,{sourceId:shooter.id,shotId:shot.id,point:impact.petStrike});
+  if(!applications.length)return;
+  this.petEffect(m,applications);
+  const hits:ShotHit[]=m.state.players.filter(p=>p.hp<before.get(p.id)!).map(p=>({id:p.id,damage:before.get(p.id)!-p.hp,x:p.x,y:p.y-85,projectileIndex:PET_STRIKE_INDEX,critical:false,kind:'direct',quality:1}));
+  shot.hits.push(...hits);
+  for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:PET_STRIKE_INDEX,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});
+  this.broadcastBattle(m);
  }
  private animateFall(target:Fighter,fromY:number,at:number){
   const previous=target.fall,falling=previous&&at<previous.startedAt+previous.duration;

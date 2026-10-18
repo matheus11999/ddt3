@@ -1,6 +1,20 @@
 # Pets
 
-Infraestrutura completa de pets no estilo do DDTank, entregue **sem nenhum pet** (18/10/2026). O jogo sai com zero espécies, zero habilidades e zero alimentos registrados (`tests/pets-empty.test.ts` garante isso). O conteúdo de teste vive só em `tests/fixtures/pets.ts`, importado apenas pelos testes de pets.
+Infraestrutura completa de pets no estilo do DDTank (18/10/2026). O motor não traz conteúdo: os registros só ganham pets quando `shared/petContent.ts` é importado (servidor e cliente o importam primeiro; `tests/pets-empty.test.ts` confere o motor vazio). O conteúdo de teste vive em `tests/fixtures/pets.ts`.
+
+## Verdália, o primeiro pet
+
+Uma planta que evolui sozinha com o nível, como as armas por fase: **Broto** (nível 1), **Botão** (nível 20), **Flor** (nível 40). Conteúdo em `shared/petContent.ts`; números provisórios (matheus vai editar). Todo jogador ganha uma Verdália **uma vez**, já equipada e com 10 Adubo de Orvalho (`PET_GIFTS`, `Profile.petGifts`, `PetService.gift` ao conectar).
+
+| Habilidade | Tipo | O que faz |
+| --- | --- | --- |
+| Raízes da Terra | passiva, inata (não ocupa slot) | depois do último projétil do tiro do dono, a terra ataca onde o primeiro projétil caiu: dano em área (`area-damage`, gatilho `shot-end`), sem projétil, número de dano próprio; raio e dano crescem com o estágio (`stageScaling`), arte `roots-{estágio}.png` |
+| Orbe da Natureza | ativa | o próximo tiro vira uma bola verde (`special-shot`): um projétil só, sem ferramentas, POW, voo ou mira assistida no turno (bloqueados), dano sempre crítico × multiplicador do estágio |
+| Orvalho Curativo | ativa, nível 10 | cura % da Vida no **começo** de cada um dos próximos 3 turnos do dono (`hot` com `at: 'turn-start'`) |
+
+- Estágio: `evolveByLevel` troca o estágio quando o nível passa do requisito (`PET_EVOLVED`); com `stageScaling`, o nível da habilidade em batalha é o estágio + 1.
+- No servidor: `Game.resolveFire` (tiro especial e o ataque das raízes, `PendingImpact.petStrike`, índice 1000 nos eventos de impacto) e `Game.petStrike`. No cliente: `src/game/petEffects.ts` desenha o efeito em área (nasce do chão), a cura e o projétil/impacto do orbe.
+- Arte: gerada pelo Codex no PC do usuário a partir da referência dele (`/mnt/project-files/pets/planta/`, prompts em `prompts/`), sobre magenta, recortada por `python3 scripts/cut-pet-sheet.py` (modos `pieces` e `grid`) para `public/assets/pets/verdalia/`.
 
 ## Camadas
 
@@ -51,11 +65,12 @@ Toda operação roda em transação por dono: trava a linha de `players`, depois
 4. **Carregar o conteúdo**: importe `shared/petContent.ts` uma vez em `server/index.ts` e em `src/main.tsx` (cliente e servidor precisam ver os mesmos registros).
 5. **Arte**: retrato, sprite ou atlas em `public/assets/pets/<id>/`, apontados em `visual`. Sem arte o jogo mostra a pata no retrato e não desenha nada em campo (`src/game/petSprite.ts`). Gerar pelo Codex como as outras artes; nada de texto na imagem.
 6. **Obtenção**: chame `PetService.grant(ownerId, speciesId, {source})` de onde o pet vier (loja, recompensa, correio, admin). Ele respeita o limite de 20, sorteia traços na faixa da espécie e grava o evento `PET_OBTAINED`.
-7. **Testes**: o teste `the game ships with zero pets` vai falhar de propósito; atualize-o para a lista esperada e rode `npm test` e `npm run test:pets:integration`.
+7. **Testes**: teste o conteúdo num arquivo que importa `shared/petContent.ts` (exemplo: `tests/pets-verdalia.test.ts`) e rode `npm test` e `npm run test:pets:integration`.
 
 ## Testes
 
-- `tests/pets-empty.test.ts`: registros vazios, pet desconhecido não soma nada, configuração validada.
+- `tests/pets-verdalia.test.ts`: presente único, evolução e liberação por nível, raízes na área, cura nos 3 começos de turno, ataque das raízes depois do tiro e orbe crítico de um projétil só no `Game`.
+- `tests/pets-empty.test.ts`: motor sem conteúdo, pet desconhecido não soma nada, configuração validada.
 - `tests/pets.test.ts`: serviço, vitalidade, EXP, slots, motor de habilidades (custo, recarga, chance, cadeia, por tiro, escudo) e integração com `Game` (batalha sem pet inalterada, retrato, troca recusada, habilidade no turno, reinício e reconexão, liquidação única, treino sem EXP).
 - `npm run test:pets:integration`: Postgres real (migrações uma vez, persistência, alimentação concorrente, liquidação repetida, auditoria ao soltar).
 
@@ -63,4 +78,4 @@ Toda operação roda em transação por dono: trava a linha de `players`, depois
 
 - Botão pintado do menu (`public/assets/ui/pets-button.png`); hoje usa um ícone de pata dourado.
 - Equipamento de pet e evolução estão modelados e desligados na configuração.
-- Nenhuma espécie, habilidade ou alimento real.
+- Verdália: balancear números; som dos efeitos; número verde de cura; segunda habilidade ativa por slot (hoje Orbe e Orvalho ocupam os slots 1 e 2).

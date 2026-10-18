@@ -1,4 +1,4 @@
-// The released game has the pet system with no content: zero species, skills and foods (docs/pets.md).
+// The pet engine itself has no content: the registries stay empty until shared/petContent.ts is imported (docs/pets.md).
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {PET_FOODS,PET_SPECIES,petContribution} from '../shared/pets';
@@ -6,7 +6,7 @@ import {PET_SKILLS} from '../shared/petSkills';
 import {PET_CONFIG,validatePetConfig} from '../shared/petConfig';
 import {attributes,DEFAULT_EQUIPMENT} from '../shared/catalog';
 
-test('the game ships with zero pets, pet skills and pet foods',()=>{
+test('the pet engine has zero pets, pet skills and pet foods until content is imported',()=>{
  assert.equal(PET_SPECIES.size,0);assert.equal(PET_SKILLS.size,0);assert.equal(PET_FOODS.size,0);
 });
 test('an unknown pet in the equipment grants nothing, so attributes and FC stay as before',()=>{
