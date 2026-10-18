@@ -87,7 +87,7 @@ export function WorldBossWindow(){
  </Modal>;
 }
 
-/** In battle: the dragon's global life, my damage in this attempt and the event's time, in place of the enemy roster. */
+/** In battle: the dragon's global life and the event's time, in place of the enemy roster. */
 export function WorldBossBar({battle}:{battle:Battle}){
  const wb=battle.worldBoss!,dragon=battle.players.find(f=>f.boss),now=useServerNow(500);
  return <div className="world-boss-bar" aria-label="Chefão Mundial">
@@ -95,7 +95,6 @@ export function WorldBossBar({battle}:{battle:Battle}){
   <div className="world-boss-bar-body">
    <p><strong>{wb.name}</strong><span>{wb.over?'Encerrado':clock(wb.endsAt-now)}</span></p>
    <HealthBar hp={dragon?.hp??wb.hp} maxHp={wb.maxHp}/>
-   <small>Seu dano nesta tentativa: <b>{number(wb.attemptDamage)}</b></small>
   </div>
  </div>;
 }

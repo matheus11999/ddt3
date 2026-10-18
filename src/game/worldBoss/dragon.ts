@@ -7,7 +7,7 @@
 import type {Battle,Fighter} from '../../../shared/protocol';
 import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
-import {glow,groundFire,hash,stream} from './fire';
+import {glow,groundFire,hash,puff,stream,tongue} from './fire';
 
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
@@ -43,6 +43,8 @@ const bump=(t:number,from:number,to:number)=>{const k=span(t,from,to);return k<=
 
 export interface DragonPose {
  bodyDX:number;bodyDY:number;breath:number;headDX:number;headDY:number;headRot:number;jaw:number;blink:number;glow:number;alpha:number;gray:number;
+ /** How hard fire is pouring out of the mouth right now (0 to 1). */
+ fire:number;
  claw?:{x:number;y:number;closed:boolean;alpha:number;tilt:number};
  shake:number;
  /** How far up the claw holds the player (grab), in px. */
@@ -56,7 +58,7 @@ const ageOf=(a:DragonAct|undefined,now:number)=>a?now-a.startedAt:Infinity;
 /** The pose at `now` (server time). `t` (page time) drives breathing and blinking, which need no sync. */
 export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number,heroGround:number):DragonPose{
  const breathing=Math.sin(t*Math.PI*2/3400),a=act(b),age=ageOf(a,now);
- const pose:DragonPose={bodyDX:0,bodyDY:0,breath:breathing,headDX:0,headDY:-6*breathing,headRot:.018*breathing,jaw:.03+.025*Math.max(0,breathing),blink:0,glow:0,alpha:1,gray:0,shake:0,lift:0};
+ const pose:DragonPose={bodyDX:0,bodyDY:0,breath:breathing,headDX:0,headDY:-6*breathing,headRot:.018*breathing,jaw:.03+.025*Math.max(0,breathing),blink:0,glow:0,alpha:1,gray:0,shake:0,lift:0,fire:0};
  const blinkAt=t%5200;if(blinkAt<170)pose.blink=Math.sin(blinkAt/170*Math.PI);
  if(a&&age>=0&&age<DRAGON_ACTIONS[a.action].duration+400){
   const tx=a.targetX??f.x-900,ty=a.targetY??heroGround;
@@ -87,10 +89,12 @@ export function dragonPose(b:Battle,f:Fighter,now:number,t:number,hurtAge:number
     // Rears back breathing in (the throat glows), then breathes the fire stream onto the player.
     const inhale=easeInOut(span(age,0,1100)),out=span(age,1100,1300)-span(age,2300,2800);
     pose.headRot-=.14*inhale*(1-span(age,1100,1350))-.1*out;pose.headDX+=26*inhale*(1-span(age,1100,1350));pose.jaw+=.18*inhale+.5*clamp(out);pose.glow=clamp(inhale+out);
+    pose.fire=span(age,BREATH.from-140,BREATH.from)-span(age,BREATH.to,BREATH.to+160);
     pose.shake=age>=1450&&age<2200?4:0;
     break;}
    case 'firesweep':{
     const lower=easeInOut(span(age,0,900))-easeInOut(span(age,2700,3300));pose.headRot+=.2*lower;pose.headDY+=70*lower;pose.headDX-=30*lower;pose.jaw+=.55*clamp(lower*1.2);pose.glow=clamp(lower);
+    pose.fire=span(age,FIRESWEEP_WINDOW.from-400,FIRESWEEP_WINDOW.from-260)-span(age,FIRESWEEP_WINDOW.to,FIRESWEEP_WINDOW.to+160);
     pose.shake=age>=FIRESWEEP_WINDOW.from&&age<FIRESWEEP_WINDOW.to?3:0;
     break;}
    case 'death':{
@@ -140,10 +144,24 @@ function headPoint(f:Fighter,pose:DragonPose,point:readonly [number,number]){
  const nx=f.x+DRAGON_RIG.neck[0]+pose.bodyDX+pose.headDX,ny=f.y+DRAGON_RIG.neck[1]+pose.bodyDY+pose.headDY,cos=Math.cos(pose.headRot),sin=Math.sin(pose.headRot);
  return {x:nx+point[0]*cos-point[1]*sin,y:ny+point[0]*sin+point[1]*cos};
 }
-export function dragonMouth(f:Fighter,pose:DragonPose){return headPoint(f,pose,DRAGON_RIG.mouth);}
+/** In head space: the tip of the lower jaw for an opening `jaw` (it turns about its hinge). */
+const jawTip=(jaw:number)=>[DRAGON_RIG.hinge[0]-JAW_LENGTH*Math.cos(jaw),DRAGON_RIG.hinge[1]+JAW_LENGTH*Math.sin(jaw)] as const;
+const JAW_LENGTH=280,THROAT=[-170,-26] as const;
+/** In head space: the middle of the gap between the upper teeth and the open jaw, where the fire comes out. */
+function mouthGap(jaw:number){const tip=jawTip(jaw),lip=DRAGON_RIG.mouth;return [(lip[0]+tip[0])/2+6,(lip[1]+tip[1])/2+4] as const;}
+/** World point where the fire leaves the mouth. */
+export function dragonMouth(f:Fighter,pose:DragonPose){return headPoint(f,pose,mouthGap(pose.jaw));}
+/** Fire roaring inside the open mouth, from the throat to the teeth: drawn between the jaw and the skull, so the teeth stay in front of it. */
+function mouthFire(c:CanvasRenderingContext2D,pose:DragonPose,t:number){
+ const k=clamp(pose.fire);if(k<=0)return;const gap=mouthGap(pose.jaw),dx=gap[0]-THROAT[0],dy=gap[1]-THROAT[1],angle=Math.atan2(dx,-dy),open=clamp(pose.jaw/.6);
+ glow(c,gap[0]-10,gap[1],90*k,.8*k);
+ for(let i=0;i<7;i++){const u=i/6,x=THROAT[0]+dx*u,y=THROAT[1]+dy*u,r=(20+30*u)*(.5+.5*open)*(.7+.3*k);
+  puff(c,x,y,r*1.1,.6,.7*k);tongue(c,x,y,r*2.4,r*1.3,t,40+i,k,0,angle);}
+ for(let i=0;i<12;i++){const u=i/11,w=Math.sin(t/70+i*1.7)*.35;puff(c,THROAT[0]+dx*u-dy*.04*w,THROAT[1]+dy*u+dx*.04*w,(24+18*u)*(.5+.5*open)*(1+.15*Math.sin(t/55+i)),.97,.95*k);}
+}
 
 /** Body, head and jaw: drawn before the terrain so the ridge in front hides where the dragon rises from. */
-export function drawDragonBack(c:CanvasRenderingContext2D,f:Fighter,pose:DragonPose,hurtAge:number){
+export function drawDragonBack(c:CanvasRenderingContext2D,f:Fighter,pose:DragonPose,hurtAge:number,t=0){
  c.save();c.globalAlpha*=pose.alpha;if(pose.gray>0)c.filter=`grayscale(${pose.gray*.7}) brightness(${1-pose.gray*.25})`;
  // Body: the chest swells a little with each breath, from its base.
  c.save();c.translate(f.x+DRAGON_RIG.body[0]+pose.bodyDX,f.y+DRAGON_RIG.body[1]+pose.bodyDY);c.scale(1-.004*pose.breath,1+.012*pose.breath);
@@ -152,6 +170,8 @@ export function drawDragonBack(c:CanvasRenderingContext2D,f:Fighter,pose:DragonP
  const flash=hurtAge>=0&&hurtAge<260?(1-hurtAge/260)*.45:0;
  c.save();c.translate(f.x+DRAGON_RIG.neck[0]+pose.bodyDX+pose.headDX,f.y+DRAGON_RIG.neck[1]+pose.bodyDY+pose.headDY);c.rotate(pose.headRot);
  const head=()=>{
+  // Fire inside the mouth goes first: the jaw below and the skull above cover it, so it only shows between the teeth.
+  mouthFire(c,pose,t);
   // The lower jaw hangs from its hinge behind the skull; opening is a rotation.
   c.save();c.translate(DRAGON_RIG.hinge[0],DRAGON_RIG.hinge[1]);c.rotate(-pose.jaw);drawPart(c,'jaw',c=>{c.fillStyle='#185a43';c.beginPath();c.moveTo(0,0);c.lineTo(-260,40);c.lineTo(-250,75);c.lineTo(10,60);c.fill();});c.restore();
   if(pose.glow>0){const m=DRAGON_RIG.mouth,g=c.createRadialGradient(m[0]+70,m[1]+20,0,m[0]+70,m[1]+20,170);g.addColorStop(0,`rgba(255,226,120,${.75*pose.glow})`);g.addColorStop(.5,`rgba(255,120,30,${.35*pose.glow})`);g.addColorStop(1,'rgba(255,90,20,0)');c.fillStyle=g;c.beginPath();c.arc(m[0]+70,m[1]+20,170,0,Math.PI*2);c.fill();}
