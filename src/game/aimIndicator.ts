@@ -2,7 +2,8 @@
  * pivot on the body centre and sit behind the avatar ('back'); the angle plate is
  * drawn over it ('front'). No rim, ticks, numbers or terrain-slope readout (user
  * requests, 17/10/2026): the slope still shifts the band, silently, and tilts the pivot with the body. */
-export const AIM_PIVOT={x:0,y:-24,radius:78};
+// Radius 104 (was 78): the band and needle sit clear of the body and head (user request, 18/10/2026).
+export const AIM_PIVOT={x:0,y:-24,radius:104};
 export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,facing:1|-1,angle:number,slope:number,changedAge:number,minAngle=5,maxAngle=90,layer:'back'|'front'='back'){
  // The pivot rides the tilted body: rotate its offset by the ground angle (aim slope).
  const tilt=-slope*facing*Math.PI/180,cx=x+facing*AIM_PIVOT.x*Math.cos(tilt)-AIM_PIVOT.y*Math.sin(tilt),cy=y+facing*AIM_PIVOT.x*Math.sin(tilt)+AIM_PIVOT.y*Math.cos(tilt),radius=AIM_PIVOT.radius,changed=changedAge>=0&&changedAge<1500,shown=Math.max(0,Math.min(90,angle));
@@ -14,7 +15,7 @@ export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,fa
  c.beginPath();arc(minAngle,maxAngle,radius-6);c.strokeStyle='#0b2a1aaa';c.lineWidth=9;c.stroke();
  c.beginPath();arc(minAngle,maxAngle,radius-6);c.strokeStyle='#4fe08a';c.lineWidth=5;c.shadowColor='#7dff9e';c.shadowBlur=6;c.stroke();c.shadowBlur=0;
  // Tapered needle from the hub to the rim.
- const tip=point(shown,radius-2),mid=point(shown,48),tail=point(shown,40),ux=(tip.x-mid.x)/(radius-50),uy=(tip.y-mid.y)/(radius-50);
+ const tip=point(shown,radius-2),mid=point(shown,radius-30),tail=point(shown,radius-38),ux=(tip.x-mid.x)/28,uy=(tip.y-mid.y)/28;
  const needle=c.createLinearGradient(tail.x,tail.y,tip.x,tip.y);needle.addColorStop(0,'#ffe36b');needle.addColorStop(.6,'#ff8a1f');needle.addColorStop(1,changed?'#ff3b1f':'#e2261b');
  c.beginPath();c.moveTo(tip.x,tip.y);c.lineTo(mid.x-uy*5.5,mid.y+ux*5.5);c.lineTo(tail.x,tail.y);c.lineTo(mid.x+uy*5.5,mid.y-ux*5.5);c.closePath();
  c.shadowColor=changed?'#ffcf5a':'#ff9a3a';c.shadowBlur=changed?10:5;c.fillStyle=needle;c.fill();c.shadowBlur=0;c.strokeStyle='#5c1a0e';c.lineWidth=1.2;c.stroke();
