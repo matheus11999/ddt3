@@ -25,7 +25,7 @@ import {MONSTERS} from '../../shared/expeditions';
 import {drawSpeechBubble} from './speechBubble';
 import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
-import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,preloadDragon} from './worldBoss/dragon';
+import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,drawDragonPaw,preloadDragon} from './worldBoss/dragon';
 import type {DragonPose} from './worldBoss/dragon';
 import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
@@ -125,6 +125,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // The dragon rises from behind the lair's ridge: drawn before the terrain.
     if(dragon&&pose)drawDragonBack(c,dragon,pose,dragonHurtAge,t);
     environment!.drawTerrain(c,t);residues!.draw(c);
+    if(dragon&&pose)drawDragonPaw(c,pose,x=>ground(terrain,x,0));
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.
     if(fallenBattle!==b.id){fallenBattle=b.id;fallenAt.clear();for(const f of b.players)if(f.hp<=0)fallenAt.set(f.id,-Infinity);}
