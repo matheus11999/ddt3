@@ -1,3 +1,0 @@
-Production 2D painted chibi game sprite for a DDTank-style browser game: ONE small closed FIST, side view, knuckles pointing RIGHT, thumb wrapped over the front, round and chunky like DDTank's floating chibi fists, no wrist, no arm, no sleeve.
-Color: exactly the skin of IMAGE 1's character (same light peach tone, same highlights and soft shading), warm dark-brown outline like IMAGE 1. The game tints it to every skin tone.
-Canvas 512x512, flat magenta (#FF00FF) background, the fist centered filling about 70% of the canvas. No text, no shadow, nothing else.
