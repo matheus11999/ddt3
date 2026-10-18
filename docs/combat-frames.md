@@ -1,6 +1,6 @@
 # Combate em quadros pintados (como no DDTank)
 
-Pedido do usuário em 18/10/2026, a partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: o corpo de combate funciona como o compositor de sprites do DDTank. Cada roupa traz as poses de combate **pintadas** em células compatíveis; o jogo só escolhe o quadro da ação atual e empilha por cima, no mesmo espaço, a cabeça universal, o cabelo, o chapéu, os óculos e a arma nas costas. Deitado para andar e mirar, **ajoelhado para arremessar** (nunca fica de pé), arma presa nas costas o tempo todo. Revisão de 18/10 à tarde (pedido do matheus): o corpo é pequeno como no DDTank, menor que a cabeça, e as **mãos são universais**: um punho redondo simples, sem dedos, desenhado pelo jogo em todos os personagens na cor da pele (como no DDTank). O deitado segue as medidas da simulação do DDTank: cabeça parada, corpo curto e reto (cerca de meia cabeça aparece atrás dela), punhos sob o queixo, arma baixa atrás do quadril. Vale para todas as roupas, sem números por roupa.
+Pedido do usuário em 18/10/2026, a partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: o corpo de combate funciona como o compositor de sprites do DDTank. Cada roupa traz as poses de combate **pintadas** em células compatíveis; o jogo só escolhe o quadro da ação atual e empilha por cima, no mesmo espaço, a cabeça universal, o cabelo, o chapéu, os óculos e a arma nas costas. Deitado para andar e mirar, **ajoelhado para arremessar** (nunca fica de pé), arma presa nas costas o tempo todo. Revisão de 18/10 à tarde (pedido do matheus): o corpo é pequeno como no DDTank, menor que a cabeça, e as **mãos são universais**: um punho achatado simples (mais largo que alto, topo redondo, base reta, três tons de pele e contorno quase preto), sem dedos, desenhado pelo jogo em todos os personagens na cor da pele (como no DDTank). Deitado, os dois punhos ficam lado a lado na frente do queixo, com a base na mesma linha, e o da frente é menor (cerca de 2/3), como medido na simulação do DDTank. O deitado segue as medidas da simulação do DDTank: cabeça parada, corpo curto e reto (cerca de meia cabeça aparece atrás dela), punhos sob o queixo, arma baixa atrás do quadril. Vale para todas as roupas, sem números por roupa.
 
 ## Quadros (`src/game/rig/combatFrames.json`)
 
@@ -19,7 +19,7 @@ Para cada quadro o contrato diz onde fica a cabeça (`head`), os dois punhos uni
 
 ## Ordem das camadas
 
-Como no `GameCharacterLoader` do DDTank: arma nas costas → punho de trás → cabeça e cabelo → roupa → óculos e chapéu → punho da frente. Os punhos sob o queixo no quadro deitado ficam por cima do rosto, igual ao original. Entre um quadro e o seguinte (rastejar, levantar, arremesso) os punhos deslizam suavemente; rastejando eles também sobem e descem alternados.
+Como no `GameCharacterLoader` do DDTank: arma nas costas → punho de trás (só ajoelhado) → cabeça e cabelo → roupa → óculos e chapéu → punho da frente. Deitado, os dois punhos ficam por cima do rosto, cobrindo a parte de baixo do queixo, igual ao original. Entre um quadro e o seguinte (rastejar, levantar, arremesso) os punhos deslizam suavemente; rastejando eles também sobem e descem alternados.
 
 ## Andar deitado
 
