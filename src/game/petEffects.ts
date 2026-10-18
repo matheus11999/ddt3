@@ -36,20 +36,38 @@ export function drawPetApplication(c:CanvasRenderingContext2D,app:PetApplication
  if((app.kind==='hot'||app.kind==='heal')&&target){strip(c,img,visual.frames??1,progress,target.x,target.y+10,visual.size??140,fade);return true;}
  return false;
 }
-/** A round whirlwind: the painted ring opens and spins (fast, then slowing), loose pieces spiral out and fade. */
+// A fixed pseudo-random number in [0, 1) for each seed, so every whirl differs but keeps its own shape while it plays.
+const rand=(n:number)=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
+// The painted ring with its edge faded out, so the whirl never shows the outline of a disc.
+const softRings=new Map<HTMLImageElement,HTMLCanvasElement>();
+function softRing(img:HTMLImageElement){
+ let soft=softRings.get(img);if(soft)return soft;
+ soft=document.createElement('canvas');soft.width=img.naturalWidth;soft.height=img.naturalHeight;const g=soft.getContext('2d')!,cx=soft.width/2,cy=soft.height/2;
+ g.drawImage(img,0,0);g.globalCompositeOperation='destination-in';
+ const fade=g.createRadialGradient(cx,cy,0,cx,cy,Math.min(cx,cy));fade.addColorStop(0,'#000');fade.addColorStop(.4,'#000d');fade.addColorStop(.75,'#0005');fade.addColorStop(1,'#0000');
+ g.fillStyle=fade;g.fillRect(0,0,soft.width,soft.height);softRings.set(img,soft);return soft;
+}
+/** A whirlwind with no clear outline: soft painted layers that wobble, drift and turn at different speeds, and loose pieces thrown out at random. */
 function whirl(c:CanvasRenderingContext2D,ring:HTMLImageElement,pieces:HTMLImageElement|null,given:number|undefined,progress:number,x:number,y:number,size:number){
- const open=1-(1-Math.min(1,progress/.35))**3,fade=progress>.65?1-(progress-.65)/.35:1,turn=(1-(1-progress)**2)*Math.PI*3;
- c.save();c.translate(x,y);
- c.save();c.globalAlpha=fade*.9;c.rotate(-turn);const s=size*(.45+.55*open);c.drawImage(ring,-s/2,-s/2*ring.naturalHeight/ring.naturalWidth,s,s*ring.naturalHeight/ring.naturalWidth);c.restore();
- // A smaller inner copy turning faster gives the whirl its depth.
- c.save();c.globalAlpha=fade*.4;c.rotate(-turn*1.6+.8);const inner=s*.55;c.drawImage(ring,-inner/2,-inner/2*ring.naturalHeight/ring.naturalWidth,inner,inner*ring.naturalHeight/ring.naturalWidth);c.restore();
+ const seed=Math.round(x)*.37+Math.round(y)*.11,open=1-(1-Math.min(1,progress/.3))**3,fade=progress>.6?1-(progress-.6)/.4:1,turn=(1-(1-progress)**2)*Math.PI*3;
+ const soft=softRing(ring);
+ c.save();c.translate(x+Math.sin(progress*5+seed)*size*.07,y-size*.12*progress);
+ // Three layers, each off centre and squashed its own way, so the edge keeps changing shape.
+ for(const [layer,scale,speed,alpha] of [[0,1.05,1,.8],[1,.72,1.7,.55],[2,.48,2.4,.45]] as const){
+  const r=rand(seed+layer*7.3),wobble=progress*(6+layer*2)+r*6,s=size*scale*(.4+.6*open);
+  c.save();c.globalAlpha=fade*alpha;c.translate(Math.cos(wobble)*size*.06,Math.sin(wobble*1.3)*size*.05);
+  c.rotate(-turn*speed-r*Math.PI*2);c.scale(1+.16*Math.sin(wobble),1-.14*Math.cos(wobble*.8));
+  c.drawImage(soft,-s/2,-s/2,s,s);c.restore();
+ }
  if(pieces){
-  // Square cells: without `pieces`, the strip's width tells how many there are.
-  const count=given??Math.max(1,Math.round(pieces.naturalWidth/pieces.naturalHeight)),cw=pieces.naturalWidth/count,ch=pieces.naturalHeight,piece=size*.16;
-  for(let i=0;i<count;i++){
-   const a=i/count*Math.PI*2-turn*1.2,r=size*(.22+.42*progress),alpha=fade*Math.min(1,progress*4);
-   c.save();c.globalAlpha=alpha;c.translate(Math.cos(a)*r,Math.sin(a)*r*.8);c.rotate(a+progress*6);
-   c.drawImage(pieces,i%count*cw,0,cw,ch,-piece/2,-piece/2*ch/cw,piece,piece*ch/cw);c.restore();
+  // Square cells: without `pieces`, the strip's width tells how many there are. Each cell flies twice, on its own path.
+  const cells=given??Math.max(1,Math.round(pieces.naturalWidth/pieces.naturalHeight)),cw=pieces.naturalWidth/cells,ch=pieces.naturalHeight;
+  for(let i=0;i<cells*2;i++){
+   const r1=rand(seed+i*3.1),r2=rand(seed+i*5.7),r3=rand(seed+i*9.3),start=r1*.25,t=Math.max(0,(progress-start)/(1-start));if(t<=0)continue;
+   const a=r2*Math.PI*2-turn*(.8+r3)-t*(2+2*r1),r=size*(.08+.22*r3+(.3+.4*r2)*t**.8),piece=size*(.09+.1*r1);
+   const alpha=Math.min(1,t*5)*(t>.7?1-(t-.7)/.3:1);
+   c.save();c.globalAlpha=alpha;c.translate(Math.cos(a)*r,Math.sin(a)*r*(.45+.4*r1)-size*.25*r3*t);c.rotate(a+t*(5+4*r2));
+   c.drawImage(pieces,i%cells*cw,0,cw,ch,-piece/2,-piece/2*ch/cw,piece,piece*ch/cw);c.restore();
   }
  }
  c.restore();
