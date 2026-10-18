@@ -1,0 +1,17 @@
+Production 2D painted game sprite sheet for a DDTank-style browser game: the lobby WALK CYCLE of one outfit.
+
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a flat GRAY (#808080) mannequin in a walking pose under it, and two flat SKIN-colored (#FCD0AC) discs with a dark outline: the hands.
+IMAGE 2 is the outfit to paint: the standing character (top painting) shows the exact outfit design, colors, gold trims, outlines and painted volume (ignore the missing head).
+
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same shape and size, flat and untouched: the game replaces the green with the player's own head.
+
+Paint IMAGE 2's whole outfit (coat with its tails, shirt, belt, map scroll, trousers, boots) WALKING to the RIGHT in side view, following each gray mannequin's pose: same body size as IMAGE 2, collar touching the green chin, the coat tails swinging naturally with the step. Paint the ARMS and HANDS too: sleeves with their cuffs ending in a closed relaxed hand painted exactly over each skin disc, in the light skin tone #FCD0AC with soft shading and a thin dark outline (the game recolors it to each player's skin), arms swinging opposite to the legs.
+
+Six frames, left to right, top to bottom, one full stride, as smooth as a DDTank walk:
+1 CONTACT: front heel touches the ground ahead, back foot pushing off behind.
+2 DOWN: weight on the front leg, knee soft, back foot lifting, body slightly lower.
+3 PASSING: standing leg straight under the body, the other leg passing forward with the knee bent, body highest.
+4 CONTACT with the other leg in front.
+5 DOWN with the other leg.
+6 PASSING with the other leg.
+The same character, design, scale and ground line in all six frames; only legs, arms and coat tails move. No floor, no shadow, no text, nothing crossing a cell border or touching the image edge.

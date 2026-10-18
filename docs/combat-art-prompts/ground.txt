@@ -1,14 +1,14 @@
 Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
 
-IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin lying belly-down behind it, and two flat CYAN (#00FFFF) discs under the chin.
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin lying belly-down behind it, with gray arms, and two flat SKIN-colored (#FCD0AC) discs with a dark outline: the fists.
 IMAGE 2 is the outfit to paint: the standing character shows the outfit design (ignore the bald head).
 IMAGE 4 (if attached) is the same outfit painted earlier by you: keep exactly the same design and colors, only the pose and size change.
 IMAGE 3 is a POSE and PROPORTION reference from DDTank (lying, crawling): a tiny body behind a big head resting on its fists. Copy only the pose and the proportions, never their clothes or art.
 
-Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head and every cyan disc EXACTLY where they are, same shape and size, flat and untouched: the game replaces the green with the player's own head and the cyan with the same skin-colored fists for every character. Do NOT paint hands or forearms: the sleeves end at the elbow, short stubs.
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same shape and size, flat and untouched: the game replaces the green with the player's own head. Paint the ARMS and HANDS too, like DDTank: each gray arm becomes the outfit's sleeve with its cuff, ending in a ROUND chubby fist (a soft ball a little wider than tall, no visible fingers, like DDTank's) painted exactly over each skin disc, same place and size. The fists are plain skin, painted in the light skin tone #FCD0AC with soft shading and a thin dark outline, so the game can recolor them to every player's skin. The sleeve must visibly join the fist (cuff, then a little wrist): never a floating hand.
 
 Paint IMAGE 2's outfit as a SMALL chibi body exactly over each gray mannequin, same size and pose, covering the gray completely and not growing past it by more than a few pixels: the body is much smaller than the head, like DDTank. Collar touching the green chin, facing RIGHT, feet to the LEFT.
 
 The body is TINY and SHORT like DDTank: only a short torso and two short legs lying flat on the ground behind the head, feet low near the ground (not raised), the whole body barely as long as the head is wide. Six frames, left to right, top to bottom: 1 REST lying belly-down. 2-5 CRAWL: same pose, only the feet shift 1-3 px between frames (follow the mannequin). 6 HURT: flattened, feet kicked up a little.
 
-Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. No hands, no weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.
+Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. No weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.
