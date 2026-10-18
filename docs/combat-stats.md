@@ -37,15 +37,15 @@ Uma explosão calcula exposição, defesa, crítico e dano **separadamente para 
 
 ## Ferramentas e cadência
 
-`+1` e `+2` podem ser repetidos enquanto houver vigor. O Tridente é permitido uma vez por turno. Os bônus de Dano 20/30/40/50% somam ao multiplicador base 1; o servidor valida o custo de cada ativação.
+Regras completas em [power-ups.md](power-ups.md) (`shared/powerUps.ts`).
 
 ```text
-salvas = 1 + soma dos disparos adicionais
-multiplicador por projétil = min(1, 1,8 / salvas) × (0,5 se Tridente)
+multiplicador por impacto = modo do disparo × (1 + soma dos bônus de dano)
+modo: normal 1,00 · +1 0,90 (2 disparos seguidos) · +2 0,60 (3 seguidos) · Tridente 0,50 (3 juntos)
 ângulos do Tridente = ângulo escolhido + [-9°, 0°, +9°]
 ```
 
-Duas salvas usam 90% por projétil, três usam 60%; combinações repetidas continuam seguindo a fórmula. Com Tridente, cada salva contém três projéteis e recebe também o fator 0,5. O intervalo entre salvas é **240ms**; projéteis do mesmo leque saem juntos.
+O intervalo entre disparos seguidos é `VOLLEY_CADENCE_MS` (570 ms); projéteis do mesmo leque saem juntos.
 
 ## Relógio e terreno autoritativos
 

@@ -1,4 +1,5 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
+import {powerUpConflict} from '../shared/powerUps';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -602,7 +603,7 @@ export class Game {
  private boost(f:Fighter,id:BoostId){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
   const b=BOOSTS.find(b=>b.id===id)!;
-  if(id==='trident'&&f.boosts.includes(id))throw Error('O tridente já foi usado neste turno.');
+  const combination=powerUpConflict(f.boosts,id);if(combination)throw Error(combination);
   // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
   const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
