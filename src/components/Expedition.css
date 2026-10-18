@@ -112,6 +112,7 @@ html.mobile-landscape .expedition-description{display:none}
 .stage-banner{position:absolute;left:50%;top:38%;transform:translate(-50%,-50%);z-index:7;pointer-events:none;text-align:center;animation:stage-banner 2.6s ease-in-out forwards}
 .stage-banner small{display:block;font:900 18px/1 'Nunito',sans-serif;letter-spacing:3px;color:#ffe9b8;text-shadow:0 2px #3b1806}
 .artillery-hud .stage-banner .battle-3d-text{font-size:58px}
+.stage-banner.stage-banner-short{animation-duration:1.5s}
 @keyframes stage-banner{0%{opacity:0;transform:translate(-50%,-40%) scale(.9)}12%{opacity:1;transform:translate(-50%,-50%) scale(1)}80%{opacity:1}100%{opacity:0}}
 .monster-count{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:#2c1004cc;color:#ffe2b0;font:900 13px/1 'Nunito',sans-serif;box-shadow:inset 0 0 0 1px #ffd36b66}
 .monster-count img{width:30px;height:26px;object-fit:cover;object-position:-7px 0}

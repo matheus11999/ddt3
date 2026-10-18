@@ -76,6 +76,10 @@ test('instance maps stay out of the PvP draw and place monsters on ground',()=>{
   for(const spot of [...map.spawns[0],...(map.monsters??[]).map(m=>m.x)])assert.ok(ground(terrain,spot)<864,`${id}: sem chão em ${spot}`);
  }
  assert.ok(getMap('anthill-2').monsters!.some(m=>m.kind==='ant-queen'));
+ // Stage 2: the pebbles on the floor are decoration (flat ground) and the queen stands on the throne's dirt, not on its leaves.
+ const chamber=createTerrain('anthill-2'),floor=Array.from({length:21},(_,n)=>ground(chamber,300+n*40));
+ assert.ok(Math.max(...floor)-Math.min(...floor)<=14,`chão do estágio 2 com calombos: ${floor.join(' ')}`);
+ assert.ok(ground(chamber,2600)>=460,'a rainha pisa na terra do trono');
 });
 
 test('an expedition room picks an expedition, starts both stages and pays without touching the PvP ranking',async()=>{
