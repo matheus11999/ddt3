@@ -16,7 +16,7 @@ const kitWeapons=WEAPONS.filter(weapon=>WEAPON_KITS[weapon.id]);
 test('the rebuilt arsenal starts with the Quebra-Tijolos: starter, balanced, small craters, single-projectile POW',()=>{
  assert.equal(STARTER_WEAPON,'brick');assert.ok(CATALOG.brick);
  const brick=CATALOG.brick as Weapon;assert.deepEqual([brick.attack,brick.defense,brick.agility,brick.luck],[85,95,85,85]);
- assert.ok(brick.crater<=30);assert.equal(brick.fragments,undefined,'one brick per shot, no shrapnel');assert.equal(powTridentRule('brick'),'pow-unico');
+ assert.ok(brick.crater<=30);assert.equal(brick.fragments,undefined,'one brick per shot, no shrapnel');assert.equal(powTridentRule('brick'),'exclusivo');
  assert.deepEqual(WEAPON_PHASES.map(phase=>phase.stage),[0,10,12,15]);
  assert.deepEqual([0,9,10,11,12,14,15].map(weaponVisualStage),[0,0,10,10,12,12,15]);
  assert.equal(weaponAssetPath('brick',12),'/assets/weapons/brick/held-12.png');assert.equal(weaponIconPath('brick',15),'/assets/weapons/brick/icon-15.png');
@@ -43,13 +43,17 @@ test('generated prompts chain references in order, name where to save and never 
  assert.match(soundPrompt(kit,'impact'),/no music, no voice/);
 });
 
-test('POW rules: pow-unico drops extra projectiles on POW, pow-tridente adds the spread, livre keeps both',()=>{
+test('POW rules: brick POW takes +1/+2/damage but not the Tridente; pow-unico drops extra projectiles, pow-tridente adds the spread, livre keeps both',()=>{
  assert.equal(powTridentRule('unknown'),'livre');
- assert.deepEqual(boostsForShot('brick',['trident','extra2','damage20'],true),['damage20']);
- assert.deepEqual(boostsForShot('brick',['trident','damage20'],false),['trident','damage20']);
- assert.match(powBoostConflict('brick','extra1')!,/projétil único/);assert.equal(powBoostConflict('brick','damage30'),undefined);
+ assert.match(powBoostConflict('brick','trident')!,/não combina Power com Tridente/);
+ for(const boost of ['extra1','extra2','damage30'] as BoostId[])assert.equal(powBoostConflict('brick',boost),undefined);
+ assert.deepEqual(boostsForShot('brick',['extra2','damage20'],true),['extra2','damage20']);
  const saved=WEAPON_KITS.brick.powTrident;
  try{
+  WEAPON_KITS.brick.powTrident='pow-unico';
+  assert.deepEqual(boostsForShot('brick',['trident','extra2','damage20'],true),['damage20']);
+  assert.deepEqual(boostsForShot('brick',['trident','damage20'],false),['trident','damage20']);
+  assert.match(powBoostConflict('brick','extra1')!,/projétil único/);
   WEAPON_KITS.brick.powTrident='pow-tridente';
   assert.equal(shotModifiers(boostsForShot('brick',['damage20'],true)).spread.length,3);
   assert.equal(shotModifiers(boostsForShot('brick',['damage20'],false)).spread.length,1);
