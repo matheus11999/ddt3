@@ -14,7 +14,7 @@ Default input: test-results/codex-combat/out/<id without outfit->-{ground,throw}
 Output: public/assets/outfits/combat/<id>.png, src/game/combatAtlas.json, test-results/combat/<id>/"""
 import json, os, sys
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 contract = json.load(open('src/game/rig/combatFrames.json'))
 T, A, HS = contract['template'], contract['atlas'], contract['headSilhouette']
@@ -52,6 +52,11 @@ if sys.argv[1] == '--fist':
     sys.exit(0)
 
 
+def grow(mask, size):
+    """Dilates a mask by size//2 px: the key colors' anti-aliased rim must go with them."""
+    return np.asarray(Image.fromarray((mask * 255).astype('uint8')).filter(ImageFilter.MaxFilter(size))) > 0
+
+
 def greenness(rgb):
     r, g, b = (rgb[..., k].astype(float) for k in range(3))
     return g - np.maximum(r, b)
@@ -71,8 +76,8 @@ for sheet, path in zip(contract['sheets'], inputs):
     head_mask = (green > 90) & (rgb[..., 1] > 150)
     # Cyan discs mark the universal fists: nothing of the outfit is painted there.
     r_, g_, b_ = (rgb[..., k].astype(float) for k in range(3))
-    cyan = (np.minimum(g_, b_) - r_ > 90) & (g_ > 150) & (b_ > 150)
-    rgba[cyan, 3] = 0
+    cyan = (np.minimum(g_, b_) - r_ > 60) & (g_ > 120) & (b_ > 120)
+    rgba[grow(cyan, 7), 3] = 0
     # Anti-aliased rim between the green head and the body or the background.
     rim = (green > 35) & ~head_mask
     measured = []
@@ -102,7 +107,7 @@ for sheet, path in zip(contract['sheets'], inputs):
             warnings.append(f'{sheet["name"]} {name}: cabeça {m[2] / median:.0%} da mediana da prancha')
     scale = head_px / median
     clean = rgba.copy()
-    clean[head_mask | rim, 3] = 0
+    clean[grow(head_mask | rim, 7), 3] = 0
     for i, (m, name) in enumerate(zip(measured, sheet['frames'])):
         if not m:
             continue
