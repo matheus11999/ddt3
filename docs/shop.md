@@ -26,7 +26,7 @@ Moedas Brasa usam o saldo persistente `Profile.gold`, compartilhado com recompen
 `scripts/smoke-shop.mjs` testa o fluxo real em um convidado novo, sem modificar perfis existentes:
 
 1. Confere que não há carrinho, filtros de gênero, Poder na prévia nem texto Unissex, e que itens femininos não aparecem para o perfil masculino.
-2. Experimenta Tempestade e Executivo e verifica que o equipamento salvo e comandos de compra/equipamento continuam inalterados.
+2. Experimenta Tempestade e Cartógrafo da Aurora e verifica que o equipamento salvo e comandos de compra/equipamento continuam inalterados.
 3. Cancela uma confirmação sem enviar pedido e compra dois itens, cada um com sua confirmação e um comando.
 4. Confirma posse, débito total, manutenção do equipamento anterior.
 5. Confirma que saldo insuficiente impede nova compra e que a recarga mantém inventário/saldo.

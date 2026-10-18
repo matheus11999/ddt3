@@ -55,18 +55,18 @@ async function run(){
   databaseScript(`
    import assert from 'node:assert/strict';import {Store} from './server/store.ts';import {starterEquipment} from './shared/catalog.ts';
    const store=new Store(),targets=${JSON.stringify(targets)};
-   try{for(const target of targets){const p=await store.getProfile(target.id);assert.equal(p.name,target.name);assert.ok(p.name.startsWith('TEST-G-'));const other=starterEquipment(target.gender==='male'?'female':'male');for(const slot of ['face','outfit','hat','hair'])if(!p.inventory.includes(other[slot]))p.inventory.push(other[slot]);const saved=await store.pool.query('UPDATE players SET profile=$3 WHERE id=$1 AND name=$2',[target.id,target.name,p]);assert.equal(saved.rowCount,1);}console.log(JSON.stringify({seeded:true}));}finally{await store.pool.end();}
+   try{for(const target of targets){const p=await store.getProfile(target.id);assert.equal(p.name,target.name);assert.ok(p.name.startsWith('TEST-G-'));const other=starterEquipment(target.gender==='male'?'female':'male');for(const slot of ['face','hat','hair'])if(!p.inventory.includes(other[slot]))p.inventory.push(other[slot]);const saved=await store.pool.query('UPDATE players SET profile=$3 WHERE id=$1 AND name=$2',[target.id,target.name,p]);assert.equal(saved.rowCount,1);}console.log(JSON.stringify({seeded:true}));}finally{await store.pool.end();}
   `);
   for(let index=0;index<clients.length;index++){
    await clients[index].close();clients[index]=new TestClient(sessions[index]);const client=clients[index],welcome=await client.wait('welcome'),gender=welcome.profile.gender;
    const before=await readProfile(sessions[index]);assert.equal(before.gender,gender);
-   const opposite=gender==='male'?{face:'face-smile',outfit:'outfit-dancer',hat:'hat-ruby',hair:'hair-ponytail'}:{face:'face-brave',outfit:'outfit-surfer',hat:'hat-cap',hair:'hair-undercut'};
+   const opposite=gender==='male'?{face:'face-smile',hat:'hat-ruby',hair:'hair-ponytail'}:{face:'face-brave',hat:'hat-cap',hair:'hair-undercut'};
    for(const item of Object.values(opposite)){assert.ok(before.inventory.includes(item));assert.match((await client.request({type:'equip',item},'error')).message,/gênero/);}
    const items=Object.fromEntries(SLOTS.map(slot=>[slot,before.equipment[slot]])) as Record<typeof SLOTS[number],string>;
    assert.match((await client.request({type:'customize',selection:{items:{...items,...opposite}}},'error')).message,/gênero/);assert.deepEqual(await readProfile(sessions[index]),before);
    await client.request({type:'recolor',item:before.equipment.hat,color:'#f24b64'},'profile');const dyed=await readProfile(sessions[index]);assert.equal(dyed.gender,gender);assert.equal(dyed.equipment.colors?.hat,'#f24b64');assert.equal(dyed.equipment.face,before.equipment.face);
   }
-  checks.push('owned opposite-gender face/outfit/hat/hair cannot equip, full customization rolls back, compatible ticket color remains valid after reconnect');
+  checks.push('owned opposite-gender face/hat/hair cannot equip, full customization rolls back, compatible ticket color remains valid after reconnect');
 
   for(const [index,client] of clients.entries()){
    const before=await readProfile(sessions[index]),costume=STARTER_COSTUMES[index];assert.ok(STARTER_COSTUMES.every(id=>before.inventory.includes(id)));assert.ok(before.inventory.every(id=>!isEmptyItem(id)));
@@ -87,15 +87,15 @@ async function run(){
   checks.push('both starter costumes are unisex, visibility persists and broadcasts without changing attributes, empty sentinels never become inventory items, and appearance stays frozen in battle');
 
   const database=databaseScript(`
-   import assert from 'node:assert/strict';import {Store,normalizeProfile} from './server/store.ts';import {CONTENT_VERSION,starterEquipment,canEquipItem,isEmptyItem,SLOTS,STARTER_COSTUMES} from './shared/catalog.ts';
+   import assert from 'node:assert/strict';import {Store,normalizeProfile} from './server/store.ts';import {CONTENT_VERSION,starterEquipment,canEquipItem,isEmptyItem,RETIRED_OUTFIT_REPLACEMENTS,SLOTS,STARTER_COSTUMES} from './shared/catalog.ts';
    const store=new Store();let id,name;
    try{
     const guest=await store.createGuest('female');id=guest.profile.id;name='TEST-G-DB-'+id.slice(0,8);await store.rename(id,name);
     const raw={...guest.profile,gold:1000,contentVersion:10,equipment:{...starterEquipment('male'),outfit:'outfit-dancer'},inventory:['ember','face-brave','face-smile','outfit-dancer','outfit-surfer','hat-cap','hat-ruby','hair-undercut','hair-ponytail','glasses-none','wristband-none','bracelet-none'],stones:{'1':0,'2':2},compositionStones:{'attack-1':0}};delete raw.gender;
     await store.pool.query('UPDATE players SET profile=$3 WHERE id=$1 AND name=$2',[id,name,raw]);
-    let p=await store.getProfile(id);assert.equal(p.gender,'female');assert.equal(p.gold,1000);assert.equal(p.stones['1'],0);assert.equal(p.stones['2'],2);assert.equal(p.compositionStones['attack-1'],0);assert.ok(raw.inventory.filter(item=>!isEmptyItem(item)).every(item=>p.inventory.includes(item)));assert.ok(SLOTS.every(slot=>canEquipItem(p.equipment[slot],'female')));assert.deepEqual(normalizeProfile(p),p);assert.ok(STARTER_COSTUMES.every(item=>p.inventory.includes(item)));assert.equal(p.equipment.costume,'costume-none');assert.ok(p.inventory.every(item=>!isEmptyItem(item)));
+    let p=await store.getProfile(id);assert.equal(p.gender,'female');assert.equal(p.gold,1000);assert.equal(p.stones['1'],0);assert.equal(p.stones['2'],2);assert.equal(p.compositionStones['attack-1'],0);assert.ok(raw.inventory.filter(item=>!isEmptyItem(item)&&!RETIRED_OUTFIT_REPLACEMENTS[item]).every(item=>p.inventory.includes(item)));assert.equal(p.equipment.outfit,'outfit-cartographer');assert.ok(p.inventory.includes('outfit-cartographer')&&!p.inventory.includes('outfit-dancer')&&!p.inventory.includes('outfit-surfer'));assert.ok(SLOTS.every(slot=>canEquipItem(p.equipment[slot],'female')));assert.deepEqual(normalizeProfile(p),p);assert.ok(STARTER_COSTUMES.every(item=>p.inventory.includes(item)));assert.equal(p.equipment.costume,'costume-none');assert.ok(p.inventory.every(item=>!isEmptyItem(item)));
     await store.saveEquipment(id,p.equipment);const persisted=(await store.pool.query('SELECT profile FROM players WHERE id=$1 AND name=$2',[id,name])).rows[0].profile;assert.equal(persisted.gender,'female');assert.equal(persisted.contentVersion,CONTENT_VERSION);
-    const before=await store.getProfile(id);await assert.rejects(store.saveEquipment(id,{...before.equipment,outfit:'outfit-surfer'}),/gênero/);assert.deepEqual(await store.getProfile(id),before);
+    const before=await store.getProfile(id);await assert.rejects(store.saveEquipment(id,{...before.equipment,hair:'hair-undercut'}),/gênero/);assert.deepEqual(await store.getProfile(id),before);
     await assert.rejects(store.buy(id,['volt','face-taunt']),/gênero/);assert.deepEqual(await store.getProfile(id),before);
     const results=await Promise.allSettled([store.buy(id,['face-taunt']),store.buy(id,['glasses-sport'])]);assert.equal(results.filter(result=>result.status==='fulfilled').length,1);p=await store.getProfile(id);assert.equal(p.gold,before.gold-140);assert.ok(p.inventory.includes('glasses-sport'));assert.ok(!p.inventory.includes('face-taunt'));assert.equal(p.gender,'female');
     console.log(JSON.stringify({legacyGenderPersists:true,resourcesPreserved:true,ownedMismatchRejected:true,cartAtomicity:true,concurrentPurchaseProtected:true,costumeMigration:true,emptyInventorySentinelsRemoved:true}));

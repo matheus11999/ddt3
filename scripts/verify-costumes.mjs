@@ -15,7 +15,7 @@ try{
   const {DEFAULT_EQUIPMENT,starterEquipment,CATALOG,weaponAssetPath}=await import('/shared/catalog.ts');
   const ids=Object.keys(COSTUMES),poses=['idle','walk','aim','charge','fire','hit','fall','prone','victory','defeat'];
   const load=path=>new Promise((resolve,reject)=>{const image=asset(path);if(image.complete&&image.naturalWidth)return resolve();image.addEventListener('load',resolve,{once:true});image.addEventListener('error',()=>reject(Error(path)),{once:true});});
-  await Promise.all([...Object.values(COSTUMES).map(c=>c.path),...Object.values(CATALOG).map(c=>c.visual?.asset).filter(Boolean),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/outfits/combat-prone.png','/assets/outfits/outfit-surfer-walk.png',weaponAssetPath(DEFAULT_EQUIPMENT.weapon,0)].map(load));
+  await Promise.all([...Object.values(COSTUMES).map(c=>c.path),...Object.values(CATALOG).map(c=>c.visual?.asset).filter(Boolean),'/assets/character-base.png','/assets/headwear-worn-atlas.png','/assets/hair-covered-atlas.png','/assets/outfits/combat-prone.png','/assets/outfits/cartographer-walk.png',weaponAssetPath(DEFAULT_EQUIPMENT.weapon,0)].map(load));
   for(let i=0;i<10&&!avatarRig(DEFAULT_EQUIPMENT);i++)await new Promise(r=>setTimeout(r,80));
   const fixture=document.createElement('div');fixture.style.cssText='position:fixed;inset:0;z-index:999999;overflow:auto;background:#152941';document.body.append(fixture);
   const sheet=document.createElement('canvas');sheet.id='costume-sheet';sheet.width=1600;sheet.height=1400;fixture.append(sheet);const c=sheet.getContext('2d');

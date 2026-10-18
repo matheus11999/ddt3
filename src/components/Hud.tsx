@@ -7,6 +7,7 @@ import {LevelBadge} from './LevelBadge';
 import {levelProgress} from '../../shared/progression';
 import {attributes} from '../../shared/catalog';import {client,useGame} from '../client';import {Avatar} from './Avatar';import {audio} from '../game/audio';
 import {playerMenuProps} from './PlayerActions';
+import {WorldBossButton} from './WorldBoss';
 import './WoodTheme.css';
 import './Hud.css';
 type LobbyMenu='quests'|'guild';
@@ -38,6 +39,7 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   {id:'settings',label:'Ajustes',art:'settings-button.png',action:onSettings},
  ];
  return <><div className="top-vignette"/><button className="player-hud" onClick={onInventory} title="Abrir mochila"><div className="portrait"><div className="portrait-crop"><Avatar equipment={p.equipment} size={87} portrait animated={false} weapon={false}/></div><div className="profile-level-badge"><LevelBadge level={p.level} size={40}/></div></div><div className="profile-lines"><div className="profile-name"><strong>{p.name}</strong><small>AVENTUREIRO</small></div><div className="resource-bar health"><i/><span><b>HP</b>{stats.hp} / {stats.hp}</span></div><div className="resource-bar stamina"><i/><span><b>VIGOR</b>{stats.stamina} / {stats.stamina}</span></div><div className="profile-power" title="Poder do jogador"><PowerIcon size={24}/> {stats.power.toLocaleString('pt-BR')}</div></div></button>
+  <WorldBossButton/>
   <div className="channel-chip"><MapPin size={13}/> Praça Celeste <i/> Canal {String(channel).padStart(2,'0')}</div>
   <div className="top-right"><div className="currency"><span title="Ouro (Moedas Brasa)" className="currency-gold"><RewardIcon size={20}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span className="currency-divider"/><span className="currency-coupons" title="Cupons"><CouponIcon size={24}/><b>{p.coupons.toLocaleString('pt-BR')}</b></span></div><button className="round-button" aria-label={sound?'Desativar som':'Ativar som'} onClick={()=>{audio.setEnabled(!sound);setSound(!sound);}}>{sound?<Volume2 size={19}/>:<VolumeX size={19}/>}</button><button className="round-button" aria-label="Tela cheia" onClick={()=>{if(document.fullscreenElement)void document.exitFullscreen();else void document.documentElement.requestFullscreen().catch(()=>{});}}><Expand size={18}/></button><button className="round-button" aria-label="Configurações" onClick={onSettings}><Settings size={19}/></button></div>
   <div className={`chat-shell lobby-chat wood-pane wood-chat ${chatOpen?'':'collapsed'}`}><button className="chat-collapse" aria-label={chatOpen?'Minimizar chat':'Abrir chat'} onClick={()=>setChatOpen(!chatOpen)}><ChevronDown size={15}/></button><Chat/></div>
