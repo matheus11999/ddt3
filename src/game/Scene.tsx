@@ -123,7 +123,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
     if(pose&&pose.shake>0)c.translate(Math.sin(t*.091)*pose.shake,Math.cos(t*.077)*pose.shake*.6);
     // The dragon rises from behind the lair's ridge: drawn before the terrain.
-    if(dragon&&pose)drawDragonBack(c,dragon,pose,dragonHurtAge);
+    if(dragon&&pose)drawDragonBack(c,dragon,pose,dragonHurtAge,t);
     environment!.drawTerrain(c,t);residues!.draw(c);
     const serverNow=Date.now()+state.offset;
     // Fighters already down when a battle is first shown (reconnect) skip the drop-in.

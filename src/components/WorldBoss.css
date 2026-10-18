@@ -67,9 +67,13 @@ html.mobile-landscape .world-boss-portrait{height:150px}
 html.mobile-landscape .world-boss-about{display:none}
 
 /* ── Battle: the global life in place of the enemy roster ── */
-.world-boss-bar{position:absolute;top:0;left:calc(50% + 108px);width:min(400px,calc(50% - 108px - 236px));display:flex;align-items:center;gap:10px;padding:6px 8px 6px 4px;background:none;border:0;color:#fff3dc;text-shadow:0 1px 0 #2a0c04,0 0 3px #000,0 0 6px #000a}
-.world-boss-bar-face{width:64px;height:64px;flex:none;border-radius:50%;overflow:hidden;background:#1a0c0699;box-shadow:0 0 0 2px #f2b56bcc,0 3px 8px #000a}
-.world-boss-bar-face img{width:100%;height:100%;object-fit:cover;object-position:50% 45%}
+.world-boss-bar{position:absolute;top:0;left:calc(50% + 108px);width:min(400px,calc(50% - 108px - 236px));display:flex;align-items:center;gap:10px;padding:20px 8px 6px 4px;background:none;border:0;color:#fff3dc;text-shadow:0 1px 0 #2a0c04,0 0 3px #000,0 0 6px #000a}
+/* The dragon's head breaks out of the top of its frame: below the circle's middle the picture is cut to the circle, above it nothing cuts it. */
+.world-boss-bar-face{position:relative;width:64px;height:64px;flex:none}
+.world-boss-bar-face::before{content:"";position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 50% 40%,#8a2a0ecc,#2a0c06e6 70%);box-shadow:0 0 0 2px #f2b56bcc,0 3px 8px #000a}
+.world-boss-bar-face img{position:absolute;left:-10px;bottom:0;width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 2px 2px #000a);
+ -webkit-mask:radial-gradient(circle 32px at 42px 52px,#000 31px,#0000 32px),linear-gradient(#000,#000) top/100% 52px no-repeat;
+ mask:radial-gradient(circle 32px at 42px 52px,#000 31px,#0000 32px),linear-gradient(#000,#000) top/100% 52px no-repeat}
 .world-boss-bar-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
 .world-boss-bar-body p{display:flex;justify-content:space-between;gap:8px;font:900 14px Nunito,sans-serif}
 .world-boss-bar-body p strong{font:700 15px Cinzel,serif;color:var(--wood-gold,#ffd36b);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
