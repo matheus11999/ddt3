@@ -1,6 +1,7 @@
 /**
- * The dragon's fire, drawn in code: layered flame tongues (red outside, orange, yellow, a white-hot core) and puffs of
- * fire that rise, cool from yellow to red and vanish, like real fire, painted in the game's warm style. Puffs are
+ * The dragon's fire, drawn in code: many small bits of fire that are born hot, white and yellow, and cool to orange and
+ * red as they fly or rise, until they vanish into smoke, like real fire, in the game's warm colors. Each bit is drawn
+ * as a soft body and then an additive glow, so together they fuse into one fire with no outlines or layers. Bits are
  * stamped from a few small sprites made once, so a breath of fire costs a few hundred image draws a frame.
  * Everything is a pure function of time and a seed: every client draws the same fire for the same server time and
  * nothing is kept between frames. A fire always has a life: it flares, burns and dies out.
@@ -30,37 +31,22 @@ export function puff(c:Ctx,x:number,y:number,r:number,heat:number,alpha=1){
  if(alpha<=.01||r<1)return;if(!sprites)makeSprites();
  const sprite=sprites![Math.round(clamp(heat)*(HEATS-1))],before=c.globalAlpha;c.globalAlpha=before*alpha;c.drawImage(sprite as CanvasImageSource,x-r,y-r,r*2,r*2);c.globalAlpha=before;
 }
+// Flame sprites: a soft teardrop, round at the base and pointed at the tip, hottest low in the middle.
+let licks:(HTMLCanvasElement|OffscreenCanvas)[]|null=null;
+function makeLicks(){
+ licks=STOPS.map(([a,b,c2])=>{const W=64,H=128,cv=canvas(W),g=(cv.getContext('2d') as CanvasRenderingContext2D);cv.height=H;
+  const grad=g.createRadialGradient(W/2,H*.74,0,W/2,H*.7,H*.62);grad.addColorStop(0,a);grad.addColorStop(.45,b);grad.addColorStop(.8,c2.slice(0,7)+'99');grad.addColorStop(1,c2);
+  g.filter='blur(6px)';g.fillStyle=grad;g.beginPath();g.moveTo(W/2,6);g.bezierCurveTo(W*.62,H*.3,W*.92,H*.52,W*.88,H*.72);g.bezierCurveTo(W*.84,H*.92,W*.16,H*.92,W*.12,H*.72);g.bezierCurveTo(W*.08,H*.52,W*.38,H*.3,W/2,6);g.fill();return cv;});
+}
+/** A flame licking up from its base at (x, y + r): `r` wide on each side, `stretch` times as tall. */
+function lick(c:Ctx,x:number,y:number,r:number,heat:number,alpha:number,stretch:number){
+ if(alpha<=.01||r<1)return;if(!licks)makeLicks();
+ const sprite=licks![Math.round(clamp(heat)*(HEATS-1))],before=c.globalAlpha,h=r*2*stretch;c.globalAlpha=before*alpha;c.drawImage(sprite as CanvasImageSource,x-r,y+r-h*.9,r*2,h);c.globalAlpha=before;
+}
 export function smoke(c:Ctx,x:number,y:number,r:number,alpha:number){
  if(alpha<=.01||r<1)return;if(!sprites)makeSprites();const before=c.globalAlpha;c.globalAlpha=before*alpha;c.drawImage(smokeSprite as CanvasImageSource,x-r,y-r,r*2,r*2);c.globalAlpha=before;
 }
 
-// ── Flame tongues ──
-const LAYERS=[
- // color, width, height, how much its tip sways: red outside, white-hot inside
- {color:'#d8301a',w:1,h:1,sway:1},{color:'#f4661e',w:.8,h:.84,sway:1.2},{color:'#ffaa30',w:.58,h:.64,sway:1.4},{color:'#ffe680',w:.36,h:.42,sway:1.6},{color:'#fffbe8',w:.2,h:.22,sway:1.7},
-];
-function tonguePath(c:Ctx,tip:number,bend:number,fork:number){
- // Base at 0, tip at -1; a second, smaller tip on one side makes it look like it is licking upward.
- c.beginPath();c.moveTo(tip,-1);
- c.bezierCurveTo(.12+bend,-.7,.5,-.48,.48,-.12);
- c.quadraticCurveTo(.44,.14,0,.15);c.quadraticCurveTo(-.44,.14,-.48,-.12);
- c.bezierCurveTo(-.52,-.38,-.4+fork*.1,-.58,-.3+fork*.12,-.74+fork*.06);
- c.quadraticCurveTo(-.2+bend*.5,-.5,-.08+bend*.6,-.62);
- c.bezierCurveTo(-.02+bend*.8,-.8,tip-.06,-.9,tip,-1);c.closePath();
-}
-interface Tongue {x:number;y:number;h:number;w:number;seed:number;alpha:number;lean:number;angle:number;}
-function tongueLayer(c:Ctx,g:Tongue,i:number,t:number){
- const L=LAYERS[i],ph=t/(120-i*9)+g.seed*6.3+i*1.7;
- const tip=(Math.sin(ph)*.16+Math.sin(ph*2.3+1)*.06)*L.sway+g.lean,bend=Math.sin(ph*.8+2)*.08*L.sway+g.lean*.6,lick=1+Math.sin(ph*1.9)*.1;
- c.save();c.globalAlpha*=g.alpha;c.translate(g.x,g.y);if(g.angle)c.rotate(g.angle);c.scale(g.w*L.w,g.h*L.h*lick);c.fillStyle=L.color;tonguePath(c,tip,bend,Math.sin(ph*1.3));c.fill();c.restore();
-}
-/** Several tongues drawn layer by layer (all the red, then all the orange...), so they merge into one fire with a hot heart. */
-function tongues(c:Ctx,list:Tongue[],t:number){for(let i=0;i<LAYERS.length;i++)for(const g of list)if(g.alpha>.01&&g.h>=3)tongueLayer(c,g,i,t);}
-/**
- * One flame tongue with its base at (x, y), `h` tall and `w` wide, tip up (or along `angle`). `t` animates it and
- * `seed` makes each tongue flicker on its own; `lean` bends it (wind, motion).
- */
-export function tongue(c:Ctx,x:number,y:number,h:number,w:number,t:number,seed:number,alpha=1,lean=0,angle=0){tongues(c,[{x,y,h,w,seed,alpha,lean,angle}],t);}
 /** The warm light a fire throws around it (additive). */
 export function glow(c:Ctx,x:number,y:number,r:number,alpha:number){
  if(alpha<=.01||r<2)return;c.save();c.globalCompositeOperation='lighter';puff(c,x,y,r,.35,alpha*.45);c.restore();
@@ -74,18 +60,21 @@ export function groundFire(c:Ctx,x:number,y:number,width:number,height:number,ag
  const flare=clamp(age/200),dying=clamp((age-burn)/fade),life=flare*(1-dying)**1.4;
  if(life>0){
   glow(c,x,y-height*.3,width*.6+height*.4,.7*life);
-  // A hot bed under the tongues joins them into one fire.
+  // A hot bed under the flames joins them into one fire.
   for(let i=0;i<4;i++){const u=i/3-.5;puff(c,x+u*width*.8,y-height*.08,height*.3*(.6+.4*life),.75,.6*life);}
-  const count=Math.max(2,Math.round(width/(high?16:28)));
-  const list:Tongue[]=[];
-  for(let i=0;i<count;i++){
-   const r=hash(seed*31+i),u=count===1?0:i/(count-1)-.5,center=1-Math.abs(u)*1.3;
-   // Each tongue dies on its own: the edges go first, the middle lasts.
-   const own=clamp(life*1.3-(1-center)*dying*.9-r*dying*.3);if(own<=0)continue;
-   const h=height*(.5+.5*center)*(.5+.5*r)*(.4+.6*own)*(1+.12*Math.sin(t/170+r*20));
-   list.push({x:x+u*width+(r-.5)*20,y:y+3,h,w:h*(.62+.28*hash(r*91)),seed:seed+i,alpha:clamp(own*1.5),lean:(r-.5)*.3,angle:0});
+  // Flames: bits of fire born all along the bed, rising, shrinking and cooling from yellow to red as they go, drawn
+  // like the jet (a soft body, then an additive glow) so it is the same fire. A bit is as strong as the fire was when it was born.
+  const step=high?9:16,lifeAt=(at:number)=>clamp(at/200)*(1-clamp((at-burn)/fade))**1.4,bits:{x:number;y:number;r:number;heat:number;alpha:number;tall:number}[]=[];
+  for(let n=Math.max(0,Math.floor((age-700)/step));n*step<=Math.min(age,end);n++){
+   const born=n*step+hash(seed*13+n)*step,strength=lifeAt(born);if(born>age||strength<=0)continue;
+   const span=600*(.7+.5*hash(seed+n*3)),k=(age-born)/span;if(k<0||k>=1)continue;
+   const u=hash(seed*7+n*5)-.5,center=1-Math.abs(u)*1.4,rise=height*(.75+.55*hash(seed+n*11))*(.55+.45*center)*strength;
+   const r=height*.2*(.6+.5*hash(seed+n*17))*(.5+.5*strength)*(1-.6*k);
+   bits.push({x:x+u*width*(.4+.6*strength)+Math.sin(born/90+k*4)*12*k,y:y-rise*k**.9+r*.3,r,heat:clamp(1-.95*k)*(.6+.4*center),alpha:Math.min(1,k*8)*(1-k)**.7,tall:1.3+1.4*hash(seed+n*19)});
   }
-  tongues(c,list,t);
+  bits.sort((a,b)=>a.heat-b.heat);
+  for(const b of bits)lick(c,b.x,b.y,b.r*1.25,b.heat*.55,.32*b.alpha,b.tall);
+  c.save();c.globalCompositeOperation='lighter';for(const b of bits)lick(c,b.x,b.y,b.r*.8,b.heat,.45*b.alpha,b.tall*.9);c.restore();
   if(high&&life>.2)for(let i=0;i<4;i++){const k=((t*.0012+hash(seed+i*7))%1),sx=x+(hash(seed*3+i)-.5)*width+Math.sin(t/160+i*2)*10;
    c.save();c.globalAlpha*=(1-k)*life;c.fillStyle=i%2?'#ffe08a':'#ff9a36';c.beginPath();c.arc(sx,y-height*(.5+1.2*k),2.6*(1-k)+.8,0,Math.PI*2);c.fill();c.restore();}
  }
@@ -94,21 +83,35 @@ export function groundFire(c:Ctx,x:number,y:number,width:number,height:number,ag
  if(fume>0)for(let i=0;i<(high?4:2);i++){const r=hash(seed*7+i),k=((age/1100+r)%1),sx=x+(r-.5)*width*.7;smoke(c,sx+16*k,y-height*.25-90*k,12+26*k,.42*fume*(1-k));}
 }
 /**
- * A stream of fire poured from `from` along a curve (control point `via`) to `to`, while `age` is between `start` and
- * `stop`: puffs leave the mouth hot and fast, spread out and cool as they fly, and the last ones reach the ground after
- * the mouth closes, so the stream breaks off and is gone.
+ * A dragon's jet of fire: one continuous flow, poured from `throat` out through `gap` (the mouth opening) and on to
+ * `to`, while `age` is between `start` and `stop`. Every bit of fire leaves the throat white-hot and narrow, widens,
+ * cools to orange and red and churns more the further it flies; the last ones still fly on after the mouth closes, so
+ * the jet breaks off and is gone. Each bit is drawn twice, a soft body and an additive glow, so the jet reads as one
+ * fused fire, without outlines or layers. The path curves smoothly out of the mouth (it never bends at the teeth).
+ * `part` draws only the fire inside the mouth (between the jaw and the skull) or only the fire outside it.
  */
-export function stream(c:Ctx,from:{x:number;y:number},via:{x:number;y:number},to:{x:number;y:number},age:number,start:number,stop:number,travel:number,size:number,high:boolean,t=age){
- const step=high?12:22,points:{x:number;y:number;r:number;heat:number;alpha:number;angle:number;seed:number}[]=[];
+export function jet(c:Ctx,throat:{x:number;y:number},gap:{x:number;y:number},to:{x:number;y:number},age:number,start:number,stop:number,travel:number,size:number,high:boolean,part:'inside'|'outside'){
+ const inLen=Math.hypot(gap.x-throat.x,gap.y-throat.y)||1,dirX=(gap.x-throat.x)/inLen,dirY=(gap.y-throat.y)/inLen;
+ const outLen=Math.hypot(to.x-gap.x,to.y-gap.y)||1,ctrl={x:gap.x+dirX*outLen*.35,y:gap.y+dirY*outLen*.35},split=inLen/(inLen+outLen*1.05);
+ const step=high?8:14,bits:{x:number;y:number;r:number;seed:number;q:number;heat:number;alpha:number}[]=[];
  for(let n=Math.floor(start/step);n*step<=stop;n++){
-  const seed=n,born=n*step+hash(seed+1)*step*.8,s=(age-born)/travel;if(born<start||s<0||s>=1.15)continue;const q=Math.min(1,s),u=1-q;
-  const x=u*u*from.x+2*u*q*via.x+q*q*to.x,y=u*u*from.y+2*u*q*via.y+q*q*to.y,dx=2*u*(via.x-from.x)+2*q*(to.x-via.x),dy=2*u*(via.y-from.y)+2*q*(to.y-via.y),len=Math.hypot(dx,dy)||1;
-  // Turbulence across the stream grows with distance; past the end the puffs splash out and fade.
-  const spread=((hash(seed)-.5)*1.2+Math.sin(born/90+q*5)*.35)*size*q,over=Math.max(0,s-1)/.15,nx=-dy/len,ny=dx/len;
-  points.push({x:x+nx*spread+(hash(seed+5)-.5)*size*over*2,y:y+ny*spread-size*.5*over,r:size*(.3+.75*q)*(1+.4*over)*(.6+.8*hash(seed+9)),heat:1-q*.35-over*.3,alpha:s<1?1:1-over,angle:Math.atan2(-dx/len,dy/len),seed});
+  const born=n*step+hash(n+1)*step*.7;if(born<start||born>stop)continue;const s=(age-born)/travel;if(s<0||s>=1.18)continue;
+  if(part==='inside'?s>=split:s<split)continue;
+  let x:number,y:number,tx:number,ty:number;
+  if(s<split){const u=s/split;x=throat.x+(gap.x-throat.x)*u;y=throat.y+(gap.y-throat.y)*u;tx=dirX;ty=dirY;}
+  else{const u=Math.min(1,(s-split)/(1-split)),v=1-u;x=v*v*gap.x+2*v*u*ctrl.x+u*u*to.x;y=v*v*gap.y+2*v*u*ctrl.y+u*u*to.y;tx=2*v*(ctrl.x-gap.x)+2*u*(to.x-ctrl.x);ty=2*v*(ctrl.y-gap.y)+2*u*(to.y-ctrl.y);const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;}
+  const q=Math.min(1,s),over=Math.max(0,s-1)/.18,r=size*(.16+1.12*q**.85)*(.68+.64*hash(n+3))*(1+.7*over);
+  // Turbulence across the flow grows with distance; hot air lifts the far end a little; at the end it splashes out.
+  const lateral=((hash(n)-.5)*.9+Math.sin(born/70+q*7)*.5)*r*Math.min(1,q*1.6)*1.05;
+  x+=-ty*lateral+(hash(n+5)-.5)*size*2.4*over;y+=tx*lateral-r*.22*q*q-size*.35*over;
+  bits.push({x,y,r,seed:n,q,heat:clamp(1-.82*q**1.1+(hash(n+7)-.5)*.14-.25*over),alpha:1-clamp(over)});
  }
- // A soft red body, then each puff as a flame licking backwards with its white-hot heart: a jet of fire, not a row of balls.
- for(const p of points)puff(c,p.x,p.y,p.r*1.35,.3,p.alpha*.45);
- tongues(c,points.map(p=>({x:p.x,y:p.y+p.r*.35,h:p.r*(2.2+.8*hash(p.seed+2)),w:p.r*1.25,seed:p.seed,alpha:p.alpha,lean:0,angle:p.angle})),t);
- for(const p of points)if(p.heat>.75)puff(c,p.x,p.y,p.r*.5,p.heat,p.alpha*.8);
+ // The far, cooler fire goes down first and the hot heart near the mouth on top.
+ bits.sort((a,b)=>a.heat-b.heat);
+ // Away from the mouth the fire rolls: flames lick up off the top of the flow and darken to smoke.
+ for(const b of bits)if(b.q>.3){const k=(b.q-.3)/.7,up=b.r*(.55+.5*hash(b.seed+13));smoke(c,b.x+b.r*.2,b.y-up*1.6,b.r*.75,.16*k*b.alpha);puff(c,b.x+(hash(b.seed+17)-.5)*b.r,b.y-up,b.r*.55,b.heat*.6,.5*k*b.alpha);}
+ for(const b of bits)puff(c,b.x,b.y,b.r*1.3,b.heat*.55,.42*b.alpha);
+ c.save();c.globalCompositeOperation='lighter';
+ for(const b of bits)puff(c,b.x,b.y,b.r*.85,b.heat,.5*b.alpha);
+ c.restore();
 }
