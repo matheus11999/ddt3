@@ -8,9 +8,9 @@ Uma planta que evolui sozinha com o nível, como as armas por fase: **Broto** (n
 
 | Habilidade | Tipo | O que faz |
 | --- | --- | --- |
-| Raízes da Terra | passiva, inata (não ocupa slot) | depois do último projétil do tiro do dono, um redemoinho de folhas gira onde o último projétil caiu (no Tridente, o do meio da última leva): dano em área (`area-damage`, gatilho `shot-end`), sem projétil, número de dano próprio; raio e dano crescem com o estágio (`stageScaling`), arte `whirl-{estágio}.png` (anel que gira, `style: 'whirl'`) e `leaves-{estágio}.png` (folhas soltas que saem girando) |
-| Orbe da Natureza | ativa | o próximo tiro vira uma bola verde (`special-shot`): um projétil só, sem ferramentas, POW, voo ou mira assistida no turno (bloqueados), dano sempre crítico × multiplicador do estágio |
-| Orvalho Curativo | ativa, nível 10 | cura % da Vida no **começo** de cada um dos próximos 3 turnos do dono (`hot` com `at: 'turn-start'`) |
+| Raízes da Terra | passiva, só funciona equipada num slot (no nível 1 ocupa o único slot aberto) | depois do último projétil do tiro do dono, um redemoinho de folhas gira onde o último projétil caiu (no Tridente, o do meio da última leva): dano em área (`area-damage`, gatilho `shot-end`), sem projétil, número de dano próprio; raio e dano crescem com o estágio (`stageScaling`), arte `whirl-{estágio}.png` (camadas de borda apagada que oscilam e giram em velocidades diferentes, `style: 'whirl'`, sem contorno de círculo) e `leaves-{estágio}.png` (folhas soltas que saem girando) |
+| Orbe da Natureza | ativa | o próximo tiro vira uma bola verde (`special-shot`): um projétil só, sem ferramentas, POW, voo ou mira assistida no turno (bloqueados), dano sempre crítico × multiplicador do estágio; também cura 3/4/5% da Vida máxima no começo dos próximos 2 turnos do dono (`hot`, `at: 'turn-start'`) |
+| Orvalho Curativo | ativa, nível 10 | cura o dono e todo o time (`target: 'allies'`), 3/4/5% da Vida máxima no **começo** de cada um dos próximos 3 turnos de cada um (`hot` com `at: 'turn-start'`; o servidor roda o começo de turno de quem tem efeito de pet, mesmo sem pet) |
 
 - Estágio: `evolveByLevel` troca o estágio quando o nível passa do requisito (`PET_EVOLVED`); com `stageScaling`, o nível da habilidade em batalha é o estágio + 1.
 - No servidor: `Game.resolveFire` (tiro especial e o ataque das raízes, `PendingImpact.petStrike`, índice 1000 nos eventos de impacto) e `Game.petStrike`. No cliente: `src/game/petEffects.ts` desenha o efeito em área (nasce do chão), a cura e o projétil/impacto do orbe.

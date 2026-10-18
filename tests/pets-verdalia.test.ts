@@ -28,15 +28,18 @@ test('every player receives Verdália once, with its food, ready to fight',async
  const outcome=await pets.gift(a.id,{...gift,food:{...gift.food},equip:true});
  assert.ok(outcome);const pet=outcome.state.pets[0];
  assert.equal(pet.species,'verdalia');assert.equal(pet.stage,0);assert.equal(outcome.profile.petFood['pet-food-dew'],10);assert.ok(outcome.profile.petGifts?.includes('starter-verdalia'));
- // The passive is innate (no slot); the special orb goes in the first slot by itself.
- assert.deepEqual(pet.equippedSkills,['verdalia-orb',null,null,null]);
- assert.deepEqual(activeSkills(pet).map(s=>s.id).sort(),['verdalia-orb','verdalia-roots']);
+ // The passive only works from a slot: it takes the only open one at level 1; the orb waits for the next slot.
+ assert.deepEqual(pet.equippedSkills,['verdalia-roots',null,null,null]);
+ assert.deepEqual(activeSkills(pet).map(s=>s.id),['verdalia-roots']);
+ assert.deepEqual(activeSkills({...pet,equippedSkills:['verdalia-orb',null,null,null]}).map(s=>s.id),['verdalia-orb'],'out of its slot, the passive does nothing');
  assert.equal(await pets.gift(a.id,{...gift,food:{...gift.food}}),null);assert.equal((await pets.list(a.id)).pets.length,1);
 });
 test('Verdália evolves by level into three looks, and the heal unlocks at level 10',async()=>{
  const {pets,a}=service(),{pet}=await pets.grant(a.id,'verdalia',{source:'test'});
  const stored=pets.pets.get(pet.id)!;
- let jump=gainPetXp(stored,xpForLevel(10));assert.equal(stored.stage,0);assert.ok(jump.unlockedSkills.includes('verdalia-dew'));assert.ok(stored.equippedSkills.includes('verdalia-dew'));
+ let jump=gainPetXp(stored,xpForLevel(10));assert.equal(stored.stage,0);assert.ok(jump.unlockedSkills.includes('verdalia-dew'));
+ // The second slot opens at level 10 and takes the orb, learned first; the heal waits for the next slot.
+ assert.deepEqual(stored.equippedSkills,['verdalia-roots','verdalia-orb',null,null]);
  jump=gainPetXp(stored,xpForLevel(20)-stored.xp);assert.equal(stored.stage,1);assert.deepEqual(jump.evolved,{from:0,to:1});
  gainPetXp(stored,xpForLevel(40)-stored.xp);assert.equal(stored.stage,2);
  assert.equal(petSnapshot(stored).stage,2);
@@ -53,12 +56,20 @@ test('Raízes da Terra damages only the enemies in the area of the shot, and gro
  // No point (the shot fell off the map): nothing rises.
  const miss=duel(0);assert.ok(!dispatchPetTrigger(miss.ctx,'shot-end',miss.owner,{sourceId:'a'}).some(x=>x.kind==='area-damage'));assert.equal(miss.near.hp,1000);
 });
-test('Orvalho Curativo heals at the start of each of the next 3 turns',()=>{
- const {owner,ctx}=duel(0,[{id:'verdalia-dew',level:1}]);owner.pet!.mana=100;owner.hp=500;
+test('Orvalho Curativo heals the whole team at the start of each of their next 3 turns',()=>{
+ const {owner,near,ctx}=duel(0,[{id:'verdalia-dew',level:1}]),ally:PetCombatant={id:'d',team:0,hp:500,maxHp:1000,level:10,x:150,y:500};
+ ctx.fighters.push(ally);owner.pet!.mana=100;owner.hp=500;near.hp=500;
  activatePetSkill(ctx,owner,'verdalia-dew');assert.equal(owner.hp,500);
  petTurnEnd(ctx,owner);assert.equal(owner.hp,500,'nothing at the end of the turn');
- for(const expected of [550,600,650]){petTurnStart(ctx,owner);assert.equal(owner.hp,expected);petTurnEnd(ctx,owner);}
- petTurnStart(ctx,owner);assert.equal(owner.hp,650);assert.equal(owner.petEffects,undefined);
+ for(const expected of [530,560,590]){for(const f of [owner,ally,near]){petTurnStart(ctx,f);petTurnEnd(ctx,f);}assert.equal(owner.hp,expected);assert.equal(ally.hp,expected);}
+ petTurnStart(ctx,owner);petTurnStart(ctx,ally);assert.equal(owner.hp,590);assert.equal(ally.hp,590);assert.equal(owner.petEffects,undefined);
+ assert.equal(near.hp,500,'the enemy is never healed');
+});
+test('Orbe da Natureza also heals at the start of each of the next 2 turns',()=>{
+ const {owner,ctx}=duel(0,[{id:'verdalia-orb',level:1}]);owner.pet!.mana=100;owner.hp=500;
+ activatePetSkill(ctx,owner,'verdalia-orb');petTurnEnd(ctx,owner);assert.equal(owner.hp,500);
+ for(const expected of [530,560]){petTurnStart(ctx,owner);assert.equal(owner.hp,expected);petTurnEnd(ctx,owner);}
+ petTurnStart(ctx,owner);assert.equal(owner.hp,560);
 });
 
 // ── Game ──
