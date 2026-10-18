@@ -1,0 +1,14 @@
+Use the attached sprite sheet as the exact character reference: it is the {NAME} of the Anthill dungeon (frames 1 and 2 are its current walk, frames 3 and 4 its attack). Paint a NEW sheet with only its WALK CYCLE.
+
+Paint ONE image, exactly 1536x1024 pixels, as a 2x2 SPRITE SHEET: four equal cells of 768x512 px (top-left = frame 1, top-right = frame 2, bottom-left = frame 3, bottom-right = frame 4), on a perfectly flat solid magenta background #FF00FF (no gradient, no floor, no cast shadow, no magenta tint or outline on the drawing). Nothing touches or crosses a cell border (at least 30 px of magenta margin).
+
+The SAME creature as the reference in every cell: identical design, colours, armour, accessories, proportions and SIZE (same size as in the reference cells), standing on the same invisible ground line about 440 px from the top of each cell, centred in its cell, facing RIGHT, pure side view, light from the upper left. Same painted DDTank style as the reference.
+
+The walk is an insect tripod gait, read clearly at small size, legs moving a lot, body staying the same:
+- Frame 1 = near-side FRONT and REAR legs reaching far forward, near-side MIDDLE leg pushed far back (the far-side legs do the opposite); body at normal height; antennae tilted back.
+- Frame 2 = passing pose: all legs gathered under the body, the body raised about 8 px; antennae upright.
+- Frame 3 = the mirror of frame 1: near-side front and rear legs pushed far BACK, near-side middle leg reaching far FORWARD (far-side legs opposite); body at normal height; antennae tilted forward.
+- Frame 4 = passing pose again (like frame 2) with the head slightly lower and the antennae bouncing.
+Only the legs, antennae and a small head bob change between frames; the body, head, eyes and armour stay identical.
+
+Absolutely no text, letters, numbers, logos, UI, frames or watermarks anywhere in the image.

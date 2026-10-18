@@ -1,0 +1,57 @@
+{
+ "anthill-1": {
+  "box": [
+   0,
+   880,
+   1536,
+   976
+  ],
+  "size": [
+   3072,
+   192
+  ],
+  "top": 812,
+  "crops": [
+   {
+    "ref": "anthill-1-chao-1-ref.png",
+    "out": "anthill-1-chao-1.png",
+    "x": 0
+   },
+   {
+    "ref": "anthill-1-chao-2-ref.png",
+    "out": "anthill-1-chao-2.png",
+    "x": 768
+   },
+   {
+    "ref": "anthill-1-chao-3-ref.png",
+    "out": "anthill-1-chao-3.png",
+    "x": 1536
+   }
+  ]
+ },
+ "anthill-2": {
+  "box": [
+   49,
+   695,
+   1462,
+   1002
+  ],
+  "size": [
+   2826,
+   614
+  ],
+  "top": 390,
+  "crops": [
+   {
+    "ref": "anthill-2-chao-1-ref.png",
+    "out": "anthill-2-chao-1.png",
+    "x": 0
+   },
+   {
+    "ref": "anthill-2-chao-2-ref.png",
+    "out": "anthill-2-chao-2.png",
+    "x": 1290
+   }
+  ]
+ }
+}
