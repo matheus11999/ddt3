@@ -11,7 +11,9 @@ Pedido do matheus em 18/10/2026. Botão **Hall da Fama** no menu da praça (trof
 - **Conquistas**: 18 conquistas permanentes vindas de dados reais (`ACHIEVEMENTS` em `shared/hall.ts`): vitórias PvP, nível, Poder, forja, guilda, títulos. Pontos somados.
 - **Lendas**: histórico dos campeões (dia, semana, guilda da semana) com a foto oficial de cada período e contagem de títulos.
 
-Cada lista mostra o top 50 (configurável) em páginas de 10, os três primeiros no pódio com o personagem real sobre a aura do jogo, e a posição do próprio jogador mesmo fora do top. Clique abre o perfil (jogador ou guilda); botão direito abre o menu de jogador.
+## Tela (pedido do matheus, 18/10 à noite)
+
+Tela cheia como no DDTank, sem a moldura de madeira. À esquerda, o **palco** pintado pelo Codex (`public/assets/ui/hall-stage.webp`, placa `hall-title-plate.webp`; o jogo escreve "Hall da Fama" e "Nº lugar" em dourado 3D) com quem está selecionado no ranking em pé sobre o tablado e a aura; embaixo, a placa com nível, nome, número, guilda e os botões Ver conquistas e Ver equipamento; depois o **chat** do jogo. À direita, o ranking escuro: Jogadores / Guildas / Lendas, categorias (Poder, Nível, Conquistas, PvP; nas guildas Poder, PvP, GvG, Nível), Diário/Semanal/Total, 10 linhas por página com placas Nº1/Nº2/Nº3, Anterior/Próximo e "Meu ranking". Clique numa linha põe a pessoa no palco; duplo clique abre o perfil. O perfil da guilda não mostra a lista de membros (pedido do matheus).
 
 ## O que conta
 

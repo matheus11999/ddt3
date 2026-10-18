@@ -1,197 +1,227 @@
-/* Hall da Fama no padrão da mochila e do leilão (Backpack.css, Auction.css): moldura de madeira laranja,
-   abas verticais, áreas creme, pódio pintado (hall-rank-*.png, recortes dos pódios da praça) e o selo da aura
-   atrás dos três primeiros. */
-.inventory-modal-layer .modal-backdrop > .game-window.menu-frame.bag-window.hall-window[class] {
-  width: min(1120px, 100%);
-  height: min(700px, calc(100dvh - 32px));
+/* Hall da Fama em tela cheia, no padrão do DDTank: moldura escura com filete dourado, palco pintado
+   (hall-stage.webp e hall-title-plate.webp, Codex) à esquerda com a placa do selecionado e o chat embaixo,
+   ranking escuro à direita. */
+.hof-screen {
+  --hof-gold: #ffd36b;
+  --hof-cream: #f8e6c2;
+  position: fixed; inset: 0; z-index: 30;
+  display: grid; grid-template-columns: minmax(0, 45fr) minmax(0, 55fr); gap: 10px;
+  padding: 10px max(10px, env(safe-area-inset-right)) 10px max(10px, env(safe-area-inset-left));
+  background: radial-gradient(ellipse at 30% 0%, #4a2412, transparent 60%), linear-gradient(#24100a, #120804);
+  color: var(--hof-cream); font-family: 'Nunito', sans-serif;
 }
-.hall-window :is(button, b, strong, small, span, th, td, h2, h3, h4, p, label, select, em, li) { font-family: 'Nunito', 'Trebuchet MS', sans-serif; }
-.hall-window .hall-layout { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 12px; min-height: 0; flex: 1; margin-top: 6px; }
+.hof-screen button { font-family: inherit; cursor: pointer; }
+.hof-left, .hof-right { min-height: 0; min-width: 0; }
 
-/* Abas verticais por categoria */
-.hall-window .hall-tabs { display: flex; flex-direction: column; gap: 6px; }
-.hall-window .hall-tabs > button {
-  display: flex; align-items: center; gap: 8px; height: 46px; padding: 0 12px;
-  border: 2px solid #f2b56b; border-radius: 12px;
-  background: linear-gradient(#8f4a1d, #64300f); box-shadow: inset 0 1px #ffc98c66, 0 2px #3b1806;
-  color: #ffe2b0; font-size: 15px; font-weight: 900; cursor: pointer; text-align: left;
+/* Moldura comum dos painéis */
+.hof-stage, .hof-plate, .hof-chat, .hof-right {
+  border: 2px solid #e2b25a; border-radius: 14px;
+  box-shadow: inset 0 0 0 2px #5a2d0e, 0 6px 18px #000a;
 }
-.hall-window .hall-tabs > button:hover { filter: brightness(1.08); }
-.hall-window .hall-tabs > button.active { border-color: #fff0c9; background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c); box-shadow: inset 0 1px #fff7d9, 0 2px #7a3a0a; color: #fff; text-shadow: 0 1px #9a4510, 0 2px 3px #6d300a99; }
 
-.hall-window .hall-main { display: flex; flex-direction: column; gap: 8px; min-width: 0; min-height: 0; }
-.hall-window .hall-filters { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; min-height: 40px; }
-.hall-window .hall-filter-tabs { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.hall-window .hall-filter-tabs button, .hall-window .hall-subtabs button {
-  height: 34px; padding: 0 14px; border: 2px solid #f2b56b; border-radius: 17px;
-  background: linear-gradient(#8f4a1d, #64300f); color: #ffe2b0; font-size: 14px; font-weight: 900; cursor: pointer;
+/* Coluna da esquerda: palco, placa do selecionado e chat */
+.hof-left { display: grid; grid-template-rows: minmax(0, 1fr) auto 170px; gap: 8px; }
+
+/* O palco é quadrado e cobre o painel ancorado em 70% da altura; --hof-art é o lado do quadrado na tela e
+   --hof-shift o quanto ele sobe, para pôr os pés do personagem em cima do tablado pintado (78,5% da arte). */
+.hof-stage {
+  container-type: size; position: relative; overflow: hidden; isolation: isolate;
+  background: #1c0b23 url('/assets/ui/hall-stage.webp') 50% 70% / cover no-repeat;
 }
-.hall-window .hall-filter-tabs button.active, .hall-window .hall-subtabs button.active { border-color: #fff0c9; background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c); color: #fff; text-shadow: 0 1px #9a4510; }
-.hall-window .hall-subtabs { display: inline-flex; gap: 4px; margin-left: 6px; padding-left: 8px; border-left: 2px solid #f2b56b66; }
-.hall-window .hall-subtabs button { height: 30px; padding: 0 11px; font-size: 13px; }
-.hall-window .hall-board-title { margin: 0; color: var(--wood-gold); font: 900 21px 'Cinzel', serif; text-shadow: 0 2px #3b1806; }
-.hall-window .hall-clock { display: flex; align-items: center; gap: 12px; color: #ffe2b0; font-size: 13px; font-weight: 800; }
-.hall-window .hall-clock > span { display: inline-flex; align-items: center; gap: 5px; }
-.hall-window .hall-clock b { color: var(--wood-gold); font-variant-numeric: tabular-nums; }
-.hall-window .hall-updated { opacity: .82; }
+.hof-stage > * { --hof-art: max(100cqw, 100cqh); --hof-shift: calc((100cqh - var(--hof-art)) * .7); }
 
-.hall-window .hall-state { display: grid; place-items: center; align-content: center; gap: 10px; flex: 1; min-height: 160px; padding: 24px; font-size: 16px; font-weight: 800; text-align: center; }
-.hall-window .hall-board { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
+.hof-title { position: absolute; top: 0; left: 50%; translate: -50% 0; width: min(64%, 420px); aspect-ratio: 900 / 375; z-index: 3; filter: drop-shadow(0 6px 8px #0009); }
+.hof-title img { position: absolute; inset: 0; width: 100%; height: 100%; }
+.hof-title .hof-gold-word { position: absolute; left: 19%; top: 53%; width: 62%; height: 29%; }
+.hof-gold-word { display: block; overflow: visible; }
+.hof-place { position: absolute; top: 34%; left: 3%; width: min(32%, 220px); z-index: 3; rotate: -8deg; filter: drop-shadow(0 4px 6px #000a); }
+.hof-place .hof-gold-word { width: 100%; height: auto; }
 
-/* Pódio dos três primeiros */
-.hall-window .hall-podium { display: grid; grid-template-columns: 1fr 1.12fr 1fr; align-items: end; gap: 10px; }
-.hall-window .hall-podium-card {
-  position: relative; display: grid; justify-items: center; align-content: end; min-width: 0; padding: 0 6px 8px;
-  border: 0; border-radius: 14px; background: none; color: inherit; cursor: pointer;
+.hof-figure {
+  position: absolute; left: 50%; top: calc(var(--hof-shift) + var(--hof-art) * .785); translate: -50% -100%;
+  width: 300px; height: 300px; display: grid; place-items: end center; z-index: 1;
 }
-.hall-window .hall-podium-card.empty { cursor: default; }
-.hall-window .hall-podium-figure { position: relative; display: grid; place-items: end center; height: 112px; width: 100%; z-index: 1; margin-bottom: -20px; }
-.hall-window .place-1 .hall-podium-figure { height: 128px; }
-.hall-window .hall-podium-figure canvas { position: relative; z-index: 1; }
-.hall-window .hall-sigil { position: absolute; left: 50%; top: 48%; width: 112px; aspect-ratio: 1; translate: -50% -50%; background: center / contain no-repeat; opacity: .85; animation: hall-sigil-spin 40s linear infinite; pointer-events: none; }
-.hall-window .hall-sigil.gold { background-image: url('/assets/ui/aura-gold-sigil.png'); }
-.hall-window .hall-sigil.blue { background-image: url('/assets/ui/aura-blue-sigil.png'); }
-.hall-window .hall-sigil.purple { background-image: url('/assets/ui/aura-purple-sigil.png'); }
-.hall-window .place-1 .hall-sigil { width: 132px; }
-@keyframes hall-sigil-spin { to { rotate: 360deg; } }
-@media (prefers-reduced-motion: reduce) { .hall-window .hall-sigil { animation: none; } }
-.hall-window .hall-podium-base { width: 84px; height: 84px; object-fit: contain; margin-bottom: -30px; filter: drop-shadow(0 4px 4px #2c100499); }
-.hall-window .place-1 .hall-podium-base { width: 100px; height: 100px; margin-bottom: -35px; }
-.hall-window .hall-podium-text {
-  position: relative; z-index: 2; display: grid; justify-items: center; gap: 0; width: 100%; padding: 6px 8px 5px;
-  border: 1px solid #fff7e4; border-radius: 12px; background: linear-gradient(#fff8e8, var(--wood-cream-mid));
-  box-shadow: inset 0 0 0 2px var(--wood-edge), 0 3px 8px #2c100455; color: var(--wood-ink);
+.hof-figure canvas { position: relative; z-index: 1; margin-bottom: -6px; }
+.hof-figure .hof-guild-mark { margin-bottom: 30px; }
+.hof-sigil { position: absolute; left: 50%; bottom: 14%; width: 250px; aspect-ratio: 1; translate: -50% 0; background: center / contain no-repeat; opacity: .9; animation: hof-spin 40s linear infinite; }
+.hof-sigil.gold { background-image: url('/assets/ui/aura-gold-sigil.png'); }
+.hof-sigil.blue { background-image: url('/assets/ui/aura-blue-sigil.png'); }
+.hof-sigil.purple { background-image: url('/assets/ui/aura-purple-sigil.png'); }
+@keyframes hof-spin { to { rotate: 360deg; } }
+@media (prefers-reduced-motion: reduce) { .hof-sigil { animation: none; } }
+.hof-guild-mark { position: relative; display: inline-grid; place-items: center; color: var(--hof-gold); filter: drop-shadow(0 3px 4px #000a); }
+.hof-guild-mark > svg { fill: #6d2f0c; }
+.hof-guild-mark > b { position: absolute; color: #fff3cf; font-family: 'Lilita One', sans-serif; }
+.hof-stage-empty { position: absolute; inset: 0; display: grid; place-content: center; justify-items: center; gap: 10px; color: var(--hof-gold); font-weight: 900; text-shadow: 0 2px #000; }
+
+.hof-plate { display: grid; gap: 6px; padding: 8px 12px; background: linear-gradient(#4a1c0c, #2a0e05); }
+.hof-plate-name { display: flex; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
+.hof-plate-name strong { overflow: hidden; color: var(--hof-gold); font: 900 22px/1.1 'Nunito', sans-serif; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 2px #000; }
+.hof-plate-info { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.hof-plate-info span { display: flex; align-items: center; gap: 8px; min-width: 0; padding: 3px 10px; border-radius: 8px; background: #1a0904; box-shadow: inset 0 0 0 1px #9b6a2c88; }
+.hof-plate-info em { color: #e2b25a; font-size: 12px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+.hof-plate-info b { display: inline-flex; align-items: center; gap: 4px; overflow: hidden; color: #fff; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
+.hof-plate-info b.guild { color: #8ff08a; }
+.hof-plate-actions { display: flex; justify-content: center; gap: 8px; }
+.hof-plate-actions button, .hof-pager button {
+  display: inline-flex; align-items: center; gap: 5px; height: 30px; padding: 0 14px; border: 1px solid #ffe7a6; border-radius: 9px;
+  background: linear-gradient(#ffc650, #e07a12); box-shadow: inset 0 1px #fff6, 0 2px #7a3205; color: #4a1a02; font-size: 13px; font-weight: 900;
 }
-.hall-window .hall-podium-card.mine .hall-podium-text { box-shadow: inset 0 0 0 2px #2e9b4f, 0 3px 8px #2c100455; }
-.hall-window .hall-podium-place { position: absolute; top: -13px; left: 50%; translate: -50% 0; padding: 0 10px; border: 2px solid #fff3d2; border-radius: 11px; background: linear-gradient(#ffc566, #e5801c); color: #fff; font-size: 13px; line-height: 19px; text-shadow: 0 1px #9a4510; }
-.hall-window .hall-podium-crowns { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; margin-top: 2px; }
-.hall-window .hall-podium-text strong { max-width: 100%; overflow: hidden; font-size: 15px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; }
-.hall-window .hall-podium-text small { display: inline-flex; align-items: center; gap: 3px; color: var(--wood-ink-soft); font-size: 12px; font-weight: 800; }
-.hall-window .hall-podium-text em { color: #b2560f; font-size: 15px; font-style: normal; font-weight: 900; }
+.hof-plate-actions button:hover, .hof-pager button:hover:not(:disabled) { filter: brightness(1.08); }
 
-/* Tabela */
-.hall-window .hall-table-wrap { flex: 1; min-height: 0; overflow: auto; scrollbar-width: thin; }
-.hall-window .hall-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
-.hall-window .hall-table thead th { position: sticky; top: 0; z-index: 1; padding: 8px 10px; background: linear-gradient(#a8551f, #7d3c13); color: #ffe7bb; font-size: 12px; font-weight: 900; letter-spacing: .02em; text-align: left; text-transform: uppercase; }
-.hall-window .hall-table thead th:first-child { border-top-left-radius: 9px; }
-.hall-window .hall-table thead th:last-child { border-top-right-radius: 9px; }
-.hall-window .hall-table td { height: 42px; padding: 3px 10px; border-bottom: 1px solid #dfb67c88; font-weight: 800; white-space: nowrap; }
-.hall-window .hall-table tbody tr { cursor: pointer; }
-.hall-window .hall-table tbody tr:hover td { background: #ffe5b866; }
-.hall-window .hall-table tbody tr:focus-visible td { background: #ffd99a88; outline: none; }
-.hall-window .hall-table tbody tr.mine td { background: #cfeec588; }
-.hall-window .hall-table :is(th, td).main { color: #b2560f; font-size: 15px; font-weight: 900; }
-.hall-window .hall-table thead th.main { color: #ffd36b; font-size: 12px; }
-.hall-window .hall-table tr.podium-row, .hall-window .hall-table-wrap.podium-only { display: none; }
-.hall-window .hall-table td:first-child { width: 58px; text-align: center; }
-.hall-window .hall-rank-art { display: block; margin: 0 auto; object-fit: contain; }
-.hall-window .hall-rank-number { color: var(--wood-ink); font-size: 15px; font-weight: 900; }
-.hall-window .hall-who { display: flex; align-items: center; gap: 9px; min-width: 0; }
-.hall-window .hall-who > span:last-child { display: flex; flex-wrap: wrap; align-items: center; column-gap: 6px; min-width: 0; }
-.hall-window .hall-who strong { overflow: hidden; max-width: 200px; text-overflow: ellipsis; }
-.hall-window .hall-who small { display: inline-flex; align-items: center; gap: 3px; width: 100%; color: var(--wood-ink-soft); font-size: 11px; }
-.hall-window .hall-head { display: grid; place-items: center; width: 42px; height: 42px; overflow: hidden; border: 2px solid #f2c88f; border-radius: 50%; background: radial-gradient(circle at 50% 35%, #fff6df, #f1cf96); }
-.hall-window .hall-guild-mark { position: relative; display: inline-grid; place-items: center; color: #9a4b12; flex: none; }
-.hall-window .hall-guild-mark svg { fill: #ffd27a; filter: drop-shadow(0 2px 1px #6d300a66); }
-.hall-window .hall-guild-mark b { position: absolute; top: 50%; left: 50%; translate: -50% -56%; color: #7a3a0a; font-size: .9em; font-weight: 900; }
-.hall-window .hall-power { display: inline-flex; align-items: center; gap: 4px; }
-.hall-window .hall-power.big { color: #b2560f; font-size: 20px; font-weight: 900; }
-.hall-window .hall-streak { display: inline-flex; align-items: center; gap: 2px; color: #c2410c; }
-.hall-window .hall-crown { display: inline-flex; align-items: center; gap: 3px; padding: 0 7px; border-radius: 9px; font-size: 10.5px; font-weight: 900; line-height: 17px; white-space: nowrap; }
-.hall-window .hall-crown.place-1 { background: linear-gradient(#ffe48a, #f2b33d); color: #6b3b04; }
-.hall-window .hall-crown.place-2 { background: linear-gradient(#f1f4f8, #b9c4d3); color: #33415a; }
-.hall-window .hall-crown.place-3 { background: linear-gradient(#f3c9a1, #c27a45); color: #4b230a; }
-.hall-window .hall-note { margin: 0; color: #ffe2b0; font-size: 12px; font-weight: 700; }
+/* Chat */
+.hof-chat { display: grid; grid-template-rows: 30px minmax(0, 1fr) 34px; gap: 5px; padding: 7px; background: linear-gradient(#2e1609, #1e0d05); }
+.hof-chat .chat-tabs { position: static; display: flex; gap: 4px; height: auto; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+.hof-chat .chat-tabs > button { min-width: 70px; height: 100%; margin: 0; padding: 0 12px; border: 1px solid #9b6a2c; border-radius: 9px 9px 3px 3px; background: linear-gradient(#5a2b10, #3a1a08); color: #f3cf8c; font: 800 12px/1 'Nunito', sans-serif; }
+.hof-chat .chat-tabs > button.active { border-color: #ffe7a6; background: linear-gradient(#ffc650, #e07a12); color: #4a1a02; }
+.hof-chat .chat-tabs > button:disabled { opacity: .5; }
+.hof-chat .chat-messages { position: static; width: auto; height: auto; min-height: 0; max-height: none; margin: 0; padding: 6px 9px; overflow: auto; scrollbar-width: thin; scrollbar-color: #9b6a2c transparent;
+  border: 1px solid #6b4318; border-radius: 9px; background: #120703cc; color: #f1e2c6; font: 700 12.5px/1.45 'Nunito', sans-serif; text-shadow: none; }
+.hof-chat .chat-messages p { margin: 0 0 3px; overflow-wrap: anywhere; color: #f1e2c6; }
+.hof-chat .chat-messages strong { color: var(--hof-gold); }
+.hof-chat .chat-messages .system-message { color: #7ee0a8; }
+.hof-chat .chat-input { position: static; display: flex; align-items: center; gap: 6px; width: auto; height: 100%; margin: 0; padding: 0 4px 0 10px; border: 1px solid #6b4318; border-radius: 999px; background: #120703; box-shadow: none; }
+.hof-chat .chat-input > input { flex: 1; min-width: 0; height: 100%; margin: 0; padding: 0; border: 0; background: none; color: #f8e6c2; font: 700 13px 'Nunito', sans-serif; outline: none; }
+.hof-chat .chat-input > input::placeholder { color: #b8946a; }
+.hof-chat .chat-input > button { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 50%; background: linear-gradient(#ffc650, #e07a12); color: #4a1a02; }
+.hof-chat .chat-target { border: 0; border-radius: 8px; background: #3a1d0c; color: var(--hof-gold); font-size: 11px; font-weight: 800; white-space: nowrap; }
 
-.hall-window .hall-pager { display: flex; align-items: center; justify-content: center; gap: 5px; }
-.hall-window .hall-pager button { min-width: 34px; height: 32px; padding: 0 8px; }
-.hall-window .hall-pager button.active { border-color: #fff0c9; background: linear-gradient(#ffc566, #e5801c); color: #fff; }
-.hall-window .hall-pager > span { margin-left: 8px; color: #ffe2b0; font-size: 12px; font-weight: 800; }
+/* Coluna da direita: ranking */
+.hof-right { position: relative; display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto auto; gap: 8px; padding: 10px; background: linear-gradient(#3b1d0b, #26110a); }
+.hof-sides { display: flex; align-items: center; gap: 8px; }
+.hof-sides > button:not(.hof-close) { display: inline-flex; align-items: center; gap: 6px; height: 38px; padding: 0 18px; border: 2px solid #b8813a; border-radius: 10px;
+  background: linear-gradient(#6a3412, #45200a); color: #f3cf8c; font-size: 15px; font-weight: 900; box-shadow: inset 0 1px #ffd98f44; }
+.hof-sides > button.active { border-color: #ffe7a6; background: linear-gradient(#ff8c3a, #c8350f); color: #fff; text-shadow: 0 1px #6b1600; box-shadow: inset 0 1px #fff7, 0 0 12px #ff7a2a66; }
+.hof-close { display: grid; place-items: center; width: 38px; height: 38px; margin-left: auto; padding: 0; border: 2px solid #ffd0b0; border-radius: 10px; background: linear-gradient(#f0603a, #b0220c); color: #fff; box-shadow: inset 0 1px #fff6, 0 2px 6px #0008; }
 
-/* Minha posição */
-.hall-window .hall-me { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; min-height: 46px; padding: 8px 14px; border-radius: 12px; color: #ffe7bb; font-size: 14px; font-weight: 800; }
-.hall-window .hall-me b { color: var(--wood-gold); font-size: 16px; }
-.hall-window .hall-me-title { color: #fff; font-weight: 900; }
-.hall-window .hall-me-rank b { font-size: 19px; }
-.hall-window .hall-me small { opacity: .8; }
+.hof-tabs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 6px; border-radius: 10px; background: #1a0904; box-shadow: inset 0 0 0 1px #6b4318; }
+.hof-cats, .hof-periods { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.hof-cats button { height: 32px; padding: 0 16px; border: 1px solid #5fd3c6; border-radius: 8px; background: linear-gradient(#1f6d6a, #114443); color: #c9fff6; font-size: 14px; font-weight: 900; text-shadow: 0 1px #002a28; }
+.hof-cats button.active { border-color: #ffe7a6; background: linear-gradient(#55e0b5, #138a6b); color: #fff; box-shadow: 0 0 10px #4ff0c466; }
+.hof-periods button { height: 28px; padding: 0 12px; border: 1px solid #d9b46a; border-radius: 8px; background: linear-gradient(#efe2c2, #c9b082); color: #4a2a0a; font-size: 13px; font-weight: 900; }
+.hof-periods button.active { border-color: #fff; background: linear-gradient(#fff3b0, #f2b833); color: #5a2a02; box-shadow: 0 0 8px #ffd36b88; }
+.hof-period-pick { display: inline-flex; align-items: center; gap: 6px; color: #f3cf8c; font-size: 13px; font-weight: 900; }
+.hof-period-pick select { height: 28px; border: 1px solid #d9b46a; border-radius: 8px; background: #f3e6c8; color: #4a2a0a; font: 800 13px 'Nunito', sans-serif; }
 
-/* Perfis */
-.hall-window .hall-profile-wrap { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
-.hall-window .hall-back { align-self: flex-start; }
-.hall-window .hall-profile { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 10px; flex: 1; min-height: 0; }
-.hall-window .hall-profile-card { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 12px; text-align: center; }
-.hall-window .hall-profile-card h3 { margin: 0; font-size: 20px; font-weight: 900; }
-.hall-window .hall-profile-figure { position: relative; display: grid; place-items: end center; width: 100%; height: 200px; }
-.hall-window .hall-profile-figure.guild { place-items: center; height: 150px; }
-.hall-window .hall-profile-figure .hall-sigil { width: 200px; }
-.hall-window .hall-profile-figure canvas { position: relative; z-index: 1; }
-.hall-window .hall-profile-tags { display: flex; align-items: center; gap: 8px; }
-.hall-window .hall-profile-body { display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow: auto; scrollbar-width: thin; padding-right: 2px; }
-.hall-window .hall-profile-body > section { padding: 10px 12px; }
-.hall-window .hall-profile-body h4 { display: flex; align-items: center; gap: 6px; margin: 0 0 6px; color: #8a400c; font-size: 15px; font-weight: 900; }
-.hall-window .hall-profile-ranks { display: flex; flex-wrap: wrap; gap: 8px 18px; font-size: 14px; font-weight: 800; }
-.hall-window .hall-profile-ranks span { display: inline-flex; align-items: center; gap: 5px; }
-.hall-window .hall-profile-ranks b { color: #b2560f; }
-.hall-window .hall-mini { width: 100%; border-collapse: collapse; font-size: 13px; }
-.hall-window .hall-mini :is(th, td) { padding: 5px 8px; border-bottom: 1px solid #dfb67c88; text-align: left; }
-.hall-window .hall-mini thead th { color: var(--wood-ink-soft); font-size: 11px; text-transform: uppercase; }
-.hall-window .hall-mini tbody th { font-weight: 900; }
-.hall-window .hall-mini tr.clickable { cursor: pointer; }
-.hall-window .hall-mini tr.clickable:hover { background: #ffe5b866; }
-.hall-window .hall-streak-line { display: flex; align-items: center; gap: 5px; margin: 6px 0 0; color: #c2410c; font-weight: 900; }
-.hall-window .hall-title-counts { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 6px; padding: 0; list-style: none; }
-.hall-window .hall-title-counts li { padding: 3px 10px; border-radius: 10px; background: linear-gradient(#ffe48a, #f2b33d); color: #6b3b04; font-size: 13px; font-weight: 900; }
-.hall-window .hall-title-list { display: grid; gap: 3px; margin: 0; padding: 0; list-style: none; font-size: 13px; font-weight: 800; }
-.hall-window .hall-title-list li { display: flex; align-items: center; gap: 6px; }
-.hall-window .hall-title-list li b { margin-left: auto; color: #b2560f; }
-.hall-window .hall-achievements { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
-.hall-window .hall-achievements li { display: flex; align-items: center; gap: 7px; padding: 6px 8px; border: 1px solid #dfb67c; border-radius: 9px; background: #f5e3c2; color: #a58867; opacity: .7; }
-.hall-window .hall-achievements li.done { border-color: #f2b33d; background: linear-gradient(#fff5d0, #ffe08f); color: #6b3b04; opacity: 1; }
-.hall-window .hall-achievements li span { display: grid; min-width: 0; }
-.hall-window .hall-achievements li strong { font-size: 13px; }
-.hall-window .hall-achievements li small { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
-.hall-window .hall-achievements li b { margin-left: auto; font-size: 13px; }
-.hall-window .hall-muted { margin: 0; color: var(--wood-ink-soft); font-size: 12px; font-weight: 700; }
-.hall-window .hall-link { display: inline-flex; align-items: center; gap: 3px; padding: 0; border: 0; background: none; color: #8a400c; font-weight: 900; cursor: pointer; text-decoration: underline dotted; }
-.hall-window .hall-guild-lead { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 13px; font-weight: 800; }
-.hall-window .hall-guild-columns { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.hall-window .hall-contributors { display: grid; gap: 3px; margin: 0; padding-left: 20px; font-size: 13px; }
-.hall-window .hall-contributors li b { float: right; color: #b2560f; }
+.hof-table-wrap { min-height: 0; overflow: auto; scrollbar-width: thin; scrollbar-color: #9b6a2c transparent; }
+.hof-table { width: 100%; border-collapse: separate; border-spacing: 0 3px; font-size: 15px; }
+.hof-table thead th { position: sticky; top: 0; z-index: 1; padding: 7px 10px; background: linear-gradient(#7a3d14, #55260a); color: #ffe2a8; font-size: 13px; font-weight: 900; text-align: center; }
+.hof-table thead th:first-child { border-radius: 8px 0 0 8px; }
+.hof-table thead th:last-child { border-radius: 0 8px 8px 0; }
+.hof-table thead th:nth-child(2) { text-align: left; }
+.hof-table thead th.main { color: var(--hof-gold); }
+.hof-table td { height: 40px; padding: 2px 10px; background: linear-gradient(#4a2510, #3a1b0a); color: #f8e6c2; font-weight: 900; text-align: center; white-space: nowrap; border-top: 1px solid #7a4c1d; border-bottom: 1px solid #1a0904; }
+.hof-table td:first-child { width: 74px; border-left: 1px solid #7a4c1d; border-radius: 8px 0 0 8px; }
+.hof-table td:last-child { border-right: 1px solid #7a4c1d; border-radius: 0 8px 8px 0; }
+.hof-table td.main { color: var(--hof-gold); font-size: 16px; }
+.hof-table tbody tr { cursor: pointer; }
+.hof-table tbody tr:hover td { background: linear-gradient(#5d3014, #47220c); }
+.hof-table tbody tr.mine td { background: linear-gradient(#2f5a22, #1f3f15); }
+.hof-table tbody tr.current td { border-color: #ffe08a; background: linear-gradient(#7a4410, #5a300a); box-shadow: inset 0 1px #ffe08a55; }
+.hof-table tbody tr:focus-visible td { outline: none; background: linear-gradient(#6a3812, #4e270b); }
+.hof-table .hof-name { text-align: left; }
+.hof-name strong { display: block; overflow: hidden; max-width: 280px; color: #ffe9b8; font-size: 15px; text-overflow: ellipsis; }
+.hof-name small { display: inline-flex; align-items: center; gap: 3px; color: #8ff08a; font-size: 11.5px; font-weight: 800; }
+.hof-rank-plate { display: inline-block; min-width: 50px; padding: 2px 6px; border: 2px solid; border-radius: 6px; font: 400 15px/1.1 'Lilita One', sans-serif; letter-spacing: .5px; text-align: center; }
+.hof-rank-plate.place-1 { border-color: #ffe7a6; background: linear-gradient(#fff2a8, #f0a91c); color: #6b2c00; box-shadow: 0 0 10px #ffcf4a99; }
+.hof-rank-plate.place-2 { border-color: #d8f4ff; background: linear-gradient(#b8ecff, #3b8fd6); color: #0d2f5a; box-shadow: 0 0 8px #7fd0ff77; }
+.hof-rank-plate.place-3 { border-color: #c8ffb8; background: linear-gradient(#b8f59a, #3f9a34); color: #143d0d; box-shadow: 0 0 8px #8ff08a66; }
+.hof-rank-number { color: #f3cf8c; font-size: 15px; }
+.hof-note { margin: 4px 8px; color: #c9a777; font-size: 12px; font-weight: 700; }
 
-/* Lendas */
-.hall-window .hall-legends { display: flex; flex-direction: column; gap: 8px; flex: 1; min-height: 0; }
-.hall-window .hall-legends-body { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 10px; flex: 1; min-height: 0; }
-.hall-window .hall-period-pick { display: inline-flex; align-items: center; gap: 6px; color: #ffe2b0; font-size: 13px; font-weight: 900; }
-.hall-window .hall-period-pick select { height: 32px; padding: 0 8px; border: 2px solid #f2b56b; border-radius: 9px; background: #fff8e8; color: var(--wood-ink); font-weight: 800; }
-.hall-window .hall-leaders { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; overflow: auto; }
-.hall-window .hall-leaders h4 { display: flex; align-items: center; gap: 6px; margin: 0; color: #8a400c; font-size: 15px; font-weight: 900; }
-.hall-window .hall-leaders ol { display: grid; gap: 5px; margin: 0; padding-left: 20px; font-size: 13px; }
-.hall-window .hall-leaders li span { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 2px; }
-.hall-window .hall-leaders li b { padding: 0 6px; border-radius: 8px; font-size: 11px; }
-.hall-window .hall-leaders li b.gold { background: #ffe08f; color: #6b3b04; }
-.hall-window .hall-leaders li b.silver { background: #dfe5ee; color: #33415a; }
-.hall-window .hall-leaders li b.bronze { background: #f0c49c; color: #4b230a; }
+.hof-state { display: grid; place-content: center; justify-items: center; gap: 10px; min-height: 0; padding: 20px; border-radius: 10px; background: #1a0904; color: #f3cf8c; font-weight: 800; text-align: center; }
+.hof-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.hof-updated { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: #e8c58a; font-size: 13px; font-weight: 800; }
+.hof-updated b { display: inline-flex; align-items: center; gap: 4px; color: var(--hof-gold); }
+.hof-pager { display: inline-flex; align-items: center; gap: 8px; margin-left: auto; }
+.hof-pager b { min-width: 54px; padding: 4px 10px; border-radius: 8px; background: #1a0904; box-shadow: inset 0 0 0 1px #6b4318; color: #fff; text-align: center; }
+.hof-pager button:disabled { opacity: .45; cursor: default; filter: grayscale(.5); }
+.hof-link { padding: 0; border: 0; background: none; color: var(--hof-gold); font-weight: 900; text-decoration: underline dotted; }
 
-/* Celular em paisagem: menos altura, tudo rola por dentro */
+.hof-me { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 8px 12px; border: 2px solid #b8813a; border-radius: 10px; background: linear-gradient(#5a2a0e, #3b1a08); }
+.hof-me h3 { margin: 0; color: var(--hof-gold); font: 900 17px 'Nunito', sans-serif; text-shadow: 0 1px #000; }
+.hof-me p { margin: 0; color: #e8c58a; font-weight: 800; }
+.hof-me-cells { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.hof-me-cells span { display: inline-flex; align-items: center; gap: 8px; padding: 4px 10px; border-radius: 8px; background: #1a0904; box-shadow: inset 0 0 0 1px #6b4318; }
+.hof-me-cells em { color: #e2b25a; font-size: 12px; font-style: normal; font-weight: 900; }
+.hof-me-cells b { display: inline-flex; align-items: center; gap: 3px; color: #fff; font-size: 16px; }
+.hof-me-cells small { color: #c9a777; font-weight: 800; }
+
+/* Perfil (Ver conquistas / Ver guilda) */
+.hof-popup-shade { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; padding: 14px; border-radius: 14px; background: #0009; }
+.hof-popup { position: relative; width: min(100%, 720px); max-height: 100%; overflow: auto; scrollbar-width: thin; padding: 14px 16px; border: 2px solid #e2b25a; border-radius: 14px; background: linear-gradient(#3b1d0b, #24100a); box-shadow: 0 10px 30px #000c; }
+.hof-popup > .hof-close { position: absolute; top: 10px; right: 10px; width: 32px; height: 32px; }
+.hof-profile { display: grid; gap: 8px; }
+.hof-profile header { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding-right: 40px; }
+.hof-profile h2 { margin: 0; color: var(--hof-gold); font: 900 22px 'Nunito', sans-serif; }
+.hof-profile h4 { display: flex; align-items: center; gap: 6px; margin: 6px 0 0; color: var(--hof-gold); font-size: 14px; }
+.hof-power { display: inline-flex; align-items: center; gap: 4px; color: #fff; font-size: 17px; font-weight: 900; }
+.hof-profile-cells { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.hof-profile-cells span { display: grid; gap: 1px; padding: 6px 10px; border-radius: 9px; background: #1a0904; box-shadow: inset 0 0 0 1px #6b4318; }
+.hof-profile-cells em { color: #e2b25a; font-size: 11.5px; font-style: normal; font-weight: 900; text-transform: uppercase; }
+.hof-profile-cells b { color: #fff; font-size: 17px; }
+.hof-profile-cells small { color: #c9a777; font-size: 12px; font-weight: 800; }
+.hof-muted { display: inline-flex; align-items: center; gap: 4px; margin: 0; color: #c9a777; font-size: 13px; font-weight: 700; }
+.hof-plate > .hof-muted { justify-content: center; }
+.hof-titles { margin: 0; color: #f8e6c2; font-size: 13px; font-weight: 800; }
+.hof-title-list { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.hof-title-list li { display: flex; align-items: center; gap: 8px; padding: 4px 8px; border-radius: 8px; background: #1a0904; font-size: 13px; font-weight: 800; }
+.hof-title-list li b { margin-left: auto; color: var(--hof-gold); }
+.hof-title-list .hof-rank-plate { min-width: 40px; font-size: 12px; }
+.hof-achievements { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; margin: 0; padding: 0; list-style: none; }
+.hof-achievements li { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 5px 8px; border-radius: 8px; background: #1a0904; color: #8a7253; opacity: .7; }
+.hof-achievements li.done { color: #fff1cf; opacity: 1; box-shadow: inset 0 0 0 1px #c98a2c; }
+.hof-achievements li.done > svg { color: var(--hof-gold); }
+.hof-achievements span { display: grid; min-width: 0; }
+.hof-achievements strong { overflow: hidden; font-size: 12.5px; text-overflow: ellipsis; white-space: nowrap; }
+.hof-achievements small { overflow: hidden; font-size: 11px; text-overflow: ellipsis; white-space: nowrap; }
+.hof-achievements b { margin-left: auto; color: var(--hof-gold); font-size: 13px; }
+
+/* Telas mais baixas */
+@media (max-height: 760px) {
+  .hof-left { grid-template-rows: minmax(0, 1fr) auto 140px; }
+  .hof-table td { height: 34px; }
+  .hof-figure { scale: .8; transform-origin: 50% 100%; }
+}
+/* Celular em paisagem */
 @media (max-width: 900px), (max-height: 520px) {
-  .hall-window .hall-layout { grid-template-columns: 54px minmax(0, 1fr); gap: 8px; }
-  .hall-window .hall-tabs > button { justify-content: center; height: 40px; padding: 0; }
-  .hall-window .hall-tabs > button span { display: none; }
-  .hall-window .hall-main { overflow: auto; }
-  .hall-window .hall-podium { display: none; }
-  .hall-window .hall-table tr.podium-row { display: table-row; }
-  .hall-window .hall-table-wrap.podium-only { display: block; }
-  .hall-window .hall-table .hall-crown { display: none; }
-  .hall-window .hall-podium-figure { height: 104px; margin-bottom: -18px; }
-  .hall-window .place-1 .hall-podium-figure { height: 116px; }
-  .hall-window .hall-podium-figure canvas { max-height: 110px; width: auto !important; }
-  .hall-window .hall-sigil { width: 104px; }
-  .hall-window .place-1 .hall-sigil { width: 120px; }
-  .hall-window .hall-podium-base, .hall-window .place-1 .hall-podium-base { width: 74px; height: 74px; margin-bottom: -26px; }
-  .hall-window .hall-podium-text strong { font-size: 13px; }
-  .hall-window .hall-table td { height: 40px; }
-  .hall-window .hall-profile { grid-template-columns: 180px minmax(0, 1fr); }
-  .hall-window .hall-profile-figure { height: 150px; }
-  .hall-window .hall-legends-body { grid-template-columns: minmax(0, 1fr); }
-  .hall-window .hall-clock .hall-updated { display: none; }
+  .hof-screen { grid-template-columns: minmax(0, 42fr) minmax(0, 58fr); gap: 5px; padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); }
+  .hof-left { grid-template-rows: minmax(0, 1fr) auto 84px; gap: 4px; }
+  .hof-stage, .hof-plate, .hof-chat, .hof-right { border-width: 1px; border-radius: 9px; }
+  .hof-figure { scale: .5; transform-origin: 50% 100%; translate: -50% -100%; }
+  .hof-place { top: 36%; width: 28%; }
+  .hof-updated > :not(b) { display: none; }
+  .hof-foot { flex-wrap: nowrap; }
+  .hof-plate { grid-template-columns: minmax(0, 1fr) auto; padding: 3px 6px; gap: 3px; }
+  .hof-plate-name { justify-content: flex-start; }
+  .hof-plate-name strong { font-size: 13px; }
+  .hof-plate-info { display: none; }
+  .hof-plate-actions { gap: 4px; }
+  .hof-plate-actions button, .hof-pager button { height: 22px; padding: 0 7px; font-size: 10.5px; }
+  .hof-chat { grid-template-rows: 18px minmax(0, 1fr) 22px; gap: 2px; padding: 3px; }
+  .hof-chat .chat-tabs > button { min-width: 0; padding: 0 7px; font-size: 10px; }
+  .hof-chat .chat-messages { padding: 2px 6px; font-size: 10px; }
+  .hof-chat .chat-input > input { font-size: 11px; }
+  .hof-chat .chat-input > button { width: 18px; height: 18px; }
+  .hof-right { gap: 3px; padding: 4px; }
+  .hof-sides { gap: 4px; }
+  .hof-sides > button:not(.hof-close) { height: 26px; padding: 0 9px; font-size: 11.5px; }
+  .hof-close { width: 26px; height: 26px; }
+  .hof-tabs { padding: 3px; gap: 3px; }
+  .hof-cats button { height: 22px; padding: 0 8px; font-size: 11px; }
+  .hof-periods button { height: 20px; padding: 0 7px; font-size: 10.5px; }
+  .hof-table { font-size: 11.5px; border-spacing: 0 2px; }
+  .hof-table thead th { padding: 3px 6px; font-size: 10.5px; }
+  .hof-table td { height: 24px; padding: 0 6px; }
+  .hof-table td:first-child { width: 50px; }
+  .hof-table td.main, .hof-name strong { font-size: 12px; }
+  .hof-name small { display: none; }
+  .hof-rank-plate { min-width: 36px; padding: 0 3px; font-size: 11px; }
+  .hof-updated { font-size: 10.5px; }
+  .hof-me { padding: 3px 7px; gap: 6px; }
+  .hof-me h3 { font-size: 12px; }
+  .hof-me-cells span { padding: 1px 6px; }
+  .hof-me-cells em { font-size: 10px; }
+  .hof-me-cells b { font-size: 12px; }
+  .hof-profile-cells, .hof-achievements { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
