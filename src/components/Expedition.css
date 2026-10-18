@@ -20,6 +20,8 @@
 :is(.pvp-room,.pvp-hall,.expedition-picker) :is(.expedition-title,.expedition-title>span){font-family:'Titan One','Lilita One','Nunito',sans-serif}
 .expedition-banner-choice .expedition-difficulty-tag{margin-top:0}
 .expedition-banner-choice .expedition-title{margin-bottom:6px}
+.expedition-banner-art .expedition-board-difficulty{position:absolute;top:14px;left:50%;transform:translateX(-50%);margin:0;padding:6px 26px;font:900 19px/1.3 'Nunito',sans-serif;letter-spacing:1.2px;border:2px solid #ffffffaa;box-shadow:inset 0 -3px #0004,0 3px 8px #0008}
+html.mobile-landscape .expedition-banner-art .expedition-board-difficulty{top:6px;padding:3px 14px;font-size:12px}
 .expedition-banner-choice .expedition-stage-badge,html.mobile-landscape .expedition-banner-choice .expedition-stage-badge{position:relative;top:auto;left:auto}
 .expedition-stage-badge{position:absolute;top:12px;left:12px;display:flex;align-items:center;gap:6px;height:44px;padding:0 12px 0 10px;border:2px solid #fff0b8;border-radius:11px;background:linear-gradient(#fff3b0,#ffc93c 45%,#f29a12 55%,#c9660d);box-shadow:inset 0 1px #fffbe0,inset 0 -3px #9a4a0a,0 0 0 2px #5b2a0e,0 3px 0 2px #2c1004,0 0 14px #ffb44f88;line-height:1;pointer-events:none}
 .expedition-stage-badge::before{content:'';position:absolute;inset:3px;border:1px solid #fff6cf99;border-radius:8px}
