@@ -21,8 +21,9 @@
 }
 .pets-window .pets-slot.empty { opacity: .75; }
 .pets-window .pets-slot.selected { border-color: #f2a91f; box-shadow: 0 0 0 2px #ffd36b, inset 0 0 12px #ffd36b88; }
-.pets-window .pets-portrait { display: grid; place-items: center; color: #c9955b; overflow: hidden; }
-.pets-window .pets-portrait img { width: 100%; height: 100%; object-fit: contain; }
+.pets-window .pets-portrait { position: relative; display: grid; place-items: center; color: #c9955b; }
+/* Absolute so the whole painted pet fits the box: a percent height inside a grid cell would fall back to the image's own height. */
+.pets-window .pets-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 2px 2px #6b3a1255); }
 
 /* Selo "Lutar" do pet que vai para a batalha */
 .pets-window .pets-stamp {

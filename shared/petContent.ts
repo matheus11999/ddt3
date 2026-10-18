@@ -9,13 +9,14 @@ const TOOLS=['boost','ability','power','flight'] as const;
 // ── Verdália, the plant: Broto → Botão → Flor. Every skill grows with the stage (stageScaling). ──
 // Numbers are provisional (matheus will tune them).
 registerPetSkill({id:'verdalia-roots',name:'Raízes da Terra',kind:'passive',stageScaling:true,
- description:'Quando você termina o seu tiro, a Verdália faz a terra atacar onde ele caiu: dano em quem estiver na área, sem projétil.',
+ description:'Quando você termina o seu tiro, a Verdália levanta um redemoinho de folhas onde ele caiu: dano em quem estiver na área, sem projétil.',
  triggers:['shot-end'],limits:{perTurn:1},
  levels:[
   {effects:[{kind:'area-damage',target:'enemies',radius:90,amount:60,attackPercent:20}]},
   {effects:[{kind:'area-damage',target:'enemies',radius:110,amount:110,attackPercent:25}]},
   {effects:[{kind:'area-damage',target:'enemies',radius:135,amount:170,attackPercent:30}]}],
- visual:{icon:`${ART}/skill-roots.png`,effect:`${ART}/roots-{stage}.png`,frames:4,duration:900,size:240}});
+ // A round whirlwind of leaves on the target, fuller at each stage (buds, then petals and sparks).
+ visual:{icon:`${ART}/skill-roots.png`,style:'whirl',effect:`${ART}/whirl-{stage}.png`,particles:`${ART}/leaves-{stage}.png`,duration:900,size:180}});
 registerPetSkill({id:'verdalia-orb',name:'Orbe da Natureza',kind:'active',stageScaling:true,
  description:'O próximo tiro vira uma bola verde da natureza: um projétil só, sem outros poderes no turno, e o dano é sempre crítico.',
  levels:[
