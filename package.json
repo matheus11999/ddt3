@@ -42,7 +42,9 @@
     "test:immediate:browser": "node scripts/smoke-immediate-equipment.mjs",
     "test:colors:browser": "node scripts/smoke-colors.mjs",
     "test:reports:browser": "node scripts/smoke-reports.mjs",
-    "test:expedition:browser": "node scripts/smoke-expedition.mjs"
+    "test:expedition:browser": "node scripts/smoke-expedition.mjs",
+    "test:mail:integration": "tsx tests/mail.integration.ts",
+    "test:mail:browser": "node scripts/smoke-mail.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

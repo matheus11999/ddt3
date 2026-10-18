@@ -3,7 +3,7 @@ import {Activity,Crown,Flag,RefreshCw,Swords,Trophy,UserPlus,Users,Wifi} from 'l
 import {api} from './api';
 import type {Stats} from './api';
 
-const ACTIONS:Record<string,string>={login:'Entrou no painel','login-failed':'Senha errada',logout:'Saiu do painel','map-save':'Salvou mapa','map-publish':'Publicou mapa','map-unpublish':'Voltou mapa ao original','map-create':'Criou mapa','map-delete':'Apagou mapa','report-status':'Mudou denúncia'};
+const ACTIONS:Record<string,string>={login:'Entrou no painel','login-failed':'Senha errada',logout:'Saiu do painel','map-save':'Salvou mapa','map-publish':'Publicou mapa','map-unpublish':'Voltou mapa ao original','map-create':'Criou mapa','map-delete':'Apagou mapa','report-status':'Mudou denúncia','mail-send':'Enviou carta'};
 const time=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
 
 export function Dashboard(){
@@ -32,7 +32,7 @@ export function Dashboard(){
     {stats.newestPlayers.length?<ul className="adm-list">{stats.newestPlayers.map(p=><li key={p.id}><b>{p.name}</b><small>nível {p.level}</small><em>{time(p.createdAt)}</em></li>)}</ul>:<p className="adm-empty">Ninguém criou conta ainda.</p>}
    </article>
    <article className="adm-panel span2"><h2>Atividade do painel</h2>
-    {stats.audit.length?<ul className="adm-list">{stats.audit.map((a,i)=><li key={i}><b>{ACTIONS[a.action]??a.action}{a.detail?.id?` · ${a.detail.id}`:''}</b><small>{a.username??'—'}</small><em>{time(a.at)}</em></li>)}</ul>:<p className="adm-empty">Sem atividade.</p>}
+    {stats.audit.length?<ul className="adm-list">{stats.audit.map((a,i)=><li key={i}><b>{ACTIONS[a.action]??a.action}{a.detail?.name?` · ${a.detail.name}`:a.detail?.id?` · ${a.detail.id}`:''}</b><small>{a.username??'—'}</small><em>{time(a.at)}</em></li>)}</ul>:<p className="adm-empty">Sem atividade.</p>}
    </article>
   </div>
  </section>;

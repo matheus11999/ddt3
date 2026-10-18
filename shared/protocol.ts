@@ -15,6 +15,7 @@ import type {PlayerInfo} from './reports';
 import {DIFFICULTIES} from './expeditions';
 import type {Difficulty,MonsterKind} from './expeditions';
 import type {MonsterMove,MonsterBite} from './instanceTurn';
+import type {MailClaimResult,MailMessage} from './mail';
 export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
@@ -62,6 +63,11 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('online-list')}).strict(),
  z.object({type:z.literal('player-info'),playerId:z.string().regex(/^(bot-)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)}).strict(),
  reportCommandSchema,
+ z.object({type:z.literal('mail-list')}).strict(),
+ z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
+ z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
+ // Without an id: "Receber tudo".
+ z.object({type:z.literal('mail-claim'),id:z.number().int().positive().optional()}).strict(),
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
@@ -129,6 +135,9 @@ export type ServerEvent =
  | ({type:'ability-effect'} & AbilityEffect)
  | {type:'chat';message:ChatLine}
  | {type:'player-info';info:PlayerInfo}
+ /** The inbox (newest first); `unread` counts messages not opened or with attachments left. */
+ | {type:'mail';mails:MailMessage[];unread:number}
+ | {type:'mail-claim-result';result:MailClaimResult}
  | {type:'report-result';playerId:string;name:string}
  | {type:'error';message:string;requestId?:string}
  | {type:'pong';time:number;serverTime:number};
