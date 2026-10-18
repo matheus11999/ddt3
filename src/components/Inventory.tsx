@@ -11,8 +11,7 @@ import {canCompose} from '../../shared/composition';
 import {BagContextMenu,ColorStudio,DiscardConfirm,MENU_ICONS,TicketIcon,canRecolor} from './ColorStudio';
 import type {BagMenuAction,ColorTarget} from './ColorStudio';
 import {levelProgress} from '../../shared/progression';
-import {COMPOSITION_STAT_NAMES} from '../../shared/composition';
-import type {Compositions,CompositionStat} from '../../shared/composition';
+import type {Compositions} from '../../shared/composition';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {Avatar} from './Avatar';
@@ -198,7 +197,8 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
  const {id,anchor}=tip,ticket=id===COLOR_TICKET.id,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
  const equipped=!!item&&slotsForItem(item).some(slot=>equippedCopy(equipment,slot)===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
- const values=item?itemAttributes(item,level,compositions?.[id]):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
+ // The composition bonus is shown beside each attribute ("Ataque 100 +30"), not folded into it.
+ const values=item?itemAttributes(item,level,compositions?.[id]):null,bare=item?itemAttributes(item,level):null,hasAttributes=!!values&&Object.values(values).some(value=>value!==0);
  const target=item?(anchor.dataset.slot as Slot|undefined)??targetSlotForItem(equipment,item):undefined;
  // `equipment` already carries the worn copies' compositions; the candidate swaps in this copy's own.
  const current=attributes(equipment),candidate=item&&target?attributes({...equipment,compositions:{...equipment.compositions,[base]:compositions?.[id]??{}},[target]:base,upgrade:item.slot==='weapon'?level:equipment.upgrade}):current;
@@ -211,23 +211,21 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
  },[id,anchor,equipped,level]);
  const compatible=!item||canEquipItem(item,gender),classed=!!item&&CLASSED_SLOTS.includes(item.slot);
  const delta=(value:number)=>compatible&&!equipped&&value!==0?<span className={`bag-tip-delta ${value>0?'up':'down'}`}>{value>0?'▲':'▼'}{Math.abs(value)}</span>:null;
- const composed=Object.entries(compositions?.[id]??{});
  return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
   <header className="bag-tip-head">
    <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level} color={colors[id]} skin={equipment.skin} eyes={equipment.eyes}/>:ticket?<TicketIcon size={50}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
    <div className="bag-tip-title">
     <strong>{item?.name??stone?.name??(ticket?COLOR_TICKET.name:'')}</strong>
     <small>{item?SLOT_NAMES[item.slot]:ticket?'Consumível':'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
-    {item&&!hideGender&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
+    {item&&!hideGender&&itemGender(item)!=='unisex'&&<span className="bag-tip-gender"><ItemGenderBadge gender={itemGender(item)} locked={!compatible}/></span>}
    </div>
    {weapon&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
   </header>
   {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
   {item?<>
    <p className="bag-tip-desc">{item.description}</p>
-   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{values![key]}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
+   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{bare![key]}{values![key]!==bare![key]&&<span className="bag-tip-bonus">{values![key]>bare![key]?'+':'−'}{Math.abs(values![key]-bare![key])}</span>}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
    {stats&&<div className="bag-tip-weapon"><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
-   {!!composed.length&&<div className="bag-tip-composed">Composição: {composed.map(([stat,value])=>`${COMPOSITION_STAT_NAMES[stat as CompositionStat]} +${value}`).join(' · ')}</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
    {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
    {colors[id]&&<div className="bag-tip-composed"><i className="bag-tip-color" style={{background:colors[id]}} aria-hidden="true"/>Cor personalizada</div>}

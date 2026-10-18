@@ -633,9 +633,10 @@ export class Game {
     const critical=criticalFromRoll(attributes(f.equipment).luck,this.criticalRoll());let damage=damageAtImpact(f.equipment,target.equipment,{attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1),critical});
     if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
     if(damage<=0)continue;
-    // Bodies stay hittable for the whole shot: a +1/+2 that lands after the kill still shows its real damage.
     hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality});
    }
+   // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
+   for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
    pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
@@ -671,7 +672,7 @@ export class Game {
    shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});this.broadcastBattle(m,true);return;
   }
   for(const planned of impact.hits){
-   // Hits are only planned on fighters alive when the shot left; one killed mid-shot keeps taking (and showing) full damage.
+   // Hits are only planned on fighters still alive when the projectile lands (killed ones are let through).
    const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height||planned.damage<=0)continue;
    const absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
    if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
