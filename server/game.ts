@@ -23,7 +23,7 @@ import type {PlayerInfo,ReportChatLine} from '../shared/reports';
 import type {ReportSink} from './reports';
 import {getExpedition,expeditionStages,MONSTERS} from '../shared/expeditions';
 import type {Difficulty,StageDef} from '../shared/expeditions';
-import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_END_MS,MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn} from '../shared/instanceTurn';
+import {MONSTER_ATTACK_MS,MONSTER_BITE_WINDUP_MS,MONSTER_MOVE_MS,MONSTER_TURN_END_MS,MONSTER_TURN_ID,nextInstanceActor,planMonsterTurn,QUEEN_DRAW_MS} from '../shared/instanceTurn';
 import type {InstanceRound} from '../shared/instanceTurn';
 import {monsterDamage} from '../shared/combat';
 import {ARROW,monsterFighter,queenAim,setupStage,stageDeck} from './expedition';
@@ -96,7 +96,7 @@ export class Game {
    delete m.retryRewardsAt;delete s.powerCutIn;delete s.activeShot;delete s.terrain;
    for(const f of s.players){if(!f.bot&&!f.monster)f.connected=false;f.charging=false;delete f.fall;}
    if(s.phase==='aiming'){s.deadline=now+Math.min(30000,Math.max(15000,s.deadline-game.savedAt));m.botAt=now+2500;}
-   if(s.instance){s.instance.introUntil+=shift;delete s.instance.monsterTurn;}
+   if(s.instance){s.instance.introUntil+=shift;delete s.instance.monsterTurn;delete s.instance.speech;}
    if(s.rewards){if(s.rewards.opensAt!==undefined)s.rewards.opensAt+=shift;s.rewards.deadline+=shift;if(s.rewards.revealedAt!==undefined)s.rewards.revealedAt+=shift;}
    this.matches.set(m.key,m);
   }
@@ -516,11 +516,14 @@ export class Game {
  private startMonsterTurn(m:Match){
   const s=m.state,run=m.instance!,now=Date.now(),turnId=randomUUID();
   s.turnId=MONSTER_TURN_ID;s.turnNumber++;s.phase='resolving';
+  // The queen acts first (draws, shoots, the camera follows her arrow), then the ants walk and bite.
+  const queen=s.players.find(f=>f.id===s.instance!.boss&&f.hp>0),stage=run.stages[run.stage];let arrowAt:number|undefined,walkAt=now;
+  if(queen){const arrow=this.queenShot(m,queen);if(arrow){arrowAt=now+QUEEN_DRAW_MS;run.events.push({at:arrowAt,run:()=>this.queenArrow(m,queen.id,arrow)});walkAt=arrowAt+arrow.result.flightTime+600;}}
   // Invisible adventurers cannot be chased.
   const plan=planMonsterTurn(m.terrain,s.players.filter(f=>f.team===1||!(f.invisibleTurns??0)));
   for(const move of plan.moves){const f=s.players.find(x=>x.id===move.id);if(!f)continue;f.x=move.to[0];f.y=move.to[1];f.facing=move.facing;}
   const walking=plan.moves.some(move=>move.from[0]!==move.to[0]);
-  let at=now+(walking?MONSTER_MOVE_MS:300)+MONSTER_BITE_WINDUP_MS,end=now+(walking?MONSTER_MOVE_MS:600);
+  let at=walkAt+(walking?MONSTER_MOVE_MS:300)+MONSTER_BITE_WINDUP_MS,end=walkAt+(walking?MONSTER_MOVE_MS:600);
   const bites=plan.bites.map((bite,index)=>({...bite,at:at+index*110}));
   bites.forEach((bite,index)=>{run.events.push({at:bite.at,run:()=>{
    const monster=s.players.find(f=>f.id===bite.id),target=s.players.find(f=>f.id===bite.targetId);if(!monster||monster.hp<=0||!target||target.hp<=0||!monster.monster)return;
@@ -531,8 +534,7 @@ export class Game {
    this.broadcastBattle(m);
   }});});
   if(bites.length){at=bites.at(-1)!.at+260;end=Math.max(end,at+MONSTER_ATTACK_MS-MONSTER_MOVE_MS);}
-  const queen=s.players.find(f=>f.id===s.instance!.boss&&f.hp>0),stage=run.stages[run.stage];let arrowAt:number|undefined;
-  if(queen){arrowAt=at;run.events.push({at:arrowAt,run:()=>this.queenArrow(m,queen.id)});at+=1700;end=Math.max(end,at);}
+  else at=Math.max(at,end);
   const summons:{id:string;at:number}[]=[];
   if(queen&&stage.boss&&run.round.round%stage.boss.summonEvery===0){
    const nest=s.instance!.nest??{x:queen.x-200,y:queen.y},alive=s.players.filter(f=>f.team===1&&f.hp>0&&f.id!==queen.id).length;
@@ -545,13 +547,18 @@ export class Game {
    }
    if(summons.length){at=summons.at(-1)!.at+900;end=Math.max(end,at);}
   }
-  s.instance!.monsterTurn={id:turnId,startedAt:now,moves:plan.moves,bites,summons,...(arrowAt?{arrowAt}:{})};
+  if(arrowAt!==undefined)end=Math.max(end,walkAt);
+  s.instance!.monsterTurn={id:turnId,startedAt:walkAt,moves:plan.moves,bites,summons,...(arrowAt!==undefined?{arrowAt}:{})};
   run.events.sort((a,b)=>a.at-b.at);m.resolveAt=end+MONSTER_TURN_END_MS;this.broadcastBattle(m);
  }
- private queenArrow(m:Match,queenId:string){
+ /** The queen's aim for this monster turn, worked out when the turn opens so the ants can wait for the arrow to land. */
+ private queenShot(m:Match,queen:Fighter){
+  const s=m.state,aim=queenAim(m.terrain,queen,s.players.filter(f=>f.team===0),s.wind);if(!aim)return null;queen.facing=aim.facing;
+  return {aim,result:trajectory(m.terrain,aim.origin,aim.angle,aim.power,s.wind,ARROW,s.players.filter(f=>f.team===0))};
+ }
+ private queenArrow(m:Match,queenId:string,{aim,result}:NonNullable<ReturnType<Game['queenShot']>>){
   const s=m.state,queen=s.players.find(f=>f.id===queenId);if(!queen||queen.hp<=0||s.phase!=='resolving')return;
-  const aim=queenAim(m.terrain,queen,s.players.filter(f=>f.team===0),s.wind);if(!aim)return;
-  queen.facing=aim.facing;const startedAt=Date.now(),id=randomUUID(),result=trajectory(m.terrain,aim.origin,aim.angle,aim.power,s.wind,ARROW,s.players.filter(f=>f.team===0));
+  queen.facing=aim.facing;const startedAt=Date.now(),id=randomUUID();
   const hits:ShotHit[]=[];
   for(const target of s.players){if(target.team!==0||target.hp<=0)continue;const exposure=impactExposure(target,result,ARROW.blast);if(exposure.attenuation<=0)continue;
    hits.push({id:target.id,damage:monsterDamage(MONSTERS['ant-queen'].attack,target.equipment,exposure.attenuation),x:target.x,y:target.y-85,projectileIndex:0,critical:false,kind:exposure.kind,quality:exposure.quality});}

@@ -1,5 +1,5 @@
 import {MONSTERS} from '../../shared/expeditions';
-import {INSTANCE_INTRO_MS,MONSTER_BITE_WINDUP_MS,monsterStep} from '../../shared/instanceTurn';
+import {INSTANCE_INTRO_MS,MONSTER_BITE_WINDUP_MS,monsterStep,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {ground,WORLD} from '../../shared/physics';
 import type {Battle,Fighter} from '../../shared/protocol';
 
@@ -11,46 +11,52 @@ import type {Battle,Fighter} from '../../shared/protocol';
  */
 const images=new Map<string,HTMLImageElement>();
 function sheet(src:string){let image=images.get(src);if(!image){image=new Image();image.decoding='async';image.src=src;images.set(src,image);}return image;}
-export function preloadMonsters(){for(const def of Object.values(MONSTERS))sheet(def.sprite.src);sheet(ARROW_SRC);}
+export function preloadMonsters(){for(const def of Object.values(MONSTERS)){sheet(def.sprite.src);if(def.sprite.walk)sheet(def.sprite.walk.src);}sheet(ARROW_SRC);}
 export const ARROW_SRC='/assets/expeditions/anthill/arrow.png';
 
 export const MONSTER_DEATH_MS=900;
-/** Step cadence per kind: the quick worker scurries, the heavy warrior plods. */
-const WALK_FRAME_MS:Record<string,number>={'ant-worker':120,'ant-soldier':160,'ant-brute':220};
-export interface MonsterView {x:number;y:number;facing:1|-1;visible:boolean;alpha:number;frame:number;bob:number;lunge:number;squash:number;moving:boolean;}
+/** Legs follow the ground covered (no sliding feet): one walk cycle every this many px when the kind has no `walk.cycle`. */
+const WALK_CYCLE_PX=56;
+export interface MonsterView {x:number;y:number;facing:1|-1;visible:boolean;alpha:number;frame:number;bob:number;lunge:number;squash:number;moving:boolean;
+ /** While walking: where in the walk cycle it is (0-1), stepped by the distance covered. */
+ step:number;}
 
 /** Where and how a monster is drawn right now (server time), from the snapshot and the monster turn's timeline. */
 export function monsterView(b:Battle,f:Fighter,terrain:Uint8Array,now:number):MonsterView{
  const def=MONSTERS[f.monster!],melee=def.behavior==='melee',turn=b.instance?.monsterTurn,width=terrain.length/WORLD.rows*WORLD.cell;
- let x=f.x,y=f.y,facing=f.facing,moving=false,frame=0,lunge=0,squash=0,alpha=1,visible=true;
+ let x=f.x,y=f.y,facing=f.facing,moving=false,frame=0,lunge=0,squash=0,alpha=1,visible=true,walked=0;
  // Walk-in (first stage only): every monster enters from its own side of the map while the stage opens.
  const intro=b.instance?.stage===1?b.instance.introUntil-now:0;
  if(intro>0&&b.instance?.boss!==f.id){
   const k=Math.min(1,Math.max(0,1-intro/(INSTANCE_INTRO_MS*.9))),from=f.x<width/2?-70:width+70,ease=1-(1-k)**2;
-  x=from+(f.x-from)*ease;const g=ground(terrain,x,Math.max(0,f.y-60));y=g<=WORLD.height?g:f.y;moving=k<1;facing=from<f.x?1:-1;
+  x=from+(f.x-from)*ease;const g=ground(terrain,x,Math.max(0,f.y-60));y=g<=WORLD.height?g:f.y;moving=k<1;facing=from<f.x?1:-1;walked=Math.abs(x-from);
  }
  const move=turn?.moves.find(m=>m.id===f.id);
- if(move&&turn){const step=monsterStep(move,now-turn.startedAt);x=step.x;y=step.y;moving=step.moving;facing=move.facing;}
- if(melee&&moving){frame=Math.floor(now/WALK_FRAME_MS[f.monster!])%2;}
+ if(move&&turn){const step=monsterStep(move,now-turn.startedAt);x=step.x;y=step.y;moving=step.moving;facing=move.facing;walked=Math.abs(x-move.from[0]);}
+ const cycle=def.sprite.walk?.cycle??WALK_CYCLE_PX,step=moving?(walked/cycle+(f.slot%4)*.25)%1:0;
+ if(melee&&moving)frame=Math.floor(step*2)%2;
  const bite=turn?.bites.find(entry=>entry.id===f.id);
  if(bite){const before=bite.at-now;if(before>0&&before<MONSTER_BITE_WINDUP_MS){frame=2;squash=-.06;lunge=-6*(1-before/MONSTER_BITE_WINDUP_MS);}else if(before<=0&&before>-260){frame=3;lunge=14*Math.sin(Math.PI*Math.min(1,-before/260));squash=.05;}}
  if(!melee){
   frame=0;const arrow=turn?.arrowAt;
-  if(arrow!==undefined){const before=arrow-now;if(before>0&&before<700)frame=1;else if(before<=0&&before>-420)frame=2;}
+  if(arrow!==undefined){const before=arrow-now;if(before>0&&before<QUEEN_DRAW_MS-150)frame=1;else if(before<=0&&before>-420)frame=2;}
  }
  const summon=turn?.summons.find(s=>s.id===f.id);
  if(summon){const age=now-summon.at;if(age<0)visible=false;else if(age<500){alpha=age/500;squash=-.2*(1-age/500);}}
  if(f.hp<=0&&!summon)visible=true;
- return {x,y,facing,visible,alpha,frame,bob:moving?Math.abs(Math.sin(now/(WALK_FRAME_MS[f.monster!]??150)*Math.PI))*-3:Math.sin(now/520+f.slot)*1.2,lunge,squash,moving};
+ // A light bob, twice per cycle (each step), on top of the painted frames; a slow breath when standing.
+ return {x,y,facing,visible,alpha,frame,bob:moving?Math.abs(Math.sin(step*Math.PI*2))*-(def.sprite.walk?1.2:2.4):Math.sin(now/520+f.slot)*1.2,lunge,squash,moving,step};
 }
 
 /** Draws one monster at its view; `hurtAge` flashes and shakes it, `deathAge` flips it over and fades it out. */
 export function drawMonster(c:CanvasRenderingContext2D,f:Fighter,view:MonsterView,slope:number,hurtAge=-1,deathAge=-1){
  if(!view.visible)return;
- const def=MONSTERS[f.monster!],image=sheet(def.sprite.src),queen=def.behavior==='queen';
+ const def=MONSTERS[f.monster!],queen=def.behavior==='queen',walkSheet=def.sprite.walk?sheet(def.sprite.walk.src):undefined;
+ // Walking ants use their 4-frame walk cycle when it is loaded (frames 0-1 of the main strip otherwise).
+ const walking=view.moving&&deathAge<0&&!!walkSheet?.complete&&!!walkSheet.naturalWidth,image=walking?walkSheet!:sheet(def.sprite.src);
  if(!image.complete||!image.naturalWidth){fallbackBody(c,view,def.sprite.height);return;}
  const fw=image.naturalWidth/4,fh=image.naturalHeight,h=def.sprite.height,w=h*fw/fh;
- let frame=view.frame,alpha=view.alpha,rotate=slope,dy=0,shake=0;
+ let frame=walking?Math.floor(view.step*4)%4:view.frame,alpha=view.alpha,rotate=slope,dy=0,shake=0;
  if(hurtAge>=0&&hurtAge<380){shake=Math.sin(hurtAge/18)*4*(1-hurtAge/380);if(queen&&hurtAge<300)frame=3;}
  if(deathAge>=0){const k=Math.min(1,deathAge/MONSTER_DEATH_MS);if(queen){dy=k*30;alpha*=1-k;frame=3;}else{rotate+=Math.PI*Math.min(1,k*2.2);dy=-28*Math.sin(Math.PI*Math.min(1,k*1.6));alpha*=1-Math.max(0,k-.35)/.65;}}
  if(alpha<=0)return;

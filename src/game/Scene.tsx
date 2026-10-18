@@ -17,7 +17,9 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
-import {INSTANCE_INTRO_MS,MONSTER_TURN_ID} from '../../shared/instanceTurn';
+import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
+import {MONSTERS} from '../../shared/expeditions';
+import {drawSpeechBubble} from './speechBubble';
 import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
@@ -81,13 +83,18 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // The monsters' shared turn has no fighter of its own: watch the queen while she aims, the nest while ants come out, else the walking monsters.
     const monsterTurn=b.instance?.monsterTurn;
     if(b.turnId===MONSTER_TURN_ID&&monsterTurn){const now=Date.now()+state.offset,queen=b.players.find(f=>f.id===b.instance!.boss&&f.hp>0),walkers=b.players.filter(f=>monsterTurn.moves.some(m=>m.id===f.id&&m.from[0]!==m.to[0]));
-     if(queen&&monsterTurn.arrowAt!==undefined&&now<monsterTurn.arrowAt+200&&now>monsterTurn.arrowAt-900){focusX=queen.x;focusY=queen.y-160;}
+     if(queen&&monsterTurn.arrowAt!==undefined&&now<monsterTurn.arrowAt+200&&now>monsterTurn.arrowAt-QUEEN_DRAW_MS-300){focusX=queen.x;focusY=queen.y-160;}
      else if(b.instance!.nest&&monsterTurn.summons.some(s=>now>s.at-400&&now<s.at+700)){focusX=b.instance!.nest.x;focusY=b.instance!.nest.y-140;}
      else if(walkers.length){focusX=walkers.reduce((n,f)=>n+f.x,0)/walkers.length;focusY=walkers[0].y-140;}}
     // Stage 1 opens on the ants arriving: the left column for the first half, then the right one.
     const intro=b.instance&&b.instance.stage===1?b.instance.introUntil-(Date.now()+state.offset):0;
     if(intro>0){const now=Date.now()+state.offset,mid=terrainWidth(terrain)/2,left=intro>INSTANCE_INTRO_MS/2,column=b.players.filter(f=>f.monster&&f.id!==b.instance!.boss&&(f.x<mid)===left).map(f=>monsterView(b,f,terrain,now));
      if(column.length){focusX=column.reduce((n,v)=>n+v.x,0)/column.length+(left?180:-180);focusY=column[0].y-140;}}
+    // A boss stage opens on the boss taunting, then on the ants leaving the nest; the camera returns to the party for the first turn.
+    const opening=b.instance?.speech&&b.instance.monsterTurn?.id==='opening'&&b.turnId!==MONSTER_TURN_ID?b.instance.monsterTurn:undefined,openingNow=Date.now()+state.offset;
+    if(opening&&openingNow<b.instance!.introUntil){const boss=b.players.find(f=>f.id===b.instance!.boss),firstOut=opening.summons[0]?.at??opening.startedAt;
+     if(boss&&openingNow<firstOut-300){focusX=boss.x-120;focusY=boss.y-220;}
+     else if(openingNow<opening.startedAt+MONSTER_MOVE_MS){const walkers=b.players.filter(f=>opening.moves.some(m=>m.id===f.id)).map(f=>monsterView(b,f,terrain,openingNow));if(walkers.length){focusX=walkers.reduce((n,v)=>n+v.x,0)/walkers.length-160;focusY=walkers[0].y-140;}}}
     if(shot&&b.phase==='resolving'){const p=shot.projectiles.find(p=>elapsed>=p.delay&&elapsed-p.delay<flightTime(p));const point=p?.points[Math.floor(projectileFrame(p,elapsed-p.delay))];if(point){focusX=point[0];focusY=point[1]+70;}}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);environment!.drawTerrain(c,t);residues!.draw(c);
@@ -146,6 +153,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     }
     // Plates go on top of every fighter, stacked when neighbours stand close together.
     drawFighterPlates(c,plates,t);
+    // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
+    for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;
+     const height=speaker.monster?MONSTERS[speaker.monster].sprite.height:150;drawSpeechBubble(c,line.text,speaker.x+speaker.facing*14,speaker.y-height*.66,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.monster==='arrow'){if(age<flightTime(p))drawArrow(c,p.points,index);else drawArrowImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}
