@@ -12,7 +12,7 @@ try{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  // A deliberately late body image catches portraits that only render once on mount.
  let releaseBody;const bodyReady=new Promise(resolve=>{releaseBody=resolve;});
- await page.route('**/assets/outfits/shop-outfits.png',async route=>{await bodyReady;await route.continue();});
+ await page.route('**/assets/outfits/cartographer-atlas.png',async route=>{await bodyReady;await route.continue();});
  await enterGame(page,base);
  await page.evaluate(async()=>{
   const [{default:{createElement}},{default:{createRoot}},{Avatar},{DEFAULT_EQUIPMENT}]=await Promise.all([
@@ -22,7 +22,7 @@ try{
   const host=document.createElement('div');host.id='static-avatar-fixture';
   host.style.cssText='position:fixed;inset:0;z-index:999999;background:#10243b;display:grid;place-items:center';document.body.append(host);
   const root=createRoot(host);
-  let props={equipment:{...DEFAULT_EQUIPMENT,outfit:'outfit-racer',face:'face-wink',hair:'hair-undercut',hat:'hat-thunder',glasses:'glasses-sport',upgrade:12},size:440,animated:false,showAura:true};
+  let props={equipment:{...DEFAULT_EQUIPMENT,outfit:'outfit-cartographer',face:'face-wink',hair:'hair-undercut',hat:'hat-thunder',glasses:'glasses-sport',upgrade:12},size:440,animated:false,showAura:true};
   window.updateAvatarFixture=update=>{props={...props,...update,equipment:{...props.equipment,...update.equipment}};root.render(createElement(Avatar,props));};
   window.updateAvatarFixture({});
   window.avatarPixels=()=>{
@@ -44,7 +44,7 @@ try{
  await page.evaluate(()=>window.dispatchEvent(new Event('brasa-art-loaded')));
  await page.waitForTimeout(80);
  assert.equal((await page.evaluate(()=>window.avatarPixels())).image,first.image,'Art refresh advanced a frozen pose');
- await page.evaluate(()=>window.updateAvatarFixture({equipment:{outfit:'outfit-dancer',hat:'hat-tropical'}}));
+ await page.evaluate(()=>window.updateAvatarFixture({equipment:{outfit:'outfit-cartographer',hat:'hat-tropical'}}));
  await page.waitForFunction(previous=>window.avatarPixels().count>10000&&window.avatarPixels().image!==previous,first.image);
  await page.waitForLoadState('networkidle');
  const changed=await page.evaluate(()=>window.avatarPixels());

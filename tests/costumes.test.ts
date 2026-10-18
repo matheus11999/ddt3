@@ -18,7 +18,7 @@ test('both full-body costumes are unisex cosmetics with no combat attribute bonu
 });
 
 test('migration grants two costumes exactly once, removes internal empty sentinels and preserves every real possession/resource',()=>{
- const raw={id:randomUUID(),name:'Costume legacy',gender:'male' as const,contentVersion:11,equipment:DEFAULT_EQUIPMENT,inventory:['ember','hat-cap','face-brave','outfit-surfer','hair-undercut','glasses-none','wristband-none','bracelet-none','costume-none','hat-none','hair-none','outfit-dancer'],gold:777,upgrades:{ember:10},stones:{'1':0,'5':7},compositionStones:{'attack-1':0},compositions:{ember:{attack:10}}};
+ const raw={id:randomUUID(),name:'Costume legacy',gender:'male' as const,contentVersion:11,equipment:DEFAULT_EQUIPMENT,inventory:['ember','hat-cap','face-brave','outfit-cartographer','hair-undercut','glasses-none','wristband-none','bracelet-none','costume-none','hat-none','hair-none','face-smile'],gold:777,upgrades:{ember:10},stones:{'1':0,'5':7},compositionStones:{'attack-1':0},compositions:{ember:{attack:10}}};
  const p=normalizeProfile(raw);assert.equal(p.contentVersion,CONTENT_VERSION);assert.equal(p.equipment.costume,'costume-none');
  for(const id of STARTER_COSTUMES)assert.equal(p.inventory.filter(item=>item===id).length,1);
  assert.ok(p.inventory.every(id=>!isEmptyItem(id)));assert.ok(raw.inventory.filter(id=>!isEmptyItem(id)).every(id=>p.inventory.includes(id)));

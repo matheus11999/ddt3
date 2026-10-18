@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,SLOTS,slotAccepts,slotFamily,slotsForItem,STONES,targetSlotForItem,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOTS,slotAccepts,slotFamily,slotsForItem,STONES,targetSlotForItem,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
 import {SHOP_OFFER_BY_ID} from '../shared/shop';
 import {COMPOSITION_STONES,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {levelForXp,levelProgress,MAX_PLAYER_LEVEL} from '../shared/progression';
@@ -83,13 +83,14 @@ test('content migration grants new starter layers once and never refills a remov
  assert.equal(saved.inventory.includes('hair-wavy'),false);
 });
 
-test('version six grants the two new outfits without restoring removed cosmetics or spent materials',()=>{
+test('the old version-six outfit grant now only keeps the Cartógrafo, without restoring removed cosmetics or spent materials',()=>{
  const old=normalizeProfile({id:'outfit-migration',name:'Teste'});
- const migrated=normalizeProfile({...old,contentVersion:5,inventory:old.inventory.filter(id=>!['outfit-surfer','outfit-executive','hair-wavy'].includes(id)),stones:{'1':0,'2':0,'3':0,'4':0,'5':0}});
- assert.ok(migrated.inventory.includes('outfit-surfer'));assert.ok(migrated.inventory.includes('outfit-executive'));
+ const migrated=normalizeProfile({...old,contentVersion:5,inventory:old.inventory.filter(id=>!['outfit-cartographer','hair-wavy'].includes(id)),stones:{'1':0,'2':0,'3':0,'4':0,'5':0}});
+ assert.ok(migrated.inventory.includes('outfit-cartographer'));assert.equal(migrated.equipment.outfit,'outfit-cartographer');
+ for(const retired of Object.keys(RETIRED_OUTFIT_REPLACEMENTS))assert.equal(migrated.inventory.includes(retired),false);
  assert.equal(migrated.inventory.includes('hair-wavy'),false);assert.equal(migrated.stones['1'],0);
- const saved=normalizeProfile({...migrated,inventory:migrated.inventory.filter(id=>id!=='outfit-surfer')});
- assert.equal(saved.inventory.includes('outfit-surfer'),false);assert.equal(saved.contentVersion,CONTENT_VERSION);
+ const saved=normalizeProfile(migrated);
+ assert.deepEqual(saved,migrated);assert.equal(saved.contentVersion,CONTENT_VERSION);
 });
 
 test('retired cosmetic items disappear while current equipment uses the thirteen supported slots',()=>{
@@ -101,12 +102,12 @@ test('retired cosmetic items disappear while current equipment uses the thirteen
 });
 
 test('retired outfits migrate to a current owned costume without changing other equipment or resources',()=>{
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-surfer','outfit-executive','outfit-racer','outfit-dancer','outfit-cartographer']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer']);
  for(const retired of ['outfit-ranger','outfit-azure','outfit-royal']){
   assert.equal(CATALOG[retired],undefined);
   const before=normalizeProfile({id:'retired-outfit',name:'Teste'});
-  const migrated=normalizeProfile({...before,contentVersion:6,inventory:[...before.inventory.filter(id=>id!=='outfit-surfer'),retired],equipment:{...before.equipment,outfit:retired,face:'face-taunt',hat:'hat-cap'},stones:{'1':0},upgrades:{ember:9}});
-  assert.equal(migrated.equipment.outfit,'outfit-surfer');assert.ok(migrated.inventory.includes(migrated.equipment.outfit));assert.equal(migrated.inventory.includes(retired),false);
+  const migrated=normalizeProfile({...before,contentVersion:6,inventory:[...before.inventory.filter(id=>id!=='outfit-cartographer'),retired],equipment:{...before.equipment,outfit:retired,face:'face-taunt',hat:'hat-cap'},stones:{'1':0},upgrades:{ember:9}});
+  assert.equal(migrated.equipment.outfit,'outfit-cartographer');assert.ok(migrated.inventory.includes(migrated.equipment.outfit));assert.equal(migrated.inventory.includes(retired),false);
   assert.equal(migrated.equipment.face,'face-taunt');assert.equal(migrated.equipment.hat,'hat-cap');assert.equal(migrated.stones['1'],0);assert.equal(migrated.upgrades.ember,9);assert.equal(migrated.contentVersion,CONTENT_VERSION);
   assert.deepEqual(normalizeProfile(migrated),migrated);
  }
@@ -131,33 +132,35 @@ test('experience saved at the former level cap unlocks new levels without losing
 });
 
 test('removed weapons leave the profile and the starter Quebra-Tijolos takes their place',()=>{
- const old=normalizeProfile({id:'arsenal-reset',name:'Teste',contentVersion:12,inventory:['removed-cannon','outfit-surfer'],upgrades:{'removed-cannon':9},stones:{'1':0},compositionStones:{},equipment:{...DEFAULT_EQUIPMENT,weapon:'removed-cannon'}});
+ const old=normalizeProfile({id:'arsenal-reset',name:'Teste',contentVersion:12,inventory:['removed-cannon','outfit-cartographer'],upgrades:{'removed-cannon':9},stones:{'1':0},compositionStones:{},equipment:{...DEFAULT_EQUIPMENT,weapon:'removed-cannon'}});
  assert.ok(!old.inventory.includes('removed-cannon'));assert.equal(old.upgrades['removed-cannon'],undefined);assert.equal(old.stones['1'],0);
  assert.equal(old.equipment.weapon,DEFAULT_EQUIPMENT.weapon);assert.ok(old.inventory.includes(DEFAULT_EQUIPMENT.weapon));
 });
 
 test('new shop cosmetics never auto-grant through legacy migrations and owned purchases remain owned',()=>{
- const ids=['outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
+ const ids=['hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical'];
  for(const version of [1,4,8,9]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(ids.every(id=>!profile.inventory.includes(id)));}
  const owned=normalizeProfile({id:'shop-purchase',name:'Teste',inventory:['ember',...ids],contentVersion:9});assert.ok(ids.every(id=>owned.inventory.includes(id)));
  assert.ok(owned.inventory.every(id=>!isEmptyItem(id)),'empty-slot sentinels are never inventory possessions');
+ // The Cartógrafo is the starter outfit for everyone, so it is always owned and worn.
+ for(const version of [1,4,8,9,14]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(profile.inventory.includes('outfit-cartographer'));assert.equal(profile.equipment.outfit,'outfit-cartographer');}
 });
 
 test('retired prototypes leave catalog and shop while painted equipment remains available',()=>{
- for(const id of Object.keys(RETIRED_COSMETIC_REPLACEMENTS)){assert.equal(CATALOG[id],undefined);assert.equal(SHOP_OFFER_BY_ID[id],undefined);}
- for(const id of ['face-brave','face-smile','face-taunt','face-serene','face-fierce','outfit-surfer','outfit-executive','hat-cap','hat-mage','hair-wavy'])assert.ok(CATALOG[id]&&SHOP_OFFER_BY_ID[id]);
+ for(const id of [...Object.keys(RETIRED_COSMETIC_REPLACEMENTS),...Object.keys(RETIRED_OUTFIT_REPLACEMENTS)]){assert.equal(CATALOG[id],undefined);assert.equal(SHOP_OFFER_BY_ID[id],undefined);}
+ for(const id of ['face-brave','face-smile','face-taunt','face-serene','face-fierce','outfit-cartographer','hat-cap','hat-mage','hair-wavy'])assert.ok(CATALOG[id]&&SHOP_OFFER_BY_ID[id]);
 });
 
 test('prototype retirement exchanges owned items and preserves equipment, composition and resources exactly once',()=>{
  const retired=Object.keys(RETIRED_COSMETIC_REPLACEMENTS);
- const raw={id:'prototype-migration',name:'Veterano',gender:'male' as const,contentVersion:9,inventory:['ember','face-taunt','outfit-executive','hat-tide',...retired],
-  equipment:{...DEFAULT_EQUIPMENT,face:'face-taunt',outfit:'outfit-executive',hat:'hat-knight',hair:'hair-silver',glasses:'glasses-round',dyes:{hat:'coral' as const}},
+ const raw={id:'prototype-migration',name:'Veterano',gender:'male' as const,contentVersion:9,inventory:['ember','face-taunt','outfit-cartographer','hat-tide',...retired],
+  equipment:{...DEFAULT_EQUIPMENT,face:'face-taunt',outfit:'outfit-cartographer',hat:'hat-knight',hair:'hair-silver',glasses:'glasses-round',dyes:{hat:'coral' as const}},
   gold:575,xp:1234,wins:7,matches:10,upgrades:{ember:9},stones:{'1':0,'5':3},compositionStones:{'attack-1':0},compositions:{'hat-knight':{attack:20},'hat-tide':{attack:10,defense:30},ember:{armor:20}}};
  const result=normalizeProfile(raw);
  assert.ok(retired.every(id=>!result.inventory.includes(id)));
  assert.ok(Object.values(RETIRED_COSMETIC_REPLACEMENTS).every(id=>result.inventory.includes(id)));
  assert.equal(result.equipment.hat,'hat-tide');assert.equal(result.equipment.hair,'hair-undercut');assert.equal(result.equipment.glasses,'glasses-sport');
- assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-executive');
+ assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-cartographer');
  // The retired free dye becomes the worn hat's ticket color.
  assert.equal(result.itemColors['hat-tide'],'#f24b64');assert.equal(result.equipment.colors?.hat,'#f24b64');
  assert.deepEqual(result.compositions,{'hat-tide':{attack:20,defense:30},ember:{armor:20}});
@@ -166,6 +169,20 @@ test('prototype retirement exchanges owned items and preserves equipment, compos
  assert.deepEqual(normalizeProfile(result),result);
  const withoutUnequipped=normalizeProfile({...result,inventory:result.inventory.filter(id=>id!=='glasses-cat')});assert.ok(!withoutUnequipped.inventory.includes('glasses-cat'));
  for(const slot of SLOTS)assert.ok(isEmptyItem(result.equipment[slot])||result.inventory.includes(result.equipment[slot]),slot);
+});
+
+test('version fourteen profiles exchange retired outfits for the Cartógrafo once, keeping their composition and resources',()=>{
+ assert.ok(Object.values(RETIRED_OUTFIT_REPLACEMENTS).every(id=>id==='outfit-cartographer'));
+ const raw={id:'outfit-retirement',name:'Piloto',gender:'male' as const,contentVersion:14,inventory:['ember','hat-cap','face-brave','hair-undercut','outfit-racer'],
+  equipment:{...DEFAULT_EQUIPMENT,outfit:'outfit-racer'},gold:321,xp:456,upgrades:{ember:4},stones:{'1':0,'3':2},compositionStones:{'armor-1':1},compositions:{'outfit-racer':{armor:20,defense:10}}};
+ const result=normalizeProfile(raw);
+ assert.equal(result.equipment.outfit,'outfit-cartographer');assert.ok(result.inventory.includes('outfit-cartographer'));
+ for(const retired of Object.keys(RETIRED_OUTFIT_REPLACEMENTS))assert.ok(!result.inventory.some(key=>key.startsWith(retired)),retired);
+ assert.deepEqual(result.compositions['outfit-cartographer'],{armor:20,defense:10});assert.equal(result.compositions['outfit-racer'],undefined);
+ assert.deepEqual(result.equipment.compositions?.['outfit-cartographer'],{armor:20,defense:10});
+ assert.equal(result.equipment.hat,'hat-cap');assert.equal(result.equipment.face,'face-brave');assert.equal(result.equipment.hair,'hair-undercut');
+ assert.equal(result.gold,321);assert.equal(result.xp,456);assert.equal(result.upgrades.ember,4);assert.equal(result.stones['1'],0);assert.equal(result.stones['3'],2);assert.equal(result.compositionStones['armor-1'],1);
+ assert.equal(result.contentVersion,CONTENT_VERSION);assert.deepEqual(normalizeProfile(result),result);
 });
 
 test('migration ignores unknown and inherited object keys instead of granting invalid items',()=>{

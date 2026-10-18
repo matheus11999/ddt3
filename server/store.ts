@@ -3,7 +3,7 @@ import {COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COL
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -30,7 +30,7 @@ export const RANKING_TIME_ZONE='America/Sao_Paulo';
 type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>&{dyes?:Record<string,string>}};
 const integer=(value:unknown,fallback=0,max=Number.MAX_SAFE_INTEGER)=>typeof value==='number'&&Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):fallback;
 
-const SHOP_ONLY_COSMETICS=new Set(['necklace-guild-1','love-boomerang','outfit-racer','outfit-dancer','outfit-cartographer','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
+const SHOP_ONLY_COSMETICS=new Set(['necklace-guild-1','love-boomerang','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
 
 // Missing fields are migrated once on read; an empty stone stack stays empty.
 export function normalizeProfile(raw:StoredProfile):Profile {
@@ -41,13 +41,12 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const inventory=Array.isArray(raw.inventory)?[...new Set(raw.inventory.filter(id=>Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)))]:ITEMS.filter(i=>!SHOP_ONLY_COSMETICS.has(i.id)&&!isEmptyItem(i)&&canEquipItem(i,gender)).map(i=>i.id);
  if(!raw.upgrades&&(raw.contentVersion??0)<1&&!inventory.includes(defaults.hat))inventory.push(defaults.hat);
  if((raw.contentVersion??0)<5){for(const item of ITEMS)if(item.visual&&!isEmptyItem(item)&&!SHOP_ONLY_COSMETICS.has(item.id)&&canEquipItem(item,gender)&&!inventory.includes(item.id))inventory.push(item.id);}
- else if((raw.contentVersion??0)<6){for(const id of ['outfit-surfer','outfit-executive'])if(canEquipItem(id,gender)&&!inventory.includes(id))inventory.push(id);}
  // Retired outfits migrate once to the current starter; never replenish unrelated items.
  if((raw.contentVersion??0)<7&&(!raw.equipment?.outfit||!CATALOG[raw.equipment.outfit])){
   if(!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
  }
  // Replace owned prototypes, including the equipped variant, without refilling other purchases.
- const replacements=(raw.contentVersion??0)<10?RETIRED_COSMETIC_REPLACEMENTS:{};
+ const replacements={...(raw.contentVersion??0)<10?RETIRED_COSMETIC_REPLACEMENTS:{},...(raw.contentVersion??0)<15?RETIRED_OUTFIT_REPLACEMENTS:{}};
  for(const id of raw.inventory??[]){const replacement=Object.hasOwn(replacements,id)?replacements[id]:undefined;if(replacement&&!inventory.includes(replacement))inventory.push(replacement);}
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);

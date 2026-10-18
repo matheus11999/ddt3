@@ -63,14 +63,14 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
 
 /** Half the distance a planted foot slides back under the body, in avatar units.
  * One stride cycle covers 4× this, so the cadence follows the walking speed. */
-const walkStep=(outfitPose:string)=>outfitPose==='surfer'?12:11;
+const WALK_STEP=11;
 /** How far each foot's lane moves from the painted 3/4 spread toward the middle while walking. */
 const WALK_LANE_PULL=.75;
 
-function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose:'surfer'|'executive'|'racer'|'dancer'|'cartographer'){
+function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,context:AvatarContext,outfitPose?:'cartographer'){
  const dt=m.lastTime?clamp(time-m.lastTime,0,60):16,blend=1-Math.exp(-dt/95);m.lastTime=time;
  const pose=context.pose??(walking?'walk':'idle');if(m.pose!==pose){m.pose=pose;m.poseAt=time;}if(pose==='charge')m.chargedAt=time;
- m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=walkStep(outfitPose)*4;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
+ m.walk=mix(m.walk,Number(walking||pose==='walk'),blend);const strideLength=WALK_STEP*4;m.phase+=context.movementDistance===undefined?dt/105*(.2+.8*m.walk):Math.abs(context.movementDistance)*Math.PI*2/strideLength;
  const direction=facing<0?-1:1;if(direction!==m.facing){m.previousFacing=m.facing;m.facing=direction;m.turn=0;}m.turn=Math.min(1,m.turn+dt/170);
  const poseTime=context.poseTime??time-m.poseAt,stride=Math.sin(m.phase),aiming=pose==='aim'||pose==='charge'||pose==='fire',recoil=pose==='fire'?Math.exp(-Math.max(0,poseTime)/145):0,slope=clamp(context.slope??0,-.5,.5);
  let lean=slope*.55+stride*.025*m.walk,leftArm=-stride*.3*m.walk,rightArm=stride*.26*m.walk,bodyY=0,headTilt=-slope*.24;
@@ -82,34 +82,9 @@ function animate(m:AvatarMotion,time:number,walking:boolean,facing:number,contex
  if(pose==='prone'){leftArm=-2.4;rightArm=-2.65;lean=0;headTilt=-1.05;}
  if(pose==='victory'){leftArm=2.3+Math.sin(time/180)*.12;rightArm=-2.4;bodyY=-Math.abs(Math.sin(time/260))*3;headTilt=-.05;}
  if(pose==='defeat'){lean=.2;bodyY=15;leftArm=.23;rightArm=.3;headTilt=.17;}
- if(outfitPose==='surfer'){
-  // The illustration already has bent knees and a shaka gesture; keep that personality in motion.
-  lean=slope*.32+Math.sin(time/720)*.018;headTilt=-slope*.15;
-  bodyY=m.walk*1.8+Math.sin(time/880)*.55*(1-m.walk);
-  if(aiming){lean+=.035;bodyY+=pose==='charge'?1.6:0;}
-  if(pose==='fire')lean-=recoil*.09;
-  if(pose==='hit')lean-=Math.exp(-Math.max(0,poseTime)/210)*.12;
-  if(pose==='fall'){lean+=Math.sin(time/180)*.08;bodyY=-4;}
-  if(pose==='victory'){bodyY=-Math.abs(Math.sin(time/240))*5;lean-=.025;}
-  if(pose==='defeat'){lean=.12;bodyY=5;headTilt=.12;}
-  if(pose==='prone'){lean=0;headTilt=-1.05;}
- }
- if(outfitPose==='executive'){
-  // The lapel hand, pocket hand and crossed ankles belong to the painted formal stance.
-  lean=slope*.25;headTilt=-.025-slope*.12;bodyY=Math.sin(time/1100)*.35;
-  if(m.walk>.01){bodyY=m.walk*2;lean+=stride*.012*m.walk;}
-  if(aiming){lean+=.02;headTilt-=.02;}
-  if(pose==='charge')bodyY+=1;
-  if(pose==='fire')lean-=recoil*.065;
-  if(pose==='hit'){lean-=Math.exp(-Math.max(0,poseTime)/230)*.09;headTilt+=.06;}
-  if(pose==='fall'){lean-=.06;bodyY=-2;}
-  if(pose==='victory'){lean=-.035;headTilt=-.065;bodyY=-1;}
-  if(pose==='defeat'){lean=.09;headTilt=.16;bodyY=2;}
-  if(pose==='prone'){lean=0;headTilt=-1.05;}
- }
  if(outfitPose==='cartographer'){
   // The forward map-reading stance is painted into the outfit. Keep its
-  // deliberate lean and compact, planted gait instead of borrowing Surfista.
+  // deliberate lean and compact, planted gait.
   lean=.035+slope*.28+stride*.014*m.walk;headTilt=-.018-slope*.14;
   bodyY=m.walk*1.25+Math.sin(time/1180)*.3*(1-m.walk);
   if(aiming){lean+=.024;headTilt-=.025;}
@@ -263,7 +238,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  eq=visibleHeadEquipment(eq);
  if(COSTUMES[eq.costume]&&eq.visibility?.costume!==false){
   const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
-  const {pose,poseTime,recoil,slope}=animate(m,time,walking,facing,context,'racer');
+  const {pose,poseTime,recoil,slope}=animate(m,time,walking,facing,context);
   c.save();c.translate(x,y);c.scale(height/160,height/160);
   if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);
   if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
@@ -283,7 +258,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  // Combat fighters lie along the ground under them, as in DDTank: the whole body
  // (weapon included) turns about the contact point by the ground angle.
  const tilt=context.combat&&rig.combat?slope:0;
- c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,rig.outfitPose==='surfer'?38:rig.outfitPose==='executive'?23:30);else if(!context.combat)ellipse(c,-lie*3,-1,(rig.outfitPose==='surfer'?40:rig.outfitPose==='executive'?23:30)+lie*25,7-lie*2,'#162c3c35'); // No contact shadow in combat: it read as a dark smear on slopes and in craters.
+ c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);else if(!context.combat)ellipse(c,-lie*3,-1,30+lie*25,7-lie*2,'#162c3c35'); // No contact shadow in combat: it read as a dark smear on slopes and in craters.
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
@@ -315,12 +290,12 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(!throwing.front)arms();
    const neckX=(painted.neck[0]-625)*AVATAR_UNIT,neckY=(painted.neck[1]-1225)*AVATAR_UNIT;
    c.save();c.translate(neckX,neckY);c.rotate((pose==='defeat'?.13:pose==='victory'?-.035:0)-recoil*.04+hit*.045+Math.sin(cycle*2)*.03*crawl+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-25*AVATAR_UNIT,615*AVATAR_UNIT);
-   drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
+   drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,-5);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
    if(throwing.front)arms();
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
    c.restore();c.restore();c.restore();return;
   }
-  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=walkStep(rig.outfitPose)*Math.max(.25,rawWalk);
+  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=WALK_STEP*Math.max(.25,rawWalk);
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001){
    c.save();c.globalAlpha*=walkBlend;
@@ -332,10 +307,10 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    for(const frame of [far,near])if(frame.grounded)ellipse(c,frame.ankle[0]+2,Math.tan(slope)*frame.ankle[0]-.5,6,1.4,'#10213235');
    drawWalkingLeg(c,rig.walking.far,far);drawWalkingLeg(c,rig.walking.near,near);c.restore();
   }
-  c.save();c.translate(-24*lie,rootY+(rig.outfitPose==='surfer'?-8:14)*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
+  c.save();c.translate(-24*lie,rootY+14*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
   if(walkBlend<.999){c.save();c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
   if(rig.walking&&walkBlend>.001){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
-  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,rig.outfitPose==='cartographer'?-5:0);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
+  c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,-5);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
   if(weapon){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;
    // Presentation-only placement never changes the body's facing or combat muzzle.
