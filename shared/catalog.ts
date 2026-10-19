@@ -134,6 +134,8 @@ export const ITEMS: Item[] = [...WEAPONS,
  {...cosmetic('necklace-guild-1','Colar da Guilda Nv. 1','necklace','guild-1','#3f8fe0','rare',{visible:false,asset:'/assets/items/necklace-guild-1.png'}),description:'Medalhão da guilda num cordão trançado. Só membros de uma guilda podem comprá-lo.',attack:0,defense:0,agility:0,hpPercent:5},
  cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de fala fofinho em forma de nuvem.'},
+ {...cosmetic('bubble-ember','Bolha Brasa','bubble','ember','#ff9a3c','rare',{visible:false}),description:'Balão de fala aquecido como uma brasa, com borda dupla.'},
+ {...cosmetic('bubble-royal','Bolha Real','bubble','royal','#e2b84a','epic',{visible:false}),description:'Balão de fala de pergaminho com moldura dourada.'},
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];

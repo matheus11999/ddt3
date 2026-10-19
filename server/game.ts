@@ -602,7 +602,7 @@ export class Game {
      const r=this.room(p),m=this.matchForRoom(r.id);if(r.hostId!==id)throw Error('Aguarde o líder da sala.');if(!m&&r.status==='waiting'){this.broadcastRoom(r);break;}if(!m||m.state.phase!=='finished')throw Error('A batalha ainda está acontecendo.');if(!m.state.rewards?.saved||Date.now()<(m.state.rewards.revealedAt??Infinity)+REWARD_RETURN_MS)throw Error('Aguarde a revelação e o recebimento das recompensas.');this.returnParties(m);break;
     }
     case 'chat':{
-     const msg={id:randomUUID(),playerId:id,name:p.profile.name,text:c.text,channel:c.channel,time:Date.now()};
+     const msg={id:randomUUID(),playerId:id,name:p.profile.name,text:c.text,channel:c.channel,time:Date.now(),bubble:p.profile.equipment.bubble};
      if(c.channel==='private'){
       const target=c.to?this.peers.get(c.to):undefined;
       if(!c.to||c.to===id)throw Error('Escolha para quem enviar a mensagem.');

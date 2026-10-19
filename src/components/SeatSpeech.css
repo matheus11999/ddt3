@@ -1,0 +1,2 @@
+/* Over the portrait, its tail ending at the head; clicks go through to the card. */
+.seat-speech{position:absolute;z-index:6;left:0;right:0;top:0;width:100%;height:34%;pointer-events:none}

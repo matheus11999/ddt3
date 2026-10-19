@@ -23,7 +23,9 @@ import {drawPet} from './petSprite';
 import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds} from './petEffects';
 import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {MONSTERS} from '../../shared/expeditions';
-import {drawSpeechBubble} from './speechBubble';
+import {bubbleStyle,CHAT_BUBBLE_MS,drawSpeechBubble,drawSpeechBubbles} from './speechBubble';
+import type {SpeechLine} from './speechBubble';
+import type {ChatLine} from '../../shared/protocol';
 import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
 import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,drawDragonPaw,preloadDragon} from './worldBoss/dragon';
@@ -38,7 +40,9 @@ import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
 /** Size of the ranked players on the lobby podium: 50% bigger than the 124 they started at. */
 const PODIUM_AVATAR=186;
-import {LOBBY_SPAWN} from '../../shared/lobby';
+import {LOBBY_SPAWN,LOBBY_WIDTH} from '../../shared/lobby';
+/** Each speaker's latest line of this channel still on screen (chat balloons over the heads). */
+function recentSpeech(chat:ChatLine[],channel:ChatLine['channel'],now:number){const lines=new Map<string,ChatLine>();for(const m of chat)if(m.channel===channel&&m.playerId&&now-m.time<CHAT_BUBBLE_MS&&now>=m.time-1000)lines.set(m.playerId,m);return [...lines].sort((a,b)=>a[1].time-b[1].time);}
 import {chaseLobbyPosition} from './lobbyMotion';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
@@ -216,6 +220,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
     for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;
      const mouth=speaker.monster?MONSTERS[speaker.monster].mouth??{forward:0,up:MONSTERS[speaker.monster].sprite.height*.66}:{forward:10,up:110};drawSpeechBubble(c,line.text,speaker.x+speaker.facing*mouth.forward,speaker.y-mouth.up,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}
+    // Chat balloons: what a fighter just wrote in the room chat, in the look of their Bolha.
+    const said:SpeechLine[]=[];for(const [id,line] of recentSpeech(state.chat,'room',serverNow)){const f=b.players.find(p=>p.id===id),seen=entities.get(id);if(!f||f.hp<=0||f.hidden||!seen)continue;said.push({text:line.text,tipX:seen.x+f.facing*8,tipY:seen.y-150,facing:f.facing,age:serverNow-line.time,left:line.time+CHAT_BUBBLE_MS-serverNow,options:{style:bubbleStyle(line.bubble),scale:.8}});}
+    drawSpeechBubbles(c,said,terrainWidth(terrain));
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.monster==='arrow'){if(age<flightTime(p))drawArrow(c,p.points,index);else drawArrowImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}
@@ -258,6 +265,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const drawn=[...lobby.sprites(t,hover),...champions,...people.map(p=>({y:p.y,draw:()=>{avatar(p.id,p.name,p.equipment,p.x,p.y,p.id.startsWith('npc')?124:134,t,p.facing,{},false,true);}}))].sort((a,b)=>a.y-b.y);
     for(const item of drawn)item.draw(c);
     lobby.drawFront(c,t,hover);
+    // Chat balloons over the walkers who just wrote in Mundo, in the look of their Bolha.
+    const plazaNow=Date.now()+state.offset,spoken:SpeechLine[]=[];for(const [id,line] of recentSpeech(state.chat,'world',plazaNow)){const seen=entities.get(id);if(!seen||!state.players.some(p=>p.id===id))continue;spoken.push({text:line.text,tipX:seen.x+seen.facing*6,tipY:seen.y-134*1.15-30,facing:seen.facing<0?-1:1,age:plazaNow-line.time,left:line.time+CHAT_BUBBLE_MS-plazaNow,options:{style:bubbleStyle(line.bubble),top:24,scale:.78}});}
+    drawSpeechBubbles(c,spoken,LOBBY_WIDTH);
     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}
     c.restore();lobby.drawOverlay(c,t);
    }
