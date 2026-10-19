@@ -30,7 +30,7 @@ try{
   const title=(text,x,y)=>{c.fillStyle='#ffe6a6';c.font='bold 20px Georgia';c.fillText(text,x,y);};
   // Shop icons.
   title('LOJA',20,34);
-  ids.forEach((id,i)=>{const slot=CATALOG[id].slot,art=slot==='hat'?H.getWornHatPortrait(id):slot==='outfit'?A.getOutfitPortrait(id):A.getAccessoryPortrait(id);const x=20+i*170,y=50;
+  ids.forEach((id,i)=>{const slot=CATALOG[id].slot,art=slot==='hat'?H.getWornHatPortrait(id):slot==='outfit'?A.getOutfitPortrait(id):slot==='face'?A.getFacePortrait(id):A.getAccessoryPortrait(id);const x=20+i*170,y=50;
    c.fillStyle='#f3e3c3';c.fillRect(x,y,150,150);c.strokeStyle='#8a5a2b';c.lineWidth=3;c.strokeRect(x,y,150,150);
    if(art){const k=Math.min(130/art.width,130/art.height);c.drawImage(art,x+75-art.width*k/2,y+75-art.height*k/2,art.width*k,art.height*k);}
    c.fillStyle='#fff';c.font='13px sans-serif';c.fillText(CATALOG[id].name,x,y+168);});

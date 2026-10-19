@@ -1,12 +1,13 @@
 # Capitão Escarlate — conjunto masculino (19/10/2026)
 
-Roupa `outfit-captain`, cabelo `hair-captain` (Corte Capitão), chapéu `hat-captain` (Quepe Escarlate) e óculos `glasses-captain` (Óculos do Capitão). Masculinos, só na loja (`SHOP_ONLY_COSMETICS`). Gerados pelo Codex (`codex exec` com as peças aprovadas como referência); prompts e originais em `test-results/codex-cosmetics/` na máquina do usuário.
+Roupa `outfit-captain`, rosto `face-captain` (Olhar do Capitão), cabelo `hair-captain` (Corte Capitão), chapéu `hat-captain` (Quepe Escarlate) e óculos `glasses-captain` (Óculos do Capitão). Masculinos, só na loja (`SHOP_ONLY_COSMETICS`). Gerados pelo Codex (`codex exec` com as peças aprovadas como referência); prompts e originais em `test-results/codex-cosmetics/` na máquina do usuário.
 
 | Peça | Arquivo | Encaixe |
 | --- | --- | --- |
 | Roupa em pé | `public/assets/outfits/captain-atlas.png` | `PAINTED_OUTFITS`: `[335,5,640,1233]` → `[437,500,384,740]` (mesmo tamanho dos quadros de andar) |
 | Andar do lobby | `public/assets/outfits/walk/outfit-captain.png` | `build-walk-atlas.py` |
 | Batalha | `public/assets/outfits/combat/outfit-captain.png` | `build-combat-atlas.py` (pranchas `ground` e `throw`) |
+| Rosto | `public/assets/faces/face-captain.png` | editado pelo Codex a partir de `face-brave.png` e registrado no mesmo retângulo alfa `[380,222,521,505]`; o compositor usa a silhueta universal (0 diferenças de alfa contra o `face-brave`, 12.286 pixels de feição diferentes) |
 | Cabelo | `public/assets/hair-captain.png` | região `[340,150,795,560]`, `shrink(...,.94)` |
 | Quepe | `public/assets/hat-captain.png` | pin na faixa `(310,868)`–`(1030,790)` → `hatSeat` |
 | Óculos | `public/assets/glasses-captain.png` | centros das lentes `(879,493)`, `(1539,566)` → olhos; lentes com 40% de opacidade |

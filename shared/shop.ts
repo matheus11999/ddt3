@@ -7,7 +7,7 @@ export const SHOP_OFFERS:readonly ShopOffer[]=[
  {id:'brick',price:300},
  {id:'love-boomerang',price:480},
  {id:'outfit-cartographer',price:360},{id:'outfit-captain',price:380},
- {id:'face-brave',price:100},{id:'face-smile',price:120},{id:'face-serene',price:150},{id:'face-taunt',price:180},{id:'face-fierce',price:220},{id:'face-wink',price:180},
+ {id:'face-brave',price:100},{id:'face-smile',price:120},{id:'face-serene',price:150},{id:'face-taunt',price:180},{id:'face-fierce',price:220},{id:'face-wink',price:180},{id:'face-captain',price:180},
  {id:'hat-cap',price:100},{id:'hat-mage',price:250},
  {id:'hat-thunder',price:140},{id:'hat-tide',price:140},{id:'hat-ruby',price:180},{id:'hat-tropical',price:180},{id:'hat-captain',price:180},
  {id:'hair-wavy',price:160},

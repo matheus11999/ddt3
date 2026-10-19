@@ -77,6 +77,7 @@ export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',attack:8,defense:14,agility:0,armor:10},
  {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
  {id:'outfit-captain',name:'Capitão Escarlate',slot:'outfit',rarity:'rare',color:'#c4162a',description:'Casaca escarlate de capitão dos céus, dragonas douradas e botas altas.',attack:14,defense:20,agility:12,armor:20,visual:{variant:'captain',asset:'/assets/outfits/captain-atlas.png'}},
+ cosmetic('face-captain','Olhar do Capitão','face','captain','#c98a5e','rare',{asset:'/assets/faces/face-captain.png'}),
  cosmetic('face-wink','Piscadela Confiante','face','wink','#e6a16f','rare',{asset:'/assets/faces/face-wink.png'}),
  cosmetic('hair-undercut','Corte Tempestade','hair','undercut','#1555c2','rare',{asset:'/assets/shop-accessories.png'}),
  cosmetic('hair-ponytail','Rabo de Cavalo Rubi','hair','ponytail','#a34528','rare',{asset:'/assets/shop-accessories.png'}),
@@ -118,7 +119,7 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];
 const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
- 'face-brave':'male','face-taunt':'male','face-fierce':'male',
+ 'face-brave':'male','face-taunt':'male','face-fierce':'male','face-captain':'male',
  'face-smile':'female','face-serene':'female','face-wink':'female',
   'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-captain':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
  'hair-undercut':'male','hair-ponytail':'female','hair-wavy':'female','hair-horizon':'male','hair-captain':'male',

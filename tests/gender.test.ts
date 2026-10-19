@@ -9,7 +9,7 @@ import {SHOP_OFFERS} from '../shared/shop';
 import {normalizeProfile,Store} from '../server/store';
 
 test('gendered appearance, including the navigator glasses, rejects the opposite character gender',()=>{
- const male=['face-brave','face-taunt','face-fierce','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain'];
+ const male=['face-brave','face-taunt','face-fierce','face-captain','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain'];
  const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy'];
  for(const [gender,ids] of [['male',male],['female',female]] as const)for(const id of ids){assert.equal(itemGender(id),gender);assert.equal(canEquipItem(id,gender),true);assert.equal(canEquipItem(CATALOG[id],gender==='male'?'female':'male'),false);}
  for(const item of ITEMS){
