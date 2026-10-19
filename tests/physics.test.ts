@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {crater,CRATER_ROUGHNESS,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_ROUGHNESS,SQUARE_CRATER_DEPTH,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -196,4 +196,13 @@ test('a rival standing on top of the shooter is passed through, one a little asi
  assert.equal(trajectory(terrain,origin,60,40,0,weapon,at(24)).hitId,'rival');
  // After leaving him, a shot falling straight back down can still hit him.
  assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(0)).hitId,'rival');
+});
+
+test('a square crater is a shallow box: as wide as the round one, much less deep, flat walls',()=>{
+ const make=()=>{const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let r=200;r<WORLD.rows;r++)t.fill(1,r*WORLD.cols,(r+1)*WORLD.cols);return t;};
+ const round=make(),square=make();crater(round,600,600,22,'garden',0);crater(square,600,600,22,'garden',0,1,'square');
+ assert.ok(ground(square,600)-600<ground(round,600)-600,'digs less deep');
+ assert.ok(ground(square,600)-600<=Math.ceil(22*SQUARE_CRATER_DEPTH)+3);
+ // Near the side the box keeps almost all its depth; the round bowl is already shallow there.
+ assert.ok(ground(square,618)-600>=ground(square,600)-600-3&&ground(round,618)-600<ground(round,600)-600-6);
 });
