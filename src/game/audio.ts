@@ -10,6 +10,15 @@ const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp
 const POWERUP_CUE={urls:['/assets/audio/sfx/powerup.mp3'],volume:.22} as const;
 const CUES={pow:POWERUP_CUE,boost:POWERUP_CUE,powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:['/assets/audio/sfx/ui-click.mp3'],volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
 export type AudioCue=keyof typeof CUES;
+/** Encoded files fetched once per page, before any AudioContext exists, so the first cue of a match is never late. */
+const encoded=new Map<string,Promise<ArrayBuffer|null>>();
+function fetchEncoded(url:string){
+ let pending=encoded.get(url);
+ if(!pending){pending=typeof fetch==='undefined'?Promise.resolve(null):fetch(url).then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);encoded.set(url,pending);}
+ return pending;
+}
+/** Every recorded cue shared by all weapons; weapon files are added by `audio.preload`. */
+const BUILT_IN_SAMPLES=[...new Set([...IMPACT_LAYERS.map(layer=>layer.url),...Object.values(CUES).flatMap(cue=>cue.urls)])];
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
 }
@@ -26,9 +35,36 @@ class AudioEngine {
  private listening=false;
  private pageHidden=false;
  private unlocked=false;
- private samples=new Map<string,AudioBuffer>();
- private loading:AudioContext|null=null;
+ /** Decoded files for the current context; null marks a file that failed to load or decode. */
+ private samples=new Map<string,AudioBuffer|null>();
+ private requested=new Set<string>(BUILT_IN_SAMPLES);
+ private decoding=new Set<string>();
  private cueAt=new Map<AudioCue,number>();
+ constructor(){
+  if(typeof document==='undefined')return;
+  for(const url of this.requested)void fetchEncoded(url);
+  // Any trusted gesture anywhere in the game unlocks (or wakes) the audio, not only inside a battle:
+  // browsers keep an AudioContext created without one suspended, which silenced the first sounds.
+  for(const type of ['pointerdown','keydown','touchend'])document.addEventListener(type,this.onUnlock,{capture:true,passive:true});
+  document.addEventListener('visibilitychange',this.onWake);
+ }
+ /** Starts fetching and decoding files that will be needed soon (a weapon's own sounds). */
+ preload(urls:readonly string[]){
+  for(const url of urls){if(this.requested.has(url))continue;this.requested.add(url);void fetchEncoded(url);if(this.context&&this.context.state!=='closed')this.decode(this.context,url);}
+ }
+ /** 'ready' once decoded, 'missing' when the file does not exist or cannot be decoded. */
+ sampleState(url:string):'ready'|'loading'|'missing'{
+  const buffer=this.samples.get(url);return buffer?'ready':buffer===null?'missing':'loading';
+ }
+ /** Plays a preloaded file through the shared context; false while it is not decoded yet. */
+ playFile(url:string,volume:number){
+  if(!this.enabled||this.isHidden())return true;
+  try{
+   const c=this.getContext();this.resume(c);
+   const buffer=this.samples.get(url);if(!buffer){this.preload([url]);return false;}
+   this.playSample(c,buffer,volume,.98+Math.random()*.04);return true;
+  }catch{return false;}
+ }
 
  setEnabled(value:boolean){
   this.enabled=value;savePreference('brasa-sound',value);
@@ -71,18 +107,19 @@ class AudioEngine {
   if(!this.context||this.context.state==='closed'){
    this.context=new AudioContext();
    this.context.addEventListener('statechange',this.onContextState);
+   this.samples.clear();this.decoding.clear();
+   for(const url of this.requested)this.decode(this.context,url);
   }
-  this.loadSamples(this.context);
   return this.context;
  }
- private loadSamples(context:AudioContext){
-  if(this.loading===context||typeof fetch==='undefined')return;
-  this.loading=context;this.samples.clear();
-  for(const url of new Set([...IMPACT_LAYERS.map(layer=>layer.url),...Object.values(CUES).flatMap(cue=>cue.urls)]))void fetch(url).then(r=>r.ok?r.arrayBuffer():Promise.reject(r.status)).then(data=>context.decodeAudioData(data)).then(buffer=>{if(this.loading===context)this.samples.set(url,buffer);}).catch(()=>{/* The synthesized impact stays as the fallback. */});
+ private decode(context:AudioContext,url:string){
+  if(this.decoding.has(url))return;this.decoding.add(url);
+  // decodeAudioData detaches its input, so each context decodes its own copy of the fetched bytes.
+  void fetchEncoded(url).then(data=>data?context.decodeAudioData(data.slice(0)):null).then(buffer=>{if(this.context===context)this.samples.set(url,buffer);},()=>{if(this.context===context)this.samples.set(url,null);});
  }
  /** Plays the recorded impact layers with a small random pitch so repeated hits do not sound identical. Returns false until they are decoded. */
  private playImpactLayers(c:AudioContext,t:number,gain:number){
-  if(!IMPACT_LAYERS.every(layer=>this.samples.has(layer.url)))return false;
+  if(!IMPACT_LAYERS.every(layer=>this.samples.get(layer.url)))return false;
   const rate=.95+Math.random()*.1;
   for(const layer of IMPACT_LAYERS){const source=c.createBufferSource(),g=c.createGain();source.buffer=this.samples.get(layer.url)!;source.playbackRate.value=rate;g.gain.value=layer.volume*gain;source.connect(g);g.connect(c.destination);source.start(t);}
   return true;
@@ -92,7 +129,7 @@ class AudioEngine {
  }
  /** Plays one random recorded variation of a cue; false until its files are decoded. */
  private playCue(c:AudioContext,id:AudioCue){
-  const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter(buffer=>buffer!==undefined);
+  const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter((buffer):buffer is AudioBuffer=>!!buffer);
   if(!loaded.length)return false;
   // Simultaneous projectiles (trident, volleys) share one cue instead of stacking copies.
   const now=c.currentTime;if(now-(this.cueAt.get(id)??-1)<.25)return true;this.cueAt.set(id,now);
@@ -108,8 +145,19 @@ class AudioEngine {
   }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
  private resume(context:AudioContext){
-  if(context.state==='suspended')void context.resume().then(()=>this.syncEnvironment()).catch(()=>{});
+  // 'interrupted' is Safari's state after a call, an alarm or locking the phone.
+  if(context.state==='suspended'||(context.state as string)==='interrupted')void context.resume().then(()=>this.syncEnvironment()).catch(()=>{});
  }
+ private onUnlock=(event:Event)=>{
+  if(!event.isTrusted||!this.enabled)return;
+  this.unlocked=true;
+  try{this.resume(this.getContext());}catch{/* Audio is optional. */}
+ };
+ /** Back from another tab: wake the context even when the ambience is off, so the next cue is not swallowed. */
+ private onWake=()=>{
+  if(this.isHidden()||!this.enabled||!this.context||!this.hasActivation())return;
+  this.resume(this.context);
+ };
  private hasActivation(){return this.unlocked||(typeof navigator!=='undefined'&&navigator.userActivation?.hasBeenActive);}
  private activate(){
   if(!this.enabled||!this.environmentEnabled||!this.map||this.isHidden())return;

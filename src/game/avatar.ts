@@ -1,5 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
+import {drawDecoded,scaledCopy,screenScale} from './spriteCache';
 import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
@@ -42,8 +43,8 @@ export function drawAura(c:CanvasRenderingContext2D,level:number,time:number){
   for(let i=0;i<12;i++){c.rotate(Math.PI/6);const beam=c.createLinearGradient(0,0,0,-r*1.15);beam.addColorStop(0,color+'00');beam.addColorStop(.35,color+'cc');beam.addColorStop(1,color+'00');c.fillStyle=beam;c.beginPath();c.moveTo(-r*.05,0);c.lineTo(0,-r*1.15);c.lineTo(r*.05,0);c.fill();}
   c.restore();}
  // Main sigil, then a smaller counter-rotating copy from +9 for a layered seal.
- c.save();c.rotate(rotation);c.scale(pulse,pulse);c.shadowColor=color;c.shadowBlur=10;c.globalAlpha*=.88+Math.sin(t/1500)*.04;c.drawImage(art,-r,-r,size,size);c.restore();
- if(tier>=1){c.save();c.rotate(-rotation*1.6);c.globalAlpha*=.5+Math.sin(t/1100)*.08;const inner=size*.58;c.drawImage(art,-inner/2,-inner/2,inner,inner);c.restore();}
+ c.save();c.rotate(rotation);c.scale(pulse,pulse);c.shadowColor=color;c.shadowBlur=10;c.globalAlpha*=.88+Math.sin(t/1500)*.04;c.drawImage(scaledCopy(art,size*screenScale(c))??art,-r,-r,size,size);c.restore();
+ if(tier>=1){c.save();c.rotate(-rotation*1.6);c.globalAlpha*=.5+Math.sin(t/1100)*.08;const inner=size*.58;c.drawImage(scaledCopy(art,inner*screenScale(c))??art,-inner/2,-inner/2,inner,inner);c.restore();}
  // Pulsing ring of light just inside the sigil edge.
  c.save();c.strokeStyle=color;c.lineWidth=1.4;c.shadowColor=color;c.shadowBlur=8;c.globalAlpha*=.35+Math.sin(t/700)*.2;c.beginPath();c.arc(0,0,r*(.86+Math.sin(t/1600)*.02),0,Math.PI*2);c.stroke();c.restore();
  // Orbiting gems.
@@ -127,7 +128,7 @@ function drawCombatWeapon(c:CanvasRenderingContext2D,eq:Equipment,time:number,an
  const weapon=WEAPONS.find(item=>item.id===eq.weapon),thrown=weapon?.hold!=='hand';
  c.save();c.translate(thrown?-7:-30,thrown?18:4);drawWeaponEnergy(c,weapon?.effect??'brick',level,time);c.restore();
  if(level>=9||charging){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
- if(thrown)c.drawImage(w,-40,-10,68,68);else c.drawImage(w,-67.2,-29.5,82,82);c.restore();
+ if(thrown)drawDecoded(c,w,-40,-10,68,68);else drawDecoded(c,w,-67.2,-29.5,82,82);c.restore();
 }
 
 interface ProneThrow {angle:number;front:boolean;held:number;trail:number;from:number;dx:number;grow?:number;}
@@ -326,7 +327,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.translate(6,-5);c.scale(weaponScale,weaponScale);c.translate(-6,5);
    if(pose==='charge'){c.save();c.globalAlpha*=.18+clamp(context.power??50,0,100)/250;c.shadowColor='#ffe5a0';c.shadowBlur=12;ellipse(c,11,-9,15+Math.sin(time/80)*2,15,'#fbe3a6');c.restore();}
    c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(weapon=>weapon.id===eq.weapon)?.effect??'fire',level,time);c.restore();
-   c.drawImage(w,-35,-46,82,82);c.restore();
+   drawDecoded(c,w,-35,-46,82,82);c.restore();
   }}c.restore();c.restore();
  };
  body(m.facing);c.restore();

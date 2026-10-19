@@ -6,22 +6,27 @@ import {audio} from './audio';
 
 // Unique recorded sounds declared in the weapon kit (shared/weaponKit.ts). A slot without its own file
 // keeps the synthesized family sound from audio.ts, so every weapon always sounds like something.
-const samples=new Map<string,HTMLAudioElement|null>();
-function sample(weaponId:string,slot:WeaponSoundSlot,powered=false){
- const kit=weaponKit(weaponId),pow=powered&&!!kit?.powSounds?.includes(slot),key=`${weaponId}:${pow?'pow:':''}${slot}`;if(samples.has(key))return samples.get(key)!;
- const element=(pow||kit?.sounds?.includes(slot))&&typeof Audio!=='undefined'?new Audio(weaponSoundPath(weaponId,slot,pow)):null;
- if(element){element.preload='auto';element.addEventListener('error',()=>samples.set(key,null),{once:true});}
- samples.set(key,element);return element;
+// They play through the shared Web Audio context from decoded buffers: a fresh <audio> element per
+// shot had to load the file again, started late and was silently refused by autoplay rules.
+function soundFile(weaponId:string,slot:WeaponSoundSlot,powered:boolean){
+ const kit=weaponKit(weaponId);
+ if(powered&&kit?.powSounds?.includes(slot)){const pow=weaponSoundPath(weaponId,slot,true);if(audio.sampleState(pow)!=='missing')return pow;}
+ return kit?.sounds?.includes(slot)?weaponSoundPath(weaponId,slot):null;
 }
+/** Every declared weapon file starts loading with the page, so the first shot of a match is heard. */
+export function preloadWeaponSounds(){
+ const urls:string[]=[];
+ for(const weapon of WEAPONS){const kit=weaponKit(weapon.id);for(const slot of kit?.sounds??[])urls.push(weaponSoundPath(weapon.id,slot));for(const slot of kit?.powSounds??[])urls.push(weaponSoundPath(weapon.id,slot,true));}
+ audio.preload(urls);
+}
+if(typeof document!=='undefined')preloadWeaponSounds();
 /** Today every weapon has its own effect family, so the effect names the weapon. */
 function weaponFor(effect:WeaponEffect){return WEAPONS.find(weapon=>weapon.effect===effect)?.id;}
 /** Plays the weapon's own file; returns false when the caller should use the default sound. */
 export function playWeaponSound(effect:WeaponEffect,slot:WeaponSoundSlot,powered=false):boolean {
- const id=weaponFor(effect),element=id?(sample(id,slot,powered)||(powered?sample(id,slot):null)):null;
- if(!element)return false;
- if(!audio.enabled||document.hidden)return true;
- const voice=element.cloneNode(true) as HTMLAudioElement;voice.volume=powered?.9:.7;
- void voice.play().catch(()=>{});return true;
+ const id=weaponFor(effect),url=id?soundFile(id,slot,powered):null;
+ if(!url)return false;
+ return audio.playFile(url,powered?.9:.7);
 }
 /** Shot launch: own fire (and flight) sound, else the synthesized default. */
 export function playShotSound(effect:WeaponEffect,level:number,powered=false){

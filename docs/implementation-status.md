@@ -426,3 +426,6 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - Colar não pode mais ser composto (o único aprimoramento que tinha); composições antigas de colar são descartadas na normalização do perfil.
 - Corrigido: o comando `compose` recusava as pedras de Sorte (`luck-*`).
 - 19/10 (revisão): Síntese virou tabela com categorias que abrem, máximo por linha, quantidade, custo em ouro (provisório: fortalecimento 10/25/60/150, composição 50/120 por síntese) e filtro "Mostrar apenas disponíveis". Item na bigorna sai da lista de equipamentos; sucesso no fortalecimento tira o item da bigorna.
+
+## Desempenho (19/10/2026)
+- Otimizações de render, crateras, praça descarregada na batalha e som confiável: ver `docs/performance.md` (medições antes/depois com `scripts/perf-probe.mjs`). Smokes `test:battle:browser`, `test:rooms:browser` e `test:shop:browser` falham igual na `main` dentro da nuvem (ambiente), não por esta mudança.

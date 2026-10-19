@@ -32,7 +32,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
-import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,getEnvironmentQuality} from './environment';
+import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
@@ -43,6 +43,10 @@ import {chaseLobbyPosition} from './lobbyMotion';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
 const W=1536,H=864;
+/** Painting faster than 60 frames per second (120/144 Hz monitors) only doubles the work: the animations are timed for 60. */
+const FRAME_MS=1000/60;
+/** Sustained frames slower than this lower the canvas resolution a step, down to 1 pixel per game unit. */
+const SLOW_FRAME_MS=26,SLOW_FRAMES=150;
 type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
@@ -50,10 +54,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
  const canvas=useRef<HTMLCanvasElement>(null);const angleRef=useRef(angle);angleRef.current=angle;
  useEffect(()=>{
   const el=canvas.current!,c=el.getContext('2d')!;let frame=0;let state=client.state;
-  let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}};
-  preloadMonsters();preloadDragon();
+  // Expedition monsters and the dragon only load for the rooms (and battles) that use them.
+  let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}
+   if(state.room?.kind==='expedition'||state.battle?.instance)preloadMonsters();if(state.room?.kind==='world-boss'||state.battle?.worldBoss)preloadDragon();};
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
-  let density=1,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:2,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
+  let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
@@ -66,10 +71,28 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
    else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle');if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+  let nextPaint=0,lastPaint=0,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity;
+  /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
+  const watchSpeed=(t:number)=>{
+   const interval=t-lastPaint;lastPaint=t;
+   if(interval<=0||interval>250){slowFrames=frameTotal=0;return;}
+   slowFrames++;frameTotal+=interval;if(slowFrames<SLOW_FRAMES)return;
+   if(frameTotal/slowFrames>SLOW_FRAME_MS&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
+   slowFrames=frameTotal=0;
+  };
   const render=(t:number)=>{
+   // The plaza's paintings leave memory while a battle runs and come back once it ends
+   // (on the result screen, before the players walk out), so the return shows no gap.
+   if(state.battle&&state.battle.phase!=='finished')lobby.release();else lobby.load();
+   // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
+   if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
    // avoid repainting the full world at the monitor's refresh rate underneath.
-   if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){frame=requestAnimationFrame(render);return;}
+   if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){frame=requestAnimationFrame(render);lastPaint=0;return;}
+   if(t<nextPaint-1){frame=requestAnimationFrame(render);return;}
+   // Back from a battle that ended abruptly (left mid-match): hold the last frame while the plaza decodes, rather than an empty sky.
+   if(!state.battle&&t-leftBattleAt<1500&&!lobby.ready(el.width/W)){frame=requestAnimationFrame(render);return;}
+   nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
    if(!b){
@@ -222,7 +245,6 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     c.restore();environment!.drawFront(c,t,camera);
    }else{
-    if(matchId)stopEnvironmentAudio();environment=null;residues=null;matchId='';terrainSource='';shotId='';
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
