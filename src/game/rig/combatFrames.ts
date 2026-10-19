@@ -70,8 +70,9 @@ export function combatFrameBlend(pose:AvatarPose,poseTime:number,phase:number,wa
  }
  if(pose==='hit'||pose==='fall'||pose==='defeat')return still('hurt');
  if(walk>.35){
-  // Four drawings, each held for two steps as in DDTank's WALK; the fists keep gliding through them.
-  const cycle=['crawl1','crawl2','crawl3','crawl4'] as const,turn=((phase/(Math.PI*2))%1+1)%1*cycle.length,i=Math.floor(turn)%cycle.length;
+  // 19/10 (matheus: the leg rose too high and too fast): only the two low-kick drawings, each held for half a
+  // stride, so the legs move gently at half the old pace; the fists keep gliding through them.
+  const cycle=['crawl2','crawl2','crawl4','crawl4'] as const,turn=((phase/(Math.PI*2))%1+1)%1*cycle.length,i=Math.floor(turn)%cycle.length;
   return {name:cycle[i],next:cycle[(i+1)%cycle.length],mix:turn-Math.floor(turn)};
  }
  return still('rest');
