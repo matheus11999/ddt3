@@ -63,6 +63,10 @@ Pedido do usuário em 17/10/2026. Cada arma é única: ícone, arma na mão, pro
 2. **Depois de gerar:** rodar de novo; a peça sai do relatório. Mostrar `test-results/weapons/sheet.png` ao usuário.
 3. Arma nova só entra com entrada em `WEAPON_KITS`. Chave do ElevenLabs só no `.env` local.
 
+## Padrão aprovado de cosméticos (19/10/2026) — obrigatório para qualquer IA
+
+O matheus aprovou o fluxo completo em 19/10/2026 e pediu que toda IA (Claude, Codex, ChatGPT) o siga em todo cosmético futuro: **leia `docs/cosmetics-pipeline.md` antes de criar qualquer roupa, rosto, cabelo, chapéu ou óculos.** Resumo: temas variados em `docs/cosmetic-sets.json`; arte só pelo `scripts/cosmetic-prompts.mjs` (trava de estilo com as peças aprovadas anexadas); cada roupa tem pintura em pé **com pose** (prévias da mochila, salas e loja), folha de andar e folha parada reta do lobby pintadas juntas (a roupa não muda ao andar), e pranchas de combate; mãos pintadas como punho redondo sem dedos em `#FCD0AC`; cabelo desce até a orelha com costeleta; chapéu vestido e visto de cima; ícones consistentes; toda peça com Ticket de Cor; `fit-cosmetic.mjs` + `verify:cosmetics --strict --only` com zero problemas antes de mostrar.
+
 ## Regra obrigatória de cosméticos: validar antes e depois de gerar
 
 Pedido do usuário em 17/10/2026. Vale para qualquer IA ou agente que gere ou repinte cabelo, chapéu, óculos ou roupa. Contrato em `docs/cosmetics-fit.md`.

@@ -28,7 +28,7 @@ try{
     const t=1000+f*1000/FPS,target={x:Math.min(260,Math.max(0,f-20)*LOBBY_WALK_SPEED/FPS),y:0},old={...e},next=chaseLobbyPosition(e,target,1000/FPS);e.x=next.x;e.y=next.y;
     const wasMoving=moving;moving=Math.hypot(e.x-old.x,e.y-old.y)>.05;const distance=Math.hypot(e.x-old.x,e.y-old.y)*160/SIZE;
     const cell=document.createElement('canvas');cell.width=170;cell.height=200;const c=cell.getContext('2d');
-    V.drawAvatar(c,eq,85,190,SIZE,t,moving,1,false,m,{movementDistance:distance,seed:7});
+    V.drawAvatar(c,eq,85,190,SIZE,t,moving,1,false,m,{movementDistance:distance,seed:7,world:true});
     // The body must always show: painted pixels below the head (lower half of the cell).
     {const d=c.getImageData(0,110,170,80).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>40)n++;if(n<400)noBody++;}
     // Which painting shows: the walk frame by distance, or standing (-1).
