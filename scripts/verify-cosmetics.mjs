@@ -143,6 +143,21 @@ try{
    const frames=combat?sheetFrames(combat.path,CF.COMBAT_FRAME_NAMES.length,layout,i=>combat.frames[i]?.head??[0,0]).map((frame,i)=>({...frame,hands:!!combat.frames[i]?.hands})):null;
    battles.push(F.evaluateCombatSheet(outfit,frames,CF.COMBAT_FRAME_NAMES.map(name=>CF.COMBAT_FRAMES[name].head)));
   }
+  // The same outfit in every painting (19/10, matheus: "quando começa a andar a roupa muda"): the mean color of the
+  // outfit's Color Ticket zone in the walk sheet and in the battle atlas must match the standing painting.
+  const Rz=await import('/src/game/recolor.ts'),{RECOLOR_ZONES:ZONES}=await import('/src/game/rig/recolorZones.ts');
+  const zoneMean=(path,id)=>{const image=A.asset(path),el=document.createElement('canvas');el.width=image.naturalWidth;el.height=image.naturalHeight;const g=el.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);
+   const d=g.getImageData(0,0,el.width,el.height).data,zone=ZONES[id];let n=0,r=0,gg=0,b=0;
+   for(let i=0;i<d.length;i+=4){if(d[i+3]<200)continue;const [h,s,l]=Rz.rgbHsl(d[i],d[i+1],d[i+2]);if(Rz.zoneWeight(zone,h,s,l)<.5)continue;n++;r+=d[i];gg+=d[i+1];b+=d[i+2];}
+   return n?[r/n,gg/n,b/n]:null;};
+  for(const outfit of outfits){
+   const zone=ZONES[outfit];if(!zone?.hue)continue;const stand=zoneMean(CATALOG[outfit].visual.asset,outfit);if(!stand)continue;
+   for(const [list,entry,label] of [[walks,walkAtlases[outfit],'no andar'],[battles,combatAtlases[outfit],'na batalha']]){
+    const mean=entry&&zoneMean(entry.path,outfit);if(!mean)continue;const diff=Math.round(Math.hypot(mean[0]-stand[0],mean[1]-stand[1],mean[2]-stand[2]));
+    if(diff>40)list.find(item=>item.id===outfit).issues.push({code:'color',message:`Cor da roupa muda ${label}: ${diff} de diferença (${zone.label.split(";")[0].toLowerCase()})`,measured:diff,limit:40});
+   }
+  }
+
   // Lobby sheet: each outfit standing and in its six painted steps, both facings, with a hat look and a bare look.
   const looks=[{hair:'hair-undercut',hat:'hat-cap'},{hair:'hair-horizon',hat:'hat-none',glasses:'glasses-navigator'}],lw=200,lh=250;
   const lobbySheet=document.createElement('canvas');lobbySheet.width=150+lw*7;lobbySheet.height=30+outfits.length*looks.length*2*lh;const ls=lobbySheet.getContext('2d');

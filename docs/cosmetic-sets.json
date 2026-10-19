@@ -82,7 +82,8 @@
     "name": "Rima de Rua",
     "colorName": "o moletom",
     "brief": "an oversized street-style hip hop outfit: a big hoodie in saturated purple with a bold gold graffiti star print on the chest, the hood down behind the neck, a chunky gold chain with a round medallion, baggy black cargo joggers with side pockets, chunky white-and-purple high-top sneakers with fat laces, bare hands (skin #FCD0AC), one hand in the hoodie pocket, the other relaxed, cool laid-back stance",
-    "walkParts": "big purple hoodie, gold chain with medallion, black cargo joggers, chunky high-top sneakers"
+    "walkParts": "big purple hoodie, gold chain with medallion, black cargo joggers, chunky high-top sneakers",
+    "details": "a LONG oversized purple hoodie reaching the hips with its hood down behind the neck, ONE big gold graffiti STAR with paint drips on the chest (not zigzags), gold paint streaks running down both sleeves, a thick gold rope chain with a round gold medallion on the chest, dark charcoal-brown baggy cargo joggers with big side pockets, gold rings and straps, ribbed cuffs, chunky white-and-purple high-top sneakers with white laces"
    },
    "hair": {
     "id": "hair-hiphop",
@@ -112,7 +113,8 @@
     "name": "Espadachim Errante",
     "colorName": "o haori",
     "brief": "a wandering swordsman outfit (samurai-inspired, original design): a teal haori jacket with white wave patterns at the hem worn over a white kimono, a dark indigo hakama (wide pleated trousers), a red sash tied at the waist with the knot on the side, white tabi socks with straw sandals, bare hands (skin #FCD0AC), one hand resting on the sash, the other relaxed. NO sword, no sheath, nothing in the hands",
-    "walkParts": "teal haori with white wave hem, white kimono, red sash, indigo hakama, straw sandals"
+    "walkParts": "teal haori with white wave hem, white kimono, red sash, indigo hakama, straw sandals",
+    "details": "a LONG teal haori jacket reaching below the knees with wide sleeves, big white-and-cream wave patterns on the sleeves and on the lower hem, a cream inner lining, a white kimono with a crossed collar, a wide red sash tied at the waist with long hanging ends on the side, wide dark navy pleated hakama trousers down to the ankles with a thin gold wave line near the hem, white tabi socks and straw sandals"
    },
    "hair": {
     "id": "hair-swordsman",
