@@ -50,7 +50,7 @@ export function Pets(){
     <div className="pets-row">
      <button className="pets-arrow" aria-label="Pets anteriores" disabled={first===0} onClick={()=>setStart(first-1)}><ChevronLeft size={18}/></button>
      <ul className="pets-carousel">{Array.from({length:ROW},(_,i)=>{const p=list[first+i];
-      return <li key={p?.id??`empty-${i}`}>{p?<button className={`pets-slot ${p.id===selected?'selected':''}`} title={`${p.name} · Nv. ${p.level}`} aria-pressed={p.id===selected} onClick={()=>{setSelected(p.id);audio.play('click');}}><Portrait pet={p} size={54}/>{p.equipped&&<b className="pets-stamp small">Lutar</b>}</button>
+      return <li key={p?.id??`empty-${i}`}>{p?<button className={`pets-slot ${p.id===selected?'selected':''}`} title={`${p.name} · Nv. ${p.level}`} aria-pressed={p.id===selected} onClick={()=>{setSelected(p.id);audio.play('click');}}><Portrait pet={p} size={58}/>{p.equipped&&<b className="pets-stamp small">Lutar</b>}</button>
        :<span className="pets-slot empty" aria-hidden="true"><PawPrint size={22}/></span>}</li>;})}</ul>
      <button className="pets-arrow" aria-label="Próximos pets" disabled={first>=pages} onClick={()=>setStart(first+1)}><ChevronRight size={18}/></button>
     </div>
@@ -109,13 +109,15 @@ function PetStage({pet,pets,food,onFood,pending}:{pet:PlayerPet|null;pets:boolea
   {pet?.equipped&&<b className="pets-stamp">Lutar</b>}
   <div className="pets-figure">{!pets?<p className="pets-empty">Chamando seus pets…</p>:pet?<><Portrait pet={pet} size={120}/><small>{species?.name??'Espécie indisponível'} · {PET_QUALITIES.get(pet.quality)?.name??pet.quality}</small></>
    :<div className="pets-empty"><PawPrint size={40}/><strong>Você ainda não possui pets.</strong><p>Seus futuros companheiros aparecerão aqui.</p></div>}</div>
-  <div className={`pets-food-slot ${item?'filled':''}`} title={item?`${item.name}: clique em Alimentar`:'Arraste um alimento aqui'} onDragOver={e=>{if(pet&&e.dataTransfer.types.includes(FOOD_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={drop} onClick={()=>item&&onFood(null)}>
-   {item?(item.icon?<img src={item.icon} alt={item.name}/>:<Apple size={26}/>):<Apple size={22} className="ghost" aria-hidden="true"/>}
+  <div className="pets-feed">
+   <div className={`pets-food-slot ${item?'filled':''}`} title={item?`${item.name}: clique em Alimentar`:'Arraste um alimento aqui'} onDragOver={e=>{if(pet&&e.dataTransfer.types.includes(FOOD_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={drop} onClick={()=>item&&onFood(null)}>
+    {item?(item.icon?<img src={item.icon} alt={item.name}/>:<Apple size={26}/>):<Apple size={22} className="ghost" aria-hidden="true"/>}
+   </div>
+   <button className="pets-chip orange" disabled={!pet||!item||pending} onClick={feed}>Alimentar</button>
   </div>
   <div className="pets-stage-foot">
    <span className="pets-level">Nv. <b>{pet?.level??'—'}</b></span>
    <span className="pets-hearts" role="meter" aria-label={pet?`Vitalidade ${pet.vitality} de ${PET_CONFIG.vitality.max}`:'Vitalidade'} aria-valuenow={pet?.vitality??0} aria-valuemin={0} aria-valuemax={PET_CONFIG.vitality.max} title={pet?`Vitalidade ${pet.vitality} / ${PET_CONFIG.vitality.max}`:undefined}>{Array.from({length:HEARTS},(_,i)=><Heart key={i} size={22} className={i<hearts?'on':''}/>)}</span>
-   <button className="pets-chip orange" disabled={!pet||!item||pending} onClick={feed}>Alimentar</button>
   </div>
   <div className="pets-exp" role="meter" aria-label="EXP do pet" aria-valuenow={progress?.current??0} aria-valuemin={0} aria-valuemax={progress?.required??1}>
    <span>EXP</span><div><i style={{width:`${progress?(progress.capped?100:progress.current/Math.max(1,progress.required)*100):0}%`}}/><small>{progress?(progress.capped?'Nível máximo':`${progress.current}/${progress.required}`):'—'}</small></div>

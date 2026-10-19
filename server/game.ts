@@ -154,7 +154,7 @@ export class Game {
   if(!carriers.some(f=>f.pet||f.petEffects?.length))return;
   const ctx=this.petContext(m);this.petEffect(m,carriers.flatMap(f=>petTurnEnd(ctx,f)));
  }
- private petTurnStart(m:Match,f:Fighter){if(f.pet)this.petEffect(m,petTurnStart(this.petContext(m),f));}
+ private petTurnStart(m:Match,f:Fighter){if(f.pet||f.petEffects?.length)this.petEffect(m,petTurnStart(this.petContext(m),f));}
  /** A pet skill or debuff can keep a fighter from acting. */
  private assertPetFree(f:Fighter,action:PetBlockedAction){if(f.petEffects?.length&&petBlocked(f,action))throw Error('Um efeito impede esta ação neste turno.');}
  private usePetSkill(m:Match,f:Fighter,skill:string,target?:string){
@@ -998,8 +998,8 @@ export class Game {
    pieces.forEach((piece,index)=>shot.projectiles.push({points:piece.points,delay:start,flightTime:piece.flightTime,impact:shardImpacts[index],effect:w.effect,powered,fragment:true}));
   }
   shot.duration=Math.max(...shot.projectiles.map(projectile=>projectile.delay+projectile.flightTime))+450;
-  // A pet that answers the end of the shot attacks where the first projectile landed, after the last one.
-  const main=impacts[0];
+  // A pet that answers the end of the shot attacks where the last projectile landed (the middle one of the last Tridente volley), after it.
+  const spread=modifiers.spread.length,middle=modifiers.spread.indexOf(0),main=impacts[angles.length-spread+(middle>=0?middle:Math.floor(spread/2))];
   if(listensTo(f.pet,'shot-end')&&main&&main.x>=0&&main.x<=terrainWidth(m.terrain)&&main.y<=WORLD.height&&pending.length){
    const at=Math.max(...pending.map(p=>p.at))+350;
    pending.push({at,projectileIndex:PET_STRIKE_INDEX,hits:[],petStrike:{x:main.x,y:main.y},mark:{id:`${shot.id}:pet`,x:main.x,y:main.y,radius:0,effect:w.effect,level:f.equipment.upgrade}});

@@ -79,8 +79,10 @@ export const petSkillSchema=z.object({
  /** Level 1 is `levels[0]`; later levels are full parameter sets (more power, less cost, longer…). */
  levels:z.array(levelSchema).min(1).max(20),
  /** Art: `{stage}` in a path is replaced by the pet's evolution stage. `effect` is a horizontal strip of `frames` cells played
-  *  in `duration` ms, `size` px wide in the world; `projectile` (2 frames) and `impact` belong to a special shot. */
- visual:z.object({icon:z.string().max(120).optional(),effect:z.string().max(120).optional(),frames:z.number().int().min(1).max(32).optional(),duration:z.number().int().min(100).max(5000).optional(),size:z.number().positive().max(800).optional(),
+  *  in `duration` ms, `size` px wide in the world; `projectile` (2 frames) and `impact` belong to a special shot.
+  *  `style: 'whirl'` spins `effect` (one round image) as a whirlwind at the point, with `particles` (a strip of square cells, `pieces`
+  *  loose pieces; by default as many as fit) flying out around it. */
+ visual:z.object({icon:z.string().max(120).optional(),effect:z.string().max(120).optional(),style:z.enum(['strip','whirl']).optional(),particles:z.string().max(120).optional(),pieces:z.number().int().min(1).max(16).optional(),frames:z.number().int().min(1).max(32).optional(),duration:z.number().int().min(100).max(5000).optional(),size:z.number().positive().max(800).optional(),
   projectile:z.string().max(120).optional(),impact:z.string().max(120).optional(),sound:z.string().max(120).optional()}).strict().optional()
 }).strict().superRefine((skill,ctx)=>{
  const listens=skill.kind==='passive'||skill.kind==='conditional';

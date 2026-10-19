@@ -31,17 +31,20 @@ export function puff(c:Ctx,x:number,y:number,r:number,heat:number,alpha=1){
  if(alpha<=.01||r<1)return;if(!sprites)makeSprites();
  const sprite=sprites![Math.round(clamp(heat)*(HEATS-1))],before=c.globalAlpha;c.globalAlpha=before*alpha;c.drawImage(sprite as CanvasImageSource,x-r,y-r,r*2,r*2);c.globalAlpha=before;
 }
-// Flame sprites: a soft teardrop, round at the base and pointed at the tip, hottest low in the middle.
+// Flame sprites: a teardrop (round at the base, pointed at the tip), hottest low in the middle, fading out before its
+// edge and blurred, so a flame has a flame's shape but never an outline.
 let licks:(HTMLCanvasElement|OffscreenCanvas)[]|null=null;
 function makeLicks(){
- licks=STOPS.map(([a,b,c2])=>{const W=64,H=128,cv=canvas(W),g=(cv.getContext('2d') as CanvasRenderingContext2D);cv.height=H;
-  const grad=g.createRadialGradient(W/2,H*.74,0,W/2,H*.7,H*.62);grad.addColorStop(0,a);grad.addColorStop(.45,b);grad.addColorStop(.8,c2.slice(0,7)+'99');grad.addColorStop(1,c2);
-  g.filter='blur(6px)';g.fillStyle=grad;g.beginPath();g.moveTo(W/2,6);g.bezierCurveTo(W*.62,H*.3,W*.92,H*.52,W*.88,H*.72);g.bezierCurveTo(W*.84,H*.92,W*.16,H*.92,W*.12,H*.72);g.bezierCurveTo(W*.08,H*.52,W*.38,H*.3,W/2,6);g.fill();return cv;});
+ licks=STOPS.map(([a,b,c2])=>{const W=96,H=160,P=16,cv=canvas(W),g=(cv.getContext('2d') as CanvasRenderingContext2D);cv.height=H;
+  const w=W-P*2,h=H-P*2,x0=P,y0=P,cx=W/2,grad=g.createRadialGradient(cx,y0+h*.76,0,cx,y0+h*.66,h*.6);
+  grad.addColorStop(0,a);grad.addColorStop(.4,b);grad.addColorStop(.75,c2.slice(0,7)+'66');grad.addColorStop(1,c2.slice(0,7)+'00');
+  g.filter='blur(9px)';g.fillStyle=grad;g.beginPath();g.moveTo(cx,y0);
+  g.bezierCurveTo(x0+w*.6,y0+h*.3,x0+w*.95,y0+h*.52,x0+w*.9,y0+h*.74);g.bezierCurveTo(x0+w*.85,y0+h*.98,x0+w*.15,y0+h*.98,x0+w*.1,y0+h*.74);g.bezierCurveTo(x0+w*.05,y0+h*.52,x0+w*.4,y0+h*.3,cx,y0);g.fill();return cv;});
 }
 /** A flame licking up from its base at (x, y + r): `r` wide on each side, `stretch` times as tall. */
 function lick(c:Ctx,x:number,y:number,r:number,heat:number,alpha:number,stretch:number){
  if(alpha<=.01||r<1)return;if(!licks)makeLicks();
- const sprite=licks![Math.round(clamp(heat)*(HEATS-1))],before=c.globalAlpha,h=r*2*stretch;c.globalAlpha=before*alpha;c.drawImage(sprite as CanvasImageSource,x-r,y+r-h*.9,r*2,h);c.globalAlpha=before;
+ const sprite=licks![Math.round(clamp(heat)*(HEATS-1))],before=c.globalAlpha,h=r*2*stretch;c.globalAlpha=before*alpha;c.drawImage(sprite as CanvasImageSource,x-r*1.5,y+r-h*.85,r*3,h);c.globalAlpha=before;
 }
 export function smoke(c:Ctx,x:number,y:number,r:number,alpha:number){
  if(alpha<=.01||r<1)return;if(!sprites)makeSprites();const before=c.globalAlpha;c.globalAlpha=before*alpha;c.drawImage(smokeSprite as CanvasImageSource,x-r,y-r,r*2,r*2);c.globalAlpha=before;
@@ -69,8 +72,8 @@ export function groundFire(c:Ctx,x:number,y:number,width:number,height:number,ag
    const born=n*step+hash(seed*13+n)*step,strength=lifeAt(born);if(born>age||strength<=0)continue;
    const span=600*(.7+.5*hash(seed+n*3)),k=(age-born)/span;if(k<0||k>=1)continue;
    const u=hash(seed*7+n*5)-.5,center=1-Math.abs(u)*1.4,rise=height*(.75+.55*hash(seed+n*11))*(.55+.45*center)*strength;
-   const r=height*.2*(.6+.5*hash(seed+n*17))*(.5+.5*strength)*(1-.6*k);
-   bits.push({x:x+u*width*(.4+.6*strength)+Math.sin(born/90+k*4)*12*k,y:y-rise*k**.9+r*.3,r,heat:clamp(1-.95*k)*(.6+.4*center),alpha:Math.min(1,k*8)*(1-k)**.7,tall:1.3+1.4*hash(seed+n*19)});
+   const r=height*.14*(.6+.5*hash(seed+n*17))*(.5+.5*strength)*(1-.5*k);
+   bits.push({x:x+u*width*(.4+.6*strength)+Math.sin(born/90+k*4)*12*k,y:y-rise*k**.9+r*.3,r,heat:clamp(1-.95*k)*(.6+.4*center),alpha:Math.min(1,k*8)*(1-k)**.7,tall:2.6+1.8*hash(seed+n*19)});
   }
   bits.sort((a,b)=>a.heat-b.heat);
   for(const b of bits)lick(c,b.x,b.y,b.r*1.25,b.heat*.55,.32*b.alpha,b.tall);

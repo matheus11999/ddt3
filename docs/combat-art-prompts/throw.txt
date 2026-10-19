@@ -1,14 +1,14 @@
 Production 2D painted chibi game sprite sheet for a DDTank-style turn-based artillery browser game.
 
-IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin KNEELING under it, and two flat CYAN (#00FFFF) discs.
+IMAGE 1 is the canvas template: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background. In every cell: a flat lime-green (#00FF00) HEAD placeholder, a small flat GRAY (#808080) body mannequin KNEELING under it, with gray arms, and two flat SKIN-colored (#FCD0AC) discs with a dark outline: the fists.
 IMAGE 2 is the outfit to paint: the standing character shows the outfit design (ignore the bald head).
 IMAGE 3 is a POSE and PROPORTION reference from DDTank (crouched throw): a tiny body under a big head, fists floating in front. Copy only the pose and proportions, never their clothes or art.
 IMAGE 4 is the same outfit already painted lying down by you: keep exactly the same design, colors and scale.
 
-Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head and every cyan disc EXACTLY where they are, same shape and size, flat and untouched: the game replaces the green with the player's own head and the cyan with the same skin-colored fists for every character. Do NOT paint hands or forearms: the sleeves end at the elbow, short stubs.
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is, same shape and size, flat and untouched: the game replaces the green with the player's own head. Paint the ARMS and HANDS too, like DDTank: each gray arm becomes the outfit's sleeve with its cuff, ending in a ROUND chubby fist (a soft ball a little wider than tall, no visible fingers, like DDTank's) painted exactly over each skin disc, same place and size. The fists are plain skin, painted in the light skin tone #FCD0AC with soft shading and a thin dark outline, so the game can recolor them to every player's skin. The sleeve must visibly join the fist (cuff, then a little wrist): never a floating hand.
 
 Paint IMAGE 2's outfit as a SMALL chibi body exactly over each gray mannequin, same size and pose, covering the gray completely and not growing past it by more than a few pixels. The character never stands up: it throws from a low KNEEL, front foot flat on the ground with the knee bent up, back knee on the ground with the shin behind. Collar touching the green chin, facing RIGHT, short torso, the whole body below the chin about half the head's height.
 
 Six frames, left to right, top to bottom: 1 RISE: getting from lying onto the knees, leaning forward. 2 READY: kneeling, torso upright. 3 WIND-UP: kneeling, torso twisted slightly back. 4 RELEASE: kneeling, torso leaning forward. 5 FOLLOW-THROUGH: kneeling, leaning forward. 6 SETTLE: kneeling upright.
 
-Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. All six on the same ground line. No hands, no weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.
+Keep the outfit's design, colors and details recognisable at this small size, saturated painted volume, warm dark-brown outlines, same style as IMAGE 2. All six on the same ground line. No weapon, no props, no floor, no shadow, no text, nothing crossing a cell border.

@@ -21,8 +21,9 @@
 }
 .pets-window .pets-slot.empty { opacity: .75; }
 .pets-window .pets-slot.selected { border-color: #f2a91f; box-shadow: 0 0 0 2px #ffd36b, inset 0 0 12px #ffd36b88; }
-.pets-window .pets-portrait { display: grid; place-items: center; color: #c9955b; overflow: hidden; }
-.pets-window .pets-portrait img { width: 100%; height: 100%; object-fit: contain; }
+.pets-window .pets-portrait { position: relative; display: grid; place-items: center; color: #c9955b; }
+/* Absolute so the whole painted pet fits the box: a percent height inside a grid cell would fall back to the image's own height. */
+.pets-window .pets-portrait img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; object-position: center bottom; filter: drop-shadow(0 2px 2px #6b3a1255); }
 
 /* Selo "Lutar" do pet que vai para a batalha */
 .pets-window .pets-stamp {
@@ -50,7 +51,7 @@
 
 /* Palco do pet + atributos */
 .pets-window .pets-middle { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 8px; min-height: 0; }
-.pets-window .pets-stage { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 54px; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 4px 6px; padding: 8px; border-radius: 12px; min-height: 0; }
+.pets-window .pets-stage { position: relative; display: grid; grid-template-columns: 50px minmax(0, 1fr) 76px; grid-template-rows: auto minmax(0, 1fr) auto auto; gap: 4px 6px; padding: 8px; border-radius: 12px; min-height: 0; }
 .pets-window .pets-gear { grid-row: 1 / 3; list-style: none; margin: 0; padding: 0; display: grid; align-content: start; gap: 6px; }
 .pets-window .pets-gear li { width: 46px; height: 46px; display: grid; place-items: center; border: 2px solid #d9b07a; border-radius: 8px; background: linear-gradient(#efe1c4, #dcc39a); box-shadow: inset 0 2px 4px #8a5a2a44; }
 .pets-window .pets-gear img { width: 30px; height: 30px; object-fit: contain; filter: drop-shadow(0 1px 1px #0005); }
@@ -63,7 +64,9 @@
 .pets-window .pets-empty svg { color: #c9955b; }
 .pets-window .pets-empty strong { color: var(--wood-ink); font-size: 15px; }
 .pets-window .pets-empty p { margin: 0; font-weight: 800; font-size: 12.5px; }
-.pets-window .pets-food-slot { grid-column: 3; grid-row: 2; align-self: end; width: 50px; height: 50px; display: grid; place-items: center; border: 2px solid #b98a54; border-radius: 9px; background: linear-gradient(#f6ead2, #e2cba3); box-shadow: inset 0 2px 4px #8a5a2a44; color: #8a5a2a; }
+.pets-window .pets-feed { grid-column: 3; grid-row: 2; align-self: end; display: grid; justify-items: center; gap: 5px; }
+.pets-window .pets-feed .pets-chip { padding: 0 7px; font-size: 12px; }
+.pets-window .pets-food-slot { width: 50px; height: 50px; display: grid; place-items: center; border: 2px solid #b98a54; border-radius: 9px; background: linear-gradient(#f6ead2, #e2cba3); box-shadow: inset 0 2px 4px #8a5a2a44; color: #8a5a2a; }
 .pets-window .pets-food-slot.filled { border-color: #f2a91f; box-shadow: 0 0 0 2px #ffd36b; cursor: var(--cursor-arrow); }
 .pets-window .pets-food-slot img { width: 40px; height: 40px; object-fit: contain; }
 .pets-window .pets-food-slot .ghost { opacity: .35; }
@@ -108,7 +111,7 @@
 .pets-window .pets-ring::before { content: ''; position: absolute; inset: 14px 22px; border: 6px solid #c98a3a; border-radius: 50%; box-shadow: 0 0 0 2px #6b3a10, inset 0 0 0 2px #ffd27a88; }
 .pets-window .pets-ring-center { position: absolute; left: 50%; top: 50%; width: 44px; height: 44px; translate: -50% -50%; display: grid; place-items: center; border-radius: 50%; background: radial-gradient(#8a8f99, #4a4e57); color: #e8ecf2; box-shadow: 0 0 0 3px #c98a3a, 0 2px 4px #0008; }
 .pets-window .pets-ring-slot { position: absolute; width: 46px; height: 46px; display: grid; place-items: center; padding: 0; border: 3px solid #e2b04a; border-radius: 50%; background: radial-gradient(#7a6a5a, #3e3228); cursor: var(--cursor-arrow); box-shadow: 0 2px 4px #0008; overflow: hidden; }
-.pets-window .pets-ring-slot img { width: 70%; height: 70%; object-fit: contain; }
+.pets-window .pets-ring-slot img { width: 100%; height: 100%; object-fit: cover; border-radius: 50%; }
 .pets-window .pets-ring-slot.locked img { width: 58%; height: 58%; }
 .pets-window .pets-ring-slot.target { box-shadow: 0 0 0 3px #ffd36b, 0 2px 6px #0008; }
 .pets-window .pets-ring-slot.n0 { left: 0; top: 0; }
