@@ -21,6 +21,8 @@ const canvas=(w:number,h:number)=>{const el=document.createElement('canvas');el.
 let artLoadedTimer:ReturnType<typeof setTimeout>|null=null;
 const artLoaded=()=>{if(artLoadedTimer)return;artLoadedTimer=setTimeout(()=>{artLoadedTimer=null;rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();clearFaceOverlays();window.dispatchEvent(new Event('brasa-art-loaded'));},40);};
 export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=artLoaded;sources.set(path,image);}return image;};
+/** Every part requested so far (the loading screen waits for the ones a battle's fighters asked for). */
+export const appearanceImages=()=>sources.values();
 const modular=asset('/assets/character-base.png');
 const modularDependencies=['/assets/shop-accessories.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png'];
 export const ENABLE_MODULAR_APPEARANCE:boolean=false;

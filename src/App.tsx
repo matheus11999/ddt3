@@ -10,6 +10,7 @@ import {Guild} from './components/Guild';
 import {Pets} from './components/Pets';
 import {HallOfFame} from './components/HallOfFame';
 import {WorldBossWindow} from './components/WorldBoss';
+import {MatchLoading} from './components/MatchLoading';
 import {MobileOrientationGate,useMobileOrientation} from './components/MobileOrientation';
 import {createPortal} from 'react-dom';
 import './components/Notifications.css';
@@ -43,10 +44,14 @@ export default function App(){
  useEffect(()=>{if(!headingToForge)return;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&Math.hypot(me.x-SMITH_POSITION.x,me.y-SMITH_POSITION.y)<125){setHeadingToForge(false);setPanel('forge');}},[headingToForge,state.players,state.profile?.id]);
  useEffect(()=>{if(state.room)setPanel(v=>v==='arena'||v==='expeditions'?null:v);},[state.room]);
  useEffect(()=>{if(state.battle){setPanel(null);client.closeMail();client.closeAuction();client.closeGuild();client.closeWorldBoss();client.closeHall();client.closePets();}},[state.battle?.id]);
+ // The loading screen covers everything; left out for loading too slowly: back to the hall it came from.
+ useEffect(()=>{if(state.loading){setPanel(null);client.closeMail();client.closeAuction();client.closeGuild();client.closeHall();client.closePets();}},[state.loading?.id]);
+ useEffect(()=>{if(state.loadingDropped&&!client.state.room&&!client.state.battle)setPanel(state.loadingDropped.kind==='expedition'?'expeditions':'arena');},[state.loadingDropped?.at]);
  useEffect(()=>{if(state.error){const t=setTimeout(()=>client.update({error:null}),4500);return()=>clearTimeout(t);}},[state.error]);
- useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room)setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||client.state.loading||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room)setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
  return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
   {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&panel!=='expeditions'&&<Hud onArena={openArena} onExpeditions={openExpeditions} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}</>):<div className="loading-screen"><div className="loading-emblem"><Flame size={62}/></div><h1>BRASA</h1><span>A aventura está chegando…</span><div className="loading-bar"/></div>}
+  {state.profile&&state.loading&&!state.battle&&<MatchLoading scale={scale}/>}
   {state.needsCharacter&&!state.profile&&<CharacterCreation/>}
   {state.profile&&panel==='shop'&&<Shop onClose={close}/>}
   {state.profile&&state.mailOpen&&!state.battle&&<Mailbox/>}

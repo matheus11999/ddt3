@@ -83,7 +83,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const render=(t:number)=>{
    // The plaza's paintings leave memory while a battle runs and come back once it ends
    // (on the result screen, before the players walk out), so the return shows no gap.
-   if(state.battle&&state.battle.phase!=='finished')lobby.release();else lobby.load();
+   if(state.loading||state.battle&&state.battle.phase!=='finished')lobby.release();else lobby.load();
    // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
    if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but

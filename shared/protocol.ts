@@ -46,6 +46,16 @@ export interface OnlinePlayer {id:string;name:string;level:number;gender:Charact
 export interface RoomInvitation {id:string;roomId:string;roomNumber:number;roomName:string;fromId:string;fromName:string;expiresAt:number;}
 export interface RoomInviteResult {inviteId:string;playerId:string;roomId:string;status:'sent'|'accepted'|'declined'|'expired'|'unavailable';message?:string;}
 export interface Fighter extends Seat {x:number;y:number;hp:number;maxHp:number;stamina:number;maxStamina:number;facing:1|-1;boosts:BoostId[];aimAngle?:number;aimSlope?:number;chargePower?:number;charging?:boolean;powerCharge?:number;powerArmed?:boolean;abilities?:Record<AbilityId,number>;homingArmed?:boolean;flightArmed?:boolean;invisibleTurns?:number;hidden?:boolean;fall?:FighterFall;/** Left the match: stays as a tombstone, never gets a turn and forfeits the end-of-match reward. */left?:boolean;/** Expedition monster (shared/expeditions.ts); never takes a turn of its own. */monster?:MonsterKind;hitRadius?:number;hitHeight?:number;/** The Chefão Mundial dragon: drawn by the world boss renderer, never falls, its life is the event's global life. */boss?:'dragon';/** PvP accumulated Delay (shared/turnDelay.ts): the lowest living one plays next. */delay?:number;/** The active pet's battle state (Magia, cooldowns), built at the start from the equipment snapshot. */pet?:BattlePetState;/** Pet buffs, debuffs and shields on this fighter. */petEffects?:PetEffect[];}
+/** Seconds the loading screen waits for everyone before the slow ones are left out. */
+export const LOADING_SECONDS=30;
+/** One player on the loading screen: their look and how much of the battle they have loaded (0 to 100). */
+export interface LoadingPlayer {id:string;name:string;level:number;equipment:Equipment;team:0|1;bot?:boolean;guild?:string;vipLevel?:number;progress:number;}
+/**
+ * The loading screen between finding a match (or starting an expedition) and the battle. The battle
+ * starts once every player reports 100 %; at `deadline` (server time) whoever is missing leaves the
+ * match and goes back to the hall.
+ */
+export interface MatchLoading {id:string;kind:'pvp'|'expedition';map:MapId;deadline:number;players:LoadingPlayer[];expedition?:{id:string;name:string;difficulty:Difficulty;stage:number;stageName:string;art:string};}
 export interface Battle {id:string;roomId:string;map:MapId;players:Fighter[];turnId:string;turnNumber:number;wind:number;deadline:number;phase:'aiming'|'resolving'|'finished';winner:0|1|null;terrain?:string;rewards?:BattleRewards;terrainMarks?:TerrainMark[];activeShot?:Shot;powerCutIn?:{id:string;playerId:string;endsAt:number};instance?:BattleInstance;/** Chefão Mundial attempt (shared/worldBoss.ts). */worldBoss?:BattleWorldBoss;}
 /** Expedition stage state shown to clients. During the monsters' turn `turnId` is MONSTER_TURN_ID. */
 export interface BattleInstance {expedition:string;difficulty:Difficulty;stage:number;stageCount:number;stageName:string;round:number;introUntil:number;boss?:string;nest?:{x:number;y:number};/** Speech bubbles (boss opening), server time. */speech?:{id:string;text:string;from:number;to:number}[];monsterTurn?:{id:string;startedAt:number;moves:MonsterMove[];bites:(MonsterBite&{at:number})[];summons:{id:string;at:number}[];arrowAt?:number};}
@@ -117,6 +127,9 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('kick'),playerId:z.string().min(1).max(64)}).strict(),
  z.object({type:z.literal('join'),roomId:z.string().uuid()}),
  z.object({type:z.literal('leave')}),z.object({type:z.literal('ready')}),z.object({type:z.literal('bot')}),z.object({type:z.literal('start')}),
+ z.object({type:z.literal('loading-progress'),id:z.string().uuid(),progress:z.number().int().min(0).max(100)}).strict(),
+ /** This client shows the loading screen and reports its progress (older clients are not waited for). */
+ z.object({type:z.literal('client-features'),loading:z.boolean()}).strict(),
  z.object({type:z.literal('power')}).strict(),
  z.object({type:z.literal('ability'),ability:z.enum(ABILITY_IDS)}).strict(),
  z.object({type:z.literal('flight'),active:z.boolean()}).strict(),
@@ -157,6 +170,8 @@ export type ServerEvent =
  | ({type:'room-invite-result'} & RoomInviteResult)
  | {type:'room';room:Room|null}
  | {type:'battle';battle:Battle|null}
+ /** The loading screen (null closes it); `dropped` when this player took too long and was sent back to the hall. */
+ | {type:'loading';loading:MatchLoading|null;dropped?:MatchLoading['kind']}
  | {type:'shot';shot:Shot}
  | {type:'impact';shotId:string;projectileIndex:number;at:number;hits:ShotHit[]}
  | ({type:'ability-effect'} & AbilityEffect)

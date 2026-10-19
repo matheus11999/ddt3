@@ -11,7 +11,7 @@ import type {Battle,Fighter} from '../../shared/protocol';
  */
 const images=new Map<string,HTMLImageElement>();
 function sheet(src:string){let image=images.get(src);if(!image){image=new Image();image.decoding='async';image.src=src;images.set(src,image);}return image;}
-export function preloadMonsters(){for(const def of Object.values(MONSTERS)){sheet(def.sprite.src);if(def.sprite.walk)sheet(def.sprite.walk.src);}sheet(ARROW_SRC);}
+export function preloadMonsters(){const list:HTMLImageElement[]=[];for(const def of Object.values(MONSTERS)){list.push(sheet(def.sprite.src));if(def.sprite.walk)list.push(sheet(def.sprite.walk.src));}list.push(sheet(ARROW_SRC));return list;}
 export const ARROW_SRC='/assets/expeditions/anthill/arrow.png';
 
 export const MONSTER_DEATH_MS=900;
