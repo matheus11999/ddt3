@@ -98,6 +98,44 @@ try{
     else{const m=measure(bitmap,0,0,bitmap.width,bitmap.height);item.coverage=Math.round(m.coverage*1000)/10;item.thumb=thumb(bitmap,0,0,bitmap.width,bitmap.height);if(m.coverage<.01){item.status='falta';item.detail='Marca vazia.';}}
     if(item.status!=='ok')entry.prompts.push({key:'terrain',order:K.promptOrder('terrain'),file:'marca-cenario.txt',title:item.label,kind:'imagem',text:K.artPrompt(weapon,kit,'terrain')});
    }
+   // The 16 destruction marks (shared/destruction.ts): one per phase and normal|POW, on the template's canvas.
+   if(kit.destruction){
+    const D=await import('/shared/destruction.ts'),{CRATER_MASKS}=await import('/shared/physics.ts'),marks={};
+    for(const mode of D.DESTRUCTION_MODES)for(const stage of D.DESTRUCTION_STAGES){
+     const profile=D.destructionProfiles().get(D.destructionProfileId(kit.id,mode,stage)),label=`Marca ${mode==='pow'?'POW':'normal'} ${K.WEAPON_PHASES.find(p=>p.stage===stage).label}`;
+     const item=add({group:'destruição',stage:undefined,slot:`mark-${mode}-${stage}`,label,path:profile?.mark.src,status:'ok',detail:''});
+     if(!profile||profile.weapon!==kit.id||profile.stage!==stage||profile.mode!==mode||profile.mark.src!==D.destructionMarkPath(kit.id,mode,stage)){item.status='falta';item.detail='Perfil de destruição ausente ou com arma/fase/modo trocados.';continue;}
+     const bitmap=await image(profile.mark.src);
+     if(!bitmap){item.status='falta';item.detail=`Arquivo não encontrado: public${profile.mark.src}`;}
+     else{
+      const m=measure(bitmap,0,0,bitmap.width,bitmap.height);item.coverage=Math.round(m.coverage*1000)/10;item.thumb=thumb(bitmap,0,0,bitmap.width,bitmap.height);item.style=m.style;
+      // Geometry against the template: hole transparent, rim touching the hole's outline, nothing far outside the band, centred on the pivot.
+      const W=D.MARK_ART.width,H=D.MARK_ART.height,canvas=new OffscreenCanvas(W,H),c=canvas.getContext('2d');c.drawImage(bitmap,0,0,W,H);const px=c.getImageData(0,0,W,H).data;
+      const shape=CRATER_MASKS[profile.mask],R=profile.radius*W/profile.mark.world,outer=.97/(2*profile.radius/profile.mark.world);
+      let hole=0,holeSolid=0,edge=0,edgeSolid=0,out=0,outSolid=0,sx=0,sy=0,sum=0;
+      for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){const a=px[(y*W+x)*4+3],u=(x+.5-D.MARK_ART.pivotX)/R,v=(y+.5-D.MARK_ART.pivotY)/R;
+       if(a>20){sx+=x*a;sy+=y*a;sum+=a;}
+       if(shape.inside(u/.9,v/.9)){hole++;if(a>60)holeSolid++;}
+       else if(!shape.inside(u,v)&&shape.inside(u/1.06,v/1.06)){edge++;if(a>60)edgeSolid++;}
+       else if(!shape.inside(u/(outer*1.08),v/(outer*1.08))){out++;if(a>60)outSolid++;}}
+      const cx=sum?sx/sum/W-.5:1,cy=sum?sy/sum/H-.5:1;
+      if(bitmap.width!==W||bitmap.height!==H){item.status='falta';item.detail=`Tamanho ${bitmap.width}×${bitmap.height}; o contrato é ${W}×${H}.`;}
+      else if(m.coverage<.01){item.status='falta';item.detail='Marca vazia.';}
+      else if(m.coverage>.97){item.status='falta';item.detail='Sem transparência: o fundo precisa ser transparente.';}
+      else if(edgeSolid/edge<.55){item.status='falta';item.detail=`A borda não acompanha o buraco do template (${Math.round(edgeSolid/edge*100)}% do contorno pintado).`;}
+      else if(outSolid/out>.04){item.status='falta';item.detail=`Pintura fora da faixa do template (${Math.round(outSolid/out*100)}% da área externa).`;}
+      else if(Math.hypot(cx,cy)>.06){item.status='falta';item.detail='A marca não está centrada no pivô do template.';}
+      else if(same(marks[`${mode}-prev`],m.signature)){item.status='falta';item.detail='Igual à fase anterior: cada fase precisa de marca própria.';}
+      else if(mode==='pow'&&same(marks[`normal-${stage}`],m.signature)){item.status='falta';item.detail='Igual à marca normal desta fase: o POW precisa de marca própria.';}
+      else if(m.style.colors<350||m.style.flat>.3||m.style.softEdge<.003){item.status='falta';item.detail=`Fora do estilo da casa (${m.style.colors} cores, ${Math.round(m.style.flat*100)}% pixels repetidos).`;}
+      else if(holeSolid/hole>.05){item.status='aviso';item.detail=`Centro pintado (${Math.round(holeSolid/hole*100)}% do buraco): o jogo recorta, mas o contrato prefere centro transparente.`;}
+      else if(!profile.painted){item.status='aviso';item.detail='Pronta, mas ainda não aprovada: o jogo usa terrain.png até entrar em PAINTED (shared/destruction.ts).';}
+      item.geometry={edge:Math.round(edgeSolid/edge*100),outside:Math.round(outSolid/out*1000)/10,hole:Math.round(holeSolid/hole*100),centre:[Math.round(cx*1000)/10,Math.round(cy*1000)/10]};
+      marks[`${mode}-prev`]=m.signature;marks[`${mode}-${stage}`]=m.signature;
+     }
+     if(item.status==='falta')entry.prompts.push({key:`mark-${mode}-${stage}`,order:K.destructionOrder(mode,stage),file:`marca-${mode}-${stage}.txt`,title:label,kind:'imagem',text:K.destructionPrompt(weapon,kit,mode,stage)});
+    }
+   }
    for(const slot of Object.keys(K.WEAPON_SOUND_SLOTS)){
     const spec=K.WEAPON_SOUND_SLOTS[slot],item=add({group:'som',slot:`sound-${slot}`,label:spec.label,status:'padrão',detail:''});
     const path=K.weaponSoundPath(weapon.id,slot),declared=kit.sounds?.includes(slot),response=await fetchAsset(path,'audio/');item.path=path;
@@ -127,9 +165,10 @@ try{
   document.body.innerHTML=`<h1>Validador de armas · ${new Date().toLocaleDateString('pt-BR')}</h1>`+weapons.map(w=>{
    const missing=w.items.filter(i=>i.status==='falta').length,fallback=w.items.filter(i=>i.status==='padrão'||i.status==='aviso').length;
    const phases=K.WEAPON_PHASES.map(p=>`<div class="p"><div>${p.label}</div><div class="row">${w.items.filter(i=>i.stage===p.stage).map(cell).join('')}</div></div>`).join('');
-   const extra=w.items.filter(i=>i.stage===undefined),art=extra.filter(i=>i.thumb||i.slot==='terrain').map(cell).join('');
+   const extra=w.items.filter(i=>i.stage===undefined&&i.group!=='destruição'),art=extra.filter(i=>i.thumb||i.slot==='terrain').map(cell).join('');
+   const marks=w.items.filter(i=>i.group==='destruição'),markRows=['normal','pow'].map(mode=>`<div class="p"><div>Marcas ${mode==='pow'?'POW':'normais'}</div><div class="row">${marks.filter(i=>i.slot.startsWith(`mark-${mode}-`)).map(cell).join('')}</div></div>`).join('');
    const tags=extra.filter(i=>!(i.thumb||i.slot==='terrain')).map(i=>`<span class="t" style="background:${color[i.status]}" title="${esc(i.detail)}">${esc(i.label)}: ${i.status==='ok'?'✓':i.status==='padrão'?'padrão':i.status==='aviso'&&i.group==='regra'?'indefinida':i.status}</span>`).join('');
-   return `<div class="w"><h2>${esc(w.name)} <small>${w.id} · ${missing} faltando · ${fallback} provisórios</small></h2><div class="ph">${phases}<div class="p"><div>Arma</div><div class="row">${art}</div></div></div><div class="s">${tags}</div></div>`;
+   return `<div class="w"><h2>${esc(w.name)} <small>${w.id} · ${missing} faltando · ${fallback} provisórios</small></h2><div class="ph">${phases}<div class="p"><div>Arma</div><div class="row">${art}</div></div>${marks.length?markRows:''}</div><div class="s">${tags}</div></div>`;
   }).join('');
   return weapons.map(w=>({...w,items:w.items.map(({thumb,...rest})=>rest)}));
  },only);

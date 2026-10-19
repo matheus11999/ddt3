@@ -1,0 +1,626 @@
+[
+ {
+  "id": "brick:normal:0@1",
+  "weapon": "brick",
+  "mode": "normal",
+  "stage": 0,
+  "mask": "brick",
+  "radius": 22,
+  "physical": {
+   "width": 44,
+   "height": 30,
+   "pivot": [
+    22,
+    15
+   ],
+   "cut": 1016,
+   "sha256": "9644975b460fe3ee"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/normal/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 56,
+   "artPerWorld": 18.286,
+   "holeInArt": [
+    805,
+    531
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:normal:10@1",
+  "weapon": "brick",
+  "mode": "normal",
+  "stage": 10,
+  "mask": "brick",
+  "radius": 22,
+  "physical": {
+   "width": 44,
+   "height": 30,
+   "pivot": [
+    22,
+    15
+   ],
+   "cut": 1016,
+   "sha256": "9644975b460fe3ee"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/normal/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 56,
+   "artPerWorld": 18.286,
+   "holeInArt": [
+    805,
+    531
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:normal:12@1",
+  "weapon": "brick",
+  "mode": "normal",
+  "stage": 12,
+  "mask": "brick",
+  "radius": 22,
+  "physical": {
+   "width": 44,
+   "height": 30,
+   "pivot": [
+    22,
+    15
+   ],
+   "cut": 1016,
+   "sha256": "9644975b460fe3ee"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/normal/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 56,
+   "artPerWorld": 18.286,
+   "holeInArt": [
+    805,
+    531
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:normal:15@1",
+  "weapon": "brick",
+  "mode": "normal",
+  "stage": 15,
+  "mask": "brick",
+  "radius": 22,
+  "physical": {
+   "width": 44,
+   "height": 30,
+   "pivot": [
+    22,
+    15
+   ],
+   "cut": 1016,
+   "sha256": "9644975b460fe3ee"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/normal/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 56,
+   "artPerWorld": 18.286,
+   "holeInArt": [
+    805,
+    531
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:pow:0@1",
+  "weapon": "brick",
+  "mode": "pow",
+  "stage": 0,
+  "mask": "brick-pow",
+  "radius": 23.1,
+  "physical": {
+   "width": 48,
+   "height": 32,
+   "pivot": [
+    24,
+    16
+   ],
+   "cut": 1164,
+   "sha256": "b6b72e7c882915f9"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/pow/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 62,
+   "artPerWorld": 16.516,
+   "holeInArt": [
+    763,
+    504
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:pow:10@1",
+  "weapon": "brick",
+  "mode": "pow",
+  "stage": 10,
+  "mask": "brick-pow",
+  "radius": 23.1,
+  "physical": {
+   "width": 48,
+   "height": 32,
+   "pivot": [
+    24,
+    16
+   ],
+   "cut": 1164,
+   "sha256": "b6b72e7c882915f9"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/pow/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 62,
+   "artPerWorld": 16.516,
+   "holeInArt": [
+    763,
+    504
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:pow:12@1",
+  "weapon": "brick",
+  "mode": "pow",
+  "stage": 12,
+  "mask": "brick-pow",
+  "radius": 23.1,
+  "physical": {
+   "width": 48,
+   "height": 32,
+   "pivot": [
+    24,
+    16
+   ],
+   "cut": 1164,
+   "sha256": "b6b72e7c882915f9"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/pow/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 62,
+   "artPerWorld": 16.516,
+   "holeInArt": [
+    763,
+    504
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "brick:pow:15@1",
+  "weapon": "brick",
+  "mode": "pow",
+  "stage": 15,
+  "mask": "brick-pow",
+  "radius": 23.1,
+  "physical": {
+   "width": 48,
+   "height": 32,
+   "pivot": [
+    24,
+    16
+   ],
+   "cut": 1164,
+   "sha256": "b6b72e7c882915f9"
+  },
+  "mark": {
+   "file": "/assets/weapons/brick/destruction/pow/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 62,
+   "artPerWorld": 16.516,
+   "holeInArt": [
+    763,
+    504
+   ],
+   "bandOuterInArt": [
+    993,
+    656
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:normal:0@1",
+  "weapon": "love-boomerang",
+  "mode": "normal",
+  "stage": 0,
+  "mask": "oval",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/normal/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 74,
+   "artPerWorld": 13.838,
+   "holeInArt": [
+    720,
+    482
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:normal:10@1",
+  "weapon": "love-boomerang",
+  "mode": "normal",
+  "stage": 10,
+  "mask": "oval",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/normal/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 74,
+   "artPerWorld": 13.838,
+   "holeInArt": [
+    720,
+    482
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:normal:12@1",
+  "weapon": "love-boomerang",
+  "mode": "normal",
+  "stage": 12,
+  "mask": "oval",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/normal/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 74,
+   "artPerWorld": 13.838,
+   "holeInArt": [
+    720,
+    482
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:normal:15@1",
+  "weapon": "love-boomerang",
+  "mode": "normal",
+  "stage": 15,
+  "mask": "oval",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/normal/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 74,
+   "artPerWorld": 13.838,
+   "holeInArt": [
+    720,
+    482
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:pow:0@1",
+  "weapon": "love-boomerang",
+  "mode": "pow",
+  "stage": 0,
+  "mask": "oval-pow",
+  "radius": 27.3,
+  "physical": {
+   "width": 56,
+   "height": 34,
+   "pivot": [
+    28,
+    17
+   ],
+   "cut": 1380,
+   "sha256": "283e59f1865afafb"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/pow/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 83,
+   "artPerWorld": 12.337,
+   "holeInArt": [
+    674,
+    397
+   ],
+   "bandOuterInArt": [
+    993,
+    586
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:pow:10@1",
+  "weapon": "love-boomerang",
+  "mode": "pow",
+  "stage": 10,
+  "mask": "oval-pow",
+  "radius": 27.3,
+  "physical": {
+   "width": 56,
+   "height": 34,
+   "pivot": [
+    28,
+    17
+   ],
+   "cut": 1380,
+   "sha256": "283e59f1865afafb"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/pow/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 83,
+   "artPerWorld": 12.337,
+   "holeInArt": [
+    674,
+    397
+   ],
+   "bandOuterInArt": [
+    993,
+    586
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:pow:12@1",
+  "weapon": "love-boomerang",
+  "mode": "pow",
+  "stage": 12,
+  "mask": "oval-pow",
+  "radius": 27.3,
+  "physical": {
+   "width": 56,
+   "height": 34,
+   "pivot": [
+    28,
+    17
+   ],
+   "cut": 1380,
+   "sha256": "283e59f1865afafb"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/pow/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 83,
+   "artPerWorld": 12.337,
+   "holeInArt": [
+    674,
+    397
+   ],
+   "bandOuterInArt": [
+    993,
+    586
+   ]
+  }
+ },
+ {
+  "id": "love-boomerang:pow:15@1",
+  "weapon": "love-boomerang",
+  "mode": "pow",
+  "stage": 15,
+  "mask": "oval-pow",
+  "radius": 27.3,
+  "physical": {
+   "width": 56,
+   "height": 34,
+   "pivot": [
+    28,
+    17
+   ],
+   "cut": 1380,
+   "sha256": "283e59f1865afafb"
+  },
+  "mark": {
+   "file": "/assets/weapons/love-boomerang/destruction/pow/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 83,
+   "artPerWorld": 12.337,
+   "holeInArt": [
+    674,
+    397
+   ],
+   "bandOuterInArt": [
+    993,
+    586
+   ]
+  }
+ }
+]

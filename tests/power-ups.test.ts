@@ -62,7 +62,7 @@ async function battle(){
  for(const player of players){profiles.set(player.id,player);events.set(player.id,[]);game.connect(player,event=>events.get(player.id)!.push(structuredClone(event)));}
  await game.command(players[0].id,{type:'create',practice:true,name:'Power-ups',mode:'1v1',map:'celestial'});const roomId=game.peers.get(players[0].id)!.roomId!;
  await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
- const match=game.matches.get(roomId)!;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);
+ const match=game.matches.get(roomId)!;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);
  for(const [index,fighter] of match.state.players.entries())Object.assign(fighter,{x:300+index*500,y:600,hp:5000,maxHp:5000});
  const shooter=match.state.players.find(player=>player.id===match.state.turnId)!;
  const errors=()=>events.get(shooter.id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').map(event=>event.message);

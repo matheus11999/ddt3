@@ -19,7 +19,7 @@ async function fixture(count=2){
  for(const player of players){profiles.set(player.id,player);events.set(player.id,[]);game.connect(player,event=>events.get(player.id)!.push(structuredClone(event)));}
  await game.command(players[0].id,{type:'create',practice:true,name:'Ability rules',mode:count===4?'2v2':'1v1',map:'celestial'});const roomId=game.peers.get(players[0].id)!.roomId!;
  for(const player of players.slice(1)){await game.command(player.id,{type:'join',roomId});await game.command(player.id,{type:'ready'});}await game.command(players[0].id,{type:'start'});
- const match=game.matches.get(roomId)!;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);
+ const match=game.matches.get(roomId)!;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);
  for(const [index,fighter] of match.state.players.entries())Object.assign(fighter,{x:300+index*200,y:600,hp:5000,maxHp:5000});
  const actor=match.state.players.find(player=>player.id===match.state.turnId)!,enemy=match.state.players.find(player=>player.team!==actor.team)!,ally=match.state.players.find(player=>player.team===actor.team&&player.id!==actor.id);
  const error=(id=actor.id)=>events.get(id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').at(-1)?.message;
@@ -74,8 +74,8 @@ test('homing magnet locks onto an enemy the projectile passes near and curves in
  const far=volley(terrain,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[{...target,x:1400}]})[0];assert.deepEqual(far,base);
  assert.deepEqual(volley(terrain,origin,[60],45,0,weapon,[],undefined,[],{projectileIndex:0,targets:[{...target,hp:0}]})[0],base);
  // Terrain still blocks a locked projectile.
- const wall=terrain.slice(),wallX=Math.ceil((point[0]+30)/3);for(let row=0;row<WORLD.rows;row++)wall[row*WORLD.cols+wallX]=1;
- const blocked=volley(wall,origin,[60],45,0,weapon,[target],undefined,[],{projectileIndex:0,targets:[target]})[0];assert.equal(blocked.hitId,undefined);assert.ok(blocked.points.every(p=>p[0]<wallX*3));
+ const wall=terrain.slice(),wallX=Math.ceil(point[0]+30);for(let row=0;row<WORLD.rows;row++)wall[row*WORLD.cols+wallX]=1;
+ const blocked=volley(wall,origin,[60],45,0,weapon,[target],undefined,[],{projectileIndex:0,targets:[target]})[0];assert.equal(blocked.hitId,undefined);assert.ok(blocked.points.every(p=>p[0]<wallX));
 });
 
 test('invisibility redacts snapshots, aims, effects, shot origins and reconnect while allies retain coordinates',async()=>{
@@ -145,7 +145,7 @@ test('flight puts the fighter exactly where the plane touched and lets it fall f
 });
 
 test('flight that falls into the void kills the shooter',async()=>{
- const f=await fixture();f.match.terrain.fill(0);f.match.terrain.fill(1,200*WORLD.cols,200*WORLD.cols+120);
+ const f=await fixture();f.match.terrain.fill(0);f.match.terrain.fill(1,600*WORLD.cols,600*WORLD.cols+360);
  await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
  const impact=f.match.pendingImpacts![0];impact.mark.x=900;impact.mark.y=300;f.match.activeShot!.projectiles[0].points=[[880,310],[900,300]];
  f.game.tick(impact.at);assert.equal(f.actor.x,900);assert.equal(f.actor.hp,0);assert.ok(f.actor.fall?.void);assert.ok(f.match.activeShot?.hits.some(hit=>hit.id===f.actor.id&&hit.kind==='fall'));

@@ -2,6 +2,7 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {Game} from '../server/game';
+import {WORLD} from '../shared/physics';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {commandSchema} from '../shared/protocol';
@@ -69,7 +70,7 @@ test('Power deals greater actual enemy damage and charges both combatants withou
   const f=await fixture();f.match.state.wind=0;
   // A nearby opponent intersects the launch arc, making the comparison deterministic.
   f.shooter.x=300;f.shooter.y=500;f.shooter.facing=1;f.target.x=365;f.target.y=490;
-  f.match.terrain.fill(0);f.match.terrain.fill(1,170*512);
+  f.match.terrain.fill(0);f.match.terrain.fill(1,510*WORLD.cols);
   if(powered){f.shooter.powerCharge=100;await f.game.command(f.shooter.id,{type:'power'});}
   await f.game.command(f.shooter.id,{type:'fire',angle:25,power:20});
   if(powered)f.game.tick(f.match.state.powerCutIn!.endsAt);

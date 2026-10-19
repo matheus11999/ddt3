@@ -7,6 +7,9 @@ import type {CanonicalMapId} from '../shared/maps';
 import {WEAPONS,weaponStats} from '../shared/catalog';
 import {weaponAimLimits} from '../shared/aim';
 import {crater,createTerrain,packTerrain,terrainMaterial,terrainTemplate,trajectory,unpackTerrain} from '../shared/physics';
+import {impactDig} from '../shared/physics';
+/** The dig a client replays for an impact: the mask under the body for a hit, the weapon's fixed shape (as src/game/terrainPlayback.ts). */
+const replayDig=(t:Uint8Array,impact:Parameters<typeof impactDig>[0]&{roughness?:number;shape?:import('../shared/catalog').CraterShape},map:import('../shared/maps').MapId)=>{const dig=impactDig(impact);return crater(t,dig.x,dig.y,dig.radius,map,impact.roughness,dig.stretch,impact.shape);};
 import type {Battle,Shot} from '../shared/protocol';
 
 const encoded=(terrain:Uint8Array)=>Buffer.from(packTerrain(terrain)).toString('base64');
@@ -88,7 +91,7 @@ async function run(){
      const expected=terrainMaterial(map,projectile.impact.x,projectile.impact.y);
      assert.deepEqual({material:projectile.impact.material,destructible:projectile.impact.destructible,...(projectile.impact.region?{region:projectile.impact.region}:{})},expected,`${map}: authoritative material metadata`);
      if(projectile.impact.region)materials.add(projectile.impact.material!);
-     crater(replay,projectile.impact.x,projectile.impact.y,projectile.impact.radius,map);
+     replayDig(replay,projectile.impact,map);
     }
     immutable(map,initial,replay);
     if(round===0){
@@ -97,7 +100,7 @@ async function run(){
      await old.close();const resumed=new TestClient(old.session);clients[index]=resumed;
      const welcome=await resumed.wait('welcome');assert.equal(welcome.battle?.id,battle.id);
      assert.equal(welcome.battle?.phase,'resolving',`${map}: reconnect must actually occur during resolution`);
-     assert.equal(welcome.battle!.activeShot?.id,shot.id);const atReconnect=beforeShot.slice();for(const projectileIndex of welcome.battle!.activeShot!.impacted){const projectile=shot.projectiles[projectileIndex];crater(atReconnect,projectile.impact.x,projectile.impact.y,projectile.impact.radius,map);}
+     assert.equal(welcome.battle!.activeShot?.id,shot.id);const atReconnect=beforeShot.slice();for(const projectileIndex of welcome.battle!.activeShot!.impacted){const projectile=shot.projectiles[projectileIndex];replayDig(atReconnect,projectile.impact,map);}
      snapshot(welcome.battle!,atReconnect,`${map} resolving reconnect`);duringResolution=true;
      marks[index]=resumed.sequence;
     }

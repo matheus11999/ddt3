@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Destruição por arma, fase e POW — 19/10/2026
+
+- Feito: terreno a 1 px com recorte por máscara compilada (servidor = clientes), formato de rede em run lengths, conversão explícita de terrenos salvos em 3 px; 16 perfis em `shared/destruction.ts`; composição ordenada das marcas recortada pelo chão restante; histórico sem o corte de 48; templates, prompts e validador das 16 marcas.
+- Evidências: `npm test` (434), `tests/destruction.test.ts`, `node scripts/test-destruction-browser.mjs` (0 falhas, 80 impactos, 64 marcas mantidas, reconstrução idêntica), `npm run test:maps:integration` e `test:power:integration` verdes. `test:integration` (forge-result) e `test:rooms:integration` falham igual na `main` (mapa de teste `celestial` fora do servidor), não vêm desta mudança.
+- Pendente: as 16 pinturas (Codex no PC do usuário, prompts 12–19 de `npm run verify:weapons`); depois entrar em `PAINTED` e rever a sombra/lábio genérico de `environment.ts` para não duplicar a borda pintada.
+- Limite: as máscaras seguem a proporção medida das referências do DDTank 4.1, não os `.bomb` do servidor original (ausentes); não é cópia exata de uma versão executada.
+
 ## Combate em quadros pintados (rig do DDTank) — 18/10/2026
 
 - A partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: compositor por quadros como o `GameCharacter` do DDTank. Contrato de 12 quadros em `src/game/rig/combatFrames.json`, sequências portadas (WALK, SHOWTHROWS, THROWS, HIDETHROWS) em `combatFrames.ts`, desenho em `src/game/combatBody.ts` (arma nas costas → cabeça e cabelo → roupa → óculos e chapéu).

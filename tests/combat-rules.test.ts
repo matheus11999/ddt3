@@ -16,7 +16,7 @@ async function fixture(roll=.99){
  await game.command(players[0].id,{type:'create',practice:true,name:'Impact timing',mode:'1v1',map:'celestial'});
  const roomId=game.peers.get(players[0].id)!.roomId!;await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
  const match=game.matches.get(roomId)!,shooter=match.state.players[0],target=match.state.players[1];
- match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);
+ match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);
  Object.assign(shooter,{x:300,y:600,hp:5000,maxHp:5000});Object.assign(target,{x:430,y:600,hp:5000,maxHp:5000});
  const weapon=weaponStats(WEAPONS[0],0);let aim:{angle:number;power:number}|undefined;
  for(let angle=15;angle<=85&&!aim;angle++)for(let power=5;power<=100;power++){const path=trajectory(match.terrain,shooter,angle,power,0,weapon,[target]);if(path.hitId===target.id&&(path.hitQuality??0)>.9){aim={angle,power};break;}}
@@ -107,7 +107,7 @@ test('one impact damages two nearby enemies independently and excludes a micro-s
 });
 
 test('scheduled projectiles launch at the volley cadence and a delayed launch sees an earlier terrain change',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1};for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+50]=1;
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1};for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+150]=1;
  const order:number[]=[],results=volley(terrain,origin,[0,0],100,0,{...WEAPONS[0],gravity:0},[],(_,index)=>{order.push(index);if(index===0){terrain.fill(0);origin.y=150;}},[0,VOLLEY_CADENCE_MS]);
  assert.deepEqual(order,[0,1]);assert.equal(results[0].points[0][1],60);assert.equal(results[1].points[0][1],110);assert.equal(results[1].x,WORLD.width+80);assert.ok(results[0].flightTime<VOLLEY_CADENCE_MS);
 });
