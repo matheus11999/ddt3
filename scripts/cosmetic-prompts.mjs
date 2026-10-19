@@ -19,8 +19,8 @@ const root=resolve('test-results/codex-cosmetics',set.id);
 // Approved art of the game, attached to every prompt of its kind as the style reference.
 const APPROVED={
  stand:['public/assets/outfits/cartographer-atlas.png','public/assets/outfits/captain-atlas.png','public/assets/outfits/hiphop-atlas.png','public/assets/outfits/swordsman-atlas.png'],
- hair:['public/assets/hair-horizon.png','public/assets/hair-captain.png','public/assets/hair-hiphop.png','public/assets/hair-swordsman.png'],
- hat:['public/assets/headwear-worn-atlas.png','public/assets/hat-captain.png','public/assets/hat-hiphop.png','public/assets/hat-swordsman.png'],
+ hair:['public/assets/hair-horizon.png'],
+ hat:['public/assets/headwear-worn-atlas.png','public/assets/hat-captain.png','public/assets/hat-hiphop.png'],
  glasses:['public/assets/glasses-navigator.png','public/assets/glasses-captain.png','public/assets/glasses-hiphop.png'],
  face:['public/assets/faces/face-captain.png'],
  walk:['public/assets/outfits/walk/outfit-captain.png'],
@@ -42,14 +42,14 @@ function pieces(){
  if(o)list.push({key:'stand',refs:['public/assets/outfits/cartographer-atlas.png',...APPROVED.stand.slice(1)],text:[
   'ART BRIEF',`IMAGE 1 is an approved outfit of the game (the TOP standing headless figure is the layout reference). Paint a NEW ${set.gender} outfit "${o.name}" at EXACTLY the same scale, proportions, camera (3/4 view facing right), canvas placement and painting quality as that top standing figure: a headless body from the collar down to the shoes, the collar opening at the top centre where the game puts the head, feet at the bottom. Only ONE figure: no lying figure, nothing else.`,
   refsNote(2,'outfits'),`The new outfit: ${o.brief}. No weapon, no props in the hands. No head, no neck skin above the collar.`,STYLE_LOCK,alpha+' Square image.']});
- if(set.hair)list.push({key:'hair',refs:[`docs/templates/${set.hair.fit}.png`,...APPROVED.hair],text:[
+ if(set.hair)list.push({key:'hair',refs:[`docs/templates/${set.hair.fit}.png`,'docs/templates/ref-hair-ear.png',...APPROVED.hair],text:[
   'ART BRIEF',`ONE ${set.gender} hairstyle "${set.hair.name}" as a separate wig-like layer, placed by the game over its universal bald chibi head.`,
-  `IMAGE 1 is the game's universal bald head (3/4 view facing right) with guides: the hair must fit THAT skull exactly - same perspective, hugging the skull, fringe ending ABOVE the eyebrows (blue dashed line), never covering the eyes or mouth (red areas), behind the ear (no strands over the ear), total width at most 1.4x the head and rising at most 0.3x the head above the top of the skull (inside the green box).`,
-  refsNote(2,'hairstyles'),`The new hairstyle: ${set.hair.brief}. Big transparent opening where the face is.`,STYLE_LOCK,
+  `IMAGE 1 is the game's universal bald head (3/4 view facing right) with guides: the hair must fit THAT skull exactly - same perspective, hugging the skull, fringe ending ABOVE the eyebrows (blue dashed line), never covering the eyes or mouth (red areas), SIDES AND NAPE COME DOWN TO THE EAR: like IMAGE 2 the hair at the temple and behind the ear reaches down to the middle of the ear (paint it right over the ear area: the game cuts the ear out of the hair and outlines it), so no bald skin shows between the hair and the ear; total width at most 1.4x the head and rising at most 0.3x the head above the top of the skull (inside the green box).`,
+  `IMAGE 2 is the approved Corte Tempestade: copy how its sides and nape meet the ear.`,refsNote(3,'hairstyles'),`The new hairstyle: ${set.hair.brief}. Big transparent opening where the face is.`,STYLE_LOCK,
   `Paint ONLY the hair, in the size and position it would have on IMAGE 1's head. ${alpha} Square image. No face, skin, ear, head or hat.`]});
  if(set.hat)list.push({key:'hat',refs:[`docs/templates/${set.hat.fit}.png`,...APPROVED.hat],text:[
   'ART BRIEF',`ONE ${set.gender} hat "${set.hat.name}" as a separate layer, placed by the game on its universal chibi head.`,
-  `IMAGE 1 is the game's universal bald head (3/4 view facing right) with guides: the hat sits on that skull, its inner band resting on the orange seat line, inside the green box, never covering the eyes (red); any brim or visor stays short and high so glasses under it stay visible.`,
+  `IMAGE 1 is the game's universal bald head (3/4 view facing right) with guides: the hat sits on that skull, its inner band resting on the orange seat line, inside the green box, never covering the eyes (red); any brim or visor stays short and high so glasses under it stay visible. The hat is WORN on the head and seen from slightly ABOVE, like the approved hats: its opening wraps around the skull at forehead height and the INSIDE of the hat is never visible; a wide brim is an ellipse around the head, tilted the same way as the head.`,
   refsNote(2,'hats'),`The new hat: ${set.hat.brief}. Seen in the same 3/4 view facing right, as WORN (the opening is shaped by the head).`,STYLE_LOCK,
   `Paint ONLY the hat, alone, centred, about half the image wide. ${alpha} Square image. No head, hair or face.`]});
  if(set.glasses)list.push({key:'glasses',refs:['docs/templates/glasses.png',...APPROVED.glasses],text:[
