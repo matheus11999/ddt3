@@ -20,7 +20,7 @@ import {drawAimIndicator} from './aimIndicator';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
-import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact} from './petEffects';
+import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds} from './petEffects';
 import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {MONSTERS} from '../../shared/expeditions';
 import {drawSpeechBubble} from './speechBubble';
@@ -55,6 +55,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
  const canvas=useRef<HTMLCanvasElement>(null);const angleRef=useRef(angle);angleRef.current=angle;
  useEffect(()=>{
   const el=canvas.current!,c=el.getContext('2d')!;let frame=0;let state=client.state;
+  preloadPetSounds();
   // Expedition monsters and the dragon only load for the rooms (and battles) that use them.
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}
    if(state.room?.kind==='expedition'||state.battle?.instance)preloadMonsters();if(state.room?.kind==='world-boss'||state.battle?.worldBoss)preloadDragon();};
@@ -225,7 +226,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       // painted muzzle and ease onto the authoritative path. Drawing only; physics is unchanged.
       const origin=p.points[0],seen=shooter&&!p.fragment?entities.get(shooter.id):undefined,muzzle=seen&&origin?heldMuzzle(shooter!.equipment.weapon,shooter!.facing,112,-(shooter!.aimSlope??0)*shooter!.facing*Math.PI/180):null;
       const offset=muzzle&&origin?[seen!.x+muzzle[0]-origin[0],seen!.y+muzzle[1]-origin[1]]:[0,0],ease=1-Math.min(1,age/140)**2;
-      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180)playShotSound(p.effect,level,p.powered);}drawMuzzle(c,origin?origin[0]+offset[0]-27*shooter.facing:shooter.x,origin?origin[1]+offset[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
+      if(shooter&&!p.fragment&&(i===0||shot.projectiles[i-1].delay!==p.delay)){if(!launched.has(i)){launched.add(i);if(age<180&&!playPetShotSound(p))playShotSound(p.effect,level,p.powered);}drawMuzzle(c,origin?origin[0]+offset[0]-27*shooter.facing:shooter.x,origin?origin[1]+offset[1]+40:shooter.y,p.effect,age,level,shooter.facing,p.points[1]&&origin?Math.atan2(p.points[1][1]-origin[1],p.points[1][0]-origin[0]):undefined,p.powered,{quality:quality==='high'?'high':'low'});}
       if(p.pet){
        const key=`${shot.id}:${i}`;if(!petLandings.has(key)&&(age>=flightTime(p)||shot.impacted.includes(i)))petLandings.set(key,t);
        const landed=petLandings.get(key);

@@ -1,4 +1,5 @@
-import {petSkill} from '../../shared/petSkills';
+import {PET_SKILLS,petSkill} from '../../shared/petSkills';
+import {audio} from './audio';
 import type {PetApplication} from '../../shared/petSkills';
 import type {Projectile} from '../../shared/protocol';
 /**
@@ -70,6 +71,13 @@ function whirl(c:CanvasRenderingContext2D,ring:HTMLImageElement,pieces:HTMLImage
   }
  }
  c.restore();
+}
+/** Fetches every pet skill's launch sound ahead of time, so the first special shot is not silent. */
+export function preloadPetSounds(){audio.preload([...PET_SKILLS.values()].flatMap(skill=>skill.visual?.sound?[skill.visual.sound]:[]));}
+/** The launch of a special projectile: the skill's own sound. Returns false when it has none (the weapon's sound plays instead). */
+export function playPetShotSound(p:Projectile){
+ const sound=p.pet&&petSkill(p.pet.skill)?.visual?.sound;
+ return !!sound&&audio.playFile(sound,.7);
 }
 /** A pet's special projectile (2 frames that alternate, spinning). */
 export function drawPetProjectile(c:CanvasRenderingContext2D,p:Projectile,index:number,t:number){
