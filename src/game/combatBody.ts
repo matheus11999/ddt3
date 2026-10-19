@@ -53,7 +53,10 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const lift=name.startsWith('crawl')?state.walk:0,turn=state.phase;
  const fist=(k:0|1):Fist=>{const a=spec.fists[k],b=next.fists[k],m=blend.mix,up=lift*Math.max(0,Math.sin(turn+(k?Math.PI:0)))*2.5;
   return [a[0]+(b[0]-a[0])*m+dx,a[1]+(b[1]-a[1])*m+dy-up+breath,a[2]+(b[2]-a[2])*m];};
- c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2,GROUND_SINK);
+ // Painted hands move only with the painting, so a crawl also rocks the whole fighter a little: it pushes
+ // forward and rises on every stroke, like DDTank's crawl.
+ const rock=name.startsWith('crawl')&&entry.frames[index]?.hands?state.walk:0;
+ c.save();c.translate(-hit*3+Math.sin(state.time/28)*hit*1.2+Math.sin(state.phase)*1.2*rock,GROUND_SINK-Math.abs(Math.sin(state.phase))*1.6*rock);
  // faceDown: the weapon on the back, behind the body and the head. Kneeling, the far fist goes behind the
  // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
