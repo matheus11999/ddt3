@@ -1,4 +1,49 @@
 {
+ "outfit-captain": {
+  "path": "/assets/outfits/walk/outfit-captain.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -116.55
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.22
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.9
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.88
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.88
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.9
+    ]
+   }
+  ]
+ },
  "outfit-cartographer": {
   "path": "/assets/outfits/walk/outfit-cartographer.png",
   "standing": [

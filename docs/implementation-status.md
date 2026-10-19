@@ -426,3 +426,4 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - Colar não pode mais ser composto (o único aprimoramento que tinha); composições antigas de colar são descartadas na normalização do perfil.
 - Corrigido: o comando `compose` recusava as pedras de Sorte (`luck-*`).
 - 19/10 (revisão): Síntese virou tabela com categorias que abrem, máximo por linha, quantidade, custo em ouro (provisório: fortalecimento 10/25/60/150, composição 50/120 por síntese) e filtro "Mostrar apenas disponíveis". Item na bigorna sai da lista de equipamentos; sucesso no fortalecimento tira o item da bigorna.
+- 19/10: validador de cosméticos mede lobby (folha de andar) e batalha (quadros pintados), `--only`; conjunto masculino Capitão Escarlate (roupa, cabelo, quepe, óculos) gerado pelo Codex, zerado no `verify:cosmetics --strict --only`; troca imediata entre pintura em pé e andar no lobby (`scripts/preview-lobby-walk.mjs`). Ver `docs/captain-art.md`.

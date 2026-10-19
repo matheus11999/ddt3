@@ -23,7 +23,9 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | `hat-band` | 1,20 | 0,30 | Até y=420; sem cobrir olhos/boca |
 | `hat-helmet` | 1,30 | 0,70 | Até y=470; sem cobrir olhos/boca |
 | `glasses` | 0,80–0,95 | — | A partir de y=340; frente ≥70% visível (aba pode cobrir o topo do aro) |
-| Roupa | ombros 0,85–1,05 (cabeça de referência) | — | Cabeça = 47–53% da altura em pé, já com `HEAD_SCALE` |
+| Roupa em pé (lobby) | ombros 0,5–0,8 (cabeça de referência; corpo menor que a cabeça, como no DDTank) | — | Cabeça = 47–53% da altura em pé, já com `HEAD_SCALE` |
+| Andar do lobby | 6 quadros pintados (`walkAtlas.json`) | — | Inteiros na célula, no chão (≤4 un.), cabeça sobe e desce ≤8 un. |
+| Batalha | 12 quadros pintados (`combatAtlas.json`) com mãos | — | Inteiros na célula, no chão, cabeça a ≤8 un. do contrato (`combatFrames.json`) |
 | Roupa deitada | corpo 1–1,8× a cabeça escalada | — | Braços 6–40% do tronco; mão sobre os punhos; ver `prone-combat.md` |
 
 Todo PNG mantém 24 px de margem transparente até a borda do quadro de 1254 px.
@@ -45,6 +47,8 @@ npm run verify:cosmetics -- --strict # reprova se restar qualquer problema
 
 Inicia o Vite sozinho. `BROWSER_EXECUTABLE` aponta um Chromium específico; `OUTPUT_DIR` muda a pasta (padrão `test-results/cosmetics`). Gera `report.md`, `report.json`, `colors.png` (cada peça em 6 cores e o corpo em 6 tons de pele e de olho, ver `docs/color-tickets.md`), `zones.png` (cada peça com sua zona: verde dentro, vermelho fora), `matrix.png` (chapéu × cabelo com Óculos Sprint) e `prone.png` (cada roupa deitada parada, arrastando, carregando e arremessando).
 
+Toda roupa é medida onde o jogo a mostra (19/10, fluxo novo): em pé no lobby, na folha de andar pintada (`lobby.png`, cada roupa parada e nos 6 passos, nos dois lados) e nos 12 quadros pintados de batalha (`prone.png`). Roupa sem folha de andar ou sem quadros de combate é reprovada; o corpo deitado recortado antigo só é medido em roupas sem quadros pintados. `--only=id,id` limita o veredito (e o `--strict`) às peças sendo feitas, culpando cada combinação só pela peça que a causa: `npm run verify:cosmetics -- --strict --only=hair-x,hat-x`.
+
 Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos (cabelo sobre olhos/boca, frente dos óculos encoberta) e a proporção das roupas. Rostos continuam em `verify-faces.mjs`. A inspeção visual do usuário continua necessária: a ferramenta barra o que está fora da medida, não decide se a arte é bonita.
 
 ## Fases
@@ -56,6 +60,8 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 5. **Travar**: `--strict` no fluxo de verificação, kit de criação e regra no AGENTS.md.
 
 ## Como adicionar um cosmético
+
+Roupa nova (fluxo de 19/10, exemplo: Capitão Escarlate em `docs/captain-art.md`): pintura em pé sem cabeça (registrada em `PAINTED_OUTFITS`), folha de andar (`build-walk-atlas.py`) e as duas pranchas de combate (`build-combat-atlas.py`), todas pelo Codex; depois `node scripts/preview-cosmetic-set.mjs <ids>` e `node scripts/preview-lobby-walk.mjs` (andar no lobby a 60 fps: nenhum quadro sem corpo, sem passada congelada depois de parar). Item novo de loja entra também em `SHOP_ONLY_COSMETICS` (`server/store.ts`), senão perfis antigos o ganham de graça.
 
 1. Pintar a peça vestida sobre o molde de 1254 px, na mesma perspectiva 3/4, respeitando a zona da classe.
 2. Adicionar a entrada em `COSMETIC_MANIFEST` com `rig: RIG_VERSION`, classe, perfil (chapéus) e pin: chapéu nos dois pontos da faixa interna até `HEAD_ANCHORS.hatSeat`; óculos no centro das lentes até os olhos; cabelo pintado direto no molde usa `onTemplate`. Cabelo novo entrega também a variante `covered`.

@@ -76,13 +76,17 @@ export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
  {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',attack:8,defense:14,agility:0,armor:10},
  {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
+ {id:'outfit-captain',name:'Capitão Escarlate',slot:'outfit',rarity:'rare',color:'#c4162a',description:'Casaca escarlate de capitão dos céus, dragonas douradas e botas altas.',attack:14,defense:20,agility:12,armor:20,visual:{variant:'captain',asset:'/assets/outfits/captain-atlas.png'}},
  cosmetic('face-wink','Piscadela Confiante','face','wink','#e6a16f','rare',{asset:'/assets/faces/face-wink.png'}),
  cosmetic('hair-undercut','Corte Tempestade','hair','undercut','#1555c2','rare',{asset:'/assets/shop-accessories.png'}),
  cosmetic('hair-ponytail','Rabo de Cavalo Rubi','hair','ponytail','#a34528','rare',{asset:'/assets/shop-accessories.png'}),
  cosmetic('hair-horizon','Corte Horizonte','hair','horizon','#163e72','rare',{asset:'/assets/hair-horizon.png'}),
+ cosmetic('hair-captain','Corte Capitão','hair','captain','#7a3a1c','rare',{asset:'/assets/hair-captain.png'}),
  cosmetic('glasses-sport','Óculos Sprint','glasses','sport','#19bde8','uncommon',{asset:'/assets/shop-accessories.png'}),
  cosmetic('glasses-cat','Óculos Gatinho','glasses','cat','#e82553','uncommon',{asset:'/assets/shop-accessories.png'}),
  cosmetic('glasses-navigator','Óculos de Navegação','glasses','navigator','#17a8c9','uncommon',{asset:'/assets/glasses-navigator.png'}),
+ cosmetic('glasses-captain','Óculos do Capitão','glasses','captain','#e3a62b','uncommon',{asset:'/assets/glasses-captain.png'}),
+ {...cosmetic('hat-captain','Quepe Escarlate','hat','captain','#d01f2e','rare',{asset:'/assets/hat-captain.png'}),description:'Quepe de capitão dos céus com cordão dourado e emblema de âncora.'},
  {...cosmetic('hat-thunder','Boné Relâmpago','hat','thunder','#ff334b','uncommon',{asset:'/assets/shop-hats.png'}),description:'Boné vermelho com aba azul e um raio de energia.'},
  {...cosmetic('hat-tide','Bucket da Maré','hat','tide','#00bdd0','uncommon',{asset:'/assets/shop-hats.png'}),description:'Tecido turquesa, faixa laranja e uma concha da praia.'},
  {...cosmetic('hat-ruby','Boina Rubi','hat','ruby','#db1761','rare',{asset:'/assets/shop-hats.png'}),description:'Boina de veludo rubi com uma pena turquesa.'},
@@ -116,9 +120,9 @@ export const ITEMS: Item[] = [...WEAPONS,
 const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
  'face-brave':'male','face-taunt':'male','face-fierce':'male',
  'face-smile':'female','face-serene':'female','face-wink':'female',
-  'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
- 'hair-undercut':'male','hair-ponytail':'female','hair-wavy':'female','hair-horizon':'male',
- 'glasses-navigator':'male'
+  'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-captain':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
+ 'hair-undercut':'male','hair-ponytail':'female','hair-wavy':'female','hair-horizon':'male','hair-captain':'male',
+ 'glasses-navigator':'male','glasses-captain':'male','outfit-captain':'male'
 };
 for(const item of ITEMS){
  if(GENDERED_ITEMS[item.id])item.gender=GENDERED_ITEMS[item.id];
