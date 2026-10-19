@@ -7,6 +7,7 @@ import type {PetSnapshot} from '../../shared/pets';
  */
 const images=new Map<string,HTMLImageElement>();
 function image(src:string){let img=images.get(src);if(!img){img=new Image();img.decoding='async';img.src=src;images.set(src,img);}return img.complete&&img.naturalWidth?img:null;}
+export const petImages=()=>images.values();
 const moving=(animation:string)=>animation==='walk';
 export function drawPet(c:CanvasRenderingContext2D,pet:PetSnapshot|undefined,x:number,y:number,ownerSize:number,facing:1|-1,time:number,animation:'idle'|'walk'|'skill'|'hit'|'victory'='idle'){
  const visual=petVisual(pet);if(!visual)return;

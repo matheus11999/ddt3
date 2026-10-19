@@ -9,6 +9,7 @@ export type HeadwearProfile='covered'|'open';
 const wornRegion=(id:string):ArtRegion|undefined=>{const manifest=COSMETIC_MANIFEST[id];return manifest?.slot==='hat'?manifest.worn:undefined;};
 const atlases=new Map<string,HTMLImageElement>();
 const atlasFor=(path:string)=>{let image=atlases.get(path);if(!image){image=new Image();image.src=path;image.onload=()=>window.dispatchEvent(new Event('brasa-art-loaded'));atlases.set(path,image);}return image;};
+export const headwearImages=()=>atlases.values();
 if(typeof window!=='undefined')for(const manifest of Object.values(COSMETIC_MANIFEST))if(manifest.slot==='hat'&&manifest.worn)atlasFor(manifest.worn.atlas);
 const ready=(image:HTMLImageElement)=>image.complete&&image.naturalWidth>0;
 const portraits=new Map<string,HTMLCanvasElement>();

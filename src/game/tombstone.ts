@@ -4,6 +4,7 @@
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
 let image:HTMLImageElement|null=null;
 function art(){if(!image&&typeof Image!=='undefined'){image=new Image();image.decoding='async';image.src='/assets/combat/tombstone.png';}return image;}
+export const tombstoneImage=()=>art();
 /** Brief pause in the defeat pose before the stone drops in. */
 export const TOMBSTONE_DELAY=650;
 const DROP_MS=360,HEIGHT=66,BASE=.98;

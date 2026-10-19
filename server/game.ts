@@ -7,6 +7,8 @@ import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
 import {attributes,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
+import {LOADING_SECONDS} from '../shared/protocol';
+import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
 import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
@@ -45,7 +47,7 @@ import type {PetApplication,PetBlockedAction,PetEngineContext,PetTrigger} from '
 import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
-export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;}
+export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
 /** Index of the pet's after-shot attack in the impact events (never a real projectile). */
 const PET_STRIKE_INDEX=1000;
@@ -73,8 +75,12 @@ export interface HallService {
 const HALL_MIN_MS=150;
 interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
 
+/** A loading screen in progress: `begin` creates the battle from the rooms as they are when everyone is ready. */
+interface PendingLoad {view:MatchLoading;roomIds:string[];waiting:Set<string>;begin:()=>void;}
 export class Game {
  peers=new Map<string,Peer>();rooms=new Map<string,Room>();matches=new Map<string,Match>();
+ /** Loading screens open between finding a match and its battle, by id, and which one each room waits on. */
+ private loads=new Map<string,PendingLoad>();private roomLoads=new Map<string,string>();
  // Parties keep their identity throughout a match; opponents are never merged into a room.
  private nextRoomNumber=1;private roomMatches=new Map<string,string>();private queueIds=new Set<string>();private profileChanges=new Set<string>();
  private lastTick=Date.now();private lobbyTick=0;private roomsDirty=false;private arenaPopulation=0;
@@ -113,6 +119,7 @@ export class Game {
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
   send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
+  const load=room?this.loads.get(this.roomLoads.get(room.id)??''):undefined;if(load)this.emit(p,{type:'loading',loading:load.view});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
   this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);void this.sendPets(p).catch(this.report);return p;
  }
@@ -546,6 +553,8 @@ export class Game {
      break;
     }
     case 'leave':this.leave(p);break;
+    case 'client-features':p.loadingScreen=c.loading;break;
+    case 'loading-progress':this.loadingProgress(p,c.id,c.progress);break;
     case 'ready':{const r=this.room(p);if(r.status==='playing')throw Error('A partida já começou.');if(r.status==='searching'){this.cancelSearch(r);this.broadcastRoom(r);break;}if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');const s=r.players.find(x=>x.id===id)!;s.ready=!s.ready;this.broadcastRoom(r);break;}
     case 'bot':{
      const r=this.room(p);if(r.hostId!==id||r.status!=='waiting')throw Error('Somente o líder pode adicionar um bot.');if(r.kind==='expedition')throw Error('Expedições são só para aventureiros.');
@@ -752,6 +761,12 @@ export class Game {
   }catch(e){this.emit(p,{type:'error',message:e instanceof Error?e.message:'Não foi possível concluir a ação.',...((c.type==='customize'||c.type==='ability-loadout')&&c.requestId!==undefined?{requestId:c.requestId}:{})});}
  }
  private leave(p:Peer){
+  if(!p.roomId)return;
+  // Leaving during the loading screen: the others stop waiting for this player.
+  const loadId=this.roomLoads.get(p.roomId);if(loadId){this.leaveRoom(p);this.emit(p,{type:'loading',loading:null});const load=this.loads.get(loadId);if(load){load.waiting.delete(p.profile.id);load.view.players=load.view.players.filter(player=>player.id!==p.profile.id);if(!load.waiting.size)this.finishLoading(load);else this.sendLoading(load);}return;}
+  this.leaveRoom(p);
+ }
+ private leaveRoom(p:Peer){
   if(!p.roomId)return;const r=this.rooms.get(p.roomId),m=this.matchForRoom(p.roomId);
   if(r?.kind==='world-boss'){if(m){if(m.state.phase!=='finished')this.queueWorldBossDamage(m);this.closeWorldBoss(m);}else{this.rooms.delete(r.id);this.detach(p);}return;}
   if(r?.spectators?.some(s=>s.id===p.profile.id)){r.spectators=r.spectators.filter(s=>s.id!==p.profile.id);this.detach(p);this.broadcastRoom(r);return;}
@@ -803,20 +818,67 @@ export class Game {
   for(const team of [0,1] as const)for(const slot of room.openSlots)if(!seats.some(player=>player.team===team&&player.slot===slot)){seats.push({id:`bot-${randomUUID()}`,name:['Pipoca','Faísca','Fagulha','Brasa'][n%4]+' · BOT',level:p.profile.level,equipment:{...DEFAULT_EQUIPMENT,weapon:WEAPONS[n++%WEAPONS.length].id},ready:true,bot:true,team,slot,connected:true});}
   this.launchMatch([room],seats);
  }
+ /** Seats as they would play now: two parties face each other, a practice keeps its bots, one room keeps its teams. */
+ private matchSeats(rooms:Room[],practiceSeats?:Seat[]):Seat[]{
+  if(practiceSeats){const room=rooms[0];return practiceSeats.filter(seat=>seat.bot||room.players.some(player=>player.id===seat.id));}
+  return rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):rooms[0].players;
+ }
+ /** Found or started: everyone loads the battle first (the loading screen), then it begins. */
  private launchMatch(rooms:Room[],practiceSeats?:Seat[]){
   const r=rooms[0],rotation=pvpRotation(),map=rooms.length===2||practiceSeats?rotation[randomInt(rotation.length)]:r.map;
-  const seats:Seat[]=practiceSeats??(rooms.length===2?rooms.flatMap((room,team)=>[...room.players].sort((a,b)=>a.slot-b.slot).map(s=>({...s,team:team as 0|1}))):r.players);
   // The match keeps this version of the map even if the admin panel publishes a new one meanwhile.
-  const played=pinMap(map),terrain=createTerrain(played);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(played).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
+  const played=pinMap(map),ids=rooms.map(room=>room.id);
+  this.openLoading(rooms,{kind:'pvp',map:played,players:this.matchSeats(rooms,practiceSeats).map(seat=>this.loadingPlayer(seat))},()=>{
+   const live=ids.map(id=>this.rooms.get(id)).filter((room):room is Room=>!!room);
+   const seats=live.length===rooms.length?this.matchSeats(live,practiceSeats):[];
+   // Someone left or was too slow: the match still needs a person and both sides filled.
+   if(!seats.some(seat=>!seat.bot)||[0,1].some(team=>!seats.some(seat=>seat.team===team)))return;
+   this.beginMatch(live,seats,map,played,!!practiceSeats);
+  });
+ }
+ private beginMatch(rooms:Room[],seats:Seat[],map:Room['map'],played:Battle['map'],practiceParty:boolean){
+  const r=rooms[0],terrain=createTerrain(played);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(played).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));
   // Roster order (Agilidade first) only breaks Delay ties; everyone starts at their base Delay.
   fighters.sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility);
   // In practice, the human takes the first turn so controls can be learned immediately.
   const first=seats.some(s=>s.bot)?fighters.find(f=>!f.bot)!:nextByDelay(fighters)!;startDelayTurn(fighters,first,this.baseDelay(first));
   const key=this.matches.has(r.id)?randomUUID():r.id;
-  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty:!!practiceSeats,...(practiceSeats||rooms.some(room=>room.practice)?{practice:true}:{}),state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
+  const m:Match={key,roomIds:rooms.map(room=>room.id),practiceParty,...(practiceParty||rooms.some(room=>room.practice)?{practice:true}:{}),state:{id:randomUUID(),roomId:r.id,map:played,players:fighters,turnId:first.id,turnNumber:1,wind:this.wind(),deadline:Date.now()+TURN_SECONDS*1000,phase:'aiming',winner:null},terrain,resolveAt:0,botAt:Date.now()+2000,createdAt:Date.now()};
   if(rooms.length===2&&rooms.every(room=>room.gvg)){const guilds=rooms.map(room=>this.partyGuild(room));if(guilds.every(g=>g!==null))m.gvg=guilds as [number,number];}
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.armPets(m,first);this.broadcastBattle(m,true);
+ }
+ private loadingPlayer(seat:Seat):LoadingPlayer{return {id:seat.id,name:seat.name,level:seat.level,equipment:structuredClone(seat.equipment),team:seat.team,...(seat.bot?{bot:true}:{}),...(seat.guild?{guild:seat.guild}:{}),...(seat.vipLevel?{vipLevel:seat.vipLevel}:{}),progress:seat.bot?100:0};}
+ /**
+  * Opens the loading screen for these rooms. Only players whose client shows it are waited for (bots and
+  * older clients count as loaded); `begin` runs once all of them report 100 %, or at the deadline
+  * without the ones still missing, who leave the room and go back to the hall.
+  */
+ private openLoading(rooms:Room[],view:Omit<MatchLoading,'id'|'deadline'>,begin:()=>void){
+  const waiting=new Set(view.players.filter(player=>{const peer=this.peers.get(player.id);return !player.bot&&!!peer?.loadingScreen&&peer.connected&&rooms.some(room=>room.id===peer.roomId);}).map(player=>player.id));
+  for(const player of view.players)if(!waiting.has(player.id))player.progress=100;
+  if(!waiting.size){begin();return;}
+  const load:PendingLoad={view:{...view,id:randomUUID(),deadline:Date.now()+LOADING_SECONDS*1000},roomIds:rooms.map(room=>room.id),waiting,begin};
+  this.loads.set(load.view.id,load);
+  for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;this.roomLoads.set(room.id,load.view.id);this.broadcastRoom(room);}
+  this.sendLoading(load);
+ }
+ private loadingPeers(load:PendingLoad){return load.view.players.flatMap(player=>{const peer=player.bot?undefined:this.peers.get(player.id);return peer&&peer.roomId&&load.roomIds.includes(peer.roomId)?[peer]:[];});}
+ private sendLoading(load:PendingLoad){for(const peer of this.loadingPeers(load))this.emit(peer,{type:'loading',loading:load.view});}
+ private loadingProgress(p:Peer,id:string,progress:number){
+  const load=this.loads.get(id),player=load?.view.players.find(entry=>entry.id===p.profile.id);
+  if(!load||!player||!load.waiting.has(player.id)||progress<=player.progress)return;
+  player.progress=progress;if(progress>=100)load.waiting.delete(player.id);
+  if(!load.waiting.size)this.finishLoading(load);else this.sendLoading(load);
+ }
+ /** Everyone loaded, or the time ran out: the slow players leave, the battle begins for the rest (or the rooms go back to waiting). */
+ private finishLoading(load:PendingLoad,slow:string[]=[]){
+  if(!this.loads.delete(load.view.id))return;
+  for(const id of load.roomIds){if(this.roomLoads.get(id)===load.view.id)this.roomLoads.delete(id);const room=this.rooms.get(id);if(room&&!this.matchForRoom(id))room.status='waiting';}
+  for(const id of slow){const peer=this.peers.get(id);if(!peer?.roomId||!load.roomIds.includes(peer.roomId))continue;this.leaveRoom(peer);this.emit(peer,{type:'loading',loading:null,dropped:load.view.kind});this.emit(peer,{type:'error',message:`Seu jogo não carregou em ${LOADING_SECONDS} segundos: você saiu da partida.`});}
+  try{load.begin();}catch(e){this.report(e);}
+  // No battle came of it (someone left, a side emptied): back to the room.
+  for(const id of load.roomIds){const room=this.rooms.get(id);if(!room||this.matchForRoom(id))continue;room.status='waiting';room.players.forEach(player=>player.ready=player.bot);for(const peer of this.roomMembers(room).map(seat=>this.peers.get(seat.id)))if(peer?.roomId===id){this.emit(peer,{type:'loading',loading:null});if(slow.length)this.emit(peer,{type:'error',message:'Um jogador não carregou a tempo: a partida foi cancelada.'});}this.broadcastRoom(room);}
  }
  private startExpedition(p:Peer){
   const room=this.room(p);if(room.hostId!==p.profile.id)throw Error('Somente o líder pode iniciar a expedição.');if(room.status!=='waiting')throw Error('A expedição já começou.');
@@ -826,9 +888,17 @@ export class Game {
  }
  /** Opens a stage: a new battle (new map) for the room's party. Each stage is its own start from the room. */
  private launchExpedition(room:Room,stageIndex:number){
+  const choice=room.expedition!,stages=expeditionStages(choice.id,choice.difficulty),stage=stages[stageIndex],def=getExpedition(choice.id);
+  const played=pinMap(stage.map as Battle['map']);
+  this.openLoading([room],{kind:'expedition',map:played,players:room.players.filter(seat=>!seat.bot).map(seat=>this.loadingPlayer(seat)),expedition:{id:choice.id,name:def?.name??choice.id,difficulty:choice.difficulty,stage:stageIndex,stageName:stage.name,art:stage.art}},()=>{
+   const live=this.rooms.get(room.id);if(!live||!live.expedition||!live.players.some(seat=>!seat.bot))return;
+   this.beginExpedition(live,stageIndex,played);
+  });
+ }
+ private beginExpedition(room:Room,stageIndex:number,played:Battle['map']){
   const choice=room.expedition!,stages=expeditionStages(choice.id,choice.difficulty);
   const seats=room.players.filter(seat=>!seat.bot);
-  const played=pinMap(stages[stageIndex].map as Battle['map']),terrain=createTerrain(played),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
+  const terrain=createTerrain(played),now=Date.now(),setup=setupStage(seats,choice.id,choice.difficulty,stageIndex,terrain,now);
   setup.fighters.forEach(fighter=>{if(!fighter.monster)adjustAimToTerrain(fighter,terrain);});
   const run:ExpeditionRun={expedition:choice.id,difficulty:choice.difficulty,stages,stage:stageIndex,order:setup.order,round:{round:1,acted:[]},events:[]};
   const state:Battle={id:randomUUID(),roomId:room.id,map:played,players:setup.fighters,turnId:setup.order[0],turnNumber:1,wind:this.wind(),deadline:setup.instance.introUntil+30000,phase:'aiming',winner:null,instance:setup.instance};
@@ -1187,6 +1257,7 @@ export class Game {
   this.pruneInvitations(now);
   if(now-this.chatLogPrunedAt>=60000){this.chatLogPrunedAt=now;for(const id of [...this.chatLog.keys()])this.recentChat(id,now);}
   if(now-this.rankingAt>=60000)void this.refreshRanking();
+  for(const load of [...this.loads.values()])if(now>=load.view.deadline)this.finishLoading(load,[...load.waiting]);
   const dt=Math.min(.15,(now-this.lastTick)/1000);this.lastTick=now;
   const channels=new Set<number>();
   for(const [id,p] of this.peers){

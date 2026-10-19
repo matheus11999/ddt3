@@ -141,7 +141,7 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
  atlases.set(key,atlas);return atlas;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
-export function preloadWeaponEffects(){return Promise.all([preloadBoomerangImpacts(),...[...new Set(WEAPONS.map(weapon=>weapon.effect))].flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready])]);}
+export function preloadWeaponEffects(effects:readonly Effect[]=[...new Set(WEAPONS.map(weapon=>weapon.effect))]){return Promise.all([...effects.includes('boomerang' as Effect)?[preloadBoomerangImpacts()]:[],...effects.flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready])]);}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
 if(typeof Image!=='undefined')void preloadWeaponEffects();

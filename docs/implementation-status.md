@@ -431,3 +431,6 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 
 ## Desempenho (19/10/2026)
 - Otimizações de render, crateras, praça descarregada na batalha e som confiável: ver `docs/performance.md` (medições antes/depois com `scripts/perf-probe.mjs`). Smokes `test:battle:browser`, `test:rooms:browser` e `test:shop:browser` falham igual na `main` dentro da nuvem (ambiente), não por esta mudança.
+
+## Tela de carregamento (19/10/2026)
+- PvP e expedição com tela de carregamento (times, VS, mapa), espera de todos até 100 % e saída de quem passar de 30 s: ver `docs/loading-screen.md`. Testes `tests/loading-screen.test.ts`; prévia real com dois navegadores em `scripts/preview-match-loading.mjs` (PvP, expedição, jogador lento, celular). `test:expedition`, `test:mobile` e `test:immediate` passam; `test:battle`, `test:rooms` e `test:rewards` já falhavam na `main` antes desta mudança (mesmos pontos).
