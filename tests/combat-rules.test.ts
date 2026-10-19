@@ -6,7 +6,8 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {attributes,DEFAULT_EQUIPMENT,WEAPONS,weaponStats,MAX_UPGRADE} from '../shared/catalog';
 import {criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
-import {PROJECTILE_SPEED_SCALE,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {STRAIGHT_BALL} from './fixtures/weapons';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
 async function fixture(roll=.99){
@@ -44,7 +45,7 @@ test('critical chance follows 45 × Sorte / (800 + Sorte) and uses an explicit s
 });
 
 test('approach geometry distinguishes center contact, grazing and splash despite identical surface radius',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},weapon={...WEAPONS[0],gravity:0};
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},weapon={...WEAPONS[0],ball:STRAIGHT_BALL};
  const center={id:'center',x:300,y:91,hp:100},graze={id:'graze',x:300,y:118.99,hp:100};
  const direct=trajectory(terrain,origin,0,100,0,weapon,[center]),edge=trajectory(terrain,origin,0,100,0,weapon,[graze]);
  assert.equal(direct.hitId,'center');assert.equal(edge.hitId,'graze');assert.ok((direct.hitQuality??0)>.99);assert.ok((edge.hitQuality??1)<.05);
@@ -52,7 +53,7 @@ test('approach geometry distinguishes center contact, grazing and splash despite
  const full=impactExposure(center,direct,weapon.blast),skim=impactExposure(graze,edge,weapon.blast),splash=impactExposure(center,{x:center.x-40,y:center.y-31},weapon.blast);
  assert.equal(full.kind,'direct');assert.equal(skim.kind,'graze');assert.equal(splash.kind,'splash');assert.ok(full.attenuation>skim.attenuation&&skim.attenuation>splash.attenuation);
  assert.equal(impactExposure(center,{x:0,y:0},weapon.blast).attenuation,0);
- assert.ok(Math.abs(direct.flightTime-(300-28-77)/980*1000/PROJECTILE_SPEED_SCALE)<1e-8);
+ assert.ok(Math.abs(direct.flightTime-(300-28-77)/2000*1000)<1e-8);
 });
 
 test('shot modes set the projectile penalty and percentage bonuses add up',()=>{
@@ -108,7 +109,7 @@ test('one impact damages two nearby enemies independently and excludes a micro-s
 
 test('scheduled projectiles launch at the volley cadence and a delayed launch sees an earlier terrain change',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1};for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+50]=1;
- const order:number[]=[],results=volley(terrain,origin,[0,0],100,0,{...WEAPONS[0],gravity:0},[],(_,index)=>{order.push(index);if(index===0){terrain.fill(0);origin.y=150;}},[0,VOLLEY_CADENCE_MS]);
+ const order:number[]=[],results=volley(terrain,origin,[0,0],100,0,{...WEAPONS[0],ball:STRAIGHT_BALL},[],(_,index)=>{order.push(index);if(index===0){terrain.fill(0);origin.y=150;}},[0,VOLLEY_CADENCE_MS]);
  assert.deepEqual(order,[0,1]);assert.equal(results[0].points[0][1],60);assert.equal(results[1].points[0][1],110);assert.equal(results[1].x,WORLD.width+80);assert.ok(results[0].flightTime<VOLLEY_CADENCE_MS);
 });
 

@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
-import {crater,CRATER_ROUGHNESS,SQUARE_CRATER_DEPTH,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,PROJECTILE_SPEED_SCALE,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {STRAIGHT_BALL} from './fixtures/weapons';
+import {crater,CRATER_ROUGHNESS,SQUARE_CRATER_DEPTH,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -42,7 +43,7 @@ test('fast projectiles sweep through thin terrain cells in both directions',()=>
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows);
  for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+27]=1;
  for(const weapon of WEAPONS)for(const origin of [{x:40,y:100,facing:1},{x:125,y:100,facing:-1}]){
-  const result=trajectory(terrain,origin,0,100,0,{...weapon,gravity:0});
+  const result=trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL});
   assert.ok(result.x>=81&&result.x<84,`missed the 3px wall: ${result.x}`);
   assert.ok(solid(terrain,result.x,result.y));assert.ok(result.flightTime>0&&result.flightTime<2*1000/120);
   const center=result.points.at(-1)!;assert.ok(!solid(terrain,center[0],center[1]));
@@ -63,8 +64,8 @@ test('weapon disks reach a wall at different times without changing its contact 
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+100]=1;
  const origin={x:50,y:100,facing:1};
  const results=WEAPONS.map(weapon=>{
-  const result=trajectory(terrain,origin,0,100,0,{...weapon,gravity:0});
-  assert.ok(Math.abs(result.flightTime-(300-weapon.projectileRadius-77)/980*1000/PROJECTILE_SPEED_SCALE)<1e-8);
+  const result=trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL});
+  assert.ok(Math.abs(result.flightTime-(300-weapon.projectileRadius-77)/2000*1000)<1e-8);
   assert.ok(Math.abs(result.points.at(-1)![0]-(300-weapon.projectileRadius))<1e-8);
   assert.ok(Math.abs(result.x-300)<.0001);return result;
  });
@@ -74,7 +75,7 @@ test('weapon disks reach a wall at different times without changing its contact 
 
 test('disk tangency detects the top and bottom of a cell without square corner false positives',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows);terrain[20*WORLD.cols+50]=1;
- const weapon={...WEAPONS[0],gravity:0},radius=weapon.projectileRadius;
+ const weapon={...WEAPONS[0],ball:STRAIGHT_BALL},radius=weapon.projectileRadius;
  for(const y of [60-radius,63+radius]){
   const result=trajectory(terrain,{x:50,y:y+40,facing:1},0,100,0,weapon);
   assert.ok(result.x>=150&&result.x<153);assert.ok(solid(terrain,result.x,result.y));
@@ -91,11 +92,11 @@ test('disk tangency detects the top and bottom of a cell without square corner f
 
 test('fighter collision uses body plus weapon radius and returns a body surface contact',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},target={id:'tangent',x:300,y:119,hp:100};
- const results=WEAPONS.map(weapon=>trajectory(terrain,origin,0,100,0,{...weapon,gravity:0},[target]));
+ const results=WEAPONS.map(weapon=>trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL},[target]));
  assert.equal(results[0].hitId,target.id,'6px ember disk must detect an exact body tangent');
  assert.equal(results[1].hitId,undefined,'3px volt disk clears the same gap');
  assert.equal(results[2].hitId,target.id,'9px crystal disk reaches the body earlier');
- assert.equal(trajectory(terrain,origin,0,100,0,{...WEAPONS[0],gravity:0},[{...target,y:121}]).hitId,undefined,'a shot two pixels beyond the tighter fighter boundary must miss');
+ assert.equal(trajectory(terrain,origin,0,100,0,{...WEAPONS[0],ball:STRAIGHT_BALL},[{...target,y:121}]).hitId,undefined,'a shot two pixels beyond the tighter fighter boundary must miss');
  assert.ok(results[2].flightTime<results[0].flightTime);
  for(const index of [0,2]){
   const result=results[index],center=result.points.at(-1)!;
@@ -107,7 +108,7 @@ test('fighter collision uses body plus weapon radius and returns a body surface 
 test('surface metadata follows the touched cell and fortress disks never destroy terrain',()=>{
  for(const [map,x,material,destructible] of [['garden',300,'earth',true],['park',768,'metal',false],['celestial',300,'stone',false],['celestial',768,'magic',false]] as const)for(const weapon of WEAPONS){
   const terrain=createTerrain(map),before=terrain.slice();
-  const result=trajectory(terrain,{x:x-27,y:200,facing:1},-90,100,0,{...weapon,gravity:0});
+  const result=trajectory(terrain,{x:x-27,y:200,facing:1},-90,100,0,{...weapon,ball:STRAIGHT_BALL});
   const center=result.points.at(-1)!;assert.ok(solid(terrain,result.x,result.y));assert.ok(!solid(terrain,center[0],center[1]));
   assert.deepEqual({...terrainMaterial(map,result.x,result.y),region:undefined},{material,destructible,region:undefined});
   const removed=crater(terrain,result.x,result.y,weapon.crater,map);

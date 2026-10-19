@@ -436,3 +436,8 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - PvP e expedição com tela de carregamento (times, VS, mapa), espera de todos até 100 % e saída de quem passar de 30 s: ver `docs/loading-screen.md`. Testes `tests/loading-screen.test.ts`; prévia real com dois navegadores em `scripts/preview-match-loading.mjs` (PvP, expedição, jogador lento, celular). `test:expedition`, `test:mobile` e `test:immediate` passam; `test:battle`, `test:rooms` e `test:rewards` já falhavam na `main` antes desta mudança (mesmos pontos).
 - 19/10: cobertura de carregamento geral (início, volta da aba, reconexão) e janelas invisíveis até as imagens chegarem (`docs/loading-screen.md`). Prévia `scripts/preview-screen-curtain.mjs`; `test:mobile`, `test:expedition`, `test:immediate`, `test:chat`, `test:colors`, `test:loadout` e `test:reports` passam; `test:battle` falha no mesmo ponto da `main`; `test:shop`/`test:customization` ainda procuram roupas retiradas (Piloto, Dançarina).
 - 19/10: roupa inicial feminina Exploradora da Aurora (em pé, andar e combate pintados pelo Codex, `--set=aurora-female`); conteúdo 16 dá e veste nas personagens femininas que usavam o Cartógrafo.
+
+## Balística do DDTank 4.1 (19/10/2026)
+
+- Voo dos tiros com as fórmulas do DDTank (força ×20, `ax = 24·vento − 0,2·vx`, `ay = 700 − 0,2·vy`, passo 0,04 s, float32) e régua que sobe em 4 s, desce e passa a vez no zero. Detalhes, adaptações e tabela antes/depois em `docs/ballistics.md`.
+- Evidência: `tests/ballistics.test.ts` (vetores de referência −3/0/+3, simetria, alcance com arrasto, relógio da régua) e `npm run test:battle:browser` (régua desce depois de 100, soltar envia o valor que cai, segurar até zero passa a vez).
