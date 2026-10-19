@@ -52,6 +52,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  // Replace owned prototypes, including the equipped variant, without refilling other purchases.
  const replacements={...(raw.contentVersion??0)<10?RETIRED_COSMETIC_REPLACEMENTS:{},...(raw.contentVersion??0)<15?RETIRED_OUTFIT_REPLACEMENTS:{}};
  for(const id of raw.inventory??[]){const replacement=Object.hasOwn(replacements,id)?replacements[id]:undefined;if(replacement&&!inventory.includes(replacement))inventory.push(replacement);}
+ // Content 16: every female character gets the feminine starter outfit once.
+ if((raw.contentVersion??0)<16&&gender==='female'&&!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
  const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');
@@ -72,7 +74,9 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if((raw.contentVersion??0)<14&&raw.compositionStones)for(const stone of COMPOSITION_STONES)if(stone.stat==='luck')compositionStones[stone.id]=Math.max(compositionStones[stone.id],STARTER_COMPOSITION_STONES[stone.id]);
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
-  const saved=raw.equipment?.[slot],id=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
+  const saved=raw.equipment?.[slot],replaced=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
+  // Content 16: women wearing the Cartógrafo move to the feminine starter outfit.
+  const id=slot==='outfit'&&gender==='female'&&(raw.contentVersion??0)<16&&replaced==='outfit-cartographer'?defaults.outfit:replaced;
   if(id&&Object.hasOwn(CATALOG,id)&&slotAccepts(slot,CATALOG[id])&&(inventory.includes(id)||isEmptyItem(id))&&canEquipItem(id,gender)&&!heldInSiblingSlot(equipment,slot,id))equipment[slot]=id;
   else equipment[slot]=isEmptyItem(defaults[slot])||inventory.includes(defaults[slot])?defaults[slot]:inventory.find(owned=>CATALOG[owned]?.slot===slot&&canEquipItem(owned,gender))??unequip[slot]??defaults[slot];
   // Every equipped fallback must actually be owned, including sparse historical profiles.

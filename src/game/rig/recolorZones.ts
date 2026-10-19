@@ -29,6 +29,7 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'outfit-captain':{label:'A casaca vermelha; o dourado, o preto e o branco ficam como estão',hue:.99,tolerance:.04,minSaturation:.35},
  'outfit-hiphop':{label:'O moletom roxo; o dourado, a calça e os tênis ficam como estão',hue:.77,tolerance:.05,minSaturation:.35},
  'outfit-swordsman':{label:'O haori verde-azulado; o quimono, a faixa e a hakama ficam como estão',hue:.52,tolerance:.05,minSaturation:.3},
+ 'outfit-explorer':{label:'O casaco curto azul; o dourado, a blusa e a saia ficam como estão',hue:.6,tolerance:.05,minSaturation:.3},
  'outfit-cartographer':{label:'O casaco azul; o dourado fica como está',hue:.63,tolerance:.06,minSaturation:.25}
 };
 /** Share of a piece's painted pixels that may change: too little reads as "nothing happened", too much

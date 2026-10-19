@@ -102,7 +102,7 @@ test('retired cosmetic items disappear while current equipment uses the thirteen
 });
 
 test('retired outfits migrate to a current owned costume without changing other equipment or resources',()=>{
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-captain','outfit-hiphop','outfit-swordsman']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-captain','outfit-hiphop','outfit-swordsman']);
  for(const retired of ['outfit-ranger','outfit-azure','outfit-royal']){
   assert.equal(CATALOG[retired],undefined);
   const before=normalizeProfile({id:'retired-outfit',name:'Teste'});

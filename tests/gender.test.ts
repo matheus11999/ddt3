@@ -10,14 +10,14 @@ import {normalizeProfile,Store} from '../server/store';
 
 test('gendered appearance, including the navigator glasses, rejects the opposite character gender',()=>{
  const male=['face-brave','face-taunt','face-fierce','face-captain','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain','outfit-hiphop','outfit-swordsman','hat-hiphop','hat-swordsman','hair-hiphop','hair-swordsman','glasses-hiphop'];
- const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy'];
+ const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy','outfit-explorer'];
  for(const [gender,ids] of [['male',male],['female',female]] as const)for(const id of ids){assert.equal(itemGender(id),gender);assert.equal(canEquipItem(id,gender),true);assert.equal(canEquipItem(CATALOG[id],gender==='male'?'female':'male'),false);}
  for(const item of ITEMS){
-  if(item.id.endsWith('-none')||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!['outfit-captain','outfit-hiphop','outfit-swordsman'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
+  if(item.id.endsWith('-none')||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!['outfit-captain','outfit-hiphop','outfit-swordsman','outfit-explorer'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
   else assert.notEqual(itemGender(item),'unisex');
  }
  // The Cartógrafo da Aurora is the starter outfit of both genders; the Capitão Escarlate is a male shop outfit.
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-captain','outfit-hiphop','outfit-swordsman']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-captain','outfit-hiphop','outfit-swordsman']);
  for(const offer of SHOP_OFFERS)assert.equal(offer.gender,itemGender(offer.id),'store categories derive from equipment compatibility');
  for(const id of ['missing','constructor','__proto__'])assert.equal(canEquipItem(id,'male'),false);
  assert.equal(canEquipItem('ember','other' as CharacterGender),false);
@@ -25,19 +25,19 @@ test('gendered appearance, including the navigator glasses, rejects the opposite
 
 test('male and female starter equipment and removal fallbacks are compatible independent copies',()=>{
  assert.deepEqual(starterEquipment('male'),DEFAULT_EQUIPMENT);
- const female=starterEquipment('female');assert.equal(female.face,'face-smile');assert.equal(female.outfit,'outfit-cartographer');assert.equal(female.outfit,starterEquipment('male').outfit);assert.equal(female.hair,'hair-ponytail');assert.equal(female.hat,'hat-ruby');
+ const female=starterEquipment('female');assert.equal(female.face,'face-smile');assert.equal(female.outfit,'outfit-explorer');assert.equal(starterEquipment('male').outfit,'outfit-cartographer');assert.equal(female.hair,'hair-ponytail');assert.equal(female.hat,'hat-ruby');
  for(const gender of CHARACTER_GENDERS){
   assert.ok(SLOTS.every(slot=>canEquipItem(starterEquipment(gender)[slot],gender)));
   assert.ok(Object.values(unequipForGender(gender)).every(id=>canEquipItem(id,gender)));
   const first=starterEquipment(gender);first.weapon='volt';assert.equal(starterEquipment(gender).weapon,'ember');
  }
- assert.equal(unequipForGender('female').face,'face-smile');assert.equal(unequipForGender('female').outfit,'outfit-cartographer');assert.equal(unequipForGender('male').outfit,'outfit-cartographer');
+ assert.equal(unequipForGender('female').face,'face-smile');assert.equal(unequipForGender('female').outfit,'outfit-explorer');assert.equal(unequipForGender('male').outfit,'outfit-cartographer');
 });
 
 test('legacy gender inference preserves property and resources while repairing only incompatible equipped slots',()=>{
  const raw={id:randomUUID(),name:'Legacy dancer',contentVersion:10,equipment:{...DEFAULT_EQUIPMENT,outfit:'outfit-dancer',face:'face-brave',hat:'hat-cap',hair:'hair-undercut'},inventory:['ember','outfit-dancer','face-brave','face-serene','hat-cap','hat-tropical','hair-undercut','hair-wavy','glasses-none','wristband-none','bracelet-none'],gold:137,xp:920,wins:2,matches:5,upgrades:{ember:9},stones:{'1':0,'2':3},compositionStones:{'attack-1':0},compositions:{ember:{attack:20}}};
  const p=normalizeProfile(raw);assert.equal(p.gender,'female');assert.equal(p.contentVersion,CONTENT_VERSION);
- assert.equal(p.equipment.outfit,'outfit-cartographer');assert.ok(!p.inventory.includes('outfit-dancer'),'the retired outfit becomes the Cartógrafo');assert.equal(p.equipment.face,'face-serene');assert.equal(p.equipment.hat,'hat-tropical');assert.equal(p.equipment.hair,'hair-wavy');
+ assert.equal(p.equipment.outfit,'outfit-explorer');assert.ok(p.inventory.includes('outfit-cartographer'),'the retired outfit becomes the Cartógrafo');assert.ok(!p.inventory.includes('outfit-dancer'));assert.equal(p.equipment.face,'face-serene');assert.equal(p.equipment.hat,'hat-tropical');assert.equal(p.equipment.hair,'hair-wavy');
  assert.ok(raw.inventory.filter(id=>!isEmptyItem(id)).map(id=>RETIRED_OUTFIT_REPLACEMENTS[id]??id).every(id=>p.inventory.includes(id)),'existing opposite-gender ownership is retained');assert.ok(SLOTS.every(slot=>canEquipItem(p.equipment[slot],p.gender)));
  assert.equal(p.gold,137);assert.equal(p.xp,920);assert.equal(p.wins,2);assert.equal(p.matches,5);assert.equal(p.stones['1'],0);assert.equal(p.stones['2'],3);assert.equal(p.compositionStones['attack-1'],0);assert.equal(p.upgrades.ember,9);assert.equal(p.equipment.upgrade,9);assert.equal(p.compositions.ember.attack,20);
  assert.deepEqual(normalizeProfile(p),p);
@@ -92,7 +92,7 @@ test('new guests persist their chosen gender and equal starting resources withou
 test('owned opposite-gender face, hat and hair are rejected under the profile row lock with no partial equipment write',async()=>{
  for(const gender of CHARACTER_GENDERS){
   const {store,state}=await database(gender),other=starterEquipment(gender==='male'?'female':'male');
-  assert.equal(other.outfit,state.profile.equipment.outfit,'the single outfit is shared by both genders');
+  assert.notEqual(other.outfit,state.profile.equipment.outfit,'each gender starts in its own outfit');
   for(const slot of ['face','hat','hair'] as const)if(!state.profile.inventory.includes(other[slot]))state.profile.inventory.push(other[slot]);
   for(const slot of ['face','hat','hair'] as const){
    const before=structuredClone(state.profile),mark=state.queries.length;
@@ -125,6 +125,17 @@ test('Cartógrafo da Aurora outfit is shared while its hair and glasses buy and 
  const before=structuredClone(female.state.profile);
  await assert.rejects(female.store.buy(before.id,['glasses-sport',...ids]),/gênero/);
  assert.deepEqual(female.state.profile,before);
- assert.equal(before.equipment.outfit,'outfit-cartographer');
- const outfit=await female.store.buy(before.id,['outfit-cartographer']);assert.equal(outfit.result.spent,360);assert.ok(outfit.profile.inventory.includes('outfit-cartographer~2'));
+ // Women start in the Exploradora da Aurora and can still buy the unisex Cartógrafo.
+ assert.equal(before.equipment.outfit,'outfit-explorer');
+ const outfit=await female.store.buy(before.id,['outfit-cartographer']);assert.equal(outfit.result.spent,360);assert.ok(outfit.profile.inventory.some(key=>key.startsWith('outfit-cartographer')));
+});
+
+test('content 16 gives existing women the Exploradora da Aurora and dresses them in it once',()=>{
+ const raw={id:randomUUID(),name:'Aventureira',gender:'female' as const,contentVersion:15,equipment:{...starterEquipment('female'),outfit:'outfit-cartographer'},inventory:['brick','outfit-cartographer','face-smile','hair-ponytail','hat-ruby'],gold:50};
+ const p=normalizeProfile(raw);
+ assert.equal(p.equipment.outfit,'outfit-explorer');assert.ok(p.inventory.includes('outfit-explorer'));assert.ok(p.inventory.includes('outfit-cartographer'));assert.equal(p.gold,50);
+ // Choosing the Cartógrafo again afterwards sticks.
+ assert.equal(normalizeProfile({...p,equipment:{...p.equipment,outfit:'outfit-cartographer'}}).equipment.outfit,'outfit-cartographer');
+ // Men keep theirs.
+ assert.equal(normalizeProfile({...raw,id:randomUUID(),gender:'male',equipment:{...DEFAULT_EQUIPMENT}}).equipment.outfit,'outfit-cartographer');
 });

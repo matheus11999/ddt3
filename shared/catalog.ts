@@ -76,6 +76,7 @@ export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
  {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',attack:8,defense:14,agility:0,armor:10},
  {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
+ {id:'outfit-explorer',name:'Exploradora da Aurora',slot:'outfit',rarity:'rare',color:'#1f5fc4',description:'Casaco curto de viagem, saia pregueada e botinhas: a roupa inicial das aventureiras.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'explorer',asset:'/assets/outfits/explorer-atlas.png'}},
  {id:'outfit-captain',name:'Capitão Escarlate',slot:'outfit',rarity:'rare',color:'#c4162a',description:'Casaca escarlate de capitão dos céus, dragonas douradas e botas altas.',attack:14,defense:20,agility:12,armor:20,visual:{variant:'captain',asset:'/assets/outfits/captain-atlas.png'}},
  {id:'outfit-hiphop',name:'Rima de Rua',slot:'outfit',rarity:'rare',color:'#7a2fd6',description:'Moletom largo com estrela grafitada, corrente dourada e tênis de cano alto.',attack:12,defense:18,agility:18,armor:18,visual:{variant:'hiphop',asset:'/assets/outfits/hiphop-atlas.png'}},
  {id:'outfit-swordsman',name:'Espadachim Errante',slot:'outfit',rarity:'epic',color:'#1d8f97',description:'Haori de ondas sobre quimono, faixa vermelha e hakama de viajante.',attack:16,defense:18,agility:16,armor:18,visual:{variant:'swordsman',asset:'/assets/outfits/swordsman-atlas.png'}},
@@ -130,7 +131,7 @@ const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
  'face-smile':'female','face-serene':'female','face-wink':'female',
   'hat-cap':'male','hat-thunder':'male','hat-tide':'male','hat-captain':'male','hat-hiphop':'male','hat-swordsman':'male','hat-mage':'female','hat-ruby':'female','hat-tropical':'female',
  'hair-undercut':'male','hair-ponytail':'female','hair-wavy':'female','hair-horizon':'male','hair-captain':'male','hair-hiphop':'male','hair-swordsman':'male',
- 'glasses-navigator':'male','glasses-captain':'male','outfit-captain':'male','glasses-hiphop':'male','outfit-hiphop':'male','outfit-swordsman':'male'
+ 'glasses-navigator':'male','glasses-captain':'male','outfit-captain':'male','glasses-hiphop':'male','outfit-hiphop':'male','outfit-swordsman':'male','outfit-explorer':'female'
 };
 for(const item of ITEMS){
  if(GENDERED_ITEMS[item.id])item.gender=GENDERED_ITEMS[item.id];
@@ -148,7 +149,7 @@ export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as 
 export const STARTER_WEAPON='brick';
 export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
- return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby'}:{...DEFAULT_EQUIPMENT};
+ return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby',outfit:'outfit-explorer'}:{...DEFAULT_EQUIPMENT};
 }
 /** Retired prototypes are rejected by the live catalog; existing ownership is exchanged once. */
 export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
@@ -162,8 +163,9 @@ export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
 };
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
-export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile'}:{...UNEQUIP};}
-export const CONTENT_VERSION=15;
+export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-explorer'}:{...UNEQUIP};}
+/** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
+export const CONTENT_VERSION=16;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */

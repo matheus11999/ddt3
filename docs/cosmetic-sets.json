@@ -138,6 +138,18 @@
     "fit": "hair-short",
     "brief": "short, neat swept-back male cut with a confident side-swept quiff, a few sharp locks falling to the forehead on the right side (still above the eyebrows), short sides and nape, dark chestnut brown with warm copper highlights"
    }
+  },
+  {
+   "id": "aurora-female",
+   "gender": "female",
+   "theme": "exploradora da aurora (roupa inicial feminina)",
+   "outfit": {
+    "id": "outfit-explorer",
+    "name": "Exploradora da Aurora",
+    "colorName": "o casaco curto",
+    "brief": "a FEMININE starter adventurer outfit with a clearly female chibi body: narrow shoulders, slim arms, a defined small waist and soft hips, slimmer legs, small feet; a short cropped sapphire-blue travel jacket with gold trims and a coral lining, a white blouse with a small coral bow at the collar, a brown belt with a little map pouch, a pleated coral-and-cream skirt above the knee, white knee socks and brown ankle boots with gold buckles, bare hands (skin #FCD0AC), one hand lightly on the hip, the other relaxed; a graceful, cute and confident stance with the feet close together, knees slightly turned in. Same painting quality and detail as the approved outfits, but clearly a girl, not a boy",
+    "walkParts": "short sapphire jacket with gold trims, white blouse with coral bow, brown belt with map pouch, pleated coral-and-cream skirt that swings with the step, white knee socks, brown ankle boots"
+   }
   }
  ]
 }

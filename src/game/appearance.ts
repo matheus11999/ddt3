@@ -32,6 +32,7 @@ export const modularAppearanceReady=()=>ENABLE_MODULAR_APPEARANCE&&modular.compl
 export const PAINTED_OUTFITS:Readonly<Record<string,{source:readonly[number,number,number,number];destination:readonly[number,number,number,number];portrait:readonly[number,number,number,number];hue:number}>>={
  'outfit-cartographer':{source:[240,8,775,904],destination:[340,610,542,630],portrait:[240,8,775,904],hue:.61},
  'outfit-captain':{source:[335,5,640,1233],destination:[437,500,384,740],portrait:[335,5,640,1233],hue:.99},
+ 'outfit-explorer':{source:[408,1,538,1082],destination:[436,490,385,775],portrait:[408,1,538,1082],hue:.6},
  'outfit-hiphop':{source:[366,11,602,1164],destination:[474,518,373,722],portrait:[366,11,602,1164],hue:.76},
  'outfit-swordsman':{source:[180,1,948,1133],destination:[334,538,588,702],portrait:[180,1,948,1133],hue:.52}
 };

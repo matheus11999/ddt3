@@ -434,3 +434,4 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 
 ## Tela de carregamento (19/10/2026)
 - PvP e expedição com tela de carregamento (times, VS, mapa), espera de todos até 100 % e saída de quem passar de 30 s: ver `docs/loading-screen.md`. Testes `tests/loading-screen.test.ts`; prévia real com dois navegadores em `scripts/preview-match-loading.mjs` (PvP, expedição, jogador lento, celular). `test:expedition`, `test:mobile` e `test:immediate` passam; `test:battle`, `test:rooms` e `test:rewards` já falhavam na `main` antes desta mudança (mesmos pontos).
+- 19/10: roupa inicial feminina Exploradora da Aurora (em pé, andar e combate pintados pelo Codex, `--set=aurora-female`); conteúdo 16 dá e veste nas personagens femininas que usavam o Cartógrafo.
