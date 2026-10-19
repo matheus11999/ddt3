@@ -20,7 +20,7 @@ const root=resolve('test-results/codex-cosmetics',set.id);
 const APPROVED={
  stand:['public/assets/outfits/cartographer-atlas.png','public/assets/outfits/captain-atlas.png','public/assets/outfits/hiphop-atlas.png','public/assets/outfits/swordsman-atlas.png'],
  hair:['public/assets/hair-horizon.png'],
- hat:['public/assets/headwear-worn-atlas.png','public/assets/hat-captain.png','public/assets/hat-hiphop.png'],
+ hat:['public/assets/headwear-worn-atlas.png','public/assets/hat-captain.png','public/assets/hat-hiphop.png','public/assets/hat-swordsman.png'],
  glasses:['public/assets/glasses-navigator.png','public/assets/glasses-captain.png','public/assets/glasses-hiphop.png'],
  face:['public/assets/faces/face-captain.png'],
  walk:['public/assets/outfits/walk/outfit-captain.png'],
@@ -57,7 +57,7 @@ function pieces(){
   `IMAGE 1 is the game's universal bald head (3/4 view facing right): each lens centre sits on an eye (red); the far lens (right) is smaller and its centre a little LOWER than the near lens centre; total width 0.8-0.95x the head. Show only the NEAR temple arm going back to the LEFT; the far arm is hidden behind the head (nothing above the far lens).`,
   refsNote(2,'glasses'),`The new glasses: ${set.glasses.brief}. Lenses evenly semi-transparent so the eyes stay visible, one soft gloss highlight each.`,STYLE_LOCK,
   `Paint ONLY the glasses, centred, filling most of the width. ${alpha} No face or head.`]});
- if(set.face)list.push({key:'face',refs:['public/assets/faces/face-brave.png',...APPROVED.face],text:[
+ if(set.face)list.push({key:'face',refs:[`public/assets/faces/${set.gender==='female'?'face-smile':'face-brave'}.png`,...APPROVED.face],text:[
   'ART BRIEF',`Use case: precise-object-edit. IMAGE 1 is the universal bald chibi HEAD of the game and the edit target. Change ONLY its INTERNAL facial expression to: ${set.face.brief}. Keep the identical outer head silhouette and registration: same scalp, cheek, chin, ear, nose, skin tones, canvas size and position, head width and height and right-facing three-quarter perspective; keep eyes, eyebrows and mouth in the same places.`,
   refsNote(2,'faces'),STYLE_LOCK,'No hair, no hat, no glasses, no body. Real PNG alpha: fully transparent outside the head, exactly like IMAGE 1.']});
  if(o){

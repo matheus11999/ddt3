@@ -49,6 +49,8 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hair-captain':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-captain.png',[214,58,956,677],[334,57,602,426])},
  'hair-hiphop':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-hiphop.png',[179,190,1064,858],[339,60,532,429])},
  'hair-swordsman':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-swordsman.png',[266,146,894,661],[338,62,584,432])},
+ 'hair-idol':{rig:RIG_VERSION,slot:'hair',fit:'hair-twin',worn:region('/assets/hair-idol.png',[33,170,1202,995],[374.1,93,594.9,492.3])},
+ 'hair-surf':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-surf.png',[196,80,999,1034],[322,92,600,621])},
  'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],shrink([288,25.8,674,533],.9,[760,250])),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
  'hat-cap':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([35,130,522,332],[[126,442],[485,330]])},
  'hat-thunder':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([560,130,490,320],[[600,423],[960,333]],[[560,130],[1050,130],[1050,398],[1020,430],[1020,450],[560,450]])},
@@ -59,11 +61,16 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hat-captain':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-captain.png',source:[140,300,995,605],pin:{from:[[310,852],[1030,774]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-hiphop':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-hiphop.png',source:[126,296,1073,623],pin:{from:[[250,872],[960,756]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-swordsman':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:{atlas:'/assets/hat-swordsman.png',source:[96,324,1081,632],pin:{from:[[330,840],[980,720]],to:HEAD_ANCHORS.hatSeat}}},
+ // Headband and visor sit on the skull without covering the hair ('band').
+ 'hat-idol':{rig:RIG_VERSION,slot:'hat',fit:'hat-band',profile:'band',worn:{atlas:'/assets/hat-idol.png',source:[176,160,928,896],pin:{from:[[376.1,1043.6],[1053.9,871.4]],to:HEAD_ANCHORS.hatSeat}}},
+ 'hat-surf':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'band',worn:{atlas:'/assets/hat-surf.png',source:[108,339,1112,536],pin:{from:[[259.1,795],[1203.6,695]],to:HEAD_ANCHORS.hatSeat}}},
  // Optical centres of each lens land on the universal eye sockets.
  'glasses-sport':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:ACCESSORIES,source:[45,880,570,235],pin:{from:[[344,1014],[557,1042]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
  'glasses-cat':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:ACCESSORIES,source:[640,890,600,240],pin:{from:[[945,1018],[1155,1036]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
  'glasses-navigator':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-navigator.png',source:[29,483,1197,387],pin:{from:[[640,679],[1094,704]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
  'glasses-hiphop':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-hiphop.png',source:[215,234,1556,494],pin:{from:[[965,490],[1548,540]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
+ 'glasses-idol':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-idol.png',source:[260,210,1509,558],pin:{from:[[975,491],[1572,542]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
+ 'glasses-surf':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-surf.png',source:[170,136,1551,608],pin:{from:[[892,444],[1505,514]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
  'glasses-captain':{rig:RIG_VERSION,slot:'glasses',fit:'glasses',worn:{atlas:'/assets/glasses-captain.png',source:[28,254,1736,490],pin:{from:[[879,493],[1539,566]],to:[HEAD_ANCHORS.nearEye,HEAD_ANCHORS.farEye]}}},
 };
 /** Hats with tight, wide or helmet profiles hide the uncovered hairstyle. */

@@ -10,14 +10,14 @@ import {normalizeProfile,Store} from '../server/store';
 
 test('gendered appearance, including the navigator glasses, rejects the opposite character gender',()=>{
  const male=['face-brave','face-taunt','face-fierce','face-captain','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain','outfit-hiphop','outfit-swordsman','hat-hiphop','hat-swordsman','hair-hiphop','hair-swordsman','glasses-hiphop'];
- const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy','outfit-explorer'];
+ const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy','outfit-explorer','outfit-idol','outfit-surf','face-idol','face-surf','hair-idol','hair-surf','hat-idol','hat-surf','glasses-idol','glasses-surf'];
  for(const [gender,ids] of [['male',male],['female',female]] as const)for(const id of ids){assert.equal(itemGender(id),gender);assert.equal(canEquipItem(id,gender),true);assert.equal(canEquipItem(CATALOG[id],gender==='male'?'female':'male'),false);}
  for(const item of ITEMS){
-  if(item.id.endsWith('-none')||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!['outfit-captain','outfit-hiphop','outfit-swordsman','outfit-explorer'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
+  if(item.id.endsWith('-none')||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!['outfit-captain','outfit-hiphop','outfit-swordsman','outfit-explorer','outfit-idol','outfit-surf'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop','glasses-idol','glasses-surf'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
   else assert.notEqual(itemGender(item),'unisex');
  }
  // The Cartógrafo da Aurora is the starter outfit of both genders; the Capitão Escarlate is a male shop outfit.
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-captain','outfit-hiphop','outfit-swordsman']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-idol','outfit-surf','outfit-captain','outfit-hiphop','outfit-swordsman']);
  for(const offer of SHOP_OFFERS)assert.equal(offer.gender,itemGender(offer.id),'store categories derive from equipment compatibility');
  for(const id of ['missing','constructor','__proto__'])assert.equal(canEquipItem(id,'male'),false);
  assert.equal(canEquipItem('ember','other' as CharacterGender),false);
