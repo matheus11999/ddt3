@@ -118,6 +118,8 @@ function roughness(angle:number,seed:number){const a=(seed&1023)/163,b=((seed>>1
 /** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
 /** A square hole is SQUARE_CRATER_DEPTH of its half-width tall on each side of the impact, so it digs little. */
 export const SQUARE_CRATER_DEPTH=.6;
+/** Superellipse exponent of the square hole: 2 is round, higher is boxier (6 read as too square, 19/10/2026). */
+export const SQUARE_CRATER_CORNER=3;
 /** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep). A 'square' hole is a box
  * with softly rounded corners (a superellipse), `r*stretch` wide and SQUARE_CRATER_DEPTH*r deep. */
 export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1,shape?:CraterShape){
@@ -127,7 +129,7 @@ export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEF
   const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
   const dx=(cx*3-x)/stretch,dy=(cy*3-y)/tall,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
-  if(square?(dx/edge)**6+(dy/edge)**6<=1:dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+  if(square?Math.abs(dx/edge)**SQUARE_CRATER_CORNER+Math.abs(dy/edge)**SQUARE_CRATER_CORNER<=1:dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
  }
  return removed;
 }
