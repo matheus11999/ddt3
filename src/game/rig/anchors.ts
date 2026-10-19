@@ -67,9 +67,16 @@ export const FRAME_MARGIN=24;
 /** Drawn head size relative to the body art, applied at neckPivot in every pose and screen.
  * Head cosmetics are pinned in head space, so they scale with it; the template stays 1254px. */
 export const HEAD_SCALE=1.3;
-/** Standing body proportions shared by every outfit, measured with HEAD_SCALE applied.
- * Shoulder width compares the body art with the unscaled reference head (HEAD_WIDTH). */
-export const BODY_PROPORTIONS={headShare:[.47,.53] as const,shoulderWidth:[.85,1.05] as const};
+/** Standing (lobby) body proportions shared by every outfit, measured with HEAD_SCALE applied.
+ * Shoulder width compares the body art with the unscaled reference head (HEAD_WIDTH). Like DDTank,
+ * the body is narrower than the drawn head (the approved Cartógrafo measures 0.61×). */
+export const BODY_PROPORTIONS={headShare:[.47,.53] as const,shoulderWidth:[.5,.8] as const};
+/** Painted lobby walk sheet (docs/combat-frames.md, "Andar do lobby"): the head may bob this many avatar
+ * units between frames and the boots must reach the ground line within `groundGap`. */
+export const WALK_SHEET={frames:6,bob:8,groundGap:4} as const;
+/** Painted combat atlas (docs/combat-frames.md): 12 frames, each painted with its hands; the measured head
+ * may sit this far (avatar units) from the contract's head point. */
+export const COMBAT_SHEET={frames:12,headDrift:8,groundGap:4} as const;
 /** Combat prone body shared by every outfit (docs/prone-combat.md). armShare is the
  * fraction of the prone torso lifted into the universal arms layer; length is the
  * body from feet to fists against the head at HEAD_SCALE; the hand point must

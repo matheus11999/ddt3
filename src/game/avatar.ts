@@ -264,7 +264,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
   // Painted DDTank-style combat frames (docs/combat-frames.md); outfits without them keep the cut-out rig.
-  if(context.combat&&hasCombatFrames(eq.outfit)&&drawCombatBody(c,eq,rig.head,{pose,poseTime,sinceCharge:time-m.chargedAt,phase:m.phase,walk,time,power:context.power??0,face:context.face,lively,weapon,modular:rig.modular})){c.restore();return;}
+  // Outfits painted only for the new flow have no cut-out body: nothing shows while their frames load.
+  if(context.combat&&hasCombatFrames(eq.outfit)&&(drawCombatBody(c,eq,rig.head,{pose,poseTime,sinceCharge:time-m.chargedAt,phase:m.phase,walk,time,power:context.power??0,face:context.face,lively,weapon,modular:rig.modular})||!rig.combat)){c.restore();return;}
   if(context.combat&&rig.combat){
    const painted=rig.combat,crawl=walk,cycle=m.phase,stroke=Math.sin(cycle),breath=Math.sin(time/900)*.28*(1-crawl),hit=pose==='hit'?Math.exp(-Math.max(0,context.poseTime??0)/210):0;
    // Crawl: the chest surges forward on each stroke while the legs drag and
@@ -296,9 +297,13 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(inHand)drawHeldWeapon(c,eq,time,angle,recoil,pose==='charge',context.power??0,m.grab);
    c.restore();c.restore();c.restore();return;
   }
-  const rawWalk=rig.walking?clamp((walk-.04)/.75,0,1)*(1-lie):0,walkBlend=rawWalk>.08?1:0,rootY=bounce+m.bodyY,step=WALK_STEP*Math.max(.25,rawWalk);
+  const rawWalk=rig.walking||hasWalkFrames(eq.outfit)?clamp((walk-.04)/.75,0,1)*(1-lie):0,rootY=bounce+m.bodyY,step=WALK_STEP*Math.max(.25,rawWalk);
   // Outfits with a painted walk cycle (DDTank) switch whole paintings by distance walked; the bob is painted.
-  const sheetWalk=walkBlend>.001&&hasWalkFrames(eq.outfit),distance=m.phase*WALK_STEP*4/(Math.PI*2);
+  // The paintings switch with the movement itself, like DDTank: the first step shows at once and a stop goes
+  // straight back to the standing painting instead of holding a stride while the motion eases out.
+  const sheetWalk=hasWalkFrames(eq.outfit)&&lie<.5&&(walking?walk>.02:walk>.6),distance=m.phase*WALK_STEP*4/(Math.PI*2);
+  // A painted walk sheet replaces the cut-out legs entirely: between the sheet and the standing painting nothing else shows.
+  const walkBlend=hasWalkFrames(eq.outfit)?Number(sheetWalk):rawWalk>.08?1:0;
   // Switch one opaque silhouette at contact; alpha-crossfading two sets of legs creates ghost feet.
   if(rig.walking&&walkBlend>.001&&!sheetWalk){
    c.save();c.globalAlpha*=walkBlend;

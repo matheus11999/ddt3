@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import {CATALOG,ITEMS} from '../shared/catalog';
 import {HEAD_ANCHORS,HEAD_WIDTH,RIG_VERSION} from '../src/game/rig/anchors';
 import {COSMETIC_MANIFEST} from '../src/game/rig/manifest';
-import {evaluateBody,evaluateGlassesVisibility,evaluateItem,evaluatePin,evaluateProne,keepoutPixels} from '../src/game/rig/fit';
+import {evaluateBody,evaluateCombatSheet,evaluateGlassesVisibility,evaluateItem,evaluatePin,evaluateProne,evaluateWalkSheet,keepoutPixels} from '../src/game/rig/fit';
 import type {FitMask} from '../src/game/rig/fit';
 
 const SIZE=HEAD_ANCHORS.atlasSize;
@@ -42,8 +42,8 @@ test('unregistered items, hidden glasses and body proportions are reported',()=>
  const glasses=rect(500,400,200,80),half=rect(500,400,100,80);
  assert.equal(evaluateGlassesVisibility('glasses-sport',glasses,glasses),null);
  assert.equal(evaluateGlassesVisibility('glasses-sport',glasses,half)?.code,'hidden');
- assert.deepEqual(evaluateBody('outfit-test',.5,.95).issues,[]);
- assert.equal(evaluateBody('outfit-test',.55,.7).issues.length,2);
+ assert.deepEqual(evaluateBody('outfit-test',.5,.61).issues,[]);
+ assert.equal(evaluateBody('outfit-test',.55,.95).issues.length,2);
  assert.deepEqual(evaluateProne('outfit-test',.2,1.2,8).issues,[]);
  assert.equal(evaluateProne('outfit-test',.01,.7,90).issues.length,3);
 });
@@ -62,4 +62,18 @@ test('manifests target the current rig and painted art declares a pin inside its
 
 test('every pinned hat and glasses item lands on the universal anchors',()=>{
  for(const [id,manifest] of Object.entries(COSMETIC_MANIFEST))if(manifest.slot!=='hair')assert.equal(evaluatePin(id),null,id);
+});
+
+test('lobby walk sheets and battle atlases are measured frame by frame',()=>{
+ const frame=(head:[number,number],extra:object={})=>({painted:true,cut:false,groundGap:0,head,hands:true,...extra});
+ assert.equal(evaluateWalkSheet('outfit-test',null).issues[0].code,'missing');
+ const walk=[0,1,2,3,4,5].map(i=>frame([0,-112-(i%3)]));
+ assert.deepEqual(evaluateWalkSheet('outfit-test',walk).issues,[]);
+ const codes=evaluateWalkSheet('outfit-test',[...walk.slice(0,4),frame([0,-140],{cut:true}),frame([0,-112],{groundGap:9})]).issues.map(issue=>issue.code).sort();
+ assert.deepEqual(codes,['bob','cut','ground']);
+ const expected=Array.from({length:12},(_,i):[number,number]=>[i<6?28:8,i<6?-44:-72]);
+ assert.equal(evaluateCombatSheet('outfit-test',null,expected).issues[0].code,'missing');
+ assert.deepEqual(evaluateCombatSheet('outfit-test',expected.map(head=>frame(head)),expected).issues,[]);
+ const bad=evaluateCombatSheet('outfit-test',[...expected.slice(0,11).map(head=>frame(head)),frame([30,-30],{hands:false})],expected).issues.map(issue=>issue.code).sort();
+ assert.deepEqual(bad,['anchor','missing']);
 });
