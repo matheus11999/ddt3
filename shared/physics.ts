@@ -98,8 +98,9 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  return moved?{x,y}:null;
 }
 export interface TerrainDig {x:number;y:number;radius:number;stretch?:number}
-/** Where an impact removes terrain. Saved shots from before 19/10/2026 may still carry a `dig` under a hit target;
- * since then every hole is centred on the impact point, as in DDTank (a hit high on the body barely digs). */
+/** A projectile that strikes a body digs the weapon's mask at this share of its size, under the target's feet (`dig`). */
+export const DIRECT_HIT_CRATER=.75;
+/** Where an impact removes terrain: under the target's feet for a body hit, otherwise where the projectile struck. */
 export function impactDig(impact:TerrainDig&{dig?:TerrainDig}):TerrainDig{return impact.dig??impact;}
 /** Broken ground is never a perfect circle: by default the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
 export const CRATER_ROUGHNESS=.14;

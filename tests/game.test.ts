@@ -222,7 +222,7 @@ test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of
 
 /** The projectile stopped on a fighter's body (its impact sits on the body circle, 31 px above the feet). */
 const onBody=(impact:{x:number;y:number},target:{x:number;y:number})=>Math.hypot(impact.x-target.x,impact.y-(target.y-31))<=FIGHTER_HIT_RADIUS+1;
-test('a direct hit digs only where the projectile struck, as in DDTank: no extra hole under the feet',async()=>{
+test('a direct hit digs the weapon mask at 75% in the ground under the target feet',async()=>{
  let found=false;
  for(let power=20;power<=100&&!found;power+=2){
   const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
@@ -231,10 +231,11 @@ test('a direct hit digs only where the projectile struck, as in DDTank: no extra
   await f.game.command(shooter.id,{type:'fire',angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')?.shot;
   const direct=shot?.projectiles.find(p=>onBody(p.impact,target));if(!direct)continue;found=true;
-  assert.equal((direct.impact as {dig?:unknown}).dig,undefined,'no hole planned under the target');
+  const dig=(direct.impact as {dig?:{x:number;y:number;radius:number}}).dig!;
+  assert.ok(dig,'a hole is planned under the target');assert.equal(dig.y,target.y,'at the feet');assert.equal(dig.radius,Math.round(direct.impact.radius*.75));
   assert.equal(direct.impact.shape,'brick');
   const mark=f.match.pendingImpacts!.find(p=>p.projectileIndex===shot!.projectiles.indexOf(direct))!.mark;
-  assert.equal(mark.x,direct.impact.x);assert.equal(mark.y,direct.impact.y,'the hole is centred on the impact point');
+  assert.deepEqual({x:mark.x,y:mark.y,radius:mark.radius},dig,'the mark digs the same hole');
  }
  assert.ok(found,'some power lands a direct hit');
 });

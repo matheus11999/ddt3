@@ -31,7 +31,7 @@ Leia e siga `AGENTS.md`: ele vale para todos os agentes, inclusive o Claude. Est
   - Mapas podem ser mais largos que a tela (`dimensions.width`); altura sempre 864; cair na base mata.
   - Spawns: 4 por time (até 8 jogadores), posição 1 é a do 1x1 (900–1200 px de distância), sempre em chão livre.
   - Antes de mostrar: zerar os AVISOs do `build:map` (objeto flutuando, peça escondida sem motivo, emenda do fundo, spawn obstruído) e olhar `test-results/maps-kit/<id>/montage.png` (mapa inteiro, a imagem para mostrar ao usuário) e `spawns.png`. Tudo precisa ter motivo para estar ali (o usuário rejeitou um portão sem função e montes de neve parecendo nuvem sobre a ponte).
-  - Crateras: como no DDTank, cada arma tem uma máscara fixa (`craterShape`) e o POW tem a sua (`powCraterShape`), em `CRATER_MASKS` de `shared/physics.ts`; o buraco fica centrado onde o projétil bateu (tiro no corpo cava só ali, sem buraco extra sob os pés).
+  - Crateras: como no DDTank, cada arma tem uma máscara fixa (`craterShape`) e o POW tem a sua (`powCraterShape`), em `CRATER_MASKS` de `shared/physics.ts`; o buraco fica centrado onde o projétil bateu; tiro no corpo cava a mesma máscara a 75% no chão sob os pés do alvo (`DIRECT_HIT_CRATER`, pedido do matheus em 19/10: sem isso o acerto no corpo não cavava nada).
 - Corpo deitado de roupa nova: pintar sobre `docs/templates/prone-body.png` (contrato em `docs/prone-combat.md`); nunca coordenadas de braço por roupa.
 
 ## Gosto do usuário (aprovado e rejeitado)
