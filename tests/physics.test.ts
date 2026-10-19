@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
 import {STRAIGHT_BALL} from './fixtures/weapons';
-import {crater,CRATER_ROUGHNESS,SQUARE_CRATER_DEPTH,DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH,directHitDig,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_MASKS,CRATER_ROUGHNESS,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
@@ -178,16 +178,6 @@ test('the Quebra-Tijolos digs a rounder crater than the default jagged edge',()=
  assert.ok(spread(rough)<=40*(1+rough)+.01);assert.ok(spread(rough)<spread(CRATER_ROUGHNESS));
 });
 
-test('a direct hit digs a shallow bowl under the feet that shows past the body on both sides',()=>{
- const brick=WEAPONS.find(weapon=>weapon.id==='brick')!,x=1040,t=createTerrain('snow'),feet=ground(t,x),hole=directHitDig(x,feet,brick.crater);
- assert.equal(hole.radius,brick.crater*DIRECT_HIT_DIG,'shallower than a ground hit');
- assert.ok(crater(t,hole.x,hole.y,hole.radius,'snow',weaponRoughness(brick),hole.stretch)>0);
- // The fighter is about 70 px wide: the ground must open beyond its sides, not only right under it.
- for(const side of [-1,1]){const edge=x+side*(DIRECT_HIT_HALF_WIDTH-6);assert.ok(ground(t,edge)>feet,`dug at ${edge}`);}
- assert.ok(ground(t,x)-feet<=brick.crater*DIRECT_HIT_DIG+3,'no deeper than the share of the crater');
- const wide=directHitDig(x,feet,80);assert.equal(wide.stretch,undefined,'a big crater is already wider than the body');
-});
-
 test('a rival standing on top of the shooter is passed through, one a little aside is hit',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:600,y:700,facing:1 as const},weapon={...WEAPONS[0],projectileRadius:6};
  const at=(dx:number)=>[{id:'rival',x:origin.x+dx,y:origin.y,hp:100}];
@@ -199,11 +189,16 @@ test('a rival standing on top of the shooter is passed through, one a little asi
  assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(0)).hitId,'rival');
 });
 
-test('a square crater is a shallow box: as wide as the round one, much less deep, flat walls',()=>{
+test('weapon masks are fixed DDTank-like shapes: flat brick hexagon, ovals, own POW masks, never noisy',()=>{
  const make=()=>{const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let r=200;r<WORLD.rows;r++)t.fill(1,r*WORLD.cols,(r+1)*WORLD.cols);return t;};
- const round=make(),square=make();crater(round,600,600,22,'garden',0);crater(square,600,600,22,'garden',0,1,'square');
- assert.ok(ground(square,600)-600<ground(round,600)-600,'digs less deep');
- assert.ok(ground(square,600)-600<=Math.ceil(22*SQUARE_CRATER_DEPTH)+3);
- // Near the side the box keeps almost all its depth; the round bowl is already shallow there.
- assert.ok(ground(square,618)-600>=ground(square,600)-600-3&&ground(round,618)-600<ground(round,600)-600-6);
+ const dig=(shape?:keyof typeof CRATER_MASKS,x=600,r=22)=>{const t=make();crater(t,x,600,r,'garden',0,1,shape);return t;};
+ const round=dig(),brick=dig('brick');
+ assert.ok(ground(brick,600)-600<ground(round,600)-600,'the brick digs less deep than a circle of the same width');
+ assert.ok(Math.abs(ground(brick,600)-600-22*CRATER_MASKS.brick.height)<=3,'about 63/96 of the width deep');
+ // Flat floor: the middle of the brick hole keeps its depth; the circle is already shallower there.
+ assert.ok(ground(brick,609)>=ground(brick,600)-3&&ground(round,615)<ground(round,600)-3);
+ // Same shape wherever it lands (no per-impact noise) and the POW mask differs from the normal one.
+ const a=dig('brick',600),b=dig('brick',900);for(let dx=-30;dx<=30;dx+=3)assert.equal(ground(a,600+dx),ground(b,900+dx));
+ assert.notDeepEqual(dig('brick-pow'),brick);assert.notDeepEqual(dig('oval-pow'),dig('oval'));
+ assert.ok(ground(dig('oval'),600)>ground(brick,600)-1,'the oval is a little deeper than the brick at the same width');
 });

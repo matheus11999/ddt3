@@ -143,7 +143,7 @@ html.mobile-landscape .pets-window .pets-stage { min-height: 230px; }
 html.mobile-landscape .pets-window .pets-stats div { padding: 2px 8px; }
 html.mobile-landscape .pets-window .pets-call { min-height: 38px; font-size: 17px; }
 /* The pet on the stage lives like it does beside its owner (src/game/petSprite.ts petIdlePose): it breathes and sways
-   from the feet, and over a 13.2 s routine hops twice, turns to look away and back, and shakes happily. */
+   from the feet, and over a 13.2 s routine hops twice, hops round to look away and back, and shakes happily. */
 .pets-window .pets-figure .pets-portrait { transform-origin: 50% 100%; animation: pet-breathe 3.3s ease-in-out infinite, pet-sway 5.6s ease-in-out infinite; }
 .pets-window .pets-figure .pets-portrait img { transform-origin: 50% 100%; animation: pet-routine 13.2s linear infinite; }
 @keyframes pet-breathe { 0%, 100% { scale: 1.015 .97; } 50% { scale: .985 1.03; } }
@@ -156,9 +156,17 @@ html.mobile-landscape .pets-window .pets-call { min-height: 38px; font-size: 17p
  23.7% { translate: 0 -12px; scale: .96 1.05; }
  25.8% { translate: 0 0; scale: 1.06 .92; }
  27% { translate: 0 0; scale: 1 1; }
- 52%, 53.4% { scale: 1 1; }
- 54.4%, 61.4% { scale: -1 1; }
- 62.4%, 83.3% { scale: 1 1; rotate: 0deg; }
+ 52% { translate: 0 0; scale: 1 1; }
+ 52.6% { translate: 0 0; scale: 1.05 .93; }
+ 53.2% { translate: 0 -8px; scale: 1 1; }
+ 53.25% { translate: 0 -8px; scale: -1 1; }
+ 53.8% { translate: 0 0; scale: -1.04 .95; }
+ 54.4%, 61.6% { translate: 0 0; scale: -1 1; }
+ 62.2% { translate: 0 0; scale: -1.05 .93; }
+ 62.8% { translate: 0 -8px; scale: -1 1; }
+ 62.85% { translate: 0 -8px; scale: 1 1; }
+ 63.4% { translate: 0 0; scale: 1.04 .95; }
+ 64%, 83.3% { translate: 0 0; scale: 1 1; rotate: 0deg; }
  84.5% { rotate: -6deg; scale: 1 1.04; } 86% { rotate: 6deg; } 87.5% { rotate: -5deg; } 89% { rotate: 5deg; } 90.5% { rotate: -3deg; }
  92%, 100% { rotate: 0deg; scale: 1 1; translate: 0 0; }
 }

@@ -21,16 +21,16 @@ export function petIdleBeat(time:number,seed=0):{beat:PetIdleBeat;progress:numbe
  const t=time+seed%(PET_IDLE_CYCLE*IDLE_ROUTINE.length),index=Math.floor(t/PET_IDLE_CYCLE);
  return {beat:IDLE_ROUTINE[((index%IDLE_ROUTINE.length)+IDLE_ROUTINE.length)%IDLE_ROUTINE.length],progress:t/PET_IDLE_CYCLE-index};
 }
-const smooth=(x:number)=>{x=Math.min(1,Math.max(0,x));return x*x*(3-2*x);};
 /**
  * How a single painted figure moves while idle, anchored at its feet, like the plaza NPCs: it always breathes and
- * sways in the breeze, and along the routine it hops twice, turns to look away and back, or shakes happily.
+ * sways in the breeze, and along the routine it hops twice, hops round to look away and back, or shakes happily.
  */
 export function petIdlePose(time:number,seed=0){
  const {beat,progress:p}=petIdleBeat(time,seed),phase=seed%997;
  let lift=0,squash=Math.sin((time+phase)/520)*.03,skew=Math.sin((time+phase)/900)*.035,turn=1;
  if(beat==='hop'&&p<.6){const k=p/.3,arc=Math.sin(Math.PI*(k%1));lift=arc*10;squash+=arc>.15?.05*arc:-.08*(1-arc/.15);}
- if(beat==='look'){const away=smooth((p-.12)/.08)-smooth((p-.72)/.08);turn=Math.cos(Math.PI*away);}
+ // Turning is a snap at the top of a little hop, as painted figures turn in DDTank: never squeezing flat like paper.
+ if(beat==='look'){for(const at of [.12,.72]){const k=(p-at)/.14;if(k>=0&&k<1){const arc=Math.sin(Math.PI*k);lift=arc*7;squash+=arc>.2?.03*arc:-.06;}}turn=p>=.19&&p<.79?-1:1;}
  if(beat==='wiggle'&&p<.55){const env=Math.sin(Math.PI*p/.55);skew+=Math.sin(p*70)*.11*env;squash+=.04*env;}
  return {lift,squash,skew,turn};
 }

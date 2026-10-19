@@ -10,7 +10,7 @@ import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
 import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,directHitDig,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps';
@@ -1045,10 +1045,9 @@ export class Game {
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
   const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{
-   // A shot that hits a fighter in full still digs a little, under the target's feet.
-   const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined;
-   const dig=victim?directHitDig(result.x,victim.y,radius):undefined;
-   const rough=weaponRoughness(w),shape=w.craterShape,impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole:TerrainDig=dig??impact;
+   // The hole is the weapon's fixed mask; a projectile that strikes a body digs that mask at 75% in the ground under the target's feet.
+   const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined,dig:TerrainDig|undefined=victim?{x:result.x,y:victim.y,radius:Math.round(radius*DIRECT_HIT_CRATER)}:undefined;
+   const rough=weaponRoughness(w),shape=fragment?undefined:powered&&w.powCraterShape?w.powCraterShape:w.craterShape,impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
@@ -1061,8 +1060,8 @@ export class Game {
    }
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
-   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch,shape);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(shape?{shape}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,1,shape);this.settle(simulated);
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(shape?{shape}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{

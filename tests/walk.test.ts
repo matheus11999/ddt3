@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS} from '../shared/catalog';
-import {createTerrain,crater,directHitDig,ground,solid,walkPosition,WALK_CLIMB,WALK_STEP,weaponRoughness,WORLD} from '../shared/physics';
+import {createTerrain,crater,ground,solid,walkPosition,WALK_CLIMB,WALK_STEP,weaponRoughness,WORLD} from '../shared/physics';
 
 const COLS=512,SURFACE=600,BRICK_CRATER=22;
 function flat(){const t=new Uint8Array(COLS*WORLD.rows);for(let r=SURFACE/3;r<WORLD.rows;r++)t.fill(1,r*COLS,(r+1)*COLS);return t;}
@@ -24,12 +24,6 @@ test('a single brick crater is the steepest hole a fighter can still walk into a
    assert.ok(Math.max(...path.map(p=>p.y))>=SURFACE+18,`entered the crater at ${x}`);
    assert.ok(end.y===SURFACE&&Math.abs(end.x-x)>BRICK_CRATER*1.3,`climbed out at ${x} going ${direction}`);
   }
- }
-});
-
-test('the shallow dent of a direct hit can still be walked out of',()=>{
- for(const x of centers){const t=flat(),hole=directHitDig(x,SURFACE,BRICK_CRATER);for(let cy=0;cy<WORLD.rows;cy++)for(let cx=0;cx<COLS;cx++){const dx=(cx*3-x)/(hole.stretch??1),dy=cy*3-SURFACE;if(dx*dx+dy*dy<=hole.radius*hole.radius)t[cy*COLS+cx]=0;}
-  const end=walk(t,{x,y:ground(t,x)},1,30).at(-1)!;assert.ok(end.x>x+20&&end.y===SURFACE,`left the dent at ${x}`);
  }
 });
 
@@ -61,14 +55,11 @@ test('walls up to a prone body high are climbed; taller walls and low ceilings s
  assert.equal(walk(ledge,{x:570,y:SURFACE},1,10).at(-1)!.y,SURFACE-9,'a low ledge is stepped onto');
 });
 
-test('the box two direct hits dig, and a crater plus a hit, can be climbed out of (user, 19/10/2026)',()=>{
- const x=1110;
- const twice=createTerrain('snow'),surface=ground(twice,x);
- for(let n=0;n<2;n++){const d=directHitDig(x,ground(twice,x),22);crater(twice,d.x,d.y,d.radius,'snow',weaponRoughness({}),d.stretch);}
- const brick=WEAPONS.find(weapon=>weapon.id==='brick')!,mixed=createTerrain('snow');crater(mixed,x,surface,brick.crater,'snow',weaponRoughness(brick));
- const d=directHitDig(x,ground(mixed,x),brick.crater);crater(mixed,d.x,d.y,d.radius,'snow',weaponRoughness(brick),d.stretch);
- for(const t of [twice,mixed])for(const direction of [1,-1] as const){
-  assert.ok(ground(t,x)>surface+30);
-  const end=walk(t,{x,y:ground(t,x)},direction,30).at(-1)!;assert.ok(end.y<=surface+6&&Math.abs(end.x-x)>40,`climbed out going ${direction}: ${end.x},${end.y}`);
+test('two or three Quebra-Tijolos holes dug into each other can be climbed out of (user, 19/10/2026)',()=>{
+ const x=1110,brick=WEAPONS.find(weapon=>weapon.id==='brick')!;
+ for(const shots of [2,3]){const t=createTerrain('snow'),surface=ground(t,x);
+  for(let n=0;n<shots;n++)crater(t,x,ground(t,x),brick.crater,'snow',weaponRoughness(brick),1,brick.craterShape);
+  assert.ok(ground(t,x)>surface+20);
+  for(const direction of [1,-1] as const){const end=walk(t,{x,y:ground(t,x)},direction,30).at(-1)!;assert.ok(end.y<=surface+6&&Math.abs(end.x-x)>40,`${shots} holes, going ${direction}: ${end.x},${end.y}`);}
  }
 });
