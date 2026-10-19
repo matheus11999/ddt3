@@ -1048,7 +1048,7 @@ export class Game {
    // A shot that hits a fighter in full still digs a little, under the target's feet.
    const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined;
    const dig=victim?directHitDig(result.x,victim.y,radius):undefined;
-   const rough=weaponRoughness(w),impact={x:result.x,y:result.y,radius,roughness:rough,...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole:TerrainDig=dig??impact;
+   const rough=weaponRoughness(w),shape=w.craterShape,impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole:TerrainDig=dig??impact;
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
@@ -1061,8 +1061,8 @@ export class Game {
    }
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
-   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,hole.stretch,shape);this.settle(simulated);
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(hole.stretch?{stretch:hole.stretch}:{}),...(shape?{shape}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
@@ -1117,7 +1117,7 @@ export class Game {
    hits.push({...planned,x:target.x,y:target.y-85});landed.push({...planned,dealt:absorbed,died:alive&&target.hp<=0});
   }
   this.petHits(m,shooter,shot.id,landed);
-  const dug=crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch);
+  const dug=crater(m.terrain,impact.mark.x,impact.mark.y,impact.mark.radius,m.state.map,impact.mark.roughness,impact.mark.stretch,impact.mark.shape);
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
   // Unbreakable instance ground (the anthill) keeps no burn marks either.

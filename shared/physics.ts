@@ -1,4 +1,4 @@
-import type {MapId, Weapon} from './catalog';
+import type {CraterShape, MapId, Weapon} from './catalog';
 import {canonicalMap,cellBits,contains,getMap,MAP_DEFAULT} from './maps';
 import type {MaterialId,MapRegion} from './maps';
 import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
@@ -116,14 +116,18 @@ export function weaponRoughness(weapon:{craterRoughness?:number}){return weapon.
 function roughness(angle:number,seed:number){const a=(seed&1023)/163,b=((seed>>10)&1023)/163,c=((seed>>20)&1023)/163;
  return (Math.sin(angle*5+a)*.45+Math.sin(angle*9+b)*.35+Math.sin(angle*17+c)*.2+1)/2;}
 /** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
-/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep). */
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1){
- const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+rough),reach=extent*stretch;
+/** A square hole is SQUARE_CRATER_DEPTH of its half-width tall on each side of the impact, so it digs little. */
+export const SQUARE_CRATER_DEPTH=.6;
+/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep). A 'square' hole is a box
+ * with softly rounded corners (a superellipse), `r*stretch` wide and SQUARE_CRATER_DEPTH*r deep. */
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1,shape?:CraterShape){
+ const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663,square=shape==='square',tall=square?SQUARE_CRATER_DEPTH:1;let removed=0;const extent=r*(1+rough)*tall,reach=r*(1+rough)*stretch;
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-reach)/3));cx<Math.min(cols,Math.ceil((x+reach)/3));cx++){
   const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const dx=(cx*3-x)/stretch,dy=cy*3-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+  const dx=(cx*3-x)/stretch,dy=(cy*3-y)/tall,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
+  if(square?(dx/edge)**6+(dy/edge)**6<=1:dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
  }
  return removed;
 }
