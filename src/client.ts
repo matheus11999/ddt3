@@ -151,7 +151,7 @@ class Client {
   case 'room-invitation':if(!this.state.room&&!this.state.battle&&e.invite.expiresAt>Date.now()+this.state.offset)this.update({roomInvitations:[...this.state.roomInvitations.filter(invite=>invite.id!==e.invite.id),e.invite].slice(-5)});break;
   case 'room-invite-result':this.update({inviteResults:[...this.state.inviteResults.slice(-19),e],...(e.status!=='sent'?{roomInvitations:this.state.roomInvitations.filter(invite=>invite.id!==e.inviteId)}:{})});break;
   case 'loading':this.update({loading:e.loading,...(e.dropped?{loadingDropped:{kind:e.dropped,at:Date.now()}}:{})});break;
-  case 'room':this.update({...(!e.room||e.room.status!=='playing'?{loading:null}:{}),room:e.room,...(e.room?{roomInvitations:[]}:{}),...(e.room?.id!==this.state.room?.id?{invitePlayers:[],inviteListRoomId:null,inviteResults:[]}:{})});break;
+  case 'room':this.update({...(!e.room||e.room.status!=='playing'?{loading:null}:{}),room:e.room,...(e.room?{roomInvitations:[]}:{}),...(e.room?.id!==this.state.room?.id?{invitePlayers:[],inviteListRoomId:null,inviteResults:[],chat:this.state.chat.filter(m=>m.channel!=='room')}:{})});break;
   case 'battle':{
    const changed=e.battle?.id!==this.state.battle?.id,active=e.battle?.activeShot;
    const shot=active??(!e.battle||!!e.battle.powerCutIn||changed||(e.battle.terrain!==undefined&&e.battle.phase!=='resolving')?null:this.state.shot);
@@ -188,7 +188,8 @@ class Client {
   case 'mail':this.update({mails:e.mails,mailUnread:e.unread,mailLoaded:true,mailPending:false});break;
   case 'mail-claim-result':this.update({mailClaim:{...e.result,at:Date.now()},mailPending:false});break;
   case 'report-result':this.update({reportResult:{playerId:e.playerId,name:e.name,at:Date.now()}});break;
-  case 'chat':this.update({chat:[...this.state.chat.slice(-79),e.message]});break;
+  // A whisper with nobody picked yet: the chat answers that player.
+  case 'chat':{const m=e.message,from=m.channel==='private'&&m.playerId&&m.playerId!==this.state.profile?.id&&!this.state.chatTarget?{id:m.playerId,name:m.name}:null;this.update({chat:[...this.state.chat.slice(-79),m],...(from?{chatTarget:from}:{})});break;}
   case 'error':if(this.state.mailPending)this.update({mailPending:false});if(this.state.petPending)this.update({petPending:false});if(this.state.guildPending)this.update({guildPending:false});if(this.state.auctionPending)this.update({auctionPending:false});if(e.requestId&&this.abilityLoadoutQueue.reject(e.requestId))clearTimeout(this.loadoutTimer);if(e.requestId&&this.customizationQueue.reject(e.requestId))clearTimeout(this.customizationTimer);this.update({error:e.message});break;
   case 'pong':this.update({latency:Date.now()-e.time,offset:e.serverTime-(e.time+Date.now())/2});break;
  }}

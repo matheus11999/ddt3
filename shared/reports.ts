@@ -43,7 +43,7 @@ export interface PlayerInfo {
  upgrades:Record<string,number>;compositions:Compositions;itemColors:Record<string,string>;
 }
 /** One line the reported player wrote; `room` is the room number when it was the room chat. */
-export interface ReportChatLine {at:number;channel:'world'|'room'|'private';text:string;room?:number;/** Private message: who it went to. */to?:string;}
+export interface ReportChatLine {at:number;channel:'world'|'room'|'guild'|'private';text:string;room?:number;/** Private message: who it went to. */to?:string;/** Guild message: the guild's name. */guild?:string;}
 export interface ReportSummary {
  id:number;status:ReportStatus;reason:ReportReason;details:string;createdAt:string;
  reporter:{id:string;name:string};target:{id:string;name:string;level:number};

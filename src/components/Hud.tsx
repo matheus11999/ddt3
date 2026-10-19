@@ -2,6 +2,7 @@ import {CouponIcon,RewardIcon} from './RewardIcon';
 import {useEffect,useRef,useState} from 'react';
 import {Send,MapPin,Volume2,VolumeX,Settings,Expand,ChevronDown,Check,X,PawPrint} from 'lucide-react';
 import type {ReactNode} from 'react';
+import type {ChatChannel} from '../../shared/protocol';
 import {PowerIcon} from './PowerIcon';
 import {LevelBadge} from './LevelBadge';
 import {levelProgress} from '../../shared/progression';
@@ -50,12 +51,25 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   <div className="xp-bottom"><div style={{width:`${progress.percent}%`}}/><span>{progress.capped?`NÍVEL ${p.level} · MÁXIMO`:`EXP ${progress.current} / ${progress.required}`}</span></div>
  </>;
 }
-export function Chat(){const {chat,room,chatTarget,profile}=useGame();const [text,setText]=useState(''),[channel,setChannel]=useState<'world'|'room'|'private'>('world');const end=useRef<HTMLDivElement>(null),input=useRef<HTMLInputElement>(null);useEffect(()=>{const list=end.current?.parentElement;if(list)list.scrollTop=list.scrollHeight;},[chat,channel]);useEffect(()=>{setChannel(room?'room':'world');},[room?.id]);
+type ChatTab=ChatChannel;
+const CHAT_TABS:{id:ChatTab;label:string}[]=[{id:'world',label:'Mundo'},{id:'room',label:'Sala'},{id:'guild',label:'Guilda'},{id:'private',label:'Privado'}];
+const CHAT_HINTS:Record<ChatTab,string>={world:'Bem-vindo à rua de Brasa.',room:'Conversa da sala: só quem está nela (e na batalha) lê.',guild:'Conversa da guilda: todos os membros online leem.',private:'Clique com o botão direito em um jogador e escolha Enviar mensagem.'};
+/** The chat: one tab per channel. Whispers show in every tab, so none is missed; a tab with news gets a dot. */
+export function Chat(){const {chat,room,chatTarget,profile,guild}=useGame();const inGuild=!!guild?.guild;const [text,setText]=useState(''),[channel,setChannel]=useState<ChatTab>(room?'room':'world');const [seen,setSeen]=useState<Partial<Record<ChatTab,string>>>(()=>Object.fromEntries(CHAT_TABS.map(t=>[t.id,chat.filter(m=>m.channel===t.id).at(-1)?.id])));const end=useRef<HTMLDivElement>(null),input=useRef<HTMLInputElement>(null);
+ useEffect(()=>{const list=end.current?.parentElement;if(list)list.scrollTop=list.scrollHeight;},[chat,channel]);useEffect(()=>{setChannel(room?'room':'world');},[room?.id]);
+ // Leaving the guild (or the room) drops its tab back to Mundo.
+ useEffect(()=>{if((channel==='guild'&&!inGuild)||(channel==='room'&&!room))setChannel('world');},[channel,inGuild,room]);
+ const last=(tab:ChatTab)=>chat.filter(m=>m.channel===tab).at(-1);
+ useEffect(()=>{const id=last(channel)?.id;if(id&&seen[channel]!==id)setSeen(s=>({...s,[channel]:id}));},[chat,channel]);
  // "Enviar mensagem" in the player menu: switch to the private tab, writing to that player.
  useEffect(()=>{const focus=()=>{setChannel('private');requestAnimationFrame(()=>input.current?.focus());};window.addEventListener('brasa-chat-focus',focus);return()=>window.removeEventListener('brasa-chat-focus',focus);},[]);
  const privateTo=channel==='private'?chatTarget:null,me=profile?.id;
- return <><div className="chat-tabs"><button className={channel==='world'?'active':''} onClick={()=>setChannel('world')}>Mundo</button><button disabled={!room} className={channel==='room'?'active':''} onClick={()=>setChannel('room')}>Sala</button><button className={channel==='private'?'active':''} onClick={()=>setChannel('private')}>Privado</button></div><div className="chat-messages" aria-live="polite">{channel==='private'?<p className="system-message">Clique com o botão direito em um jogador e escolha Enviar mensagem.</p>:<p className="system-message">Bem-vindo à rua de Brasa.</p>}{chat.filter(m=>m.channel===channel).slice(-30).map(m=>{
+ const unread=(tab:ChatTab)=>{const m=last(tab);return tab!==channel&&tab!=='private'&&!!m&&m.id!==seen[tab]&&m.playerId!==me;};
+ const enabled=(tab:ChatTab)=>tab==='room'?!!room:tab==='guild'?inGuild:true;
+ const reply=(target:{id?:string;name?:string})=>{if(target.id&&target.name){client.update({chatTarget:{id:target.id,name:target.name}});setChannel('private');requestAnimationFrame(()=>input.current?.focus());}};
+ const lines=chat.filter(m=>m.channel===channel||m.channel==='private').slice(-30);
+ return <><div className="chat-tabs">{CHAT_TABS.map(t=><button key={t.id} type="button" data-channel={t.id} disabled={!enabled(t.id)} title={t.id==='guild'&&!inGuild?'Entre em uma guilda para usar':undefined} className={channel===t.id?'active':''} data-unread={unread(t.id)||undefined} onClick={()=>setChannel(t.id)}>{t.label}</button>)}</div><div className="chat-messages" aria-live="polite"><p className="system-message">{CHAT_HINTS[channel]}</p>{lines.map(m=>{
    if(m.channel==='private'){const mine=m.playerId===me,other=mine?{id:m.toId,name:m.toName}:{id:m.playerId,name:m.name};
-    return <p key={m.id} className="chat-private"><strong {...playerMenuProps(other.id?{id:other.id,name:other.name??'',context:'chat'}:null)} title="Responder" onClick={()=>{if(other.id&&other.name){client.update({chatTarget:{id:other.id,name:other.name}});input.current?.focus();}}}>{mine?`Para ${m.toName}`:`De ${m.name}`}:</strong> {m.text}</p>;}
-   return <p key={m.id}><strong {...playerMenuProps(m.playerId?{id:m.playerId,name:m.name,context:'chat'}:null)}>{m.name}:</strong> {m.text}</p>;})}<div ref={end}/></div><form className="chat-input" onSubmit={e=>{e.preventDefault();if(!text.trim())return;if(channel==='private'){if(!chatTarget)return;client.send({type:'chat',text,channel,to:chatTarget.id});}else client.send({type:'chat',text,channel});setText('');}}>{privateTo&&<button type="button" className="chat-target" title="Parar de conversar em privado" onClick={()=>client.clearChatTarget()}>Para {privateTo.name} <X size={11}/></button>}<input ref={input} aria-label="Mensagem de chat" maxLength={180} disabled={channel==='private'&&!chatTarget} placeholder={channel==='private'&&!chatTarget?'Escolha um jogador…':'Enter para conversar…'} value={text} onChange={e=>setText(e.target.value)}/><button aria-label="Enviar mensagem"><Send size={14}/></button></form></>;
+    return <p key={m.id} className="chat-private"><strong {...playerMenuProps(other.id?{id:other.id,name:other.name??'',context:'chat'}:null)} title="Responder" onClick={()=>reply(other)}>{mine?`Para ${m.toName}`:`De ${m.name}`}:</strong> {m.text}</p>;}
+   return <p key={m.id} className={m.channel==='guild'?'chat-guild':undefined}><strong {...playerMenuProps(m.playerId?{id:m.playerId,name:m.name,context:'chat'}:null)}>{m.name}:</strong> {m.text}</p>;})}<div ref={end}/></div><form className="chat-input" onSubmit={e=>{e.preventDefault();if(!text.trim())return;if(channel==='private'){if(!chatTarget)return;client.send({type:'chat',text,channel,to:chatTarget.id});}else client.send({type:'chat',text,channel});setText('');}}>{privateTo&&<button type="button" className="chat-target" title="Parar de conversar em privado" onClick={()=>client.clearChatTarget()}>Para {privateTo.name} <X size={11}/></button>}<input ref={input} aria-label="Mensagem de chat" maxLength={180} disabled={channel==='private'&&!chatTarget} placeholder={channel==='private'&&!chatTarget?'Escolha um jogador…':'Enter para conversar…'} value={text} onChange={e=>setText(e.target.value)}/><button aria-label="Enviar mensagem"><Send size={14}/></button></form></>;
 }

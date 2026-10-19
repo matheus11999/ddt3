@@ -611,6 +611,10 @@ export class Game {
       this.emit(p,{type:'chat',message:line});this.emit(target,{type:'chat',message:line});
      }
      else if(c.channel==='room'){const r=this.room(p);this.logChat(id,{at:msg.time,channel:'room',text:c.text,room:r.number});const m=this.matchForRoom(r.id);const recipients=m&&m.state.phase!=='finished'?this.matchPeers(m):this.roomMembers(r).map(s=>this.peers.get(s.id)).filter((peer):peer is Peer=>!!peer&&peer.roomId===r.id);for(const peer of recipients)this.emit(peer,{type:'chat',message:msg});}
+     else if(c.channel==='guild'){
+      const mine=this.memberships.get(id);if(!mine)throw Error('Você não está em uma guilda.');this.logChat(id,{at:msg.time,channel:'guild',text:c.text,guild:mine.name});
+      for(const peer of this.peers.values())if(peer.connected&&this.memberships.get(peer.profile.id)?.guildId===mine.guildId)this.emit(peer,{type:'chat',message:msg});
+     }
      else{this.logChat(id,{at:msg.time,channel:'world',text:c.text});for(const peer of this.peers.values())if(peer.channel===p.channel)this.emit(peer,{type:'chat',message:msg});}break;
     }
     case 'auction-list':{
