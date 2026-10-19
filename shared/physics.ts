@@ -55,6 +55,13 @@ export const WALK_STEP_UP=15;
 /** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 60°): a single Quebra-Tijolos crater is the steepest hole that can still be walked out of; deeper or stacked pits trap. */
 export const WALK_SLOPE_SPAN=12;
 export const WALK_MAX_RISE=21;
+/** A wall or lip up to about the prone body's height can be climbed in one pull (user, 19/10/2026: the
+ * box a couple of direct hits dig, or its undercut rim, must not trap). Measured from the lowest ground
+ * within WALK_CLIMB_SPAN behind, so a long steep ramp, two stacked craters or a pit three body hits deep still stops the walk. */
+export const WALK_CLIMB=45;
+/** How far ahead of the feet the arms reach for a lip to pull up on (the prone body lies forward). */
+export const WALK_REACH=16;
+export const WALK_CLIMB_SPAN=36;
 /** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
 const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
 /**
@@ -65,17 +72,26 @@ const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
  */
 export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1|-1):{x:number;y:number}|null {
  const min=30,max=terrainWidth(t)-30;let x=Math.max(min,Math.min(max,origin.x)),y=origin.y,moved=false;
+ const bodyBlocked=(nx:number,ny:number)=>{for(let px=0;px<=WALK_BODY_FRONT;px+=WORLD.cell)for(let py=ny-WALK_BODY_TOP;py<ny-WALK_BODY_WAIST;py+=WORLD.cell)if(solid(t,nx+direction*px,py))return true;return false;};
  for(let n=0;n<WALK_STEP;n++){
   const nx=x+direction;if(nx<min||nx>max)break;
-  const top=y-WALK_STEP_UP;if(solid(t,nx,top))break;
-  const ny=ground(t,nx,top);
-  if(ny<y){
-   // Sustained slope: compare with the ground a span behind the new foot.
-   const behind=ground(t,nx-direction*WALK_SLOPE_SPAN,ny);if(behind<=WORLD.height&&behind-ny>WALK_MAX_RISE)break;
+  const top=y-WALK_STEP_UP;let ny=solid(t,nx,top)?-1:ground(t,nx,top);
+  // Sustained slope: compare with the ground a span behind the new foot.
+  if(ny>=0&&ny<y){const behind=ground(t,nx-direction*WALK_SLOPE_SPAN,ny);if(behind<=WORLD.height&&behind-ny>WALK_MAX_RISE)ny=-1;}
+  if(ny>=0&&bodyBlocked(nx,ny))ny=-1;
+  if(ny<0){
+   // Blocked by a wall, a steep bit or an overhanging lip just ahead: pull up onto its top if it is low enough.
+   const lid=y-WALK_CLIMB;let to=-1;
+   for(let px=0;px<=WALK_REACH;px++){
+    const cx=nx+direction*px;if(cx<min||cx>max||solid(t,cx,lid))break;
+    const climb=ground(t,cx,lid);if(climb>=y)continue;
+    let floor=y;for(let back=1;back<=WALK_CLIMB_SPAN;back+=WORLD.cell){const g=ground(t,cx-direction*back,climb);if(g<=WORLD.height)floor=Math.max(floor,g);}
+    if(floor-climb>WALK_CLIMB||bodyBlocked(cx,climb))continue;
+    to=cx;ny=climb;break;
+   }
+   if(to<0)break;
+   n+=Math.abs(to-nx);x=to;y=ny;moved=true;continue;
   }
-  let blocked=false;
-  for(let px=0;px<=WALK_BODY_FRONT&&!blocked;px+=WORLD.cell)for(let py=ny-WALK_BODY_TOP;py<ny-WALK_BODY_WAIST;py+=WORLD.cell)if(solid(t,nx+direction*px,py)){blocked=true;break;}
-  if(blocked)break;
   const drop=ny-y;x=nx;y=ny;moved=true;
   if(drop>WALK_STEP_UP)break; // stepped off a ledge: the fall takes over
  }
@@ -83,8 +99,8 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
 }
 /** A projectile that hits a fighter in full digs only this share of its crater's depth, under the target's feet. */
 export const DIRECT_HIT_DIG=.75;
-/** The hole under a hit fighter is at least this wide on each side of the feet, so it shows past the body (a fighter is about 70 px wide). */
-export const DIRECT_HIT_HALF_WIDTH=46;
+/** The hole under a hit fighter is at least this wide on each side of the feet, so it shows past the body (the prone body reaches about 50 px ahead of and behind the feet; 19/10/2026 its head sank into a narrower rim). */
+export const DIRECT_HIT_HALF_WIDTH=56;
 export interface TerrainDig {x:number;y:number;radius:number;stretch?:number}
 /** A direct hit digs a shallow bowl under the feet: DIRECT_HIT_DIG of the crater deep, at least as wide as the body. */
 export function directHitDig(x:number,feet:number,radius:number):TerrainDig{

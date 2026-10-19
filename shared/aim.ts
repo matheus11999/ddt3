@@ -6,16 +6,25 @@ import type {Fighter} from './protocol';
 const clamp=(value:number,min:number,max:number)=>Math.max(min,Math.min(max,value));
 export const MAX_AIM_SLOPE=30;
 
+/** Half-width of the ground read under a fighter: about the prone body's length, so a
+ * pebble or a one-cell step no longer tips the whole body (user report, 19/10/2026). */
+export const SUPPORT_SPAN=30;
+const SUPPORT_STEP=3;
+
 /** Fit the support under the feet, ignoring a distant floor across a cliff.
+ * Theil–Sen (median of pairwise slopes) over the body's width: a small bump moves
+ * only a few of the pairs and leaves the median on the real ground line.
  * Screen Y grows downward; facing into an uphill slope raises the firing arc. */
 export function terrainAimOffset(terrain:Uint8Array,fighter:{x:number;y:number;facing:1|-1}):number {
  if(fighter.y>=WORLD.height)return 0;
- const samples=[-12,-6,0,6,12].map(dx=>({x:dx,y:ground(terrain,fighter.x+dx,Math.max(0,fighter.y-48))-fighter.y}))
-  .filter(point=>Math.abs(point.y)<=48);
- if(samples.length<3)return 0;
- const meanX=samples.reduce((sum,p)=>sum+p.x,0)/samples.length,meanY=samples.reduce((sum,p)=>sum+p.y,0)/samples.length;
- const numerator=samples.reduce((sum,p)=>sum+(p.x-meanX)*(p.y-meanY),0),denominator=samples.reduce((sum,p)=>sum+(p.x-meanX)**2,0);
- const slope=denominator?Math.atan(numerator/denominator)*180/Math.PI:0;
+ const samples:{x:number;y:number}[]=[];
+ for(let dx=-SUPPORT_SPAN;dx<=SUPPORT_SPAN;dx+=SUPPORT_STEP){const y=ground(terrain,fighter.x+dx,Math.max(0,fighter.y-48))-fighter.y;if(Math.abs(y)<=48)samples.push({x:dx,y});}
+ if(samples.length<5||samples.at(-1)!.x-samples[0].x<SUPPORT_SPAN*.6)return 0;
+ const slopes:number[]=[];
+ for(let i=0;i<samples.length;i++)for(let j=i+1;j<samples.length;j++){const a=samples[i],b=samples[j];if(b.x-a.x>=SUPPORT_SPAN*.4)slopes.push((b.y-a.y)/(b.x-a.x));}
+ if(!slopes.length)return 0;
+ slopes.sort((a,b)=>a-b);const mid=slopes.length>>1,gradient=slopes.length%2?slopes[mid]:(slopes[mid-1]+slopes[mid])/2;
+ const slope=Math.atan(gradient)*180/Math.PI;
  return Math.round(clamp(-fighter.facing*slope,-MAX_AIM_SLOPE,MAX_AIM_SLOPE))||0;
 }
 

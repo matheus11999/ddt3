@@ -33,3 +33,12 @@ test('a cliff without local support does not tilt aim toward a distant floor',()
  const terrain=floor(0);for(let x=201;x<WORLD.cols;x++)for(let y=0;y<WORLD.rows;y++)terrain[y*WORLD.cols+x]=0;
  assert.equal(terrainAimOffset(terrain,fighter()),0);
 });
+test('a small bump beside the feet does not tip the body',()=>{
+ const terrain=floor(0);
+ // A pebble two cells wide and two cells high, a few pixels to the side.
+ for(const cx of [204,205])for(const cy of [198,199])terrain[cy*WORLD.cols+cx]=1;
+ assert.equal(terrainAimOffset(terrain,fighter()),0);
+ // A one-cell step under the body is still flat ground, not a steep ramp (it read 9° before).
+ const step=floor(0);for(let x=201;x<WORLD.cols;x++)step[199*WORLD.cols+x]=1;
+ assert.ok(Math.abs(terrainAimOffset(step,fighter()))<=4);
+});
