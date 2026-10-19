@@ -438,3 +438,8 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - 19/10: roupa inicial feminina Exploradora da Aurora (em pé, andar e combate pintados pelo Codex, `--set=aurora-female`); conteúdo 16 dá e veste nas personagens femininas que usavam o Cartógrafo.
 - 19/10: crateras no modelo do DDTank: máscara fixa por arma e por POW (`CRATER_MASKS`, `craterShape`/`powCraterShape` em `shared/catalog.ts`), centrada no ponto do impacto; acerto no corpo não cava mais buraco extra sob os pés. Testes em `tests/physics.test.ts`, `tests/game.test.ts` e `tests/walk.test.ts` (sair de 2 ou 3 buracos de tijolo).
 - 19/10: acerto no corpo volta a cavar: a máscara da arma a 75% no chão sob os pés do alvo (`DIRECT_HIT_CRATER`, campo `dig` do impacto).
+
+## Balística do DDTank 4.1 (19/10/2026)
+
+- Voo dos tiros com as fórmulas do DDTank (força ×20, `ax = 24·vento − 0,2·vx`, `ay = 700 − 0,2·vy`, passo 0,04 s, float32) e régua que sobe em 4 s, desce e passa a vez no zero. Detalhes, adaptações e tabela antes/depois em `docs/ballistics.md`.
+- Evidência: `tests/ballistics.test.ts` (vetores de referência −3/0/+3, simetria, alcance com arrasto, relógio da régua) e `npm run test:battle:browser` (régua desce depois de 100, soltar envia o valor que cai, segurar até zero passa a vez).

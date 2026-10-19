@@ -36,7 +36,7 @@ test('the server rejects walking into a crate without consuming movement vigor',
 
 test('extra volleys use a fixed cadence before the first impact and terrain settles only at impact',async()=>{
  const {game,events,match,shooter}=await fixture();shooter.x=650;shooter.y=ground(match.terrain,650);shooter.hp=shooter.maxHp=10000;const before=match.terrain.slice();
- await game.command(shooter.id,{type:'boost',boost:'extra1'});await game.command(shooter.id,{type:'fire',angle:85,power:5});
+ await game.command(shooter.id,{type:'boost',boost:'extra1'});await game.command(shooter.id,{type:'fire',angle:85,power:20});
  const shot=events.get(shooter.id)!.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,2);const [first,second]=shot.projectiles;
  assert.equal(second.delay,VOLLEY_CADENCE_MS);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
