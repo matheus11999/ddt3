@@ -295,7 +295,7 @@ test('a kill on the first projectile of a +2 lets the rest fly through the body,
 
 test('tools, passing and shots add their Delay to the fighter who used them',async()=>{
  const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,start=player.delay!;
- await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+110);
- await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+165);
- await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+265);
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+500);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+650);
+ await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+750);
 });

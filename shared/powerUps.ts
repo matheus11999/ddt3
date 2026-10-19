@@ -15,8 +15,8 @@ export const SHOT_MODES:Record<'extra1'|'extra2'|'trident',ShotMode>={
 };
 /** Percentage damage bonuses (+0.10 to +0.50). */
 export const DAMAGE_BONUSES:Partial<Record<BoostId,number>>={damage50:.5,damage40:.4,damage30:.3,damage20:.2,damage10:.1};
-/** Angle offsets of the Tridente's three projectiles (the project's existing spread). */
-export const TRIDENT_SPREAD=[-9,0,9] as const;
+/** Angle offsets of the Tridente's three projectiles around the chosen angle (DDTank 4.1: −5°, 0°, +5°). */
+export const TRIDENT_SPREAD=[-5,0,5] as const;
 
 /**
  * Combination matrix (configurable). +1 and +2 repeat while Vigor lasts (matheus, 19/10): each use adds its
