@@ -33,7 +33,7 @@ export interface ColorChange {target:string;color:string|null;}
 export interface ColorResult {changes:ColorChange[];tickets:number;}
 export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
-export interface SynthesisResult {stone:string;target:string;count:number;consumed:number;}
+export interface SynthesisResult {stone:string;target:string;count:number;consumed:number;cost:number;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
 export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;/** Guild name shown under the player's name on the room cards. */guild?:string;}
