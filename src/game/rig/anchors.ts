@@ -55,8 +55,8 @@ export interface FitZone {
 export const FIT_ZONES:Readonly<Record<FitClass,FitZone>>={
  'hair-short':{maxWidth:1.45,maxAboveCrown:.30,maxBottom:640,keepoutTolerance:60},
  'hair-long':{maxWidth:1.55,maxAboveCrown:.30,maxBottom:820,keepoutTolerance:60},
- 'hat-tight':{maxWidth:1.40,maxAboveCrown:.60,maxBottom:450,keepoutTolerance:null},
- 'hat-wide':{maxWidth:1.75,maxAboveCrown:.90,maxBottom:470,keepoutTolerance:null},
+ 'hat-tight':{maxWidth:1.40,maxAboveCrown:.60,maxBottom:470,keepoutTolerance:null},
+ 'hat-wide':{maxWidth:1.75,maxAboveCrown:.90,maxBottom:495,keepoutTolerance:null},
  'hat-band':{maxWidth:1.20,maxAboveCrown:.30,maxBottom:420,keepoutTolerance:0},
  'hat-helmet':{maxWidth:1.30,maxAboveCrown:.70,maxBottom:470,keepoutTolerance:0},
  'glasses':{maxWidth:.95,minWidth:.80,maxAboveCrown:0,maxBottom:560,minTop:HEAD_ANCHORS.browLine-60,keepoutTolerance:null}

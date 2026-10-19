@@ -18,8 +18,8 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | --- | --- | --- | --- |
 | `hair-short` | 1,45 | 0,30 | Até y=640; sem cobrir olhos/boca |
 | `hair-long` | 1,55 | 0,30 | Até y=820 (atrás do corpo); sem cobrir olhos/boca |
-| `hat-tight` | 1,40 | 0,60 | Até y=450 |
-| `hat-wide` | 1,75 | 0,90 | Até y=470 |
+| `hat-tight` | 1,40 | 0,60 | Até y=470 (19/10: chapéu assentado na testa, como no DDTank; a visibilidade dos óculos continua medida) |
+| `hat-wide` | 1,75 | 0,90 | Até y=495 |
 | `hat-band` | 1,20 | 0,30 | Até y=420; sem cobrir olhos/boca |
 | `hat-helmet` | 1,30 | 0,70 | Até y=470; sem cobrir olhos/boca |
 | `glasses` | 0,80–0,95 | — | A partir de y=340; frente ≥70% visível (aba pode cobrir o topo do aro) |
