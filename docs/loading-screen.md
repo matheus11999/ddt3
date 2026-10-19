@@ -16,3 +16,12 @@ Entre achar a partida (ou iniciar um estágio de expedição) e a batalha, todos
 - A praça sai da memória já no carregamento (`Scene.tsx`).
 
 Prévia com dois jogadores reais (precisa do jogo rodando): `node scripts/preview-match-loading.mjs` (`PLAYERS=1..4` por lado, `KIND=expedition`, `SLOW=1` para o jogador que não carrega, `HOLD=ms` para atrasar o último e fotografar o carregamento, `VIEWPORT=844x390`). Testes: `tests/loading-screen.test.ts`.
+
+## Cobertura geral do jogo (19/10, pedido do matheus)
+Além da tela da partida, uma cobertura de tela cheia ("BRASA ARENA" com barra) impede que o jogador veja conteúdo pela metade:
+- **Início**: fica até chegar o estado do servidor (`welcome`), as fontes, todas as imagens na tela decodificadas e um quadro completo do canvas (praça com toda a arte, ou a batalha). Se a entrada falhar, mostra o erro e "Tentar novamente".
+- **Volta da aba**: aba escondida por 1,5 s ou mais (`RESUME_AFTER_MS`) volta coberta; as imagens são decodificadas de novo (o navegador descarta a arte decodificada de aba escondida) e a cobertura sai com um quadro completo. Olhada rápida não mostra nada.
+- **Reconexão**: conexão caiu → "Conexão perdida. Reconectando…" até o novo `welcome` estar na tela. O aviso pequeno ficou só para "entrou em outra aba".
+- **Janelas e listas**: toda peça nova da tela (janela, aba, item, dica) com imagem ainda carregando fica invisível até as imagens chegarem (no máximo 1,5 s; `src/screenAssets.ts`, atributo `data-pictures-pending`). Vale para `<img>` e fundos de CSS, inclusive `::before`/`::after`.
+
+Arquivos: `src/screenCurtain.ts` (quando cobrir e quando sair), `src/components/ScreenCurtain.tsx` (+ `.css`), `src/screenAssets.ts`, `src/game/scenePaint.ts` (o `Scene` avisa o primeiro quadro completo). Prévia: `node scripts/preview-screen-curtain.mjs` (`VIEWPORT=844x390` para celular; precisa do jogo rodando).

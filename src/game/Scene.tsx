@@ -34,6 +34,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
+import {scenePaint} from './scenePaint';
 import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
@@ -93,7 +94,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
    // avoid repainting the full world at the monitor's refresh rate underneath.
-   if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){frame=requestAnimationFrame(render);lastPaint=0;return;}
+   // Covered by a menu or the room: nothing under the loading cover is left to paint.
+   if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){if(!document.hidden&&scenePaint.wanted())scenePaint.done();frame=requestAnimationFrame(render);lastPaint=0;return;}
    if(t<nextPaint-1){frame=requestAnimationFrame(render);return;}
    // Back from a battle that ended abruptly (left mid-match): hold the last frame while the plaza decodes, rather than an empty sky.
    if(!state.battle&&t-leftBattleAt<1500&&!lobby.ready(el.width/W)){frame=requestAnimationFrame(render);return;}
@@ -271,6 +273,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}
     c.restore();lobby.drawOverlay(c,t);
    }
+   // A loading cover waits for a frame with every painting in it (the plaza's art decodes over a few frames).
+   if(scenePaint.wanted()&&(b||lobby.ready(el.width/W)))scenePaint.done();
    frame=requestAnimationFrame(render);
   };
   // Right click on someone in the plaza (walkers and the podium) opens the player menu.
