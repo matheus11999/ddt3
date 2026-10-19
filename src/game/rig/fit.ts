@@ -5,7 +5,7 @@ import {COSMETIC_MANIFEST} from './manifest';
 /** Alpha coverage in template space: pixel (x,y) is template (x-originX, y-originY). */
 export interface FitMask {width:number;height:number;originX:number;originY:number;data:Uint8Array;}
 export interface Bounds {x:number;y:number;width:number;height:number;area:number;}
-export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor'|'missing'|'cut'|'ground'|'bob'|'ear'|'seat';message:string;measured:number;limit:number;}
+export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor'|'missing'|'cut'|'ground'|'bob'|'ear'|'seat'|'color';message:string;measured:number;limit:number;}
 export interface FitReport {id:string;fit?:FitClass;bounds:Bounds|null;widthRatio:number;issues:FitIssue[];}
 
 export function maskFromAlpha(rgba:Uint8ClampedArray,width:number,height:number,originX:number,originY:number,threshold=40):FitMask{

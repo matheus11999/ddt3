@@ -65,6 +65,7 @@ function pieces(){
   const sheet=(key,template,prompt,extra)=>({key,after:'stand',refs:[template,stand,...extra],text:['ART BRIEF',
    readFileSync(`docs/combat-art-prompts/${prompt}.txt`,'utf8').replace(/\r/g,'').replace(/^IMAGE 4.*\n/m,'')
     .replace('(coat with its tails, shirt, belt, map scroll, trousers, boots)',`(${o.walkParts})`).replace(/the coat tails swinging naturally with the step/g,'loose cloth swinging naturally with the step'),
+   `SAME OUTFIT IN EVERY FRAME: IMAGE 2 is the source of truth. Copy every one of its details exactly, at the same place on the body, so nothing changes when the character starts walking: ${o.details??o.walkParts}. Do not add, drop, move or redesign any print, trim, pocket, strap or accessory; only the pose changes.`,
    `The LAST attached image is the same kind of sheet already approved for another outfit: match its painting style and finish (not its clothes).`,STYLE_LOCK]});
   list.push(sheet('walk','docs/templates/walk.png','walk',APPROVED.walk));
   list.push(sheet('ground','docs/templates/combat-ground.png','ground',['output/pdf/ddtank-rig-imagens/04-caminhada.png',...APPROVED.combat]));

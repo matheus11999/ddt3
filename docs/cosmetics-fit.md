@@ -63,6 +63,8 @@ Mede cada peça isolada, as 54 combinações chapéu × cabelo com cada óculos 
 
 ## Como adicionar um cosmético
 
+**Mesma roupa em todas as pinturas (19/10):** o andar e a batalha são pintados em imagens separadas e o Codex pode mudar detalhes. O prompt das folhas agora lista cada detalhe da pintura parada (`details` em `docs/cosmetic-sets.json`) e manda copiar tudo; o validador compara a cor média da zona do Ticket de Cor na pintura parada, no andar e na batalha (diferença máxima 40) e acusa "Cor da roupa muda". Para só acertar a cor, `python scripts/match-outfit-color.py <roupa> <matiz>` iguala o andar e a batalha à pintura parada.
+
 **Encaixe automático (19/10):** depois de pintar, `node scripts/fit-cosmetic.mjs <id> [<id>...]` testa escalas e deslocamentos do pin e imprime o que zera os problemas do validador (zona, olhos e boca, orelha, assento); cabelo e óculos mudam `pin.to`, chapéu muda `pin.from` (o `to` é sempre `hatSeat`). Ele não grava nada: cole o valor no manifesto e confira as prévias, porque o validador mede medida, não beleza. Classe `hair-twin` (maria-chiquinha, até 2× a cabeça); tiaras e viseiras (`hat-band`) não passam pelo teste de assento.
 
 Roupa nova (fluxo de 19/10, exemplo: Capitão Escarlate em `docs/captain-art.md`): pintura em pé sem cabeça (registrada em `PAINTED_OUTFITS`), folha de andar (`build-walk-atlas.py`) e as duas pranchas de combate (`build-combat-atlas.py`), todas pelo Codex; depois `node scripts/preview-cosmetic-set.mjs <ids>` e `node scripts/preview-lobby-walk.mjs` (andar no lobby a 60 fps: nenhum quadro sem corpo, sem passada congelada depois de parar). Item novo de loja entra também em `SHOP_ONLY_COSMETICS` (`server/store.ts`), senão perfis antigos o ganham de graça.
