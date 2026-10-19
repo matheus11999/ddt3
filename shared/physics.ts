@@ -97,17 +97,9 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
  }
  return moved?{x,y}:null;
 }
-/** A projectile that hits a fighter in full digs only this share of its crater's depth, under the target's feet. */
-export const DIRECT_HIT_DIG=.75;
-/** The hole under a hit fighter is at least this wide on each side of the feet, so it shows past the body (the prone body reaches about 50 px ahead of and behind the feet; 19/10/2026 its head sank into a narrower rim). */
-export const DIRECT_HIT_HALF_WIDTH=56;
 export interface TerrainDig {x:number;y:number;radius:number;stretch?:number}
-/** A direct hit digs a shallow bowl under the feet: DIRECT_HIT_DIG of the crater deep, at least as wide as the body. */
-export function directHitDig(x:number,feet:number,radius:number):TerrainDig{
- const depth=radius*DIRECT_HIT_DIG,stretch=Math.max(1,DIRECT_HIT_HALF_WIDTH/depth);
- return stretch>1?{x,y:feet,radius:depth,stretch}:{x,y:feet,radius:depth};
-}
-/** Where an impact removes terrain: under the target on a direct hit, else at the explosion. */
+/** Where an impact removes terrain. Saved shots from before 19/10/2026 may still carry a `dig` under a hit target;
+ * since then every hole is centred on the impact point, as in DDTank (a hit high on the body barely digs). */
 export function impactDig(impact:TerrainDig&{dig?:TerrainDig}):TerrainDig{return impact.dig??impact;}
 /** Broken ground is never a perfect circle: by default the edge only grows, by up to this share, with a jagged profile seeded by the impact point (same result on server and clients). */
 export const CRATER_ROUGHNESS=.14;
@@ -116,20 +108,24 @@ export function weaponRoughness(weapon:{craterRoughness?:number}){return weapon.
 function roughness(angle:number,seed:number){const a=(seed&1023)/163,b=((seed>>10)&1023)/163,c=((seed>>20)&1023)/163;
  return (Math.sin(angle*5+a)*.45+Math.sin(angle*9+b)*.35+Math.sin(angle*17+c)*.2+1)/2;}
 /** Every destructible region breaks the same way: the drawn material (crystal, stone, metal…) is only looks. */
-/** A square hole is SQUARE_CRATER_DEPTH of its half-width tall on each side of the impact, so it digs little. */
-export const SQUARE_CRATER_DEPTH=.6;
-/** Superellipse exponent of the square hole: 2 is round, higher is boxier (6 read as too square, 19/10/2026). */
-export const SQUARE_CRATER_CORNER=3;
-/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep). A 'square' hole is a box
- * with softly rounded corners (a superellipse), `r*stretch` wide and SQUARE_CRATER_DEPTH*r deep. */
+/** DDTank-style hole masks, in units of the crater radius (half the width), centred on the impact and
+ * never rotated or stretched by the shot. Proportions follow the DDTank 4.1 client masks: the Quebra-Tijolos
+ * is a flattened hexagon with a flat floor (96×63), the Bumerangue an oval (107×72); each POW has its own. */
+export const CRATER_MASKS:Record<CraterShape,{height:number;inside:(x:number,y:number)=>boolean}>={
+ brick:{height:.66,inside:(x,y)=>Math.abs(y)<=.66&&Math.abs(x)<=1-.45*Math.abs(y)/.66},
+ 'brick-pow':{height:.66,inside:(x,y)=>Math.abs(y)<=.66&&Math.abs(x)<=1-.32*Math.abs(y)/.66&&Math.abs(x)+Math.abs(y)<=1.42},
+ oval:{height:.67,inside:(x,y)=>x*x+(y/.67)**2<=1},
+ 'oval-pow':{height:.59,inside:(x,y)=>x*x+(y/.59)**2<=1},
+};
+/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep); `shape` picks a fixed mask instead of the circle. */
 export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1,shape?:CraterShape){
- const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663,square=shape==='square',tall=square?SQUARE_CRATER_DEPTH:1;let removed=0;const extent=r*(1+rough)*tall,reach=r*(1+rough)*stretch;
+ const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663,mask=shape?CRATER_MASKS[shape]:undefined,tall=mask?.height??1;let removed=0;const extent=r*(1+rough)*tall,reach=r*(1+rough)*stretch;
  for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
  for(let cx=Math.max(0,Math.floor((x-reach)/3));cx<Math.min(cols,Math.ceil((x+reach)/3));cx++){
   const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
   if(!region?.destructible)continue;
-  const dx=(cx*3-x)/stretch,dy=(cy*3-y)/tall,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
-  if(square?Math.abs(dx/edge)**SQUARE_CRATER_CORNER+Math.abs(dy/edge)**SQUARE_CRATER_CORNER<=1:dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+  const dx=(cx*3-x)/stretch,dy=cy*3-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
+  if(mask?mask.inside(dx/edge,dy/edge):dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
  }
  return removed;
 }
