@@ -9,6 +9,7 @@ import type {ProfileStore} from '../server/store';
 import {attachmentLabel,mailSendSchema} from '../shared/mail';
 import type {MailAttachment,MailMessage} from '../shared/mail';
 import {commandSchema} from '../shared/protocol';
+import './fixtures/pets';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
 test('attachments add coins, stones, tickets and one separate copy per item',()=>{
@@ -82,4 +83,13 @@ test('"Receber tudo" claims every letter once and updates the live profile',asyn
  assert.equal(last('error')?.message,'Nenhum anexo para receber.');assert.equal(last('profile')?.profile.gold,350);
  await game.command(a.id,{type:'mail-read',id:3});await game.command(a.id,{type:'mail-delete',id:3});
  assert.equal(letters.length,2);assert.equal(last('mail')?.unread,0);
+});
+
+test('pet food arrives by mail and stacks; unknown food is refused by the panel and skipped on claim',()=>{
+ const p=normalizeProfile({id:randomUUID(),name:'Ária',gender:'male'});
+ assert.ok(mailSendSchema.safeParse({subject:'Comida',attachments:[{kind:'pet-food',food:'pet-food-test',amount:10}]}).success);
+ assert.equal(mailSendSchema.safeParse({subject:'Comida',attachments:[{kind:'pet-food',food:'pet-food-nada',amount:10}]}).success,false);
+ applyAttachments(p,[{kind:'pet-food',food:'pet-food-test',amount:10},{kind:'pet-food',food:'pet-food-test',amount:5},{kind:'pet-food',food:'pet-food-nada',amount:3}]);
+ assert.equal(p.petFood['pet-food-test'],15);assert.equal(p.petFood['pet-food-nada'],undefined);
+ assert.equal(attachmentLabel({kind:'pet-food',food:'pet-food-test',amount:10}),'10× Ração de teste');
 });

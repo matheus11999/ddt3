@@ -2,6 +2,7 @@ import type pg from 'pg';
 import {CATALOG,isArmorSlot,MAX_UPGRADE,nextCopyKey,WEAPONS} from '../shared/catalog';
 import {canCompose,normalizeCompositions} from '../shared/composition';
 import {MAX_COLOR_TICKETS} from '../shared/colors';
+import {PET_FOODS} from '../shared/pets';
 import {MAIL_DEFAULT_SENDER,MAIL_INBOX_LIMIT} from '../shared/mail';
 import type {MailAttachment,MailClaimResult,MailMessage} from '../shared/mail';
 import type {Profile} from '../shared/protocol';
@@ -26,6 +27,8 @@ export function applyAttachments(profile:Profile,attachments:readonly MailAttach
   else if(a.kind==='stone'){const tier=String(a.level);profile.stones[tier]=(profile.stones[tier]??0)+a.amount;}
   else if(a.kind==='composition')profile.compositionStones[a.stone]=(profile.compositionStones[a.stone]??0)+a.amount;
   else if(a.kind==='ticket')profile.colorTickets=Math.min(MAX_COLOR_TICKETS,profile.colorTickets+a.amount);
+  // Food removed from the game after it was sent is skipped, like items.
+  else if(a.kind==='pet-food'){if(PET_FOODS.has(a.food))profile.petFood[a.food]=(profile.petFood[a.food]??0)+a.amount;}
   else if(a.kind==='item'){
    // An item removed from the game after it was sent is simply skipped.
    if(!Object.hasOwn(CATALOG,a.item))continue;
