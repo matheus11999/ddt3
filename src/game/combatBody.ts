@@ -47,10 +47,11 @@ export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since t
 export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:AvatarPart,state:CombatBodyState):boolean {
  const atlas=combatAtlas(eq),entry=ATLASES[eq.outfit];if(!atlas||!entry)return false;
  const blend=combatFrameBlend(state.pose,state.poseTime,state.phase,state.walk,state.sinceCharge),name=blend.name,index=combatFrameIndex(name),spec=COMBAT_FRAMES[name],next=COMBAT_FRAMES[blend.next];
- // Crawling like DDTank (19/10, matheus's canvas study of GameCharacter): the lying painting just glides; the legs
- // never kick and the body only bobs a hair, while the fists paddle a little, one forward as the other comes back.
- const rest=combatFrameIndex('rest'),crawling=name.startsWith('crawl')&&!!entry.frames[rest]?.lifted,art=crawling?rest:index;
- const measured=entry.frames[art]?.head??spec.head,dx=measured[0]-spec.head[0],dy=measured[1]-spec.head[1];
+ // Crawling (19/10, matheus: legs must move and the fists must pull, not push): the painted crawl drawings move the
+ // legs while the head stays where the rest drawing has it; the fists keep the rest drawing's place and pull the
+ // body along, reaching forward in the air and sliding back on the ground, one after the other.
+ const rest=combatFrameIndex('rest'),crawling=name.startsWith('crawl')&&!!entry.frames[rest]?.lifted,art=index;
+ const measured=entry.frames[crawling?rest:art]?.head??spec.head,dx=measured[0]-spec.head[0],dy=measured[1]-spec.head[1];
  const hit=state.pose==='hit'?Math.exp(-Math.max(0,state.poseTime)/210):0,breath=name==='rest'?Math.sin(state.time/900)*.35:0;
  const weapon=WEAPONS.find(item=>item.id===eq.weapon),color=effectColor[weapon?.effect??'brick']??'#ffe5a0';
  // The fists glide from this drawing's place to the next one's; crawling they also lift off the ground.
@@ -74,9 +75,9 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
  const stroke=Math.sin(state.phase)*state.walk,sweep=Math.cos(state.phase)*state.walk,bob=crawling?stroke*.8:0;
- const paddle=(k:0|1):[number,number,number]|undefined=>{const f=entry.frames[art]?.lifted?.[k];if(!f||!crawling)return f;const side=k?-1:1;
-  return [f[0]+sweep*1.5*side,f[1]-Math.max(0,stroke*side)*2,f[2]];};
- const lifted=entry.frames[art]?.lifted?[paddle(0)!,paddle(1)!]:undefined;
+ const paddle=(k:0|1):[number,number,number]|undefined=>{const f=entry.frames[crawling?rest:art]?.lifted?.[k];if(!f||!crawling)return f;const side=k?-1:1;
+  return [f[0]-sweep*2.2*side,f[1]-Math.max(0,stroke*side)*2.4,f[2]];};
+ const lifted=entry.frames[crawling?rest:art]?.lifted?[paddle(0)!,paddle(1)!]:undefined;
  if(lifted)drawBlockFist(c,eq.skin,lifted[1],breath*.4,.92);
  atHead(()=>{drawHeadRearLayers(c,eq,state.time,state.pose,state.modular);drawPart(c,head);drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'hair');});
  if(drawnHands&&prone)arm(0,fist(0));
