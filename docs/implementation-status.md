@@ -443,3 +443,5 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 
 - Voo dos tiros com as fórmulas do DDTank (força ×20, `ax = 24·vento − 0,2·vx`, `ay = 700 − 0,2·vy`, passo 0,04 s, float32) e régua que sobe em 4 s, desce e passa a vez no zero. Detalhes, adaptações e tabela antes/depois em `docs/ballistics.md`.
 - Evidência: `tests/ballistics.test.ts` (vetores de referência −3/0/+3, simetria, alcance com arrasto, relógio da régua) e `npm run test:battle:browser` (régua desce depois de 100, soltar envia o valor que cai, segurar até zero passa a vez).
+
+Power-ups no padrão do DDTank 4.1 (19/10/2026, `docs/power-ups.md`): Delay +1 500, +2 600, Tridente 600, Dano +50% 400, +40% 340, +30% 200, +20% 150, +10% 70 (custos de Vigor iguais); Tridente com abertura −5°, 0°, +5°. Cada ativação válida soma o Delay uma vez; recusada não gasta nada. `VOLLEY_CADENCE_MS` não mudou. Testes em `tests/power-ups.test.ts`.

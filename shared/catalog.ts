@@ -238,14 +238,14 @@ export function weaponAssetPath(id:string,level=0):string {return `/assets/weapo
 export function weaponIconPath(id:string,level=0):string {return `/assets/weapons/${id}/icon-${weaponVisualStage(level)}.png`;}
 /** Tools spend Vigor (`cost`) and add Delay (`delay`, like DDTank item Property5). Brasa balance: Delay equals the Vigor cost. */
 export const BOOSTS = [
- {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'+1 disparo seguido · 90% de dano cada · pode repetir',key:'1',delay:110},
- {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'+2 disparos seguidos · 60% de dano cada · pode repetir',key:'2',delay:110},
- {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis ao mesmo tempo · 50% de dano cada · uma vez',key:'3',delay:110},
- {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:85},
- {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:80},
- {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:70},
- {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:55},
- {id:'damage10',label:'10%',name:'Dano +10%',cost:50,detail:'Aumenta o dano em 10%',key:'8',delay:50}
+ {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'+1 disparo seguido · 90% de dano cada · pode repetir',key:'1',delay:500},
+ {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'+2 disparos seguidos · 60% de dano cada · pode repetir',key:'2',delay:600},
+ {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis ao mesmo tempo · 50% de dano cada · uma vez',key:'3',delay:600},
+ {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:400},
+ {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:340},
+ {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:200},
+ {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:150},
+ {id:'damage10',label:'10%',name:'Dano +10%',cost:50,detail:'Aumenta o dano em 10%',key:'8',delay:70}
 ] as const;
 export type BoostId = typeof BOOSTS[number]['id'];
 export {MAPS} from './maps';
