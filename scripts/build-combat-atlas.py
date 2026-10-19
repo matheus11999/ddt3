@@ -157,7 +157,8 @@ for sheet, path in zip(contract['sheets'], inputs):
     head_mask = (green > 90) & (rgb[..., 1] > 150)
     # Cyan discs mark the universal fists: nothing of the outfit is painted there.
     r_, g_, b_ = (rgb[..., k].astype(float) for k in range(3))
-    cyan = (np.minimum(g_, b_) - r_ > 60) & (g_ > 120) & (b_ > 120)
+    # Only the template's flat cyan discs (#00FFFF-like): teal or turquoise clothes are not fists.
+    cyan = (np.minimum(g_, b_) - r_ > 120) & (g_ > 200) & (b_ > 200)
     rgba[grow(cyan, 7), 3] = 0
     # Fists painted in the skin tone over the template's discs: the game draws no hands on these frames.
     hands = cyan.sum() < 200

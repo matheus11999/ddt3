@@ -1,0 +1,132 @@
+{
+ "_comment": "Temas de cosméticos (pedido do matheus em 19/10/2026): variar bastante, como no DDTank (surfista, piloto de avião, hip hop, espadachim, pirata, bobo da corte, chapéu fedora com óculos escuros, moletom com coroa...). Cada conjunto vira prompts do Codex com `node scripts/cosmetic-prompts.mjs --set=<id>` (--run gera). A arte segue SEMPRE o estilo das peças aprovadas anexadas; um tema muda roupa e acessórios, nunca o estilo de pintura, salvo pedido explícito.",
+ "ideas": [
+  {
+   "theme": "surfista",
+   "outfit": "camisa havaiana aberta sobre regata, bermuda de surfe estampada, chinelos",
+   "hat": "viseira ou chapéu de praia",
+   "glasses": "óculos espelhados esportivos",
+   "hair": "cabelo descolorido de praia"
+  },
+  {
+   "theme": "piloto de avião",
+   "outfit": "jaqueta de couro de aviador com gola de pelúcia, cachecol branco, calça cargo, botas",
+   "hat": "touca de couro de aviador (capacete justo)",
+   "glasses": "óculos de voo redondos",
+   "hair": "topete curto"
+  },
+  {
+   "theme": "hip hop",
+   "outfit": "moletom largo, corrente dourada, calça jogger, tênis grandes",
+   "hat": "boné de aba reta",
+   "glasses": "óculos escuros retangulares",
+   "hair": "degradê com tranças curtas"
+  },
+  {
+   "theme": "espadachim",
+   "outfit": "haori sobre quimono, hakama, faixa na cintura, sandálias com meia",
+   "hat": "chapéu de palha cônico (kasa)",
+   "glasses": "—",
+   "hair": "rabo de samurai curto"
+  },
+  {
+   "theme": "pirata",
+   "outfit": "casaca rasgada, colete, faixa vermelha, botas dobradas",
+   "hat": "tricórnio com caveira",
+   "glasses": "tapa-olho (não cabe no slot de óculos: usar óculos redondos de pirata)",
+   "hair": "bandana com mechas"
+  },
+  {
+   "theme": "bobo da corte",
+   "outfit": "gibão de losangos em duas cores, gola de babados com guizos",
+   "hat": "chapéu de bobo de três pontas com guizos",
+   "glasses": "máscara de baile",
+   "hair": "franja repicada"
+  },
+  {
+   "theme": "gângster dos anos 30",
+   "outfit": "terno risca de giz, colete, gravata",
+   "hat": "fedora",
+   "glasses": "óculos escuros redondos",
+   "hair": "penteado para trás com gel"
+  },
+  {
+   "theme": "rei casual",
+   "outfit": "moletom com capuz, calça de moletom, tênis",
+   "hat": "coroa pequena",
+   "glasses": "—",
+   "hair": "franja bagunçada"
+  },
+  {
+   "theme": "astronauta",
+   "outfit": "macacão espacial com remendos",
+   "hat": "capacete de vidro (elmo)",
+   "glasses": "—",
+   "hair": "corte militar"
+  },
+  {
+   "theme": "chef",
+   "outfit": "dólmã branca, avental, calça xadrez",
+   "hat": "chapéu de chef",
+   "glasses": "—",
+   "hair": "cabelo curto ondulado"
+  }
+ ],
+ "sets": [
+  {
+   "id": "hiphop",
+   "gender": "male",
+   "theme": "hip hop de rua, estiloso e confiante",
+   "outfit": {
+    "id": "outfit-hiphop",
+    "name": "Rima de Rua",
+    "colorName": "o moletom",
+    "brief": "an oversized street-style hip hop outfit: a big hoodie in saturated purple with a bold gold graffiti star print on the chest, the hood down behind the neck, a chunky gold chain with a round medallion, baggy black cargo joggers with side pockets, chunky white-and-purple high-top sneakers with fat laces, bare hands (skin #FCD0AC), one hand in the hoodie pocket, the other relaxed, cool laid-back stance",
+    "walkParts": "big purple hoodie, gold chain with medallion, black cargo joggers, chunky high-top sneakers"
+   },
+   "hair": {
+    "id": "hair-hiphop",
+    "name": "Degradê Trançado",
+    "fit": "hair-short",
+    "brief": "a male hip hop haircut: very short faded sides and nape, and on top short twisted locs (small thick twists) pointing up and slightly back, black with dark violet highlights"
+   },
+   "hat": {
+    "id": "hat-hiphop",
+    "name": "Boné Aba Reta",
+    "fit": "hat-tight",
+    "profile": "tight",
+    "brief": "a hip hop snapback cap with a perfectly FLAT straight brim pointing forward-right, purple crown, black flat brim with a gold edge and a gold metallic star badge on the front, a small round sticker on the brim"
+   },
+   "glasses": {
+    "id": "glasses-hiphop",
+    "name": "Óculos Escuros Neon",
+    "brief": "bold rectangular street sunglasses with a thick glossy black frame and gold corner studs, dark smoky violet lenses (semi-transparent so the eyes still show) with a neon pink-to-cyan reflection streak"
+   }
+  },
+  {
+   "id": "swordsman",
+   "gender": "male",
+   "theme": "espadachim errante, elegante e sereno",
+   "outfit": {
+    "id": "outfit-swordsman",
+    "name": "Espadachim Errante",
+    "colorName": "o haori",
+    "brief": "a wandering swordsman outfit (samurai-inspired, original design): a teal haori jacket with white wave patterns at the hem worn over a white kimono, a dark indigo hakama (wide pleated trousers), a red sash tied at the waist with the knot on the side, white tabi socks with straw sandals, bare hands (skin #FCD0AC), one hand resting on the sash, the other relaxed. NO sword, no sheath, nothing in the hands",
+    "walkParts": "teal haori with white wave hem, white kimono, red sash, indigo hakama, straw sandals"
+   },
+   "hair": {
+    "id": "hair-swordsman",
+    "name": "Coque do Errante",
+    "fit": "hair-short",
+    "brief": "a male swordsman hairstyle: hair swept back from the forehead into a SMALL compact topknot tied with a red cord on the back of the crown (the knot stays low, barely above the skull), short sideburns that stop above the ear, NO locks on the forehead or temples, the whole face completely free, deep navy black with blue highlights"
+   },
+   "hat": {
+    "id": "hat-swordsman",
+    "name": "Chapéu de Palha Errante",
+    "fit": "hat-wide",
+    "profile": "wide",
+    "brief": "a conical woven straw traveller's hat (kasa) with visible woven texture, a red cord tied under the brim edge and a small teal tassel hanging on the side, the brim wide but tilted up at the front so the eyes stay visible"
+   }
+  }
+ ]
+}

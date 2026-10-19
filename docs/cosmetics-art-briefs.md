@@ -29,6 +29,10 @@ Cabelo Aventureiro, Lunar, Elmo do Guardião, Óculos de Voo e Óculos Redondos/
 
 As roupas (Executivo e Dançarina com tronco 0,77–0,78× a cabeça) ficam para a fase 4.
 
+## Gerador de prompts com temas e trava de estilo (19/10/2026)
+
+Pedido do matheus: variar os temas como no DDTank (surfista, piloto de avião, hip hop, espadachim, pirata, bobo da corte, fedora com óculos escuros, moletom com coroa…) sem sair do estilo artístico. Os temas e conjuntos ficam em `docs/cosmetic-sets.json` (`ideas` para escolher o próximo, `sets` com o texto de cada peça). `node scripts/cosmetic-prompts.mjs --set=<id>` escreve os prompts de todas as peças (em pé, cabelo, chapéu, óculos, rosto, andar, deitado, arremesso) em `test-results/codex-cosmetics/<id>/`; com `--run` chama o Codex (peças soltas em paralelo, depois as pranchas com a roupa em pé). Todo prompt leva a TRAVA DE ESTILO e anexa as peças já aprovadas do mesmo tipo: o tema muda roupa e acessórios, nunca o estilo de pintura, a menos que o pedido diga. Quando um conjunto for aprovado, acrescente as peças dele em `APPROVED` no script para servirem de referência às próximas.
+
 ## Prompt-base por slot
 
 Usar o molde da classe como imagem de referência, junto com a arte atual da peça quando for repintura.
