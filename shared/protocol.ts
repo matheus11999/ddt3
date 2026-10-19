@@ -65,7 +65,9 @@ export interface TerrainMark {id:string;x:number;y:number;radius:number;roughnes
 export type HitKind='direct'|'graze'|'splash'|'fall';
 export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIndex:number;critical:boolean;kind:HitKind;quality:number;hidden?:boolean;/** Damage a pet shield soaked (already left out of `damage`). */shield?:number;}
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
-export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:'world'|'room'|'private';time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;}
+/** Mundo (the square's channel), Sala (room or match), Guilda (online members) and Privado (one player). */
+export type ChatChannel='world'|'room'|'guild'|'private';
+export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:ChatChannel;time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;}
 import {LOBBY_WALK} from './lobby';
 const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLowerCase());
 export const MAX_SHOP_QUANTITY=20;
@@ -141,7 +143,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('reward-pick'),card:z.number().int().min(0).max(7)}).strict(),
  z.object({type:z.literal('pass')}),z.object({type:z.literal('rematch')}),
  // `to` (a player id) only for a private message.
- z.object({type:z.literal('chat'),text:z.string().trim().min(1).max(180),channel:z.enum(['world','room','private']),to:z.string().uuid().optional()}),
+ z.object({type:z.literal('chat'),text:z.string().trim().min(1).max(180),channel:z.enum(['world','room','guild','private']),to:z.string().uuid().optional()}),
  z.object({type:z.literal('ping'),time:z.number().finite()})
 ]);
 export type Command=z.infer<typeof commandSchema>;

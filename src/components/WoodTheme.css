@@ -283,3 +283,9 @@
 .lobby-chat.wood-chat .chat-messages .chat-private strong { color: #ff9be0; }
 .wood-chat .chat-input > button.chat-target.chat-target { flex: none; display: inline-flex; align-items: center; gap: 3px; width: auto; max-width: 45%; height: 20px; margin-right: 6px; padding: 0 7px; overflow: hidden; border: 1px solid #f3a6d8; border-radius: 10px; background: linear-gradient(#d24b9f, #93276b); color: #fff; font: 800 11px/1 Nunito, sans-serif; white-space: nowrap; text-overflow: ellipsis; box-shadow: none; }
 .wood-chat .chat-input > button.chat-target svg { flex: none; width: 11px; height: 11px; }
+
+/* Guild messages: green names. A tab with messages not read yet gets a small red dot. */
+.wood-chat .chat-messages .chat-guild strong, .hof-chat .chat-messages .chat-guild strong { color: #2f8a3c; }
+.lobby-chat.wood-chat .chat-messages .chat-guild strong, .hof-chat .chat-messages .chat-guild strong { color: #8ff09a; }
+.chat-tabs > button[data-unread] { position: relative; }
+.chat-tabs > button[data-unread]::after { content: ''; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border: 1.5px solid #fff3d6; border-radius: 50%; background: #e8352b; box-shadow: 0 1px 2px #0007; }

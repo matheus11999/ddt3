@@ -28,7 +28,7 @@ try{
  const name=a.page.locator('.lobby-chat .chat-messages strong',{hasText:b.profile.name}).first();await expect(name).toBeVisible();
  await name.click({button:'right'});
  const menu=a.page.getByRole('menu',{name:b.profile.name});await expect(menu).toBeVisible();
- await expect(menu.getByRole('menuitem')).toHaveText(['Ver informações','Denunciar']);
+ await expect(menu.getByRole('menuitem')).toHaveText(['Ver informações','Enviar mensagem','Denunciar']);
  await a.page.screenshot({path:`${output}/menu-chat.png`});
  await menu.getByRole('menuitem',{name:'Ver informações'}).click();
  const info=a.page.getByRole('dialog',{name:'Informações do jogador'});await expect(info).toBeVisible();

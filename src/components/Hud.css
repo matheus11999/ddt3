@@ -47,7 +47,7 @@ html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(cal
 .lobby-chat.wood-chat .chat-tabs>button:hover:not(:disabled){color:#ffe2b0}
 .lobby-chat.wood-chat .chat-tabs>button.active{background:linear-gradient(#ffe07a,#e9a422);border-color:#fff2c8;color:#6b2c05;text-shadow:none}
 .lobby-chat.wood-chat .chat-tabs>button:disabled{opacity:.6}
-.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;left:180px;right:auto;top:0;width:20px;height:20px;padding:0;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 2px #0006;color:#ffd36b}
+.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;left:244px;right:auto;top:0;width:20px;height:20px;padding:0;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 2px #0006;color:#ffd36b}
 .game-frame>.chat-shell.lobby-chat .chat-collapse svg{width:12px;height:12px}
 .game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.1)}
 .lobby-chat.wood-chat .chat-messages{padding:2px 4px;border:0;border-radius:0;background:none;box-shadow:none;scrollbar-color:#e9b64f66 transparent;font:800 13px/1.4 Nunito,sans-serif;color:#fff;text-shadow:1px 1px 0 #2c1004,-1px 1px 0 #2c1004,1px -1px 0 #2c1004,-1px -1px 0 #2c1004,0 1px 3px #000a}
