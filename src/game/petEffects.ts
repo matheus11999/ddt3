@@ -16,7 +16,7 @@ function strip(c:CanvasRenderingContext2D,img:HTMLImageElement,frames:number,pro
  const frame=Math.min(frames-1,Math.floor(progress*frames)),cw=img.naturalWidth/frames,ch=img.naturalHeight,h=width*ch/cw;
  c.save();c.globalAlpha=alpha;c.drawImage(img,frame*cw,0,cw,ch,x-width/2,y-h,width,h);c.restore();
 }
-/** A pet application with art: the area attack rising from the ground where the shot landed, a heal on its target. Returns false when it is over. */
+/** A pet application with art: the area attack rising from the ground where the shot landed (healing shows only as a green number, see Scene). Returns false when it is over. */
 export function drawPetApplication(c:CanvasRenderingContext2D,app:PetApplication,age:number,target?:{x:number;y:number},groundAt?:(x:number,y:number)=>number){
  const visual=petSkill(app.skill)?.visual;if(!visual?.effect)return false;
  const duration=visual.duration??900;if(age<0||age>=duration)return age<0;
@@ -33,7 +33,6 @@ export function drawPetApplication(c:CanvasRenderingContext2D,app:PetApplication
   // A hit on a fighter lands at body height: the plant still grows from the ground under it.
   const base=onGround?floor!+8:app.y+14;
   strip(c,img,visual.frames??1,progress,app.x,base,Math.max(visual.size??200,(app.radius??0)*2.2),fade);return true;}
- if((app.kind==='hot'||app.kind==='heal')&&target){strip(c,img,visual.frames??1,progress,target.x,target.y+10,visual.size??140,fade);return true;}
  return false;
 }
 // A fixed pseudo-random number in [0, 1) for each seed, so every whirl differs but keeps its own shape while it plays.
