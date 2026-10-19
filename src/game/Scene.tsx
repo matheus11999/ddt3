@@ -214,7 +214,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     for(const [key,burst] of boomerangBursts){const age=t-burst.at;if(age>=BOOMERANG_IMPACT_DURATION){boomerangBursts.delete(key);continue;}drawImpact(c,burst.projectile,age,burst.level,burst.projectile.impact.material,{quality:quality==='high'?'high':'low'});}
     // Each hit of a multi-shot gets its own number, stacked above the earlier ones on the same fighter.
     // Pet skills with art: the area attack where it rose, heals on the fighter.
-    for(const batch of state.petEffects){const age=Date.now()+state.offset-batch.at;for(const app of batch.applications){const seen=entities.get(app.targetId);drawPetApplication(c,app,age,seen?{x:seen.x,y:seen.y}:undefined,(x,y)=>ground(terrain,x,y));}}
+    for(const batch of state.petEffects){const age=Date.now()+state.offset-batch.at,healed=new Map<string,number>();for(const app of batch.applications){const seen=entities.get(app.targetId);
+     // A pet heal is only a green number over the fighter, stacked like damage when several land at once.
+     if((app.kind==='hot'||app.kind==='heal')&&seen&&(app.amount??0)>0){const stack=healed.get(app.targetId)??0;healed.set(app.targetId,stack+1);drawHitFeedback(c,{id:app.targetId,damage:app.amount!,x:seen.x,y:seen.y-85,projectileIndex:stack,critical:false,kind:'direct',quality:1},age,{heal:true,stack});continue;}
+     drawPetApplication(c,app,age,seen?{x:seen.x,y:seen.y}:undefined,(x,y)=>ground(terrain,x,y));}}
     for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=state.impacts.reduce((n,other)=>other.shotId===impact.shotId&&(other.at<impact.at||(other.at===impact.at&&other.projectileIndex<impact.projectileIndex))?n+other.hits.filter(h=>h.id===hit.id&&!h.hidden&&h.damage>0).length:n,0);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     c.restore();environment!.drawFront(c,t,camera);
