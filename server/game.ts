@@ -471,6 +471,14 @@ export class Game {
      const outcome=await this.store.compose(id,c.item,c.stone,smithBonus(guild?.smith??0));p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'composition-result',result:outcome.result});this.sendLobby(p.channel);await this.guildMission([id],'forge');return;
     }
+    case 'synthesize':{
+     if(p.roomId)throw Error('Volte ao ferreiro da praça para sintetizar pedras.');
+     const guild=this.memberships.get(id);
+     if(!guild?.smith&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     if(!this.store.synthesize)throw Error('Indisponível no momento.');
+     const outcome=await this.store.synthesize(id,c.stone,c.count);p.profile=outcome.profile;
+     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'synthesis-result',result:outcome.result});return;
+    }
     case 'create':{
      if(p.roomId)throw Error('Saia da sala atual antes de criar outra.');if(this.rooms.size>=200)throw Error('A arena está cheia. Tente novamente em breve.');
      const practice=c.practice===true,mode=practice?(c.mode??'1v1'):'1v1';

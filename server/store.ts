@@ -13,12 +13,14 @@ import {levelForXp,normalizeLevel} from '../shared/progression';
 import {guildChance} from '../shared/guilds';
 import {normalizePetSnapshot,PET_FOODS} from '../shared/pets';
 import type {HallStore,MatchRecord} from './hall';
-import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult} from '../shared/protocol';
+import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult,SynthesisResult} from '../shared/protocol';
+import {synthesize} from '../shared/synthesis';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface SynthesisOutcome {profile:Profile;result:SynthesisResult;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;synthesize?(id:string,stone:string,count:number):Promise<SynthesisOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
 
 /** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
 export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
@@ -222,6 +224,8 @@ export class Store implements ProfileStore {
    await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,profile]);await c.query('COMMIT');return {profile,result};
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
+ /** Síntese: 4 pedras de um nível em 1 do nível seguinte, sem ouro e sem chance de falhar. */
+ synthesize(id:string,stone:string,count:number):Promise<SynthesisOutcome>{return this.mutate(id,profile=>({profile,result:synthesize(profile,stone,count)}));}
  async buy(id:string,items:string[],quantity=1):Promise<ShopOutcome>{
   if(!Array.isArray(items)||items.length<1||items.length>MAX_SHOP_ITEMS||new Set(items).size!==items.length)throw Error('Confira os itens do carrinho.');
   if(!Number.isInteger(quantity)||quantity<1||quantity>20)throw Error('Escolha uma quantidade de 1 a 20.');
