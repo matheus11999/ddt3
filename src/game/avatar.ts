@@ -5,7 +5,7 @@ import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
 import {drawCombatBody,hasCombatFrames} from './combatBody';
-import {drawWalkBody,hasWalkFrames} from './walkBody';
+import {drawIdleBody,drawWalkBody,hasIdleFrames,hasWalkFrames} from './walkBody';
 import {COSTUMES,drawCostume,hasProneCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
@@ -319,8 +319,10 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   }
   c.save();c.translate(-24*lie,(sheetWalk?0:rootY)+14*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
   // While the walk atlas loads, the standing painting stands in for it.
-  const headShift=sheetWalk?drawWalkBody(c,eq,distance):null;
-  if(walkBlend<.999||sheetWalk&&!headShift){c.save();if(!sheetWalk)c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
+  // Standing, outfits with a painted idle sheet use it (same Codex pass and size as the walk), never the larger painting.
+  const idleShift=!sheetWalk&&hasIdleFrames(eq.outfit)&&lie<.5?drawIdleBody(c,eq):null;
+  const headShift=sheetWalk?drawWalkBody(c,eq,distance):idleShift;
+  if(!idleShift&&(walkBlend<.999||sheetWalk&&!headShift)){c.save();if(!sheetWalk)c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
   if(rig.walking&&walkBlend>.001&&!sheetWalk){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
   if(headShift)c.translate(...headShift);
   c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,-5);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();

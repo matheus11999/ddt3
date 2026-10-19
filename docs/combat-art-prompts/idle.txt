@@ -1,0 +1,8 @@
+Production 2D painted game sprite sheet for a DDTank-style browser game: the lobby IDLE (standing still) pose of one outfit.
+
+IMAGE 1 is this outfit's approved WALK sheet: 1536x1024, 3 columns x 2 rows of 512x512 cells, flat magenta (#FF00FF) background, a flat lime-green (#00FF00) head placeholder in every cell, the outfit walking under it.
+IMAGE 2 is the same outfit's standing painting (reference for the relaxed standing pose only).
+
+Return the same 1536x1024 canvas. Keep the magenta background flat and pure. Keep every green head EXACTLY where it is in IMAGE 1, same shape and size, flat and untouched.
+
+In EVERY cell paint the SAME character from IMAGE 1 STANDING STILL in a relaxed idle pose facing RIGHT in side 3/4 view: feet side by side on the ground (no step), knees straight, arms relaxed at the sides with the hands painted as in IMAGE 1, collar touching the green chin. The outfit must be IDENTICAL to IMAGE 1: same body size and proportions, same colors, same prints, trims and accessories at the same places, same painting style and outline; only the legs and arms stop walking. All six cells may be the same painting (a very slight breathing difference is fine). Same scale and ground line as IMAGE 1. No floor, no shadow, no text, nothing crossing a cell border or touching the image edge.

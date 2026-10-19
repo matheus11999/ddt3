@@ -41,3 +41,7 @@ A fantasia substitui as peças (como no DDTank) e já tem a prancha deitada (`-p
 ## Andar do lobby (folha pintada)
 
 Como no DDTank, o andar fora de combate também é uma folha pintada: `python3 scripts/make-walk-template.py` gera `docs/templates/walk.png` (6 quadros: contato, descida, passagem, com cada perna; contrato em `src/game/rig/walkFrames.json`), o Codex pinta com `docs/combat-art-prompts/walk.txt` e `python3 scripts/build-walk-atlas.py outfit-<id>` grava `public/assets/outfits/walk/outfit-<id>.png` e `src/game/walkAtlas.json` (altura da cabeça de cada quadro). O jogo troca de quadro pela distância andada (`frameUnits`) e põe a cabeça por cima no lugar medido (`src/game/walkBody.ts`). Roupa sem folha de andar continua com as pernas recortadas da pintura em pé.
+
+## Pose parada do lobby (19/10)
+
+Pedido do matheus: a roupa não pode mudar quando o boneco começa ou para de andar. A pintura parada grande (`<id>-atlas.png`) continua para o ícone da loja e da mochila, mas no lobby o boneco parado usa a **folha parada** pintada pelo Codex a partir da própria folha de andar (`docs/combat-art-prompts/idle.txt`, mesma escala e mesmos detalhes), montada com `python scripts/build-walk-atlas.py --idle outfit-<id> idle.png` em `public/assets/outfits/idle/` e `src/game/idleAtlas.json` (`src/game/walkBody.ts`, `drawIdleBody`). O `verify:cosmetics` acusa roupa com andar e sem pose parada.

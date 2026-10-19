@@ -16,12 +16,16 @@ contract = json.load(open('src/game/rig/walkFrames.json'))
 combat = json.load(open('src/game/rig/combatFrames.json'))
 T, A = contract['template'], contract['atlas']
 HS, unit, hs = combat['headSilhouette'], combat['avatarUnit'], contract['headScale']
+# --idle packs the painted standing (idle) sheet the same way: public/assets/outfits/idle/, src/game/idleAtlas.json.
+idle = '--idle' in sys.argv
+sys.argv = [a for a in sys.argv if a != '--idle']
+kind = 'idle' if idle else 'walk'
 outfit = sys.argv[1]
 short = outfit.removeprefix('outfit-')
-path = sys.argv[2] if len(sys.argv) > 2 else f'test-results/codex-walk/out/{short}-walk.png'
-report_dir = f'test-results/walk/{outfit}'
+path = sys.argv[2] if len(sys.argv) > 2 else f'test-results/codex-walk/out/{short}-{kind}.png'
+report_dir = f'test-results/{kind}/{outfit}'
 os.makedirs(report_dir, exist_ok=True)
-os.makedirs('public/assets/outfits/walk', exist_ok=True)
+os.makedirs(f'public/assets/outfits/{kind}', exist_ok=True)
 
 head_px = HS['width'] * hs * unit * A['pixelsPerUnit']
 aspect = HS['height'] / HS['width']
@@ -109,11 +113,11 @@ for i, (m, frame) in enumerate(zip(measured, contract['frames'])):
     atlas.alpha_composite(own, box)
     frames_meta.append({'head': [round(standing[0], 2), round((hy - ground) * scale / A['pixelsPerUnit'], 2)]})
 
-atlas_path = f'public/assets/outfits/walk/{outfit}.png'
+atlas_path = f'public/assets/outfits/{kind}/{outfit}.png'
 complete = all(frames_meta) and not issues
 if complete:
     atlas.save(atlas_path, optimize=True)
-    meta_path = 'src/game/walkAtlas.json'
+    meta_path = f'src/game/{kind}Atlas.json'
     meta = json.load(open(meta_path)) if os.path.exists(meta_path) else {}
     meta[outfit] = {'path': '/' + atlas_path.removeprefix('public/'), 'standing': [round(v, 2) for v in standing], 'frames': frames_meta}
     json.dump(dict(sorted(meta.items())), open(meta_path, 'w'), indent=1)
