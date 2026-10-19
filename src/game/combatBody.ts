@@ -15,7 +15,7 @@ import atlases from './combatAtlas.json';
  * action, the universal head where that painting expects it, the universal skin-colored fists and the
  * weapon strapped on the back. */
 type Point=readonly [number,number];
-interface AtlasEntry {path:string;frames:{head:[number,number];/** Arms and fists are painted in this frame (DDTank): the game draws no hands. */hands?:boolean;}[];/** The painted sleeve's cloth color, continued by the code-drawn forearm. */sleeve?:string;}
+interface AtlasEntry {path:string;frames:{head:[number,number];/** Arms and fists are painted in this frame (DDTank): the game draws no hands. */hands?:boolean;/** Lying: the painted fists lifted out of the painting ([x,y,radius], near first), drawn by the game so the far one sits behind the head. */lifted?:[number,number,number][];}[];/** The painted sleeve's cloth color, continued by the code-drawn forearm. */sleeve?:string;}
 const ATLASES=atlases as unknown as Record<string,AtlasEntry>;
 const tinted=new Map<string,HTMLCanvasElement>();
 
@@ -69,6 +69,8 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const atHead=(draw:()=>void)=>{c.save();c.translate(measured[0],measured[1]+breath);c.rotate(state.lively+hit*.05);c.scale(HEAD_SCALE,HEAD_SCALE);
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
+ const lifted=entry.frames[index]?.lifted;
+ if(lifted)drawBlockFist(c,eq.skin,lifted[1],breath*.4,.92);
  atHead(()=>{drawHeadRearLayers(c,eq,state.time,state.pose,state.modular);drawPart(c,head);drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'hair');});
  if(drawnHands&&prone)arm(0,fist(0));
  if(drawnHands)arm(1,fist(1));
@@ -76,6 +78,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // where it shows past the face, so the body painting goes over the head as it is.
  c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
+ if(lifted)drawBlockFist(c,eq.skin,lifted[0],breath*.4,1);
  // The near fist goes over everything, under the chin while lying, like in DDTank.
  if(drawnHands&&prone)drawFist(c,eq.skin,fist(0),1);
  const front=fist(1);if(drawnHands)drawFist(c,eq.skin,front,1,prone?.8:1);
@@ -95,6 +98,20 @@ function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:F
  const glow=c.createRadialGradient(-w*.25,-h*.5,0,-w*.25,-h*.5,w*.6);glow.addColorStop(0,'rgba(255,246,236,.85)');glow.addColorStop(.5,'rgba(255,240,224,.35)');glow.addColorStop(1,'rgba(255,240,224,0)');
  c.fillStyle=glow;c.fillRect(-w,-h,w*2,h*2);c.restore();
  ball();c.strokeStyle='#120e09';c.lineWidth=1.25;c.stroke();
+ c.restore();
+}
+/** A lifted painted fist, like DDTank's lying hands: a slightly squared skin bun with a thin near-black
+ * outline all round, so it closes against the face with a line instead of a see-through gap. */
+function drawBlockFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,r]:[number,number,number],lift:number,shade:number){
+ const w=r*1.04,h=r*.92,color=skin??BASE_SKIN;
+ c.save();c.translate(x,y+lift);if(shade<1)c.filter=`brightness(${shade})`;
+ const bun=()=>{c.beginPath();c.roundRect(-w,-h,w*2,h*2,r*.78);};
+ bun();c.fillStyle=color;c.fill();
+ c.save();bun();c.clip();
+ c.fillStyle=shadeColor(color,.9,.8,.73);c.beginPath();c.ellipse(0,h*1.15,w*1.4,h*.6,0,0,Math.PI*2);c.fill();
+ const glow=c.createRadialGradient(-w*.3,-h*.45,0,-w*.3,-h*.45,w*.75);glow.addColorStop(0,'rgba(255,246,236,.85)');glow.addColorStop(.5,'rgba(255,240,224,.3)');glow.addColorStop(1,'rgba(255,240,224,0)');
+ c.fillStyle=glow;c.fillRect(-w,-h,w*2,h*2);c.restore();
+ bun();c.strokeStyle='#120e09';c.lineWidth=.85;c.stroke();
  c.restore();
 }
 /** The arm under the painted body: the sleeve from the shoulder through the elbow (hidden where the outfit

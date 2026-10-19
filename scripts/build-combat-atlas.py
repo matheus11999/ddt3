@@ -62,6 +62,68 @@ def greenness(rgb):
     return g - np.maximum(r, b)
 
 
+def components(mask):
+    """Connected pixel groups of a boolean mask, largest first (4-neighbour flood fill)."""
+    seen, groups = np.zeros_like(mask), []
+    for y, x in zip(*np.nonzero(mask)):
+        if seen[y, x]:
+            continue
+        stack, group = [(y, x)], []
+        seen[y, x] = True
+        while stack:
+            cy, cx = stack.pop()
+            group.append((cy, cx))
+            for ny, nx in ((cy + 1, cx), (cy - 1, cx), (cy, cx + 1), (cy, cx - 1)):
+                if 0 <= ny < mask.shape[0] and 0 <= nx < mask.shape[1] and mask[ny, nx] and not seen[ny, nx]:
+                    seen[ny, nx] = True
+                    stack.append((ny, nx))
+        groups.append(np.array(group))
+    return sorted(groups, key=len, reverse=True)
+
+
+def split_fists(atlas, index, head, spec):
+    """Lying frames: lifts the painted fists out of the body painting and returns where they were, so the
+    game draws them as clean outlined fists, the far one behind the head and the near one over the chin
+    (a painted fist cut along the green silhouette left a see-through gap next to every player's face).
+    The far sleeve's bits over the face go too. Returns [[x, y, r], ...] in avatar units, near fist first."""
+    ppu, (cw, ch), (ox, oy) = A['pixelsPerUnit'], A['cell'], A['origin']
+    box = ((index % A['columns']) * cw, (index // A['columns']) * ch)
+    cell = np.asarray(atlas.crop((*box, box[0] + cw, box[1] + ch))).astype(int).copy()
+    r, g, b, a = (cell[..., k].astype(float) for k in range(4))
+    hi, lo = np.maximum(np.maximum(r, g), b), np.minimum(np.minimum(r, g), b)
+    sat = (hi - lo) / np.maximum(hi, 1)
+    # Skin in any of its painted tones: warm, light, moderately saturated (not the gold trims or the white cuff).
+    skin = (a > 60) & (r >= g) & (g >= b - 4) & (hi > 150) & (sat > .14) & (sat < .5) & (r - g < 70)
+    dx, dy = head[0] - spec['head'][0], head[1] - spec['head'][1]
+    found = []
+    for fx, fy, _ in spec['fists']:
+        px, py = ox + (fx + dx) * ppu, oy + (fy + dy) * ppu
+        window = np.zeros(skin.shape, bool)
+        window[max(0, round(py - 30)):round(py + 30), max(0, round(px - 34)):round(px + 34)] = True
+        blobs = [blob for blob in components(skin & window) if len(blob) > 60]
+        if not blobs:
+            return None
+        found.append(min(blobs, key=lambda blob: np.hypot(blob[:, 1].mean() - px, blob[:, 0].mean() - py) - len(blob) / 20))
+    near, far = found
+    # Every fist is the template's size; its free edges (the bottom, and the right one of the far fist) place it.
+    radius = contract['fist']['size'] * .5 * ppu
+    wide = np.ptp(near[:, 1]) + 1 >= radius * 1.6
+    fists = [((near[:, 1].min() + near[:, 1].max()) / 2 if wide else near[:, 1].max() - radius, near[:, 0].max() - radius * .75),
+             (far[:, 1].max() - radius, far[:, 0].max() - radius * .9)]
+    yy, xx = np.mgrid[:ch, :cw]
+    for (x, y), blob in zip(fists, found):
+        mask = np.zeros(skin.shape, bool)
+        mask[blob[:, 0], blob[:, 1]] = True
+        cell[grow(mask, 5) | (np.hypot(xx - x, yy - y) < radius + 5), 3] = 0
+    # Lying, the whole body is behind (left of) the near fist: whatever of the far arm shows past it goes.
+    cell[xx > fists[0][0] + radius * .5, 3] = 0
+    for blob in components(cell[..., 3] > 0)[1:]:
+        if len(blob) < 60:
+            cell[blob[:, 0], blob[:, 1], 3] = 0
+    atlas.paste(Image.fromarray(cell.astype('uint8'), 'RGBA'), box)
+    return [[round((x - ox) / ppu, 2), round((y - oy) / ppu, 2), round(radius / ppu, 2)] for x, y in fists]
+
+
 issues, frames_meta, warnings = [], [None] * len(NAMES), []
 atlas = Image.new('RGBA', (A['columns'] * A['cell'][0], A['rows'] * A['cell'][1]), (0, 0, 0, 0))
 silhouette = None
@@ -182,6 +244,12 @@ for sheet, path in zip(contract['sheets'], inputs):
         atlas.alpha_composite(own, box)
         head_y = (hy - cy - ground) * scale / A['pixelsPerUnit']
         frames_meta[index] = {'head': [spec['head'][0], round(head_y, 2)], **({'hands': True} if hands else {})}
+        if hands and (name in ('rest', 'hurt') or name.startswith('crawl')):
+            fists = split_fists(atlas, index, frames_meta[index]['head'], spec)
+            if fists:
+                frames_meta[index]['lifted'] = fists
+            else:
+                warnings.append(f'{name}: punhos pintados não encontrados')
 
 def mannequin_size(body):
     """Width and height of the template's gray body in avatar units (same widths as make-combat-templates.py)."""
