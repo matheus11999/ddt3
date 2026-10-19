@@ -79,11 +79,11 @@ async function battle(){
 for(const [boost,delays] of [['extra1',[0,1]],['extra2',[0,1,2]],['trident',[0,0,0]]] as const){
  test(`server: ${boost} fires ${delays.length} projectiles in one action, charges Vigor and Delay once and leaves attributes untouched`,async()=>{
   const f=await battle(),before={equipment:structuredClone(f.shooter.equipment),stats:attributes(f.shooter.equipment,f.shooter.level)},vigor=f.shooter.stamina,delay=f.shooter.delay!;
-  await f.game.command(f.shooter.id,{type:'boost',boost});assert.equal(f.shooter.stamina,vigor-110);assert.equal(f.shooter.delay,delay+110);
+  await f.game.command(f.shooter.id,{type:'boost',boost});assert.equal(f.shooter.stamina,vigor-110);assert.equal(f.shooter.delay,delay+BOOSTS.find(b=>b.id===boost)!.delay);
   await f.game.command(f.shooter.id,{type:'fire',angle:50,power:55});
   const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.filter(p=>!p.fragment).map(p=>p.delay),delays.map(n=>n*VOLLEY_CADENCE_MS));
   const shotDelay=WEAPONS.find(weapon=>weapon.id===f.shooter.equipment.weapon)?.shotDelay??0;
-  assert.equal(f.shooter.delay,delay+110+shotDelay,'shot Delay is added once, not per projectile');assert.equal(f.match.state.phase,'resolving');
+  assert.equal(f.shooter.delay,delay+BOOSTS.find(b=>b.id===boost)!.delay+shotDelay,'shot Delay is added once, not per projectile');assert.equal(f.match.state.phase,'resolving');
   assert.deepEqual(f.shooter.equipment,before.equipment);assert.deepEqual(attributes(f.shooter.equipment,f.shooter.level),before.stats);
   await f.game.command(f.shooter.id,{type:'fire',angle:50,power:55});assert.equal(f.match.activeShot,shot,'no second action while the sequence resolves');
  });
@@ -102,4 +102,29 @@ test('server: a projectile impact processed twice never deals damage twice',asyn
  const pending=[...f.match.pendingImpacts!],apply=(f.game as unknown as {applyImpact(m:unknown,i:unknown):void}).applyImpact.bind(f.game);
  for(const impact of pending)apply(f.match,impact);const hp=target.hp,hits=f.match.activeShot!.hits.length;
  for(const impact of pending)apply(f.match,impact);assert.equal(target.hp,hp);assert.equal(f.match.activeShot!.hits.length,hits);
+});
+
+test('power-up Delay follows DDTank 4.1 and the Tridente spreads −5°, 0°, +5°',()=>{
+ assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.delay])),{extra1:500,extra2:600,trident:600,damage50:400,damage40:340,damage30:200,damage20:150,damage10:70});
+ assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.cost])),{extra1:110,extra2:110,trident:110,damage50:85,damage40:80,damage30:70,damage20:55,damage10:50},'Vigor costs unchanged');
+ assert.deepEqual(powerUpShot(['trident']).spread,[-5,0,5]);assert.deepEqual(powerUpShot(['extra2','trident']).spread,[-5,0,5]);
+});
+
+test('server: every valid activation adds its Delay once; a refused one adds neither Delay nor Vigor',async()=>{
+ const f=await battle(),start=f.shooter.delay!;f.shooter.stamina=10000;const vigor=f.shooter.stamina;
+ for(const boost of ['extra1','extra1','extra2','damage10','damage50','trident'] as BoostId[])await f.game.command(f.shooter.id,{type:'boost',boost});
+ assert.equal(f.shooter.delay,start+500+500+600+70+400+600);assert.equal(f.shooter.stamina,vigor-110*4-50-85);
+ const after={delay:f.shooter.delay,stamina:f.shooter.stamina};
+ await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.match(f.errors().at(-1)!,/tridente/i);
+ assert.deepEqual({delay:f.shooter.delay,stamina:f.shooter.stamina},after);
+});
+
+test('server: the Tridente fires each volley at the chosen angle −5°, 0°, +5°, facing either way',async()=>{
+ for(const facing of [1,-1] as const){
+  const f=await battle();Object.assign(f.shooter,{facing,x:768,y:300});
+  await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});await f.game.command(f.shooter.id,{type:'fire',angle:50,power:60});
+  // Launch direction of each projectile from its first sampled step (wind 0; gravity bends it well under a degree there).
+  const angles=f.match.activeShot!.projectiles.filter(p=>!p.fragment).map(p=>{const [x0,y0]=p.points[0],[x1,y1]=p.points[1];assert.equal(Math.sign(x1-x0),facing,'leaves forward');return Math.atan2(y0-y1,(x1-x0)*facing)*180/Math.PI;});
+  assert.equal(angles.length,3);for(const [index,expected] of [45,50,55].entries())assert.ok(Math.abs(angles[index]-expected)<1.5,`${facing}: ${angles}`);
+ }
 });

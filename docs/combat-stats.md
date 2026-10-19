@@ -42,7 +42,7 @@ Regras completas em [power-ups.md](power-ups.md) (`shared/powerUps.ts`).
 ```text
 multiplicador por impacto = modo do disparo × (1 + soma dos bônus de dano)
 modo: normal 1,00 · +1 0,90 (2 disparos seguidos) · +2 0,60 (3 seguidos) · Tridente 0,50 (3 juntos)
-ângulos do Tridente = ângulo escolhido + [-9°, 0°, +9°]
+ângulos do Tridente = ângulo escolhido + [-5°, 0°, +5°]
 ```
 
 O intervalo entre disparos seguidos é `VOLLEY_CADENCE_MS` (570 ms); projéteis do mesmo leque saem juntos.

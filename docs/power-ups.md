@@ -6,10 +6,10 @@ Matemática e regras em `shared/powerUps.ts`; custos, Delay e textos em `BOOSTS`
 
 | Power-up | Vigor | Delay | Efeito |
 | --- | ---: | ---: | --- |
-| +1 | 110 | 110 | 2 disparos seguidos, 90% do dano cada |
-| +2 | 110 | 110 | 3 disparos seguidos, 60% do dano cada |
-| Tridente | 110 | 110 | 3 projéteis ao mesmo tempo, 50% do dano cada |
-| +50% / +40% / +30% / +20% / +10% | 85 / 80 / 70 / 55 / 50 | igual ao Vigor | soma 0,50 / 0,40 / 0,30 / 0,20 / 0,10 ao bônus |
+| +1 | 110 | 500 | 2 disparos seguidos, 90% do dano cada |
+| +2 | 110 | 600 | 3 disparos seguidos, 60% do dano cada |
+| Tridente | 110 | 600 | 3 projéteis ao mesmo tempo (−5°, 0°, +5°), 50% do dano cada |
+| +50% / +40% / +30% / +20% / +10% | 85 / 80 / 70 / 55 / 50 | 400 / 340 / 200 / 150 / 70 | soma 0,50 / 0,40 / 0,30 / 0,20 / 0,10 ao bônus |
 
 ```text
 MultiplicadorFinal = MultiplicadorModo × (1 + SomaDosBônus)
@@ -31,7 +31,7 @@ Exemplos com 1.000 de dano por impacto: +1 com 50% e 20% = 1.530 por disparo (3.
 
 ## Disparos e turno
 
-Todos os disparos de uma sequência são uma ação só: o servidor simula +1/+2 em ordem, e cada disparo vê a cratera, as quedas e as mortes dos anteriores; cada projétil tem trajetória, colisão, sorteio de crítico e dano próprios. Cada impacto é aplicado uma vez só (`shot.impacted`). O turno termina depois do último impacto e da pausa `TURN_GAP_MS`. O Delay do tiro (tempo usado + `shotDelay` da arma) é somado uma vez, não por projétil; o Delay de cada power-up é somado na ativação.
+Todos os disparos de uma sequência são uma ação só: o servidor simula +1/+2 em ordem, e cada disparo vê a cratera, as quedas e as mortes dos anteriores; cada projétil tem trajetória, colisão, sorteio de crítico e dano próprios. Cada impacto é aplicado uma vez só (`shot.impacted`). O turno termina depois do último impacto e da pausa `TURN_GAP_MS`. O Delay do tiro (tempo usado + `shotDelay` da arma) é somado uma vez, não por projétil; o Delay de cada power-up é somado uma vez por ativação válida (repetir soma de novo; comando recusado não gasta Vigor nem soma Delay). Delay dos power-ups conferido na fonte do DDTank 4.1 (19/10); é penalidade na ordem dos turnos, não pausa entre projéteis (essa é `VOLLEY_CADENCE_MS`).
 
 A fila de poderes usados no meio da tela também mostra a habilidade de pet ativada no turno (`BattlePetSkill.usedTurn`).
 
