@@ -33,9 +33,7 @@ export function MatchLoading({scale}:{scale:number}){
   <div className="match-loading-bg" style={{backgroundImage:`url(${def.art.background})`}}/>
   <div className="match-loading-shade"/>
   <div className="match-loading-stage" style={{transform:`translate(-50%, -50%) scale(${scale})`}}>
-  <header className="match-loading-title">
-   {expedition?<><strong>{expedition.name}</strong><span>{DIFFICULTY_NAMES[expedition.difficulty]} · Estágio {expedition.stage+1}</span></>:<><strong>Batalha</strong><span>{teams[0].length} contra {teams[1].length}</span></>}
-  </header>
+  {expedition&&<header className="match-loading-title"><strong>{expedition.name}</strong><span>{DIFFICULTY_NAMES[expedition.difficulty]} · Estágio {expedition.stage+1}</span></header>}
   <div className="match-loading-field">
    <Team players={party??teams[0]} side="left" me={profile?.id}/>
    <Versus/>
@@ -48,14 +46,15 @@ export function MatchLoading({scale}:{scale:number}){
   </div>
  </div>,document.body);
 }
+/** Up to 4 per side: one or two in a row, three or four in two rows. Each is the standing avatar on the game's aura, with name and bar below. */
+const AVATAR_SIZE=[0,330,250,230,230];
 function Team({players,side,me}:{players:LoadingPlayer[];side:'left'|'right';me?:string}){
- return <div className={`match-loading-team ${side}`} data-count={players.length}>{players.map(player=><div key={player.id} className={`loading-fighter ${player.id===me?'is-me':''} ${player.progress>=100?'is-ready':''}`}>
-  <div className="loading-fighter-art"><Avatar equipment={player.equipment} size={players.length===1?230:players.length===2?180:150} animated={false} facing={side==='left'?1:-1}/></div>
-  <div className="loading-fighter-info">
-   <div className="loading-fighter-name"><LevelNumber level={player.level} size={26}/><b>{player.name}</b></div>
-   {player.guild&&<small>{player.guild}</small>}
-   <div className="loading-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={player.progress} aria-label={`Carregamento de ${player.name}`}><i style={{width:`${player.progress}%`}}/><span>{player.progress}%</span></div>
-  </div>
+ const size=AVATAR_SIZE[Math.min(4,players.length)];
+ return <div className={`match-loading-team ${side}`} data-count={players.length} style={{'--avatar':size+'px'} as CSSProperties}>{players.map(player=><div key={player.id} className={`loading-fighter ${player.id===me?'is-me':''} ${player.progress>=100?'is-ready':''}`}>
+  <div className="loading-fighter-art"><Avatar equipment={player.equipment} size={size} animated={false} facing={side==='left'?1:-1}/></div>
+  <div className="loading-fighter-name"><LevelNumber level={player.level} size={24}/><b>{player.name}</b></div>
+  {player.guild&&<small>{player.guild}</small>}
+  <div className="loading-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={player.progress} aria-label={`Carregamento de ${player.name}`}><i style={{width:`${player.progress}%`}}/><span>{player.progress}%</span></div>
  </div>)}</div>;
 }
 function Versus(){return <div className="match-loading-vs" aria-label="Versus"><span className="vs-text" data-text="VS"><span aria-hidden="true">VS</span></span></div>;}
