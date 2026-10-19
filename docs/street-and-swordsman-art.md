@@ -10,3 +10,5 @@ Gerados com `node scripts/cosmetic-prompts.mjs --set=hiphop --run` e `--set=swor
 Ajustes: lentes dos óculos neon a ~53% de opacidade (máscara pela envoltória das lentes) e ponta da haste esmaecida para caber em 0,95× a cabeça; boné e chapéu de palha com o pin um pouco abaixo da faixa pintada para a aba não cobrir os óculos; o primeiro coque tinha mechas sobre os olhos e foi refeito sem elas. O `build-combat-atlas.py` passou a reconhecer como punho só o ciano puro do molde (antes o haori verde-azulado era apagado como se fosse disco de punho).
 
 Validação: `npm run verify:cosmetics -- --strict --only=outfit-hiphop,hair-hiphop,hat-hiphop,glasses-hiphop,outfit-swordsman,hair-swordsman,hat-swordsman` sem problemas; `node scripts/preview-lobby-walk.mjs outfit-hiphop outfit-swordsman` com 10,6 passos/s e nenhum quadro sem corpo.
+
+Correção (19/10, pedido do matheus): Corte Capitão, Degradê Trançado e Coque do Errante terminavam acima da orelha e o chapéu de palha saiu visto de baixo. Os três cabelos e o chapéu foram refeitos pelo gerador com as regras novas (laterais até a orelha; chapéu vestido, visto de cima) e reencaixados.

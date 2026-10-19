@@ -125,7 +125,18 @@
     "name": "Chapéu de Palha Errante",
     "fit": "hat-wide",
     "profile": "wide",
-    "brief": "a conical woven straw traveller's hat (kasa) with visible woven texture, a red cord tied under the brim edge and a small teal tassel hanging on the side, the brim wide but tilted up at the front so the eyes stay visible"
+    "brief": "a conical woven straw traveller's hat (kasa), worn on the head like a wide sun hat: a shallow cone with a small knob on top, visible woven texture, a red cord band around it and a small teal tassel hanging from the side, the brim an even wide ellipse around the head at brow height, seen from slightly above so only the top of the hat shows"
+   }
+  },
+  {
+   "id": "captain",
+   "gender": "male",
+   "theme": "capitão dos céus",
+   "hair": {
+    "id": "hair-captain",
+    "name": "Corte Capitão",
+    "fit": "hair-short",
+    "brief": "short, neat swept-back male cut with a confident side-swept quiff, a few sharp locks falling to the forehead on the right side (still above the eyebrows), short sides and nape, dark chestnut brown with warm copper highlights"
    }
   }
  ]
