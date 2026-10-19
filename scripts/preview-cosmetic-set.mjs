@@ -19,7 +19,7 @@ try{
  const image=await page.evaluate(async ids=>{
   const A=await import('/src/game/appearance.ts'),V=await import('/src/game/avatar.ts'),H=await import('/src/game/headwear.ts');
   const {CATALOG,DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts'),walkContract=(await import('/src/game/rig/walkFrames.json')).default;
-  const walk=(await import('/src/game/walkAtlas.json')).default,combat=(await import('/src/game/combatAtlas.json')).default;
+  const walk={...(await import('/src/game/walkAtlas.json')).default,...Object.fromEntries(Object.entries((await import('/src/game/idleAtlas.json')).default).map(([k,v])=>[k+':idle',v]))},combat=(await import('/src/game/combatAtlas.json')).default;
   const load=path=>new Promise(resolve=>{const img=A.asset(path);if(img.complete&&img.naturalWidth)return resolve();img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});
   await Promise.all([...new Set(['/assets/character-base.png','/assets/hair-covered-atlas.png',...Object.values(walk).map(a=>a.path),...Object.values(combat).map(a=>a.path),...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
   await new Promise(resolve=>{const img=new Image();img.onload=resolve;img.onerror=resolve;img.src='/assets/headwear-worn-atlas.png';});

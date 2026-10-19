@@ -17,9 +17,9 @@ try{
  await page.goto(server.resolvedUrls.local[0],{waitUntil:'networkidle'});
  const result=await page.evaluate(async only=>{
   const A=await import('/src/game/appearance.ts'),V=await import('/src/game/avatar.ts'),W=await import('/src/game/walkBody.ts'),{chaseLobbyPosition}=await import('/src/game/lobbyMotion.ts');
-  const {CATALOG,DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts'),{LOBBY_WALK_SPEED}=await import('/shared/lobby.ts'),walk=(await import('/src/game/walkAtlas.json')).default;
+  const idle=(await import('/src/game/idleAtlas.json')).default,{CATALOG,DEFAULT_EQUIPMENT,ITEMS}=await import('/shared/catalog.ts'),{LOBBY_WALK_SPEED}=await import('/shared/lobby.ts'),walk=(await import('/src/game/walkAtlas.json')).default;
   const load=path=>new Promise(resolve=>{const img=A.asset(path);if(img.complete&&img.naturalWidth)return resolve();img.addEventListener('load',resolve,{once:true});img.addEventListener('error',resolve,{once:true});});
-  await Promise.all([...new Set(['/assets/character-base.png','/assets/hair-covered-atlas.png',...Object.values(walk).map(a=>a.path),...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
+  await Promise.all([...new Set(['/assets/character-base.png','/assets/hair-covered-atlas.png',...Object.values(walk).map(a=>a.path),...Object.values(idle).map(a=>a.path),...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
   await new Promise(resolve=>setTimeout(resolve,600));
   const outfits=only.length?only:Object.keys(walk),SIZE=134,FPS=60,frames=200,shots=[];const report={};
   for(const outfit of outfits){

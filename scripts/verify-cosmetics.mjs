@@ -39,7 +39,7 @@ try{
    '/assets/outfits/combat-prone.png','/assets/outfits/cartographer-walk.png',
    ...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
   // Painted lobby walk sheets and battle atlases, drawn by the sheets below.
-  await Promise.all([...Object.values((await import('/src/game/walkAtlas.json')).default),...Object.values((await import('/src/game/combatAtlas.json')).default)].map(entry=>load(entry.path)));
+  await Promise.all([...Object.values((await import('/src/game/walkAtlas.json')).default),...Object.values((await import('/src/game/idleAtlas.json')).default),...Object.values((await import('/src/game/combatAtlas.json')).default)].map(entry=>load(entry.path)));
   // headwear.ts owns its atlas; wait for the same URL to be decoded.
   await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(new Error('Cannot load headwear atlas'));image.src='/assets/headwear-worn-atlas.png';});
   await new Promise(resolve=>setTimeout(resolve,300));
@@ -143,6 +143,9 @@ try{
    const frames=combat?sheetFrames(combat.path,CF.COMBAT_FRAME_NAMES.length,layout,i=>combat.frames[i]?.head??[0,0]).map((frame,i)=>({...frame,hands:!!combat.frames[i]?.hands})):null;
    battles.push(F.evaluateCombatSheet(outfit,frames,CF.COMBAT_FRAME_NAMES.map(name=>CF.COMBAT_FRAMES[name].head)));
   }
+  // Standing in the lobby uses the painted idle sheet from the same pass as the walk (scripts/build-walk-atlas.py --idle).
+  const idleAtlases=(await import('/src/game/idleAtlas.json')).default;
+  for(const outfit of outfits)if(walkAtlases[outfit]&&!idleAtlases[outfit]&&outfit!=='outfit-cartographer')walks.find(item=>item.id===outfit).issues.push({code:'missing',message:'Sem pose parada pintada junto com o andar (idleAtlas.json)',measured:0,limit:1});
   // The same outfit in every painting (19/10, matheus: "quando começa a andar a roupa muda"): the mean color of the
   // outfit's Color Ticket zone in the walk sheet and in the battle atlas must match the standing painting.
   const Rz=await import('/src/game/recolor.ts'),{RECOLOR_ZONES:ZONES}=await import('/src/game/rig/recolorZones.ts');
