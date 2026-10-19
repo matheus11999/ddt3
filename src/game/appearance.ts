@@ -16,7 +16,11 @@ export const AVATAR_UNIT=160/1254;
 const SIZE=1254,RESOLUTION=.5;
 const sources=new Map<string,HTMLImageElement>(),rigCache=new Map<string,AvatarRig>(),artCache=new Map<string,HTMLCanvasElement>(),faceCache=new Map<string,HTMLCanvasElement>(),outfitCache=new Map<string,HTMLCanvasElement>();
 const canvas=(w:number,h:number)=>{const el=document.createElement('canvas');el.width=Math.ceil(w);el.height=Math.ceil(h);return el;};
-export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=()=>{rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();clearFaceOverlays();window.dispatchEvent(new Event('brasa-art-loaded'));};sources.set(path,image);}return image;};
+/** Every painted part that arrives invalidates the composed avatars. A battle starting loads dozens of
+ * parts at once; one rebuild for the whole batch instead of one per file avoids a burst of slow frames. */
+let artLoadedTimer:ReturnType<typeof setTimeout>|null=null;
+const artLoaded=()=>{if(artLoadedTimer)return;artLoadedTimer=setTimeout(()=>{artLoadedTimer=null;rigCache.clear();artCache.clear();faceCache.clear();outfitCache.clear();clearFaceOverlays();window.dispatchEvent(new Event('brasa-art-loaded'));},40);};
+export const asset=(path:string)=>{let image=sources.get(path);if(!image){image=new Image();image.src=path;image.onload=artLoaded;sources.set(path,image);}return image;};
 const modular=asset('/assets/character-base.png');
 const modularDependencies=['/assets/shop-accessories.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png'];
 export const ENABLE_MODULAR_APPEARANCE:boolean=false;

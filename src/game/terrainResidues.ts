@@ -3,6 +3,7 @@ import type {TerrainMark} from '../../shared/protocol';
 import {WEAPONS} from '../../shared/catalog';
 import type {WeaponEffect} from '../../shared/catalog';
 import {weaponTerrainPath} from '../../shared/weaponKit';
+import {drawScaled} from './spriteCache';
 
 /** Same mark, same shape on every client and after a reload. */
 function seeded(seed:number){let state=Math.floor(Math.abs(seed))%2147483646+1;return ()=>(state=state*16807%2147483647)/2147483647;}
@@ -59,15 +60,16 @@ export class TerrainResidues {
  }
  draw(c:CanvasRenderingContext2D){
   if(this.dirty){
-   const paint=this.canvas.getContext('2d')!;
+   const paint=this.canvas.getContext('2d')!;let waiting=false;
    paint.clearRect(0,0,this.canvas.width,WORLD.height);paint.imageSmoothingEnabled=true;paint.imageSmoothingQuality='high';
    for(const mark of this.marks.values()){
     if(mark.scorch){scorch(paint,mark);continue;}
     const art=this.image(mark.effect),size=Math.max(56,mark.radius*4.3);if(!art?.complete||!art.naturalWidth)continue;
     paint.save();paint.translate(mark.x,mark.y);paint.rotate((mark.x*.017+mark.y*.011)%6.283);paint.globalAlpha=.82;
-    paint.drawImage(art,-size/2,-size/2,size,size);paint.restore();
+    // The mark art is a 1254 px painting: drawn from a copy at the mark's size (repainted once it is ready).
+   if(!drawScaled(paint,art,-size/2,-size/2,size,size))waiting=true;paint.restore();
    }
-   paint.globalCompositeOperation='destination-in';paint.drawImage(this.mask,0,0,this.canvas.width,WORLD.height);paint.globalCompositeOperation='source-over';this.dirty=false;
+   paint.globalCompositeOperation='destination-in';paint.drawImage(this.mask,0,0,this.canvas.width,WORLD.height);paint.globalCompositeOperation='source-over';this.dirty=waiting;
   }
   c.drawImage(this.canvas,0,0);
  }

@@ -1,5 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
+import {drawDecoded} from './spriteCache';
 import type {AvatarPart} from './appearance';
 import {asset,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart} from './appearance';
 import type {AvatarPose} from './avatar';
@@ -143,7 +144,7 @@ function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:numbe
  c.save();c.translate(x,y);c.rotate(angle);
  c.save();c.scale(.7,.7);drawWeaponEnergy(c,weapon?.effect??'brick',level,time);c.restore();
  if(level>=9){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=level>=12?9:4;}
- c.drawImage(image,-BACK_WEAPON_SIZE/2,-BACK_WEAPON_SIZE/2,BACK_WEAPON_SIZE,BACK_WEAPON_SIZE);c.restore();
+ drawDecoded(c,image,-BACK_WEAPON_SIZE/2,-BACK_WEAPON_SIZE/2,BACK_WEAPON_SIZE,BACK_WEAPON_SIZE);c.restore();
 }
 /** The projectile glows in the fist while the shot charges; the release leaves a short swoosh. */
 function drawThrowCue(c:CanvasRenderingContext2D,name:CombatFrameName,state:CombatBodyState,x:number,y:number,color:string){

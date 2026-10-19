@@ -17,6 +17,16 @@ export function preloadEnvironment(map:MapId):Promise<boolean>{
  const sources=[def.art.background,...def.art.mid?[def.art.mid]:[],def.art.terrain];
  const ready=Promise.all([...new Set(sources)].map(src=>decodedImages.get(loadImage(src))!)).then(results=>results.every(Boolean));preloadedMaps.set(def.art.terrain,ready);return ready;
 }
+/**
+ * Forgets the map paintings decoded for a finished battle, except `keep`'s (the map of the room the
+ * players return to), so the next match does not carry the previous one's art in memory.
+ */
+export function releaseEnvironment(keep?:MapId){
+ const kept=new Set<string>();
+ if(keep){const def=getMap(keep);for(const src of [def.art.background,def.art.mid,def.art.terrain,`/assets/maps/${def.id}-preview.png`])if(src)kept.add(src);}
+ for(const src of [...images.keys()])if(!kept.has(src))images.delete(src);
+ for(const key of [...preloadedMaps.keys()])if(!kept.has(key))preloadedMaps.delete(key);
+}
 let quality:EnvironmentQuality='high';
 try{const value=localStorage.getItem('brasa-environment-quality');if(value==='low'||value==='medium'||value==='high')quality=value;}catch{}
 export function getEnvironmentQuality(){return quality;}
@@ -57,37 +67,55 @@ function softCells(cells:HTMLCanvasElement,box:{x:number;y:number;width:number;h
  for(let i=3;i<d.length;i+=4){const a=d[i];if(a&&a<255)d[i]=Math.max(0,Math.min(255,Math.round((a-128)*SOFT_EDGE_GAIN+128)));}
  o.putImageData(image,0,0);return out;
 }
+/** Cells around a change whose pixels can move: rim cut, the smoothing footprint and the shade/lip shadows. */
+const INFLUENCE_CELLS=RIM_CELLS+5;
+interface CellBox {x:number;y:number;width:number;height:number;}
 /** The painted terrain with its own antialiased silhouette; only the cells the authoritative
  * simulation has dug out are cut away (collision was traced from this very painting by `npm run build:map`).
- * Masking the untouched outline by 3px cells too would chop its thin painted rim into stairs. */
-export function paintTerrain(data:Uint8Array,map:MapId,worldArt:CanvasImageSource):HTMLCanvasElement {
- const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map);
- const canvas=makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE),c=canvas.getContext('2d')!;c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(worldArt,0,0,W,H);
+ * Masking the untouched outline by 3px cells too would chop its thin painted rim into stairs.
+ * With `into` and `region` (in cells) only that part of an already painted canvas is redone, from the
+ * same inputs, so one crater costs its own size instead of a repaint of the whole map. */
+export function paintTerrain(data:Uint8Array,map:MapId,worldArt:CanvasImageSource,into?:HTMLCanvasElement,region?:CellBox):HTMLCanvasElement {
+ const def=getMap(map),W=def.dimensions.width,COLS=W/WORLD.cell,template=terrainTemplate(map),k=WORLD.cell*TERRAIN_SCALE;
+ const canvas=into??makeCanvas(W*TERRAIN_SCALE,H*TERRAIN_SCALE),c=canvas.getContext('2d')!;
+ const area=region??{x:0,y:0,width:COLS,height:WORLD.rows};
+ // Cells that can change a pixel of `area`: the cut and shading are rebuilt from all of them.
+ const reach=region?{x:Math.max(0,area.x-INFLUENCE_CELLS),y:Math.max(0,area.y-INFLUENCE_CELLS),right:Math.min(COLS,area.x+area.width+INFLUENCE_CELLS),bottom:Math.min(WORLD.rows,area.y+area.height+INFLUENCE_CELLS)}:{x:0,y:0,right:COLS,bottom:WORLD.rows};
+ c.save();
+ if(region){c.beginPath();c.rect(area.x*k,area.y*k,area.width*k,area.height*k);c.clip();c.clearRect(area.x*k,area.y*k,area.width*k,area.height*k);}
+ c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(worldArt,0,0,W,H);
  const fracture=makeCanvas(COLS,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(COLS,WORLD.rows);let damaged=false;
  let minX=COLS,minY=WORLD.rows,maxX=-1,maxY=-1;
- for(let i=0;i<data.length;i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;const x=i%COLS,y=(i-x)/COLS;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
+ for(let y=reach.y;y<reach.bottom;y++)for(let x=reach.x,i=y*COLS+x;x<reach.right;x++,i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
  // The painted rim lies in the soft, non-colliding cells just outside the collision; cut it with the dug cells so no sliver floats over a crater.
  const cut=makeCanvas(COLS,WORLD.rows),cc=cut.getContext('2d')!,cutCells=cc.createImageData(COLS,WORLD.rows);
- if(damaged)for(let i=0;i<data.length;i++){if(!edge.data[i*4+3])continue;const x=i%COLS,y=(i-x)/COLS;cutCells.data[i*4+3]=255;
+ if(damaged)for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const i=y*COLS+x;if(!edge.data[i*4+3])continue;cutCells.data[i*4+3]=255;
   for(let dy=-RIM_CELLS;dy<=RIM_CELLS;dy++)for(let dx=-RIM_CELLS;dx<=RIM_CELLS;dx++){const nx=x+dx,ny=y+dy,n=ny*COLS+nx;if(nx>=0&&ny>=0&&nx<COLS&&ny<WORLD.rows&&!template.solid[n])cutCells.data[n*4+3]=255;}}
  if(damaged){
   fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);
   // Pad past the rim cells and the bilinear footprint so the box edge never shows.
   const pad=RIM_CELLS+2,box={x:Math.max(0,minX-pad),y:Math.max(0,minY-pad),width:0,height:0};box.width=Math.min(COLS,maxX+pad+1)-box.x;box.height=Math.min(WORLD.rows,maxY+pad+1)-box.y;
-  const k=WORLD.cell*TERRAIN_SCALE,left=box.x*k,top=box.y*k,hole=softCells(cut,box),dug=softCells(fracture,box);
-  c.save();c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='destination-out';c.drawImage(hole,left,top);c.globalCompositeOperation='source-atop';
+  const left=box.x*k,top=box.y*k,hole=softCells(cut,box),dug=softCells(fracture,box);
+  c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='destination-out';c.drawImage(hole,left,top);c.globalCompositeOperation='source-atop';
   // Generic broken edge, the same for every weapon: a short cool shade inside the cut and a thin
   // light lip on the crater floor, never a burnt halo. Only the shadows land: the shape itself is drawn off-canvas.
   const away=canvas.width;c.shadowOffsetX=away;
   c.shadowColor='rgba(14,18,34,.62)';c.shadowBlur=4*TERRAIN_SCALE;c.drawImage(dug,left-away,top);
   c.shadowColor='rgba(255,255,255,.7)';c.shadowBlur=1.2*TERRAIN_SCALE;c.shadowOffsetY=1.6*TERRAIN_SCALE;c.drawImage(dug,left-away,top);
-  c.restore();
  }
+ c.restore();
  return canvas;
+}
+/** The cells whose dug state differs between two terrains, or null when none does. */
+function changedCells(before:Uint8Array,after:Uint8Array,cols:number):CellBox|null{
+ if(before.length!==after.length)return null;
+ let minX=cols,minY=WORLD.rows,maxX=-1,maxY=-1;
+ for(let i=0;i<after.length;i++)if(!before[i]!==!after[i]){const x=i%cols,y=(i-x)/cols;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
+ return maxX<0?null:{x:minX,y:minY,width:maxX-minX+1,height:maxY-minY+1};
 }
 
 export class EnvironmentRenderer {
- readonly definition:MapDefinition;readonly width:number;private data:Uint8Array;private terrain:HTMLCanvasElement;private terrainDrawing:HTMLCanvasElement;
+ readonly definition:MapDefinition;readonly width:number;private data:Uint8Array;/** The terrain the canvases show, to repaint only what a new snapshot changed. */private painted:Uint8Array|null=null;private terrain:HTMLCanvasElement;private terrainDrawing:HTMLCanvasElement;
  private background:HTMLImageElement;private mid?:HTMLImageElement;private worldArt:HTMLImageElement;private preview:HTMLImageElement;
  private loadState:'loading'|'ready'|'error'='loading';private preparation:Promise<boolean>;
  private layers=new Map<string,HTMLCanvasElement>();private camera=createCamera();
@@ -101,11 +129,22 @@ export class EnvironmentRenderer {
  isReady(){return this.loadState==='ready';}
  whenReady(){return this.preparation;}
  setTerrain(data:Uint8Array){
-  this.data=data;if(!this.isReady())return;
-  this.terrain=paintTerrain(data,this.definition.id,this.worldArt);
+  const before=this.painted;this.data=data;if(!this.isReady())return;
+  const cols=this.width/WORLD.cell,changed=before?changedCells(before,data,cols):null;
+  this.painted=data.slice();
+  if(before&&!changed)return;
+  // A crater repaints only the cells it can affect; the first paint (or a huge change) does the whole map.
+  const region=changed&&changed.width*changed.height<cols*WORLD.rows/3?{x:Math.max(0,changed.x-INFLUENCE_CELLS),y:Math.max(0,changed.y-INFLUENCE_CELLS),width:0,height:0}:null;
+  if(region&&changed){region.width=Math.min(cols,changed.x+changed.width+INFLUENCE_CELLS)-region.x;region.height=Math.min(WORLD.rows,changed.y+changed.height+INFLUENCE_CELLS)-region.y;}
+  this.terrain=region?paintTerrain(data,this.definition.id,this.worldArt,this.terrain,region):paintTerrain(data,this.definition.id,this.worldArt);
   // Resolve supersampled coverage once at the artwork's native world resolution.
   // Re-filtering the full 2x surface on every pan is expensive in software Canvas.
-  this.terrainDrawing=makeCanvas(this.width,H);const resolved=this.terrainDrawing.getContext('2d')!;smoothImages(resolved);resolved.drawImage(this.terrain,0,0,this.width,H);
+  if(!region){this.terrainDrawing=makeCanvas(this.width,H);const resolved=this.terrainDrawing.getContext('2d')!;smoothImages(resolved);resolved.drawImage(this.terrain,0,0,this.width,H);return;}
+  const resolved=this.terrainDrawing.getContext('2d')!,x=region.x*WORLD.cell,y=region.y*WORLD.cell,w=region.width*WORLD.cell,h=region.height*WORLD.cell,pad=4;
+  // Filter from a slightly larger source than the cleared box, so its edge matches the untouched pixels around it.
+  const sx=Math.max(0,x-pad),sy=Math.max(0,y-pad),sw=Math.min(this.width,x+w+pad)-sx,sh=Math.min(H,y+h+pad)-sy;
+  resolved.save();resolved.beginPath();resolved.rect(x,y,w,h);resolved.clip();resolved.clearRect(x,y,w,h);smoothImages(resolved);
+  resolved.drawImage(this.terrain,sx*TERRAIN_SCALE,sy*TERRAIN_SCALE,sw*TERRAIN_SCALE,sh*TERRAIN_SCALE,sx,sy,sw,sh);resolved.restore();
  }
  getTerrainLayer(){return this.terrain;}
  private cached(key:string,width:number,height:number,paint:(c:CanvasRenderingContext2D)=>void){

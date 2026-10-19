@@ -12,6 +12,7 @@ import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
 import {LOBBY_PARALLAX,LOBBY_FLOATERS} from '../../shared/generated/lobbyParallax';
 import type {LobbyParallaxLayer,LobbyFloater} from '../../shared/generated/lobbyParallax';
 import type {LobbyStationSpot} from '../../shared/lobby';
+import {drawScaled,imageReady,scaledCopy,screenScale} from './spriteCache';
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
 
@@ -174,32 +175,62 @@ export interface LobbyPodium {rank:1|2|3;x:number;y:number;}
 export class LobbyWorld {
  private art=new Map<string,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();private casts=new Map<string,HTMLCanvasElement>();
  private floor=new Image();private floorCanvas:HTMLCanvasElement|null=null;
- private depth:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;image:HTMLImageElement}[];
+ private depth:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;image:HTMLImageElement}[]=[];
+ private assets=false;private loadedAt=0;
  /** Podium ranks with a player standing on them: their ring and halo are left out, so nothing glows behind the figure. */
  occupied=new Set<number>();
- constructor(_density=2){
+ constructor(_density=2){this.load();}
+ /**
+  * Fetches the plaza's paintings (again, after `release`). The browser keeps the files in its
+  * cache, so coming back from a battle only decodes them, off the main thread.
+  */
+ load(){
+  if(this.assets)return;this.assets=true;this.loadedAt=typeof performance==='undefined'?0:performance.now();
   // Depth layers and floaters, back to front by how fast they follow the camera.
   const entries:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;file:string}[]=[...LOBBY_PARALLAX.map(layer=>({factor:layer.factor,layer,file:layer.file})),...LOBBY_FLOATERS.map(floater=>({factor:floater.factor,floater,file:floater.file}))];
-  this.depth=entries.sort((a,b)=>a.factor-b.factor).map(({file,...entry})=>{const image=new Image();image.src=file;return {...entry,image};});
+  this.depth=entries.sort((a,b)=>a.factor-b.factor).map(({file,...entry})=>{const image=new Image();image.decoding='async';image.src=file;return {...entry,image};});
   // Optional floor texture laid over the painted floor; see docs/lobby-art-prompts.md.
-  this.floor.src='/assets/lobby/floor.webp';
+  this.floor=new Image();this.floor.src='/assets/lobby/floor.webp';
   for(const station of LOBBY_STATIONS){
    const image=new Image();image.src=`/assets/lobby/${station.dir}.png`;this.art.set(station.id,image);
    for(const layer of station.layers){const part=new Image();part.src=`/assets/lobby/${station.dir}/${layer.name}.png`;this.layers.set(`${station.dir}/${layer.name}`,part);}
   }
  }
- private loaded(station:Station){return station.layers.map(layer=>({layer,image:this.layers.get(`${station.dir}/${layer.name}`)!})).filter(({image})=>image.complete&&image.naturalWidth>0);}
- private hasArt(station:Station){const single=this.art.get(station.id)!;return this.loaded(station).length>0||(single.complete&&single.naturalWidth>0);}
- /** True once every depth layer has loaded, so the backdrop never pops in piece by piece. */
- private deep(){return this.depth.length>0&&this.depth.every(d=>d.image.complete&&d.image.naturalWidth>0);}
+ /**
+  * Lets go of every plaza painting and the canvases built from them (well over 100 MB once
+  * decoded) while a battle covers the plaza. `load` brings them back.
+  */
+ release(){
+  if(!this.assets)return;this.assets=false;
+  this.depth=[];this.art.clear();this.layers.clear();this.casts.clear();this.floorCanvas=null;this.floor=new Image();
+ }
+ get isLoaded(){return this.assets;}
+ /** True once the backdrop, the floor and every station (at `scale` screen pixels per unit) can be painted without a gap; starts what is missing. */
+ ready(scale:number){
+  if(!this.deep()||!imageReady(this.floor))return false;
+  for(const station of LOBBY_STATIONS){
+   const parts=this.loaded(station);if(parts.length<station.layers.length)return false;
+   for(const {image} of parts)if(!scaledCopy(image,station.height*image.naturalWidth/image.naturalHeight*scale))return false;
+  }
+  return true;
+ }
+ /** The painted art gets a few seconds to arrive before the procedural stand-ins are drawn in its place. */
+ private patient(){return !this.assets||performance.now()-this.loadedAt<3000;}
+ private loaded(station:Station){return station.layers.flatMap(layer=>{const image=this.layers.get(`${station.dir}/${layer.name}`);return image&&imageReady(image)?[{layer,image}]:[];});}
+ private single(station:Station){const image=this.art.get(station.id);return image&&imageReady(image)?image:null;}
+ private hasArt(station:Station){return this.loaded(station).length>0||!!this.single(station);}
+ /** True once every depth layer has loaded and decoded, so the backdrop never pops in piece by piece. */
+ private deep(){return this.depth.length>0&&this.depth.every(d=>imageReady(d.image));}
  /**
   * The depth layers as seen with the camera at `cam`, clipped to world columns x0..x1:
   * a layer with factor f is drawn from world x cam·(1-f), so it slides f px per camera px.
   */
  private drawDepth(c:CanvasRenderingContext2D,t:number,cam:number,x0:number,x1:number){
+  const scale=screenScale(c);
   for(const {factor,layer,floater,image} of this.depth){
    const left=cam*(1-factor);
-   if(layer){const k=image.naturalWidth/layer.width,from=Math.max(0,x0-left),to=Math.min(layer.width,x1-left);if(to>from)c.drawImage(image,from*k,0,(to-from)*k,image.naturalHeight,left+from,layer.y,to-from,layer.height);continue;}
+   // Layers are painted at 2 px per unit; below that the copy at screen size is drawn instead of filtering the full painting every frame.
+   if(layer){const art=scaledCopy(image,layer.width*scale)??image,k=art.width/layer.width,from=Math.max(0,x0-left),to=Math.min(layer.width,x1-left);if(to>from)c.drawImage(art,from*k,0,(to-from)*k,art.height,left+from,layer.y,to-from,layer.height);continue;}
    const f=floater!,phase=t/f.period*Math.PI*2+f.x*.01,x=left+f.x+Math.sin(phase*.5)*f.drift-f.w/2,y=f.y+Math.sin(phase)*f.bob-f.h/2;
    if(x<x1&&x+f.w>x0)c.drawImage(image,x,y,f.w,f.h);
   }
@@ -220,7 +251,7 @@ export class LobbyWorld {
   this.drawFloor(c,0,LOBBY_WIDTH);
  }
  private drawFloor(c:CanvasRenderingContext2D,x0:number,w:number){
-  const floor=this.floorBand();
+  const band=this.floorBand(),floor=band&&(scaledCopy(band,LOBBY_WIDTH*screenScale(c))??band);
   if(floor){const d=floor.width/LOBBY_WIDTH;c.drawImage(floor,x0*d,0,w*d,floor.height,x0,FLOOR_TOP,w,LOBBY_H-FLOOR_TOP);}
  }
  /**
@@ -232,7 +263,7 @@ export class LobbyWorld {
   */
  private floorBand(){
   if(this.floorCanvas)return this.floorCanvas;
-  if(!this.floor.complete||!this.floor.naturalWidth)return null;
+  if(!imageReady(this.floor))return null;
   const d=2,W=LOBBY_WIDTH*d,H=(LOBBY_H-FLOOR_TOP)*d,canvas=document.createElement('canvas');canvas.width=W;canvas.height=H;
   const c=canvas.getContext('2d')!,pattern=c.createPattern(this.floor,'repeat')!,tex=this.floor.naturalWidth;
   // Tile depth on screen grows linearly from the far edge to the bottom, as on a floor seen at an angle.
@@ -253,7 +284,8 @@ export class LobbyWorld {
  /** Draws the backdrop in world coordinates; the caller has already translated by -camX. */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number){
   if(!this.deep()){c.fillStyle='#9ed4e8';c.fillRect(camX,0,LOBBY_W,LOBBY_H);return;}
-  this.drawDepth(c,t,camX,camX,camX+LOBBY_W);this.drawFloor(c,camX,LOBBY_W);
+  // The copies are already at screen size, so plain bilinear filtering is enough (and far cheaper than 'high').
+  c.save();c.imageSmoothingQuality='low';this.drawDepth(c,t,camX,camX,camX+LOBBY_W);this.drawFloor(c,camX,LOBBY_W);c.restore();
  }
  /** Stations that share the avatars' depth order. */
  sprites(t:number,hover:string|null):LobbySprite[]{
@@ -261,6 +293,7 @@ export class LobbyWorld {
  }
  /** Keepers to stand in as avatars while their painting is missing. */
  keepers():LobbyKeeper[]{
+  if(this.patient())return [];
   return LOBBY_STATIONS.flatMap(station=>station.fallback.kind==='keeper'&&!this.hasArt(station)?[{id:`npc-${station.id}`,x:station.x,y:station.y,hat:station.fallback.hat,facing:station.fallback.facing}]:[]);
  }
  /** Where the day's top PvP players stand, in world coordinates. */
@@ -302,12 +335,14 @@ export class LobbyWorld {
   this.casts.set(station.id,blurred);return blurred;
  }
  private box(station:Station):[number,number,number,number]{
-  const image=this.loaded(station)[0]?.image??this.art.get(station.id)!,ratio=image.naturalWidth?image.naturalWidth/image.naturalHeight:.8,half=station.height*ratio/2*.8;
+  const image=this.loaded(station)[0]?.image??this.art.get(station.id),ratio=image?.naturalWidth?image.naturalWidth/image.naturalHeight:.8,half=station.height*ratio/2*.8;
   return [station.x-half,station.y-station.height,station.x+half,station.y+12];
  }
  private station(c:CanvasRenderingContext2D,station:Station,t:number,hover:boolean){
-  const parts=this.loaded(station),single=this.art.get(station.id)!;
-  const base=parts[0]?.image??(single.complete&&single.naturalWidth?single:null);
+  const parts=this.loaded(station),single=this.single(station);
+  const base=parts[0]?.image??single;
+  // Unloaded for a battle or still decoding: draw nothing rather than the procedural stand-ins.
+  if(!base&&this.patient())return;
   if(!base){
    const fallback=station.fallback;
    // The props were drawn around the old keeper spots (storage 1112,582; smith 1316,596).
@@ -322,7 +357,7 @@ export class LobbyWorld {
   if(cast){c.save();c.translate(station.x,station.y);c.transform(1,0,CAST_LEAN,CAST_SQUASH,0,0);c.globalAlpha=.5;c.drawImage(cast,-w/2-CAST_PAD*w,-h-CAST_PAD*h,w*(1+2*CAST_PAD),h*(1+2*CAST_PAD));c.restore();}
   for(const [sx,sy,rx,ry,dark] of station.shadows??[])groundShadow(c,left+sx*w,top+sy*h,rx*w,ry*h,dark);
   c.save();if(hover)c.filter='brightness(1.12) drop-shadow(0 0 10px #fff2a0)';
-  if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.glow?1:breath());c.drawImage(base,-w/2,-h,w,h);}
+  if(!parts.length){c.translate(station.x,station.y);c.scale(1,station.glow?1:breath());drawScaled(c,base,-w/2,-h,w,h);}
   else for(const {layer,image} of parts){
    if(layer.motion==='pulse'&&station.rank&&this.occupied.has(station.rank))continue;
    const period=layer.period??3000,phase=(layer.phase??0)+station.x*3,amount=layer.amount,[px,py]=layer.pivot??[.5,1],ax=left+px*w,ay=top+py*h;
@@ -331,7 +366,7 @@ export class LobbyWorld {
    else if(layer.motion==='sway'){c.translate(ax,ay);c.rotate(Math.sin((t+phase)/period*Math.PI*2)*(amount??.1));c.translate(-ax,-ay);}
    else if(layer.motion==='bob')c.translate(0,Math.sin((t+phase)/period*Math.PI*2)*(amount??6));
    else if(layer.motion==='pulse'){c.globalCompositeOperation='lighter';c.globalAlpha=.55+Math.sin((t+phase)/700)*.35;}
-   c.drawImage(image,left,top,w,h);c.restore();
+   drawScaled(c,image,left,top,w,h);c.restore();
   }
   c.restore();
   if(station.glow)portalLight(c,station.glow,t,hover,!(station.rank&&this.occupied.has(station.rank)));
