@@ -179,6 +179,96 @@
    }
   ]
  },
+ "outfit-idol": {
+  "path": "/assets/outfits/walk/outfit-idol.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -117.89
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.08
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -120.92
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.22
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.06
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -119.24
+    ]
+   }
+  ]
+ },
+ "outfit-surf": {
+  "path": "/assets/outfits/walk/outfit-surf.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -117.14
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.99
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -120.15
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -114.13
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -114.58
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.81
+    ]
+   }
+  ]
+ },
  "outfit-swordsman": {
   "path": "/assets/outfits/walk/outfit-swordsman.png",
   "standing": [

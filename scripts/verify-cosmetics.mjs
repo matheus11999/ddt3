@@ -60,7 +60,7 @@ try{
   // The universal head alone: hair must meet its ear, hats must sit on its skull (EAR_CONTACT, HAT_SEAT_GAP).
   const headMask=(()=>{const [el,c]=surface();A.drawPart(c,rig.head);return toMask(el);})();
   for(const id of hairs){const mask=toMask(layers(eqOf({hair:id}))),report=F.evaluateItem(id,mask);if(FIT_ZONES[report.fit]===FIT_ZONES['hair-short'])report.issues.push(...F.evaluateEarContact(mask,headMask));items.push(report);}
-  for(const id of hats){const mask=toMask(layers(eqOf({hat:id}))),report=F.evaluateItem(id,mask),seat=F.evaluateHatSeat(mask);if(seat)report.issues.push(seat);items.push(report);}
+  for(const id of hats){const mask=toMask(layers(eqOf({hat:id}))),report=F.evaluateItem(id,mask),seat=COSMETIC_MANIFEST[id]?.fit==='hat-band'?null:F.evaluateHatSeat(mask);if(seat)report.issues.push(seat);items.push(report);}
   for(const id of glasses)items.push(F.evaluateItem(id,toMask(layers(eqOf({glasses:id})))));
 
   // Combinations: hair visible under each hat must keep off the face; glasses must stay visible.

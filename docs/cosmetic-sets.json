@@ -150,6 +150,74 @@
     "brief": "a FEMININE starter adventurer outfit with a clearly female chibi body: narrow shoulders, slim arms, a defined small waist and soft hips, slimmer legs, small feet; a short cropped sapphire-blue travel jacket with gold trims and a coral lining, a white blouse with a small coral bow at the collar, a brown belt with a little map pouch, a pleated coral-and-cream skirt above the knee, white knee socks and brown ankle boots with gold buckles, bare hands (skin #FCD0AC), one hand lightly on the hip, the other relaxed; a graceful, cute and confident stance with the feet close together, knees slightly turned in. Same painting quality and detail as the approved outfits, but clearly a girl, not a boy",
     "walkParts": "short sapphire jacket with gold trims, white blouse with coral bow, brown belt with map pouch, pleated coral-and-cream skirt that swings with the step, white knee socks, brown ankle boots"
    }
+  },
+  {
+   "id": "idol",
+   "gender": "female",
+   "theme": "estrela pop (idol)",
+   "outfit": {
+    "id": "outfit-idol",
+    "name": "Estrela Pop",
+    "brief": "a cute pop idol stage dress: a pink and white dress with layered ruffled skirt above the knee, a big pink satin bow at the chest, small gold star sequins, short puffy sleeves, a lilac ribbon belt, white frilly gloves at the wrists, white knee-high boots with pink bows, one hand making a peace sign near the hip, the other on the waist, cheerful pose",
+    "walkParts": "pink and white idol dress with ruffled skirt that bounces with the step, chest bow, puffy sleeves, white knee-high boots"
+   },
+   "hair": {
+    "id": "hair-idol",
+    "name": "Maria-Chiquinha Estelar",
+    "fit": "hair-long",
+    "brief": "long female twin tails (high pigtails on both sides of the head, the near one falling behind the shoulder), a short airy fringe above the eyebrows, glossy pastel pink with lilac highlights"
+   },
+   "hat": {
+    "id": "hat-idol",
+    "name": "Laço de Palco",
+    "fit": "hat-band",
+    "profile": "band",
+    "brief": "a big pink satin bow headband with a small gold star in the middle of the bow, sitting on top of the head slightly to the side, the thin band following the skull; it does NOT cover the hair or the forehead"
+   },
+   "glasses": {
+    "id": "glasses-idol",
+    "name": "Óculos Coração",
+    "brief": "cute heart-shaped sunglasses with a glossy pink frame and soft pink tinted heart lenses"
+   },
+   "face": {
+    "id": "face-idol",
+    "name": "Brilho de Palco",
+    "brief": "a FEMININE excited pop-star face: big sparkling eyes with long upper lashes and little star-shaped highlights, soft arched eyebrows, a wide happy open smile, light pink blush"
+   }
+  },
+  {
+   "id": "surf",
+   "gender": "female",
+   "theme": "surfista",
+   "outfit": {
+    "id": "outfit-surf",
+    "name": "Onda Tropical",
+    "brief": "a female surfer beach outfit: a turquoise short-sleeve rash-guard crop top with white hibiscus prints and orange trims, light denim shorts with a white belt, a knotted orange sarong tied at the hip, a seashell bracelet, colorful flip-flop sandals, bare tanned-free legs (skin #FCD0AC), one hand on the hip, relaxed sunny pose",
+    "walkParts": "turquoise rash-guard crop top with hibiscus, denim shorts, orange sarong that swings with the step, flip-flops"
+   },
+   "hair": {
+    "id": "hair-surf",
+    "name": "Ondas de Praia",
+    "fit": "hair-long",
+    "brief": "long loose beachy wavy female hair falling past the shoulders behind the ear, a side-swept fringe above the eyebrows, sun-kissed honey blonde with lighter golden streaks"
+   },
+   "hat": {
+    "id": "hat-surf",
+    "name": "Viseira de Praia",
+    "fit": "hat-band",
+    "profile": "band",
+    "brief": "a sporty sun visor: a white band around the head with a short curved turquoise brim at the front and a small orange hibiscus on the side; no crown, the hair on top stays visible"
+   },
+   "glasses": {
+    "id": "glasses-surf",
+    "name": "Óculos Sol Poente",
+    "brief": "round retro sunglasses with a thin gold frame and gradient orange-to-pink tinted lenses"
+   },
+   "face": {
+    "id": "face-surf",
+    "name": "Sorriso de Verão",
+    "brief": "a FEMININE relaxed sunny face: gentle half-closed happy eyes with long lashes, soft eyebrows, a sweet closed-mouth smile, a few light freckles on the cheeks"
+   }
   }
  ]
 }
