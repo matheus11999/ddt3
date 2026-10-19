@@ -34,7 +34,7 @@ export const RANKING_TIME_ZONE='America/Sao_Paulo';
 type StoredProfile = Partial<Omit<Profile,'equipment'>> & Pick<Profile,'id'|'name'> & {equipment?:Partial<Equipment>&{dyes?:Record<string,string>}};
 const integer=(value:unknown,fallback=0,max=Number.MAX_SAFE_INTEGER)=>typeof value==='number'&&Number.isFinite(value)?Math.min(max,Math.max(0,Math.floor(value))):fallback;
 
-const SHOP_ONLY_COSMETICS=new Set(['necklace-guild-1','love-boomerang','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical']);
+const SHOP_ONLY_COSMETICS=new Set(['necklace-guild-1','love-boomerang','hair-undercut','hair-ponytail','hair-horizon','glasses-sport','glasses-cat','glasses-navigator','face-wink','hat-thunder','hat-tide','hat-ruby','hat-tropical','outfit-captain','hair-captain','hat-captain','glasses-captain','face-captain','outfit-hiphop','hair-hiphop','hat-hiphop','glasses-hiphop','outfit-swordsman','hair-swordsman','hat-swordsman']);
 
 // Missing fields are migrated once on read; an empty stone stack stays empty.
 export function normalizeProfile(raw:StoredProfile):Profile {

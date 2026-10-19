@@ -28,7 +28,10 @@ export const ENABLE_MODULAR_APPEARANCE:boolean=false;
 export const modularAppearanceReady=()=>ENABLE_MODULAR_APPEARANCE&&modular.complete&&modular.naturalWidth>0&&modularDependencies.every(path=>{const image=asset(path);return image.complete&&image.naturalWidth>0;});
 /** Validated complete costumes load independently of the unfinished hair/hat rollout. */
 export const PAINTED_OUTFITS:Readonly<Record<string,{source:readonly[number,number,number,number];destination:readonly[number,number,number,number];portrait:readonly[number,number,number,number];hue:number}>>={
- 'outfit-cartographer':{source:[240,8,775,904],destination:[340,610,542,630],portrait:[240,8,775,904],hue:.61}
+ 'outfit-cartographer':{source:[240,8,775,904],destination:[340,610,542,630],portrait:[240,8,775,904],hue:.61},
+ 'outfit-captain':{source:[335,5,640,1233],destination:[437,500,384,740],portrait:[335,5,640,1233],hue:.99},
+ 'outfit-hiphop':{source:[366,11,602,1164],destination:[474,518,373,722],portrait:[366,11,602,1164],hue:.76},
+ 'outfit-swordsman':{source:[180,1,948,1133],destination:[334,538,588,702],portrait:[180,1,948,1133],hue:.52}
 };
 export const paintedOutfitReady=(id:string)=>{const path=CATALOG[id]?.visual?.asset;if(!PAINTED_OUTFITS[id]||!path)return false;const image=asset(path);return image.complete&&image.naturalWidth>0;};
 type Point=readonly[number,number];
@@ -57,8 +60,8 @@ function cut(source:HTMLCanvasElement,points:readonly Point[],pivot:Point):Avata
  c.scale(RESOLUTION,RESOLUTION);c.translate(-x,-y);c.beginPath();polygon(c,points);c.clip();c.drawImage(source,0,0,SIZE,SIZE);return {canvas:layer,x,y,width,height,pivot};
 }
 export function avatarRig(eq:Equipment):AvatarRig|null{
- // The game keeps a single outfit (the Cartógrafo); stale IDs and loading never reveal anything else.
- const outfitId='outfit-cartographer';
+ // Registered painted outfits only; stale IDs fall back to the Cartógrafo, and loading never reveals anything else.
+ const outfitId=PAINTED_OUTFITS[eq.outfit]?eq.outfit:'outfit-cartographer',cartographer=outfitId==='outfit-cartographer';
  if(!paintedOutfitReady(outfitId))return null;
  const face=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes),hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null,base=modular;
  // Wait for the universal head instead of briefly showing the retired starter
@@ -75,7 +78,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
  const rig:AvatarRig={modular:true,paintedOutfit:true,outfitPose:'cartographer',
   head:cut(headSource,[[265,0],[991,0],[991,600],[727,608],[701,631],[622,629],[542,608],[265,608]],[650,610]),
   stanceBody:cut(source,[[260,460],[1010,460],[1010,1254],[260,1254]],[650,610])};
- {
+ if(cartographer){
   // The universal face includes a short neck. Bring the painted standing
   // collar/lapels forward so this outfit does not leave a long bare neck.
   // The inset cravat is sampled from the same atlas painting, not a flat fill.
@@ -84,7 +87,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
   cc.drawImage(body,704,74,60,96,645,620,80,86);cc.restore();
   rig.neckCloth=cut(cloth,[[560,605],[745,605],[770,710],[530,710]],[650,610]);
  }
- {
+ if(cartographer){
   // Walking lifts the standing trousers and boots out of the painting itself (the map scroll and the
   // coat stay on the torso, tails included), so the steps never tear the coat or show a second pair of legs.
   const legs=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION);
@@ -106,7 +109,7 @@ export function avatarRig(eq:Equipment):AvatarRig|null{
    far:makeLeg([698,880],[712,1012],[724,1140],pieces.farThigh,pieces.farShin,pieces.farFoot)
   };
  }
- {
+ if(cartographer){
   // The cut-out prone body is only a fallback: combat draws the painted frames (src/game/combatBody.ts).
   const prone=canvas(SIZE*RESOLUTION,SIZE*RESOLUTION),pc=prone.getContext('2d')!;pc.scale(RESOLUTION,RESOLUTION);
   pc.drawImage(body,101,926,1055,317,180,1018,650,195);

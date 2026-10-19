@@ -65,3 +65,7 @@ Expression: determined focused amber-brown eyes with lower narrower upper lids, 
 ## Piscadela Confiante — coleção da loja
 
 Sexta expressão gerada a partir de `face-brave.png`, no mesmo canvas RGBA 1254×1254. Fonte original preservada em `/workspace/generated_images/exec-6de60093-b54e-4401-bf0b-b5de215a6790.png`. Prompt exato registrado em [coleção da loja](shop-cosmetics-prompts.md). Usa o mesmo retângulo universal e compositor; limite alfa medido `[379,221,523,506]` é apenas metadado, sem alterar escala por rosto. Verificação dos seis rostos confirmou zero diferenças de alfa e 15.176 pixels internos significativamente diferentes da expressão base.
+
+## Olhar do Capitão (face-captain) — 19/10/2026
+
+Editado pelo Codex com `face-brave.png` como imagem 1; a saída veio maior e deslocada e foi reamostrada para o retângulo alfa comum `[380,222,521,505]`. Expressão: olhos âmbar levemente estreitados e confiantes, sobrancelha distante mais alta, meio sorriso fechado de lado. Prompt: "Change ONLY its INTERNAL facial expression to a CONFIDENT SKY-SHIP CAPTAIN… the FAR eyebrow raised a little higher than the near one… a lopsided closed-mouth half smile lifted on the far side…" (completo em `test-results/codex-cosmetics/face/prompt.txt` na máquina do usuário).

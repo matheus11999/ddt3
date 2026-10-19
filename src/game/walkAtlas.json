@@ -1,4 +1,49 @@
 {
+ "outfit-captain": {
+  "path": "/assets/outfits/walk/outfit-captain.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -116.55
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.22
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.9
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.88
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.88
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.9
+    ]
+   }
+  ]
+ },
  "outfit-cartographer": {
   "path": "/assets/outfits/walk/outfit-cartographer.png",
   "standing": [
@@ -40,6 +85,96 @@
     "head": [
      0.62,
      -116.14
+    ]
+   }
+  ]
+ },
+ "outfit-hiphop": {
+  "path": "/assets/outfits/walk/outfit-hiphop.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -117.64
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.0
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -119.65
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.4
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.14
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.64
+    ]
+   }
+  ]
+ },
+ "outfit-swordsman": {
+  "path": "/assets/outfits/walk/outfit-swordsman.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -116.29
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.29
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.46
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.77
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.62
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.97
     ]
    }
   ]

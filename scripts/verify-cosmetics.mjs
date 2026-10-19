@@ -6,7 +6,10 @@ import {createServer} from 'vite';
 // then every hair × hat × glasses combination, every outfit's proportions and its prone combat body,
 // and the Color Ticket zone of every piece (src/game/rig/recolorZones.ts): each must have one that changes
 // a visible share of the painting without swallowing the whole detail piece.
-// Report mode by default; --strict fails when any issue remains (phase 5 of docs/cosmetics-fit.md).
+// Each outfit is also checked where the game shows it: standing and walking in the lobby (painted 6-frame walk sheet)
+// and fighting (painted 12-frame combat atlas), see docs/combat-frames.md.
+// Report mode by default; --strict fails when any issue remains (phase 5 of docs/cosmetics-fit.md);
+// --only=id,id limits the verdict to the pieces being made.
 // Optional: BROWSER_EXECUTABLE=/path/to/chromium, OUTPUT_DIR=test-results/cosmetics.
 const strict=process.argv.includes('--strict');
 const output=process.env.OUTPUT_DIR??'test-results/cosmetics';
@@ -35,6 +38,8 @@ try{
   await Promise.all([...new Set(['/assets/character-base.png','/assets/adventurer.png','/assets/hair-wavy.png','/assets/hair-covered-atlas.png',
    '/assets/outfits/combat-prone.png','/assets/outfits/cartographer-walk.png',
    ...ITEMS.map(item=>item.visual?.asset).filter(Boolean)])].map(load));
+  // Painted lobby walk sheets and battle atlases, drawn by the sheets below.
+  await Promise.all([...Object.values((await import('/src/game/walkAtlas.json')).default),...Object.values((await import('/src/game/combatAtlas.json')).default)].map(entry=>load(entry.path)));
   // headwear.ts owns its atlas; wait for the same URL to be decoded.
   await new Promise((resolve,reject)=>{const image=new Image();image.onload=resolve;image.onerror=()=>reject(new Error('Cannot load headwear atlas'));image.src='/assets/headwear-worn-atlas.png';});
   await new Promise(resolve=>setTimeout(resolve,300));
@@ -90,25 +95,64 @@ try{
   }
 
   // Prone combat bodies: universal arms layer, hand point and body length (docs/prone-combat.md).
-  const V=await import('/src/game/avatar.ts'),prone=[];
+  // Outfits with painted combat frames (combatAtlas.json) never use the cut-out body: their frames are measured below.
+  const V=await import('/src/game/avatar.ts'),paintedCombat=(await import('/src/game/combatAtlas.json')).default,prone=[];
   const proneSheet=document.createElement('canvas'),pw=230,ph=200,poses=[['idle',0],['walk',0],['charge',0],['fire',30],['fire',120]];
   proneSheet.width=pw*poses.length+130;proneSheet.height=Math.max(1,outfits.length)*ph+30;const ps=proneSheet.getContext('2d');ps.fillStyle='#16233a';ps.fillRect(0,0,proneSheet.width,proneSheet.height);
   ps.fillStyle='#fff';ps.font='bold 13px sans-serif';poses.forEach(([pose,t],i)=>ps.fillText(`${pose}${t?` ${t}ms`:''}`,130+i*pw+8,18));
   const alpha=part=>{const d=part.canvas.getContext('2d').getImageData(0,0,part.canvas.width,part.canvas.height).data;let n=0;for(let i=3;i<d.length;i+=4)if(d[i]>40)n++;return n;};
   outfits.forEach((outfit,row)=>{
    const combat=A.avatarRig(eqOf({outfit}))?.combat;
-   if(!combat?.arms||!combat.hand){prone.push({id:outfit,bounds:null,widthRatio:0,issues:[{code:'unregistered',message:'Corpo deitado sem camada de braços',measured:0,limit:0}]});return;}
-   const arms=alpha(combat.arms),armShare=arms/(arms+alpha(combat.torso)),parts=[combat.farLeg,combat.nearLeg,combat.torso,combat.arms];
+   if(paintedCombat[outfit])prone.push({id:outfit,bounds:null,widthRatio:0,painted:true,issues:[]});
+   else if(!combat?.arms||!combat.hand){prone.push({id:outfit,bounds:null,widthRatio:0,issues:[{code:'unregistered',message:'Corpo deitado sem camada de braços',measured:0,limit:0}]});}
+   else{const arms=alpha(combat.arms),armShare=arms/(arms+alpha(combat.torso)),parts=[combat.farLeg,combat.nearLeg,combat.torso,combat.arms];
    const left=Math.min(...parts.map(p=>p.x)),right=Math.max(...parts.map(p=>p.x+p.width)),length=(right-left)/(HEAD_WIDTH*HEAD_SCALE);
    const a=combat.arms,d=a.canvas.getContext('2d').getImageData(0,0,a.canvas.width,a.canvas.height).data,scale=a.canvas.width/a.width;let near=Infinity;
    for(let y=0;y<a.canvas.height;y++)for(let x=0;x<a.canvas.width;x++)if(d[(y*a.canvas.width+x)*4+3]>40)near=Math.min(near,Math.hypot(a.x+x/scale-combat.hand[0],a.y+y/scale-combat.hand[1]));
-   prone.push(F.evaluateProne(outfit,armShare,length,near));
+   prone.push(F.evaluateProne(outfit,armShare,length,near));}
    const y=30+row*ph;ps.fillStyle='#fff';ps.font='12px sans-serif';ps.fillText(CATALOG[outfit].name,6,y+ph/2);
    poses.forEach(([pose,t],i)=>{const cell=document.createElement('canvas');cell.width=pw;cell.height=ph;const cc=cell.getContext('2d'),m=V.createAvatarMotion(1);
     for(let f=0;f<24;f++){cc.clearRect(0,0,pw,ph);V.drawAvatar(cc,eqOf({outfit,hair:'hair-undercut'}),pw/2,ph-12,190,1000+f*16,pose==='walk',1,true,m,{combat:true,pose,angle:50,power:70,poseTime:t,movementDistance:pose==='walk'?1.2:0});}
     ps.fillStyle='#ffffff0d';ps.fillRect(130+i*pw,y,pw-4,ph-4);ps.drawImage(cell,130+i*pw,y);});
    const bad=prone.at(-1).issues.length;ps.fillStyle=bad?'#ffb3ba':'#b8ffd6';ps.fillText(bad?`${bad} problema(s)`:'ok',6,y+ph/2+16);
   });
+
+  // Lobby and battle sheets (docs/combat-frames.md): every outfit walks in the lobby on its painted 6-frame sheet
+  // and fights on its painted 12-frame atlas. Each frame is measured in its atlas cell: painted, whole (not cut
+  // by the cell edge), standing on the ground line, the head where the game draws it.
+  const walkContract=(await import('/src/game/rig/walkFrames.json')).default,walkAtlases=(await import('/src/game/walkAtlas.json')).default;
+  const combatAtlases=(await import('/src/game/combatAtlas.json')).default,CF=await import('/src/game/rig/combatFrames.ts');
+  await Promise.all([...Object.values(walkAtlases),...Object.values(combatAtlases)].map(entry=>load(entry.path)));
+  const sheetFrames=(path,count,{columns,cell:[cw,ch],origin:[,oy],pixelsPerUnit:ppu},head)=>{
+   const image=A.asset(path),el=document.createElement('canvas');el.width=image.naturalWidth;el.height=image.naturalHeight;
+   const g=el.getContext('2d',{willReadFrequently:true});g.drawImage(image,0,0);
+   return Array.from({length:count},(_,i)=>{
+    const sx=i%columns*cw,sy=Math.floor(i/columns)*ch;if(sx+cw>el.width||sy+ch>el.height)return {painted:false,cut:false,groundGap:0,head:[0,0]};
+    const d=g.getImageData(sx,sy,cw,ch).data;let bottom=-1,area=0,cut=false;
+    for(let y=0;y<ch;y++)for(let x=0;x<cw;x++)if(d[(y*cw+x)*4+3]>40){area++;bottom=Math.max(bottom,y);if(x===0||y===0||x===cw-1||y===ch-1)cut=true;}
+    return {painted:area>200,cut,groundGap:bottom<0?0:Math.max(0,(oy-(bottom+1))/ppu),head:head(i)};
+   });
+  };
+  const walks=[],battles=[];
+  for(const outfit of outfits){
+   const walk=walkAtlases[outfit];
+   walks.push(F.evaluateWalkSheet(outfit,walk?sheetFrames(walk.path,walkContract.frames.length,walkContract.atlas,i=>walk.frames[i]?.head??[0,0]):null));
+   const combat=combatAtlases[outfit],layout={...CF.COMBAT_ATLAS,...(combat?.cell?{cell:combat.cell}:{}),...(combat?.origin?{origin:combat.origin}:{})};
+   const frames=combat?sheetFrames(combat.path,CF.COMBAT_FRAME_NAMES.length,layout,i=>combat.frames[i]?.head??[0,0]).map((frame,i)=>({...frame,hands:!!combat.frames[i]?.hands})):null;
+   battles.push(F.evaluateCombatSheet(outfit,frames,CF.COMBAT_FRAME_NAMES.map(name=>CF.COMBAT_FRAMES[name].head)));
+  }
+  // Lobby sheet: each outfit standing and in its six painted steps, both facings, with a hat look and a bare look.
+  const looks=[{hair:'hair-undercut',hat:'hat-cap'},{hair:'hair-horizon',hat:'hat-none',glasses:'glasses-navigator'}],lw=200,lh=250;
+  const lobbySheet=document.createElement('canvas');lobbySheet.width=150+lw*7;lobbySheet.height=30+outfits.length*looks.length*2*lh;const ls=lobbySheet.getContext('2d');
+  ls.fillStyle='#24395c';ls.fillRect(0,0,lobbySheet.width,lobbySheet.height);ls.fillStyle='#fff';ls.font='bold 13px sans-serif';
+  ['parado',...walkContract.frames.map(frame=>frame.name)].forEach((label,i)=>ls.fillText(label,150+i*lw+8,18));
+  let lobbyRow=0;
+  for(const outfit of outfits)for(const look of looks)for(const facing of [1,-1]){
+   const y=30+lobbyRow++*lh,walk=walks.find(item=>item.id===outfit);ls.fillStyle='#fff';ls.font='12px sans-serif';ls.fillText(`${CATALOG[outfit].name} ${facing>0?'→':'←'}`,6,y+lh/2);
+   ls.fillStyle=walk.issues.length?'#ffb3ba':'#b8ffd6';ls.fillText(walk.issues.length?`${walk.issues.length} problema(s)`:'ok',6,y+lh/2+16);
+   [-1,0,1,2,3,4,5].forEach((frame,i)=>{const x=150+i*lw,m=V.createAvatarMotion(facing);m.walk=frame<0?0:1;m.phase=frame<0?0:(frame+.5)*walkContract.frameUnits*Math.PI*2/44;m.lastTime=1000;
+    ls.fillStyle='#5b4228';ls.fillRect(x+4,y+lh-30,lw-8,26);V.drawAvatar(ls,eqOf({outfit,...look}),x+lw/2,y+lh-30,200,1016,frame>=0,facing,false,m,{movementDistance:0,animated:true});});
+  }
 
   // Color tickets: every hair, hat, glasses and outfit has a recolor zone of sensible size.
   const {RECOLOR_ZONES,RECOLOR_COVERAGE}=await import('/src/game/rig/recolorZones.ts');
@@ -212,7 +256,7 @@ try{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,prone,recolor,costumes,counts:{costumes:costumeIds.length,hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png'),costumes:costumeSheet.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,walks,battles,recolor,costumes,counts:{costumes:costumeIds.length,hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),lobby:lobbySheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png'),costumes:costumeSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -220,17 +264,26 @@ try{
 const {sheets,...data}=report;
 for(const [name,url] of Object.entries(sheets))await writeFile(`${output}/${name}.png`,Buffer.from(url.split(',')[1],'base64'));
 await writeFile(`${output}/report.json`,JSON.stringify(data,null,1));
-const failingItems=data.items.filter(item=>item.issues.length),failingCombos=data.combinations.filter(combo=>combo.issues.length),failingBodies=data.bodies.filter(body=>body.issues.length),failingProne=data.prone.filter(body=>body.issues.length),failingColors=data.recolor.filter(item=>item.issues.length),failingCostumes=data.costumes.filter(item=>item.issues.length);
+// --only=id,id limits the verdict (and --strict) to the pieces being made; the report still lists everything.
+const only=process.argv.find(arg=>arg.startsWith('--only='))?.slice(7).split(',').filter(Boolean);
+const mine=id=>!only||only.includes(id),bad=list=>list.filter(item=>item.issues.length&&mine(item.id));
+const failingItems=bad(data.items);
+// A combination fails a piece being made when that piece causes it: its hair over the face, its hat hiding
+// glasses, or its glasses hidden where the other glasses are not.
+const blames=combo=>combo.issues.some(issue=>issue.code==='keepout'?mine(combo.hair):mine(combo.hat)||only.some(id=>issue.message.startsWith(`${id}:`))&&combo.issues.filter(other=>other.code==='hidden').length===1);
+const failingCombos=data.combinations.filter(combo=>combo.issues.length&&(!only||blames(combo))),failingBodies=bad(data.bodies),failingProne=bad(data.prone),failingWalks=bad(data.walks),failingBattles=bad(data.battles),failingColors=bad(data.recolor),failingCostumes=bad(data.costumes);
 const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  `${data.counts.hairs} cabelos, ${data.counts.hats} chapéus, ${data.counts.glasses} óculos, ${data.counts.outfits} roupas; ${data.combinations.length} combinações de chapéu × cabelo, cada uma com todos os óculos.`,'',
  '## Peças isoladas','','| Peça | Classe | Largura | Problemas |','| --- | --- | --- | --- |',
  ...data.items.map(item=>`| ${item.id} | ${item.fit??'—'} | ${item.widthRatio}× | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Combinações com problema','',...(failingCombos.length?failingCombos.map(combo=>`- ${combo.hat} + ${combo.hair}: ${combo.issues.map(issue=>issue.message).join('; ')}`):['Nenhuma.']),'',
- '## Roupas','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
- '## Combate deitado','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.widthRatio}× | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Roupas em pé (lobby)','','| Roupa | Problemas |','| --- | --- |',...data.bodies.map(body=>`| ${body.id} | ${body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Andar do lobby (folha pintada)','','| Roupa | Sobe e desce | Problemas |','| --- | --- | --- |',...data.walks.map(walk=>`| ${walk.id} | ${walk.widthRatio} un. | ${walk.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Batalha (quadros pintados)','','| Roupa | Desvio da cabeça | Problemas |','| --- | --- | --- |',...data.battles.map(battle=>`| ${battle.id} | ${battle.widthRatio} un. | ${battle.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
+ '## Combate deitado recortado (roupas sem quadros pintados)','','| Roupa | Comprimento | Problemas |','| --- | --- | --- |',...data.prone.map(body=>`| ${body.id} | ${body.painted?'—':`${body.widthRatio}×`} | ${body.painted?'usa os quadros pintados':body.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Ticket de Cor','','| Peça | O que muda | Área | Problemas |','| --- | --- | --- | --- |',...data.recolor.map(item=>`| ${item.id} | ${item.label} | ${Math.round(item.coverage*100)}% | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),'',
  '## Fantasias','','| Fantasia | Problemas |','| --- | --- |',...data.costumes.map(item=>`| ${item.id} | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
-console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}; fantasias com problema: ${failingCostumes.length}/${data.costumes.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/colors.png, ${output}/skins.png, ${output}/costumes.png`);
-if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingColors.length||failingCostumes.length))process.exit(1);
+console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; andar do lobby com problema: ${failingWalks.length}/${data.walks.length}; batalha com problema: ${failingBattles.length}/${data.battles.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}; fantasias com problema: ${failingCostumes.length}/${data.costumes.length}`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/lobby.png, ${output}/colors.png, ${output}/skins.png, ${output}/costumes.png`);
+if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingWalks.length||failingBattles.length||failingColors.length||failingCostumes.length))process.exit(1);

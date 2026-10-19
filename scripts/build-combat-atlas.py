@@ -15,6 +15,10 @@ Output: public/assets/outfits/combat/<id>.png, src/game/combatAtlas.json, test-r
 import json, os, sys
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
+try:
+    from scipy import ndimage
+except ImportError:  # optional: only drops stray specks
+    ndimage = None
 
 contract = json.load(open('src/game/rig/combatFrames.json'))
 T, A, HS = contract['template'], contract['atlas'], contract['headSilhouette']
@@ -153,7 +157,8 @@ for sheet, path in zip(contract['sheets'], inputs):
     head_mask = (green > 90) & (rgb[..., 1] > 150)
     # Cyan discs mark the universal fists: nothing of the outfit is painted there.
     r_, g_, b_ = (rgb[..., k].astype(float) for k in range(3))
-    cyan = (np.minimum(g_, b_) - r_ > 60) & (g_ > 120) & (b_ > 120)
+    # Only the template's flat cyan discs (#00FFFF-like): teal or turquoise clothes are not fists.
+    cyan = (np.minimum(g_, b_) - r_ > 120) & (g_ > 200) & (b_ > 200)
     rgba[grow(cyan, 7), 3] = 0
     # Fists painted in the skin tone over the template's discs: the game draws no hands on these frames.
     hands = cyan.sum() < 200
@@ -188,6 +193,15 @@ for sheet, path in zip(contract['sheets'], inputs):
     clean = rgba.copy()
     # Only pixels that still carry green go: a blind band around the head would cut the fists' and collar's outlines.
     clean[(grow(head_mask | rim, 7) & (green > 8)) | head_mask | rim, 3] = 0
+    # A soft green edge over the magenta leaves a gray seam (half magenta, half green: r = b, r + g = 255).
+    seam = grow(head_mask, 9) & (np.abs(r_ - b_) < 45) & (np.abs(r_ + g_ - 255) < 70) & (g_ > 40) & (r_ > 40)
+    clean[seam, 3] = 0
+    if ndimage is not None:
+        # Lone specks left by the key (a few pixels of the head's edge) go; the painting is one big piece.
+        labels, count = ndimage.label(clean[..., 3] > 24)
+        if count:
+            sizes = ndimage.sum(np.ones_like(labels), labels, range(1, count + 1))
+            clean[np.isin(labels, np.nonzero(sizes < 60)[0] + 1), 3] = 0
     for i, (m, name) in enumerate(zip(measured, sheet['frames'])):
         if not m:
             continue

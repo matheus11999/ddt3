@@ -1,11 +1,11 @@
-import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS,PRONE_PROPORTIONS} from './anchors';
+import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS,COMBAT_SHEET,PRONE_PROPORTIONS,WALK_SHEET} from './anchors';
 import type {FitClass} from './anchors';
 import {COSMETIC_MANIFEST} from './manifest';
 
 /** Alpha coverage in template space: pixel (x,y) is template (x-originX, y-originY). */
 export interface FitMask {width:number;height:number;originX:number;originY:number;data:Uint8Array;}
 export interface Bounds {x:number;y:number;width:number;height:number;area:number;}
-export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor';message:string;measured:number;limit:number;}
+export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor'|'missing'|'cut'|'ground'|'bob';message:string;measured:number;limit:number;}
 export interface FitReport {id:string;fit?:FitClass;bounds:Bounds|null;widthRatio:number;issues:FitIssue[];}
 
 export function maskFromAlpha(rgba:Uint8ClampedArray,width:number,height:number,originX:number,originY:number,threshold=40):FitMask{
@@ -78,4 +78,36 @@ export function evaluateProne(id:string,armShare:number,length:number,handDistan
  if(length<minLength||length>maxLength)issues.push({code:'proportion',message:`Corpo deitado com ${fmt(length)}× a cabeça; faixa ${minLength}–${maxLength}×`,measured:fmt(length),limit:length<minLength?minLength:maxLength});
  if(handDistance>PRONE_PROPORTIONS.handReach)issues.push({code:'anchor',message:`Ponto da mão a ${Math.round(handDistance)}px do punho pintado; limite ${PRONE_PROPORTIONS.handReach}px`,measured:Math.round(handDistance),limit:PRONE_PROPORTIONS.handReach});
  return {id,bounds:null,widthRatio:fmt(length),issues};
+}
+
+/** One painted frame of a sheet, measured in its atlas cell: painted at all, touching the cell edge
+ * (cut), the gap between the lowest painted row and the ground line, and the head point (avatar units). */
+export interface SheetFrame {painted:boolean;cut:boolean;groundGap:number;head:readonly [number,number];hands?:boolean;}
+/** Lobby walk sheet: six whole paintings on the ground whose head barely bobs. */
+export function evaluateWalkSheet(id:string,frames:readonly SheetFrame[]|null):FitReport{
+ const issues:FitIssue[]=[];
+ if(!frames)return {id,bounds:null,widthRatio:0,issues:[{code:'missing',message:'Sem folha de andar do lobby (walkAtlas.json)',measured:0,limit:WALK_SHEET.frames}]};
+ if(frames.length!==WALK_SHEET.frames||frames.some(frame=>!frame.painted))issues.push({code:'missing',message:`Andar com ${frames.filter(frame=>frame.painted).length} de ${WALK_SHEET.frames} quadros pintados`,measured:frames.length,limit:WALK_SHEET.frames});
+ frames.forEach((frame,index)=>{
+  if(frame.cut)issues.push({code:'cut',message:`Andar ${index+1} cortado na borda da célula`,measured:index,limit:0});
+  if(frame.painted&&frame.groundGap>WALK_SHEET.groundGap)issues.push({code:'ground',message:`Andar ${index+1} flutua ${fmt(frame.groundGap)} un. acima do chão`,measured:fmt(frame.groundGap),limit:WALK_SHEET.groundGap});
+ });
+ const heads=frames.filter(frame=>frame.painted).map(frame=>frame.head[1]),bob=heads.length?Math.max(...heads)-Math.min(...heads):0;
+ if(bob>WALK_SHEET.bob)issues.push({code:'bob',message:`Cabeça sobe e desce ${fmt(bob)} un. no andar`,measured:fmt(bob),limit:WALK_SHEET.bob});
+ return {id,bounds:null,widthRatio:fmt(bob),issues};
+}
+/** Battle atlas: twelve whole paintings with painted hands, the head where the contract expects it. */
+export function evaluateCombatSheet(id:string,frames:readonly SheetFrame[]|null,expected:readonly (readonly [number,number])[]):FitReport{
+ const issues:FitIssue[]=[];
+ if(!frames)return {id,bounds:null,widthRatio:0,issues:[{code:'missing',message:'Sem quadros de combate pintados (combatAtlas.json)',measured:0,limit:COMBAT_SHEET.frames}]};
+ if(frames.length!==COMBAT_SHEET.frames||frames.some(frame=>!frame.painted))issues.push({code:'missing',message:`Combate com ${frames.filter(frame=>frame.painted).length} de ${COMBAT_SHEET.frames} quadros pintados`,measured:frames.length,limit:COMBAT_SHEET.frames});
+ let drift=0;
+ frames.forEach((frame,index)=>{
+  if(frame.cut)issues.push({code:'cut',message:`Quadro de combate ${index+1} cortado na borda da célula`,measured:index,limit:0});
+  if(frame.painted&&frame.groundGap>COMBAT_SHEET.groundGap)issues.push({code:'ground',message:`Quadro de combate ${index+1} flutua ${fmt(frame.groundGap)} un. acima do chão`,measured:fmt(frame.groundGap),limit:COMBAT_SHEET.groundGap});
+  if(frame.painted&&frame.hands===false)issues.push({code:'missing',message:`Quadro de combate ${index+1} sem mãos pintadas`,measured:index,limit:0});
+  const target=expected[index];if(target)drift=Math.max(drift,Math.hypot(frame.head[0]-target[0],frame.head[1]-target[1]));
+ });
+ if(drift>COMBAT_SHEET.headDrift)issues.push({code:'anchor',message:`Cabeça a ${fmt(drift)} un. do lugar do contrato`,measured:fmt(drift),limit:COMBAT_SHEET.headDrift});
+ return {id,bounds:null,widthRatio:fmt(drift),issues};
 }
