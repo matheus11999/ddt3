@@ -124,7 +124,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
    {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60} color={p.itemColors[copy]} skin={preview.skin} eyes={preview.eyes}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{canStrengthen(it)&&!empty&&<UpgradeTag level={slotUpgrade(preview,slot)} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
- const progress=levelProgress(p.level,p.xp),stoneTotal=Object.values(p.stones).reduce((sum,count)=>sum+count,0);
+ const progress=levelProgress(p.level,p.xp);
 
  return <Modal title="Mochila" onClose={studio||discarding||menu?()=>{}:onClose} className="bag-window" viewport>
   <div className="inventory-body bag-layout" onContextMenu={event=>event.preventDefault()}>
@@ -179,7 +179,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
     </div>
     <div className="inventory-pagination"><span role="status" aria-live="polite">{feedback??''}</span><div><button aria-label="Página anterior" disabled={currentPage===0} onClick={()=>{setPage(currentPage-1);setTooltip(null);}}><ChevronLeft size={16}/></button><span>{currentPage+1} / {pages}</span><button aria-label="Próxima página" disabled={currentPage===pages-1} onClick={()=>{setPage(currentPage+1);setTooltip(null);}}><ChevronRight size={16}/></button></div></div>
     <footer className="bag-footer">
-     <div className="bag-wallet"><span title="Moedas Brasa"><RewardIcon size={18}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span title="Cupons"><CouponIcon size={22}/><b>{p.coupons.toLocaleString('pt-BR')}</b></span><span title="Pedras de fortalecimento"><img src="/assets/stone-1.png" alt="" width={20} height={20}/><b>{stoneTotal.toLocaleString('pt-BR')}</b></span><span title={COLOR_TICKET.name}><TicketIcon size={22}/><b>{p.colorTickets.toLocaleString('pt-BR')}</b></span></div>
+     <div className="bag-wallet"><span title="Moedas Brasa"><RewardIcon size={18}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span title="Cupons"><CouponIcon size={22}/><b>{p.coupons.toLocaleString('pt-BR')}</b></span></div>
      <button className="bag-action forge" disabled={!!state.room||pending} onClick={()=>onForge()} title="Ferreiro" aria-label="Abrir ferreiro"><Hammer size={16}/><span>Ferreiro</span></button>
     </footer>
    </section>
