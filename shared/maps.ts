@@ -135,8 +135,10 @@ export function canonicalMap(id:MapId):MapId{
  return canonicalMap(pin.id as MapId);
 }
 export function getMap(id:MapId):MapDefinition{return MAP_DEFINITIONS[canonicalMap(id)]!;}
+/** Grid (px) of `cells` shapes in map files and admin revisions: collision traced on 3px cells, expanded to world pixels by the terrain template. */
+export const MAP_CELL=3;
 export function contains(shape:Shape,x:number,y:number):boolean {
- if(shape.kind==='cells'){const cx=Math.floor(x/3)-shape.col,cy=Math.floor(y/3)-shape.row;if(cx<0||cy<0||cx>=shape.cols||cy>=shape.rows)return false;const n=cy*shape.cols+cx;return (cellBits(shape)[n>>3]>>(n&7)&1)===1;}
+ if(shape.kind==='cells'){const cx=Math.floor(x/MAP_CELL)-shape.col,cy=Math.floor(y/MAP_CELL)-shape.row;if(cx<0||cy<0||cx>=shape.cols||cy>=shape.rows)return false;const n=cy*shape.cols+cx;return (cellBits(shape)[n>>3]>>(n&7)&1)===1;}
  if(shape.kind==='rect')return x>=shape.x&&y>=shape.y&&x<shape.x+shape.width&&y<shape.y+shape.height;
  if(shape.kind==='ellipse')return ((x-shape.x)/shape.rx)**2+((y-shape.y)/shape.ry)**2<=1;
  let inside=false;for(let i=0,j=shape.points.length-1;i<shape.points.length;j=i++){const [ax,ay]=shape.points[i],[bx,by]=shape.points[j];if((ay>y)!==(by>y)&&x<(bx-ax)*(y-ay)/(by-ay)+ax)inside=!inside;}return inside;

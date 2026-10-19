@@ -11,13 +11,15 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {TURN_GAP_MS} from '../shared/combat';
 import {REWARD_RESULT_MS} from '../shared/rewards';
 
+/** Sets one 3px block (the old terrain cell these cases were written for). */
+function block(t:Uint8Array,cx:number,cy:number,value:number){for(let y=cy*3;y<cy*3+3;y++)t.fill(value,y*WORLD.cols+cx*3,y*WORLD.cols+cx*3+3);}
 async function fixture(lowerFloor=true){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),game=new Game({getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore,()=>{},()=>.99);
  const players=['Falling A','Falling B'].map(name=>normalizeProfile({id:randomUUID(),name}));
  for(const player of players){profiles.set(player.id,player);events.set(player.id,[]);game.connect(player,event=>events.get(player.id)!.push(structuredClone(event)));}
  await game.command(players[0].id,{type:'create',practice:true,mode:'1v1',map:'garden'});const roomId=game.peers.get(players[0].id)!.roomId!;
  await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
- const match=game.matches.get(roomId)!,[actor,target]=match.state.players;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,190*WORLD.cols,191*WORLD.cols);if(lowerFloor)match.terrain.fill(1,260*WORLD.cols,261*WORLD.cols);
+ const match=game.matches.get(roomId)!,[actor,target]=match.state.players;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,570*WORLD.cols,573*WORLD.cols);if(lowerFloor)match.terrain.fill(1,780*WORLD.cols,783*WORLD.cols);
  Object.assign(actor,{x:300,y:570,hp:5000,maxHp:5000,aimSlope:0});Object.assign(target,{x:430,y:570,hp:5000,maxHp:5000,aimSlope:0});
  let aim:{angle:number;power:number}|undefined;for(let angle=15;angle<=85&&!aim;angle++)for(let power=5;power<=100;power++){const result=trajectory(match.terrain,actor,angle,power,0,WEAPONS[0],[target]);if(result.hitId===target.id&&(result.hitQuality??0)>.9){aim={angle,power};break;}}
  assert.ok(aim);for(const values of events.values())values.length=0;return {game,match,actor,target,players,events,aim};
@@ -61,20 +63,20 @@ test('void falls are authoritative at contact, remain visible on own reconnect a
 });
 
 test('walking off a ledge publishes a falling body and delays result presentation beyond its exit',async()=>{
- const f=await fixture(false),nextColumn=Math.floor((f.actor.x+8)/WORLD.cell);f.match.terrain[190*WORLD.cols+nextColumn]=0;
+ const f=await fixture(false),nextColumn=Math.floor((f.actor.x+8)/3);block(f.match.terrain,nextColumn,190,0);
  await f.game.command(f.actor.id,{type:'walk',direction:1});assert.equal(f.actor.hp,0);assert.equal(f.actor.fall!.fromY,570);assert.equal(f.actor.fall!.toY,WORLD.height+150);assert.equal(f.actor.fall!.void,true);
  assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.rewards!.opensAt,f.actor.fall!.startedAt+f.actor.fall!.duration+REWARD_RESULT_MS);
 });
 
 test('walking falls reject turn actions until landing, then an uphill step clears the completed fall',async t=>{
- const f=await fixture(),column=Math.floor((f.actor.x+8)/WORLD.cell);let now=Date.now();t.mock.method(Date,'now',()=>now);
- f.match.terrain[190*WORLD.cols+column]=0;await f.game.command(f.actor.id,{type:'walk',direction:1});
+ const f=await fixture(),column=Math.floor((f.actor.x+8)/3);let now=Date.now();t.mock.method(Date,'now',()=>now);
+ block(f.match.terrain,column,190,0);await f.game.command(f.actor.id,{type:'walk',direction:1});
  const fall=structuredClone(f.actor.fall!);assert.ok(fall);assert.equal(f.actor.y,780);assert.equal(f.match.state.phase,'aiming');const before=structuredClone(f.actor),phase=f.match.state.phase;
  for(const command of [{type:'walk',direction:1},{type:'fire',angle:45,power:25},{type:'aim',angle:45,power:25,charging:true},{type:'boost',boost:'damage20'},{type:'ability',ability:'heal'},{type:'flight',active:true},{type:'power'},{type:'pass'}] as const){
   await f.game.command(f.actor.id,command);assert.deepEqual(f.actor,before);assert.equal(f.match.state.phase,phase);
   const error=f.events.get(f.actor.id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').at(-1)!;assert.match(error.message,/pousar/);
  }
- now=fall.startedAt+fall.duration+1;const nextX=f.actor.x+8,nextColumn=Math.floor(nextX/WORLD.cell);f.match.terrain[258*WORLD.cols+nextColumn]=1;
+ now=fall.startedAt+fall.duration+1;const nextX=f.actor.x+8,nextColumn=Math.floor(nextX/3);block(f.match.terrain,nextColumn,258,1);
  await f.game.command(f.actor.id,{type:'walk',direction:1});assert.equal(f.actor.x,nextX);assert.equal(f.actor.y,774);assert.equal(f.actor.fall,undefined);assert.equal(f.actor.stamina,before.stamina-3);
 });
 

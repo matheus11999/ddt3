@@ -110,7 +110,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }
    if(b){
     if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();}
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain,b.map);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}
@@ -123,7 +123,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded,b.phase==='finished');
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
-     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,...(p.impact.destructible===false?{scorch:true}:{}),effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
+     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,...(p.impact.shape?{shape:p.impact.shape}:{}),...(p.impact.profile?{profile:p.impact.profile}:{}),...(p.impact.destructible===false?{scorch:true}:{}),effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     // The monsters' shared turn has no fighter of its own: watch the queen while she aims, the nest while ants come out, else the walking monsters.

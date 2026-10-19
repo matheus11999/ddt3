@@ -27,7 +27,7 @@ function fixture(){
 async function combat(){
  const f=fixture();await f.send(0,{type:'create',practice:true,mode:'1v1',map:'celestial'});const room=f.room();await f.send(1,{type:'join',roomId:room.id});await f.send(1,{type:'ready'});
  await f.send(0,{type:'room-spectator-slot',slot:0,open:true});await f.send(0,{type:'room-spectator-slot',slot:1,open:true});await f.send(2,{type:'spectate',roomId:room.id});await f.send(0,{type:'start'});
- const match=[...f.game.matches.values()][0],actor=match.state.players[0],target=match.state.players[1];match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);Object.assign(actor,{x:300,y:600,hp:5000,maxHp:5000});Object.assign(target,{x:430,y:600,hp:5000,maxHp:5000});
+ const match=[...f.game.matches.values()][0],actor=match.state.players[0],target=match.state.players[1];match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);Object.assign(actor,{x:300,y:600,hp:5000,maxHp:5000});Object.assign(target,{x:430,y:600,hp:5000,maxHp:5000});
  let aim:{angle:number;power:number}|undefined;for(let angle=15;angle<=85&&!aim;angle++)for(let power=5;power<=100;power++){const path=trajectory(match.terrain,actor,angle,power,0,weaponStats(WEAPONS[0],0),[target]);if(path.hitId===target.id&&(path.hitQuality??0)>.9){aim={angle,power};break;}}
  assert.ok(aim);return {...f,match,actor,target,aim};
 }

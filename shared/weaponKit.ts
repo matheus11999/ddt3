@@ -1,5 +1,7 @@
 import {WEAPONS,weaponAssetPath,weaponIconPath} from './catalog';
 import type {BoostId,Weapon} from './catalog';
+import {DESTRUCTION_STAGES,destructionMarkPath,destructionProfileId,destructionProfiles,MARK_ART} from './destruction';
+import type {DestructionMode,DestructionStage} from './destruction';
 
 /**
  * Weapon kit: everything one weapon needs to feel unique, DDTank style.
@@ -82,6 +84,9 @@ export interface WeaponKit {
  powSounds?:readonly WeaponSoundSlot[];
  /** Weapon-specific residue brief for the terrain decal. */
  terrain?:string;
+ /** The 8 destruction marks (shared/destruction.ts): what the painted rim around this weapon's hole is made of,
+  * per phase and normal|POW. Only weapons with a destruction profile need it. */
+ destruction?:{normal:string;pow:string;phases:Record<WeaponPhase,{normal:string;pow:string}>};
  /** Degrees the painted projectile points above horizontal in the atlas; the renderer rotates it back. */
  projectileTilt?:number;
  /** How the four sounds should feel (English, it feeds the ElevenLabs prompt). */
@@ -98,6 +103,16 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
   powTrident:'exclusivo',projectileTilt:0,
   sounds:['fire','flight','impact','terrain'],powSounds:['fire','impact'],
   terrain:'pequeno resíduo em meia-lua de poeira rosada, duas penas brancas e brilhos em forma de coração nas bordas de uma cratera com centro transparente; sem tijolos, pedra ou barro',
+  destruction:{
+   normal:'acabamento que acompanha a borda OVAL do buraco, com caráter romântico: uma faixa estreita de terra pressionada com contorno marrom-escuro e, por cima dela, elementos curvos leves desenhados por nós (volutas suaves, pequenos corações, pétalas ou penas deitadas ao longo da curva). Função da borda rosa do DDTank reinterpretada com desenho próprio: nunca traçar os arabescos da referência',
+   pow:'acabamento POW do bumerangue, mais expressivo que o normal e próprio da oval POW (mais larga e mais rasa): coroa dupla de volutas curvas e corações ao longo da borda, um leve brilho rosado pintado (não luz de explosão), alguns elementos saindo em leque nas laterais; o buraco continua limpo e legível',
+   phases:{
+    0:{normal:'madeira âmbar e bronze: lascas finas de madeira âmbar curvadas ao longo da oval, pontinhos de bronze polido e dois ou três corações de rubi pequenos, poeira creme contida',pow:'lâminas curvas de bronze e madeira âmbar em volutas maiores, cinco corações de rubi distribuídos na borda e pó dourado-claro'},
+    10:{normal:'cristal rosa vivo e ouro: cacos curvos de cristal rosa com filetes dourados acompanhando a oval, pétalas rosa e um laço de seda rubi pequeno',pow:'arcos de cristal rosa com aro dourado em volutas duplas, pétalas em leque nas laterais e corações de rubi maiores'},
+    12:{normal:'penas brancas com sombra azul-celeste deitadas ao longo da oval, detalhes de ouro delicado e pequenos corações rubi entre as penas',pow:'penas brancas maiores abertas em leque nas laterais, ouro delicado em volutas e um coração rubi de cada lado'},
+    15:{normal:'penas em duas camadas branca e rosa-pálido com pontas azul-celeste, filetes de ouro polido e coração de rubi coroado pequeno, duas fitinhas vermelhas curtas',pow:'coroa celestial de penas duplas branco e rosa ao redor da oval POW, ouro polido, corações de rubi coroados e fitas vermelhas curtas em curva'}
+   }
+  },
   sound:{fire:'bright curved boomerang throw, short airy swoosh and bell accent',flight:'soft spinning air with a light romantic shimmer',impact:'sharp magical heart burst with bright feathers and a short sparkle tail',terrain:'short airy crack and ground dust scattering, no heavy brick crash'},
   phases:{
    0:{ammo:'um bumerangue pequeno de madeira âmbar com três lâminas curvas e encaixe de bronze em forma de coração',held:'bumerangue de três lâminas curvas de madeira âmbar em leque, pequenas pontas de bronze polido, junta central de couro creme com um coração de rubi pequeno',projectile:'um bumerangue de três lâminas de madeira âmbar e bronze com coração rubi, sem rastro pintado',muzzle:'redemoinho curto de vento creme com dois pequenos brilhos rosa',impact:'estouro compacto de corações rosa e poeira creme',powProjectile:'uma estrela de cinco lâminas curvas de bronze com um grande coração rosa no centro e duas penas brancas; objeto único sem rastro',powImpact:'explosão de coração rosa com cinco faixas douradas e um anel leve de penas'},
@@ -113,6 +128,16 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
   concept:'Quebra-Tijolos, a arma inicial de início e meio de jogo. Como as armas do DDTank, a arma é um RECIPIENTE cheio de munição: um saco, balde ou estojo de obra com tijolos de olaria, de onde o personagem tira e arremessa um tijolo que se estilhaça no impacto e solta cacos (só visuais: nenhum caco acerta alvos). Nunca desenhar só tijolos soltos ou amarrados: sempre o recipiente com os tijolos aparecendo dentro. O recipiente sempre tem tamanho que uma pessoa carrega numa mão ou no ombro (nunca caixote ou baú grande); a partir de +12 leva só 3 ou 4 tijolos. Arma de trabalhador, robusta e simpática, nunca uma relíquia divina: o recipiente cresce em capricho e acabamento até +15, sem coroas nem auras de lenda.',
   identity:'um recipiente de obra com os tijolos aparecendo pela boca; os TIJOLOS evoluem a cada fase junto com o recipiente (o tijolo de dentro é o mesmo que é arremessado), nunca o mesmo tijolo em duas fases; alça ou corda grossa de sisal; detalhes de latão; uma pequena gema cor de brasa que aparece em +10 e cresce a cada fase. Mesmo ângulo três-quartos levemente de cima, luz de cima à esquerda, contorno marrom-escuro grosso, mesma espessura de pincel em todas as fases.',
   palette:'vermelho tijolo, laranja barro, creme da argamassa, marrom da corda, latão; brasa laranja-amarela a partir de +10; madeira laqueada vermelha em +12; couro vermelho, latão polido e brasa viva em +15',
+  destruction:{
+   normal:'acabamento de borda do buraco do tijolo, alinhado ao recorte HEXAGONAL ACHATADO (topo e fundo retos, lados inclinados): uma faixa estreita de terra fraturada com contorno marrom-escuro, rachaduras curtas saindo da borda, pequenos cacos de olaria presos à borda e poeira de barro contida. Arma de trabalhador: material de obra, nunca relíquia mágica',
+   pow:'acabamento POW do tijolo, mais expressivo que o normal e próprio do hexágono POW (um pouco maior): fraturas mais longas em raios, cacos maiores e lascas de argamassa espalhados ao redor da borda, barro levemente tostado (nunca preto); o buraco continua limpo e legível',
+   phases:{
+    0:{normal:'cacos de tijolo vermelho-alaranjado foscos com cantos lascados, manchas de argamassa creme e poeira de barro alaranjada',pow:'cacos grandes de tijolo vermelho e pedaços de argamassa creme, rachaduras longas e poeira de barro em leque nas laterais'},
+    10:{normal:'cacos alaranjados mais firmes, uma lasca de cinta de latão e rachaduras com brilho fraco de brasa laranja',pow:'cacos alaranjados com pedaços de cinta de latão retorcida, rachaduras com brasa fraca acesa e faíscas pequenas presas à borda'},
+    12:{normal:'cacos de tijolo laqueado vermelho-escuro brilhante com rebites de latão, rachaduras com brilho de brasa médio e uma gema de brasa pequena entre os cacos',pow:'cacos laqueados vermelho-escuros maiores, rebites e cantoneiras de latão, rachaduras de brasa acesa e duas gemas de brasa pequenas'},
+    15:{normal:'cacos de tijolo de mestre com cantos de latão polido, veios de brasa viva laranja-amarela nas fraturas e poucas faíscas presas à borda',pow:'cantos de latão polido entre cacos grandes, veios de brasa viva correndo pelas rachaduras longas e faíscas laranja-amarelas; poderoso mas ainda material de obra'}
+   }
+  },
   powTrident:'exclusivo',
   // Recorded with ElevenLabs on 17/10/2026 (version 01 of two; the others are in armas/quebra-tijolos-final/).
   sounds:['fire','flight','impact','terrain'],
@@ -189,6 +214,38 @@ function references(kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas'|'pow',stag
  if(slot==='atlas')return WEAPON_PHASES.map(p=>held(p.stage));
  if(slot==='pow')return [`public${weaponEffectsPath(kit.id)}`,...WEAPON_PHASES.map(p=>held(p.stage))];
  return [`public${weaponEffectsPath(kit.id)}`];
+}
+
+/** Technical template of a mark (scripts/destruction-templates.mjs): the hole, its centre and the band where the rim shows, on the mark's canvas. */
+export function destructionTemplatePath(weapon:string,mode:DestructionMode){return `docs/destruction-templates/${weapon}-${mode}.png`;}
+/** The DDTank 4.1 craterBrink studied for this weapon and mode (local reference package on the user's PC, never shipped). */
+const DDTANK_REFERENCE:Record<string,string>={brick:'quebra-tijolos','love-boomerang':'bumerangue-verdadeiro'};
+export function destructionReferencePath(weapon:string,mode:DestructionMode){return `output/weapon-destruction-reference/${DDTANK_REFERENCE[weapon]??weapon}/ddtank/${mode}/craterBrink.png`;}
+/** Generation order of the marks: after the atlas, terrain and POW pieces (9–11), normal +0…+15 then POW +0…+15. */
+export function destructionOrder(mode:DestructionMode,stage:DestructionStage){return 12+(mode==='pow'?4:0)+DESTRUCTION_STAGES.indexOf(stage);}
+/** References a mark prompt attaches, in this order: template, held and icon of the phase, the DDTank mark of the mode, then the new marks already approved (earlier phase of the mode; for POW, the normal mark of the phase). */
+export function destructionReferences(kit:WeaponKit,mode:DestructionMode,stage:DestructionStage):string[]{
+ const index=DESTRUCTION_STAGES.indexOf(stage),earlier=index>0?DESTRUCTION_STAGES[index-1]:undefined;
+ return [destructionTemplatePath(kit.id,mode),`public${weaponAssetPath(kit.id,stage)}`,`public${weaponIconPath(kit.id,stage)}`,destructionReferencePath(kit.id,mode),
+  ...(earlier===undefined?[]:[`public${destructionMarkPath(kit.id,mode,earlier)}`]),...(mode==='pow'?[`public${destructionMarkPath(kit.id,'normal',stage)}`]:[])];
+}
+/** Image prompt for one of the 16 destruction marks (docs/weapon-kit.md, "Destruição"). */
+export function destructionPrompt(weapon:Weapon,kit:WeaponKit,mode:DestructionMode,stage:DestructionStage):string {
+ const brief=kit.destruction!,phase=WEAPON_PHASES.find(p=>p.stage===stage)!,profile=destructionProfiles().get(destructionProfileId(kit.id,mode,stage))!,refs=destructionReferences(kit,mode,stage);
+ const hole=Math.round(MARK_ART.width*profile.mark.holeShare),deep=Math.round(hole*({brick:.66,'brick-pow':.66,oval:.67,'oval-pow':.59} as Record<string,number>)[profile.mask]);
+ return `${STYLE}
+Weapon "${weapon.name}" (${kit.id}), visual phase ${phase.label}, ${mode==='pow'?'POW (special shot)':'normal shot'}.
+Paint the GROUND MARK this shot leaves around its hole in destructible ground (like DDTank's craterBrink): the game cuts the hole with its own fixed mask and keeps only the part of this painting that lands on ground that is left, so it never floats over empty space. It is NOT the explosion: no fireball, no smoke cloud, no flash, no pedestal, no disc inside the hole, no soil or scenery painted in the file (the real ground shows under the mark).
+Attach these images, in this order: ${refs.join(', ')}.
+- The first image is the TECHNICAL TEMPLATE on the same ${MARK_ART.width}×${MARK_ART.height} canvas: magenta = the hole the game cuts (${hole}×${deep} px, centred on the cross at ${MARK_ART.pivotX},${MARK_ART.pivotY}); cyan = the band where the rim must sit, hugging the hole's outline; outside it stays transparent. Follow its position and size exactly; never move, rotate or rescale the hole.
+- The held weapon and icon of this phase give the materials and palette: the mark must read as left by THIS phase of the weapon.
+- The DDTank mark (${mode}) shows only the FUNCTION and proportion of a rim around the hole: do not copy its painting, ornaments or colours; paint an original design.${refs.length>4?`
+- The other new marks are already approved: keep their style, outline and scale, but this one must be clearly different (${mode==='pow'?'the POW of this phase, more expressive than its normal mark':'the next phase, new materials, never the same mark recoloured'}).`:''}
+What the rim is: ${mode==='pow'?brief.pow:brief.normal}.
+This phase: ${brief.phases[stage][mode]}.
+Rules: small and integrated with the ground, readable at 60 px on screen; the hole area (magenta) stays FULLY TRANSPARENT; the rim touches the hole's outline all around; nothing painted outside the cyan band; transparent RGBA background, no text, letters, numbers, card frame or border.
+Size: exactly ${MARK_ART.width}×${MARK_ART.height}, transparent PNG.
+Save as public${destructionMarkPath(kit.id,mode,stage)}`;
 }
 
 /** ChatGPT image prompt for one missing art piece. */

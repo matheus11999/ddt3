@@ -8,7 +8,7 @@ import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
  const sky=createTerrain('sky'),valley=createTerrain('valley');
  assert.deepEqual(sky,createTerrain('sky'));assert.notDeepEqual(sky,valley);
- assert.equal(packTerrain(sky).byteLength,sky.byteLength/8);assert.deepEqual(unpackTerrain(packTerrain(sky)),sky);
+ assert.ok(packTerrain(sky).byteLength<sky.byteLength/40,'run lengths keep the fine terrain small');assert.deepEqual(unpackTerrain(packTerrain(sky)),sky);
  assert.equal(solid(sky,-1,600),false);assert.equal(solid(sky,WORLD.width,600),false);
 });
 
@@ -18,7 +18,7 @@ test('a crater removes only material inside its rough radius and opens a new lan
  assert.equal(solid(terrain,x,y),false);assert.ok(ground(terrain,x,y)>=y+57);
  assert.equal(solid(terrain,x+66,y+60),solid(before,x+66,y+60));
  for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){
-  assert.equal(terrain[cell],0);const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;
+  assert.equal(terrain[cell],0);const cx=cell%WORLD.cols+.5,cy=Math.floor(cell/WORLD.cols)+.5;
   assert.ok(Math.hypot(cx-x,cy-y)<=60*(1+CRATER_ROUGHNESS));
  }
 });
@@ -41,7 +41,7 @@ test('projectiles collide with living fighters and ignore defeated fighters',()=
 
 test('fast projectiles sweep through thin terrain cells in both directions',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows);
- for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+27]=1;
+ for(let row=0;row<WORLD.rows;row++)terrain.fill(1,row*WORLD.cols+81,row*WORLD.cols+84);
  for(const weapon of WEAPONS)for(const origin of [{x:40,y:100,facing:1},{x:125,y:100,facing:-1}]){
   const result=trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL});
   assert.ok(result.x>=81&&result.x<84,`missed the 3px wall: ${result.x}`);
@@ -61,7 +61,7 @@ test('a grazing fighter collision is detected between fixed integration position
 });
 
 test('weapon disks reach a wall at different times without changing its contact surface',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+100]=1;
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=0;row<WORLD.rows;row++)terrain.fill(1,row*WORLD.cols+300,row*WORLD.cols+303);
  const origin={x:50,y:100,facing:1};
  const results=WEAPONS.map(weapon=>{
   const result=trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL});
@@ -74,7 +74,7 @@ test('weapon disks reach a wall at different times without changing its contact 
 });
 
 test('disk tangency detects the top and bottom of a cell without square corner false positives',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows);terrain[20*WORLD.cols+50]=1;
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=60;row<63;row++)terrain.fill(1,row*WORLD.cols+150,row*WORLD.cols+153);
  const weapon={...WEAPONS[0],ball:STRAIGHT_BALL},radius=weapon.projectileRadius;
  for(const y of [60-radius,63+radius]){
   const result=trajectory(terrain,{x:50,y:y+40,facing:1},0,100,0,weapon);
@@ -118,7 +118,7 @@ test('surface metadata follows the touched cell and fortress disks never destroy
 });
 
 test('simultaneous projectiles resolve by arrival and see earlier terrain removal',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows);terrain.fill(1,100*WORLD.cols);
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows);terrain.fill(1,300*WORLD.cols);
  const arrival:{index:number;time:number}[]=[];
  const results=volley(terrain,{x:100,y:100,facing:1},[75,5,40],30,0,WEAPONS[0],[],(result,index)=>{
   arrival.push({index,time:result.flightTime});if(arrival.length===1)terrain.fill(0);
@@ -129,7 +129,7 @@ test('simultaneous projectiles resolve by arrival and see earlier terrain remova
 });
 
 test('an impact rechecks other projectiles within the same fixed simulation step',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=0;row<WORLD.rows;row++)terrain[row*WORLD.cols+27]=1;
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows);for(let row=0;row<WORLD.rows;row++)terrain.fill(1,row*WORLD.cols+81,row*WORLD.cols+84);
  const results=volley(terrain,{x:50,y:100,facing:1},[5,5],100,0,WEAPONS[0],[],(_,index)=>{if(index===0)terrain.fill(0);});
  assert.ok(results[0].x>=81&&results[0].x<84);assert.equal(results[1].x,WORLD.width+80);assert.ok(results[1].flightTime>results[0].flightTime);
 });
@@ -163,9 +163,9 @@ test('every destructible region breaks the same, whatever material it is drawn a
   const template=terrainTemplate(map),radius=24;
   for(const material of ['earth','stone','metal','magic'] as const){
    const i=template.regions.findIndex((region,index)=>!!template.solid[index]&&!!template.definition[region]?.destructible&&template.definition[region]?.material===material);if(i<0)continue;
-   const x=(i%WORLD.cols)*3+1,y=Math.floor(i/WORLD.cols)*3+1,terrain=createTerrain(map),before=terrain.slice();crater(terrain,x,y,radius,map);
+   const x=i%WORLD.cols+.5,y=Math.floor(i/WORLD.cols)+.5,terrain=createTerrain(map),before=terrain.slice();crater(terrain,x,y,radius,map);
    for(let cell=0;cell<terrain.length;cell++){const cx=cell%WORLD.cols,cy=Math.floor(cell/WORLD.cols);if(!before[cell]||!template.definition[template.regions[cell]]?.destructible)continue;
-    if((cx*3-x)**2+(cy*3-y)**2<=radius*radius)assert.equal(terrain[cell],0,`${map} ${material} keeps a cell inside the crater`);}
+    if((cx+.5-x)**2+(cy+.5-y)**2<=radius*radius)assert.equal(terrain[cell],0,`${map} ${material} keeps a cell inside the crater`);}
   }
  }
 });
@@ -174,7 +174,7 @@ test('the Quebra-Tijolos digs a rounder crater than the default jagged edge',()=
  const brick=WEAPONS.find(w=>w.id==='brick')!,rough=weaponRoughness(brick);
  assert.ok(rough<CRATER_ROUGHNESS);
  const spread=(roughness:number)=>{const terrain=createTerrain(),before=terrain.slice(),x=600,y=ground(terrain,x)+40;crater(terrain,x,y,40,'garden',roughness);
-  let far=0;for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){const cx=(cell%WORLD.cols)*3,cy=Math.floor(cell/WORLD.cols)*3;far=Math.max(far,Math.hypot(cx-x,cy-y));}return far;};
+  let far=0;for(let cell=0;cell<terrain.length;cell++)if(terrain[cell]!==before[cell]){const cx=cell%WORLD.cols+.5,cy=Math.floor(cell/WORLD.cols)+.5;far=Math.max(far,Math.hypot(cx-x,cy-y));}return far;};
  assert.ok(spread(rough)<=40*(1+rough)+.01);assert.ok(spread(rough)<spread(CRATER_ROUGHNESS));
 });
 
@@ -190,7 +190,7 @@ test('a rival standing on top of the shooter is passed through, one a little asi
 });
 
 test('weapon masks are fixed DDTank-like shapes: flat brick hexagon, ovals, own POW masks, never noisy',()=>{
- const make=()=>{const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let r=200;r<WORLD.rows;r++)t.fill(1,r*WORLD.cols,(r+1)*WORLD.cols);return t;};
+ const make=()=>{const t=new Uint8Array(WORLD.cols*WORLD.rows);for(let r=600;r<WORLD.rows;r++)t.fill(1,r*WORLD.cols,(r+1)*WORLD.cols);return t;};
  const dig=(shape?:keyof typeof CRATER_MASKS,x=600,r=22)=>{const t=make();crater(t,x,600,r,'garden',0,1,shape);return t;};
  const round=dig(),brick=dig('brick');
  assert.ok(ground(brick,600)-600<ground(round,600)-600,'the brick digs less deep than a circle of the same width');

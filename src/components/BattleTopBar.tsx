@@ -47,10 +47,12 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
   const c=canvas.current?.getContext('2d');if(!c)return;
   // The map's own painted terrain, cut by the live destructible cells (craters show up as they happen).
   const map=getMap(live.current.battle.map),ground=document.createElement('canvas');ground.width=MINI_W*2;ground.height=MINI_H*2;const g=ground.getContext('2d')!;
-  const mask=document.createElement('canvas');mask.width=cols;mask.height=WORLD.rows;const m=mask.getContext('2d')!;
+  // A coarse copy of the fine terrain is plenty for a 216 px overview: one mask pixel per 3x3 cells.
+  const STEP=Math.max(1,Math.round(3/WORLD.cell)),maskCols=Math.ceil(cols/STEP),maskRows=Math.ceil(WORLD.rows/STEP);
+  const mask=document.createElement('canvas');mask.width=maskCols;mask.height=maskRows;const m=mask.getContext('2d')!;
   let painted=-1,frame=0,last=0;const backdrop=new Image();backdrop.src=map.art.background;const art=new Image();art.src=map.art.terrain;
   const paintTerrain=(terrain:Uint8Array)=>{
-   const image=m.createImageData(cols,WORLD.rows);for(let i=0;i<terrain.length;i++)if(terrain[i]===1)image.data[i*4+3]=255;m.putImageData(image,0,0);
+   const image=m.createImageData(maskCols,maskRows);for(let y=0;y<maskRows;y++)for(let x=0;x<maskCols;x++)if(terrain[Math.min(WORLD.rows-1,y*STEP+1)*cols+Math.min(cols-1,x*STEP+1)]===1)image.data[(y*maskCols+x)*4+3]=255;m.putImageData(image,0,0);
    g.globalCompositeOperation='source-over';g.clearRect(0,0,ground.width,ground.height);g.imageSmoothingEnabled=true;g.drawImage(mask,0,0,ground.width,ground.height);
    g.globalCompositeOperation='source-in';if(art.complete&&art.naturalWidth)g.drawImage(art,0,0,ground.width,ground.height);else{g.fillStyle='#c9d6f2';g.fillRect(0,0,ground.width,ground.height);}
   };

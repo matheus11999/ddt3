@@ -3,7 +3,9 @@ import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
-const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,RIM_CELLS=2,SOFT_EDGE_GAIN=3;
+const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,SOFT_EDGE_GAIN=3;
+/** The painted rim cut around a hole (6 px) and the cells it spans on the terrain grid. */
+const RIM_PX=6,RIM_CELLS=Math.round(RIM_PX/WORLD.cell);
 /** Art direction: dim only the distant/parallax painting, never the playfield. */
 export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
@@ -58,17 +60,17 @@ export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=
  c.translate(W/2,H/2);c.scale(zoom,zoom);c.translate(-W/2-(camera.x-W/2)*depth,-H/2-(camera.y-H/2)*depth);
 }
 
-/** 3px cells → a smooth shape at the terrain buffer's scale, only over the damaged box (in cells). Thresholding the
+/** Terrain cells → a smooth shape at the terrain buffer's scale, only over the damaged box (in cells). Thresholding the
  * bilinear upscale at half coverage turns cell stairs into diagonals (marching squares); a short ramp keeps ~1px of antialiasing. */
-function softCells(cells:HTMLCanvasElement,box:{x:number;y:number;width:number;height:number}):HTMLCanvasElement {
+function softCells(cells:HTMLCanvasElement,box:{width:number;height:number}):HTMLCanvasElement {
  const k=WORLD.cell*TERRAIN_SCALE,out=makeCanvas(box.width*k,box.height*k),o=out.getContext('2d',{willReadFrequently:true})!;
- smoothImages(o);o.drawImage(cells,box.x,box.y,box.width,box.height,0,0,out.width,out.height);
+ smoothImages(o);o.drawImage(cells,0,0,box.width,box.height,0,0,out.width,out.height);
  const image=o.getImageData(0,0,out.width,out.height),d=image.data;
  for(let i=3;i<d.length;i+=4){const a=d[i];if(a&&a<255)d[i]=Math.max(0,Math.min(255,Math.round((a-128)*SOFT_EDGE_GAIN+128)));}
  o.putImageData(image,0,0);return out;
 }
 /** Cells around a change whose pixels can move: rim cut, the smoothing footprint and the shade/lip shadows. */
-const INFLUENCE_CELLS=RIM_CELLS+5;
+const INFLUENCE_CELLS=Math.round((RIM_PX+15)/WORLD.cell);
 interface CellBox {x:number;y:number;width:number;height:number;}
 /** The painted terrain with its own antialiased silhouette; only the cells the authoritative
  * simulation has dug out are cut away (collision was traced from this very painting by `npm run build:map`).
@@ -84,17 +86,17 @@ export function paintTerrain(data:Uint8Array,map:MapId,worldArt:CanvasImageSourc
  c.save();
  if(region){c.beginPath();c.rect(area.x*k,area.y*k,area.width*k,area.height*k);c.clip();c.clearRect(area.x*k,area.y*k,area.width*k,area.height*k);}
  c.scale(TERRAIN_SCALE,TERRAIN_SCALE);smoothImages(c);c.drawImage(worldArt,0,0,W,H);
- const fracture=makeCanvas(COLS,WORLD.rows),fc=fracture.getContext('2d')!,edge=fc.createImageData(COLS,WORLD.rows);let damaged=false;
- let minX=COLS,minY=WORLD.rows,maxX=-1,maxY=-1;
- for(let y=reach.y;y<reach.bottom;y++)for(let x=reach.x,i=y*COLS+x;x<reach.right;x++,i++)if(template.solid[i]&&!data[i]){edge.data[i*4+3]=255;damaged=true;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);}
- // The painted rim lies in the soft, non-colliding cells just outside the collision; cut it with the dug cells so no sliver floats over a crater.
- const cut=makeCanvas(COLS,WORLD.rows),cc=cut.getContext('2d')!,cutCells=cc.createImageData(COLS,WORLD.rows);
- if(damaged)for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const i=y*COLS+x;if(!edge.data[i*4+3])continue;cutCells.data[i*4+3]=255;
-  for(let dy=-RIM_CELLS;dy<=RIM_CELLS;dy++)for(let dx=-RIM_CELLS;dx<=RIM_CELLS;dx++){const nx=x+dx,ny=y+dy,n=ny*COLS+nx;if(nx>=0&&ny>=0&&nx<COLS&&ny<WORLD.rows&&!template.solid[n])cutCells.data[n*4+3]=255;}}
+ let damaged=false,minX=COLS,minY=WORLD.rows,maxX=-1,maxY=-1;
+ for(let y=reach.y;y<reach.bottom;y++)for(let x=reach.x,i=y*COLS+x;x<reach.right;x++,i++)if(template.solid[i]&&!data[i]){damaged=true;if(x<minX)minX=x;if(x>maxX)maxX=x;if(y<minY)minY=y;if(y>maxY)maxY=y;}
  if(damaged){
-  fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);
-  // Pad past the rim cells and the bilinear footprint so the box edge never shows.
+  // Pad past the rim cells and the bilinear footprint so the box edge never shows. Both masks cover only this box.
   const pad=RIM_CELLS+2,box={x:Math.max(0,minX-pad),y:Math.max(0,minY-pad),width:0,height:0};box.width=Math.min(COLS,maxX+pad+1)-box.x;box.height=Math.min(WORLD.rows,maxY+pad+1)-box.y;
+  const fracture=makeCanvas(box.width,box.height),fc=fracture.getContext('2d')!,edge=fc.createImageData(box.width,box.height);
+  // The painted rim lies in the soft, non-colliding cells just outside the collision; cut it with the dug cells so no sliver floats over a crater.
+  const cut=makeCanvas(box.width,box.height),cc=cut.getContext('2d')!,cutCells=cc.createImageData(box.width,box.height);
+  for(let y=minY;y<=maxY;y++)for(let x=minX;x<=maxX;x++){const i=y*COLS+x;if(!template.solid[i]||data[i])continue;const local=(y-box.y)*box.width+x-box.x;edge.data[local*4+3]=255;cutCells.data[local*4+3]=255;
+   for(let dy=-RIM_CELLS;dy<=RIM_CELLS;dy++)for(let dx=-RIM_CELLS;dx<=RIM_CELLS;dx++){const nx=x+dx,ny=y+dy;if(nx>=box.x&&ny>=box.y&&nx<box.x+box.width&&ny<box.y+box.height&&!template.solid[ny*COLS+nx])cutCells.data[((ny-box.y)*box.width+nx-box.x)*4+3]=255;}}
+  fc.putImageData(edge,0,0);cc.putImageData(cutCells,0,0);
   const left=box.x*k,top=box.y*k,hole=softCells(cut,box),dug=softCells(fracture,box);
   c.setTransform(1,0,0,1,0,0);c.globalCompositeOperation='destination-out';c.drawImage(hole,left,top);c.globalCompositeOperation='source-atop';
   // Generic broken edge, the same for every weapon: a short cool shade inside the cut and a thin

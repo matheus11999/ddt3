@@ -7,6 +7,9 @@ import type {Command,Profile,ServerEvent} from '../shared/protocol';
 import {SMITH_POSITION} from '../shared/catalog';
 import type {CharacterGender} from '../shared/catalog';
 import {crater,unpackTerrain} from '../shared/physics';
+import {impactDig} from '../shared/physics';
+/** The dig a client replays for an impact: the mask under the body for a hit, the weapon's fixed shape (as src/game/terrainPlayback.ts). */
+const replayDig=(t:Uint8Array,impact:Parameters<typeof impactDig>[0]&{roughness?:number;shape?:import('../shared/catalog').CraterShape},map:import('../shared/maps').MapId)=>{const dig=impactDig(impact);return crater(t,dig.x,dig.y,dig.radius,map,impact.roughness,dig.stretch,impact.shape);};
 
 export const BASE_URL=process.env.BASE_URL??'http://127.0.0.1:8097';
 export const pause=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
@@ -155,7 +158,7 @@ async function run(){
   checks.push('nine authoritative projectiles from +2 and trident');
   const index=clients.indexOf(shooter);await shooter.close();const reconnected=new TestClient(shooter.session);clients[index]=reconnected;
   const welcome=await reconnected.wait('welcome');assert.equal(welcome.battle?.id,battle.id);assert.ok(welcome.battle?.terrain);assert.equal(welcome.battle?.activeShot?.id,shot.shot.id);
-  const restoredTerrain=unpackTerrain(Buffer.from(battle.terrain!,'base64'));for(const index of welcome.battle!.activeShot!.impacted){const projectile=shot.shot.projectiles[index];crater(restoredTerrain,projectile.impact.x,projectile.impact.y,projectile.impact.radius,battle.map);}assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),restoredTerrain);
+  const restoredTerrain=unpackTerrain(Buffer.from(battle.terrain!,'base64'));for(const index of welcome.battle!.activeShot!.impacted){const projectile=shot.shot.projectiles[index];replayDig(restoredTerrain,projectile.impact,battle.map);}assert.deepEqual(unpackTerrain(Buffer.from(welcome.battle!.terrain!,'base64')),restoredTerrain);
   assert.equal(welcome.profile.equipment.hat,shooter.profile.equipment.hat);checks.push('reconnect restores in-flight projectiles and only terrain impacts already applied');
   for(const client of clients)await client.request({type:'leave'},'room',event=>event.room===null);
   checks.push('rooms left cleanly');

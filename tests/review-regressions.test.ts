@@ -42,7 +42,7 @@ test('an invisible fighter keeps its real collision, while nearer terrain blocks
   await game.command(players[0].id,{type:'create',practice:true,name:'First contact',mode:'1v1',map:'garden'});const roomId=game.peers.get(players[0].id)!.roomId!;
   await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
   const match=game.matches.get(roomId)!,actor=match.state.players.find(f=>f.id===players[0].id)!,target=match.state.players.find(f=>f.id===players[1].id)!;
-  match.state.turnId=actor.id;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);const wallX=wallFirst?450:519;for(let row=0;row<WORLD.rows;row++)match.terrain[row*WORLD.cols+wallX/3]=1;
+  match.state.turnId=actor.id;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);const wallX=wallFirst?450:519;for(let row=0;row<WORLD.rows;row++)match.terrain[row*WORLD.cols+wallX]=1;
   Object.assign(actor,{x:300,y:600,hp:5000,maxHp:5000,facing:1,aimSlope:0});Object.assign(target,{x:wallFirst?650:430,y:600,hp:5000,maxHp:5000,invisibleTurns:3});events.length=0;
   await game.command(actor.id,{type:'fire',angle:15,power:20});const shot=match.activeShot!,at=match.pendingImpacts![0].at;assert.equal(target.hp,5000);game.tick(at-.001);assert.equal(target.hp,5000);game.tick(at);
   const impact=events.find((event):event is Extract<ServerEvent,{type:'impact'}>=>event.type==='impact')!,hit=impact.hits.find(hit=>hit.id===target.id);
