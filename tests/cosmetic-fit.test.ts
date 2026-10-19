@@ -3,7 +3,7 @@ import {test} from 'node:test';
 import {CATALOG,ITEMS} from '../shared/catalog';
 import {HEAD_ANCHORS,HEAD_WIDTH,RIG_VERSION} from '../src/game/rig/anchors';
 import {COSMETIC_MANIFEST} from '../src/game/rig/manifest';
-import {evaluateBody,evaluateCombatSheet,evaluateGlassesVisibility,evaluateItem,evaluatePin,evaluateProne,evaluateWalkSheet,keepoutPixels} from '../src/game/rig/fit';
+import {evaluateBody,evaluateCombatSheet,evaluateEarContact,evaluateGlassesVisibility,evaluateHatSeat,evaluateItem,evaluatePin,evaluateProne,evaluateWalkSheet,keepoutPixels} from '../src/game/rig/fit';
 import type {FitMask} from '../src/game/rig/fit';
 
 const SIZE=HEAD_ANCHORS.atlasSize;
@@ -76,4 +76,17 @@ test('lobby walk sheets and battle atlases are measured frame by frame',()=>{
  assert.deepEqual(evaluateCombatSheet('outfit-test',expected.map(head=>frame(head)),expected).issues,[]);
  const bad=evaluateCombatSheet('outfit-test',[...expected.slice(0,11).map(head=>frame(head)),frame([30,-30],{hands:false})],expected).issues.map(issue=>issue.code).sort();
  assert.deepEqual(bad,['anchor','missing']);
+});
+
+test('short hair must meet the ear and hats must sit on the skull',()=>{
+ const head=rect(380,180,460,450);
+ // Hair down to the ear with a sideburn in front of it.
+ assert.deepEqual(evaluateEarContact(rect(330,40,560,400),head),[]);
+ // Hair ending well above the ear: gap and no sideburn.
+ assert.deepEqual(evaluateEarContact(rect(330,40,560,330),head).map(issue=>issue.code),['ear','ear']);
+ // A nape hanging off the head behind and below the ear.
+ assert.ok(evaluateEarContact(rect(230,40,660,560),head).some(issue=>issue.message.includes('passa da orelha')));
+ const [[x0,y0],[x1]]=HEAD_ANCHORS.hatSeat;
+ assert.equal(evaluateHatSeat(rect(x0-20,0,x1-x0+40,y0+10)),null);
+ assert.equal(evaluateHatSeat(rect(x0-20,0,x1-x0+40,y0-40))?.code,'seat');
 });

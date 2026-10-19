@@ -1,11 +1,11 @@
-import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS,COMBAT_SHEET,PRONE_PROPORTIONS,WALK_SHEET} from './anchors';
+import {FACE_KEEPOUT,FIT_ZONES,FRAME_MARGIN,HEAD_ANCHORS,HEAD_WIDTH,BODY_PROPORTIONS,EAR_CONTACT,EAR_FRONT,HAT_SEAT_GAP,COMBAT_SHEET,PRONE_PROPORTIONS,WALK_SHEET} from './anchors';
 import type {FitClass} from './anchors';
 import {COSMETIC_MANIFEST} from './manifest';
 
 /** Alpha coverage in template space: pixel (x,y) is template (x-originX, y-originY). */
 export interface FitMask {width:number;height:number;originX:number;originY:number;data:Uint8Array;}
 export interface Bounds {x:number;y:number;width:number;height:number;area:number;}
-export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor'|'missing'|'cut'|'ground'|'bob';message:string;measured:number;limit:number;}
+export interface FitIssue {code:'width'|'height'|'bottom'|'top'|'frame'|'keepout'|'hidden'|'proportion'|'unregistered'|'anchor'|'missing'|'cut'|'ground'|'bob'|'ear'|'seat';message:string;measured:number;limit:number;}
 export interface FitReport {id:string;fit?:FitClass;bounds:Bounds|null;widthRatio:number;issues:FitIssue[];}
 
 export function maskFromAlpha(rgba:Uint8ClampedArray,width:number,height:number,originX:number,originY:number,threshold=40):FitMask{
@@ -110,4 +110,26 @@ export function evaluateCombatSheet(id:string,frames:readonly SheetFrame[]|null,
  });
  if(drift>COMBAT_SHEET.headDrift)issues.push({code:'anchor',message:`Cabeça a ${fmt(drift)} un. do lugar do contrato`,measured:fmt(drift),limit:COMBAT_SHEET.headDrift});
  return {id,bounds:null,widthRatio:fmt(drift),issues};
+}
+
+const at=(mask:FitMask,x:number,y:number)=>{const px=Math.round(x)+mask.originX,py=Math.round(y)+mask.originY;return px>=0&&py>=0&&px<mask.width&&py<mask.height&&mask.data[py*mask.width+px]===1;};
+/** Short hair meets the ear like the approved Corte Tempestade: it touches the upper ear outline and comes
+ * down in front of the ear as a sideburn. `hair` is the hairstyle alone, `head` the universal head alone. */
+export function evaluateEarContact(hair:FitMask,head:FitMask):FitIssue[]{
+ const issues:FitIssue[]=[],{earGap,misses,sideburn,sideburnBox:[bx,by,bw,bh],earTopBelow}=EAR_CONTACT;
+ const gaps=EAR_FRONT.filter(([,y])=>y<earTopBelow).map(([x,y])=>{let best=Infinity;for(let dy=-30;dy<=30;dy++)for(let dx=-30;dx<=30;dx++)if(at(hair,x+dx,y+dy))best=Math.min(best,Math.hypot(dx,dy));return best;}).sort((a,b)=>b-a);
+ const gap=gaps[misses]??0;
+ if(gap>earGap)issues.push({code:'ear',message:`Cabelo não encosta na orelha: ${Number.isFinite(gap)?`${Math.round(gap)}px`:'longe'} de pele entre o cabelo e a orelha`,measured:Number.isFinite(gap)?Math.round(gap):99,limit:earGap});
+ let skin=0,covered=0;for(let y=by;y<by+bh;y++)for(let x=bx;x<bx+bw;x++)if(at(head,x,y)){skin++;if(at(hair,x,y))covered++;}
+ const share=skin?covered/skin:0;
+ if(share<sideburn)issues.push({code:'ear',message:`Costeleta curta: cabelo cobre ${Math.round(share*100)}% da frente da orelha; mínimo ${Math.round(sideburn*100)}%`,measured:fmt(share),limit:sideburn});
+ const [sx,sy,sw,sh]=EAR_CONTACT.spillBox;let spill=0;for(let y=sy;y<sy+sh;y++)for(let x=sx;x<sx+sw;x++)if(at(hair,x,y)&&!at(head,x,y))spill++;
+ if(spill>EAR_CONTACT.spill)issues.push({code:'ear',message:`Cabelo passa da orelha: ${spill}px fora da cabeça atrás e abaixo da orelha`,measured:spill,limit:EAR_CONTACT.spill});
+ return issues;
+}
+/** A hat sits down on the skull: along the hat seat, the hat's lower edge never leaves forehead showing above the seat. */
+export function evaluateHatSeat(hat:FitMask):FitIssue|null{
+ const [[x0,y0],[x1,y1]]=HEAD_ANCHORS.hatSeat;let worst=0;
+ for(let x=Math.ceil(x0);x<=x1;x+=2){const seat=y0+(y1-y0)*(x-x0)/(x1-x0);let bottom=-Infinity;for(let y=Math.round(seat+120);y>=0;y--)if(at(hat,x,y)){bottom=y;break;}worst=Math.max(worst,seat-bottom);}
+ return worst>HAT_SEAT_GAP?{code:'seat',message:`Chapéu flutua: ${Number.isFinite(worst)?Math.round(worst):'∞'}px de testa entre o chapéu e o assento`,measured:Number.isFinite(worst)?Math.round(worst):999,limit:HAT_SEAT_GAP}:null;
 }
