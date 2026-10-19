@@ -201,3 +201,13 @@ test('both ring slots take ring items, but one owned ring cannot fill both',()=>
  assert.equal(targetSlotForItem({...DEFAULT_EQUIPMENT,ring:'ring-ember'},CATALOG['ring-tide']),'ring2');
  assert.equal(targetSlotForItem({...DEFAULT_EQUIPMENT,ring:'ring-ember',ring2:'ring-tide'},CATALOG['ring-tide']),'ring2');
 });
+
+test('the Bolha Clássica comes in the starter kit and is given once to older profiles',()=>{
+ assert.equal(DEFAULT_EQUIPMENT.bubble,'bubble-classic');
+ const old=normalizeProfile({id:'bolha',name:'Teste',contentVersion:16,inventory:['brick'],equipment:{...DEFAULT_EQUIPMENT,bubble:'bubble-none'}});
+ assert.equal(old.equipment.bubble,'bubble-classic');assert.ok(old.inventory.includes('bubble-classic'));
+ const cloud=normalizeProfile({id:'nuvem',name:'Teste',contentVersion:16,inventory:['brick','bubble-cloud'],equipment:{...DEFAULT_EQUIPMENT,bubble:'bubble-cloud'}});
+ assert.equal(cloud.equipment.bubble,'bubble-cloud');assert.ok(cloud.inventory.includes('bubble-classic'));
+ // Taking it off later is kept: the gift happens only once.
+ const off=normalizeProfile({...old,equipment:{...old.equipment,bubble:'bubble-none'}});assert.equal(off.equipment.bubble,'bubble-none');
+});

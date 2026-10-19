@@ -222,8 +222,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
     for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;
      const mouth=speaker.monster?MONSTERS[speaker.monster].mouth??{forward:0,up:MONSTERS[speaker.monster].sprite.height*.66}:{forward:10,up:110};drawSpeechBubble(c,line.text,speaker.x+speaker.facing*mouth.forward,speaker.y-mouth.up,speaker.facing,serverNow-line.from,line.to-serverNow,terrainWidth(terrain));}
-    // Chat balloons: what a fighter just wrote in the room chat, in the look of their Bolha.
-    const said:SpeechLine[]=[];for(const [id,line] of recentSpeech(state.chat,'room',serverNow)){const f=b.players.find(p=>p.id===id),seen=entities.get(id);if(!f||f.hp<=0||f.hidden||!seen)continue;said.push({text:line.text,tipX:seen.x+f.facing*8,tipY:seen.y-150,facing:f.facing,age:serverNow-line.time,left:line.time+CHAT_BUBBLE_MS-serverNow,options:{style:bubbleStyle(line.bubble),scale:.8}});}
+    // Chat balloons: what a fighter just wrote in the room chat, in the look of their Bolha, in front of the face (lying down, the head is forward).
+    const said:SpeechLine[]=[];for(const [id,line] of recentSpeech(state.chat,'room',serverNow)){const f=b.players.find(p=>p.id===id),seen=entities.get(id);if(!f||f.hp<=0||f.hidden||!seen)continue;said.push({text:line.text,tipX:seen.x+f.facing*44,tipY:seen.y-24,facing:f.facing,age:serverNow-line.time,left:line.time+CHAT_BUBBLE_MS-serverNow,options:{style:bubbleStyle(line.bubble),scale:.8,side:true}});}
     drawSpeechBubbles(c,said,terrainWidth(terrain));
     if(shot&&elapsed<shot.duration+700){
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);

@@ -1,0 +1,62 @@
+{
+ "bubble-classic": {
+  "body": "/assets/ui/bubbles/bubble-classic-body.png",
+  "density": 3.324,
+  "slice": [
+   74,
+   102,
+   74,
+   102
+  ]
+ },
+ "bubble-cloud": {
+  "body": "/assets/ui/bubbles/bubble-cloud-body.png",
+  "density": 3.743,
+  "slice": [
+   83,
+   102,
+   83,
+   102
+  ]
+ },
+ "bubble-dragon": {
+  "body": "/assets/ui/bubbles/bubble-dragon-body.png",
+  "density": 3.676,
+  "slice": [
+   82,
+   102,
+   82,
+   102
+  ]
+ },
+ "bubble-ember": {
+  "body": "/assets/ui/bubbles/bubble-ember-body.png",
+  "density": 3.635,
+  "slice": [
+   81,
+   102,
+   81,
+   102
+  ]
+ },
+ "bubble-royal": {
+  "body": "/assets/ui/bubbles/bubble-royal-body.png",
+  "density": 3.122,
+  "slice": [
+   69,
+   102,
+   69,
+   102
+  ]
+ },
+ "bubble-starlight": {
+  "body": "/assets/ui/bubbles/bubble-starlight-body.png",
+  "density": 3.568,
+  "slice": [
+   79,
+   102,
+   79,
+   102
+  ]
+ }
+}
