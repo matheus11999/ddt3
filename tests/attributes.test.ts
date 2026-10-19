@@ -4,7 +4,7 @@ import {test} from 'node:test';
 import {attributes,CATALOG,DEFAULT_EQUIPMENT,ITEMS,itemAttributes,MAX_UPGRADE,WEAPONS,weaponStats} from '../shared/catalog';
 import type {Equipment,Item,Weapon} from '../shared/catalog';
 import {criticalChance,criticalFromRoll,damageAtImpact,monsterDamage} from '../shared/combat';
-import {armorReduction,baseDelay,clampHp,combinedReduction,criticalBonusMultiplier,criticalChancePercent,defenseReduction,levelHpBonus,maxHpFor,maxStaminaFor,PASS_DELAY,strengthenedValue,strengthenMultiplier,weaponMilestoneValue} from '../shared/stats';
+import {armorReduction,baseDelay,clampHp,hpPower,combinedReduction,criticalBonusMultiplier,criticalChancePercent,defenseReduction,levelHpBonus,maxHpFor,maxStaminaFor,PASS_DELAY,strengthenedValue,strengthenMultiplier,weaponMilestoneValue} from '../shared/stats';
 import {nextByDelay,startDelayTurn,timeDelay} from '../shared/turnDelay';
 import type {DelayActor} from '../shared/turnDelay';
 import type {Profile} from '../shared/protocol';
@@ -161,4 +161,10 @@ test('the server orders turns by Delay: a slow shot lets a quick passer play twi
  assert.equal(fb.delay,base,'normalized to 0, then one base Delay for the new turn');assert.equal(fa.delay,base+400-(base+100));
  // A turn that runs out adds nothing but the next base Delay.
  const before=fb.delay;game.tick(s.deadline+1);assert.equal(s.turnId,a.id);assert.equal(fa.delay,base);assert.equal(fb.delay,before-(base+400-(base+100)));
+});
+
+test('Vida counts in Poder like DDTank 3.0 (Vida × 0.95 − 950, never negative)',()=>{
+ assert.deepEqual([hpPower(0),hpPower(1000),hpPower(1011),hpPower(3000)],[0,0,10,1900]);
+ const low=attributes(DEFAULT_EQUIPMENT,1),high=attributes(DEFAULT_EQUIPMENT,40);
+ assert.equal(high.power-low.power,hpPower(high.hp)-hpPower(low.hp));assert.ok(high.power>low.power);
 });
