@@ -1,0 +1,22 @@
+/* Full-screen loading cover: first load, back to a hidden tab, reconnecting. Shown by html[data-curtain] before React draws it. */
+.screen-curtain{position:fixed;inset:0;z-index:80;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+ background:radial-gradient(ellipse 60% 55% at 50% 44%,#1d3f73 0%,#0d2147 45%,#060f24 100%);color:#fff1c2;font-family:'Nunito',sans-serif;user-select:none;transition:opacity .26s ease-out}
+.screen-curtain.is-leaving{opacity:0;pointer-events:none}
+/* Covers the page the moment the tab comes back, before React renders the cover itself. */
+html[data-curtain] body::after{content:'';position:fixed;inset:0;z-index:79;background:#060f24}
+.screen-curtain-glow{position:absolute;left:50%;top:44%;width:min(70vw,720px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#ffb45a40 0%,#ff7a2a1c 36%,#0000 68%);animation:curtain-glow 2.4s ease-in-out infinite alternate}
+.screen-curtain-title{position:relative;isolation:isolate;font:400 clamp(64px,11vw,132px)/1 'Lilita One',sans-serif;letter-spacing:4px;transform:rotate(-3deg)}
+.screen-curtain-title::before{content:attr(data-text);position:absolute;inset:0;z-index:-1;color:#7a1d10;-webkit-text-stroke:12px #2a0d12;paint-order:stroke fill;
+ text-shadow:0 2px #7a1d10,1px 4px #7a1d10,2px 6px #7a1d10,3px 8px #6a1610,4px 10px #4a0f12,5px 16px 12px #000b}
+.screen-curtain-title>span{position:relative;display:block;color:transparent;background:linear-gradient(#fffbd0 8%,#ffe04a 38%,#ff9a1e 62%,#e63a17 88%);-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:3px #8e2a12;paint-order:stroke fill}
+.screen-curtain-subtitle{position:relative;margin-top:-4px;font:800 clamp(16px,2.2vw,24px) 'Cinzel',serif;letter-spacing:14px;padding-left:14px;color:#ffde96;text-shadow:0 2px #3a210f,0 0 14px #ffb45a66}
+.screen-curtain-bar{position:relative;margin-top:28px;width:min(70vw,360px);height:16px;border-radius:9px;background:#040b1a;border:2px solid #000c;box-shadow:inset 0 2px 4px #000c,0 1px #ffffff22;overflow:hidden}
+.screen-curtain-bar i{position:absolute;inset:0 auto 0 0;border-radius:7px;background:linear-gradient(#fff2b0,#ffc341 45%,#e2801c);box-shadow:inset 0 1px #ffffffaa;transition:width .2s ease-out}
+.screen-curtain-bar b.is-waiting{position:absolute;inset:0 auto 0 0;width:30%;border-radius:7px;background:linear-gradient(#fff2b0,#ffc341 45%,#e2801c);animation:curtain-wait 1.1s ease-in-out infinite}
+.screen-curtain p{position:relative;margin:12px 0 0;font-size:15px;font-weight:800;letter-spacing:.5px;color:#cfe0ff;text-shadow:0 2px 3px #000c}
+.screen-curtain .button{position:relative;margin-top:16px}
+@keyframes curtain-glow{from{opacity:.65;transform:translate(-50%,-50%) scale(.94)}to{opacity:1;transform:translate(-50%,-50%) scale(1.04)}}
+@keyframes curtain-wait{from{transform:translateX(-100%)}to{transform:translateX(340%)}}
+@media (prefers-reduced-motion:reduce){.screen-curtain-glow,.screen-curtain-bar b.is-waiting{animation:none}}
+/* A new piece of screen stays invisible until its pictures are ready (src/screenAssets.ts). */
+[data-pictures-pending]{opacity:0!important}
