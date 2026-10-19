@@ -27,6 +27,8 @@ Aprovado pelo matheus em 19/10/2026 ("agora ficou do jeito que eu quero"). Vale 
 
 ## 4. Mãos (coesão com o DDTank)
 
+- Na pintura em pé (prévias) as mãos também seguem o padrão: mãos chibi na pele clara `#FCD0AC`, sombra suave, contorno escuro fino, saindo do punho da manga; o gerador já pede isso e a pose no prompt de `stand`.
+
 - Em todas as folhas (andar, parada, combate) as mãos são **pintadas na própria folha**: manga com punho saindo do casaco, terminando num **punho redondo sem dedos** sobre os discos cor de pele do molde, na pele clara `#FCD0AC` com sombra suave e contorno escuro fino. O jogo só tinge a pele (`tintSkin`).
 - Deitado: punho da frente por cima do queixo, o de trás meio escondido atrás da cabeça.
 - Não usar ciano nas roupas perto das mãos sem conferir: o montador de combate só apaga como disco de punho o ciano quase puro do molde.
