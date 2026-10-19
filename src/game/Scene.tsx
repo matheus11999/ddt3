@@ -47,7 +47,7 @@ const W=1536,H=864;
 const FRAME_MS=1000/60;
 /** Sustained frames slower than this lower the canvas resolution a step, down to 1 pixel per game unit. */
 const SLOW_FRAME_MS=26,SLOW_FRAMES=150;
-type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number};
+type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number;tilt?:number;tiltAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
  const blockedRef=useRef(blocked);blockedRef.current=blocked;
@@ -183,7 +183,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // Later hits dig under the body and it sinks with the crater as a stone, not as the avatar again.
      if(hp<=0&&!f.fall?.void){if(!fallenAt.has(f.id))fallenAt.set(f.id,shot&&b.phase==='resolving'&&shot.projectiles.some((_,i)=>!shot.impacted.includes(i))?t-TOMBSTONE_DELAY:t);const age=t-fallenAt.get(f.id)!-TOMBSTONE_DELAY;if(age>=0){const seen=entities.get(f.id);drawTombstone(c,seen?.x??f.x,y,age,f.facing);continue;}}else if(hp>0)fallenAt.delete(f.id);
      const entity=entities.get(f.id),walking=entity&&(Math.abs(f.x-entity.x)>.8||entity.movedAt!==undefined&&t-entity.movedAt<CRAWL_LINGER_MS);
-     const slope=f.aimSlope!==undefined?-f.aimSlope*f.facing*Math.PI/180:Math.max(-.5,Math.min(.5,Math.atan2(ground(terrain,f.x+12,Math.max(0,y-40))-ground(terrain,f.x-12,Math.max(0,y-40)),24)));
+     const groundTilt=f.aimSlope!==undefined?-f.aimSlope*f.facing*Math.PI/180:Math.max(-.5,Math.min(.5,Math.atan2(ground(terrain,f.x+12,Math.max(0,y-40))-ground(terrain,f.x-12,Math.max(0,y-40)),24)));
+     // The body eases into a new ground angle instead of snapping at each crawl step.
+     let slope=groundTilt;if(entity){const dt=entity.tiltAt===undefined?1e3:Math.min(250,t-entity.tiltAt);entity.tilt=entity.tilt===undefined||falling?groundTilt:entity.tilt+(groundTilt-entity.tilt)*(1-Math.exp(-dt/110));entity.tiltAt=t;slope=entity.tilt;}
      let pose:AvatarContext['pose']=walking?'walk':b.turnId===f.id&&b.phase==='aiming'?(f.charging?'charge':'aim'):'idle',poseTime=0;
      if(Math.abs(slope)>.43&&!walking)pose='prone';
      if(falling)pose='fall';
