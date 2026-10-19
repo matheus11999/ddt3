@@ -22,7 +22,16 @@ const GUILD_TABS:{id:GuildBoard;label:string}[]=[{id:'power',label:'Poder'},{id:
 const LEGEND_TABS:{id:LegendBoard;label:string}[]=[{id:'pvp-day',label:'PvP diário'},{id:'pvp-week',label:'PvP semanal'},{id:'guild-week',label:'Guilda da semana'}];
 const fmt=(value:number|undefined)=>(value??0).toLocaleString('pt-BR');
 const pct=(value:number|undefined)=>`${(value??0).toLocaleString('pt-BR',{maximumFractionDigits:1})}%`;
-const SIGILS=['gold','blue','purple'] as const;
+/** 1st gold, 2nd blue and 3rd green like the Nº plates of the table; the rest on the purple aura. */
+const PLACE_TONES=['gold','blue','green'] as const;
+type Tone=typeof PLACE_TONES[number]|'purple';
+const toneOf=(place:number):Tone=>place>=1&&place<=3?PLACE_TONES[place-1]:'purple';
+const WORD_COLORS:Record<Tone,{face:[string,string,string];side:[string,string];edge:string}>={
+ gold:{face:['#fffbd0','#ffd42e','#ff8a0a'],side:['#c4520a','#6e2203'],edge:'#2a0f05'},
+ blue:{face:['#ffffff','#bfeaff','#4f9fe6'],side:['#2f6fb8','#102c5c'],edge:'#071631'},
+ green:{face:['#f4ffe0','#b8f59a','#3f9a34'],side:['#2f7a28','#123d0f'],edge:'#0a2407'},
+ purple:{face:['#fffbd0','#ffd42e','#ff8a0a'],side:['#c4520a','#6e2203'],edge:'#2a0f05'},
+};
 
 /** The board's columns after Rank and Nome, DDTank-style: the main number first and one or two more. */
 function columns(category:HallCategory,board?:GuildBoard):{label:string;value:(r:HallRow)=>React.ReactNode;main?:boolean}[]{
@@ -52,18 +61,19 @@ export function RankMark({rank}:{rank:number;size?:number}){
 function GuildMark({level,size=40}:{level?:number;size?:number}){return <span className="hof-guild-mark" style={{width:size,height:size}}><Shield size={size*.92} strokeWidth={1.6}/>{level!==undefined&&<b style={{fontSize:Math.max(11,size*.3)}}>{level}</b>}</span>;}
 
 /** Gold extruded word (Lilita One), the same recipe as the Ferreiro's SUCESSO!. */
-function GoldWord({id,text,width,height,size,depth=7}:{id:string;text:string;width:number;height:number;size:number;depth?:number}){
+function GoldWord({id,text,width,height,size,depth=7,tone='gold'}:{id:string;text:string;width:number;height:number;size:number;depth?:number;tone?:Tone}){
+ const c=WORD_COLORS[tone];
  const font={fontFamily:"'Lilita One','Nunito',sans-serif",fontSize:size,textAnchor:'middle' as const,letterSpacing:1.5,x:width/2,y:height/2+size*.36};
  return <svg className="hof-gold-word" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={text}>
   <defs>
-   <linearGradient id={`${id}-face`} x1="0" y1="0" x2="0" y2="1"><stop offset=".05" stopColor="#fffbd0"/><stop offset=".5" stopColor="#ffd42e"/><stop offset="1" stopColor="#ff8a0a"/></linearGradient>
-   <linearGradient id={`${id}-side`} x1="0" y1="0" x2="0" y2="1"><stop stopColor="#c4520a"/><stop offset="1" stopColor="#6e2203"/></linearGradient>
+   <linearGradient id={`${id}-face`} x1="0" y1="0" x2="0" y2="1"><stop offset=".05" stopColor={c.face[0]}/><stop offset=".5" stopColor={c.face[1]}/><stop offset="1" stopColor={c.face[2]}/></linearGradient>
+   <linearGradient id={`${id}-side`} x1="0" y1="0" x2="0" y2="1"><stop stopColor={c.side[0]}/><stop offset="1" stopColor={c.side[1]}/></linearGradient>
    <linearGradient id={`${id}-gloss`} x1="0" y1="0" x2="0" y2="1"><stop offset=".25" stopColor="#fff" stopOpacity=".8"/><stop offset=".5" stopColor="#fff" stopOpacity=".2"/><stop offset=".51" stopColor="#fff" stopOpacity="0"/></linearGradient>
   </defs>
-  <text {...font} y={font.y+depth+2} fill="#2a0f05" stroke="#2a0f05" strokeWidth={size*.2} strokeLinejoin="round">{text}</text>
+  <text {...font} y={font.y+depth+2} fill={c.edge} stroke={c.edge} strokeWidth={size*.2} strokeLinejoin="round">{text}</text>
   {Array.from({length:depth},(_,i)=><text key={i} {...font} y={font.y+depth-i} fill={`url(#${id}-side)`} stroke={`url(#${id}-side)`} strokeWidth={size*.14} strokeLinejoin="round">{text}</text>)}
-  <text {...font} fill="none" stroke="#2a0f05" strokeWidth={size*.14} strokeLinejoin="round">{text}</text>
-  <text {...font} fill={`url(#${id}-face)`} stroke="#fffbd0" strokeWidth={2} paintOrder="stroke">{text}</text>
+  <text {...font} fill="none" stroke={c.edge} strokeWidth={size*.14} strokeLinejoin="round">{text}</text>
+  <text {...font} fill={`url(#${id}-face)`} stroke={c.face[0]} strokeWidth={2} paintOrder="stroke">{text}</text>
   <text {...font} fill={`url(#${id}-gloss)`}>{text}</text>
  </svg>;
 }
@@ -144,32 +154,38 @@ export function HallOfFame(){
  return createPortal(content,document.body);
 }
 
-/** The left stage: who is selected, standing on the aura and the pedestal of their place. */
+/** The left card: the painted stage with whoever is selected on the aura of their place and, at the bottom of the
+    same card, a fixed strip with name, level, Poder and guild, so switching rows never changes its size. */
 function Stage({row,guild,valueName}:{row:HallRow|null;guild:boolean;valueName:string}){
  const {profile:me}=useGame();
- const place=row?.rank??0;
- return <>
-  <section className="hof-stage" aria-label="Palco">
+ const place=row?.rank??0,tone=toneOf(place);
+ const power=guild?(valueName==='Poder'?row?.score:undefined):row?.power??(valueName==='Poder'?row?.score:undefined);
+ const extra=valueName&&valueName!=='Poder'&&valueName!=='Nível'?valueName:null;
+ return <section className="hof-card" aria-label="Palco">
+  <div className="hof-stage">
    <div className="hof-title"><img src="/assets/ui/hall-title-plate.webp" alt="" draggable={false}/><GoldWord id="hof-title" text="Hall da Fama" width={420} height={84} size={64}/></div>
-   {row?<>
-    <div className="hof-place">{place>=1&&place<=3?<GoldWord id={`hof-place-${place}`} text={`${place}º lugar`} width={280} height={100} size={66} depth={8}/>:<GoldWord id="hof-place-n" text={`${place}º lugar`} width={280} height={100} size={66} depth={8}/>}</div>
+   {row?<div key={`${row.id}-${place}`} className={`hof-spot tone-${tone}`}>
+    <div className="hof-place"><GoldWord id={`hof-place-${tone}`} tone={tone} text={`${place}º lugar`} width={280} height={100} size={66} depth={8}/></div>
     <div className="hof-figure">
-     <i className={`hof-sigil ${place>=1&&place<=3?SIGILS[place-1]:'gold'}`} aria-hidden="true"/>
+     <i className="hof-burst" aria-hidden="true"/>
+     <i className={`hof-sigil ${tone}`} aria-hidden="true"/>
      {guild?<GuildMark level={row.level} size={150}/>:row.equipment?<Avatar equipment={row.equipment} size={250} weapon/>:<LoaderCircle className="button-spinner" size={34}/>}
     </div>
-   </>:<div className="hof-stage-empty"><Trophy size={40}/>O palco espera o primeiro campeão.</div>}
-  </section>
+   </div>:<div className="hof-stage-empty"><Trophy size={40}/>O palco espera o primeiro campeão.</div>}
+  </div>
   <div className="hof-plate">{row?<>
-   <div className="hof-plate-name">{!guild&&row.level!==undefined&&<LevelBadge level={row.level} size={34}/>}<strong {...(!guild?playerMenuProps({id:row.id,name:row.name,context:'ranking'}):{})}>{row.name}</strong></div>
-   <div className="hof-plate-info">
-    <span><em>{valueName}</em><b>{valueName==='Poder'?<><PowerIcon size={16}/>{fmt(row.score)}</>:fmt(row.score)}</b></span>
-    {guild?<span><em>Líder</em><b>{row.leader??'—'}</b></span>:<span><em>Guilda</em><b className="guild">{row.guild??'—'}</b></span>}
+   <div className="hof-plate-name">
+    {guild?<GuildMark level={row.level} size={30}/>:row.level!==undefined&&<LevelBadge level={row.level} size={32}/>}
+    <strong {...(!guild?playerMenuProps({id:row.id,name:row.name,context:'ranking'}):{})}>{row.name}</strong>
+    {!guild&&row.id!==me?.id&&<button className="hof-equip" title="Ver equipamento" aria-label="Ver equipamento" onClick={()=>{audio.play('click');client.openPlayerPanel('info',{id:row.id,name:row.name,context:'ranking'});}}><User size={15}/></button>}
    </div>
-   <div className="hof-plate-actions">
-    {!guild&&row.id!==me?.id&&<button title="Ver equipamento" onClick={()=>{audio.play('click');client.openPlayerPanel('info',{id:row.id,name:row.name,context:'ranking'});}}><User size={14}/>Ver equipamento</button>}
+   <div className="hof-plate-info">
+    {(!guild||power!==undefined)&&<span><em>Poder</em><b>{power!==undefined?<><PowerIcon size={15}/>{fmt(power)}</>:'—'}</b></span>}
+    {guild?<span><em>Líder</em><b>{row.leader??'—'}</b></span>:<span><em>Guilda</em><b className="guild">{row.guild??'—'}</b></span>}
+    {extra&&<span><em>{extra}</em><b>{fmt(row.score)}</b></span>}
    </div>
   </>:<p className="hof-muted">Ninguém neste ranking ainda.</p>}</div>
- </>;
+ </section>;
 }
 
 function BoardTable({board,category,current,onPick}:{board:HallBoard;category:HallCategory;current?:string;onPick:(row:HallRow)=>void}){

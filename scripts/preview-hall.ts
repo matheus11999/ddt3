@@ -53,6 +53,9 @@ await open(page);await shot(page,'01-poder');
 const cat=async(label:string)=>{await page.click(`.hof-cats button:has-text("${label}")`);await page.waitForTimeout(500);};
 const side=async(label:string)=>{await page.click(`.hof-sides button:has-text("${label}")`);await page.waitForTimeout(600);};
 await cat('PvP');await shot(page,'02-pvp-diario');
+await page.click('.hof-table tbody tr >> nth=1');await shot(page,'02b-segundo-lugar');
+await page.click('.hof-table tbody tr >> nth=2');await shot(page,'02c-terceiro-lugar');
+await page.click('.hof-table tbody tr >> nth=1');await page.waitForTimeout(160);await page.screenshot({path:`${output}/02d-efeito-segundo.png`});
 await page.click('.hof-periods button:has-text("Semanal")');await page.waitForTimeout(500);await page.click('.hof-table tbody tr >> nth=3');await shot(page,'03-pvp-semanal-4o');
 await page.click('.hof-pager button:has-text("Próximo")').catch(()=>{});await shot(page,'04-pvp-pagina-2');
 await side('Guildas');await shot(page,'05-guildas-poder');
@@ -60,7 +63,7 @@ await cat('PvP');await shot(page,'06-guildas-pvp');
 await side('Jogadores');await cat('Nível');await shot(page,'07-nivel');
 await cat('Conquistas');await shot(page,'08-conquistas');
 await side('Lendas');await page.waitForTimeout(800);await shot(page,'09-lendas-semanal');
-await side('Jogadores');await cat('PvP');await page.click('.hof-plate-actions button:has-text("Ver equipamento")');await shot(page,'13-ver-equipamento');
+await side('Jogadores');await cat('PvP');await page.click('.hof-equip');await shot(page,'13-ver-equipamento');
 await page.close();
 // Mobile, landscape.
 const phone=await browser.newPage({viewport:{width:844,height:390},deviceScaleFactor:2,isMobile:true,hasTouch:true});
