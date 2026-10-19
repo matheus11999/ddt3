@@ -4,7 +4,7 @@ import type {PetStats} from './petConfig';
 import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
 import type {ColorSlot} from './colors';
-import {baseDelay,MAX_STRENGTHEN,maxHpFor,maxStaminaFor,strengthenedValue,strengthenLevel,weaponMilestoneValue} from './stats';
+import {baseDelay,hpPower,MAX_STRENGTHEN,maxHpFor,maxStaminaFor,strengthenedValue,strengthenLevel,weaponMilestoneValue} from './stats';
 export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
 /** Equipment slots that accept the items of another slot family (two rings share one item type). */
@@ -233,5 +233,6 @@ export function attributes(eq:Equipment,level=1) {
  // The active pet adds like one more item (scaled by its vitality, shared/pets.ts); battle buffs last only for that battle.
  const pet=petContribution(eq.pet),buffs=eq.battleBuffs??{};
  for(const key of Object.keys(stats) as (keyof ItemAttributes)[])stats[key]+=(pet[key]??0)+(buffs[key]??0);
- return {...stats,hp:maxHpFor(level,stats.defense,1+hpPercent/100)+(pet.hp??0),stamina:maxStaminaFor(stats.agility)+(pet.stamina??0)+(buffs.stamina??0),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)};
+ const hp=maxHpFor(level,stats.defense,1+hpPercent/100)+(pet.hp??0);
+ return {...stats,hp,stamina:maxStaminaFor(stats.agility)+(pet.stamina??0)+(buffs.stamina??0),delay:baseDelay(stats.agility,stats.attack),power:Math.round(stats.attack*6+stats.defense*4+stats.agility*3+stats.luck*3+stats.damage*3+stats.armor*2)+hpPower(hp)};
 }

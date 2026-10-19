@@ -81,7 +81,7 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
    <div className="bag-stage-foot"><div className="equipment-slots lower">{LOWER_SLOTS.map(slot)}</div></div>
   </div>
   <div className="bag-progress player-info-power">
-   <div className="combat-power" title="Poder (gearscore): soma dos atributos do equipamento"><PowerIcon size={28}/><span>Poder</span><strong>{stats.power.toLocaleString('pt-BR')}</strong></div>
+   <div className="combat-power" title="Poder (gearscore): atributos do equipamento e Vida"><PowerIcon size={28}/><span>Poder</span><strong>{stats.power.toLocaleString('pt-BR')}</strong></div>
   </div>
   <div className="stat-grid" aria-label="Atributos do personagem">
    <span data-stat="attack"><Swords size={14}/>Ataque<b>{stats.attack}</b></span><span data-stat="agility"><Zap size={14}/>Agilidade<b>{stats.agility}</b></span>
