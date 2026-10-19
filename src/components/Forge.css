@@ -855,3 +855,36 @@ html.mobile-landscape .smith-window .smith-hint { display: none; }
   text-shadow: 0 1px #173451;
   box-shadow: 0 1px 3px #000a;
 }
+
+/* ---------- Síntese: 4 pedras de um nível viram 1 do nível seguinte ---------- */
+.smith-window .item-card.forge-weapon-target > :is(img, svg):not(.smith-target-placeholder) { position: relative; z-index: 1; filter: drop-shadow(0 6px 8px #0008); animation: forge-hover 4s ease-in-out infinite; }
+.smith-window .item-card.forge-weapon-target > .synthesis-yield {
+  position: absolute; right: 8px; bottom: 6px; z-index: 2;
+  padding: 1px 8px; border: 2px solid #5a2c0d; border-radius: 999px;
+  background: linear-gradient(#fff4d6, #f2d28f); color: #5a2c0d;
+  font: 900 15px/1.1 'Nunito', sans-serif; box-shadow: 0 2px 4px #0006;
+}
+.smith-window .item-card.forge-weapon-target > .synthesis-tier {
+  position: absolute; left: 10px; top: 8px; z-index: 2;
+  font: 900 14px/1 'Nunito', sans-serif; color: #fff4d0; text-shadow: 0 1px 2px #000, 0 0 3px #000;
+}
+.smith-window .synthesis-quantity { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; }
+.smith-window .synthesis-quantity small { margin-right: 4px; font-size: 12px; font-weight: 900; color: #ffe2b0; text-shadow: 0 1px 2px #000; }
+.smith-window .synthesis-quantity button {
+  display: grid; place-items: center; width: 28px; height: 26px; padding: 0;
+  border: 2px solid #5a2c0d; border-radius: 8px;
+  background: linear-gradient(#ffc566, #f39a2c 60%, #e5801c); color: #fff;
+  box-shadow: inset 0 1px #fff7d9, inset 0 -2px #c76413; cursor: var(--cursor-pointer, pointer);
+}
+.smith-window .synthesis-quantity button.synthesis-max { width: auto; padding: 0 9px; font: 900 12px/1 'Nunito', sans-serif; text-shadow: 0 1px #8a3a07; }
+.smith-window .synthesis-quantity button:disabled { filter: grayscale(.7); opacity: .55; cursor: not-allowed; }
+.smith-window .synthesis-quantity strong {
+  min-width: 52px; height: 26px; border-radius: 999px; background: #1a0c05; box-shadow: inset 0 2px 4px #000, 0 0 0 2px #6a3514;
+  color: #fff; font: 900 15px/26px 'Nunito', sans-serif; text-align: center; text-shadow: 0 1px 2px #000;
+}
+.smith-window .synthesis-grid .forge-stone-stock { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.smith-window .synthesis-source > strong { color: #b4560f; font-size: 12px; }
+html.mobile-landscape .smith-window .synthesis-quantity button { width: 22px; height: 20px; }
+html.mobile-landscape .smith-window .synthesis-quantity strong { min-width: 36px; height: 20px; line-height: 20px; font-size: 12px; }
+html.mobile-landscape .smith-window .synthesis-quantity small { display: none; }
+.smith-window .synthesis-sockets .item-card.forge-socket.has-stone:disabled { opacity: 1; filter: none; cursor: default; }

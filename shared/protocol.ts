@@ -2,6 +2,7 @@ import {z} from 'zod';
 import type {Equipment,BoostId,MapId,CharacterGender} from './catalog';
 import {CHARACTER_GENDERS,MAX_FORGE_STONES,SLOTS} from './catalog';
 import {MAX_PAINT_CHANGES} from './colors';
+import {MAX_SYNTHESIS_COUNT} from './synthesis';
 import type {BodyColorPart,BodyColors} from './colors';
 import type {BattleRewards} from './rewards';
 import type {CompositionStat,Compositions} from './composition';
@@ -32,6 +33,7 @@ export interface ColorChange {target:string;color:string|null;}
 export interface ColorResult {changes:ColorChange[];tickets:number;}
 export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
+export interface SynthesisResult {stone:string;target:string;count:number;consumed:number;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
 export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
 export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;/** Guild name shown under the player's name on the room cards. */guild?:string;}
@@ -93,7 +95,9 @@ export const commandSchema=z.discriminatedUnion('type',[
  z.object({type:z.literal('ability-loadout'),slots:abilityLoadoutSchema,requestId:z.string().min(1).max(64).optional()}).strict(),
  z.object({type:z.literal('shop-buy'),items:z.array(z.string().min(1).max(40)).min(1).max(20).refine(items=>new Set(items).size===items.length,'Itens repetidos no carrinho.'),quantity:z.number().int().min(1).max(MAX_SHOP_QUANTITY).optional()}).strict(),
  z.object({type:z.literal('forge'),item:z.string().min(1).max(48),stones:stoneSelectionSchema}).strict(),
- z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|armor)-[1-3]$/)}).strict(),
+ z.object({type:z.literal('compose'),item:z.string().min(1).max(48),stone:z.string().regex(/^(attack|defense|agility|luck|armor)-[1-3]$/)}).strict(),
+ // Síntese: 4 pedras de um nível em 1 do seguinte (shared/synthesis.ts), count vezes.
+ z.object({type:z.literal('synthesize'),stone:z.string().regex(/^(fortify-[1-4]|(attack|defense|agility|luck|armor)-[12])$/),count:z.number().int().min(1).max(MAX_SYNTHESIS_COUNT)}).strict(),
  // Legacy mode/map are honored only by explicitly requested practice rooms.
  z.object({type:z.literal('create'),name:name.optional(),practice:z.boolean().optional(),mode:z.enum(ROOM_MODES).optional(),map:z.enum(['garden','park','celestial','snow','sky','valley']).optional()}).strict(),
  z.object({type:z.literal('practice-start')}).strict(),
@@ -136,6 +140,7 @@ export type ServerEvent =
  | {type:'color-result';result:ColorResult}
  | {type:'discard-result';item:string}
  | {type:'composition-result';result:CompositionResult}
+ | {type:'synthesis-result';result:SynthesisResult}
  | {type:'lobby';players:LobbyPlayer[];online:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
