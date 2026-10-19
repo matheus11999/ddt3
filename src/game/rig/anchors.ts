@@ -52,6 +52,12 @@ export interface FitZone {
  /** Painted pixels tolerated inside FACE_KEEPOUT (anti-aliasing). */
  keepoutTolerance:number|null;
 }
+/** How short hair meets the universal ear (19/10/2026, matheus: hair must "attach" to the ear like Corte Tempestade).
+ * The upper ear outline must touch hair (`earGap` px, one point may miss), and the sideburn box just in front of the
+ * ear must be covered by at least `sideburn` of hair. Measured on the approved Corte Tempestade (0 px, 49%). */
+export const EAR_CONTACT={earGap:8,misses:1,sideburn:.2,sideburnBox:[522,425,38,75] as const,earTopBelow:445,/** Short hair painted outside the skull below the ear top (a nape hanging off the head), px. */spill:900,spillBox:[200,440,360,260] as const} as const;
+/** Hats sit on the skull: along the hat seat no column may show forehead between the hat's lower edge and the seat. */
+export const HAT_SEAT_GAP=8;
 export const FIT_ZONES:Readonly<Record<FitClass,FitZone>>={
  'hair-short':{maxWidth:1.45,maxAboveCrown:.30,maxBottom:640,keepoutTolerance:60},
  'hair-long':{maxWidth:1.55,maxAboveCrown:.30,maxBottom:820,keepoutTolerance:60},

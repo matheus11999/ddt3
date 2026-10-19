@@ -57,8 +57,10 @@ try{
   const ids=slot=>ITEMS.filter(item=>item.slot===slot&&!item.id.endsWith('-none')).map(item=>item.id);
   const hairs=ids('hair'),hats=ids('hat'),glasses=ids('glasses');
   const items=[];
-  for(const id of hairs)items.push(F.evaluateItem(id,toMask(layers(eqOf({hair:id})))));
-  for(const id of hats)items.push(F.evaluateItem(id,toMask(layers(eqOf({hat:id})))));
+  // The universal head alone: hair must meet its ear, hats must sit on its skull (EAR_CONTACT, HAT_SEAT_GAP).
+  const headMask=(()=>{const [el,c]=surface();A.drawPart(c,rig.head);return toMask(el);})();
+  for(const id of hairs){const mask=toMask(layers(eqOf({hair:id}))),report=F.evaluateItem(id,mask);if(FIT_ZONES[report.fit]===FIT_ZONES['hair-short'])report.issues.push(...F.evaluateEarContact(mask,headMask));items.push(report);}
+  for(const id of hats){const mask=toMask(layers(eqOf({hat:id}))),report=F.evaluateItem(id,mask),seat=F.evaluateHatSeat(mask);if(seat)report.issues.push(seat);items.push(report);}
   for(const id of glasses)items.push(F.evaluateItem(id,toMask(layers(eqOf({glasses:id})))));
 
   // Combinations: hair visible under each hat must keep off the face; glasses must stay visible.
@@ -250,13 +252,19 @@ try{
    costumes.push({id,walk:!!def.walk,prone:!!def.prone,issues});
    cc.fillStyle=issues.length?'#ffb3ba':'#b8ffd6';cc.font='bold 12px sans-serif';cc.fillText(issues.length?`${issues.length} problema(s)`:'ok',4*cellW+6,row*cellH+58);
   });
+  // Close-ups where fitting mistakes show: every hair at the ear (EAR_CONTACT), every hat on the forehead (HAT_SEAT_GAP).
+  const ears=document.createElement('canvas'),ec=300,earRows=[...hairs.map(hair=>({hair,hat:'hat-none'})),...hats.map(hat=>({hair:'hair-undercut',hat}))];
+  ears.width=ec*6;ears.height=Math.ceil(earRows.length/6)*ec;const es=ears.getContext('2d');es.fillStyle='#f0dfbf';es.fillRect(0,0,ears.width,ears.height);
+  earRows.forEach(({hair,hat},i)=>{const x=i%6*ec,y=Math.floor(i/6)*ec,id=hat==='hat-none'?hair:hat,result=items.find(item=>item.id===id);
+   es.drawImage(layers(eqOf({hair,hat}),true),PAD+300,PAD+130,560,560,x,y,ec,ec);
+   es.fillStyle=result?.issues.length?'#b3001b':'#0b6b2f';es.font='bold 13px sans-serif';es.fillText(`${CATALOG[id].name}${result?.issues.length?' ⚠':''}`,x+6,y+16);});
   const matrix=document.createElement('canvas'),rows=['hat-none',...hats],cols=['hair-none',...hairs],mc=200;
   matrix.width=cols.length*mc;matrix.height=rows.length*mc;const ms=matrix.getContext('2d');ms.fillStyle='#16233a';ms.fillRect(0,0,matrix.width,matrix.height);
   rows.forEach((hat,r)=>cols.forEach((hair,col)=>{
    ms.drawImage(layers(eqOf({hat,hair,glasses:'glasses-sport'}),true),PAD+200,PAD-150,850,850,col*mc,r*mc,mc,mc);
    const bad=combinations.find(item=>item.hat===hat&&item.hair===hair).issues.length;ms.fillStyle=bad?'#ffb3ba':'#fff';ms.font='11px sans-serif';ms.fillText(`${CATALOG[hat].name} / ${CATALOG[hair].name}${bad?' ⚠':''}`,col*mc+4,r*mc+13);
   }));
-  return {items,combinations,bodies,prone,walks,battles,recolor,costumes,counts:{costumes:costumeIds.length,hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),lobby:lobbySheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png'),costumes:costumeSheet.toDataURL('image/png')}};
+  return {items,combinations,bodies,prone,walks,battles,recolor,costumes,counts:{costumes:costumeIds.length,hairs:hairs.length,hats:hats.length,glasses:glasses.length,outfits:outfits.length},sheets:{zones:zoneSheet.toDataURL('image/png'),matrix:matrix.toDataURL('image/png'),ears:ears.toDataURL('image/png'),prone:proneSheet.toDataURL('image/png'),lobby:lobbySheet.toDataURL('image/png'),colors:colorSheet.toDataURL('image/png'),skins:skinSheet.toDataURL('image/png'),costumes:costumeSheet.toDataURL('image/png')}};
  });
  if(errors.length)throw new Error(`Page errors: ${errors.join('; ')}`);
 }finally{await browser.close();await server.close();}
@@ -285,5 +293,5 @@ const lines=['# Relatório de encaixe de cosméticos (rig v1)','',
  '## Fantasias','','| Fantasia | Problemas |','| --- | --- |',...data.costumes.map(item=>`| ${item.id} | ${item.issues.map(issue=>issue.message).join('; ')||'ok'} |`),''];
 await writeFile(`${output}/report.md`,lines.join('\n'));
 console.log(`Itens fora da zona: ${failingItems.length}/${data.items.length}; combinações com problema: ${failingCombos.length}/${data.combinations.length}; roupas fora da proporção: ${failingBodies.length}/${data.bodies.length}; corpos deitados com problema: ${failingProne.length}/${data.prone.length}; andar do lobby com problema: ${failingWalks.length}/${data.walks.length}; batalha com problema: ${failingBattles.length}/${data.battles.length}; regiões de cor com problema: ${failingColors.length}/${data.recolor.length}; fantasias com problema: ${failingCostumes.length}/${data.costumes.length}`);
-console.log(`Relatório: ${output}/report.md · pranchas: ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/lobby.png, ${output}/colors.png, ${output}/skins.png, ${output}/costumes.png`);
+console.log(`Relatório: ${output}/report.md · pranchas: ${output}/ears.png, ${output}/zones.png, ${output}/matrix.png, ${output}/prone.png, ${output}/lobby.png, ${output}/colors.png, ${output}/skins.png, ${output}/costumes.png`);
 if(strict&&(failingItems.length||failingCombos.length||failingBodies.length||failingProne.length||failingWalks.length||failingBattles.length||failingColors.length||failingCostumes.length))process.exit(1);
