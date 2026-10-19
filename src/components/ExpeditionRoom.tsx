@@ -27,7 +27,7 @@ function ExpeditionDrops({expedition}:{expedition:ExpeditionDef}){
   return <li key={index} title={stone?.name??'Pedra'}><img src={`/assets/stone-${drop.level}.png`} alt={stone?.name??'Pedra'} draggable={false}/></li>;})}</ul></div>;
 }
 /** Stage badge on the board: the gold plaque of the room number ("SALA 29"), reading "ESTÁGIO 1". */
-function StageBadge({stage}:{stage:number}){return <span className="expedition-stage-badge" role="img" aria-label={`Estágio ${stage}`}><small>Estágio</small><b data-value={stage}>{stage}</b></span>;}
+export function StageBadge({stage}:{stage:number}){return <span className="expedition-stage-badge" role="img" aria-label={`Estágio ${stage}`}><small>Estágio</small><b data-value={stage}>{stage}</b></span>;}
 
 /** The expedition list and its difficulties; only the leader confirms a choice. */
 export function ExpeditionPicker({current,canChoose,onClose}:{current:{id:string;difficulty:Difficulty;stage:number}|null|undefined;canChoose:boolean;onClose:()=>void}){
