@@ -46,7 +46,10 @@ export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since t
 export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:AvatarPart,state:CombatBodyState):boolean {
  const atlas=combatAtlas(eq),entry=ATLASES[eq.outfit];if(!atlas||!entry)return false;
  const blend=combatFrameBlend(state.pose,state.poseTime,state.phase,state.walk,state.sinceCharge),name=blend.name,index=combatFrameIndex(name),spec=COMBAT_FRAMES[name],next=COMBAT_FRAMES[blend.next];
- const measured=entry.frames[index]?.head??spec.head,dx=measured[0]-spec.head[0],dy=measured[1]-spec.head[1];
+ // Crawling like DDTank (19/10, matheus's canvas study of GameCharacter): the lying painting just glides; the legs
+ // never kick and the body only bobs a hair, while the fists paddle a little, one forward as the other comes back.
+ const rest=combatFrameIndex('rest'),crawling=name.startsWith('crawl')&&!!entry.frames[rest]?.lifted,art=crawling?rest:index;
+ const measured=entry.frames[art]?.head??spec.head,dx=measured[0]-spec.head[0],dy=measured[1]-spec.head[1];
  const hit=state.pose==='hit'?Math.exp(-Math.max(0,state.poseTime)/210):0,breath=name==='rest'?Math.sin(state.time/900)*.35:0;
  const weapon=WEAPONS.find(item=>item.id===eq.weapon),color=effectColor[weapon?.effect??'brick']??'#ffe5a0';
  // The fists glide from this drawing's place to the next one's; crawling they also lift off the ground.
@@ -60,7 +63,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+dx,spec.back[1]+dy+breath,spec.backAngle,state.time);
  // Each fist hangs from a short forearm in the outfit's own sleeve color that starts under the painted
  // sleeve, so the hand reads as part of the arm (the outfit art ends its sleeves at the elbow).
- const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(index%COMBAT_ATLAS.columns)*cw,sy=Math.floor(index/COMBAT_ATLAS.columns)*ch;
+ const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(art%COMBAT_ATLAS.columns)*cw,sy=Math.floor(art/COMBAT_ATLAS.columns)*ch;
  const cloth=eq.colors?.outfit??entry.sleeve??CATALOG[eq.outfit]?.color??'#2b3f9e';
  const arm=(k:0|1,to:Fist)=>{const [shoulder,elbow]=COMBAT_MANNEQUIN[name].sleeves[k],at=(p:Point):Point=>[p[0]+dx,p[1]+dy+breath*.4];
   drawArm(c,at(shoulder),at(elbow),to,cloth,eq.skin);};
@@ -69,14 +72,17 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const atHead=(draw:()=>void)=>{c.save();c.translate(measured[0],measured[1]+breath);c.rotate(state.lively+hit*.05);c.scale(HEAD_SCALE,HEAD_SCALE);
   c.translate(-(HEAD_SILHOUETTE_CENTER[0]-625)*AVATAR_UNIT,-(HEAD_SILHOUETTE_CENTER[1]-1225)*AVATAR_UNIT);draw();c.restore();};
  // face: the head and the hair; then the outfit painting, then hat and glasses (DDTank's faceUp).
- const lifted=entry.frames[index]?.lifted;
+ const stroke=Math.sin(state.phase)*state.walk,sweep=Math.cos(state.phase)*state.walk,bob=crawling?stroke*.8:0;
+ const paddle=(k:0|1):[number,number,number]|undefined=>{const f=entry.frames[art]?.lifted?.[k];if(!f||!crawling)return f;const side=k?-1:1;
+  return [f[0]+sweep*1.5*side,f[1]-Math.max(0,stroke*side)*2,f[2]];};
+ const lifted=entry.frames[art]?.lifted?[paddle(0)!,paddle(1)!]:undefined;
  if(lifted)drawBlockFist(c,eq.skin,lifted[1],breath*.4,.92);
  atHead(()=>{drawHeadRearLayers(c,eq,state.time,state.pose,state.modular);drawPart(c,head);drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'hair');});
  if(drawnHands&&prone)arm(0,fist(0));
  if(drawnHands)arm(1,fist(1));
  // Painted hands carry their own depth (DDTank): the near fist is painted over the chin, the far one only
  // where it shows past the face, so the body painting goes over the head as it is.
- c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4,cw/ppu,ch/ppu);
+ c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4-bob,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
  if(lifted)drawBlockFist(c,eq.skin,lifted[0],breath*.4,1);
  // The near fist goes over everything, under the chin while lying, like in DDTank.
