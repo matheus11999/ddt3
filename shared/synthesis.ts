@@ -1,39 +1,49 @@
 import {STONES} from './catalog';
-import {COMPOSITION_STONE_BY_ID,COMPOSITION_STONES} from './composition';
+import {COMPOSITION_STAT_NAMES,COMPOSITION_STATS,COMPOSITION_STONE_BY_ID,COMPOSITION_STONES} from './composition';
 
-/** Síntese do ferreiro: 4 pedras de um nível viram 1 do nível seguinte, sem custo e sem falha. */
+/** Síntese do ferreiro: 4 pedras de um nível viram 1 do nível seguinte, pagando ouro, sem falha. */
 export const SYNTHESIS_INPUT=4;
 /** Most syntheses one request may run at once ("Máx." in the forge). */
 export const MAX_SYNTHESIS_COUNT=999;
-const MAX_FORTIFY=STONES[STONES.length-1].level,MAX_TIER=Math.max(...COMPOSITION_STONES.map(stone=>stone.tier));
 /** Forge stones are `fortify-<level>`; composition stones keep their own ids (`attack-1`…). */
 export function fortifyId(level:number):string {return `fortify-${level}`;}
-export interface SynthesisStone {id:string;kind:'fortify'|'compose';/** Key in `Profile.stones` or `Profile.compositionStones`. */ key:string;level:number;}
+export interface SynthesisStone {id:string;kind:'fortify'|'compose';/** Key in `Profile.stones` or `Profile.compositionStones`. */ key:string;level:number;name:string;}
 export function synthesisStone(id:string):SynthesisStone|null {
  const fortify=/^fortify-(\d)$/.exec(id);
- if(fortify){const level=Number(fortify[1]);return STONES.some(s=>s.level===level)?{id,kind:'fortify',key:String(level),level}:null;}
+ if(fortify){const stone=STONES.find(s=>s.level===Number(fortify[1]));return stone?{id,kind:'fortify',key:String(stone.level),level:stone.level,name:stone.name}:null;}
  const stone=Object.hasOwn(COMPOSITION_STONE_BY_ID,id)?COMPOSITION_STONE_BY_ID[id]:undefined;
- return stone?{id,kind:'compose',key:id,level:stone.tier}:null;
+ return stone?{id,kind:'compose',key:id,level:stone.tier,name:stone.name}:null;
 }
-/** The stone 4 of `id` become, or null when `id` is already the highest level. */
-export function synthesisTarget(id:string):SynthesisStone|null {
- const stone=synthesisStone(id);if(!stone)return null;
- if(stone.kind==='fortify')return stone.level<MAX_FORTIFY?synthesisStone(fortifyId(stone.level+1)):null;
- return stone.level<MAX_TIER?synthesisStone(`${COMPOSITION_STONE_BY_ID[id].stat}-${stone.level+1}`):null;
+/** One dropdown in the Síntese table; weapon fragments will be the next category. */
+export interface SynthesisCategory {id:string;name:string;}
+export interface SynthesisRecipe {/** Also the id sent by the client: the stone that is consumed. */ id:string;category:string;input:string;inputCount:number;result:string;/** Gold per synthesis. */ cost:number;}
+/** Provisional gold prices by the level the stone reaches (matheus may tune them). */
+export const FORTIFY_SYNTHESIS_COST:Record<number,number>={2:10,3:25,4:60,5:150};
+export const COMPOSE_SYNTHESIS_COST:Record<number,number>={2:50,3:120};
+export const SYNTHESIS_CATEGORIES:readonly SynthesisCategory[]=[
+ {id:'fortify',name:'Pedras de Fortalecimento'},
+ ...COMPOSITION_STATS.map(stat=>({id:`compose-${stat}`,name:`Pedras de Composição · ${COMPOSITION_STAT_NAMES[stat]}`}))
+];
+export const SYNTHESIS_RECIPES:readonly SynthesisRecipe[]=[
+ ...STONES.slice(0,-1).map(s=>({id:fortifyId(s.level),category:'fortify',input:fortifyId(s.level),inputCount:SYNTHESIS_INPUT,result:fortifyId(s.level+1),cost:FORTIFY_SYNTHESIS_COST[s.level+1]})),
+ ...COMPOSITION_STONES.filter(s=>COMPOSITION_STONE_BY_ID[`${s.stat}-${s.tier+1}`]).map(s=>({id:s.id,category:`compose-${s.stat}`,input:s.id,inputCount:SYNTHESIS_INPUT,result:`${s.stat}-${s.tier+1}`,cost:COMPOSE_SYNTHESIS_COST[s.tier+1]}))
+];
+export const SYNTHESIS_RECIPE_BY_ID:Readonly<Record<string,SynthesisRecipe>>=Object.fromEntries(SYNTHESIS_RECIPES.map(recipe=>[recipe.id,recipe]));
+type Stock={gold:number;stones:Record<string,number>;compositionStones:Record<string,number>};
+export function stockOf(profile:Omit<Stock,'gold'>,id:string):number {const stone=synthesisStone(id);return !stone?0:(stone.kind==='fortify'?profile.stones[stone.key]:profile.compositionStones[stone.key])??0;}
+/** How many syntheses of a recipe the stock and gold allow right now. */
+export function synthesisMax(profile:Stock,recipe:SynthesisRecipe):number {
+ return Math.min(MAX_SYNTHESIS_COUNT,Math.floor(stockOf(profile,recipe.input)/recipe.inputCount),recipe.cost>0?Math.floor(profile.gold/recipe.cost):MAX_SYNTHESIS_COUNT);
 }
-/** Every stone that can be fused, in the order the forge lists them. */
-export const SYNTHESIS_SOURCES:readonly string[]=[...STONES.map(s=>fortifyId(s.level)),...COMPOSITION_STONES.map(s=>s.id)].filter(id=>synthesisTarget(id));
-type Stock={stones:Record<string,number>;compositionStones:Record<string,number>};
-export function stockOf(profile:Stock,stone:SynthesisStone):number {return (stone.kind==='fortify'?profile.stones[stone.key]:profile.compositionStones[stone.key])??0;}
-/** Applies `count` syntheses to the stock (server-authoritative); throws a player-facing message when it cannot. */
-export function synthesize(profile:Stock,id:string,count:number):{stone:string;target:string;count:number;consumed:number} {
- const source=synthesisStone(id),target=synthesisTarget(id);
- if(!source||!target)throw Error('Esta pedra não pode ser sintetizada.');
+/** Applies `count` syntheses to the profile (server-authoritative); throws a player-facing message when it cannot. */
+export function synthesize(profile:Stock,id:string,count:number):{stone:string;target:string;count:number;consumed:number;cost:number} {
+ const recipe=Object.hasOwn(SYNTHESIS_RECIPE_BY_ID,id)?SYNTHESIS_RECIPE_BY_ID[id]:undefined;
+ if(!recipe)throw Error('Esta pedra não pode ser sintetizada.');
  if(!Number.isInteger(count)||count<1||count>MAX_SYNTHESIS_COUNT)throw Error('Escolha quantas sínteses fazer.');
- const consumed=count*SYNTHESIS_INPUT;
- if(stockOf(profile,source)<consumed)throw Error(`São necessárias ${consumed} pedras para isso.`);
- const bag=(stone:SynthesisStone)=>stone.kind==='fortify'?profile.stones:profile.compositionStones;
- bag(source)[source.key]=stockOf(profile,source)-consumed;
- bag(target)[target.key]=stockOf(profile,target)+count;
- return {stone:source.id,target:target.id,count,consumed};
+ const consumed=count*recipe.inputCount,cost=count*recipe.cost;
+ if(stockOf(profile,recipe.input)<consumed)throw Error(`São necessárias ${consumed} pedras para isso.`);
+ if(profile.gold<cost)throw Error('Ouro insuficiente para esta síntese.');
+ const add=(id:string,amount:number)=>{const stone=synthesisStone(id)!,bag=stone.kind==='fortify'?profile.stones:profile.compositionStones;bag[stone.key]=(bag[stone.key]??0)+amount;};
+ add(recipe.input,-consumed);add(recipe.result,count);profile.gold-=cost;
+ return {stone:recipe.id,target:recipe.result,count,consumed,cost};
 }

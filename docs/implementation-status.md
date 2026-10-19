@@ -425,3 +425,4 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - Aba **Síntese** no Ferreiro: 4 pedras de um nível → 1 do nível seguinte, sem custo e sem falha, para Pedras de Fortificação (I→V) e pedras de composição (I→III por atributo). Servidor valida estoque e níveis (`shared/synthesis.ts`, `Store.synthesize`); teste em `tests/synthesis.test.ts`; prévia `scripts/preview-forge-synthesis.mjs`.
 - Colar não pode mais ser composto (o único aprimoramento que tinha); composições antigas de colar são descartadas na normalização do perfil.
 - Corrigido: o comando `compose` recusava as pedras de Sorte (`luck-*`).
+- 19/10 (revisão): Síntese virou tabela com categorias que abrem, máximo por linha, quantidade, custo em ouro (provisório: fortalecimento 10/25/60/150, composição 50/120 por síntese) e filtro "Mostrar apenas disponíveis". Item na bigorna sai da lista de equipamentos; sucesso no fortalecimento tira o item da bigorna.
