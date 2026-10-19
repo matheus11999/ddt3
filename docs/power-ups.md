@@ -23,8 +23,8 @@ Exemplos com 1.000 de dano por impacto: +1 com 50% e 20% = 1.530 por disparo (3.
 
 ## Combinações (`POWER_UP_RULES`)
 
-- +1 e +2 são um modo de disparos seguidos: só um deles, uma vez por turno (+1 duas vezes seria um +2 mais forte).
-- Tridente uma vez por turno; combina com +1 ou +2 (regra antiga do projeto): cada disparo seguido sai em leque e as penalidades se multiplicam (+2 com Tridente = 9 projéteis a 0,60 × 0,50 = 0,30 cada). Escolha do Brasa, sem valor histórico verificado; desligue com `tridentWithSequential:false`.
+- +1 e +2 se repetem enquanto houver Vigor (pedido do matheus, 19/10): cada uso soma seus disparos extras (+1 → 1, +2 → 2) e as penalidades se multiplicam (+1 duas vezes = 3 disparos a 0,90 × 0,90 = 0,81; +1 com +2 = 4 disparos a 0,54). Volte ao limite antigo com `repeatSequential:false`.
+- Só o Tridente fica limitado a uma vez por turno; combina com +1 ou +2 (regra antiga do projeto): cada disparo seguido sai em leque e as penalidades se multiplicam (+2 com Tridente = 9 projéteis a 0,60 × 0,50 = 0,30 cada). Escolha do Brasa, sem valor histórico verificado; desligue com `tridentWithSequential:false`.
 - Bônus de dano se repetem enquanto houver Vigor.
 - POW e Tridente seguem a regra de cada arma (`powTrident` em `shared/weaponKit.ts`); o Quebra-Tijolos não combina POW com Tridente.
 - Voo não combina com power-ups.
@@ -32,5 +32,7 @@ Exemplos com 1.000 de dano por impacto: +1 com 50% e 20% = 1.530 por disparo (3.
 ## Disparos e turno
 
 Todos os disparos de uma sequência são uma ação só: o servidor simula +1/+2 em ordem, e cada disparo vê a cratera, as quedas e as mortes dos anteriores; cada projétil tem trajetória, colisão, sorteio de crítico e dano próprios. Cada impacto é aplicado uma vez só (`shot.impacted`). O turno termina depois do último impacto e da pausa `TURN_GAP_MS`. O Delay do tiro (tempo usado + `shotDelay` da arma) é somado uma vez, não por projétil; o Delay de cada power-up é somado na ativação.
+
+A fila de poderes usados no meio da tela também mostra a habilidade de pet ativada no turno (`BattlePetSkill.usedTurn`).
 
 Power Max não existe no projeto.
