@@ -8,6 +8,9 @@ import type {LoadingPlayer,MatchLoading as Loading} from '../../shared/protocol'
 import {preloadBattle} from '../game/battlePreload';
 import {Avatar} from './Avatar';
 import {LevelNumber} from './LevelNumber';
+import {BattleText} from './BattleText';
+import {StageBadge} from './ExpeditionRoom';
+import './Expedition.css';
 import './MatchLoading.css';
 
 /**
@@ -33,11 +36,10 @@ export function MatchLoading({scale}:{scale:number}){
   <div className="match-loading-bg" style={{backgroundImage:`url(${def.art.background})`}}/>
   <div className="match-loading-shade"/>
   <div className="match-loading-stage" style={{transform:`translate(-50%, -50%) scale(${scale})`}}>
-  {expedition&&<header className="match-loading-title"><strong>{expedition.name}</strong><span>{DIFFICULTY_NAMES[expedition.difficulty]} · Estágio {expedition.stage+1}</span></header>}
   <div className="match-loading-field">
    <Team players={party??teams[0]} side="left" me={profile?.id}/>
    <Versus/>
-   {expedition?<div className="match-loading-team right"><div className="instance-card"><img src={expedition.art} alt=""/><div className="instance-stage"><span>Estágio {expedition.stage+1}</span><b>{expedition.stageName}</b></div></div></div>:<Team players={teams[1]} side="right" me={profile?.id}/>}
+   {expedition?<div className="match-loading-team right"><div className="instance-card"><img src={expedition.art} alt=""/><span className="expedition-difficulty-tag instance-difficulty" data-difficulty={expedition.difficulty}>{DIFFICULTY_NAMES[expedition.difficulty]}</span><div className="instance-stage"><StageBadge stage={expedition.stage+1}/><BattleText className="expedition-title">{expedition.name}</BattleText><small>{expedition.stageName}</small></div></div></div>:<Team players={teams[1]} side="right" me={profile?.id}/>}
   </div>
   {!expedition&&<footer className="match-loading-map">
    <div className="map-thumb"><img src={`/assets/maps/${baseMapId(loading.map)}-preview.png`} alt=""/></div>

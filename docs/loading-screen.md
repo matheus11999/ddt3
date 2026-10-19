@@ -1,6 +1,6 @@
 # Tela de carregamento (PvP e expedição)
 
-Entre achar a partida (ou iniciar um estágio de expedição) e a batalha, todos veem a mesma tela: times frente a frente (até 4 por lado; cada jogador em pé sobre a aura do jogo, sem card atrás, com nome e barra embaixo; 1 ou 2 numa linha, 3 ou 4 em duas) com um "VS" 3D no meio, sem título no PvP (pedido do matheus em 19/10), fundo do mapa desfocado e, embaixo, a miniatura do mapa (`/assets/maps/<id>-preview.png`). Na expedição o lado direito mostra a arte do estágio (`stage.art`) maior, com "Estágio N" e o nome, e não há rodapé (pedido do matheus em 19/10).
+Entre achar a partida (ou iniciar um estágio de expedição) e a batalha, todos veem a mesma tela: times frente a frente (até 4 por lado; cada jogador em pé sobre a aura do jogo, sem card atrás, com nome e barra embaixo; 1 ou 2 numa linha, 3 ou 4 em duas) com um "VS" 3D no meio, sem título no PvP (pedido do matheus em 19/10), fundo do mapa desfocado e, embaixo, a miniatura do mapa (`/assets/maps/<id>-preview.png`). Na expedição o lado direito mostra a arte do estágio (`stage.art`) maior, com as marcas da sala (dificuldade em cima, placa dourada "ESTÁGIO N", nome 3D e nome do estágio) só dentro da imagem; não há título no topo nem rodapé (pedidos do matheus em 19/10).
 
 ## Regras (servidor, `server/game.ts`)
 - `launchMatch` e `launchExpedition` abrem a fase de carregamento (`openLoading`); a batalha só é criada (`beginMatch`/`beginExpedition`) quando todos chegam a 100 %.
