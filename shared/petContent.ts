@@ -23,7 +23,7 @@ registerPetSkill({id:'verdalia-orb',name:'Orbe da Natureza',kind:'active',stageS
   {cost:40,cooldown:2,delay:100,effects:[{kind:'special-shot',target:'self',projectile:'verdalia-orb',multiplier:1.2,critical:true},{kind:'block',target:'self',actions:[...TOOLS],turns:1},{kind:'hot',target:'self',maxHpPercent:3,at:'turn-start',turns:2}]},
   {cost:40,cooldown:2,delay:100,effects:[{kind:'special-shot',target:'self',projectile:'verdalia-orb',multiplier:1.35,critical:true},{kind:'block',target:'self',actions:[...TOOLS],turns:1},{kind:'hot',target:'self',maxHpPercent:4,at:'turn-start',turns:2}]},
   {cost:40,cooldown:2,delay:100,effects:[{kind:'special-shot',target:'self',projectile:'verdalia-orb',multiplier:1.5,critical:true},{kind:'block',target:'self',actions:[...TOOLS],turns:1},{kind:'hot',target:'self',maxHpPercent:5,at:'turn-start',turns:2}]}],
- visual:{icon:`${ART}/skill-orb.png`,projectile:`${ART}/orb.png`,impact:`${ART}/orb-impact.png`}});
+ visual:{icon:`${ART}/skill-orb.png`,projectile:`${ART}/orb.png`,impact:`${ART}/orb-impact.png`,sound:`${ART}/orb-launch.mp3`}});
 registerPetSkill({id:'verdalia-dew',name:'Orvalho Curativo',kind:'active',stageScaling:true,
  description:'Cura você e todo o seu time no começo de cada um dos próximos 3 turnos de cada um.',
  levels:[
