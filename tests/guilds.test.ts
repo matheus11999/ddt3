@@ -136,3 +136,14 @@ test('ranks keep the leader with every permission and fill missing ranks with th
  assert.throws(()=>validRankName('a'),/de 2 a 16/);
  assert.equal(commandSchema.safeParse({type:'guild-rank-set',playerId:randomUUID(),rank:0}).success,false);
 });
+
+test('guild chat reaches only the online members of the same guild',async()=>{
+ const f=fixture(4),[a,b,c,d]=f.players;
+ f.join(a,1,'Lobos');f.join(b,1,'Lobos');f.join(c,2,'Corvos');
+ await f.connect();
+ await f.game.command(a.id,{type:'chat',channel:'guild',text:'reunião na praça'});
+ const got=(p:Profile)=>f.events.get(p.id)!.some(e=>e.type==='chat'&&e.message.channel==='guild'&&e.message.text==='reunião na praça');
+ assert.equal(got(a),true);assert.equal(got(b),true);assert.equal(got(c),false);assert.equal(got(d),false);
+ await f.game.command(d.id,{type:'chat',channel:'guild',text:'oi'});
+ assert.match(f.error(d)??'',/não está em uma guilda/);
+});
