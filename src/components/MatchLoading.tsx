@@ -37,12 +37,12 @@ export function MatchLoading({scale}:{scale:number}){
   <div className="match-loading-field">
    <Team players={party??teams[0]} side="left" me={profile?.id}/>
    <Versus/>
-   {expedition?<div className="match-loading-team right"><div className="instance-card"><img src={expedition.art} alt=""/><b>{expedition.stageName}</b></div></div>:<Team players={teams[1]} side="right" me={profile?.id}/>}
+   {expedition?<div className="match-loading-team right"><div className="instance-card"><img src={expedition.art} alt=""/><div className="instance-stage"><span>Estágio {expedition.stage+1}</span><b>{expedition.stageName}</b></div></div></div>:<Team players={teams[1]} side="right" me={profile?.id}/>}
   </div>
-  <footer className="match-loading-map">
+  {!expedition&&<footer className="match-loading-map">
    <div className="map-thumb"><img src={`/assets/maps/${baseMapId(loading.map)}-preview.png`} alt=""/></div>
    <div className="map-caption"><span>{expedition?'Instância':'Mapa'}</span><strong>{def.name}</strong><Countdown deadline={loading.deadline} offset={offset} players={loading.players}/></div>
-  </footer>
+  </footer>}
   </div>
  </div>,document.body);
 }
