@@ -34,38 +34,41 @@ function drawBurst(c:CanvasRenderingContext2D,rx:number,ry:number){
 }
 
 /** Chunky yellow-orange numerals with a dark outline and a dropped 3D edge. */
-function drawDigits(c:CanvasRenderingContext2D,value:string,size:number,y:number){
+// Damage numbers are yellow-orange; healing numbers use the same shape in green.
+const PALETTES={damage:{edge:'#2e1002',side:'#5c2203',outline:'#3a1403',stops:['#fffbc4','#ffe236','#ffaa12','#f0600c'],rim:'rgba(255,246,190,.7)'},
+ heal:{edge:'#062a10',side:'#0e5a22',outline:'#08371a',stops:['#eaffd6','#8ff25a','#3fcf2e','#159a22'],rim:'rgba(220,255,200,.7)'}};
+function drawDigits(c:CanvasRenderingContext2D,value:string,size:number,y:number,palette=PALETTES.damage){
  c.font=`${size}px ${FONT}`;
  const depth=Math.round(size*.09);
- c.lineWidth=size*.24;c.strokeStyle='#2e1002';c.strokeText(value,CX,y+depth);c.fillStyle='#5c2203';c.fillText(value,CX,y+depth);
- c.lineWidth=size*.22;c.strokeStyle='#3a1403';c.strokeText(value,CX,y);
- const fill=c.createLinearGradient(0,y-size*.5,0,y+size*.45);fill.addColorStop(0,'#fffbc4');fill.addColorStop(.3,'#ffe236');fill.addColorStop(.62,'#ffaa12');fill.addColorStop(1,'#f0600c');
+ c.lineWidth=size*.24;c.strokeStyle=palette.edge;c.strokeText(value,CX,y+depth);c.fillStyle=palette.side;c.fillText(value,CX,y+depth);
+ c.lineWidth=size*.22;c.strokeStyle=palette.outline;c.strokeText(value,CX,y);
+ const fill=c.createLinearGradient(0,y-size*.5,0,y+size*.45);palette.stops.forEach((color,i)=>fill.addColorStop([0,.3,.62,1][i],color));
  c.fillStyle=fill;c.fillText(value,CX,y);
  // Glossy bevel on the upper half of each digit.
  c.save();c.beginPath();c.rect(0,y-size*.6,W,size*.48);c.clip();c.globalAlpha=.4;c.fillStyle='#ffffff';c.fillText(value,CX,y-size*.035);c.restore();
- c.lineWidth=1.2;c.strokeStyle='rgba(255,246,190,.7)';c.strokeText(value,CX,y);
+ c.lineWidth=1.2;c.strokeStyle=palette.rim;c.strokeText(value,CX,y);
 }
 
-function textFor(hit:ShotHit){
- const critical=hit.critical===true,kind=hit.kind,value=String(Math.max(0,Math.round(hit.damage))),key=`${critical}:${kind}:${value}`;
+function textFor(hit:ShotHit,heal=false){
+ const critical=hit.critical===true&&!heal,kind=hit.kind,value=`${heal?'+':''}${Math.max(0,Math.round(hit.damage))}`,key=`${heal?'heal':critical}:${kind}:${value}`;
  const known=textCache.get(key);if(known)return known;
  const art=document.createElement('canvas');art.width=W;art.height=H;const c=art.getContext('2d')!;
  c.textAlign='center';c.textBaseline='middle';c.lineJoin='round';
  const size=critical?50:42;
  if(critical){c.font=`${size}px ${FONT}`;const width=c.measureText(value).width;drawBurst(c,Math.min(160,width/2+30),54);}
- const label=kind==='graze'?'RASPÃO':kind==='fall'?'QUEDA':'';
+ const label=heal?'':kind==='graze'?'RASPÃO':kind==='fall'?'QUEDA':'';
  if(label&&!critical){c.font=`17px ${FONT}`;c.lineWidth=5;c.strokeStyle='#14233a';c.strokeText(label,CX,CY-38);c.fillStyle='#bfe4fa';c.fillText(label,CX,CY-38);}
- drawDigits(c,value,size,CY);
+ drawDigits(c,value,size,CY,heal?PALETTES.heal:PALETTES.damage);
  // Text drawn before the webfont arrives would be frozen in the fallback face: only cache once it is ready.
  if(fontReady()){textCache.set(key,art);if(textCache.size>96)textCache.delete(textCache.keys().next().value!);}
  return art;
 }
 
-/** Read-only feedback: damage, critical and hit kind always come from the server.
+/** Read-only feedback: damage, critical and hit kind always come from the server. With `heal`, the same number in green with a plus: HP restored.
  * Call in world coordinates at the matching authoritative impact's visual age.
  * `stack` is how many earlier hits of the same shot landed on this fighter, so each hit gets its own number above the last. */
-export function drawHitFeedback(c:CanvasRenderingContext2D,hit:ShotHit,age:number,options:WeaponEffectOptions&{stack?:number}={}){
- const critical=hit.critical===true,duration=HIT_FEEDBACK_DURATION;if(age<0||age>=duration||!Number.isFinite(hit.damage)||hit.damage<=0)return;
+export function drawHitFeedback(c:CanvasRenderingContext2D,hit:ShotHit,age:number,options:WeaponEffectOptions&{stack?:number;heal?:boolean}={}){
+ const heal=options.heal===true,critical=hit.critical===true&&!heal,duration=HIT_FEEDBACK_DURATION;if(age<0||age>=duration||!Number.isFinite(hit.damage)||hit.damage<=0)return;
  const progress=age/duration,motion=options.reducedMotion??motionPreference?.matches??false,stack=Math.max(0,options.stack??0);
  // Pop in oversized, settle with a small bounce, hold, then drift up while fading.
  const entrance=clamp(age/(critical?170:130)),settle=clamp((age-(critical?170:130))/140),fade=1-clamp((progress-.7)/.3);
@@ -74,5 +77,5 @@ export function drawHitFeedback(c:CanvasRenderingContext2D,hit:ShotHit,age:numbe
  const offsetX=(jitter(hit,1)-.5)*70,offsetY=(jitter(hit,2)-.5)*8,drift=(jitter(hit,3)-.5)*24,tilt=(jitter(hit,4)-.5)*.14;
  const x=hit.x+offsetX+(motion?0:drift*progress),y=hit.y-26+offsetY-stack*HIT_STACK_GAP-(motion?0:Math.max(0,progress-.55)*34);
  c.save();c.translate(x,y);c.scale(scale*NUMBER_SCALE,scale*NUMBER_SCALE);c.rotate(motion?0:tilt+(critical?-.06+.06*settle:0));c.globalAlpha*=fade*(motion?1:Math.min(1,entrance*1.6));
- c.drawImage(textFor(hit),-W/2,-H/2);c.restore();
+ c.drawImage(textFor(hit,heal),-W/2,-H/2);c.restore();
 }
