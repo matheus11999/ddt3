@@ -238,8 +238,8 @@ export function weaponAssetPath(id:string,level=0):string {return `/assets/weapo
 export function weaponIconPath(id:string,level=0):string {return `/assets/weapons/${id}/icon-${weaponVisualStage(level)}.png`;}
 /** Tools spend Vigor (`cost`) and add Delay (`delay`, like DDTank item Property5). Brasa balance: Delay equals the Vigor cost. */
 export const BOOSTS = [
- {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'2 disparos seguidos · 90% de dano cada · não combina com +2',key:'1',delay:110},
- {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'3 disparos seguidos · 60% de dano cada · não combina com +1',key:'2',delay:110},
+ {id:'extra1',label:'+1',name:'Disparo adicional',cost:110,detail:'+1 disparo seguido · 90% de dano cada · pode repetir',key:'1',delay:110},
+ {id:'extra2',label:'+2',name:'Dois disparos adicionais',cost:110,detail:'+2 disparos seguidos · 60% de dano cada · pode repetir',key:'2',delay:110},
  {id:'trident',label:'Ⅲ',name:'Tridente',cost:110,detail:'3 projéteis ao mesmo tempo · 50% de dano cada · uma vez',key:'3',delay:110},
  {id:'damage50',label:'50%',name:'Dano +50%',cost:85,detail:'Aumenta o dano em 50%',key:'4',delay:85},
  {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:80},

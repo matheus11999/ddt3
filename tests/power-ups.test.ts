@@ -47,13 +47,20 @@ test('the power-up multiplier enters the existing damage pipeline once per impac
  assert.ok(damageAtImpact({...DEFAULT_EQUIPMENT,upgrade:10},defender,{boostMultiplier:1.5})>damageAtImpact(DEFAULT_EQUIPMENT,defender,{boostMultiplier:1.5}),'forged Dano still counts');
 });
 
-test('combination matrix: one of +1/+2 per turn, trident once, bonuses repeat, costs add up',()=>{
- assert.equal(powerUpConflict([],'extra1'),undefined);assert.match(powerUpConflict(['extra1'],'extra1')!,/\+1 já/);
- assert.match(powerUpConflict(['extra1'],'extra2')!,/não combinam/);assert.match(powerUpConflict(['extra2'],'extra1')!,/não combinam/);
+test('combination matrix: +1/+2 repeat while Vigor lasts, only the trident is once per turn, costs add up',()=>{
+ assert.equal(powerUpConflict([],'extra1'),undefined);assert.equal(powerUpConflict(['extra1'],'extra1'),undefined);
+ assert.equal(powerUpConflict(['extra1'],'extra2'),undefined);assert.equal(powerUpConflict(['extra2','extra2'],'extra1'),undefined);
  assert.match(powerUpConflict(['trident'],'trident')!,/tridente já/);assert.equal(powerUpConflict(['extra2'],'trident'),undefined);
  assert.equal(powerUpConflict(['damage50','damage50'],'damage50'),undefined);
  assert.equal(powerUpCost(['extra1','damage50','damage20'],COSTS),250);
  assert.deepEqual(BOOSTS.map(boost=>[boost.id,boost.cost]),[['extra1',110],['extra2',110],['trident',110],['damage50',85],['damage40',80],['damage30',70],['damage20',55],['damage10',50]]);
+});
+
+test('repeated +1/+2 add their extra shots and multiply their penalties',()=>{
+ const twice=powerUpShot(['extra1','extra1']),both=powerUpShot(['extra1','extra2']),withTrident=powerUpShot(['extra1','extra1','trident']);
+ assert.equal(twice.sequentialShots,3);close(twice.modeMultiplier,.81);
+ assert.equal(both.sequentialShots,4);close(both.modeMultiplier,.54);
+ assert.deepEqual([withTrident.sequentialShots,withTrident.projectilesPerShot],[3,3]);close(withTrident.modeMultiplier,.405);
 });
 
 async function battle(){

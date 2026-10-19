@@ -16,6 +16,7 @@ import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
+import {petSkill} from '../../shared/petSkills';
 import {FORCE_BAR_MAX,forceBarValue} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
@@ -181,6 +182,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
  const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
+ // Pet skills the turn player activated this turn, shown in the same row as the turn's powers.
+ const turnPetSkills=turn?.pet?turn.pet.skills.filter(slot=>slot.usedTurn===turn.pet!.turns).map(slot=>{const def=petSkill(slot.id);return {id:slot.id,name:def?.name??slot.id,icon:def?.visual?.icon};}):[];
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
  const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
 
@@ -226,9 +229,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    })}
   </aside>
 
-  {/* Powers of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
-  {turn&&b.phase!=='finished'&&turn.boosts.length>0&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name).join(', ')}`}>
-   {turn.id!==me.id&&<span className="boost-queue-owner" aria-hidden="true">{turn.name}</span>}
+  {/* Powers (and pet skills) of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
+  {turn&&b.phase!=='finished'&&(turn.boosts.length>0||turnPetSkills.length>0)&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${[...turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name),...turnPetSkills.map(skill=>skill.name)].join(', ')}`}>
    {turn.boosts.map((id,order)=>{
     const index=BOOSTS.findIndex(item=>item.id===id),boost=BOOSTS[index],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
     return <span key={`${turn.id}-${order}`} className="queued-boost" data-boost={id} aria-hidden="true">
@@ -236,6 +238,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
      <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`}>{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
     </span>;
    })}
+   {turnPetSkills.map(skill=><span key={`${turn.id}-pet-${skill.id}`} className="queued-boost queued-pet-skill" data-pet-skill={skill.id} aria-hidden="true">
+    {skill.icon?<img src={skill.icon} alt="" draggable={false}/>:<span>{skill.name.slice(0,2)}</span>}
+   </span>)}
   </div>}
 
   <div className="battle-console" aria-label="Controles de batalha">

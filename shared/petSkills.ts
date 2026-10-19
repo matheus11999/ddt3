@@ -106,7 +106,7 @@ export function skillLevel(skill:PetSkillDefinition,level:number):PetSkillLevel{
 
 // ── Battle state ──
 /** The pet's temporary battle state, kept on its owner's Fighter (plain JSON: survives restarts, docs/live-state.md). */
-export interface BattlePetSkill {id:string;level:number;/** Owner turn from which it can be used again. */readyAt:number;uses:number;}
+export interface BattlePetSkill {id:string;level:number;/** Owner turn from which it can be used again. */readyAt:number;uses:number;/** Owner turn (`turns`) of the last manual activation: the HUD shows it beside the turn's powers. */usedTurn?:number;}
 export interface BattlePetState {petId:string;species:string;/** Evolution stage at battle start (picks the art of its effects). */stage?:number;mana:number;maxMana:number;regen:number;/** Turns of the owner started in this battle. */turns:number;skills:BattlePetSkill[];/** Passive activations per skill: turn counted, count this turn, shots seen. */fired?:Record<string,{turn:number;count:number;shots:string[]}>;}
 /** A buff, debuff or lingering effect on a fighter (from any pet, own or enemy). */
 export interface PetEffect {id:string;kind:Exclude<PetEffectDef['kind'],'damage'|'heal'|'cleanse'|'mana'|'delay'|'area-damage'>;skill:string;sourceId:string;stackKey:string;stacks:number;turns?:number;debuff?:boolean;tags?:string[];
@@ -238,7 +238,7 @@ export function petSkillBlocked(owner:PetCombatant,skillId:string,mode:'pvp'|'pv
 export function activatePetSkill(ctx:PetEngineContext,owner:PetCombatant,skillId:string,chosen?:string):{applications:PetApplication[];delay:number}{
  const reason=petSkillBlocked(owner,skillId,ctx.mode);if(reason)throw Error(reason);
  const pet=owner.pet!,slot=pet.skills.find(s=>s.id===skillId)!,def=petSkill(skillId)!,level=skillLevel(def,slot.level);
- pet.mana-=level.cost;slot.uses++;slot.readyAt=pet.turns+level.cooldown+1;
+ pet.mana-=level.cost;slot.uses++;slot.usedTurn=pet.turns;slot.readyAt=pet.turns+level.cooldown+1;
  ctx.budget??={left:(ctx.config??PET_CONFIG).engine.maxActivationsPerAction};ctx.budget.left--;
  const applications:PetApplication[]=[{skill:skillId,kind:'activate',sourceId:owner.id,targetId:owner.id}];
  applications.push(...applyEffects(ctx,owner,def,level,undefined,chosen,0));
