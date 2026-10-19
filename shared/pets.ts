@@ -24,7 +24,7 @@ export const petVisualSchema=z.object({
  animations:z.partialRecord(z.enum(['idle','skill','hit','walk','victory']),z.object({row:z.number().int().min(0),frames:z.number().int().min(1),fps:z.number().positive()}).strict()).optional(),
  sounds:z.partialRecord(z.enum(['skill','hit','idle']),asset).optional(),
  scale:z.number().positive().max(4).optional(),
- /** Where the pet stands relative to its owner (battle and plaza) and in the windows. */
+ /** Where the pet stands beside its owner (battle and plaza), at owner size 100: x is the space between the owner's edge and the pet (negative: behind), y lowers it. */
  offset:z.object({x:z.number(),y:z.number()}).strict().optional(),
  ui:z.object({x:z.number(),y:z.number(),scale:z.number().positive()}).strict().optional()
 }).strict();

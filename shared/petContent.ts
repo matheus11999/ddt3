@@ -44,7 +44,7 @@ registerPetSpecies({id:'verdalia',name:'Verdália',enabled:true,
   {name:'Botão',multiplier:1.25,requires:{level:20},visual:{sprite:`${ART}/stage-1.png`,portrait:`${ART}/stage-1.png`,scale:.25}},
   {name:'Flor',multiplier:1.5,requires:{level:40},visual:{sprite:`${ART}/stage-2.png`,portrait:`${ART}/stage-2.png`,scale:.25}}],
  skills:[{skill:'verdalia-roots'},{skill:'verdalia-orb'},{skill:'verdalia-dew',level:10}],
- visual:{offset:{x:-78,y:-6}}});
+ visual:{offset:{x:-6,y:0}}});
 
 registerPetFood({id:'pet-food-dew',name:'Adubo de Orvalho',vitality:25,xp:50,maxPerUse:10,dailyLimit:40,icon:'/assets/pets/food-dew.png'});
 
