@@ -12,8 +12,26 @@ const LEGACY_ROWS=WORLD.height/MAP_CELL;
 /** Terrain arrays are always `rows` tall, so their length carries the map width. */
 export function terrainCols(t:{length:number}){return t.length/WORLD.rows;}
 export function terrainWidth(t:{length:number}){return terrainCols(t)*WORLD.cell;}
-/** Time dilation preserves the original arcs while making their travel 18% faster. */
-export const PROJECTILE_SPEED_SCALE=1.18;
+/** Shot ballistics follow DDTank 4.1 (docs/ballistics.md): the force bar 0–100 becomes a launch force
+ * 0–2000, gravity and wind come from the map and the ball, linear air drag slows both axes and the
+ * flight advances in fixed 0.04 s steps, with float32 state like the original server. */
+export const PHYSICS_STEP_MS=40;
+/** Launch force per point of the force bar (DDTank: 100 → 2000). */
+export const FORCE_PER_POWER=20;
+/** A shot that flies this long ends where it is. */
+export const MAX_FLIGHT_MS=7500;
+/** Map profile of the common DDTank maps (Map.cs Weight/DragIndex). */
+export const MAP_PHYSICS={weight:10,drag:2} as const;
+/** DDTank ball parameters (BallList.xml). */
+export interface Ball {mass:number;weight:number;wind:number;drag:number;}
+/** The common shots 381 (brick) and 461 (boomerang) share these: same flight, different look. */
+export const COMMON_BALL:Ball={mass:10,weight:70,wind:240,drag:1};
+/** Per-second accelerations: ax = windAccel·wind − drag·vx, ay = gravity − drag·vy. */
+export interface BallMotion {launch:number;gravity:number;windAccel:number;drag:number;}
+export function ballMotion(ball:Ball=COMMON_BALL,map:{weight:number;drag:number}=MAP_PHYSICS):BallMotion {
+ return {launch:FORCE_PER_POWER,gravity:map.weight*ball.weight,windAccel:ball.wind/ball.mass,drag:map.drag*ball.drag/ball.mass};
+}
+const f32=Math.fround;
 export const FIGHTER_HIT_RADIUS=22;
 /** A rival standing this close (horizontally) to the shooter shares its body: the shot
  * passes through him until it leaves his hit circle. A little further aside, it hits. */
@@ -283,16 +301,38 @@ export function leftArena(impact:{x:number;y:number},width:number=WORLD.width){r
 
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
-export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance,passOverlapping=true):TrajectoryResult[] {
- const speed=power*9.8,step=1000/120,shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0)*PROJECTILE_SPEED_SCALE,x:0,y:0,vx:0,vy:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined,ignored:new Set<string>()})),results:TrajectoryResult[]=new Array(angles.length);
- const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:(at-shot.launchAt)/PROJECTILE_SPEED_SCALE};results[index]=result;onImpact?.(result,index);};
+export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance,passOverlapping=true,motion:BallMotion=ballMotion(weapon.ball)):TrajectoryResult[] {
+ const force=power*motion.launch,dt=f32(PHYSICS_STEP_MS/1000),sampleMs=1000/60,eps=1e-7;
+ const shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0),x:0,y:0,vx:0,vy:0,stepX:0,stepY:0,nextStep:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined,ignored:new Set<string>()})),results:TrajectoryResult[]=new Array(angles.length);
+ const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:at-shot.launchAt};results[index]=result;onImpact?.(result,index);};
  let time=0;
  while(shots.some(shot=>!shot.done)){
-  for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+1e-7){const rad=shot.angle*Math.PI/180;shot.x=origin.x+origin.facing*27;shot.y=origin.y-40;shot.vx=Math.cos(rad)*speed*origin.facing;shot.vy=-Math.sin(rad)*speed;shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextSample=time+1000/60;
+  for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+eps){
+   // DDTank Living.cs: the launch velocity is the force split by the angle and truncated toward zero.
+   const rad=shot.angle*Math.PI/180;shot.x=shot.stepX=origin.x+origin.facing*27;shot.y=shot.stepY=origin.y-40;
+   shot.vx=f32(Math.trunc(force*Math.cos(rad))*origin.facing);shot.vy=f32(-Math.trunc(force*Math.sin(rad)));
+   shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextStep=time;shot.nextSample=time+sampleMs;
    if(passOverlapping)for(const target of targets)if(Math.abs(target.x-origin.x)<FIGHTER_OVERLAP&&Math.abs(target.y-origin.y)<FIGHTER_HIT_RADIUS*2&&insideTarget(shot,target,weapon.projectileRadius))shot.ignored.add(target.id);}
-  const nextLaunch=Math.min(Infinity,...shots.filter(shot=>!shot.launched).map(shot=>shot.launchAt));
-  if(!shots.some(shot=>shot.launched&&!shot.done)){time=nextLaunch;continue;}
-  const duration=Math.min(step,nextLaunch-time);let elapsed=0;
+  // Each shot runs its own fixed 0.04 s clock (semi-implicit Euler, DDTank EulerVector.cs):
+  // at the start of a step the velocity changes, then the shot moves in a straight line for the whole step.
+  for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done||shot.nextStep>time+eps)continue;
+   if(shot.nextStep>shot.launchAt+eps){shot.x=shot.stepX=f32(shot.stepX+shot.vx*dt);shot.y=shot.stepY=f32(shot.stepY+shot.vy*dt);}
+   if(time-shot.launchAt>=MAX_FLIGHT_MS-eps){finish(index,{x:shot.x,y:shot.y,fraction:1},time);continue;}
+   const locked=guidance&&(guidance.projectileIndex??index)===index?homingTarget(shot,guidance):undefined;
+   if(locked){
+    // Magnet lock: pure pursuit that ignores wind/gravity. The turn rate grows as the
+    // distance shrinks (turn radius <= half the distance), so it always closes in.
+    const dx=locked.x-shot.x,dy=locked.y-31-shot.y,distance=Math.max(1,Math.hypot(dx,dy)),speed=Math.max(HOMING_MIN_SPEED,Math.hypot(shot.vx,shot.vy)),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=Math.max(HOMING_TURN_RATE,2*speed/distance)*dt,next=heading+Math.max(-limit,Math.min(limit,delta));
+    shot.vx=f32(Math.cos(next)*speed);shot.vy=f32(Math.sin(next)*speed);
+   }else{
+    const ax=f32(motion.windAccel*wind-motion.drag*shot.vx),ay=f32(motion.gravity-motion.drag*shot.vy);
+    shot.vx=f32(shot.vx+ax*dt);shot.vy=f32(shot.vy+ay*dt);
+   }
+   shot.nextStep+=PHYSICS_STEP_MS;
+  }
+  const active=shots.filter(shot=>shot.launched&&!shot.done),nextLaunch=Math.min(Infinity,...shots.filter(shot=>!shot.launched).map(shot=>shot.launchAt));
+  if(!active.length){time=nextLaunch;continue;}
+  const until=Math.min(nextLaunch,...active.map(shot=>Math.min(shot.nextStep,shot.nextSample)));let elapsed=0;const duration=until-time;
   while(elapsed<duration-1e-9){
    const remaining=(duration-elapsed)/1000;let earliest:{index:number;contact:Contact}|undefined;
    for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;const contact=projectileContact(terrain,shot.x,shot.y,shot.vx*remaining,shot.vy*remaining,weapon.projectileRadius,targets,shot.ignored);if(contact&&(!earliest||contact.fraction<earliest.contact.fraction))earliest={index,contact};}
@@ -303,16 +343,8 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
    for(const shot of shots)for(const id of shot.ignored){const target=targets.find(target=>target.id===id);if(!target||!insideTarget(shot,target,weapon.projectileRadius))shot.ignored.delete(id);}
    if(!earliest)break;finish(earliest.index,earliest.contact,time+elapsed);
   }
-  time+=duration;
-  for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done)continue;
-   const locked=guidance&&(guidance.projectileIndex??index)===index?homingTarget(shot,guidance):undefined;
-   if(locked){
-    // Magnet lock: pure pursuit that ignores wind/gravity. The turn rate grows as the
-    // distance shrinks (turn radius <= half the distance), so it always closes in.
-    const dx=locked.x-shot.x,dy=locked.y-31-shot.y,distance=Math.max(1,Math.hypot(dx,dy)),speed=Math.max(HOMING_MIN_SPEED,Math.hypot(shot.vx,shot.vy)),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=Math.max(HOMING_TURN_RATE,2*speed/distance)*duration/1000,next=heading+Math.max(-limit,Math.min(limit,delta));
-    shot.vx=Math.cos(next)*speed;shot.vy=Math.sin(next)*speed;
-   }else{shot.vx+=wind*7*duration/1000;shot.vy+=weapon.gravity*duration/1000;}
-   if(time>=shot.nextSample-1e-7){shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);shot.nextSample+=1000/60;}if(time-shot.launchAt>=7500-1e-7)finish(index,{x:shot.x,y:shot.y,fraction:1},time);}
+  time=until;
+  for(const shot of shots)if(shot.launched&&!shot.done&&time>=shot.nextSample-eps){shot.points.push([Math.round(shot.x*10)/10,Math.round(shot.y*10)/10]);shot.nextSample+=sampleMs;}
  }
  return results;
 }
@@ -332,5 +364,6 @@ export function shatter(terrain:Uint8Array,origin:{x:number;y:number},count:numb
  const fragments=weapon.fragments;if(!fragments||count<1)return [];
  const angles=Array.from({length:count},(_,index)=>count===1?80:32+index*116/(count-1));
  const launch={x:origin.x-facing*27,y:origin.y+40-fragments.radius-2,facing};
- return volley(terrain,launch,angles,fragments.speed/9.8,wind*.5,{...weapon,projectileRadius:fragments.radius,gravity:fragments.gravity},targets,onImpact,[],undefined,false);
+ // Brasa's own brick chunks (not a DDTank ball): no drag, their own gravity and half the wind.
+ return volley(terrain,launch,angles,1,wind,{...weapon,projectileRadius:fragments.radius},targets,onImpact,[],undefined,false,{launch:fragments.speed,gravity:fragments.gravity,windAccel:3.5,drag:0});
 }

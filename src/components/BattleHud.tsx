@@ -16,6 +16,8 @@ import type {CSSProperties} from 'react';
 import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
+import {petSkill} from '../../shared/petSkills';
+import {FORCE_BAR_MAX,forceBarValue} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
 import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
@@ -25,7 +27,7 @@ import './BattleHud.css';
 import './BattleHudRefinement.css';
 import './BattleConsole.css';
 type ChargeSource='keyboard'|'pointer';
-const MIN_POWER=5,MAX_POWER=100,CHARGE_MS=2600;
+const MIN_POWER=1,MAX_POWER=FORCE_BAR_MAX;
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
 // A HUD button that kept focus after a click (PASS, a boost, an ability) must not swallow walking, turning or aiming.
 const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
@@ -40,7 +42,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // With the paper plane armed the plane's wider envelope replaces the weapon's.
  const weapon=aimSource(me),aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
- const [power,setPower]=useState(MIN_POWER),[lastPower,setLastPower]=useState<number|null>(null),[lastWind,setLastWind]=useState<number|null>(null);
+ const [power,setPower]=useState(MIN_POWER),[falling,setFalling]=useState(false),[lastPower,setLastPower]=useState<number|null>(null),[lastWind,setLastWind]=useState<number|null>(null);
  const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false);
  const [submitted,setSubmitted]=useState<'shot'|'pass'|null>(null);
  const mine=b.turnId===me.id&&b.phase==='aiming';
@@ -77,7 +79,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const beginCharge=useCallback((source:ChargeSource)=>{
   if(!live.current.canAct||turnSubmitted.current||chargingRef.current)return false;
   chargeStarted.current=performance.now();chargeSource.current=source;chargingRef.current=true;
-  setPower(MIN_POWER);setCharging(true);return true;
+  setPower(MIN_POWER);setFalling(false);setCharging(true);return true;
  },[]);
  const releaseCharge=useCallback((source:ChargeSource)=>{
   if(!chargingRef.current||chargeSource.current!==source)return;
@@ -117,13 +119,13 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   let frame=0;
   const paint=(now:number)=>{
    if(!chargingRef.current||chargeStarted.current===null)return;
-   const value=Math.min(MAX_POWER,Math.round(MIN_POWER+(now-chargeStarted.current)/CHARGE_MS*(MAX_POWER-MIN_POWER)));
-   setPower(value);
-   // Cap visibly at 100. A full bar still waits for a real release to fire.
-   if(value<MAX_POWER)frame=requestAnimationFrame(paint);
+   // DDTank bar: rises to 100, falls back, and passes the turn if it is still held at zero.
+   const bar=forceBarValue(now-chargeStarted.current);
+   if(bar.power<=0){passTurn();return;}
+   setPower(bar.power);setFalling(bar.falling);frame=requestAnimationFrame(paint);
   };
   frame=requestAnimationFrame(paint);return()=>cancelAnimationFrame(frame);
- },[charging]);
+ },[charging,passTurn]);
  useEffect(()=>{
   if(!canAct)return;
   let previous='';
@@ -177,9 +179,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
  },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,setAngle]);
 
- const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
+ const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
  const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
+ // Pet skills the turn player activated this turn, shown in the same row as the turn's powers.
+ const turnPetSkills=turn?.pet?turn.pet.skills.filter(slot=>slot.usedTurn===turn.pet!.turns).map(slot=>{const def=petSkill(slot.id);return {id:slot.id,name:def?.name??slot.id,icon:def?.visual?.icon};}):[];
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
  const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
 
@@ -225,9 +229,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    })}
   </aside>
 
-  {/* Powers of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
-  {turn&&b.phase!=='finished'&&turn.boosts.length>0&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name).join(', ')}`}>
-   {turn.id!==me.id&&<span className="boost-queue-owner" aria-hidden="true">{turn.name}</span>}
+  {/* Powers (and pet skills) of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
+  {turn&&b.phase!=='finished'&&(turn.boosts.length>0||turnPetSkills.length>0)&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${[...turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name),...turnPetSkills.map(skill=>skill.name)].join(', ')}`}>
    {turn.boosts.map((id,order)=>{
     const index=BOOSTS.findIndex(item=>item.id===id),boost=BOOSTS[index],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
     return <span key={`${turn.id}-${order}`} className="queued-boost" data-boost={id} aria-hidden="true">
@@ -235,6 +238,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
      <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`}>{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
     </span>;
    })}
+   {turnPetSkills.map(skill=><span key={`${turn.id}-pet-${skill.id}`} className="queued-boost queued-pet-skill" data-pet-skill={skill.id} aria-hidden="true">
+    {skill.icon?<img src={skill.icon} alt="" draggable={false}/>:<span>{skill.name.slice(0,2)}</span>}
+   </span>)}
   </div>}
 
   <div className="battle-console" aria-label="Controles de batalha">
@@ -255,7 +261,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     </div>
     <div className="power-hint"><kbd>ESPAÇO</kbd><span>{chargeHint}</span></div>
    </div>
-   <span id="charge-instructions" className="battle-sr-only">Segure Espaço ou toque e segure a régua para carregar. Solte para disparar a força mostrada. Use as setas do teclado para andar e mirar.</span>
+   <span id="charge-instructions" className="battle-sr-only">Segure Espaço ou toque e segure a régua para carregar. Solte para disparar a força mostrada; depois de 100 ela volta a cair e, se chegar a zero, você passa a vez. Use as setas do teclado para andar e mirar.</span>
    <div className="battle-actions">
     <div className="vigor-display"><span className="hud-bar-label">Energia</span><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/><b>{me.stamina}/{me.maxStamina}</b></div></div>
     <div className="vida-display"><span className="hud-bar-label">Vida</span><div className={`vida-bar ${me.hp/me.maxHp<=.25?'critical-health':''}`} role="meter" aria-label="Vida no console" aria-valuenow={me.hp} aria-valuemin={0} aria-valuemax={me.maxHp}><i style={{width:`${Math.max(0,me.hp/me.maxHp)*100}%`}}/><b>{me.hp.toLocaleString('pt-BR')}</b></div></div>

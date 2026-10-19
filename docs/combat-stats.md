@@ -49,7 +49,7 @@ O intervalo entre disparos seguidos é `VOLLEY_CADENCE_MS` (570 ms); projéteis 
 
 ## Relógio e terreno autoritativos
 
-A simulação calcula os contatos em ordem, considerando a alteração do terreno pelos impactos anteriores. A velocidade visual/temporal usa `PROJECTILE_SPEED_SCALE = 1,18`, preservando o arco balístico. Cada projétil carrega `flightTime` explícito em milissegundos; não derivar sua duração de `points.length / 60`.
+A simulação calcula os contatos em ordem, considerando a alteração do terreno pelos impactos anteriores. O voo segue a balística do DDTank (`docs/ballistics.md`): passo físico de 0,04 s e tempo de voo real, sem fator de apresentação. Cada projétil carrega `flightTime` explícito em milissegundos; não derivar sua duração de `points.length / 60`.
 
 `Shot.startedAt + projectile.delay + projectile.flightTime` define o momento do impacto. O evento inicial `shot` não aplica dano: `hits` começa vazio. Ao chegar o momento, o servidor altera HP, cratera e posição e publica `impact {shotId, projectileIndex, at, hits}`. `Shot.impacted` evita reaplicar um contato; `Battle.activeShot` permite recuperar a apresentação na reconexão. O cliente interpola índices fracionários, sem decidir dano, crítico ou cratera.
 

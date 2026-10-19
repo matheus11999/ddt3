@@ -229,17 +229,20 @@ html.mobile-landscape .artillery-hud .battle-minimap{transform:scale(.72);transf
 .artillery-hud .boost-queue-owner{position:absolute;left:50%;bottom:100%;transform:translate(-50%,-3px);white-space:nowrap;font:400 14px var(--hud-font);color:#fff;text-shadow:var(--hud-outline)}
 .artillery-hud .boost-queue-ally .boost-queue-owner{color:#bfe6ff}
 .artillery-hud .boost-queue-enemy .boost-queue-owner{color:#ffc2b8}
-.artillery-hud .queued-boost{position:relative;display:block;width:46px;height:46px;filter:drop-shadow(0 2px 2px #000b);animation:queued-boost-in .22s cubic-bezier(.3,1.6,.5,1) both}
-.artillery-hud .queued-boost .boost-symbol-label>strong{font-size:22px;-webkit-text-stroke-width:2px}
-.artillery-hud .queued-boost .boost-shot-label>strong{font-size:19px}
-.artillery-hud .queued-boost .boost-symbol-label>strong>small{font-size:9px;-webkit-text-stroke-width:1.4px}
-.artillery-hud .queued-boost .boost-damage-label>i{top:11px;font-size:7px;-webkit-text-stroke-width:1px}
+.artillery-hud .queued-boost{position:relative;display:block;width:62px;height:62px;filter:drop-shadow(0 2px 2px #000b);animation:queued-boost-in .22s cubic-bezier(.3,1.6,.5,1) both}
+.artillery-hud .queued-boost .boost-symbol-label>strong{font-size:29px;-webkit-text-stroke-width:2.4px}
+.artillery-hud .queued-boost .boost-shot-label>strong{font-size:25px}
+.artillery-hud .queued-boost .boost-symbol-label>strong>small{font-size:12px;-webkit-text-stroke-width:1.6px}
+.artillery-hud .queued-boost .boost-damage-label>i{top:14px;font-size:9px;-webkit-text-stroke-width:1.2px}
+/* A pet skill used this turn sits in the same row, on the pet tray's gold tile. */
+.artillery-hud .queued-pet-skill{display:grid;place-items:center;border-radius:12px;border:2px solid #f2b56b;background:linear-gradient(#ffe07a,#e48d12);color:#6b2c05;font:900 18px/1 'Nunito',sans-serif;overflow:hidden}
+.artillery-hud .queued-pet-skill img{width:100%;height:100%;object-fit:contain}
 .artillery-hud .queued-boost[data-boost="trident"] .boost-shot-label>strong{color:#168eff;text-shadow:1px 2px #103f96}
 @keyframes queued-boost-in{from{transform:scale(.3);opacity:0}to{transform:scale(1);opacity:1}}
 html.mobile-landscape .artillery-hud .boost-queue{bottom:96px;gap:4px;padding:3px 5px}
-html.mobile-landscape .artillery-hud .queued-boost{width:32px;height:32px}
-html.mobile-landscape .artillery-hud .queued-boost .boost-symbol-label>strong{font-size:15px;-webkit-text-stroke-width:1.4px}
-html.mobile-landscape .artillery-hud .queued-boost .boost-damage-label>i{top:7px;font-size:5px;-webkit-text-stroke-width:.7px}
+html.mobile-landscape .artillery-hud .queued-boost{width:42px;height:42px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-symbol-label>strong{font-size:20px;-webkit-text-stroke-width:1.6px}
+html.mobile-landscape .artillery-hud .queued-boost .boost-damage-label>i{top:9px;font-size:6px;-webkit-text-stroke-width:.8px}
 .artillery-hud.fighter-fallen .boost-queue,.artillery-hud.battle-finished .boost-queue{display:none}
 @media(prefers-reduced-motion:reduce){.artillery-hud .queued-boost{animation:none}}
 /* Wind: no plate (matheus, 17/10): outlined number, an arrow that drifts a little more the stronger the wind, and the wind of my last shot. */

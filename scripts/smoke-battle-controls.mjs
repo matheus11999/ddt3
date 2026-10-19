@@ -49,7 +49,7 @@ async function assertRelease(before,mark,input,expectedPower){
  const command=fires().at(-1),visible=await page.evaluate(input=>window.__brasaChargeQA.releases.filter(release=>release.input===input).at(-1),input);
  assert.ok(visible,`missing ${input} release observation`);assert.equal(visible.power,visible.meter,'meter and displayed power must agree');
  assert.equal(command.power,visible.power,'server command must equal the last committed visible power at release');
- assert.ok(Number.isInteger(command.power)&&command.power>=5&&command.power<=100);
+ assert.ok(Number.isInteger(command.power)&&command.power>=1&&command.power<=100);
  if(expectedPower!==undefined)assert.equal(command.power,expectedPower);
  await expect(page.getByTestId('last-shot-power')).toHaveText(String(command.power));
  assert.equal(shot.shot.projectiles.length,1,'one unboosted release must create one authoritative projectile');
@@ -69,8 +69,10 @@ async function assertRelease(before,mark,input,expectedPower){
 }
 async function returnTurn(shot,mark){
  const settled=await waitEvent(events,'battle',event=>event.battle?.phase==='aiming'&&event.battle.turnId===partner.profile.id,mark,shot.duration+12000);
- assert.ok(settled.battle.terrain);const passMark=events.length;partner.send({type:'pass'});
- await waitEvent(events,'battle',event=>event.battle?.phase==='aiming'&&event.battle.turnId===profile.id,passMark);
+ assert.ok(settled.battle.terrain);
+ // PvP plays the lowest accumulated Delay (shared/turnDelay.ts): a pass may leave the partner with the turn again.
+ for(let pass=0;pass<6;pass++){const passMark=events.length;partner.send({type:'pass'});
+  const next=await waitEvent(events,'battle',event=>event.battle?.phase==='aiming'&&event.battle.turnNumber>settled.battle.turnNumber+pass,passMark);if(next.battle.turnId===profile.id)break;}
  await expect(page.getByRole('meter',{name:'Força do disparo',exact:true})).toHaveAttribute('aria-disabled','false');
 }
 
@@ -82,7 +84,7 @@ try{
  await partner.request({type:'join',roomId:room.id},'room',event=>event.room?.id===room.id);await partner.request({type:'ready'},'room',event=>event.room?.players.some(p=>p.id===partner.profile.id&&p.ready));
  mark=events.length;await send({type:'start'});await waitEvent(events,'battle',event=>event.battle?.turnId===profile.id,mark);
  const meter=page.getByRole('meter',{name:'Força do disparo',exact:true}),charge=page.getByRole('meter',{name:'Força do disparo',exact:true});
- await expect(meter).toHaveAttribute('aria-valuemin','5');await expect(meter).toHaveAttribute('aria-valuemax','100');await expect(charge).toHaveAttribute('aria-disabled','false');
+ await expect(meter).toHaveAttribute('aria-valuemin','1');await expect(meter).toHaveAttribute('aria-valuemax','100');await expect(charge).toHaveAttribute('aria-disabled','false');
  await expect(page.getByRole('slider',{name:'Força do disparo'})).toHaveCount(0);await expect(page.locator('.battle-console')).not.toContainText('ARMA EQUIPADA');
  await observeChargeReleases(page);await page.screenshot({path:`${output}/hud.png`});
 
@@ -109,10 +111,14 @@ try{
   assert.ok(commands.some(command=>command.type==='face'&&command.direction===side));await blurControl();checks.push('turning in place works while a shot resolves, with a HUD button focused');}
  await page.screenshot({path:`${output}/keyboard-shot.png`});await returnTurn(keyboardShot,mark);
 
- before=fires().length;mark=events.length;await blurControl();await page.keyboard.down('Space');await waitForCharge(page,100);await animationFrames(page,8);await expect(meter).toHaveAttribute('aria-valuenow','100');assert.equal(fires().length,before,'a full charge must wait for release instead of auto-firing');await page.screenshot({path:`${output}/maximum-charge.png`});await page.keyboard.up('Space');
- const maximumShot=await assertRelease(before,mark,'keyboard',100);checks.push('holding at the cap stays at 100 and sends 100 once');await returnTurn(maximumShot,mark);
+ before=fires().length;mark=events.length;await blurControl();await page.keyboard.down('Space');await waitForCharge(page,95);await page.screenshot({path:`${output}/maximum-charge.png`});
+ // DDTank bar: after 100 it falls back on its own; a held bar never fires by itself.
+ await page.waitForFunction(()=>Number(document.querySelector('[role="meter"][aria-label="Força do disparo"]')?.getAttribute('aria-valuenow'))<=90,undefined,{polling:'raf'});assert.equal(fires().length,before,'a full charge must wait for release instead of auto-firing');await page.screenshot({path:`${output}/falling-charge.png`});await page.keyboard.up('Space');
+ const fallingShot=await assertRelease(before,mark,'keyboard');assert.ok(fires().at(-1).power<=90,"the falling value is the one sent");checks.push('after 100 the bar falls back and releasing sends the falling value once');await returnTurn(fallingShot,mark);
 
  before=fires().length;mark=events.length;await touch('touchStart');await waitForCharge(page,35);assert.equal(fires().length,before,'holding a touch must not fire before release');await touch('touchEnd');const touchShot=await assertRelease(before,mark,'touch');checks.push('real touch hold/release matches keyboard power semantics');await returnTurn(touchShot,mark);
+ before=fires().length;const passes=commands.filter(command=>command.type==='pass').length;await blurControl();await page.keyboard.down('Space');await waitForCharge(page,95);
+ await expect.poll(()=>commands.filter(command=>command.type==='pass').length,{timeout:9000,message:'a bar held down to zero passes the turn'}).toBe(passes+1);await page.keyboard.up('Space');await animationFrames(page,4);assert.equal(fires().length,before,'a bar that fell to zero never fires');checks.push('holding until the bar falls to zero passes the turn without firing');
  await cdp.detach();
  await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await page.getByRole('button',{name:'Sair',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();await partner.request({type:'leave'},'room',event=>event.room===null);
  await animationFrames(page);await expect(page.locator('.bottom-dock')).toBeVisible();

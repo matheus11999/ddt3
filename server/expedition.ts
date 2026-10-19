@@ -11,7 +11,7 @@ import type {BattleInstance,Fighter,Seat} from '../shared/protocol';
 import type {CardPrize} from '../shared/rewards';
 
 /** The queen's arrow flies like a light, fast projectile; it hurts but does not dig. */
-export const ARROW:Weapon={id:'brick',name:'Flecha da Rainha',slot:'weapon',rarity:'common',color:'#ffb347',description:'',attack:0,defense:0,agility:0,luck:0,damage:0,crater:0,blast:70,gravity:300,projectileRadius:6,effect:'brick',minAngle:-40,maxAngle:80} as Weapon;
+export const ARROW:Weapon={id:'brick',name:'Flecha da Rainha',slot:'weapon',rarity:'common',color:'#ffb347',description:'',attack:0,defense:0,agility:0,luck:0,damage:0,crater:0,blast:70,projectileRadius:6,effect:'brick',minAngle:-40,maxAngle:80} as Weapon;
 
 export function monsterFighter(kind:MonsterKind,x:number,y:number,level:number,players:number,slot:number,facing:1|-1):Fighter{
  const def=MONSTERS[kind],hp=Math.round(def.hp*partyHpScale(players));
