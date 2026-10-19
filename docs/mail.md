@@ -4,7 +4,7 @@ Caixa de entrada no estilo e-mail, aberta pelo botão Correio da praça e da sal
 
 ## Regras
 
-- **Anexos**: Moedas Brasa, item do catálogo (até 10 cópias; arma pode vir com nível de forja), Pedras de Fortificação I–V, pedras de composição e Tickets de Cor (`shared/mail.ts`, validado com zod no servidor).
+- **Anexos**: Moedas Brasa, item do catálogo (até 10 cópias; arma pode vir com nível de forja), Pedras de Fortificação I–V, pedras de composição, Tickets de Cor e comida de pet (aba "Comida de pet" do painel, lista vinda de `PET_FOODS`; `shared/mail.ts`, validado com zod no servidor).
 - **Receber** pega os anexos de uma carta; **Receber tudo**, de todas. O servidor trava as cartas e o jogador na mesma transação do Postgres (`server/mail.ts`), então dois cliques ou duas abas nunca recebem duas vezes. Cada item chega como cópia separada, como na compra repetida (`id~2`, ver `docs/shop.md`); Tickets de Cor respeitam o limite da mochila.
 - **Apagar** só some com a carta quando não há anexo pendente; a carta continua no histórico do painel (marcada como apagada pelo jogador).
 - Item que não serve no gênero do personagem é recusado no envio (o catálogo do painel já mostra bloqueado).

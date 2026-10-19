@@ -10,6 +10,8 @@ import {PLAYER_SORTS,PRESENCE_NAMES} from '../../shared/adminPlayers';
 import type {AdminPlayerDetail,AdminPlayerRow,PlayerSort} from '../../shared/adminPlayers';
 import {attachmentLabel,MAIL_AMOUNT_MAX,MAIL_ATTACHMENTS_MAX,MAIL_BODY_MAX,MAIL_COINS_MAX,MAIL_DEFAULT_SENDER,MAIL_ITEM_COPIES_MAX,MAIL_SUBJECT_MAX} from '../../shared/mail';
 import type {MailAttachment} from '../../shared/mail';
+import {PET_FOODS} from '../../shared/pets';
+import {PetFoodIcon} from '../components/PetFoodIcon';
 import {ItemIcon} from '../components/ItemIcon';
 import {RewardIcon} from '../components/RewardIcon';
 import {CompositionIcon} from '../components/CompositionIcon';
@@ -102,7 +104,7 @@ const ITEM_GROUPS:{id:string;label:string;slots?:Slot[]}[]=[
  {id:'weapon',label:'Armas',slots:['weapon']},{id:'outfit',label:'Roupas',slots:['outfit']},{id:'hat',label:'Chapéus',slots:['hat']},{id:'hair',label:'Cabelos',slots:['hair']},
  {id:'face',label:'Rostos',slots:['face']},{id:'glasses',label:'Óculos',slots:['glasses']},{id:'costume',label:'Fantasias',slots:['costume']},
  {id:'accessory',label:'Acessórios',slots:['wristband','bracelet','ring','necklace','bubble']},
- {id:'stone',label:'Pedras de forja'},{id:'composition',label:'Pedras de composição'},{id:'ticket',label:'Ticket de Cor'},{id:'coins',label:'Moedas'},{id:'coupons',label:'Cupons'},
+ {id:'stone',label:'Pedras de forja'},{id:'composition',label:'Pedras de composição'},{id:'ticket',label:'Ticket de Cor'},{id:'pet-food',label:'Comida de pet'},{id:'coins',label:'Moedas'},{id:'coupons',label:'Cupons'},
 ];
 function catalog(gender:CharacterGender):Record<string,CatalogEntry[]>{
  const groups:Record<string,CatalogEntry[]>={};
@@ -111,18 +113,20 @@ function catalog(gender:CharacterGender):Record<string,CatalogEntry[]>{
   blocked:canEquipItem(item,gender)?undefined:`Só para personagem ${item.gender==='male'?'masculino':'feminino'}`}));
  groups.stone=STONES.map(s=>({key:`stone-${s.level}`,name:s.name,icon:<RewardIcon kind="stone" level={s.level} size={50}/>,attachment:()=>({kind:'stone',level:s.level,amount:10})}));
  groups.composition=COMPOSITION_STONES.map(s=>({key:`composition-${s.id}`,name:s.name,icon:<CompositionIcon stat={s.stat} size={50}/>,note:`+${s.value}`,attachment:()=>({kind:'composition',stone:s.id,amount:5})}));
+ groups['pet-food']=[...PET_FOODS.values()].map(f=>({key:`pet-food-${f.id}`,name:f.name,icon:<PetFoodIcon food={f.id} size={50}/>,attachment:()=>({kind:'pet-food',food:f.id,amount:10})}));
  groups.ticket=[{key:'ticket',name:'Ticket de Cor',icon:<RewardIcon kind="ticket" size={50}/>,attachment:()=>({kind:'ticket',amount:3})}];
  groups.coins=[{key:'coins',name:'Moedas Brasa',icon:<RewardIcon size={46}/>,attachment:()=>({kind:'coins',amount:1000})}];
  groups.coupons=[{key:'coupons',name:'Cupons',icon:<RewardIcon kind="coupons" size={46}/>,attachment:()=>({kind:'coupons',amount:100})}];
  return groups;
 }
-const sameAttachment=(a:MailAttachment,b:MailAttachment)=>a.kind===b.kind&&(a.kind!=='item'||b.kind==='item'&&a.item===b.item&&a.upgrade===b.upgrade)&&(a.kind!=='stone'||b.kind==='stone'&&a.level===b.level)&&(a.kind!=='composition'||b.kind==='composition'&&a.stone===b.stone);
+const sameAttachment=(a:MailAttachment,b:MailAttachment)=>a.kind===b.kind&&(a.kind!=='item'||b.kind==='item'&&a.item===b.item&&a.upgrade===b.upgrade)&&(a.kind!=='stone'||b.kind==='stone'&&a.level===b.level)&&(a.kind!=='composition'||b.kind==='composition'&&a.stone===b.stone)&&(a.kind!=='pet-food'||b.kind==='pet-food'&&a.food===b.food);
 const countOf=(a:MailAttachment)=>a.kind==='item'?a.quantity:a.amount;
 const maxOf=(a:MailAttachment)=>a.kind==='item'?MAIL_ITEM_COPIES_MAX:a.kind==='coins'||a.kind==='coupons'?MAIL_COINS_MAX:MAIL_AMOUNT_MAX;
 const withCount=(a:MailAttachment,n:number):MailAttachment=>{const value=Math.max(1,Math.min(maxOf(a),Math.floor(n)||1));return a.kind==='item'?{...a,quantity:value}:{...a,amount:value};};
-const attachmentName=(a:MailAttachment)=>a.kind==='item'?CATALOG[a.item]?.name??a.item:a.kind==='coins'?'Moedas Brasa':a.kind==='coupons'?'Cupons':a.kind==='stone'?STONES[a.level-1]?.name??'Pedra':a.kind==='ticket'?'Ticket de Cor':COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??a.stone;
+const attachmentName=(a:MailAttachment)=>a.kind==='item'?CATALOG[a.item]?.name??a.item:a.kind==='coins'?'Moedas Brasa':a.kind==='coupons'?'Cupons':a.kind==='stone'?STONES[a.level-1]?.name??'Pedra':a.kind==='ticket'?'Ticket de Cor':a.kind==='pet-food'?PET_FOODS.get(a.food)?.name??a.food:COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??a.stone;
 function AttachmentIcon({a,size=36}:{a:MailAttachment;size?:number}){
  if(a.kind==='item')return <ItemIcon id={a.item} size={size} upgrade={a.upgrade??0}/>;
+ if(a.kind==='pet-food')return <PetFoodIcon food={a.food} size={size}/>;
  if(a.kind==='composition'){const stone=COMPOSITION_STONES.find(s=>s.id===a.stone);return stone?<CompositionIcon stat={stone.stat} size={size}/>:null;}
  return <RewardIcon kind={a.kind==='coins'?'coins':a.kind} level={a.kind==='stone'?a.level:1} size={size}/>;
 }

@@ -3,6 +3,7 @@ import {Gift,Inbox,LoaderCircle,Mail,MailOpen,PackageCheck,Paperclip,Trash2} fro
 import {CATALOG,STONES} from '../../shared/catalog';
 import {COMPOSITION_STONES} from '../../shared/composition';
 import type {MailAttachment,MailMessage} from '../../shared/mail';
+import {PET_FOODS} from '../../shared/pets';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {CompositionIcon} from './CompositionIcon';
@@ -10,6 +11,7 @@ import {ItemCardFrame} from './ItemCard';
 import type {ItemRarity} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {Modal} from './Modal';
+import {PetFoodIcon} from './PetFoodIcon';
 import {RewardIcon} from './RewardIcon';
 import {UpgradeTag} from './UpgradeTag';
 import './Backpack.css';
@@ -25,6 +27,7 @@ function attachmentName(a:MailAttachment){
  if(a.kind==='coupons')return 'Cupons';
  if(a.kind==='stone')return STONES[a.level-1]?.name??'Pedra de Fortificação';
  if(a.kind==='ticket')return 'Ticket de Cor';
+ if(a.kind==='pet-food')return PET_FOODS.get(a.food)?.name??'Comida de pet';
  return COMPOSITION_STONES.find(s=>s.id===a.stone)?.name??'Pedra de composição';
 }
 const attachmentCount=(a:MailAttachment)=>a.kind==='item'?a.quantity:a.amount;
@@ -32,7 +35,7 @@ const attachmentCount=(a:MailAttachment)=>a.kind==='item'?a.quantity:a.amount;
 /** One attachment as a bag cell: painted art, forge level and the amount in the corner. */
 function AttachmentCell({a,claimed}:{a:MailAttachment;claimed?:boolean}){
  const count=attachmentCount(a),name=attachmentName(a);
- const art=a.kind==='item'?<ItemIcon id={a.item} size={58} upgrade={a.upgrade??0}/>:a.kind==='composition'?<CompositionIcon stat={COMPOSITION_STONES.find(s=>s.id===a.stone)?.stat??'attack'} size={52}/>:<RewardIcon kind={a.kind==='coins'?'coins':a.kind} level={a.kind==='stone'?a.level:1} size={52}/>;
+ const art=a.kind==='item'?<ItemIcon id={a.item} size={58} upgrade={a.upgrade??0}/>:a.kind==='pet-food'?<PetFoodIcon food={a.food} size={52}/>:a.kind==='composition'?<CompositionIcon stat={COMPOSITION_STONES.find(s=>s.id===a.stone)?.stat??'attack'} size={52}/>:<RewardIcon kind={a.kind==='coins'?'coins':a.kind} level={a.kind==='stone'?a.level:1} size={52}/>;
  const rarity=(a.kind==='item'?CATALOG[a.item]?.rarity:'common') as ItemRarity|undefined;
  return <div className={`mail-attachment ${claimed?'claimed':''}`} title={`${name}${count>1?` ×${count.toLocaleString('pt-BR')}`:''}`}>
   <ItemCardFrame rarity={rarity??'common'} variant="slot" className="mail-attachment-card">{art}{a.kind==="item"&&!!a.upgrade&&<UpgradeTag level={a.upgrade} size={34} className="bag-upgrade-tag"/>}{count>1&&<b className="mail-attachment-count">{count.toLocaleString('pt-BR')}</b>}{claimed&&<span className="mail-attachment-done"><PackageCheck size={18}/></span>}</ItemCardFrame>

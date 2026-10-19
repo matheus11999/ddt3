@@ -1,6 +1,7 @@
 import {z} from 'zod';
 import {CATALOG,isEmptyItem,MAX_UPGRADE,STONES,WEAPONS} from './catalog';
 import {COMPOSITION_STONE_BY_ID} from './composition';
+import {PET_FOODS} from './pets';
 import type {CompositionBonus} from './composition';
 
 /**
@@ -14,7 +15,9 @@ export type MailAttachment=
  | {kind:'item';item:string;quantity:number;/** Forge level of a weapon, hat or outfit (each copy). */upgrade?:number;/** A copy coming back from the Leilão keeps its compositions and ticket color. */compositions?:CompositionBonus;color?:string}
  | {kind:'stone';level:number;amount:number}
  | {kind:'composition';stone:string;amount:number}
- | {kind:'ticket';amount:number};
+ | {kind:'ticket';amount:number}
+ /** Pet food (shared/pets.ts PET_FOODS), stacked like stones. */
+ | {kind:'pet-food';food:string;amount:number};
 export interface MailMessage {id:number;sender:string;subject:string;body:string;createdAt:string;read:boolean;/** Attachments already received (a message without attachments is never "claimed"). */claimed:boolean;attachments:MailAttachment[];}
 export interface MailClaimResult {claimed:number[];attachments:MailAttachment[];}
 
@@ -32,6 +35,7 @@ export const mailAttachmentSchema=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('stone'),level:z.number().int().min(1).max(STONES.length),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
  z.object({kind:z.literal('composition'),stone:z.string().refine(id=>Object.hasOwn(COMPOSITION_STONE_BY_ID,id),'Pedra de composição inválida.'),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
  z.object({kind:z.literal('ticket'),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
+ z.object({kind:z.literal('pet-food'),food:z.string().min(1).max(40).refine(id=>PET_FOODS.has(id),'Comida de pet não existe no jogo.'),amount:amount(MAIL_AMOUNT_MAX)}).strict(),
 ]);
 /** What the admin panel posts to send one message to one player. */
 export const mailSendSchema=z.object({
@@ -52,5 +56,6 @@ export function attachmentLabel(a:MailAttachment):string{
   case 'stone':return `${a.amount}× Pedra de Fortificação ${ROMAN[a.level-1]??a.level}`;
   case 'composition':return `${a.amount}× ${COMPOSITION_STONE_BY_ID[a.stone]?.name??a.stone}`;
   case 'ticket':return `${a.amount}× Ticket de Cor`;
+  case 'pet-food':return `${a.amount}× ${PET_FOODS.get(a.food)?.name??a.food}`;
  }
 }
