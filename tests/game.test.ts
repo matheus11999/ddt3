@@ -8,7 +8,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 import {withShrapnel} from './fixtures/weapons';
-import {DIRECT_HIT_DIG,DIRECT_HIT_HALF_WIDTH} from '../shared/physics';
+import {FIGHTER_HIT_RADIUS} from '../shared/physics';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -220,22 +220,23 @@ test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of
  assert.ok(!players.includes(f.a.id));assert.ok(!winners.includes(f.a.id));assert.equal(bonuses[f.a.id],undefined);assert.ok(players.includes(f.b.id));
 });
 
-test('a direct hit still digs a little under the target, less than a shot on the ground',async()=>{
- let direct:Extract<ServerEvent,{type:'shot'}>['shot']['projectiles'][number]|undefined,crater=0;
- for(let power=20;power<=100&&!direct;power+=2){
+/** The projectile stopped on a fighter's body (its impact sits on the body circle, 31 px above the feet). */
+const onBody=(impact:{x:number;y:number},target:{x:number;y:number})=>Math.hypot(impact.x-target.x,impact.y-(target.y-31))<=FIGHTER_HIT_RADIUS+1;
+test('a direct hit digs only where the projectile struck, as in DDTank: no extra hole under the feet',async()=>{
+ let found=false;
+ for(let power=20;power<=100&&!found;power+=2){
   const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
-  shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};crater=(CATALOG.brick as unknown as {crater:number}).crater;
+  shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};
   f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;
   await f.game.command(shooter.id,{type:'fire',angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')?.shot;
-  // Hits are revealed at impact; the planned hole already says whether the brick struck the target.
-  direct=shot?.projectiles.find(p=>p.impact.dig);
+  const direct=shot?.projectiles.find(p=>onBody(p.impact,target));if(!direct)continue;found=true;
+  assert.equal((direct.impact as {dig?:unknown}).dig,undefined,'no hole planned under the target');
+  assert.equal(direct.impact.shape,'brick');
+  const mark=f.match.pendingImpacts!.find(p=>p.projectileIndex===shot!.projectiles.indexOf(direct))!.mark;
+  assert.equal(mark.x,direct.impact.x);assert.equal(mark.y,direct.impact.y,'the hole is centred on the impact point');
  }
- assert.ok(direct,'some power lands a direct hit');
- const dig=direct.impact.dig!;
- assert.ok(dig.radius>0&&dig.radius<direct.impact.radius,'digs less than a ground shot');
- assert.ok(Math.abs(dig.radius-crater*DIRECT_HIT_DIG)<1e-6);assert.ok(dig.y>direct.impact.y,'the hole is under the target, not in the air');
- assert.ok(dig.radius*(dig.stretch??1)>=DIRECT_HIT_HALF_WIDTH-1e-6,'the hole reaches past the body so it shows');
+ assert.ok(found,'some power lands a direct hit');
 });
 
 test('turning in place is free, works on the opponent turn and never moves anyone or changes the active aim',async()=>{
@@ -277,8 +278,8 @@ test('a kill on the first projectile of a +2 lets the rest fly through the body,
   shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;target.hp=1;
   await f.game.command(shooter.id,{type:'boost',boost:'extra2'});await f.game.command(shooter.id,{type:'fire',angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
-  if(!shot.projectiles[0].impact.dig||shot.projectiles.length<3)continue;
-  assert.ok(shot.projectiles.slice(1).every(p=>!p.impact.dig),'the projectiles after the kill do not stop on the body');
+  if(!onBody(shot.projectiles[0].impact,target)||shot.projectiles.length<3)continue;
+  assert.ok(shot.projectiles.slice(1).every(p=>!onBody(p.impact,target)),'the projectiles after the kill do not stop on the body');
   const pending=[...f.match.pendingImpacts!];
   for(const impact of pending){f.game.tick(impact.at);assert.equal(f.match.state.phase,'resolving','the match waits for the remaining projectiles');}
   assert.equal(target.hp,0);
