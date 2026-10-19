@@ -13,7 +13,7 @@ import type {ProfileStore} from '../server/store';
 test('starter totals and impact damage follow the published balance without counting upgrades twice',()=>{
  // Painted starter cap: 8 DEF / 8 AGI / 5 armor. Retired pilot cap is no longer equipped.
  // Starter outfit is the Cartógrafo da Aurora (10 ATK / 22 DEF / 14 AGI / 20 armor), the game's single outfit.
- assert.deepEqual(attributes(DEFAULT_EQUIPMENT),{attack:240,defense:115,agility:142,luck:105,damage:230,armor:45,hp:1011,stamina:244,delay:1498,power:3431});
+ assert.deepEqual(attributes(DEFAULT_EQUIPMENT),{attack:240,defense:115,agility:142,luck:105,damage:230,armor:45,hp:1011,stamina:244,delay:1498,power:4381});
  assert.equal(damageAtImpact(DEFAULT_EQUIPMENT,DEFAULT_EQUIPMENT),260);
  // +12: Dano × 1.1^12 and Ataque 150 → 180 (+10) → 234 (+12), from the original values only.
  const upgraded=attributes({...DEFAULT_EQUIPMENT,upgrade:12});assert.equal(upgraded.attack,324);assert.equal(upgraded.damage,722);

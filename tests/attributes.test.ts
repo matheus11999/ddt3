@@ -163,8 +163,8 @@ test('the server orders turns by Delay: a slow shot lets a quick passer play twi
  const before=fb.delay;game.tick(s.deadline+1);assert.equal(s.turnId,a.id);assert.equal(fa.delay,base);assert.equal(fb.delay,before-(base+400-(base+100)));
 });
 
-test('Vida counts in Poder like DDTank 3.0 (Vida × 0.95 − 950, never negative)',()=>{
- assert.deepEqual([hpPower(0),hpPower(1000),hpPower(1011),hpPower(3000)],[0,0,10,1900]);
+test('Vida counts in Poder like DDTank 4.1 (Vida × 0.95)',()=>{
+ assert.deepEqual([hpPower(0),hpPower(1000),hpPower(1011),hpPower(3000)],[0,950,960,2850]);
  const low=attributes(DEFAULT_EQUIPMENT,1),high=attributes(DEFAULT_EQUIPMENT,40);
  assert.equal(high.power-low.power,hpPower(high.hp)-hpPower(low.hp));assert.ok(high.power>low.power);
 });

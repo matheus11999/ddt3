@@ -13,7 +13,7 @@ Vigor = 240 + piso(Agilidade/30)
 Delay base = 1600 − piso(1200×Agilidade/(Agilidade+1200)) + piso(Ataque/10)
 ```
 
-Poder = arredondar(Ataque×6 + Defesa×4 + Agilidade×3 + Sorte×3 + Dano×3 + Armadura×2) + max(0, truncar(Vida × 0,95 − 950)). A parte da Vida é a do DDTank 3.0 (`UpdateFightPower`: sangue × 0,95 − 950); a soma dos outros atributos é a do Brasa.
+Poder = arredondar(Ataque×6 + Defesa×4 + Agilidade×3 + Sorte×3 + Dano×3 + Armadura×2) + truncar(Vida × 0,95). A parte da Vida é a do DDTank 4.1 (`GamePlayer.UpdateFightPower`: hp × 0,95); a soma dos outros atributos é a do Brasa.
 
 As divisões inteiras repetem o código C# (`int`). A Vida é calculada no início de cada partida com o nível do jogador; a cura nunca passa do máximo (`clampHp`).
 

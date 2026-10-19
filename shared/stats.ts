@@ -38,8 +38,8 @@ export function maxHpFor(level:number,defense:number,multiplier=1){
 }
 /** A new maximum keeps the current Vida (never above the maximum, never below zero). */
 export function clampHp(hp:number,maxHp:number){return Math.max(0,Math.min(Math.max(0,finite(maxHp)),finite(hp)));}
-/** Vida's share of Poder (DDTank 3.0 `UpdateFightPower`: blood × 0.95 − 950, truncated), never negative. */
-export function hpPower(hp:number){return Math.max(0,Math.trunc(positive(hp)*.95-950));}
+/** Vida's share of Poder (DDTank 4.1 `GamePlayer.UpdateFightPower`: hp × 0.95, truncated). */
+export function hpPower(hp:number){return Math.trunc(positive(hp)*.95);}
 export function maxStaminaFor(agility:number){return 240+Math.floor(positive(agility)/30);}
 
 // ── Delay ──
