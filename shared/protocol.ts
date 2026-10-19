@@ -67,7 +67,7 @@ export interface ShotHit {id:string;damage:number;x:number;y:number;projectileIn
 export interface Shot {powered?:boolean;id:string;shooterId:string;projectiles:Projectile[];hits:ShotHit[];duration:number;startedAt:number;impacted:number[];hidden?:boolean;}
 /** Mundo (the square's channel), Sala (room or match), Guilda (online members) and Privado (one player). */
 export type ChatChannel='world'|'room'|'guild'|'private';
-export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:ChatChannel;time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;}
+export interface ChatLine {id:string;/** Who wrote it (right click on the name opens the player menu). */playerId?:string;name:string;text:string;channel:ChatChannel;time:number;/** Private message: who it was sent to. */toId?:string;toName?:string;/** The writer's equipped Bolha: the look of the speech balloon over them. */bubble?:string;}
 import {LOBBY_WALK} from './lobby';
 const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLowerCase());
 export const MAX_SHOP_QUANTITY=20;

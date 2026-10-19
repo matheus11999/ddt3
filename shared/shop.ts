@@ -16,7 +16,7 @@ export const SHOP_OFFERS:readonly ShopOffer[]=[
  {id:'glasses-sport',price:140},{id:'glasses-cat',price:140},
  {id:'glasses-navigator',price:140},{id:'glasses-captain',price:140},{id:'glasses-idol',price:140},{id:'glasses-surf',price:140},{id:'glasses-hiphop',price:140},
  {id:'wristband-braid',price:120},{id:'bracelet-sun',price:240},
- {id:'ring-ember',price:200},{id:'ring-tide',price:160},{id:'necklace-star',price:320},{id:'bubble-cloud',price:150},
+ {id:'ring-ember',price:200},{id:'ring-tide',price:160},{id:'necklace-star',price:320},{id:'bubble-cloud',price:150},{id:'bubble-ember',price:220},{id:'bubble-royal',price:320},
  {id:'costume-thunder-chick',price:480},{id:'costume-arcane-fox',price:480}
 ].map(offer=>({...offer,gender:itemGender(offer.id)}));
 /** Stackable goods bought by quantity; they never become equipment copies. */

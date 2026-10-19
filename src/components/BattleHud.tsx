@@ -1,3 +1,4 @@
+import {BattleChat} from './BattleChat';
 import {PowerCutIn} from './PowerCutIn';
 import {powBoostConflict} from '../../shared/weaponKit';
 import {BattleText} from './BattleText';
@@ -263,6 +264,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   </div>
 
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{worldBoss?'O dano que você já causou continua no ranking.':b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
+  <BattleChat/>
   <PowerCutIn battle={b} offset={offset}/>
   {b.phase==='finished'&&!worldBoss&&<BattleRewards battle={b} me={me}/>}
  </div>;

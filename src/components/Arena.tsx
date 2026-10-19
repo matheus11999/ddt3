@@ -7,6 +7,7 @@ import {audio} from '../game/audio';
 import {client,useGame} from '../client';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
+import {SeatSpeech} from './SeatSpeech';
 import {playerMenuProps} from './PlayerActions';
 import {AbilityPreparation} from './AbilitySlots';
 import {LevelBadge} from './LevelBadge';
@@ -38,6 +39,7 @@ export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|und
     </div>
     <div className="pr-card-insignia"><LevelNumber level={seat.level} size={44}/><VipBadge level={seat.vipLevel??0} size={54}/></div>
     {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
+    <SeatSpeech playerId={seat.id}/>
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>
    {/* Ready: a diagonal sash over the lower-left corner (matheus, 18/10). The leader has the crown instead. */}
