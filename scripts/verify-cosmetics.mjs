@@ -171,7 +171,7 @@ try{
    const y=30+lobbyRow++*lh,walk=walks.find(item=>item.id===outfit);ls.fillStyle='#fff';ls.font='12px sans-serif';ls.fillText(`${CATALOG[outfit].name} ${facing>0?'→':'←'}`,6,y+lh/2);
    ls.fillStyle=walk.issues.length?'#ffb3ba':'#b8ffd6';ls.fillText(walk.issues.length?`${walk.issues.length} problema(s)`:'ok',6,y+lh/2+16);
    [-1,0,1,2,3,4,5].forEach((frame,i)=>{const x=150+i*lw,m=V.createAvatarMotion(facing);m.walk=frame<0?0:1;m.phase=frame<0?0:(frame+.5)*walkContract.frameUnits*Math.PI*2/44;m.lastTime=1000;
-    ls.fillStyle='#5b4228';ls.fillRect(x+4,y+lh-30,lw-8,26);V.drawAvatar(ls,eqOf({outfit,...look}),x+lw/2,y+lh-30,200,1016,frame>=0,facing,false,m,{movementDistance:0,animated:true});});
+    ls.fillStyle='#5b4228';ls.fillRect(x+4,y+lh-30,lw-8,26);V.drawAvatar(ls,eqOf({outfit,...look}),x+lw/2,y+lh-30,200,1016,frame>=0,facing,false,m,{movementDistance:0,animated:true,world:true});});
   }
 
   // Color tickets: every hair, hat, glasses and outfit has a recolor zone of sensible size.

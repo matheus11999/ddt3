@@ -12,7 +12,7 @@ import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
-export interface AvatarContext {pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
+export interface AvatarContext {/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
 export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;chargedAt:number;}
 export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0,chargedAt:-1e9};}
 const sigils=new Map<number,HTMLCanvasElement>();
@@ -319,8 +319,9 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   }
   c.save();c.translate(-24*lie,(sheetWalk?0:rootY)+14*lie);c.translate(0,-32);c.rotate(m.lean+lie*Math.PI/2);c.translate(0,32);
   // While the walk atlas loads, the standing painting stands in for it.
-  // Standing, outfits with a painted idle sheet use it (same Codex pass and size as the walk), never the larger painting.
-  const idleShift=!sheetWalk&&hasIdleFrames(eq.outfit)&&lie<.5?drawIdleBody(c,eq):null;
+  // In the plaza, standing outfits with a painted idle sheet use it (same Codex pass and size as the walk), so nothing
+  // changes when walking starts; previews keep the posed standing painting (matheus, 19/10).
+  const idleShift=context.world&&!sheetWalk&&hasIdleFrames(eq.outfit)&&lie<.5?drawIdleBody(c,eq):null;
   const headShift=sheetWalk?drawWalkBody(c,eq,distance):idleShift;
   if(!idleShift&&(walkBlend<.999||sheetWalk&&!headShift)){c.save();if(!sheetWalk)c.globalAlpha*=1-walkBlend;drawPart(c,rig.stanceBody);c.restore();}
   if(rig.walking&&walkBlend>.001&&!sheetWalk){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}

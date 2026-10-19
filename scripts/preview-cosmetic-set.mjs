@@ -40,7 +40,9 @@ try{
   [full,{...full,hat:'hat-none'}].forEach((eq,row)=>{const y=520+row*280;
    floor(20,y,1360);
    [-1,0,1,2,3,4,5].forEach((frame,i)=>{const m=V.createAvatarMotion(1);m.walk=frame<0?0:1;m.phase=frame<0?0:(frame+.5)*walkContract.frameUnits*Math.PI*2/44;m.lastTime=1000;
-    V.drawAvatar(c,eq,90+i*190,y,frame<0?250:230,1016,frame>=0,1,false,m,{movementDistance:0,animated:true});});});
+    V.drawAvatar(c,eq,90+i*190,y,frame<0?250:230,1016,frame>=0,1,false,m,{movementDistance:0,animated:true,world:true});});});
+  // Previews (bag, rooms, shop): the posed painting.
+  title('PRÉVIA (MOCHILA, SALA, LOJA)',1060,34);V.drawAvatar(c,full,1180,230,170,1000,false,1,false);V.drawAvatar(c,{...full,hat:'hat-none'},1310,230,170,1000,false,1,false);
   // Battle.
   title('BATALHA',20,850);floor(20,1080,1360);
   [['idle',0],['walk',0],['charge',0],['fire',30],['fire',120],['hit',40]].forEach(([pose,t],i)=>{const m=V.createAvatarMotion(1);
