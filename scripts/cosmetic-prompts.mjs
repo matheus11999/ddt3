@@ -67,7 +67,8 @@ function pieces(){
    readFileSync(`docs/combat-art-prompts/${prompt}.txt`,'utf8').replace(/\r/g,'').replace(/^IMAGE 4.*\n/m,'')
     .replace('(coat with its tails, shirt, belt, map scroll, trousers, boots)',`(${o.walkParts})`).replace(/the coat tails swinging naturally with the step/g,'loose cloth swinging naturally with the step'),
    `SAME OUTFIT IN EVERY FRAME: IMAGE 2 is the source of truth. Copy every one of its details exactly, at the same place on the body, so nothing changes when the character starts walking: ${o.details??o.walkParts}. Do not add, drop, move or redesign any print, trim, pocket, strap or accessory; only the pose changes.`,
-   `The LAST attached image is the same kind of sheet already approved for another outfit: match its painting style and finish (not its clothes).`,STYLE_LOCK]});
+   // The Exploradora's lying frames came out wearing the Capitão's red coat copied from this reference (19/10).
+   `The LAST attached image is the same kind of sheet already approved for ANOTHER outfit: match only its painting style and finish. NEVER copy its clothes, colors, coat, trousers or boots: every piece of clothing in every frame comes from IMAGE 2.`,STYLE_LOCK]});
   list.push(sheet('walk','docs/templates/walk.png','walk',APPROVED.walk));
   list.push(sheet('ground','docs/templates/combat-ground.png','ground',['output/pdf/ddtank-rig-imagens/04-caminhada.png',...APPROVED.combat]));
   list.push(sheet('throw','docs/templates/combat-throw.png','throw',['output/pdf/ddtank-rig-imagens/06-arremesso.png',...APPROVED.combat]));
