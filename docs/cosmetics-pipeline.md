@@ -21,7 +21,7 @@ Aprovado pelo matheus em 19/10/2026 ("agora ficou do jeito que eu quero"). Vale 
 | Pintura em pé **com pose** (`<id>-atlas.png`) | Prévias: mochila, sala PvP, sala de expedição, loja, ícone | `stand` do gerador; pose com personalidade (mão na cintura, sinal de paz, etc.), **nunca os dois braços retos para baixo** |
 | Folha de andar, 6 quadros (`walk/`) | Lobby andando | `walk` do gerador → `build-walk-atlas.py` |
 | Folha parada reta (`idle/`) | Lobby parado | `docs/combat-art-prompts/idle.txt` a partir da própria folha de andar → `build-walk-atlas.py --idle`; mesmo tamanho e detalhes do andar, então nada muda ao começar a andar |
-| Pranchas de combate (`ground`, `throw`) | Batalha: deitado, rastejar, ajoelhado para arremessar | `build-combat-atlas.py`; nunca de pé na batalha, arma nas costas |
+| Pranchas de combate (`ground`, `throw`) | Batalha: deitado, rastejar, ajoelhado para arremessar | `build-combat-atlas.py` e depois `python scripts/soften-crawl-kick.py outfit-<id>` (chute do rastejar mais baixo); nunca de pé na batalha, arma nas costas |
 
 **Mesma roupa em todas as pinturas:** o andar, a pose parada e o combate copiam os `details` da pintura em pé. Se a cor mudar, `python scripts/match-outfit-color.py <roupa> <matiz>`.
 

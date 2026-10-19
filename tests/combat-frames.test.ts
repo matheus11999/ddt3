@@ -21,15 +21,15 @@ test('fighters lie down until they charge, kneel and hold to charge, then throw 
  assert.equal(combatFrame('hit',0,0,0),'hurt');
 });
 
-test('crawling alternates the two low-kick drawings, each held half a stride, by distance',()=>{
- const seen=Array.from({length:4},(_,i)=>combatFrame('walk',0,(i+.5)*Math.PI*2/4,1));
- assert.deepEqual(seen,['crawl2','crawl2','crawl4','crawl4']);
+test('crawling walks through the four crawl drawings over two strides, by distance',()=>{
+ const seen=Array.from({length:4},(_,i)=>combatFrame('walk',0,(i+.5)*Math.PI*4/4,1));
+ assert.deepEqual(seen,['crawl1','crawl2','crawl3','crawl4']);
  assert.equal(combatFrame('walk',0,1,.1),'rest','barely moving stays at rest');
 });
 
 test('the universal fists glide between drawings instead of jumping',()=>{
- const half=combatFrameBlend('walk',0,(1.5)*Math.PI*2/4,1);
- assert.deepEqual([half.name,half.next],['crawl2','crawl4']);assert.ok(Math.abs(half.mix-.5)<1e-9);
+ const half=combatFrameBlend('walk',0,(1.5)*Math.PI*4/4,1);
+ assert.deepEqual([half.name,half.next],['crawl2','crawl3']);assert.ok(Math.abs(half.mix-.5)<1e-9);
  const punch=combatFrameBlend('fire',50+55,0,0);
  assert.deepEqual([punch.name,punch.next],['release','follow']);assert.ok(punch.mix>0&&punch.mix<1);
  assert.equal(combatFrameBlend('idle',0,0,0).mix,0);

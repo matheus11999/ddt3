@@ -166,7 +166,8 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-cartographer": {
   "path": "/assets/outfits/combat/outfit-cartographer.png",
@@ -336,7 +337,8 @@
   "origin": [
    190,
    180
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-explorer": {
   "path": "/assets/outfits/combat/outfit-explorer.png",
@@ -505,7 +507,8 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-hiphop": {
   "path": "/assets/outfits/combat/outfit-hiphop.png",
@@ -674,7 +677,8 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-idol": {
   "path": "/assets/outfits/combat/outfit-idol.png",
@@ -843,7 +847,8 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-surf": {
   "path": "/assets/outfits/combat/outfit-surf.png",
@@ -1012,7 +1017,8 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  },
  "outfit-swordsman": {
   "path": "/assets/outfits/combat/outfit-swordsman.png",
@@ -1181,6 +1187,7 @@
     ],
     "hands": true
    }
-  ]
+  ],
+  "softKick": 0.5
  }
 }
