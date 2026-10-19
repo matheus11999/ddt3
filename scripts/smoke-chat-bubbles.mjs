@@ -20,14 +20,18 @@ async function player(label,bubble){
  await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
  return {page,profile,events};
 }
+// The page in front, with the loading cover gone (a page left behind comes back under the cover).
+const shot=async(page,name)=>{await page.bringToFront();await page.waitForFunction(()=>!document.documentElement.dataset.curtain,null,{timeout:15000});await page.waitForTimeout(400);await page.screenshot({path:`${output}/${name}.png`});};
 const say=async(page,text,scope='.lobby-chat')=>{const box=page.locator(scope).getByRole('textbox',{name:'Mensagem de chat'});await box.fill(text);await box.press('Enter');};
 const heard=(p,text)=>expect.poll(()=>p.events.find(e=>e.type==='chat'&&e.message.text===text)?.message.bubble).toBeTruthy();
 try{
- const a=await player('A','bubble-royal'),b=await player('B','bubble-cloud'),c=await player('C');
+ const a=await player('A','bubble-royal'),b=await player('B','bubble-ember'),c=await player('C');
  // Plaza: everyone walks in the same spot; each line goes over its writer.
  await say(a.page,'Bom dia, praça!');await say(b.page,'Olá!');await say(c.page,'Quem vai pra arena?');
  await heard(c,'Bom dia, praça!');assert.equal(c.events.find(e=>e.type==='chat'&&e.message.text==='Bom dia, praça!').message.bubble,'bubble-royal');
- await c.page.waitForTimeout(400);await c.page.screenshot({path:`${output}/1-praca.png`});
+ // Nobody gave C a Bolha: the starter kit's Bolha Clássica.
+ await heard(a,'Quem vai pra arena?');assert.equal(a.events.find(e=>e.type==='chat'&&e.message.text==='Quem vai pra arena?').message.bubble,'bubble-classic');
+ await shot(c.page,'1-praca');
 
  // PvP room: the balloon over the card of who wrote.
  await createArenaRoom(a.page);await a.page.getByRole('button',{name:'Abrir vaga 2',exact:true}).click();
@@ -36,7 +40,7 @@ try{
  await b.page.getByRole('textbox',{name:'Buscar sala'}).fill(room.name);await b.page.locator('.arena-room-entry').filter({hasText:room.name}).click();await expect(b.page.locator('.party-room')).toBeVisible();
  await say(b.page,'Pronto pra luta!','.party-room .party-chat');
  const card=a.page.locator(`.party-player-card[data-slot="1"]`);await expect(card.getByTestId('seat-speech')).toBeVisible();
- await a.page.waitForTimeout(400);await a.page.screenshot({path:`${output}/2-sala.png`});
+ await shot(a.page,'2-sala');
  await expect(card.getByTestId('seat-speech')).toHaveCount(0,{timeout:8000});
 
  // Battle: Enter opens the battle chat; the balloon goes over the fighter.
@@ -45,6 +49,10 @@ try{
  await c.page.keyboard.press('Enter');const line=c.page.getByRole('textbox',{name:'Mensagem para a sala'});await expect(line).toBeFocused();
  await line.fill('Lá vai!');await line.press('Enter');await expect(line).toHaveCount(0);
  await expect(c.page.locator('.battle-chat-log')).toContainText('Lá vai!');await heard(c,'Lá vai!');
- await c.page.waitForTimeout(500);await c.page.screenshot({path:`${output}/3-batalha.png`});
+ await shot(c.page,'3-batalha');
+ // Facing the other way, the balloon and its tail follow the face.
+ await c.page.keyboard.down('ArrowLeft');await c.page.waitForTimeout(120);await c.page.keyboard.up('ArrowLeft');
+ await c.page.keyboard.press('Enter');await line.fill('Por aqui!');await line.press('Enter');await heard(c,'Por aqui!');
+ await shot(c.page,'4-batalha-esquerda');
  assert.deepEqual(errors,[]);console.log('chat bubbles smoke ok:',output);
 }finally{await browser.close();await db.end();}

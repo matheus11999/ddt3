@@ -133,9 +133,12 @@ export const ITEMS: Item[] = [...WEAPONS,
  // Loja da Guilda (shared/guilds.ts): sold only to guild members.
  {...cosmetic('necklace-guild-1','Colar da Guilda Nv. 1','necklace','guild-1','#3f8fe0','rare',{visible:false,asset:'/assets/items/necklace-guild-1.png'}),description:'Medalhão da guilda num cordão trançado. Só membros de uma guilda podem comprá-lo.',attack:0,defense:0,agility:0,hpPercent:5},
  cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
- {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de fala fofinho em forma de nuvem.'},
- {...cosmetic('bubble-ember','Bolha Brasa','bubble','ember','#ff9a3c','rare',{visible:false}),description:'Balão de fala aquecido como uma brasa, com borda dupla.'},
- {...cosmetic('bubble-royal','Bolha Real','bubble','royal','#e2b84a','epic',{visible:false}),description:'Balão de fala de pergaminho com moldura dourada.'},
+ {...cosmetic('bubble-classic','Bolha Clássica','bubble','classic','#f4ead6','common',{visible:false}),description:'O balão de fala de todo aventureiro.'},
+ {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de nuvem fofinha que solta nuvenzinhas.'},
+ {...cosmetic('bubble-ember','Bolha Brasa','bubble','ember','#ff9a3c','rare',{visible:false}),description:'Moldura de brasa viva; faíscas sobem enquanto você fala.'},
+ {...cosmetic('bubble-royal','Bolha Real','bubble','royal','#e2b84a','epic',{visible:false}),description:'Pergaminho com moldura de ouro que cintila.'},
+ {...cosmetic('bubble-starlight','Bolha Estelar','bubble','starlight','#9d7cff','legendary',{visible:false}),description:'Cristal das estrelas; pequenas estrelas giram em volta do balão.'},
+ {...cosmetic('bubble-dragon','Bolha do Dragão','bubble','dragon','#3fbf6a','legendary',{visible:false}),description:'Escamas do Dragão Ancestral; chamas verdes nas garras.'},
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];
@@ -160,7 +163,7 @@ export function isEmptyItem(item:Item|string):boolean {const value=typeof item==
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
 /** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
 export const STARTER_WEAPON='brick';
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none',upgrade:0};
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-classic',upgrade:0};
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby',outfit:'outfit-explorer'}:{...DEFAULT_EQUIPMENT};
 }
@@ -178,7 +181,7 @@ export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:
 export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-explorer'}:{...UNEQUIP};}
 /** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
-export const CONTENT_VERSION=16;
+export const CONTENT_VERSION=17;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */

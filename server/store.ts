@@ -54,6 +54,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  for(const id of raw.inventory??[]){const replacement=Object.hasOwn(replacements,id)?replacements[id]:undefined;if(replacement&&!inventory.includes(replacement))inventory.push(replacement);}
  // Content 16: every female character gets the feminine starter outfit once.
  if((raw.contentVersion??0)<16&&gender==='female'&&!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
+ // Content 17: everyone owns the Bolha Clássica (starter kit).
+ if((raw.contentVersion??0)<17&&!inventory.includes(defaults.bubble))inventory.push(defaults.bubble);
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
  const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');
@@ -75,6 +77,8 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
   const saved=raw.equipment?.[slot],replaced=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
+  // Content 17: the Bolha Clássica comes in the starter kit and replaces an empty bubble slot once.
+  if(slot==='bubble'&&(raw.contentVersion??0)<17&&(!replaced||isEmptyItem(replaced))){equipment.bubble=defaults.bubble;if(!inventory.includes(defaults.bubble))inventory.push(defaults.bubble);continue;}
   // Content 16: women wearing the Cartógrafo move to the feminine starter outfit.
   const id=slot==='outfit'&&gender==='female'&&(raw.contentVersion??0)<16&&replaced==='outfit-cartographer'?defaults.outfit:replaced;
   if(id&&Object.hasOwn(CATALOG,id)&&slotAccepts(slot,CATALOG[id])&&(inventory.includes(id)||isEmptyItem(id))&&canEquipItem(id,gender)&&!heldInSiblingSlot(equipment,slot,id))equipment[slot]=id;
