@@ -40,7 +40,7 @@ export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,fa
   }
   c.restore();return;
  }
- // Same span as the original ten dots, as one line from pale to gold yellow.
+ // The tail of the original dots' span, as one line from pale to gold yellow: it starts clear of the head (20/10/2026).
  const rad=angle*Math.PI/180,ux=facing*Math.cos(rad),uy=-Math.sin(rad),line=draw.line,base=c.globalAlpha;
  const ax=pivot.x+ux*line.from*scale,ay=pivot.y+uy*line.from*scale,bx=pivot.x+ux*line.to*scale,by=pivot.y+uy*line.to*scale;
  const fill=c.createLinearGradient(ax,ay,bx,by);fill.addColorStop(0,'#fff6a8');fill.addColorStop(1,'#ffd21f');
