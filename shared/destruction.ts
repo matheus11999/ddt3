@@ -39,8 +39,12 @@ export interface DestructionProfile {
  * fading gradient with cracks instead of a solid rim) leaves a wider band so the fade and the cracks have room. */
 const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.62,pow:.58},'love-boomerang':{normal:.58,pow:.55},'wind-shuriken':{normal:.58,pow:.55},'thunder-coil':{normal:.58,pow:.55}};
 /** Phases whose painting is approved. 20/10: the second set (fading gradient with cracks and gaps where the
- * terrain shows, after the user rejected the solid rims of the first) for every weapon, phase and mode. */
-const PAINTED=new Set<string>(['brick','love-boomerang'].flatMap(weapon=>DESTRUCTION_MODES.flatMap(mode=>DESTRUCTION_STAGES.map(stage=>`${weapon}:${mode}:${stage}`))));
+ * terrain shows, after the user rejected the solid rims of the first) for every weapon, phase and mode of the
+ * Quebra-Tijolos and the Bumerangue; Vento Celeste only for the normal
+ * shot (the rest of it and the Bobina do Trovão keep the legacy `terrain.png` until a painting passes `verify:weapons`). */
+const ALL_MARKS=(weapon:string)=>DESTRUCTION_MODES.flatMap(mode=>DESTRUCTION_STAGES.map(stage=>`${weapon}:${mode}:${stage}`));
+const PAINTED=new Set<string>([...ALL_MARKS('brick'),...ALL_MARKS('love-boomerang'),
+ 'wind-shuriken:normal:0','wind-shuriken:normal:10','wind-shuriken:normal:12','wind-shuriken:normal:15']);
 
 /** The POW hole radius: the weapon's own (Bobina do Trovão digs a smaller one per bolt) or crater × POWER_CRATER_MULTIPLIER. */
 export function powCraterRadius(weapon:{crater:number;pow?:{crater?:number}}){return weapon.pow?.crater??weapon.crater*POWER_CRATER_MULTIPLIER;}
