@@ -15,12 +15,15 @@ import {normalizePetSnapshot,PET_FOODS} from '../shared/pets';
 import type {HallStore,MatchRecord} from './hall';
 import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult,SynthesisResult} from '../shared/protocol';
 import {synthesize} from '../shared/synthesis';
+import {normalizeFishing} from '../shared/fishing';
+import {buyFishingOffer,chooseFishingGear,settleFishing} from './fishing';
+import type {FishBuyOutcome,FishSettle,FishSettleOutcome} from './fishing';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
 export interface SynthesisOutcome {profile:Profile;result:SynthesisResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;synthesize?(id:string,stone:string,count:number):Promise<SynthesisOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;synthesize?(id:string,stone:string,count:number):Promise<SynthesisOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;/** Pescaria (server/fishing.ts): end of a cast, rod/bait choice, the Casa de Pesca. */fishSettle?(id:string,settle:FishSettle):Promise<FishSettleOutcome>;fishGear?(id:string,rod?:string,bait?:string):Promise<Profile>;fishBuy?(id:string,offer:string,quantity:number):Promise<FishBuyOutcome>;}
 
 /** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
 export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
@@ -97,6 +100,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  const profile:Profile={id:raw.id,name:raw.name,gender,level,xp,gold:integer(raw.gold),coupons:integer(raw.coupons),wins:integer(raw.wins),matches:integer(raw.matches),equipment,inventory,equippedOnce:raw.equippedOnce===true,upgrades,stones,compositions,compositionStones,contentVersion:CONTENT_VERSION,abilityLoadout:normalizeAbilityLoadout(raw.abilityLoadout),
   itemColors,bodyColors:normalizeBodyColors(raw.bodyColors),colorTickets:raw.colorTickets===undefined?STARTER_COLOR_TICKETS:integer(raw.colorTickets,0,MAX_COLOR_TICKETS),
   petFood:Object.fromEntries(Object.entries(raw.petFood??{}).filter(([food,n])=>PET_FOODS.has(food)&&integer(n)>0).map(([food,n])=>[food,integer(n)])),
+  fishing:normalizeFishing(raw.fishing),
   ...(Array.isArray(raw.petGifts)?{petGifts:[...new Set(raw.petGifts.filter((g:unknown):g is string=>typeof g==='string'&&/^[a-z0-9-]{1,40}$/.test(g)))].slice(0,50)}:{})};
  // The active pet's snapshot is written only by server/pets.ts; here it is just checked.
  const pet=normalizePetSnapshot(raw.equipment?.pet);if(pet)profile.equipment.pet=pet;
@@ -337,6 +341,9 @@ export class Store implements ProfileStore {
    }await c.query('COMMIT');
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
+ async fishSettle(id:string,settle:FishSettle){return this.mutate(id,profile=>settleFishing(profile,settle));}
+ async fishGear(id:string,rod?:string,bait?:string){return (await this.mutate(id,profile=>({profile:chooseFishingGear(profile,rod,bait)}))).profile;}
+ async fishBuy(id:string,offer:string,quantity:number){return this.mutate(id,profile=>buyFishingOffer(profile,offer,quantity));}
  async rename(id:string,name:string){await this.pool.query('UPDATE players SET name=$2 WHERE id=$1',[id,name]);}
  async finishMatch(matchId:string,winners:string[],players:string[],bonuses:MatchBonuses={},record?:MatchRecord){
   const c=await this.pool.connect();try{

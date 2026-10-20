@@ -1,0 +1,102 @@
+/* Pescaria: controles sobre a cena (FishingHud) e a Casa de Pesca (FishingShop). Madeira e creme
+   como a mochila; a barra do desafio é o destaque no meio da tela. */
+.fishing-hud{position:absolute;inset:0;pointer-events:none;font-family:Nunito,'Trebuchet MS',sans-serif;color:var(--wood-ink)}
+.fishing-hud>*{pointer-events:auto}
+.fishing-hud kbd{padding:0 5px;border-radius:5px;background:#0003;font:800 11px Nunito,sans-serif}
+
+.fishing-exit{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font:900 15px Nunito,sans-serif}
+
+.fishing-card{position:absolute;top:150px;left:16px;display:grid;gap:6px;width:236px;padding:8px 10px;border:2px solid var(--wood-rim);border-radius:14px;background:var(--wood-grain),linear-gradient(#a85524ee,#7a3814ee);box-shadow:inset 0 1px #ffc98c88,0 3px 10px #0007;color:#fff3d6}
+.fishing-level{display:flex;align-items:center;gap:8px}
+.fishing-level b{display:block;color:var(--wood-gold);font:900 15px Nunito,sans-serif;text-shadow:0 1px #2c1004}
+.fishing-level>div{flex:1}
+.fishing-xp{position:relative;height:14px;margin-top:3px;border:1px solid #f2b56b;border-radius:7px;background:#3a1606;overflow:hidden}
+.fishing-xp i{position:absolute;inset:0 auto 0 0;background:linear-gradient(#7fe0ff,#2f8fd8);transition:width .4s}
+.fishing-xp span{position:relative;display:block;text-align:center;font:800 10px/14px Nunito,sans-serif;color:#fff;text-shadow:0 1px 1px #000}
+.fishing-points{display:flex;align-items:center;gap:6px;padding:3px 8px;border-radius:9px;background:#3a160688}
+.fishing-points b{font:900 16px Nunito,sans-serif;color:#bff0ff}
+.fishing-points span{font:700 11px Nunito,sans-serif;color:#f3c58a}
+
+.fishing-bar-panel{position:absolute;left:440px;bottom:26px;display:flex;align-items:center;gap:10px;padding:8px 12px;border:2px solid var(--wood-rim);border-radius:16px;background:var(--wood-grain),linear-gradient(#b05e28f2,#7a3814f2);box-shadow:inset 0 1px #ffc98c88,0 0 0 3px #4a210a,0 6px 18px #000a}
+.fishing-gear{position:relative;display:flex;gap:6px}
+.fishing-slot{display:grid;justify-items:center;gap:1px;width:64px;padding:4px 0 3px;border:2px solid #f2b56b;border-radius:11px;background:linear-gradient(#fff5df,#ecd2a0);color:var(--wood-ink);font:800 11px Nunito,sans-serif;cursor:pointer}
+.fishing-slot:hover,.fishing-slot.open{border-color:#fff2c8;box-shadow:0 0 10px #ffd36b}
+.fishing-gear-menu{position:absolute;bottom:calc(100% + 14px);left:0;width:310px;padding:8px;border:2px solid var(--wood-rim);border-radius:12px;background:linear-gradient(#fff5df,#f7e4bd);box-shadow:0 8px 24px #000a}
+.fishing-gear-menu header{font:900 13px Nunito,sans-serif;margin:0 0 6px 4px;color:var(--wood-ink)}
+.fishing-gear-menu button{display:flex;align-items:center;gap:8px;width:100%;margin-bottom:5px;padding:5px 7px;border:1px solid #d98f45;border-radius:9px;background:#fffaf0;text-align:left;cursor:pointer;color:var(--wood-ink)}
+.fishing-gear-menu button.selected{border:2px solid #2f9a3a;background:#eaffe0}
+.fishing-gear-menu button:disabled{opacity:.6;cursor:not-allowed}
+.fishing-gear-menu b{display:block;font:900 13px Nunito,sans-serif}
+.fishing-gear-menu small{display:block;font:600 11px/1.25 Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-gear-hint{margin:2px 4px 0;font:700 11px Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-auto{display:grid;justify-items:center;gap:2px;width:74px;height:62px;padding:6px 0;border:2px solid #f2b56b;border-radius:11px;background:linear-gradient(#5a2a0c,#3a1605);color:#f3c58a;font:800 11px Nunito,sans-serif;cursor:pointer}
+.fishing-auto.on{background:linear-gradient(#5fd06a,#22863a);border-color:#eaffd0;color:#fff;text-shadow:0 1px #0b3a12;box-shadow:0 0 12px #8fff9a88}
+.fishing-main{display:flex;align-items:center;gap:7px;height:52px;padding:0 18px;border-radius:12px;font:900 17px Nunito,sans-serif}
+.fishing-main:disabled{filter:grayscale(.7);opacity:.7}
+.fishing-tip{position:absolute;left:440px;bottom:112px;margin:0;padding:6px 14px;border-radius:10px;background:#2c1004cc;color:#fff3d6;font:800 14px Nunito,sans-serif;white-space:nowrap;pointer-events:none}
+
+.fishing-challenge{position:absolute;left:50%;top:44%;transform:translate(-50%,-50%);display:grid;justify-items:center;gap:8px;width:600px;padding:14px 18px 12px;border:2px solid var(--wood-rim);border-radius:18px;background:var(--wood-grain),linear-gradient(#b05e28f0,#6a3010f0);box-shadow:inset 0 1px #ffc98c88,0 0 0 3px #4a210a,0 12px 30px #000b;color:#fff3d6}
+.fishing-hooked{font:400 30px/1 'Lilita One',Nunito,sans-serif;color:#ffe07a;letter-spacing:.5px;-webkit-text-stroke:1.5px #5a1a00;text-shadow:0 3px 0 #5a1a00;animation:fishing-pop .35s ease-out}
+.fishing-track{position:relative;width:100%;height:42px;padding:0;border:3px solid #3a1606;border-radius:21px;background:linear-gradient(#1a4f7a,#0f2f50);box-shadow:inset 0 3px 8px #0009;overflow:hidden;cursor:pointer}
+.fishing-track:disabled{cursor:default}
+.fishing-zone{position:absolute;top:0;bottom:0;background:linear-gradient(#7fe07a,#2f9a3a);box-shadow:inset 0 0 0 2px #d8ffd0aa;transition:left .2s ease-out}
+.fishing-perfect{position:absolute;top:0;bottom:0;background:linear-gradient(#fff3a0,#ffc21a);box-shadow:0 0 10px #ffe07a}
+.fishing-marker{position:absolute;top:-4px;bottom:-4px;width:8px;margin-left:-4px;border-radius:4px;background:#fff;box-shadow:0 0 0 2px #3a1606,0 0 10px #fff}
+.fishing-progress{display:flex;align-items:center;gap:18px;font:800 13px Nunito,sans-serif}
+.fishing-hits{display:flex;gap:6px}
+.fishing-hits i{width:18px;height:18px;border:2px solid #ffe07a;border-radius:50%;background:#3a1606}
+.fishing-hits i.done{background:radial-gradient(#fff3a0,#ffb21a)}
+.fishing-misses{display:flex;gap:4px;color:#ffffff55;font-style:normal}
+.fishing-misses i{font-style:normal}
+.fishing-misses i.lost{color:#ff5a4a}
+.fishing-time{color:#ffe07a}
+.fishing-challenge small{font:700 12px Nunito,sans-serif;color:#f3c58a}
+.fishing-grade{position:absolute;top:-24px;right:22px;font:400 26px 'Lilita One',Nunito,sans-serif;font-style:normal;-webkit-text-stroke:1.5px #3a1606;animation:fishing-pop .4s ease-out}
+.fishing-grade.perfect{color:#ffd23a}.fishing-grade.hit{color:#8fff9a}.fishing-grade.miss{color:#ff6a5a}
+.fishing-challenge.auto .fishing-track{opacity:.8}
+
+.fishing-result{position:absolute;left:50%;top:30%;transform:translateX(-50%);display:flex;align-items:center;gap:14px;padding:12px 22px;border:2px solid var(--wood-rim);border-radius:16px;background:var(--wood-grain),linear-gradient(#fff5df,#ecd2a0);box-shadow:0 0 0 3px #4a210a,0 10px 26px #000a;animation:fishing-pop .35s ease-out;pointer-events:none}
+.fishing-result strong{display:block;font:400 26px 'Lilita One',Nunito,sans-serif;color:#7a3a14}
+.fishing-result>div>span{font:900 15px Nunito,sans-serif;color:#2f6aa0}
+.fishing-result p{margin:4px 0 0;font:700 13px Nunito,sans-serif}
+.fishing-result p b{color:#1f7f3a}
+.fishing-result.lost{display:grid;justify-items:center;gap:2px;background:linear-gradient(#5a2a0cf0,#3a1605f0);color:#fff3d6}
+.fishing-result.lost strong{color:#ff8a6a}
+.fishing-result.lost span{font:700 13px Nunito,sans-serif}
+.fishing-tags{display:flex;gap:6px;margin-top:5px}
+.fishing-tags em{padding:2px 8px;border-radius:8px;font:900 12px Nunito,sans-serif;font-style:normal;color:#fff}
+.fishing-tags .new{background:#2f9a3a}.fishing-tags .record{background:#d4761a}.fishing-tags .level{background:#2f6ad8}
+@keyframes fishing-pop{from{transform:scale(.7);opacity:0}to{opacity:1}}
+.fishing-result{animation-name:fishing-rise}
+@keyframes fishing-rise{from{opacity:0;margin-top:18px}to{opacity:1;margin-top:0}}
+
+.fishing-shop-window{width:min(980px,96vw)}
+.fishing-shop{display:grid;gap:10px;padding:4px}
+.fishing-shop-tabs{display:flex;align-items:center;gap:6px}
+.fishing-shop-tabs>button{height:32px;padding:0 16px;border:2px solid #e9b64f;border-radius:10px;background:linear-gradient(#7a3c14,#4e2309);color:#f3c58a;font:900 14px Nunito,sans-serif;cursor:pointer}
+.fishing-shop-tabs>button.active{background:linear-gradient(#ffe07a,#e9a422);color:#6b2c05;border-color:#fff2c8}
+.fishing-shop-wallet{display:flex;align-items:center;gap:6px;margin-left:auto;padding:4px 12px;border-radius:10px;background:#3a1606cc;color:#f3c58a;font:700 13px Nunito,sans-serif}
+.fishing-shop-wallet b{color:#bff0ff;font:900 16px Nunito,sans-serif}
+.fishing-offers{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0;padding:0;list-style:none;max-height:640px;overflow:auto}
+.fishing-offer{display:flex;align-items:center;gap:10px;padding:8px 10px;border:2px solid #d98f45;border-radius:12px;background:linear-gradient(#fff5df,#f7e4bd)}
+.fishing-offer.locked{filter:grayscale(.6);opacity:.75}
+.fishing-offer-text{flex:1;display:grid;gap:1px}
+.fishing-offer-text b{font:900 14px Nunito,sans-serif}
+.fishing-offer-text small{font:600 12px Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-cost{display:flex;align-items:center;gap:4px;font:900 14px Nunito,sans-serif;color:#1f5f9a}
+.fishing-buy{display:flex;align-items:center;gap:5px}
+.fishing-buy input{width:52px;height:30px;border:2px solid #d98f45;border-radius:8px;text-align:center;font:800 14px Nunito,sans-serif}
+.fishing-buy .wood-button,.fishing-buy .wood-quiet{height:32px;padding:0 12px;border-radius:9px;font:900 13px Nunito,sans-serif}
+.fishing-lock{display:flex;align-items:center;gap:4px;font:900 13px Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-collection{display:grid;gap:8px;max-height:640px;overflow:auto}
+.fishing-collection h3{margin:0 0 4px;font:700 17px Cinzel,Georgia,serif;color:var(--wood-gold);text-shadow:0 1px #2c1004}
+.fishing-collection ul{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:0;padding:0;list-style:none}
+.fishing-entry{display:grid;justify-items:center;gap:2px;padding:8px 6px;border:2px solid #d98f45;border-radius:12px;background:linear-gradient(#fff5df,#f7e4bd);text-align:center}
+.fishing-entry b{font:900 13px Nunito,sans-serif}
+.fishing-entry small{font:700 11px Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-entry.unknown b{color:#a88a6a}
+.fishing-stars{font-size:11px;color:#e9a422;letter-spacing:1px}
+.fishing-shop-done{margin:0;text-align:center;font:900 14px Nunito,sans-serif;color:#1f7f3a}
+
+html.mobile-landscape .fishing-card{top:96px;transform:scale(.85);transform-origin:top left}
+html.mobile-landscape .fishing-challenge{width:520px}

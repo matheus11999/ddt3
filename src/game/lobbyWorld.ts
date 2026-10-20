@@ -388,9 +388,9 @@ function goldText(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:
  const g=c.createLinearGradient(0,y-size*.5,0,y+size*.5);g.addColorStop(0,'#fffbe6');g.addColorStop(.45,'#ffe28a');g.addColorStop(.55,'#f5b93a');g.addColorStop(1,'#fff0b0');
  c.fillStyle=g;c.fillText(text,x,y);c.restore();
 }
-function title(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:number){goldText(c,text,x,y,size,'#4a2408');}
+export function title(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:number){goldText(c,text,x,y,size,'#4a2408');}
 /** Name plate over a station: deep blue enamel in a gold frame, with gem studs at the ends. */
-function plaque(c:CanvasRenderingContext2D,text:string,x:number,y:number,big:boolean,hover:boolean){
+export function plaque(c:CanvasRenderingContext2D,text:string,x:number,y:number,big:boolean,hover:boolean){
  c.save();c.translate(x,y);const s=(big?1.1:.94)*(hover?1.06:1);c.scale(s,s);
  const size=18;c.font=`900 ${size}px ${FONT}`;const w=Math.max(96,c.measureText(text).width+46),h=32,r=9;
  c.shadowColor='rgba(15,20,40,.45)';c.shadowBlur=10;c.shadowOffsetY=4;

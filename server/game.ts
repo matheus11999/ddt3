@@ -6,6 +6,8 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
+import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
+import type {Fish,FishChallenge,FishingPhase,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
@@ -50,7 +52,7 @@ import type {PetApplication,PetBlockedAction,PetEngineContext,PetTrigger} from '
 import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
-export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;}
+export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;/** Praça Celeste or the Pescaria (undefined = the plaza). */zone?:Zone;/** Casting at a spot of the Pescaria. */fishing?:FishingSession;/** Automatic fishing stays on between casts (AFK). */fishAuto?:boolean;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
 /** Index of the pet's after-shot attack in the impact events (never a real projectile). */
 const PET_STRIKE_INDEX=1000;
@@ -67,6 +69,10 @@ const RECONNECT_MS=30000,RESTORED_RECONNECT_MS=120000,MATCH_RECONNECT_MS=300000;
 export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpacts'|'activeShot'|'pendingPower'|'savingRewards'|'instance'>&{invisibilityActivated?:[string,number][];instance?:Omit<ExpeditionRun,'events'>};
 export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
+/** One cast at a spot: waiting for a bite, the bar, then the result on screen. */
+interface FishingSession {spot:FishingSpot;phase:FishingPhase;since:number;biteAt:number;bait:string;fish?:Fish;challenge?:FishChallenge;start:number;press:number;misses:number;grades:PressGrade[];resolveAt:number;settling?:boolean;result?:FishingView['result'];}
+/** Rooms, matches and hall sessions open only from Praça Celeste: the Pescaria has to walk back first. */
+const PLAZA_ONLY_COMMANDS=new Set<Command['type']>(['create','create-expedition','join','spectate','world-boss-enter']);
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch','pet-skill']);
 /** What the game reads from the Hall da Fama (tests use a fake). */
 export interface HallService {
@@ -121,10 +127,92 @@ export class Game {
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
-  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
+  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel,p.zone),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,zone:p.zone??'plaza',arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
   const load=room?this.loads.get(this.roomLoads.get(room.id)??''):undefined;if(load)this.emit(p,{type:'loading',loading:load.view});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
   this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);void this.sendPets(p).catch(this.report);return p;
+ }
+ // ── Pescaria (shared/fishing.ts has the numbers, server/fishing.ts the profile changes) ──
+ /** Walks through the gate: the plaza and the Pescaria each list only their own walkers. */
+ private changeZone(p:Peer,zone:Zone){
+  if(p.roomId)throw Error('Saia da sala antes de ir para outro lugar.');
+  if((p.zone??'plaza')===zone)return;
+  this.stopFishing(p,false);delete p.fishing;
+  const spawn=zone==='fishing'?FISHING_SPAWN:LOBBY_SPAWN;
+  p.zone=zone==='plaza'?undefined:zone;p.x=p.targetX=spawn.x-40+Math.random()*80;p.y=p.targetY=spawn.y;
+  this.emit(p,{type:'zone',zone,players:this.lobby(p.channel,zone)});this.sendLobby(p.channel);
+ }
+ private fishingView(f:FishingSession,auto:boolean):FishingView{
+  return {spot:f.spot.id,phase:f.phase,auto,since:f.since,...(f.challenge&&f.phase==='bite'?{challenge:{...f.challenge,start:f.start,press:f.press,misses:f.misses,grades:[...f.grades]}}:{}),...(f.result?{result:f.result}:{})};
+ }
+ private emitFishing(p:Peer){this.emit(p,{type:'fishing',fishing:p.fishing?this.fishingView(p.fishing,!!p.fishAuto):null});}
+ private castLine(p:Peer,spotId:string){
+  if(p.zone!=='fishing'||p.roomId)throw Error('Vá até a Pescaria para pescar.');
+  if(!this.store.fishSettle)throw Error('A pescaria está indisponível no momento.');
+  const spot=FISHING_SPOTS.find(s=>s.id===spotId);if(!spot)throw Error('Esse lugar não dá para pescar.');
+  if(Math.hypot(p.x-spot.x,p.y-spot.y)>SPOT_REACH)throw Error('Chegue mais perto da água.');
+  const f=p.fishing;
+  if(f&&f.spot.id!==spot.id)this.stopFishing(p,false);
+  if(f&&(f.settling||f.phase==='waiting'||f.phase==='bite'))return;
+  for(const other of this.peers.values())if(other!==p&&other.connected&&other.fishing?.spot.id===spot.id&&other.channel===p.channel)throw Error('Alguém já está pescando aí.');
+  const fishing=normalizeFishing(p.profile.fishing),rod=ROD_BY_ID.get(fishing.rod)!,bait=BAIT_BY_ID.get(fishing.bait)!,now=Date.now();
+  p.x=p.targetX=spot.x;p.y=p.targetY=spot.y;
+  p.fishing={spot,phase:'waiting',since:now,biteAt:now+biteWaitMs(rod,bait,!!p.fishAuto,this.fishRoll()),bait:bait.id,start:0,press:0,misses:0,grades:[],resolveAt:0};
+  this.emitFishing(p);this.sendLobby(p.channel);
+ }
+ /** Server roll for fishing, uniform in [0, 1). */
+ fishRoll:()=>number=()=>randomInt(1_000_000)/1_000_000;
+ private stopFishing(p:Peer,announce=true){
+  const f=p.fishing;if(!f)return;
+  // A bar already being saved finishes on its own; the bait of a cast that had a bite is spent.
+  if(f.settling)return;
+  delete p.fishing;
+  if(f.phase==='bite')void this.settleFish(p,f,false,0,true).catch(this.report);
+  if(announce){this.emitFishing(p);this.sendLobby(p.channel);}
+ }
+ private pressBar(p:Peer,at:number){
+  const f=p.fishing;if(!f||f.phase!=='bite'||f.settling||!f.challenge||p.fishAuto)return;
+  const now=Date.now(),stamp=Math.max(now-PRESS_GRACE_MS,Math.min(now,at));
+  if(stamp<f.start)return;
+  const grade=gradePress(f.challenge,f.press,stamp-f.start);f.grades.push(grade);
+  if(grade==='miss'){f.misses++;if(f.misses>=f.challenge.misses){void this.settleFish(p,f,false,0).catch(this.report);return;}}
+  else{f.press++;if(f.press>=f.challenge.hits){const quality=f.grades.filter(g=>g==='perfect').length/f.challenge.hits;void this.settleFish(p,f,true,quality).catch(this.report);return;}}
+  this.emitFishing(p);
+ }
+ /** Advances one player's cast; true when what others see changed. */
+ private tickFishing(p:Peer,now:number):boolean{
+  const f=p.fishing!;if(f.settling)return false;
+  if(f.phase==='waiting'&&now>=f.biteAt){
+   const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp)),bait=BAIT_BY_ID.get(f.bait)??BAIT_BY_ID.get('bait-simple')!;
+   f.fish=pickFish(f.spot.lake,rod,bait,this.fishRoll());f.challenge=fishChallenge(f.fish,rod,randomInt(2**31));
+   f.phase='bite';f.since=now;f.start=now+HOOK_LEAD_MS;f.resolveAt=now+AUTO_BASE_MS+AUTO_PER_HIT_MS*f.challenge.hits;
+   this.emitFishing(p);return true;
+  }
+  if(f.phase==='bite'&&f.challenge&&f.fish){
+   if(p.fishAuto&&now>=f.resolveAt){const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp));void this.settleFish(p,f,this.fishRoll()<autoChance(f.fish,rod),AUTO_QUALITY).catch(this.report);return false;}
+   if(!p.fishAuto&&now>f.start+f.challenge.limitMs){void this.settleFish(p,f,false,0).catch(this.report);return false;}
+  }
+  if(f.phase==='result'&&now>=f.since+RESULT_MS){
+   // Walked off while the catch was being saved.
+   if(Math.hypot(p.x-f.spot.x,p.y-f.spot.y)>SPOT_REACH){delete p.fishing;this.emitFishing(p);return true;}
+   if(p.fishAuto&&p.connected){delete p.fishing;try{this.castLine(p,f.spot.id);}catch(e){this.emit(p,{type:'error',message:e instanceof Error?e.message:'Não foi possível lançar a linha.'});this.emitFishing(p);}return true;}
+   f.phase='idle';f.since=now;delete f.result;delete f.fish;delete f.challenge;this.emitFishing(p);return true;
+  }
+  return false;
+ }
+ /** Saves the end of a cast (bait, catch, points, EXP) and shows the result. */
+ private async settleFish(p:Peer,f:FishingSession,success:boolean,quality:number,silent=false){
+  if(f.settling)return;f.settling=true;
+  const fish=f.fish;let caught;
+  try{
+   const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
+   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(fish&&success?{fish:{id:fish.id,kg,points:catchPoints(fish,quality),xp:catchXp(fish)}}:{})});
+   p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
+  }catch(e){this.report(e);success=false;}
+  finally{f.settling=false;}
+  if(silent||p.fishing!==f)return;
+  f.phase='result';f.since=Date.now();f.result={success:!!caught,...(caught?{catch:caught}:{}),...(fish?{fish:fish.id}:{})};
+  this.emitFishing(p);this.sendLobby(p.channel);
  }
  private requirePets(){if(!this.pets)throw Error('Os pets estão indisponíveis no momento.');return this.pets;}
  /** One-time pet gifts (the starter pet, shared/petContent.ts); the server entry sets them. */
@@ -241,7 +329,7 @@ export class Game {
   for(const [id,p] of this.peers){if(!p.connected)continue;const room=p.roomId?this.rooms.get(p.roomId):undefined;result.set(id,!room?'lobby':this.matchForRoom(room.id)?'battle':'room');}
   return result;
  }
- disconnect(id:string){const p=this.peers.get(id);if(!p)return;p.connected=false;p.arenaOpen=false;p.lastSeen=Date.now();if(p.roomId){const r=this.rooms.get(p.roomId);const s=r?.players.find(x=>x.id===id);if(s){s.connected=false;s.ready=false;}const observer=r?.spectators?.find(x=>x.id===id);if(observer)observer.connected=false;const fighter=this.matchForRoom(p.roomId)?.state.players.find(s=>s.id===id);if(fighter)fighter.connected=false;if(r){if(!observer)this.cancelSearch(r);this.broadcastRoom(r);}}this.pruneInvitations();this.sendLobby(p.channel);this.publishArenaPopulation();}
+ disconnect(id:string){const p=this.peers.get(id);if(!p)return;p.connected=false;if(p.fishing&&!p.fishing.settling)delete p.fishing;p.arenaOpen=false;p.lastSeen=Date.now();if(p.roomId){const r=this.rooms.get(p.roomId);const s=r?.players.find(x=>x.id===id);if(s){s.connected=false;s.ready=false;}const observer=r?.spectators?.find(x=>x.id===id);if(observer)observer.connected=false;const fighter=this.matchForRoom(p.roomId)?.state.players.find(s=>s.id===id);if(fighter)fighter.connected=false;if(r){if(!observer)this.cancelSearch(r);this.broadcastRoom(r);}}this.pruneInvitations();this.sendLobby(p.channel);this.publishArenaPopulation();}
  /** A fighter of a running match keeps their place while away (their turns just time out); anyone else has 30 s. */
  private reconnectWindow(p:Peer){
   const m=p.roomId?this.matchForRoom(p.roomId):undefined,fighter=m?.state.players.find(f=>f.id===p.profile.id);
@@ -297,9 +385,9 @@ export class Game {
   for(const m of [...this.matches.values()])if(!m.roomIds.some(id=>this.roomMatches.get(id)===m.key)&&m.state.rewards?.saved)this.matches.delete(m.key);
   this.roomsDirty=true;
  }
- lobby(channel:number):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y}));}
+ lobby(channel:number,zone:Zone='plaza'):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel&&(p.zone??'plaza')===zone).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y,...(p.fishing?{fishing:{spot:p.fishing.spot.id,phase:p.fishing.phase,since:p.fishing.since,...(p.fishing.result?{success:p.fishing.result.success,...(p.fishing.result.success&&p.fishing.fish?{fish:p.fishing.fish.id}:{})}:{})}}:{})}));}
  private emit(p:Peer,e:ServerEvent){if(p.connected)p.send(e);}
- private sendLobby(channel:number){const players=this.lobby(channel);const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId)this.emit(p,{type:'lobby',players,online});}
+ private sendLobby(channel:number){const lists=new Map<Zone,LobbyPlayer[]>();const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId){const zone=p.zone??'plaza';if(!lists.has(zone))lists.set(zone,this.lobby(channel,zone));this.emit(p,{type:'lobby',players:lists.get(zone)!,online});}}
  private broadcastRooms(){const rooms=this.publicRooms();for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms});this.roomsDirty=false;}
  /** Rooms listed in the halls: a Chefão Mundial attempt is a hidden solo room. */
  private publicRooms(){return [...this.rooms.values()].filter(room=>room.kind!=='world-boss');}
@@ -413,6 +501,7 @@ export class Game {
   const p=this.peers.get(id);if(!p||!p.connected)return;
   try{
    if(this.isSpectator(p)&&SPECTATOR_BLOCKED_COMMANDS.has(c.type))throw Error('Você está assistindo. Apenas participantes podem usar esta ação.');
+   if(p.zone==='fishing'&&(PLAZA_ONLY_COMMANDS.has(c.type)||c.type==='room-invite-answer'&&c.accept))throw Error('Volte à Praça Celeste para entrar nas salas.');
    switch(c.type){
     case 'arena-presence':if(p.arenaOpen!==c.open){p.arenaOpen=c.open;this.publishArenaPopulation();}return;
     case 'online-list':{
@@ -429,7 +518,33 @@ export class Game {
     case 'room-invite':this.invitePlayer(p,c.playerId);break;
     case 'room-invite-answer':this.answerInvitation(p,c.inviteId,c.accept);break;
     case 'ping':this.emit(p,{type:'pong',time:c.time,serverTime:Date.now()});return;
-    case 'move':if(!p.roomId){const target=lobbyFree(c.x,c.y);p.targetX=target.x;p.targetY=target.y;}return;
+    case 'move':if(!p.roomId){
+     const target=p.zone==='fishing'?fishingFree(c.x,c.y):lobbyFree(c.x,c.y);
+     // Walking away from the spot reels the line in.
+     if(p.fishing&&Math.hypot(target.x-p.fishing.spot.x,target.y-p.fishing.spot.y)>SPOT_REACH)this.stopFishing(p);
+     p.targetX=target.x;p.targetY=target.y;}return;
+    case 'zone':this.changeZone(p,c.zone);return;
+    case 'fish-cast':this.castLine(p,c.spot);return;
+    case 'fish-press':this.pressBar(p,c.at);return;
+    case 'fish-stop':this.stopFishing(p);return;
+    case 'fish-auto':{
+     p.fishAuto=c.on;const f=p.fishing;
+     if(f&&c.on&&f.phase==='idle')this.castLine(p,f.spot.id);
+     // Switching on in the middle of a bar lets the automatic mode finish it.
+     else if(f&&c.on&&f.phase==='bite'&&!f.settling)f.resolveAt=Math.max(Date.now()+AUTO_BASE_MS,f.start);
+     if(f)this.emitFishing(p);return;
+    }
+    case 'fish-gear':{
+     if(!this.store.fishGear)throw Error('A pescaria está indisponível no momento.');
+     if(p.fishing&&p.fishing.phase!=='idle'&&p.fishing.phase!=='result')throw Error('Recolha a linha antes de trocar a vara ou a isca.');
+     p.profile=await this.store.fishGear(id,c.rod,c.bait);this.emit(p,{type:'profile',profile:p.profile});return;
+    }
+    case 'fish-buy':{
+     if(!this.store.fishBuy)throw Error('A pescaria está indisponível no momento.');
+     if(p.zone!=='fishing')throw Error('A Casa de Pesca fica na Pescaria.');
+     const outcome=await this.store.fishBuy(id,c.offer,c.quantity);p.profile=outcome.profile;
+     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'fish-buy-result',offer:c.offer,quantity:c.quantity,spent:outcome.spent});return;
+    }
     case 'rename':if(p.roomId)throw Error('Volte à praça para mudar seu nome.');await this.store.rename(id,c.name);p.profile.name=c.name;this.emit(p,{type:'profile',profile:p.profile});this.sendLobby(p.channel);return;
     case 'ability-loadout':{
      const room=this.room(p);if(room.status!=='waiting')throw Error('Ajuste suas habilidades enquanto a sala aguarda.');
@@ -1288,7 +1403,8 @@ export class Game {
   const channels=new Set<number>();
   for(const [id,p] of this.peers){
    if(!p.connected&&now-p.lastSeen>this.reconnectWindow(p)&&!this.profileChanges.has(id)){this.leave(p);this.peers.delete(id);continue;}
-   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const next=lobbyStep(p,{x:p.targetX,y:p.targetY},LOBBY_WALK_SPEED*dt);p.x=next.x;p.y=next.y;channels.add(p.channel);}}
+   if(p.connected&&!p.roomId){const dx=p.targetX-p.x,dy=p.targetY-p.y,d=Math.hypot(dx,dy);if(d>1){const step=p.zone==='fishing'?fishingStep:lobbyStep,next=step(p,{x:p.targetX,y:p.targetY},LOBBY_WALK_SPEED*dt);p.x=next.x;p.y=next.y;channels.add(p.channel);}}
+   if(p.fishing&&this.tickFishing(p,now))channels.add(p.channel);
   }
   if(++this.lobbyTick%2===0)for(const channel of channels)this.sendLobby(channel);
   for(const m of this.matches.values()){
