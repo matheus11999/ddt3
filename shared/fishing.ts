@@ -109,8 +109,8 @@ export const AUTO_BASE_MS=1200,AUTO_PER_HIT_MS=900;
 export const AUTO_QUALITY=.3;
 /** Pedido do matheus (20/10): o automático rende 25% da pesca manual (Pontos e EXP de cada peixe). */
 export const AUTO_EFFICIENCY=.25;
-/** Points and EXP of an automatic catch: a quarter of a plain manual catch, never zero. */
-export function autoReward(fish:Fish){return {points:Math.max(1,Math.round(fish.points*AUTO_EFFICIENCY)),xp:Math.max(1,Math.round(catchXp(fish)*AUTO_EFFICIENCY))};}
+/** Points and EXP of an automatic catch: a quarter of the manual value of the same fish and weight, never zero. */
+export function autoReward(fish:Fish,kg:number){return {points:Math.max(1,Math.round(catchPoints(fish,kg,0)*AUTO_EFFICIENCY)),xp:Math.max(1,Math.round(catchXp(fish,kg)*AUTO_EFFICIENCY))};}
 
 /** Small seeded generator, so the server and a test agree on every number of a bar. */
 export function seeded(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -151,12 +151,26 @@ export function pickFish(lake:string,rod:FishingRod,roll:number):Fish{
  let r=roll*total;for(let i=0;i<pool.length;i++){r-=weights[i];if(r<0)return pool[i];}
  return pool[pool.length-1];
 }
-/** Weight in kg (2 decimals): luck of the draw plus the quality of the presses. */
+/**
+ * Weight in kg (2 decimals). Pedido do matheus (20/10): peixe pesado é muito difícil em qualquer raridade.
+ * The draw is skewed hard toward the light end (roll^WEIGHT_SKEW: half the catches sit in the lightest 0.4%
+ * of the range, one in twelve passes half of it, about one in eighty passes 90%) and only perfect presses
+ * (quality 1) can reach the top; automatic catches (AUTO_QUALITY) stop at 79%.
+ */
+export const WEIGHT_SKEW=8;
 export function fishWeight(fish:Fish,roll:number,quality:number):number{
- return Math.round((fish.minKg+(fish.maxKg-fish.minKg)*Math.min(1,roll*.7+quality*.3))*100)/100;
+ const share=Math.max(0,Math.min(1,roll))**WEIGHT_SKEW*(.7+.3*Math.max(0,Math.min(1,quality)));
+ return Math.round((fish.minKg+(fish.maxKg-fish.minKg)*share)*100)/100;
 }
-/** Pontos de Pesca for a catch: the fish's points plus up to half again for perfect presses. */
-export function catchPoints(fish:Fish,quality:number):number{return fish.points+Math.round(fish.points*.5*quality);}
+/** How heavy a catch is for its kind: 0 the lightest it comes, 1 the heaviest. */
+export function weightShare(fish:Pick<Fish,'minKg'|'maxKg'>,kg:number):number{return Math.max(0,Math.min(1,(kg-fish.minKg)/(fish.maxKg-fish.minKg||1)));}
+/**
+ * Pontos de Pesca a catch is worth (pedido do matheus: o valor vem da raridade e do peso). The fish's
+ * points (its rarity) times ×0.5 for the lightest up to ×3 for the heaviest, plus up to a quarter for perfect presses.
+ */
+export function catchPoints(fish:Fish,kg:number,quality:number):number{
+ return Math.max(1,Math.round(fish.points*(.5+2.5*weightShare(fish,kg))*(1+.25*Math.max(0,Math.min(1,quality)))));
+}
 export function biteWaitMs(rod:FishingRod,auto:boolean,roll:number):number{
  return Math.round((BITE_WAIT[0]+(BITE_WAIT[1]-BITE_WAIT[0])*roll)*1000*rod.speed*(auto?AUTO_WAIT:1));
 }
@@ -164,11 +178,24 @@ export function biteWaitMs(rod:FishingRod,auto:boolean,roll:number):number{
 // ── Nível de pescador ──
 export const MAX_FISHING_LEVEL=50;
 /** Total fishing EXP to reach `level` (level 1 starts at 0). */
-export function fishingXpFor(level:number):number{return level<=1?0:Math.round(60*(level-1)**1.7);}
+// Progressão lenta (pedido do matheus, 20/10): Nv. 5 ≈ 100 peixes, Nv. 12 ≈ 700, Nv. 50 ≈ 12 mil.
+export function fishingXpFor(level:number):number{return level<=1?0:Math.round(100*(level-1)**1.9);}
 export function fishingLevel(xp:number):number{let level=1;while(level<MAX_FISHING_LEVEL&&xp>=fishingXpFor(level+1))level++;return level;}
 export function fishingLevelProgress(xp:number){const level=fishingLevel(xp),from=fishingXpFor(level),to=fishingXpFor(level+1);return {level,current:xp-from,required:level>=MAX_FISHING_LEVEL?0:to-from,percent:level>=MAX_FISHING_LEVEL?100:Math.floor((xp-from)/(to-from)*100)};}
-/** EXP for a manual catch (automatic gets AUTO_EFFICIENCY of it, `autoReward`). */
-export function catchXp(fish:Fish):number{return fish.points*10;}
+/** Fisher EXP of a manual catch by rarity, a little more for a heavy one (automatic gets AUTO_EFFICIENCY of it, `autoReward`). */
+export const RARITY_XP=[6,10,18,32,60] as const;
+export function catchXp(fish:Fish,kg:number):number{return Math.round(RARITY_XP[Math.max(1,Math.min(5,fish.difficulty))-1]*(.8+.6*weightShare(fish,kg)));}
+
+// ── Ranking semanal do maior peixe (pedido do matheus, 20/10): só o peso conta, de qualquer raridade ──
+/** The Brasília week of a time, named by its Monday (YYYY-MM-DD); the ranking starts over every Monday at 00:00. */
+export function fishingWeek(at:number):string{
+ const [y,m,d]=fishingDay(at).split('-').map(Number),day=new Date(Date.UTC(y,m-1,d)),back=(day.getUTCDay()+6)%7;
+ day.setUTCDate(day.getUTCDate()-back);return day.toISOString().slice(0,10);
+}
+/** One line of the week's ranking: each player's heaviest fish of the week. */
+export interface FishRankEntry {rank:number;id:string;name:string;fish:string;kg:number;}
+export interface FishRanking {week:string;entries:FishRankEntry[];}
+export const FISH_RANKING_SIZE=10;
 /** Each fisher level widens the bar's target a little and raises the odds of rare fish (and the automatic chance); never the rod's prizes. */
 export function levelBonus(level:number){const n=Math.max(0,Math.min(MAX_FISHING_LEVEL,level)-1);return {control:n*.008,luck:n*.006,auto:n*.002};}
 /** The rod as it fishes for a player of this fisher level. */
@@ -176,7 +203,17 @@ export function effectiveRod(rod:FishingRod,level:number):FishingRod{const b=lev
 
 // ── Profile ──
 /** What a profile keeps about fishing (persisted inside the profile JSON). */
-export interface FishingProfile {rod:string;rods:string[];/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];/** Rod prizes fished today (Brasília), against FISHING_DAILY_CAPS. */daily:{day:string;gold:number;coupons:number;fragments:number};}
+export interface FishingProfile {rod:string;rods:string[];/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];/** Rod prizes fished today (Brasília), against FISHING_DAILY_CAPS. */daily:{day:string;gold:number;coupons:number;fragments:number};/** The heaviest fish of this week (fishingWeek), for the ranking. */week?:{key:string;fish:string;kg:number};/** Fish kept in the Sacola, one by one, until sold at the Casa de Pesca (newest first). */bag:BagFish[];}
+/**
+ * One fish in the Sacola (pedido do matheus, 20/10): each catch is its own fish with its weight; two of the
+ * same kind with different weights are two fish worth different amounts. `value` is fixed at the catch
+ * (rarity × weight × presses, catchPoints; a quarter in automatic) and paid in Pontos de Pesca when sold.
+ */
+export interface BagFish {id:string;fish:string;kg:number;value:number;at:number;auto?:boolean;}
+/** The Sacola holds this many fish; a catch with the Sacola full is sold on the spot. */
+export const FISH_BAG_MAX=200;
+/** At most this many fish per sale. */
+export const MAX_FISH_SELL=FISH_BAG_MAX;
 /** One catch in the history window. */
 export interface FishingHistoryEntry {fish:string;kg:number;points:number;xp:number;at:number;auto?:boolean;drops?:FishingDrop[];}
 export const FISHING_HISTORY=30;
@@ -196,7 +233,12 @@ export function normalizeFishing(raw:unknown):FishingProfile{
  const refund=int(legacy.baits?.['bait-glow'],9999)*BAIT_REFUND;
  const d=r.daily&&typeof r.daily==='object'?r.daily:undefined;
  const daily={day:typeof d?.day==='string'?d.day:'',gold:int(d?.gold),coupons:int(d?.coupons),fragments:int(d?.fragments)};
- return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,rods,points:int(r.points)+refund,caught,best,total:int(r.total),xp:int(r.xp),history,daily};
+ const w=r.week&&typeof r.week==='object'?r.week:undefined;
+ const week=w&&typeof w.key==='string'&&FISH_BY_ID.has(w.fish)&&typeof w.kg==='number'&&w.kg>0?{key:w.key,fish:w.fish,kg:Math.round(w.kg*100)/100}:undefined;
+ const seen=new Set<string>();
+ const bag=(Array.isArray(r.bag)?r.bag:[]).filter((b):b is BagFish=>!!b&&typeof b==='object'&&typeof b.id==='string'&&/^[a-z0-9-]{1,40}$/.test(b.id)&&FISH_BY_ID.has(b.fish)&&typeof b.kg==='number'&&b.kg>0&&!seen.has(b.id)&&!!seen.add(b.id))
+  .slice(0,FISH_BAG_MAX).map(b=>({id:b.id,fish:b.fish,kg:Math.round(b.kg*100)/100,value:Math.max(1,int(b.value)),at:typeof b.at==='number'?b.at:0,...(b.auto?{auto:true}:{})}));
+ return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,rods,points:int(r.points)+refund,caught,best,total:int(r.total),xp:int(r.xp),history,daily,...(week?{week}:{}),bag};
 }
 
 // ── Fishing shop (Casa de Pesca): Pontos de Pesca for rewards ──
@@ -223,7 +265,8 @@ export const MAX_FISHING_BUY=20;
 
 // ── What the client sees ──
 export type FishingPhase='idle'|'waiting'|'bite'|'result';
-export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;/** Rod prizes that came up with the fish. */drops?:FishingDrop[];/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
+/** `points`: what the fish is worth when sold at the Casa de Pesca; `sold`: the Sacola was full, so it was sold on the spot. */
+export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;sold?:boolean;/** Its place in the Sacola. */bagId?:string;/** Rod prizes that came up with the fish. */drops?:FishingDrop[];/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
 /** My own fishing session: the bar runs from `start` (server time); `press`/`hits`/`misses` count the presses so far. */
 export interface FishingView {spot:string;phase:FishingPhase;auto:boolean;since:number;challenge?:FishChallenge&{start:number;press:number;misses:number;grades:PressGrade[]};result?:{success:boolean;catch?:FishingCatch;fish?:string};}
 /** What other players see of someone fishing (rod out, float, the fish coming out of the water). */

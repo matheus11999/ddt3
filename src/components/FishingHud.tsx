@@ -11,6 +11,8 @@ import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
 import {ItemCard} from './ItemCard';
 import {ROD_LEVEL,RodInfo} from './FishingRodInfo';
+import {FishingRanking} from './FishingRanking';
+import {weightClass} from './FishingFish';
 import {fishingPick} from '../game/fishingPick';
 import './Fishing.css';
 
@@ -56,6 +58,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
   <button className="fishing-trade" onClick={()=>{client.openFishShop();audio.play('click');}} title="Trocar Pontos de Pesca por itens"><span className="fishing-trade-art"/><span>Trocas</span></button>
   <button className="fishing-trade fishing-history-button" onClick={()=>{setHistory(true);audio.play('click');}} title="Últimas capturas"><span className="fishing-trade-art"><ScrollText size={30} strokeWidth={2.2}/></span><span>Histórico</span></button>
   {history&&<FishingHistory onClose={()=>setHistory(false)}/>}
+  <FishingRanking/>
   <section className="fishing-card" aria-label="Pescador" title="Nível de pescador: sobe com a EXP de pesca">
    <b className="fishing-card-level">{progress.level}</b>
    <div className="fishing-card-title"><small>Pescador</small></div>
@@ -167,8 +170,9 @@ function Result({view}:{view:FishingView}){
    <div className="fishing-result-text">
     <em className="fishing-rarity">{rarity.name}</em>
     <strong>{fish?.name}</strong>
-    <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b></span>
-    <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b>{fish&&(()=>{const w=weightClass(fish,c.kg);return <i className={`fishing-weight weight-${w.id}`}>{w.name}</i>;})()}</span>
+    <div className="fishing-rewards"><span title={c.sold?'Sacola cheia: vendido na hora':'Vale isso na Casa de Pesca'}><FishingIcon id="fishing-points" size={20}/>{c.sold?`+${c.points}`:`Vale ${c.points}`}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    <small className="fishing-result-bag">{c.sold?'Sacola cheia: vendido na hora':'Guardado na Sacola'}</small>
     {c.drops?.length?<div className="fishing-drops">{c.drops.map(d=><span key={d.kind} className={`fishing-drop ${d.kind}`}><PrizeArt kind={d.kind} size={22}/>+{d.amount} {dropLabel(d.kind,d.amount)}</span>)}</div>:null}
     {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
    </div>

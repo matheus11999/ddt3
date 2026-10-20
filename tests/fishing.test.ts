@@ -5,9 +5,9 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
+import {buyFishingOffer,chooseFishingGear,sellFish,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,fishWeight,catchPoints,catchXp,weightShare,fishingWeek,FISH_BAG_MAX,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -67,13 +67,21 @@ test('automatic fishing is always less reliable than a good manual player, and l
  assert.equal(new Set(Array.from({length:400},(_,i)=>pickFish('ninfeias',ROD_BY_ID.get('rod-royal')!,i/400).id)).size,FISH.length);
 });
 
-test('a catch adds points, fisher EXP and the collection',()=>{
+test('a catch goes into the Sacola with its weight and value, adds fisher EXP and the collection',()=>{
  const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
  assert.equal(p.fishing.rod,'rod-bamboo');assert.equal(fishingLevel(p.fishing.xp),1);
- const first=settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2)}});
- assert.deepEqual({...first.catch},{fish:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2),record:false,first:true,levelUp:2});
- const second=settleFishing(p,{fish:{id:'lambari-dourado',kg:.35,points:2,xp:20}});
- assert.equal(second.catch!.record,true);assert.equal(p.fishing.points,4);assert.equal(p.fishing.caught['lambari-dourado'],2);assert.equal(p.fishing.best['lambari-dourado'],.35);
+ const first=settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2)},at:1000});
+ assert.deepEqual({...first.catch},{fish:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2),record:false,first:true,bagId:first.catch!.bagId,levelUp:2,});
+ const second=settleFishing(p,{fish:{id:'lambari-dourado',kg:.35,points:3,xp:20},at:2000});
+ assert.equal(second.catch!.record,true);assert.equal(p.fishing.points,0);assert.equal(p.fishing.caught['lambari-dourado'],2);assert.equal(p.fishing.best['lambari-dourado'],.35);
+ // Two of the same fish with different weights are two fish in the Sacola, each with its own value.
+ assert.deepEqual(p.fishing.bag.map(b=>({fish:b.fish,kg:b.kg,value:b.value})),[{fish:'lambari-dourado',kg:.35,value:3},{fish:'lambari-dourado',kg:.3,value:2}]);
+ assert.notEqual(p.fishing.bag[0].id,p.fishing.bag[1].id);
+ // Selling pays each fish's value; a fish not in the Sacola is refused and nothing changes.
+ assert.throws(()=>sellFish(p,[p.fishing.bag[0].id,'nao-existe']),/não está mais na Sacola/);assert.equal(p.fishing.bag.length,2);
+ const sale=sellFish(p,[p.fishing.bag[0].id]);assert.deepEqual({sold:sale.sold,points:sale.points},{sold:1,points:3});
+ assert.equal(p.fishing.points,3);assert.deepEqual(p.fishing.bag.map(b=>b.kg),[.3]);
+ assert.throws(()=>sellFish(p,[]),/Escolha/);
  assert.throws(()=>chooseFishingGear(p,'rod-oak'),/não tem essa vara/);
 });
 
@@ -191,7 +199,7 @@ test('manual fishing: bite, presses on the target land the fish; walking away re
  }
  await flush();
  const done=last(f.events.get(f.a.id)!,'fishing')!.fishing!;assert.equal(done.phase,'result');assert.equal(done.result!.success,true);
- assert.equal(done.result!.catch!.first,true);assert.ok(f.store.profiles.get(f.a.id)!.fishing.points>0);
+ assert.equal(done.result!.catch!.first,true);{const fp=f.store.profiles.get(f.a.id)!.fishing;assert.equal(fp.bag.length,1);assert.ok(fp.bag[0].value>0);assert.equal(fp.points,0);}
  // Others see the catch on the lakeside.
  assert.equal(last(f.events.get(f.b.id)!,'lobby')!.players.find(p=>p.id===f.a.id)!.fishing!.success,true);
  f.game.tick(done.since+RESULT_MS+1);assert.equal(last(f.events.get(f.a.id)!,'fishing')!.fishing!.phase,'idle');
@@ -223,11 +231,49 @@ test('automatic fishing lands fish by chance and casts again by itself (AFK)',as
   assert.equal(peer.fishing!.phase,'result');assert.equal(peer.fishing!.result!.success,true);
   // Automatic yields a quarter of a manual catch.
   const c=peer.fishing!.result!.catch!,fish=FISH_BY_ID.get(c.fish)!;
-  assert.deepEqual({points:c.points,xp:c.xp},autoReward(fish));assert.ok(c.points<=Math.ceil(fish.points/4));
+  assert.deepEqual({points:c.points,xp:c.xp},autoReward(fish,c.kg));assert.ok(c.points<=Math.ceil(fish.points*3/4));
   f.game.tick(peer.fishing!.since+RESULT_MS);
  }
  assert.equal(f.store.profiles.get(f.a.id)!.fishing.total,3);
  assert.ok(HOOK_LEAD_MS>0);
  // Leaving the Pescaria stops the line and turns automatic mode off (the HUD comes back in manual).
  await f.game.command(f.a.id,{type:'zone',zone:'plaza'});assert.equal(peer.fishing,undefined);assert.equal(peer.fishAuto,undefined);
+});
+
+test('heavy fish are very hard to get, for every rarity, and only perfect presses reach the top',()=>{
+ for(const fish of FISH){
+  const shares=Array.from({length:1000},(_,i)=>weightShare(fish,fishWeight(fish,(i+.5)/1000,1))).sort((a,b)=>a-b);
+  assert.ok(shares[500]<.01,`${fish.id}: metade bem leve`);assert.ok(shares[990]<.95,`${fish.id}: 1% mais pesado ainda abaixo do máximo`);
+  assert.equal(fishWeight(fish,1,1),fish.maxKg);assert.ok(fishWeight(fish,1,0)<fish.maxKg);
+ }
+});
+test('a fish is worth more by rarity and by weight: a heavy rare beats a light rare',()=>{
+ const rare=FISH.find(f=>fishRarity(f).id==='raro')!,common=FISH.find(f=>fishRarity(f).id==='comum'&&f.points>1)!;
+ assert.ok(catchPoints(rare,rare.maxKg,0)>catchPoints(rare,rare.minKg,0)*4);
+ assert.ok(catchPoints(rare,rare.minKg,0)>catchPoints(common,common.minKg,0));
+ assert.ok(catchPoints(rare,rare.maxKg,1)>catchPoints(rare,rare.maxKg,0));
+ assert.ok(catchXp(rare,rare.maxKg)>catchXp(rare,rare.minKg));
+});
+test('fisher levels climb slowly',()=>{
+ assert.ok(fishingXpFor(5)>=1300);assert.ok(fishingXpFor(12)>=9000);assert.ok(fishingXpFor(50)>=150000);
+});
+test('the week starts on Monday in Brasília and keeps only the heaviest fish of the week',()=>{
+ // Monday 2026-10-19 00:30 in Brasília (03:30 UTC) and the Sunday night before it.
+ assert.equal(fishingWeek(Date.UTC(2026,9,19,3,30)),'2026-10-19');assert.equal(fishingWeek(Date.UTC(2026,9,19,2,30)),'2026-10-12');
+ assert.equal(fishingWeek(Date.UTC(2026,9,25,20)),'2026-10-19');
+ const p=normalizeProfile({id:randomUUID(),name:'Pescador'}),at=Date.UTC(2026,9,20,15);
+ const first=settleFishing(p,{fish:{id:'carpa-lua',kg:2,points:5,xp:10},at});assert.deepEqual(first.weekRecord,{week:'2026-10-19',fish:'carpa-lua',kg:2});
+ assert.equal(settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:6},at:at+1}).weekRecord,undefined);
+ assert.deepEqual(settleFishing(p,{fish:{id:'bagre-barbudo',kg:7.5,points:5,xp:10},at:at+2}).weekRecord,{week:'2026-10-19',fish:'bagre-barbudo',kg:7.5});
+ // A new week: the first fish is the record again, even a light one.
+ assert.equal(settleFishing(p,{fish:{id:'lambari-dourado',kg:.2,points:2,xp:6},at:at+7*864e5}).weekRecord!.week,'2026-10-26');
+});
+
+test('with the Sacola full, a new catch is sold on the spot',()=>{
+ const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
+ for(let i=0;i<FISH_BAG_MAX;i++)settleFishing(p,{fish:{id:'lambari-dourado',kg:.2,points:2,xp:6},at:1000+i});
+ assert.equal(p.fishing.bag.length,FISH_BAG_MAX);assert.equal(p.fishing.points,0);
+ const full=settleFishing(p,{fish:{id:'carpa-lua',kg:3,points:9,xp:10},at:9000});
+ assert.equal(full.catch!.sold,true);assert.equal(p.fishing.points,9);assert.equal(p.fishing.bag.length,FISH_BAG_MAX);
+ assert.equal(normalizeFishing(JSON.parse(JSON.stringify(p.fishing))).bag.length,FISH_BAG_MAX);
 });

@@ -48,7 +48,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 ## Nível de pescador
 
-- EXP = 10 × pontos do peixe. Nível n pede `60 × (n−1)^1,7` de EXP total; máximo 50 (`fishingLevel`, `fishingLevelProgress`).
+- EXP por raridade e peso (`catchXp`: 6, 10, 18, 32, 60 de Comum a Lendário, ×0,8 a ×1,4 pelo peso). Nível n pede `100 × (n−1)^1,9` de EXP total; máximo 50 (`fishingXpFor`, `fishingLevel`). Progressão lenta (pedido do matheus, 20/10): nível 5 ≈ 1.400 EXP, nível 12 ≈ 9.500, nível 50 ≈ 160.000.
 - Cada nível acima do 1: +0,8% de verde, +0,6% de sorte, +0,2% no automático (`levelBonus`, aplicado por `effectiveRod`). Itens da loja podem pedir nível (Pedra Nv. 2 pede Nv. 3, Vara de Carvalho Nv. 5).
 
 ## Interface
@@ -59,11 +59,11 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Chave Auto pintada (`18-toggle-auto.png`): desligada cinza com carretilha de ferro, ligada verde com carretilha dourada e brilho pulsando, selo AUTOMÁTICO sobre a bandeja, aviso curto ao trocar e um selo de carretilha girando ao lado da cabeça de quem pesca no automático (visto por todos, `FishingPose.auto`).
 - Desafio pequeno sobre a cabeça (só no manual), pintado (`16-minigame-b.png`): painel com a carpa e a escotilha (sombra do peixe e anel do tempo), canal de água correndo, alvo verde, boia, gemas de acerto/erro e estrelas (`scripts/build-fishing-ui.py` recorta todas as pranchas da interface).
 - Resultado: o peixe (sem círculo atrás, pedido do matheus), nome em Lilita One, peso, estrelas, Pontos e EXP.
-- Casa de Pesca: balcão à esquerda (a Casa de Pesca sobre a aura dourada, nível, Pontos, totais) e abas Trocas (cards com moldura de item, preço, quantidade − / +) e Coleção (por lago, com contagem).
+- Casa de Pesca: balcão à esquerda (a Casa de Pesca sobre a aura dourada, nível, Pontos, totais) e abas Comprar (faixas compactas por grupo), Vender e Coleção (por lago, com contagem).
 
 ## Pontos de Pesca e Casa de Pesca
 
-- Cada peixe pescado dá Pontos de Pesca (`Profile.fishing.points`). Clicar na Casa de Pesca abre a janela com **Trocas** e **Coleção** (peixes por lago, `???` para os não pescados, quantidade e recorde).
+- Pontos de Pesca (`Profile.fishing.points`) vêm só da **venda** dos peixes na aba Vender (ver "Peso, venda e ranking" abaixo). A Casa de Pesca tem **Comprar**, **Vender** e **Coleção** (peixes por lago, `???` para os não pescados, quantidade e recorde).
 - Trocas (`FISHING_SHOP`, `fish-buy`, validado em `server/fishing.ts`): 100 de Ouro (50), Isca Brilhante ×10 (60), Pedra Nv. 1 (30), Pedra Nv. 2 (110, Nv. 3), Ticket de Cor (150, respeita o máximo), Adubo de Orvalho (40), Vara de Carvalho (800, Nv. 5, uma vez). Até 20 por troca.
 
 ## Dados
@@ -112,3 +112,12 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Escadas têm `art` (`side` de lado, `grand` ou `narrow` de frente, `FRONT_STAIRS`): a de frente fica encostada no muro, do gramado de cima ao terraço de baixo, e anda-se reto pelo meio. Escolha no editor do `/admin` (campo Desenho).
 - O Lago das Ninfeias usa o lago limpo; as vitórias-régias e lótus são peças soltas que balançam por cima da água, e a isca nunca cai sobre uma delas (`clearOfPads` em `shared/fishingMap.ts`, vale para qualquer layout).
 - A ponte em arco liga a ilha à margem leste com as duas cabeceiras de pedra em terra; o píer de pedra sai da margem da frente.
+
+## Peso, venda e ranking (20/10, pedidos do matheus)
+
+- **Peso**: cada peixe sai com um peso dentro da faixa da espécie (`fishWeight`): `roll^8 × (0,7 + 0,3 × qualidade)`, então quase todo peixe é leve, peso alto é raríssimo em qualquer raridade, e só uma pescada perfeita à mão chega ao máximo (o automático para em 79%). Classes na tela: Leve, Médio, Pesado e Troféu (`weightClass` em `src/components/FishingFish.tsx`).
+- **Valor**: `catchPoints = pontos da espécie × (0,5 + 2,5 × parte do peso) × (1 + 0,25 × qualidade)`; o automático vale 25%. Um raro pesado vale bem mais que um raro leve; o valor fica gravado no peixe ao pescar.
+- **Sacola**: cada peixe fica guardado separado (`FishingProfile.bag`, `BagFish`), até 200 (`FISH_BAG_MAX`); dois peixes iguais com pesos diferentes são dois itens com valores diferentes. Com a Sacola cheia, o peixe novo é vendido na hora (aviso no resultado).
+- **Vender** (aba da Casa de Pesca, `fish-sell` → `Store.fishSell`/`sellFish`): filtros por raridade, ordem (mais valiosos, mais pesados, mais recentes), clicar marca, "Selecionar todos" deixa de fora o recorde de cada espécie (coroa), total da seleção e Vender; o servidor confere cada id na Sacola.
+- **Maior peixe da semana**: painel na lateral direita da Pescaria que o jogador abre e esconde (lembrado no navegador). Só o peso conta, de qualquer peixe; cada jogador aparece com o mais pesado da semana (segunda 00:00 de Brasília, `fishingWeek`). Tabela `fishing_week_records`, top 10 (`Store.fishRanking`), evento `fish-ranking` a cada 60 s e quando alguém bate a marca.
+- Prévia: `npx tsx scripts/preview-fishing-sell.mjs [pasta]` (Sacola falsa no cliente).
