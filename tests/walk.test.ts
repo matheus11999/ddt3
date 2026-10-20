@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS} from '../shared/catalog';
-import {createTerrain,crater,ground,solid,walkPosition,WALK_CLIMB,WALK_STEP,weaponRoughness,WORLD} from '../shared/physics';
+import {createTerrain,crater,ground,solid,walkPosition,WALK_CLIMB,WALK_LEDGE,WALK_STEP,weaponRoughness,WORLD} from '../shared/physics';
 
 const COLS=WORLD.cols,SURFACE=600,BRICK_CRATER=22;
 function flat(){const t=new Uint8Array(COLS*WORLD.rows);for(let r=SURFACE;r<WORLD.rows;r++)t.fill(1,r*COLS,(r+1)*COLS);return t;}
@@ -45,15 +45,23 @@ test('three stacked craters make a pit too deep to climb, in either direction',(
  }
 });
 
-test('walls up to a prone body high are climbed; taller walls and low ceilings stop the walk',()=>{
- const low=flat();for(let r=SURFACE-30;r<SURFACE;r++)low.fill(1,r*COLS+600,r*COLS+660);
- assert.equal(walk(low,{x:560,y:SURFACE},1,10).at(-1)!.y,SURFACE-30,'a 30 px wall is climbed');
+test('on open ground a knee-high lip is climbed; a 33 px box, taller walls and low ceilings stop the walk',()=>{
+ const low=flat();for(let r=SURFACE-WALK_LEDGE;r<SURFACE;r++)low.fill(1,r*COLS+600,r*COLS+660);
+ assert.equal(walk(low,{x:560,y:SURFACE},1,10).at(-1)!.y,SURFACE-WALK_LEDGE,'a ledge-high wall is climbed');
+ const box=flat();for(let r=SURFACE-33;r<SURFACE;r++)box.fill(1,r*COLS+600,r*COLS+660);
+ const stopped=walk(box,{x:560,y:SURFACE},1,10).at(-1)!;assert.ok(stopped.x<600&&stopped.y===SURFACE,'a 33 px box is a wall');
  const wall=flat();for(let r=SURFACE-48;r<SURFACE;r++)wall.fill(1,r*COLS+600,r*COLS+660);
  const blocked=walk(wall,{x:560,y:SURFACE},1,10).at(-1)!;assert.ok(blocked.x<600&&blocked.y===SURFACE);
  const ceiling=flat();for(let r=SURFACE-48;r<SURFACE-33;r++)ceiling.fill(1,r*COLS+600,r*COLS+720);
  assert.ok(walk(ceiling,{x:560,y:SURFACE},1,10).at(-1)!.x<600,'the head hits the overhang');
  const ledge=flat();for(let r=SURFACE-9;r<SURFACE;r++)ledge.fill(1,r*COLS+600,r*COLS+780);
  assert.equal(walk(ledge,{x:570,y:SURFACE},1,10).at(-1)!.y,SURFACE-9,'a low ledge is stepped onto');
+});
+
+test('the gift boxes on Sonho Nevado cannot be climbed from either side (user, 20/10/2026)',()=>{
+ const t=createTerrain('snow');
+ for(const [from,direction] of [[850,1],[1060,-1],[2032,1],[2252,-1]] as const){const path=walk(t,{x:from,y:ground(t,from)},direction,40);
+  assert.ok(Math.min(...path.map(p=>p.y))>=ground(t,from)-WALK_LEDGE,`stays at the box foot going ${direction}`);}
 });
 
 test('two or three Quebra-Tijolos holes dug into each other can be climbed out of (user, 19/10/2026)',()=>{
