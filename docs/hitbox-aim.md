@@ -31,7 +31,7 @@ Pedido do matheus em 19/10/2026, a partir do estudo do DDTank 4.1 em `output/pla
 - **Referência**: `Sound006`, o mesmo som para subir e descer, tocado só quando o grau muda de fato.
 - **Arquivo**: `public/assets/audio/sfx/angle-change.mp3` é original, sintetizado por `scripts/make-angle-click.py`. Imita ataque de cerca de 10 ms, pico em 20 ms, clique claro de 2 a 3,5 kHz com corpo de cerca de 1 kHz e fim em cerca de 120 ms.
 - **Onde toca**: `BattleHud.stepAngle` é o único caminho de ajuste (teclas ↑/↓/W/S e botões da tela, que servem ao toque).
-  - Passo de 1°, repetição de 90 ms independente do FPS (o ritmo já aprovado).
+  - Passo de 1°, repetição de 90 ms independente do FPS (o ritmo já aprovado). Também funciona segurando a barra de força (20/10, pedido do matheus): o tiro sai com o ângulo do momento em que se solta.
   - Toca uma vez por mudança real. No limite fica em silêncio.
   - Não toca em correção de terreno, snapshot ou render.
 - **Áudio**: o cue tem `gap` de 60 ms e no máximo 2 vozes.

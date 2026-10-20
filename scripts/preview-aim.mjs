@@ -67,5 +67,13 @@ try{
  await page.keyboard.down('ArrowDown');await page.waitForTimeout(470);await page.keyboard.up('ArrowDown');const afterKeys=await count();
  const report={afterUp,atLimit,stillAtLimit,afterSnapshot,afterKeys,ticks};console.log(JSON.stringify(report));
  if(afterUp!==3||stillAtLimit!==atLimit||afterSnapshot!==stillAtLimit||afterKeys<=afterSnapshot)throw Error('angle tick check failed '+JSON.stringify(report));
+ // While the force bar is held, the angle still moves (and ticks), and the bar keeps charging.
+ const sent=await page.evaluate(()=>{const f=window.aimFixture;window.aimSent=[];f.client.send=command=>window.aimSent.push(command);return true;});
+ const beforeCharge=await readAngle(),ticksBefore=await count();
+ await page.keyboard.down('Space');await page.waitForTimeout(250);await page.keyboard.down('ArrowDown');await page.waitForTimeout(470);await page.keyboard.up('ArrowDown');
+ const charging=await page.locator('[role="meter"][data-charging="true"]').count(),duringCharge=await readAngle();await page.waitForTimeout(250);await page.keyboard.up('Space');await page.waitForTimeout(100);
+ const fired=await page.evaluate(()=>window.aimSent.filter(command=>command.type==='fire').at(-1));
+ console.log(JSON.stringify({beforeCharge,duringCharge,charging,ticks:await count()-ticksBefore,fired,sent}));
+ if(!charging||duringCharge>=beforeCharge||fired?.angle!==duringCharge)throw Error('angle during charge check failed');
  if(errors.length)console.log(JSON.stringify(errors));
 }finally{await browser.close();}
