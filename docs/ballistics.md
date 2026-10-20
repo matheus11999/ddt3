@@ -25,6 +25,8 @@ Vetor de referência (sem terreno, força 50, 45°, 1 s = 25 passos): vento −3
 
 Como o `EnergyView`: segurando, a régua sobe 1 ponto (20 de força) a cada 40 ms, de 1 a 100 em 4 s, depois desce; soltar dispara o valor pintado; segurar até zero passa a vez. O relógio é explícito (não por quadro), então a régua anda igual em 60 e 144 Hz. Espaço e toque na régua, sem botões novos; blur, troca de turno e janelas cancelam sem disparar.
 
+Tempo do turno: se o relógio zerar com a régua já sendo segurada, o servidor mantém o turno até o disparo (soltar) ou até `CHARGE_HOLD_MS` = 9 s desde o início da carga (ciclo inteiro de 8 s + 1 s de rede). Nesse tempo extra só valem `aim` (a régua continua, sem começar nem largar a carga), `fire` e `pass`; andar, ferramentas e poderes já não. Carga começada depois do tempo não segura nada.
+
 ## Adaptações que continuam do Brasa
 
 - Corte global do ângulo em 5–90° (o DDTank só limita pela arma).

@@ -1,63 +1,26 @@
 {
  "draw": {
-  "about": "TakeAimAsset geometry (game.swf, extraction-notes.json) in its own units; Brasa draws it at `scale` world px per unit around the shot origin. Dots: x distance from the hand pivot and alpha per dot, as in the original display list. arcCenter: centre of the arc's rim relative to the hand pivot, +x towards the back of the body, fitted on faixa-angular.png. Plate: the Brasa degree readout, not part of the original asset.",
-  "scale": 1.2,
+  "about": "TakeAimAsset geometry (game.swf, extraction-notes.json) in its own units; Brasa draws it at `scale` world px per unit around the shot origin. line: the original's dotted hand (dots from 15 to 58.95 units from the pivot) drawn as one solid, slightly transparent line (user request, 20/10/2026). arcCenter: centre of the arc's rim relative to the hand pivot, +x towards the back of the body, fitted on faixa-angular.png. Plate: the Brasa degree readout, not part of the original asset.",
+  "scale": 0.9,
   "arcRimRadius": 53,
   "arcCenter": [
    6,
    -3.5
   ],
   "arcAlpha": 0.7,
-  "dotSize": 3.6,
-  "dots": [
-   {
-    "distance": 15,
-    "alpha": 1
-   },
-   {
-    "distance": 20.15,
-    "alpha": 1
-   },
-   {
-    "distance": 25,
-    "alpha": 1
-   },
-   {
-    "distance": 29.85,
-    "alpha": 1
-   },
-   {
-    "distance": 34.7,
-    "alpha": 1
-   },
-   {
-    "distance": 39.55,
-    "alpha": 0.949
-   },
-   {
-    "distance": 44.4,
-    "alpha": 0.898
-   },
-   {
-    "distance": 49.25,
-    "alpha": 0.801
-   },
-   {
-    "distance": 54.1,
-    "alpha": 0.75
-   },
-   {
-    "distance": 58.95,
-    "alpha": 0.602
-   }
-  ],
   "plate": {
-   "forward": 88,
+   "forward": 72,
    "up": 12
+  },
+  "line": {
+   "from": 15,
+   "to": 58.95,
+   "width": 3,
+   "alpha": 0.65
   }
  },
  "source": "Original paintings made with Codex image generation from the TakeAimAsset study (output/player-hitbox-aim-reference), 19/10/2026; built by scripts/build-aim-art.py.",
- "units": "arc/dot: texture pixels. draw: DDTank TakeAimAsset units, multiplied by draw.scale into Brasa world pixels.",
+ "units": "arc: texture pixels. draw: DDTank TakeAimAsset units, multiplied by draw.scale into Brasa world pixels.",
  "arc": {
   "file": "/assets/ui/aim/aim-red-arc.png",
   "size": [
@@ -71,17 +34,5 @@
   "rimRadius": 200,
   "rimFitResidual": 3.19,
   "note": "Painted facing LEFT (forward = 9 o'clock), sweeping from 12 to about 7 o'clock; mirrored for facing right and turned with the body tilt."
- },
- "dot": {
-  "file": "/assets/ui/aim/aim-yellow-dot.png",
-  "size": [
-   32,
-   32
-  ],
-  "pivot": [
-   16.0,
-   16.0
-  ],
-  "bodySize": 24
  }
 }

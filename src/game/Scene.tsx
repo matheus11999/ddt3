@@ -17,6 +17,7 @@ import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
 import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
+import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {drawHitboxDebug,HITBOX_DEBUG} from './hitboxDebug';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
@@ -76,7 +77,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
-   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   let nextPaint=0,lastPaint=0,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity;
   /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
   const watchSpeed=(t:number)=>{
@@ -205,16 +206,16 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
-     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
+     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
-     if(aiming)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,'back');
+     if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,limits,'back');
      // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
      const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
-     if(aiming)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,'front');
+     if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits,'front');
     }
     // Plates go on top of every fighter, stacked when neighbours stand close together.
     drawFighterPlates(c,plates,t);
