@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react';
 import {Lock} from 'lucide-react';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {FISH,FISHING_LAKES,FISHING_SHOP,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
+import {FISH,FISH_TABLES,FISHING_SHOP,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
 import type {FishingOffer} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
@@ -62,8 +62,8 @@ export function FishingShop(){
         </span>}
       </div>
      </li>;})}</ul>
-    :<div className="fishing-collection">{FISHING_LAKES.map(lake=>{const list=FISH.filter(fish=>fish.lakes[0]===lake.id),got=list.filter(fish=>f.caught[fish.id]).length;
-     return <section key={lake.id}><h3 className="wood-ribbon">{lake.name}<small>{got}/{list.length}</small></h3><ul>{list.map(fish=>{
+    :<div className="fishing-collection">{Object.entries(FISH_TABLES).map(([id,name])=>{const list=FISH.filter(fish=>fish.lakes[0]===id),got=list.filter(fish=>f.caught[fish.id]).length;
+     return <section key={id}><h3 className="wood-ribbon">{name}<small>{got}/{list.length}</small></h3><ul>{list.map(fish=>{
       const count=f.caught[fish.id]??0;
       return <li key={fish.id} className={`fishing-entry ${count?'':'unknown'}`} title={count?`${fish.name}: ${count} pescado(s)`:'Ainda não pescado'}>
        <ItemCardFrame variant="preview" empty={!count}><FishingIcon id={fish.id} size={54} unknown={!count}/>{count>0&&<span className="fishing-count">×{count}</span>}</ItemCardFrame>

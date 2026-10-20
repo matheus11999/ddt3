@@ -7,8 +7,10 @@ import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,WORLD_BOSS_MAP
 import type {MapId,MapOverride,MapRegion} from '../shared/maps';
 import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared/lobby';
 import type {LobbyLayoutOverride} from '../shared/lobby';
-import {LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
-import type {AdminMapSummary,EditableLayout,LobbyLayout,PublishedMap,PublishedMaps} from '../shared/mapAdmin';
+import {FISHING_MAP_ID,LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
+import type {AdminMapSummary,EditableLayout,FishingLayoutData,LobbyLayout,PublishedMap,PublishedMaps} from '../shared/mapAdmin';
+import {FISHING_LAKES,FISHING_SPAWN,FISHING_SPOTS,applyFishingLayout,defaultFishingLayout,fishingBlocked,fishingLayout} from '../shared/fishingMap';
+import type {FishingLayout} from '../shared/fishingMap';
 import type {ReportStore} from './reports';
 import {REPORT_STATUSES,reportUpdateSchema} from '../shared/reports';
 import type {ReportStatus} from '../shared/reports';
@@ -30,7 +32,7 @@ import {worldBossScheduleSchema,worldBossSettingsSchema,worldBossStartSchema,wor
  * every write also passes the server's Origin check.
  */
 const COOKIE='brasa_admin';
-const BUILT_IN_NAMES:Record<string,string>={[LOBBY_MAP_ID]:'Praça Celeste'};
+const BUILT_IN_NAMES:Record<string,string>={[LOBBY_MAP_ID]:'Praça Celeste',[FISHING_MAP_ID]:'Pescaria'};
 /** Station spots of the plaza as shipped (src/game/lobbyWorld.ts); only the forge moves a server rule (SMITH_POSITION). */
 const DEFAULT_STATIONS=[{id:'forge',x:3720,y:632,height:300}];
 
@@ -44,6 +46,20 @@ export interface AdminContext {store:AdminStore;reports?:ReportStore;live:()=>{o
 
 const png=(base64:string)=>{const buffer=Buffer.from(base64,'base64');if(buffer.length<24||buffer.readUInt32BE(0)!==0x89504e47)throw new Error('Imagem inválida.');return {buffer,width:buffer.readUInt32BE(16),height:buffer.readUInt32BE(20)};};
 const ipOf=(req:FastifyRequest)=>req.ip??'unknown';
+
+/**
+ * Rules the server enforces before a Pescaria layout goes live: players appear on free floor and
+ * every pond has somewhere to fish from. Checked on the layout itself, then the one in use comes back.
+ */
+export function fishingBlockers(next:FishingLayout):string[]{
+ const current=fishingLayout(),blockers:string[]=[];
+ try{
+  applyFishingLayout(next);
+  if(fishingBlocked(FISHING_SPAWN.x,FISHING_SPAWN.y))blockers.push('a entrada dos jogadores está num lugar bloqueado');
+  for(const lake of FISHING_LAKES)if(!FISHING_SPOTS.some(s=>s.lake===lake.id))blockers.push(`${lake.name}: nenhum lugar livre na margem para pescar`);
+ }finally{applyFishingLayout(current);}
+ return blockers;
+}
 
 /** Rules the server enforces before a map goes live: every spawn on ground, regions inside the map. */
 export function mapBlockers(layout:EditableLayout,regions:readonly MapRegion[]):string[]{
@@ -65,7 +81,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  const {store}=ctx,throttle=new LoginThrottle();
  const defaultLobby:LobbyLayoutOverride=structuredClone({spawn:{...LOBBY_SPAWN},walk:{...LOBBY_WALK},obstacles:[...LOBBY_OBSTACLES],stations:DEFAULT_STATIONS});
  const terrainUrl=(id:string,revision:number)=>`/api/maps/${id}/terrain/${revision}.png`;
- let published:PublishedMaps={maps:[],lobby:null};
+ let published:PublishedMaps={maps:[],lobby:null,fishing:null};
 
  const publishedMap=(map:{id:string;kind:string;base:string},revision:{id:number;data:Record<string,unknown>}):PublishedMap=>{
   const data=revision.data,layout=data.layout as EditableLayout;
@@ -90,10 +106,11 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
 
  /** Applies what is published to the running game (collision, spawns, names, lobby footprints). Running matches keep their version. */
  const refresh=async()=>{
-  const rows=await store.published(),next:PublishedMaps={maps:[],lobby:null};
+  const rows=await store.published(),next:PublishedMaps={maps:[],lobby:null,fishing:null};
   for(const {map,revision} of rows){
    const data=revision.data;
    if(map.kind==='lobby'){next.lobby={id:map.id,kind:'lobby',name:data.name,revision:revision.id,lobby:data.lobby as LobbyLayout};continue;}
+   if(map.kind==='fishing'){next.fishing={id:map.id,kind:'fishing',name:data.name,revision:revision.id,fishing:data.fishing as FishingLayoutData};continue;}
    next.maps.push(publishedMap(map,revision));
   }
   const inUse=new Set(ctx.pinnedMaps?.()??[]);
@@ -101,6 +118,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   for(const old of published.maps)if(!next.maps.some(m=>m.id===old.id))removeMapOverride(old.id);
   for(const m of next.maps)applyMapOverride(m as MapOverride);
   applyLobbyLayout(next.lobby?.lobby??defaultLobby);
+  applyFishingLayout((next.fishing?.fishing as FishingLayout|undefined)??defaultFishingLayout());
   published=next;
   await keepPinned();
  };
@@ -267,19 +285,19 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
 
  // ── Maps ──
  const instanceIds:readonly string[]=[...INSTANCE_MAP_IDS,...WORLD_BOSS_MAP_IDS];
- const builtIn=(id:string)=>id===LOBBY_MAP_ID||(MAP_IDS as readonly string[]).includes(id)||instanceIds.includes(id);
- const builtInKind=(id:string)=>id===LOBBY_MAP_ID?'lobby' as const:instanceIds.includes(id)?'instance' as const:'pvp' as const;
+ const builtIn=(id:string)=>id===LOBBY_MAP_ID||id===FISHING_MAP_ID||(MAP_IDS as readonly string[]).includes(id)||instanceIds.includes(id);
+ const builtInKind=(id:string)=>id===LOBBY_MAP_ID?'lobby' as const:id===FISHING_MAP_ID?'fishing' as const:instanceIds.includes(id)?'instance' as const:'pvp' as const;
  const summary=(id:string,row:(StoredMap&{draft?:StoredRevision['data']|null})|null):AdminMapSummary=>{
-  const live=published.maps.find(m=>m.id===id),isLobby=id===LOBBY_MAP_ID,draft=row?.draft,original=!isLobby&&builtIn(id)?getMap(id as MapId):null;
+  const live=published.maps.find(m=>m.id===id),isFishing=id===FISHING_MAP_ID,isLobby=id===LOBBY_MAP_ID||isFishing,draft=row?.draft,original=!isLobby&&builtIn(id)?getMap(id as MapId):null;
   const layout=draft?.layout as EditableLayout|undefined;
   return {id,kind:row?.kind??builtInKind(id),name:draft?.name??original?.name??BUILT_IN_NAMES[id]??id,subtitle:String(draft?.subtitle??original?.subtitle??''),builtIn:builtIn(id),
    enabled:live?.enabled??(draft?draft.enabled!==false:true),base:row?.base??id,draftRevision:row?.draftRevision??null,publishedRevision:row?.publishedRevision??null,updatedAt:row?.updatedAt??null,updatedBy:row?.updatedBy??null,
-   preview:row?.draftRevision&&!isLobby?`/api/admin/maps/${id}/preview/${row.draftRevision}.png`:isLobby?'/assets/lobby/plaza.webp':`/assets/maps/${id}-preview.png`,
+   preview:row?.draftRevision&&!isLobby?`/api/admin/maps/${id}/preview/${row.draftRevision}.png`:isFishing?'/assets/fishing/props/pond-lily.webp':isLobby?'/assets/lobby/plaza.webp':`/assets/maps/${id}-preview.png`,
    width:isLobby?4608:layout?.width??original?.dimensions.width??1536};
  };
  app.get('/api/admin/maps',async(req,reply)=>{
   if(!await guard(req,reply))return;
-  const rows=await store.maps(),ids=[...MAP_IDS,...instanceIds,LOBBY_MAP_ID,...rows.map(r=>r.id)];
+  const rows=await store.maps(),ids=[...MAP_IDS,...instanceIds,LOBBY_MAP_ID,FISHING_MAP_ID,...rows.map(r=>r.id)];
   return {maps:[...new Set(ids)].map(id=>summary(id,rows.find(r=>r.id===id)??null))};
  });
  app.get<{Params:{id:string}}>('/api/admin/maps/:id',async(req,reply)=>{
@@ -312,6 +330,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   const parsed=mapSaveSchema.safeParse(req.body);if(!parsed.success)return reply.code(400).send({error:`Dados inválidos: ${parsed.error.issues.slice(0,3).map(i=>`${i.path.join('.')} ${i.message}`).join('; ')}`});
   const save=parsed.data,row=await store.map(id);
   if((id===LOBBY_MAP_ID)!==(save.kind==='lobby'))return reply.code(400).send({error:'Só a Praça Celeste é um mapa de lobby por enquanto.'});
+  if((id===FISHING_MAP_ID)!==(save.kind==='fishing'))return reply.code(400).send({error:'Só a Pescaria usa o editor da Pescaria.'});
   // A map's kind is chosen when it is created and never changes (a PvP map does not become an instance, nor the reverse).
   const kind=row?.kind??(builtIn(id)?builtInKind(id):null);
   if(kind&&save.kind!==kind)return reply.code(400).send({error:`O tipo do mapa não muda depois de criado (este é ${MAP_KIND_NAMES[kind]}).`});
@@ -319,6 +338,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   if(!base)return reply.code(400).send({error:'Mapa novo precisa de um mapa de base.'});
   let terrain:Buffer|null=null,preview:Buffer|null=null,data:Record<string,unknown>;
   if(save.kind==='lobby')data={kind:'lobby',name:save.name,subtitle:save.subtitle,enabled:true,lobby:save.lobby,warnings:save.warnings,blockers:[]};
+  else if(save.kind==='fishing')data={kind:'fishing',name:save.name,subtitle:save.subtitle,enabled:true,fishing:save.fishing,warnings:save.warnings,blockers:fishingBlockers(save.fishing as FishingLayout)};
   else{
    const width=save.layout.width??1536;
    try{const t=png(save.terrain),p=png(save.preview);if(t.width!==width||t.height!==864)throw new Error(`O terreno precisa ter ${width}×864.`);terrain=t.buffer;preview=p.buffer;}

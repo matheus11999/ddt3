@@ -412,3 +412,4 @@ div.adm-field small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-event-settings label small{font-weight:600;color:var(--faint);font-size:12px}
 .adm-event-add{display:flex;flex-wrap:wrap;gap:10px;align-items:end}
 @media (max-width:980px){.adm-event-grid{grid-template-columns:1fr}}
+.adm-btn-row{display:flex;gap:8px}.adm-btn-row .adm-btn{flex:1}

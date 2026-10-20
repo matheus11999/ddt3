@@ -30,7 +30,7 @@ const friend=await open();
 await friend.locator('.lobby-dock-button.fishing').click();await expect(friend.locator('.fishing-hud')).toBeVisible();await friend.waitForTimeout(1500);
 await friend.locator('.fishing-auto').click();await climb(friend);
 const friendSpot=spotFor(-230);
-await friend.locator('.world-canvas').click({position:onLake(-230)});
+await friend.locator('.fishing-main').click();await friend.locator('.world-canvas').click({position:onLake(-230)});
 await expect(friend.locator('.fishing-tip')).toContainText('automático',{timeout:30000});
 
 const page=await open(),canvas=page.locator('.world-canvas');
@@ -39,11 +39,13 @@ await page.locator('.lobby-dock-button.fishing').click();
 await expect(page.locator('.fishing-hud')).toBeVisible();await expect(page.locator('.lobby-dock-button.arena')).toHaveCount(0);
 await page.waitForTimeout(2500);await shot(page,'02-entrada');
 await climb(page);
-// Click the water near the west shore: walk up the stairs to the nearest free spot and cast.
-const spot=spotFor(-lake.rx+90,[friendSpot.id]);
+// Lançar, then pick the lake: walk to its nearest free spot and cast.
+await page.locator('.fishing-main').click();await expect(page.locator('.fishing-tip.picking')).toBeVisible();
+await canvas.hover({position:onLake(-lake.rx+90)});await page.waitForTimeout(500);await shot(page,'03-escolher-lago');
 await canvas.click({position:onLake(-lake.rx+90)});
+await page.waitForTimeout(300);await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});await page.waitForTimeout(150);await shot(page,'03b-isca-na-agua');
 await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});
-await page.waitForTimeout(800);await shot(page,'03-esperando');
+await page.waitForTimeout(800);await shot(page,'03c-esperando');
 let caught=false;
 for(let attempt=0;attempt<4&&!caught;attempt++){
  await expect(page.locator('.fishing-challenge')).toBeVisible({timeout:30000});

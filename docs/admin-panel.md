@@ -42,6 +42,10 @@ Usa o mesmo montador do `npm run build:map` (`shared/mapBuilder.ts`): as peças 
 
 No editor, a aba **Peças** tem a mesma busca, começa em "Este mapa" e pode mostrar "Todas as pastas". Uma peça de outra pasta entra no layout como uma folha emprestada: `sheets` ganha uma chave como `garden-objetos` com caminho relativo (`../../garden/source/objetos.png`), que o `build:map` lê do mesmo jeito; nada é copiado. Folha com nome terminado em `objetos` conta como objeto nos avisos.
 
+### Editor da Pescaria
+
+Mapa `pescaria` (filtro Pescaria na lista). Edita o `FishingLayout` da zona de pesca: lagos (nome, peixes, arte, largura), peças com tamanho, giro, camada, sólida e passarela, escadas, Casa de Pesca, dirigível e chegada, com as regras de caminhada à vista. Detalhes em `docs/fishing.md`.
+
 ### Editor do lobby
 
 Desenha a praça com o próprio `LobbyWorld` do jogo. Move as estações (barracas, pódios, portal da arena, ferreiro) e muda a altura delas; move e redimensiona as pegadas no chão que os jogadores contornam (com "levar a pegada junto" ligado, a pegada acompanha a estação); move a entrada dos jogadores e os limites da área de caminhada. O ponto de usar o ferreiro anda junto com a barraca do ferreiro.
