@@ -47,8 +47,8 @@
 .angle-arrow-shine{fill:#fff3b8d0}
 .artillery-hud .angle-buttons>button:disabled{filter:saturate(.25) brightness(.7);opacity:.75}
 
-/* Force: one bar centred on the screen, its scale and numbers inside it; label and reading on its left */
-.artillery-hud .power-controls{--power-width:min(780px,calc(100% - 744px));position:absolute;left:50%;top:50%;width:var(--power-width);height:34px;flex:none;min-width:0;max-width:none;margin:0;padding:0;transform:translate(-50%,-50%);display:block}
+/* Force: the bar fills the console between the dial and the bars, its scale and numbers inside it; label and reading on its left */
+.artillery-hud .power-controls{position:absolute;left:240px;right:366px;top:50%;width:auto;height:34px;flex:none;min-width:0;max-width:none;margin:0;padding:0;transform:translateY(-50%);display:block}
 .artillery-hud .power-label{position:absolute;right:calc(100% + 10px);top:50%;bottom:auto;width:58px;height:auto;margin:0;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:0}
 .artillery-hud .power-label>span:first-child{font:400 17px/1 var(--hud-font);letter-spacing:0;color:#fff;text-shadow:var(--hud-outline)}
 .artillery-hud .power-readout{min-width:0;justify-content:center}
@@ -73,8 +73,9 @@
 .artillery-hud .power-cursor::before{display:none}
 .artillery-hud .power-track.charging{box-shadow:inset 0 3px 6px #000a,0 0 0 1px #ffe08a,0 0 14px 3px #ffb62e66}
 .artillery-hud .power-track.at-cap.charging>.power-fill{animation:power-cap-flash .32s ease-in-out infinite alternate}
-.artillery-hud .last-power-marker{position:absolute;top:-12px;bottom:auto;height:0;width:0;border:0;transform:translateX(-50%);z-index:4;pointer-events:none}
-.artillery-hud .last-power-marker::before{content:'';position:absolute;left:-7px;top:0;border:7px solid transparent;border-top:10px solid #ff2a1a;border-bottom:0;filter:drop-shadow(0 1px 0 #3a0d08)}
+/* Last shot's force: a lit band across the whole bar, with the red arrow above it */
+.artillery-hud .last-power-marker{position:absolute;top:-1px;bottom:-1px;height:auto;width:7px;border:0;border-radius:2px;background:linear-gradient(90deg,#ff2a1a00,#ff3a24b0 30%,#ffd0c0e0 50%,#ff3a24b0 70%,#ff2a1a00);box-shadow:0 0 6px #ff3a24aa;transform:translateX(-50%);z-index:2;pointer-events:none}
+.artillery-hud .last-power-marker::before{content:'';position:absolute;left:-3.5px;top:-12px;border:7px solid transparent;border-top:10px solid #ff2a1a;border-bottom:0;filter:drop-shadow(0 1px 0 #3a0d08)}
 .artillery-hud .last-power-marker>b{display:none}
 .artillery-hud .power-hint{display:none}
 @keyframes power-stripes{to{background-position:22px 0}}
@@ -201,6 +202,13 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .active-portrait{position:absolute;left:0;top:0;width:164px;display:flex;flex-direction:column;align-items:center;--team:#3aa8ff;--team-deep:#123a7a}
 .artillery-hud .active-portrait.enemy{--team:#ff4a5a;--team-deep:#6a1020}
 .artillery-hud .active-portrait-name{position:relative;z-index:1;max-width:164px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:400 16px/1 var(--hud-font);color:#fff;text-shadow:var(--hud-outline);margin-bottom:3px}
+.artillery-hud .active-portrait-guild{position:relative;z-index:1;max-width:164px;margin:-2px 0 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:400 12px/1 var(--hud-font);color:#e0b8ff;text-shadow:var(--hud-outline)}
+/* Pet medallion: gold ring on the portrait's lower right, pet inside, level under it */
+.artillery-hud .active-portrait-pet{position:absolute;right:-6px;bottom:-2px;z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.artillery-hud .active-portrait-pet-ring{position:relative;display:block;width:50px;height:50px;padding:4px;border-radius:50%;background:conic-gradient(from 210deg,#7a4512,#ffe9a8,#c27a22,#fff3b8,#8a5a1c,#f2c25a,#7a4512);box-shadow:0 0 0 1.5px #3b200a,0 3px 5px #000a,0 0 10px #ffb02e66}
+.artillery-hud .active-portrait-pet-ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ffe9a8 0,#f0a43a 38%,#a2520e 75%,#5a2a06);box-shadow:inset 0 2px 5px #0008}
+.artillery-hud .active-portrait-pet-ring>img{position:relative;width:100%;height:100%;object-fit:contain;transform:scale(1.15);filter:drop-shadow(0 1px 1px #0009)}
+.artillery-hud .active-portrait-pet>b{margin-top:-6px;padding:1px 6px;border-radius:8px;background:#2a1505e6;border:1px solid #f2c25a;font:400 11px/1.1 var(--hud-font);color:#ffe36b;text-shadow:0 1px #000}
 .artillery-hud .active-portrait-stage{position:relative;width:164px;height:150px}
 .artillery-hud .active-portrait-sigil{position:absolute;left:50%;top:50%;width:140px;height:140px;margin:-74px 0 0 -70px;background:url('/assets/ui/aura-blue-sigil.png') center/contain no-repeat;filter:drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);opacity:.9;animation:power-spin 40s linear infinite;pointer-events:none}
 .artillery-hud .active-portrait-avatar{position:absolute;inset:-24px -10px -6px;display:grid;place-items:end center;pointer-events:none;filter:drop-shadow(0 3px 3px #0009)}

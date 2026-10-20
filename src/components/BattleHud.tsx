@@ -12,7 +12,7 @@ import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {WorldBossBanner,WorldBossBar} from './WorldBoss';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
-import type {CSSProperties} from 'react';
+import type {CSSProperties,MouseEvent as ReactMouseEvent,PointerEvent as ReactPointerEvent} from 'react';
 import {Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
@@ -29,6 +29,10 @@ import './BattleHudRefinement.css';
 import './BattleConsole.css';
 type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=1,MAX_POWER=FORCE_BAR_MAX;
+/** Holding the angle (arrow keys or the on-screen arrows): a repeat every 90 ms that moves 1° at first,
+ * 2° after half a second and 3° after 1.2 s; a held button waits 350 ms before repeating. */
+const ANGLE_REPEAT_MS=90,ANGLE_HOLD_DELAY_MS=350;
+const angleHoldSteps=(held:number)=>held<500?1:held<1200?2:3;
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
 // A HUD button that kept focus after a click (PASS, a boost, an ability) must not swallow walking, turning or aiming.
 const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
@@ -74,11 +78,24 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
  // Keyboard and the on-screen buttons (touch) all step the angle here: 1° per step, clamped to the
  // weapon limits; the tick sounds once per real change, never at a limit or on a terrain correction.
- const stepAngle=useCallback((delta:1|-1)=>{
+ const stepAngle=useCallback((delta:number)=>{
   const current=live.current;if(!current.canAim)return;
   const next=Math.max(current.minAngle,Math.min(current.maxAngle,current.angle+delta));if(next===current.angle)return;
   current.angle=next;setAngle(next);audio.cue('angleChange');
  },[setAngle]);
+
+ // Holding an angle arrow: one step at once, then repeats that speed up the longer it is held.
+ const angleHold=useRef<{timer:number;since:number}|null>(null);
+ const stopAngleHold=useCallback(()=>{if(angleHold.current)clearTimeout(angleHold.current.timer);angleHold.current=null;},[]);
+ useEffect(()=>stopAngleHold,[stopAngleHold]);
+ const holdAngle=(dir:1|-1)=>({
+  onPointerDown:(event:ReactPointerEvent<HTMLButtonElement>)=>{if(event.button!==0)return;event.preventDefault();stopAngleHold();stepAngle(dir);
+   const since=performance.now(),tick=()=>{if(!angleHold.current)return;stepAngle(dir*angleHoldSteps(performance.now()-since));angleHold.current.timer=window.setTimeout(tick,ANGLE_REPEAT_MS);};
+   angleHold.current={since,timer:window.setTimeout(tick,ANGLE_HOLD_DELAY_MS)};},
+  onPointerUp:stopAngleHold,onPointerLeave:stopAngleHold,onPointerCancel:stopAngleHold,onContextMenu:(event:ReactMouseEvent)=>event.preventDefault(),
+  // Keyboard activation of the button (Enter/Space on it) still steps once; a pointer press already did.
+  onClick:(event:ReactMouseEvent<HTMLButtonElement>)=>{if(event.detail===0)stepAngle(dir);else event.currentTarget.blur();}
+ });
 
  // This ref represents the value committed to the visible meter, not a pending
  // RAF/state update. Release never recalculates elapsed time or uses stale state.
@@ -147,7 +164,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   sync();const timer=setInterval(sync,160);return()=>clearInterval(timer);
  },[canAct,b.turnNumber]);
  useEffect(()=>{
-  const keys=new Set<string>();
+  const keys=new Set<string>();let angleHeld:number|null=null;
   const down=(event:KeyboardEvent)=>{
    if(event.defaultPrevented||event.altKey||event.ctrlKey||event.metaKey)return;
    const key=event.key.toLowerCase(),side=key==='a'||key==='arrowleft'?-1:key==='d'||key==='arrowright'?1:0;
@@ -178,9 +195,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const timer=setInterval(()=>{
    if(ignoresMoveKeys(document.activeElement))return;
    if(live.current.canAim){
-    if(keys.has('w')||keys.has('arrowup'))stepAngle(1);
-    if(keys.has('s')||keys.has('arrowdown'))stepAngle(-1);
-   }
+    const dir=(keys.has('w')||keys.has('arrowup')?1:0)-(keys.has('s')||keys.has('arrowdown')?1:0);
+    if(dir){angleHeld??=performance.now();stepAngle(dir*angleHoldSteps(performance.now()-angleHeld));}else angleHeld=null;
+   }else angleHeld=null;
    if(!live.current.canAct||turnSubmitted.current)return;
    if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
    if(keys.has('d')||keys.has('arrowright'))client.send({type:'walk',direction:1});
@@ -256,7 +273,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
     <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
-    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{stepAngle(1);if(event.detail>0)event.currentTarget.blur();}}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{stepAngle(-1);if(event.detail>0)event.currentTarget.blur();}}><AngleArrow up={false}/></button></div>
+    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" {...holdAngle(1)}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" {...holdAngle(-1)}><AngleArrow up={false}/></button></div>
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>

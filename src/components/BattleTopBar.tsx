@@ -3,6 +3,8 @@ import {LogOut} from 'lucide-react';
 import {getMap} from '../../shared/maps';
 import {WORLD} from '../../shared/physics';
 import type {Battle,Fighter} from '../../shared/protocol';
+import {petSpecies,petVisual} from '../../shared/pets';
+import type {PetSnapshot} from '../../shared/pets';
 import {sceneView} from '../game/sceneView';
 import {Avatar} from './Avatar';
 import {LevelBadge} from './LevelBadge';
@@ -13,13 +15,25 @@ import {playerMenuProps} from './PlayerActions';
 export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mine:boolean;resolving:boolean;ally:boolean}){
  return <section className={`active-portrait ${ally?'ally':'enemy'}`} aria-label={`Jogador da vez: ${fighter.name}`} data-fighter={fighter.id} {...playerMenuProps({id:fighter.id,name:fighter.name,context:'battle'})}>
   <div className="active-portrait-name">{fighter.name}</div>
+  {fighter.guild&&<div className="active-portrait-guild">{fighter.guild}</div>}
   <div className="active-portrait-stage">
    {(fighter.equipment.upgrade??0)<5&&<i className="active-portrait-sigil" aria-hidden="true"/>}
    <div className="active-portrait-avatar"><Avatar key={fighter.id} equipment={fighter.equipment} size={170} pose="idle" weapon showAura auraAnimated facing={1}/></div>
    <LevelBadge level={fighter.level} size={34}/>
+   <PetMedallion pet={fighter.equipment.pet}/>
   </div>
   <div className="active-portrait-state">{resolving?'DISPARANDO':mine?'SUA VEZ':ally?'VEZ DO ALIADO':'VEZ DO RIVAL'}</div>
  </section>;
+}
+
+/** The fighter's pet in a small gold medallion beside the portrait, its level underneath (as in DDTank). */
+function PetMedallion({pet}:{pet?:PetSnapshot}){
+ const visual=petVisual(pet),art=visual?.portrait??visual?.icon??visual?.sprite;
+ if(!pet||!art)return null;
+ return <div className="active-portrait-pet" title={petSpecies(pet.species)?.name}>
+  <span className="active-portrait-pet-ring"><img src={art} alt="" draggable={false}/></span>
+  <b>LV{pet.level}</b>
+ </div>;
 }
 
 /** Small portraits with a mini HP bar, one row per team: allies to the left of the
