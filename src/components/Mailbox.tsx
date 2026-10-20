@@ -8,7 +8,6 @@ import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {CompositionIcon} from './CompositionIcon';
 import {ItemCardFrame} from './ItemCard';
-import type {ItemRarity} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {Modal} from './Modal';
 import {PetFoodIcon} from './PetFoodIcon';
@@ -38,9 +37,8 @@ const attachmentCount=(a:MailAttachment)=>a.kind==='item'?a.quantity:a.amount;
 function AttachmentCell({a,claimed}:{a:MailAttachment;claimed?:boolean}){
  const count=attachmentCount(a),name=attachmentName(a);
  const art=a.kind==='item'?<ItemIcon id={a.item} size={58} upgrade={a.upgrade??0}/>:a.kind==='pet-food'?<PetFoodIcon food={a.food} size={52}/>:a.kind==='composition'?<CompositionIcon stat={COMPOSITION_STONES.find(s=>s.id===a.stone)?.stat??'attack'} size={52}/>:<RewardIcon kind={a.kind==='coins'?'coins':a.kind} level={a.kind==='stone'?a.level:1} size={52}/>;
- const rarity=(a.kind==='item'?CATALOG[a.item]?.rarity:'common') as ItemRarity|undefined;
  return <div className={`mail-attachment ${claimed?'claimed':''}`} title={`${name}${count>1?` ×${count.toLocaleString('pt-BR')}`:''}`}>
-  <ItemCardFrame rarity={rarity??'common'} variant="slot" className="mail-attachment-card">{art}{a.kind==="item"&&!!a.upgrade&&<UpgradeTag level={a.upgrade} size={34} className="bag-upgrade-tag"/>}{count>1&&<b className="mail-attachment-count">{count.toLocaleString('pt-BR')}</b>}{claimed&&<span className="mail-attachment-done"><PackageCheck size={18}/></span>}</ItemCardFrame>
+  <ItemCardFrame variant="slot" className="mail-attachment-card">{art}{a.kind==="item"&&!!a.upgrade&&<UpgradeTag level={a.upgrade} size={34} className="bag-upgrade-tag"/>}{count>1&&<b className="mail-attachment-count">{count.toLocaleString('pt-BR')}</b>}{claimed&&<span className="mail-attachment-done"><PackageCheck size={18}/></span>}</ItemCardFrame>
   <small>{name}</small>
  </div>;
 }

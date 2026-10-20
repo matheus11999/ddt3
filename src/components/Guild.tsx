@@ -8,12 +8,12 @@ import {BUILDING_LEVEL_COSTS,BUILDING_NAMES,canRaiseBuilding,GUILD_BUILDINGS,GUI
 import type {GuildBuilding,GuildMember,GuildPermission,GuildRank,GuildView} from '../../shared/guilds';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {bagGoods,GoodsArt,GoodsCard,goodsRarity} from './Auction';
+import {bagGoods,GoodsArt,GoodsCard} from './Auction';
 import {Avatar} from './Avatar';
 import {BagContextMenu} from './ColorStudio';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
-import {ItemCard,ItemCardFrame,itemTier,rarityLabel} from './ItemCard';
+import {ItemCard,ItemCardFrame} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {Modal} from './Modal';
 import {playerMenuProps} from './PlayerActions';
@@ -255,7 +255,7 @@ function GuildShop({guild,onClose,toast}:{guild:GuildView;onClose:()=>void;toast
     <div className="shop-shelf">
      <div className="shop-grid">
       {GUILD_SHOP.map(offer=>{const item=CATALOG[offer.id],closed=level<offer.level,short=offer.price>p.gold;return <article key={offer.id} className={`shop-offer ${closed?'guild-offer-locked':''}`} data-shop-item={offer.id}>
-       <ItemCard rarity={item.rarity} aria-label={item.name} aria-describedby={tip?.id===offer.id?'item-tooltip':undefined}
+       <ItemCard aria-label={item.name} aria-describedby={tip?.id===offer.id?'item-tooltip':undefined}
         onMouseEnter={e=>setTip({id:offer.id,anchor:e.currentTarget,mode:'hover'})} onMouseLeave={()=>setTip(t=>t?.mode==='touch'?t:null)}
         onClick={e=>{const anchor=e.currentTarget;setTip(t=>t?.id===offer.id&&t.mode==='touch'?null:{id:offer.id,anchor,mode:'touch'});}}><ItemIcon id={offer.id} upgrade={0} size={64}/></ItemCard>
        <div className="shop-offer-info"><h2>{item.name}</h2><small>{SLOT_NAMES[item.slot]}{item.hpPercent?` · +${item.hpPercent}% de Vida`:''}</small></div>
@@ -276,12 +276,12 @@ function GuildShop({guild,onClose,toast}:{guild:GuildView;onClose:()=>void;toast
     </div>
    </section>
    {pick&&<div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setConfirm(null);}}>
-    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier={itemTier(pick.rarity)}>
+    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra">
      <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" onClick={()=>setConfirm(null)}><X size={18}/></button></header>
      <div className="shop-confirm-body">
-      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame rarity={pick.rarity} variant="detail"><ItemIcon id={pick.id} upgrade={0} size={84}/></ItemCardFrame></div>
+      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame variant="detail"><ItemIcon id={pick.id} upgrade={0} size={84}/></ItemCardFrame></div>
       <b className="shop-confirm-name">{pick.name}</b>
-      <span className="shop-confirm-kind">{SLOT_NAMES[pick.slot]}<em>{rarityLabel(pick.rarity)}</em></span>
+      <span className="shop-confirm-kind">{SLOT_NAMES[pick.slot]}</span>
       <dl className="shop-confirm-cost">
        <div><dt>Preço</dt><dd><RewardIcon size={22}/>{money(price)}</dd></div>
        <div><dt>Seu saldo</dt><dd><RewardIcon size={22}/>{money(p.gold)}</dd></div>
@@ -306,12 +306,12 @@ function GuildStorage({guild}:{guild:GuildView}){
   <div className="guild-section-head"><BuildingArt building="storage" size={58}/><div><h3>{BUILDING_NAMES.storage} · Nv. {guild.buildings.storage}</h3><small>{capacity?`${guild.storage.length} de ${capacity} espaços. Qualquer membro pode guardar e retirar.`:'Fechado. O dono constrói o depósito em Gerenciar.'}</small></div>
    <button className="wood-button" disabled={!capacity||full||pending} onClick={()=>{setPicking(true);audio.play('click');}}><PackagePlus size={17}/>Guardar item</button></div>
   <div className="guild-storage-grid wood-cream">{Array.from({length:Math.max(capacity,10)},(_,i)=>{const stored=guild.storage[i];
-   if(stored)return <ItemCard key={stored.id} rarity={goodsRarity(stored.goods)} className="guild-storage-cell" title={`${goodsName(stored.goods)} · guardado por ${stored.by}.${canWithdraw?' Clique para retirar.':' Seu cargo não pode retirar itens.'}`} disabled={pending||!canWithdraw} onClick={()=>client.guildAction({type:'guild-withdraw',id:stored.id})}>
+   if(stored)return <ItemCard key={stored.id} className="guild-storage-cell" title={`${goodsName(stored.goods)} · guardado por ${stored.by}.${canWithdraw?' Clique para retirar.':' Seu cargo não pode retirar itens.'}`} disabled={pending||!canWithdraw} onClick={()=>client.guildAction({type:'guild-withdraw',id:stored.id})}>
     <GoodsArt goods={stored.goods} size={48}/>{stored.goods.kind==='item'&&!!stored.goods.upgrade&&<UpgradeTag level={stored.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{stored.goods.kind!=='item'&&stored.goods.amount>1&&<b className="guild-cell-count">{money(stored.goods.amount)}</b>}</ItemCard>;
    return <ItemCardFrame key={`empty-${i}`} empty variant="slot" className={`guild-storage-cell ${i>=capacity?'locked':''}`}/>;})}</div>
   {picking&&<div className="guild-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setPicking(false);}}><section className="guild-confirm guild-picker" role="dialog" aria-label="Guardar item">
    <header><strong>Guardar no depósito</strong><button type="button" className="wood-close" aria-label="Fechar" onClick={()=>setPicking(false)}><X size={18}/></button></header>
-   {goods.length?<div className="guild-picker-grid">{goods.map(g=><ItemCard key={g.key} rarity={goodsRarity(g.goods)} className="guild-storage-cell" title={goodsName(g.goods)} onClick={()=>{client.guildAction({type:'guild-deposit',source:g.source.kind==='item'?g.source:{...g.source,amount:g.owned}});setPicking(false);}}>
+   {goods.length?<div className="guild-picker-grid">{goods.map(g=><ItemCard key={g.key} className="guild-storage-cell" title={goodsName(g.goods)} onClick={()=>{client.guildAction({type:'guild-deposit',source:g.source.kind==='item'?g.source:{...g.source,amount:g.owned}});setPicking(false);}}>
     <GoodsArt goods={g.goods} size={48}/>{g.goods.kind==='item'&&!!g.goods.upgrade&&<UpgradeTag level={g.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{g.owned>1&&<b className="guild-cell-count">{money(g.owned)}</b>}</ItemCard>)}</div>
     :<p className="guild-empty"><PackageOpen size={26}/>Nada para guardar. Itens equipados ficam com você.</p>}
   </section></div>}

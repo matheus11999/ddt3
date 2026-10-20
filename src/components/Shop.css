@@ -261,7 +261,7 @@
   background: linear-gradient(#fff7e2, #ffe0a8);
   box-shadow: inset 0 1px #fff, 0 0 0 2px #f6b04f, 0 0 14px #ffae4a88;
 }
-.shop-window .shop-offer > .item-card[data-rarity][data-card-variant] {
+.shop-window .shop-offer > .item-card[data-card][data-card-variant] {
   width: 70px;
   height: 70px;
   padding: 3px;
@@ -432,9 +432,6 @@
   box-shadow: inset 0 1px #ffd9a8, inset 0 -3px #4d220a99, 0 0 0 3px #4a210a, 0 0 0 4px #f6c07a55, 0 22px 60px #1a0c04d0;
   animation: shop-pop .22s cubic-bezier(.2, 1.4, .4, 1);
 }
-.shop-window .shop-confirm[data-tier="normal"] { --glow: #8fd0ff; }
-.shop-window .shop-confirm[data-tier="epic"] { --glow: #d79bff; }
-.shop-window .shop-confirm[data-tier="legendary"] { --glow: #ffd85a; }
 .shop-window .shop-confirm > header {
   position: relative;
   display: flex;
@@ -479,9 +476,6 @@
 .shop-window .shop-confirm-showcase > .item-card[data-card-variant] { position: relative; width: 96px; height: 96px; padding: 4px; border-radius: 16px; }
 .shop-window .shop-confirm-name { max-width: 100%; overflow: hidden; font-size: 21px; font-weight: 900; line-height: 1.15; color: var(--wood-ink); text-align: center; text-overflow: ellipsis; white-space: nowrap; }
 .shop-window .shop-confirm-kind { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; font-size: 12px; font-weight: 800; color: var(--wood-ink-soft); }
-.shop-window .shop-confirm-kind em { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 999px; background: #5b2a0e; color: #fff; font-style: normal; }
-.shop-window .shop-confirm-kind em i { font-style: normal; letter-spacing: 1px; color: #ffd34a; text-shadow: 0 0 4px #ffb92a; }
-.shop-window .shop-confirm-kind em u { text-decoration: none; color: #ffffff40; text-shadow: none; }
 .shop-window .shop-confirm-cost { display: grid; gap: 0; width: 100%; margin: 10px 0 0; overflow: hidden; border-radius: 10px; background: #fff; box-shadow: 0 0 0 1px #e9b877, inset 0 -2px #ecd2a0; }
 .shop-window .shop-confirm-cost > div { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 7px 12px; }
 .shop-window .shop-confirm-cost > div + div { border-top: 1px dashed #e3bf8b; }
@@ -515,19 +509,18 @@ html.mobile-landscape .shop-window .shop-confirm > footer > button { min-height:
 }
 
 /* ---------- Cards por classe (mesmo selo de canto da mochila) ---------- */
-.shop-window .shop-offer > .item-card[data-tier="legendary"] { animation-duration: 3.2s; }
 
 /* ---------- Telas menores ---------- */
 @media (max-width: 1180px) {
   .shop-window .shop-offer { gap: 8px; }
-  .shop-window .shop-offer > .item-card[data-rarity][data-card-variant] { width: 60px; height: 60px; }
+  .shop-window .shop-offer > .item-card[data-card][data-card-variant] { width: 60px; height: 60px; }
   .shop-window .shop-offer > .item-card .item-art { width: 54px !important; height: 54px !important; }
   .shop-window .shop-offer-info h2 { font-size: 14px; }
 }
 @media (max-height: 800px) {
   .shop-window .shop-grid { grid-template-rows: repeat(5, minmax(76px, 1fr)); gap: 6px; padding: 8px; }
   .shop-window .shop-offer { padding-block: 5px; }
-  .shop-window .shop-offer > .item-card[data-rarity][data-card-variant] { width: 58px; height: 58px; }
+  .shop-window .shop-offer > .item-card[data-card][data-card-variant] { width: 58px; height: 58px; }
   .shop-window .shop-offer > .item-card .item-art { width: 52px !important; height: 52px !important; }
   .shop-window .shop-offer-buy { gap: 4px; }
   .shop-window .shop-fitting-head { height: 50px; }
@@ -570,7 +563,7 @@ html.mobile-landscape .shop-window .shop-shelf { grid-template-columns: minmax(0
 html.mobile-landscape .shop-window .shop-grid { grid-template-rows: none; grid-auto-rows: 58px; gap: 5px; padding: 6px; }
 html.mobile-landscape .shop-window .shop-offer { gap: 6px; padding: 4px 6px 4px 4px; border-radius: 10px; }
 html.mobile-landscape .shop-window .shop-offer:hover { transform: none; }
-html.mobile-landscape .shop-window .shop-offer > .item-card[data-rarity][data-card-variant] { width: 48px; height: 48px; padding: 2px; border-radius: 9px; }
+html.mobile-landscape .shop-window .shop-offer > .item-card[data-card][data-card-variant] { width: 48px; height: 48px; padding: 2px; border-radius: 9px; }
 html.mobile-landscape .shop-window .shop-offer > .item-card .item-art { width: 42px !important; height: 42px !important; }
 html.mobile-landscape .shop-window .shop-offer { grid-template-rows: auto auto; row-gap: 2px; }
 html.mobile-landscape .shop-window .shop-offer-info small { display: none; }

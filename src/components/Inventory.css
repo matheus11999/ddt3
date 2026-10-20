@@ -174,7 +174,7 @@
 .game-window.inventory-window .stat-grid>.stat-wide{grid-column:1/-1;max-width:50%;padding-right:10px}
 .game-window.inventory-window .item-preview-pulse{position:absolute;inset:-3px;border:2px solid #ffde72;border-radius:inherit;pointer-events:none;z-index:8;animation:item-preview-pulse .65s ease-out both}
 .inventory-tooltip.item-tooltip{--tip-accent:#aebfd7;position:fixed;z-index:1000;width:288px;max-width:calc(100vw - 20px);max-height:calc(100dvh - 20px);overflow:hidden;pointer-events:none;margin:0;padding:13px;border:2px solid var(--tip-accent);border-radius:13px;background:linear-gradient(135deg,#18385cfa,#0a1c35fc);color:#d9eaff;box-shadow:inset 0 1px #bbd9f133,0 8px 30px #010817bb;text-shadow:0 1px #071529;font-family:inherit;font-size:11px;line-height:1.45}
-.inventory-tooltip[data-rarity=uncommon]{--tip-accent:#5ad48b}.inventory-tooltip[data-rarity=rare]{--tip-accent:#58aefa}.inventory-tooltip[data-rarity=epic]{--tip-accent:#c080f4}.inventory-tooltip[data-rarity=legendary]{--tip-accent:#f5ca61}
+
 .inventory-tooltip.item-tooltip header{display:flex;align-items:center;gap:10px;padding:0 0 10px;border-bottom:1px solid color-mix(in srgb,var(--tip-accent) 45%,transparent)}
 .inventory-tooltip header>.item-card{width:54px;height:54px;min-width:54px;flex:none;display:grid;place-items:center}
 .inventory-tooltip header>div:not(.item-card){min-width:0;flex:1;display:flex;flex-direction:column;gap:3px}

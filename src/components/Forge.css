@@ -194,7 +194,7 @@
 .smith-window .forge-materials.drag-over { outline: 2px dashed #ffb14a; outline-offset: 6px; }
 .smith-window .forge-sockets { display: flex; justify-content: center; gap: 16px; }
 .smith-window .smith-socket { position: relative; }
-.smith-window .item-card.forge-socket[data-rarity][data-card-variant] {
+.smith-window .item-card.forge-socket[data-card][data-card-variant] {
   width: 58px;
   height: 58px;
   padding: 4px;
@@ -205,12 +205,12 @@
 }
 .smith-window .item-card.forge-socket[data-card-empty] { opacity: 1; }
 .smith-window .item-card.forge-socket > :is(.item-card-ornament, .item-card-gloss) { display: none; }
-.smith-window .item-card.forge-socket[data-tier]::after { display: none; }
+.smith-window .item-card.forge-socket::after { display: none; }
 /* O anel interno do card padrão é quadrado; no encaixe ele vira um aro redondo. */
-.smith-window .item-card.forge-socket[data-rarity][data-card-variant]::before { inset: 3px; border-color: #ffffff1f; border-radius: 50%; }
-.smith-window .item-card.forge-socket[data-rarity][data-card-variant]:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; border-radius: 50%; }
-.smith-window .item-card.forge-socket.has-stone[data-rarity][data-card-variant],
-.smith-window .composition-selected-stone.forge-socket[data-rarity][data-card-variant]:not([data-card-empty]) {
+.smith-window .item-card.forge-socket[data-card][data-card-variant]::before { inset: 3px; border-color: #ffffff1f; border-radius: 50%; }
+.smith-window .item-card.forge-socket[data-card][data-card-variant]:focus-visible { outline: 3px solid #ffd36b; outline-offset: 2px; border-radius: 50%; }
+.smith-window .item-card.forge-socket.has-stone[data-card][data-card-variant],
+.smith-window .composition-selected-stone.forge-socket[data-card][data-card-variant]:not([data-card-empty]) {
   border-color: #ffc45a;
   box-shadow: inset 0 3px 6px #000a, 0 0 0 2px #1a0c05, 0 0 14px #ff9a2e;
 }
@@ -288,7 +288,7 @@
 
 /* Bigorna com o item; o selo +N fica preso no canto do card. */
 .smith-window .smith-anvil { position: relative; z-index: 2; display: grid; justify-items: center; margin-top: auto; }
-.smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] {
+.smith-window .item-card.forge-weapon-target[data-card][data-card-variant] {
   position: relative;
   z-index: 2;
   flex-direction: column;
@@ -554,7 +554,7 @@
 
 /* ---------- Estoque: barra, grade creme e abas verticais ---------- */
 /* Cards vazios em creme, como os slots vazios da mochila. */
-.smith-window .smith-grid .item-card[data-rarity][data-card-variant][data-card-empty] {
+.smith-window .smith-grid .item-card[data-card][data-card-variant][data-card-empty] {
   border: 2px solid #e0b077;
   background: linear-gradient(#fbecd0, #f1d7aa);
   box-shadow: inset 0 2px 5px #b4702c40, 0 1px #fffaf0;
@@ -592,7 +592,7 @@
   grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: 7px;
 }
-.smith-window .smith-grid .item-card[data-rarity][data-card-variant] {
+.smith-window .smith-grid .item-card[data-card][data-card-variant] {
   width: auto;
   height: auto;
   aspect-ratio: 1;
@@ -767,10 +767,10 @@ html.mobile-landscape .inventory-modal-layer .modal-backdrop > .game-window.menu
 html.mobile-landscape .smith-window .smith-layout { grid-template-columns: minmax(0, 48%) minmax(0, 1fr); gap: 5px; margin-top: 5px; }
 html.mobile-landscape .smith-window :is(.smith-bench, .smith-pane) { gap: 4px; padding: 4px; }
 @media (max-height: 760px) {
-  .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 116px; height: 116px; }
+  .smith-window .item-card.forge-weapon-target[data-card][data-card-variant] { width: 116px; height: 116px; }
   .smith-window .item-card.forge-weapon-target > .item-art { width: 90px !important; height: 90px !important; }
   .smith-window .smith-upgrade-badge { width: 54px; height: auto; }
-  .smith-window .item-card.forge-socket[data-rarity][data-card-variant] { width: 48px; height: 48px; }
+  .smith-window .item-card.forge-socket[data-card][data-card-variant] { width: 48px; height: 48px; }
   .smith-window .smith-action { height: 42px; font-size: 17px; }
   .smith-window .smith-stage { padding: 10px 12px 8px; gap: 6px; }
 }
@@ -784,14 +784,14 @@ html.mobile-landscape .smith-window .smith-steps li { height: 20px; padding: 0 2
 html.mobile-landscape .smith-window .smith-steps li > span { width: 16px; height: 16px; font-size: 9px; }
 html.mobile-landscape .smith-window .smith-stage { gap: 3px; padding: 5px 6px 4px; }
 html.mobile-landscape .smith-window .forge-sockets { gap: 6px; }
-html.mobile-landscape .smith-window .item-card.forge-socket[data-rarity][data-card-variant] { width: 30px; height: 30px; padding: 2px; border-width: 2px; }
+html.mobile-landscape .smith-window .item-card.forge-socket[data-card][data-card-variant] { width: 30px; height: 30px; padding: 2px; border-width: 2px; }
 html.mobile-landscape .smith-window .item-card.forge-socket img { width: 22px; height: 22px; }
 html.mobile-landscape .smith-window .item-card.forge-socket .composition-icon { width: 22px !important; height: 22px !important; background-size: auto 22px !important; }
 html.mobile-landscape .smith-window .item-card.forge-socket > small { font-size: 9px; }
 html.mobile-landscape .smith-window .item-card.forge-socket > b { min-width: 14px; font-size: 8px; line-height: 12px; right: -5px; bottom: -5px; }
 html.mobile-landscape .smith-window .composition-preview { height: 22px; padding: 0 8px; font-size: 9px; }
 html.mobile-landscape .smith-window .composition-preview b { font-size: 11px; }
-html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-rarity][data-card-variant] { width: 70px; height: 70px; border-radius: 12px; gap: 2px; }
+html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-card][data-card-variant] { width: 70px; height: 70px; border-radius: 12px; gap: 2px; }
 html.mobile-landscape .smith-window .item-card.forge-weapon-target > .item-art { width: 54px !important; height: 54px !important; }
 html.mobile-landscape .smith-window .item-card.forge-weapon-target[data-card-empty] > span { font-size: 7px; }
 html.mobile-landscape .smith-window .smith-target-placeholder { width: 18px; height: 18px; }
@@ -819,7 +819,7 @@ html.mobile-landscape .smith-window .smith-toolbar .capacity { padding: 2px 8px;
 html.mobile-landscape .smith-window .smith-shelf { grid-template-columns: minmax(0, 1fr) 34px; }
 html.mobile-landscape .smith-window .smith-grid { gap: 5px; padding: 5px; }
 html.mobile-landscape .smith-window :is(.forge-weapon-stock, .forge-stone-stock, .composition-tier-grid) { gap: 4px; }
-html.mobile-landscape .smith-window .smith-grid .item-card[data-rarity][data-card-variant] { border-radius: 7px; padding: 2px; }
+html.mobile-landscape .smith-window .smith-grid .item-card[data-card][data-card-variant] { border-radius: 7px; padding: 2px; }
 html.mobile-landscape html.mobile-landscape .smith-window .item-card.forge-stock-stone > :is(small, b),
 html.mobile-landscape .smith-window .item-card.composition-stock-stone > :is(small, b) { font-size: 8px; }
 html.mobile-landscape .smith-window .smith-section-heading { padding-top: 3px; }
@@ -835,7 +835,7 @@ html.mobile-landscape .smith-window .smith-tabs { gap: 3px; padding-top: 4px; }
 html.mobile-landscape .smith-window .smith-tabs button { position: relative; min-height: 0; flex: 1; max-height: 64px; gap: 2px; padding: 4px 0; }
 html.mobile-landscape .smith-window .smith-tabs button svg { width: 15px; height: 15px; }
 html.mobile-landscape .smith-window .smith-tabs button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-html.mobile-landscape .smith-window .item-card.smith-empty-extra[data-rarity][data-card-variant] { display: none; }
+html.mobile-landscape .smith-window .item-card.smith-empty-extra[data-card][data-card-variant] { display: none; }
 html.mobile-landscape .smith-window .smith-footer { padding: 3px 6px; }
 html.mobile-landscape .smith-window .smith-wallet > span { min-width: 0; height: 24px; padding-right: 8px; }
 html.mobile-landscape .smith-window .smith-wallet b { font-size: 11px; }
@@ -864,7 +864,7 @@ html.mobile-landscape .smith-window .smith-hint { display: none; }
 .smith-window .synthesis-recipe { position: relative; z-index: 2; display: flex; align-items: center; justify-content: center; gap: 18px; margin-top: auto; }
 .smith-window .synthesis-recipe .smith-anvil { margin-top: 0; }
 .smith-window .synthesis-material { display: grid; justify-items: center; gap: 6px; }
-.smith-window .item-card.synthesis-material-card[data-rarity][data-card-variant] { display: grid; place-items: center; width: 84px; height: 84px; }
+.smith-window .item-card.synthesis-material-card[data-card][data-card-variant] { display: grid; place-items: center; width: 84px; height: 84px; }
 .smith-window .synthesis-material > span { padding: 1px 10px; border-radius: 999px; background: #1a0c05; box-shadow: inset 0 2px 4px #000, 0 0 0 2px #6a3514; color: #ffe2b0; font: 800 13px/22px 'Nunito', sans-serif; }
 .smith-window .synthesis-material > span b { color: #8ff07a; }
 .smith-window .synthesis-material > span.short b { color: #ff8a6a; }
@@ -931,7 +931,7 @@ html.mobile-landscape .smith-window .smith-hint { display: none; }
 .smith-window .synthesis-filter input { width: 18px; height: 18px; margin: 0; accent-color: #f39a2c; }
 
 html.mobile-landscape .smith-window .synthesis-recipe { gap: 8px; }
-html.mobile-landscape .smith-window .item-card.synthesis-material-card[data-rarity][data-card-variant] { width: 54px; height: 54px; }
+html.mobile-landscape .smith-window .item-card.synthesis-material-card[data-card][data-card-variant] { width: 54px; height: 54px; }
 html.mobile-landscape .smith-window .synthesis-quantity button { width: 22px; height: 20px; }
 html.mobile-landscape .smith-window .synthesis-quantity strong { min-width: 36px; height: 20px; line-height: 20px; font-size: 12px; }
 html.mobile-landscape .smith-window .synthesis-quantity small { display: none; }

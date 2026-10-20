@@ -62,7 +62,7 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
  const slot=(slot:Slot)=>{
   const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
   const show=(mode:Tip['mode'])=>(event:React.SyntheticEvent<HTMLElement>)=>{if(!empty)setTip({id:copy,anchor:event.currentTarget,mode});};
-  return <ItemCard key={slot} rarity={it?.rarity} empty={empty} data-slot={slot} className="bag-slot equipment-slot" aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} aria-describedby={!empty&&tip?.id===copy?'item-tooltip':undefined}
+  return <ItemCard key={slot} empty={empty} data-slot={slot} className="bag-slot equipment-slot" aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} aria-describedby={!empty&&tip?.id===copy?'item-tooltip':undefined}
    onMouseEnter={show('hover')} onMouseLeave={()=>setTip(null)} onFocus={show('focus')} onBlur={()=>setTip(null)} onClick={event=>{if(tip?.id===copy)setTip(null);else show('touch')(event);}}>
    {empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?upgrade:0} size={60} color={info.itemColors[copy]} skin={equipment.skin} eyes={equipment.eyes}/>}
    <span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{canStrengthen(it)&&!empty&&<UpgradeTag level={slot==='weapon'?upgrade:info.upgrades[copy]??0} className="bag-upgrade-tag"/>}

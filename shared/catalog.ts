@@ -22,8 +22,6 @@ export function targetSlotForItem(equipment:Partial<Record<Slot,string>>,item:It
  const slots=slotsForItem(item);
  return slots.find(slot=>equipment[slot]===item.id)??slots.find(slot=>String(equipment[slot]??'').endsWith('-none'))??slots[0]??item.slot;
 }
-/** Only these item types show a rarity class ("Comum", "Normal", "Épico", "Lendário") for now. */
-export const CLASSED_SLOTS:readonly Slot[]=['weapon','outfit','hat'];
 export const CHARACTER_GENDERS=['male','female'] as const;
 export type CharacterGender=typeof CHARACTER_GENDERS[number];
 export type ItemGender=CharacterGender|'unisex';

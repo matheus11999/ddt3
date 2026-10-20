@@ -286,9 +286,9 @@
   min-height: 0;
   margin: 0;
 }
-.bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 70px; height: 70px; }
+.bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant] { width: 70px; height: 70px; }
 /* The weapon sits in the middle of the jewelry row, a touch larger. */
-.bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-rarity][data-card-variant] { width: 78px; height: 78px; }
+.bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-card][data-card-variant] { width: 78px; height: 78px; }
 .bag-window .appearance-actions {
   position: absolute;
   left: 4px;
@@ -324,7 +324,7 @@
 .bag-window .dye-swatch[aria-pressed="true"] { box-shadow: 0 0 0 2px #e5701b, 0 0 8px #ffb04b; }
 
 /* Slots equipados (cards com raridade) e vazios (creme com silhueta). */
-.bag-window .equipment-slots .item-card[data-rarity][data-card-variant] {
+.bag-window .equipment-slots .item-card[data-card][data-card-variant] {
   position: relative;
   width: 64px;
   height: 64px;
@@ -333,7 +333,7 @@
   overflow: visible;
 }
 .bag-window .equipment-slots .item-card .item-art { width: 58px !important; height: 58px !important; }
-.bag-window .item-card[data-rarity][data-card-variant][data-card-empty] {
+.bag-window .item-card[data-card][data-card-variant][data-card-empty] {
   border: 2px solid #e0b077;
   background: linear-gradient(#fbecd0, #f1d7aa);
   box-shadow: inset 0 2px 5px #b4702c40, 0 1px #fffaf0;
@@ -565,7 +565,7 @@
   scrollbar-width: thin;
   scrollbar-color: #d38a43 transparent;
 }
-.bag-window .bag-grid .item-card[data-rarity][data-card-variant] {
+.bag-window .bag-grid .item-card[data-card][data-card-variant] {
   width: auto;
   height: auto;
   aspect-ratio: 1;
@@ -711,18 +711,6 @@
 .bag-window .bag-action:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
 .bag-window .bag-action:disabled { filter: grayscale(.7); opacity: .6; cursor: not-allowed; }
 
-/* ---------- Cards por classe: Comum, Normal, Épico, Lendário (cor da carta, brilho no épico, pulso no lendário) ---------- */
-:is(.bag-window, .smith-window, .shop-window) .item-card[data-tier="epic"][data-card-variant]:not([data-card-empty]) {
-  box-shadow: inset 0 1px var(--card-light), inset 0 0 12px #c47cff55, 0 3px 0 var(--card-shadow), 0 0 8px #b05cff55;
-}
-:is(.bag-window, .smith-window, .shop-window) .item-card[data-tier="legendary"][data-card-variant]:not([data-card-empty]) {
-  animation: bag-legendary-glow 2.6s ease-in-out infinite;
-}
-@keyframes bag-legendary-glow {
-  0%, 100% { box-shadow: inset 0 1px var(--card-light), inset 0 0 12px #ffd76a55, 0 3px 0 var(--card-shadow), 0 0 6px #ffc94a66; }
-  50% { box-shadow: inset 0 1px var(--card-light), inset 0 0 18px #ffe28a88, 0 3px 0 var(--card-shadow), 0 0 16px #ffc94acc; }
-}
-@media (prefers-reduced-motion: reduce) { :is(.bag-window, .smith-window, .shop-window) .item-card[data-tier="legendary"] { animation: none; } }
 :is(.bag-window, .smith-window, .shop-window) .item-card .bag-upgrade-tag {
   position: absolute;
   left: -6px;
@@ -753,8 +741,6 @@
   font-family: 'Nunito', 'Trebuchet MS', sans-serif;
   pointer-events: none;
 }
-.inventory-tooltip.bag-tooltip[data-tier="legendary"] { box-shadow: 0 0 0 1px #0009, 0 0 22px #ffc94a77, 0 14px 34px #1a0a04b8, inset 0 1px #fff3; }
-.inventory-tooltip.bag-tooltip[data-tier="epic"] { box-shadow: 0 0 0 1px #0009, 0 0 18px #b05cff55, 0 14px 34px #1a0a04b8, inset 0 1px #fff3; }
 .bag-tooltip .bag-tip-head {
   position: relative;
   display: flex;
@@ -773,27 +759,9 @@
   color: var(--card-light, #fff);
   text-shadow: 0 1px 2px #000a;
 }
-.bag-tooltip[data-tier="legendary"] .bag-tip-title strong { color: #ffd960; }
-.bag-tooltip[data-tier="epic"] .bag-tip-title strong { color: #e2b4ff; }
-.bag-tooltip[data-tier="normal"] .bag-tip-title strong { color: #9fd8ff; }
 .bag-tooltip .bag-tip-title small { font-size: 11px; font-weight: 800; color: #e3c39a; }
 .bag-tooltip .bag-tip-gender { display: block; margin-top: 3px; }
 .bag-tooltip .bag-tip-upgrade { flex: none; align-self: flex-start; }
-.bag-tooltip .bag-tip-class {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 10px 12px 0;
-  padding: 6px 10px;
-  border-radius: 10px;
-  background: linear-gradient(90deg, color-mix(in srgb, var(--card-mid, #c8843c) 85%, #000), color-mix(in srgb, var(--card-mid, #c8843c) 35%, transparent));
-  box-shadow: inset 0 1px #ffffff40, inset 0 0 0 1px #ffffff22;
-}
-.bag-tooltip .bag-tip-class span { font-size: 10px; font-weight: 800; color: #ffffffb0; }
-.bag-tooltip .bag-tip-class b { font-size: 16px; font-weight: 900; color: #fff; text-shadow: 0 1px 2px #0009; }
-.bag-tooltip .bag-tip-class i { margin-left: auto; font-style: normal; font-size: 13px; letter-spacing: 1px; color: #ffe27a; text-shadow: 0 0 4px #ffb92a; }
-.bag-tooltip .bag-tip-class i em { font-style: normal; color: #ffffff40; text-shadow: none; }
-.bag-tooltip[data-tier="legendary"] .bag-tip-class { background: linear-gradient(90deg, #c47a0e, #ffcf4a55); }
 .bag-tooltip .bag-tip-desc { margin: 9px 12px 0; font-size: 12px; font-style: italic; line-height: 1.45; color: #e9cfaa; }
 .bag-tooltip .bag-tip-stats {
   display: grid;
@@ -841,9 +809,9 @@
 @media (max-height: 800px) {
   .bag-window .bag-stage > .equipment-slots { grid-template-columns: 62px 62px; grid-auto-rows: 62px; gap: 16px 8px; }
   .bag-window .bag-sigil { width: min(240px, 100%); }
-  .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
-  .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant],
-  .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-rarity][data-card-variant] { width: 62px; height: 62px; }
+  .bag-window .equipment-slots .item-card[data-card][data-card-variant],
+  .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant],
+  .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-card][data-card-variant] { width: 62px; height: 62px; }
   .bag-window .equipment-slots .item-card .item-art { width: 52px !important; height: 52px !important; }
   .bag-window .bag-stage-foot { min-height: 72px; }
 }
@@ -853,8 +821,8 @@
   html:not(.mobile-landscape) .bag-window .bag-layout.inventory-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; overscroll-behavior: contain; }
   html:not(.mobile-landscape) .bag-window .bag-profile { grid-template-rows: auto 420px auto auto; min-height: auto; }
   html:not(.mobile-landscape) .bag-window .bag-stage > .equipment-slots { grid-template-columns: 56px; grid-auto-rows: 56px; gap: 18px; }
-  html:not(.mobile-landscape) .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
-  html:not(.mobile-landscape) .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 56px; height: 56px; }
+  html:not(.mobile-landscape) .bag-window .equipment-slots .item-card[data-card][data-card-variant],
+  html:not(.mobile-landscape) .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant] { width: 56px; height: 56px; }
   html:not(.mobile-landscape) .bag-window .equipment-slots .item-card .item-art { width: 48px !important; height: 48px !important; }
   html:not(.mobile-landscape) .bag-window .bag-records { display: none; }
   html:not(.mobile-landscape) .bag-window .bag-pane { grid-template-rows: auto 420px auto auto; min-height: auto; overflow: visible; }
@@ -877,8 +845,8 @@ html.mobile-landscape .bag-window .bag-identity .equipment-status { font-size: 8
 html.mobile-landscape .bag-window .bag-records { display: none; }
 html.mobile-landscape .bag-window .bag-stage { flex: none; gap: 4px 6px; padding: 6px; }
 html.mobile-landscape .bag-window .bag-stage > .equipment-slots { grid-template-columns: 44px; grid-template-rows: none; grid-auto-rows: 44px; gap: 13px; }
-html.mobile-landscape .bag-window .equipment-slots .item-card[data-rarity][data-card-variant],
-html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-rarity][data-card-variant] { width: 44px; height: 44px; border-radius: 9px; padding: 2px; }
+html.mobile-landscape .bag-window .equipment-slots .item-card[data-card][data-card-variant],
+html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant] { width: 44px; height: 44px; border-radius: 9px; padding: 2px; }
 html.mobile-landscape .bag-window .equipment-slots .item-card .item-art { width: 38px !important; height: 38px !important; }
 html.mobile-landscape .bag-window .bag-slot-placeholder { width: 20px; height: 20px; }
 html.mobile-landscape .bag-window .equipment-slot > .equipment-slot-label { font-size: 7px; line-height: 10px; bottom: -10px; }
@@ -886,7 +854,7 @@ html.mobile-landscape .bag-window .bag-sigil { width: 180px; }
 html.mobile-landscape .bag-window .dressing-room > canvas { height: 190px !important; }
 html.mobile-landscape .bag-window .bag-stage-foot { min-height: 56px; }
 html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower { gap: 6px; }
-html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-rarity][data-card-variant] { width: 44px; height: 44px; }
+html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-card][data-card-variant] { width: 44px; height: 44px; }
 html.mobile-landscape .bag-window .dye-swatch { width: 18px; height: 18px; min-width: 18px; min-height: 18px; }
 html.mobile-landscape .bag-window .avatar-options-toggle { width: 30px; height: 30px; }
 html.mobile-landscape .bag-window .avatar-body-color { right: 36px; width: 30px; height: 30px; }
