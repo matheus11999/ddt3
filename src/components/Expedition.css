@@ -149,3 +149,53 @@ html.mobile-landscape .expedition-controls{padding-top:6px}
 html.mobile-landscape .expedition-difficulty{height:24px;padding:0 8px;font-size:11px}
 html.mobile-landscape .expedition-stage-pick button{width:24px;height:24px}
 html.mobile-landscape .expedition-cover-top small{display:none}
+
+/* Central de Expedições com paleta própria (jade de explorador), para não parecer o Salão PvP:
+   mesmas formas e materiais de WoodTheme.css/ArenaHall.css, madeira verde-azulada escura,
+   faixas jade, creme mais frio e detalhes dourados. */
+.pvp-hall.expedition-hall{
+ --wood-light:#3d8c84;--wood:#28665f;--wood-dark:#163f3b;--wood-deep:#0f2d2a;--wood-bar:#174a45;--wood-bar-deep:#0c2c29;
+ --wood-rim:#e3c27a;--wood-cream:#fbf9ef;--wood-cream-mid:#edf0dc;--wood-cream-deep:#dbe3c4;--wood-edge:#8fbfa8;
+ --wood-ink:#1f3f3a;--wood-ink-soft:#5b7b70;--wood-gold:#ffd873;
+ --jade-light:#7fe0cc;--jade:#2fa494;--jade-deep:#167366;--jade-shadow:#0d4f46;
+ box-shadow:inset 0 1px #bfe8d6,inset 0 -3px #06201d99,0 0 0 3px #0b2623,0 0 0 4px #e3c27a55,0 22px 65px #04100fc0;
+}
+.arena-hall-portal:has(.expedition-hall){background:#0b2220}
+.pvp-hall.expedition-hall .wood-titlebar{border-color:#e3c27a55 #e3c27a55 #061d1a;box-shadow:inset 0 1px #9fdcc855,inset 0 -2px #04141240,0 2px #e3c27a30}
+.pvp-hall.expedition-hall .wood-title{text-shadow:0 2px #061a17,0 0 12px #ffd87355}
+.pvp-hall.expedition-hall .wood-pane{background:linear-gradient(#2c6f68,#1d524c);box-shadow:inset 0 1px #a6e2cf88,inset 0 0 0 1px #0b2a27,0 2px #061a1788}
+.pvp-hall.expedition-hall .wood-cream{border-color:#fbfdf2;box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 3px 10px #3f8a7433}
+.pvp-hall.expedition-hall .wood-ribbon{border-color:#d9fff2;background:linear-gradient(var(--jade-light),var(--jade) 60%,var(--jade-deep));box-shadow:inset 0 1px #e6fff6,inset 0 -2px var(--jade-shadow);text-shadow:0 1px var(--jade-shadow),0 0 3px var(--jade-shadow)}
+.pvp-hall.expedition-hall .wood-pill{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
+.pvp-hall.expedition-hall .hall-crest{border-color:#fff0bf;background:radial-gradient(circle at 40% 30%,#9ff0dc,#2fa494 55%,#13665b);box-shadow:inset 0 -3px #0d4f46,0 2px #061a17;filter:drop-shadow(0 0 6px #6fe0c866)}
+.pvp-hall.expedition-hall .hall-crest svg{filter:drop-shadow(0 1px #0d4f46)}
+.pvp-hall.expedition-hall .hall-population svg,.pvp-hall.expedition-hall .hall-room-owner svg{color:var(--jade)}
+.pvp-hall.expedition-hall .hall-tab b,.pvp-hall.expedition-hall .hall-side-title b{background:#f4fbf2e6;box-shadow:inset 0 1px 2px #2fa49455}
+.pvp-hall.expedition-hall .hall-room-list,.pvp-hall.expedition-hall .hall-online-list{scrollbar-color:#5fae9a transparent}
+.pvp-hall.expedition-hall .hall-search.is-open{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
+.pvp-hall.expedition-hall .hall-search input::placeholder{color:#86a093}
+.pvp-hall.expedition-hall .hall-search-close{background:#d6e6cf}
+.pvp-hall.expedition-hall .hall-room{border-color:#9fd2bf;background:linear-gradient(#fdfef7,#eef2df);box-shadow:inset 0 1px #fff,inset 0 -3px #cfdcbc,0 3px #1d524c66,0 4px 10px #163f3b33}
+.pvp-hall.expedition-hall .hall-room::before{border-top-color:#d3dfc3;background:linear-gradient(#e7eed6,#dbe5c6)}
+.pvp-hall.expedition-hall .hall-room:not(:disabled):hover{border-color:#e3c27a;box-shadow:inset 0 1px #fff,inset 0 -3px #cfdcbc,0 0 0 3px #e3c27a66,0 6px 14px #163f3b44}
+.pvp-hall.expedition-hall .hall-room.is-full{background:linear-gradient(#f5f6ee,#e3e7d6)}
+.pvp-hall.expedition-hall .hall-room:focus-visible{outline-color:var(--jade-deep)}
+.pvp-hall.expedition-hall .hall-room-number{border-color:#eafff7;background:radial-gradient(circle at 40% 30%,#8fe8d4,#2fa494 55%,#167366);box-shadow:inset 0 -3px var(--jade-shadow),0 2px #163f3b55;text-shadow:0 1px var(--jade-shadow),0 0 3px var(--jade-shadow)}
+.pvp-hall.expedition-hall .hall-room-format{border-color:#e3c27a;background:linear-gradient(#174a45,#0c2c29);box-shadow:inset 0 1px #9fdcc855,0 2px #061a1766}
+.pvp-hall.expedition-hall .expedition-room-choice b{text-shadow:0 1px #04100f}
+.pvp-hall.expedition-hall .hall-room-seats i{border-color:#9fc9b6;background:#fbfdf4;box-shadow:inset 0 1px 2px #2fa49444}
+.pvp-hall.expedition-hall .hall-room-seats i.taken{border-color:#eafff7;background:radial-gradient(circle at 40% 35%,#8fe8d4,#2fa494 60%,#167366);box-shadow:0 1px #163f3b66}
+.pvp-hall.expedition-hall .hall-empty-art{filter:drop-shadow(0 6px 8px #163f3b40)}
+.pvp-hall.expedition-hall .hall-me-stats>div{background:linear-gradient(#174a45,#0f322e);box-shadow:inset 0 1px #9fdcc855}
+.pvp-hall.expedition-hall .hall-me-stats dt{color:#b5ecd9}
+.pvp-hall.expedition-hall .hall-online-row:nth-child(even){background:#dbe8cd66}
+.pvp-hall.expedition-hall .hall-online-row.is-me{background:#9fe0c780;box-shadow:inset 0 0 0 1px #4fb59e}
+.pvp-hall.expedition-hall .hall-online-headrow{background:#d5e4c4!important}
+.pvp-hall.expedition-hall .hall-create{box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #061a17,0 6px 12px #04100f66}
+.pvp-hall.expedition-hall .hall-quick{box-shadow:inset 0 2px #e8ffd9,inset 0 -4px #17702b,0 3px #061a17,0 6px 12px #04100f66}
+.pvp-hall.expedition-hall .wood-chat .chat-tabs>button{border-color:#8fcab6;background:var(--wood-grain),linear-gradient(#174a45,#22625b);box-shadow:inset 0 1px #9fdcc866;color:#bdeedd;text-shadow:0 1px #061a17}
+.pvp-hall.expedition-hall .wood-chat .chat-tabs>button.active{border-color:#fbfdf2;background:linear-gradient(#fbfdf2,#cfeedd);color:var(--jade-shadow);text-shadow:none}
+.pvp-hall.expedition-hall .wood-chat .chat-messages{border-color:#fbfdf2;box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 3px 8px #3f8a7426;scrollbar-color:#5fae9a transparent}
+.pvp-hall.expedition-hall .wood-chat .chat-messages strong{color:#167366}
+.pvp-hall.expedition-hall .wood-chat .chat-input{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
+.pvp-hall.expedition-hall .wood-chat .chat-input>input::placeholder{color:#86a093}
