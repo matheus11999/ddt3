@@ -4,6 +4,7 @@ import {weaponEffectsPath,weaponKit,weaponPowPath} from '../../shared/weaponKit'
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 import {drawBoomerangImpact,preloadBoomerangImpacts} from './boomerangImpact';
+import {drawThunderImpact,drawThunderProjectile} from './thunderEffects';
 
 type Effect=Projectile['effect'];
 /** A painted chunk cut from an impact cell: its own image, its center and width as shares of the cell width. */
@@ -35,6 +36,7 @@ const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.mat
 const reduced=(options:WeaponEffectOptions)=>options.reducedMotion??motionPreference?.matches??false;
 const limits=(options:WeaponEffectOptions)=>VFX_LIMITS[options.quality==='low'||reduced(options)?'low':'high'];
 function strength(level:number){return weaponPhaseTier(level);}
+const thunderOptions=(options:WeaponEffectOptions)=>({low:limits(options)===VFX_LIMITS.low,still:reduced(options)});
 function clamp(value:number,min=0,max=1){return Math.max(min,Math.min(max,value));}
 const noise=(n:number)=>{const value=Math.sin(n*127.1+311.7)*43758.5453;return value-Math.floor(value);};
 const canvas=(width:number,height:number)=>{const out=document.createElement('canvas');out.width=Math.max(1,Math.round(width));out.height=Math.max(1,Math.round(height));return out;};
@@ -164,8 +166,7 @@ function trace(c:CanvasRenderingContext2D,points:number[][],start:number,index:n
  for(let j=start;j<=index;j++){
   const point=points[j],age=(index-j)/Math.max(1,index-start),previous=points[Math.max(0,j-1)],angle=Math.atan2(point[1]-previous[1],point[0]-previous[0]);
   let offset=0;
-  if(effect==='electric')offset=j===index?0:Math.sin(j*13.17+Math.floor(time/55))*((tier+1)*1.25+lane*1.5);
-  else if(lane)offset=Math.sin(j*.8-time/(effect==='fire'?95:150)+lane*1.7)*(3+tier*2)*age*lane;
+  if(lane)offset=Math.sin(j*.8-time/(effect==='fire'?95:150)+lane*1.7)*(3+tier*2)*age*lane;
   const x=point[0]-Math.sin(angle)*offset,y=point[1]+Math.cos(angle)*offset;
   if(j===start)c.moveTo(x,y);else c.lineTo(x,y);
  }
@@ -224,13 +225,11 @@ function drawBrickFragmentImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed
 function trailParticles(c:CanvasRenderingContext2D,p:Projectile,index:number,tier:number,time:number,options:WeaponEffectOptions){
  const family=FAMILY[p.effect],count=Math.min(limits(options).flightParticles,3+tier*4),span=Math.min(limits(options).trailSamples,6+tier*6),clock=reduced(options)?0:time;
  for(let n=0;n<count;n++){
-  const age=(clock/(p.effect==='electric'?480:820)+n/count)%1,position=Math.max(0,index-age*span),i=Math.floor(position),next=p.points[Math.min(p.points.length-1,i+1)],point=p.points[i];if(!point||!next)continue;
+  const age=(clock/820+n/count)%1,position=Math.max(0,index-age*span),i=Math.floor(position),next=p.points[Math.min(p.points.length-1,i+1)],point=p.points[i];if(!point||!next)continue;
   const fraction=position-i,angle=Math.atan2(next[1]-point[1],next[0]-point[0]),spread=Math.sin(n*2.4+clock/170)*age*(3+tier*2),x=point[0]+(next[0]-point[0])*fraction-Math.sin(angle)*spread,y=point[1]+(next[1]-point[1])*fraction+Math.cos(angle)*spread;
   c.save();c.translate(x,y);c.rotate(angle);c.globalAlpha*=Math.pow(1-age,1.4)*(.32+tier*.07);c.strokeStyle=n%3?family.mid:family.hot;c.fillStyle=family.hot;c.lineWidth=1;
   if(p.effect==='fire'){
    c.rotate(Math.sin(clock/160+n)*.2);c.beginPath();c.moveTo(2,0);c.quadraticCurveTo(-4-age*6,Math.sin(clock/120+n)*4,-9-age*8,-age*3);c.stroke();if(n%3===0)glow(c,0,0,4+tier,family.mid,.3);
-  }else if(p.effect==='electric'){
-   const flip=Math.sin(clock/45+n*5)>0?1:-1;c.beginPath();c.moveTo(-6,flip*2);c.lineTo(-1,-flip*3);c.lineTo(1,flip*2);c.lineTo(5,-flip*2);c.stroke();
   }else if(p.effect==='crystal'){
    c.rotate(clock/330+n);const r=1.2+tier*.45;c.beginPath();c.moveTo(-r*2,0);c.lineTo(0,-r);c.lineTo(r*2,0);c.lineTo(0,r);c.closePath();c.globalAlpha*=.7;c.fill();
   }else{
@@ -256,24 +255,23 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  if(!p.points.length||!Number.isFinite(index))return;
  if(p.fragment){drawBrickFragment(c,p,index,strength(level),time,options);return;}
  if(p.effect==='brick'){drawBrickProjectile(c,p,clamp(index,0,p.points.length-1),strength(level),reduced(options)?0:time,options);return;}
+ if(p.effect==='electric'){drawThunderProjectile(c,p,clamp(index,0,p.points.length-1),strength(level),time,thunderOptions(options),glow);return;}
  const sample=clamp(index,0,p.points.length-1),floor=Math.floor(sample),point=p.points[floor],next=p.points[Math.min(p.points.length-1,floor+1)],fraction=sample-floor;
  const tip:readonly[number,number]=[point[0]+(next[0]-point[0])*fraction,point[1]+(next[1]-point[1])*fraction];
  const tier=strength(level),family=FAMILY[p.effect],clock=reduced(options)?0:time,length=Math.min(limits(options).trailSamples,family.trail[tier]),start=Math.max(0,floor-length),previous=p.points[Math.max(0,floor-1)],angle=floor===0?Math.atan2(next[1]-point[1],next[0]-point[0]):Math.atan2(tip[1]-previous[1],tip[0]-previous[0]);
  c.save();c.lineCap='round';c.lineJoin='round';
  const from=p.points[start],gradient=c.createLinearGradient(from[0],from[1],tip[0]+.01,tip[1]+.01);gradient.addColorStop(0,family.dark+'00');gradient.addColorStop(.65,family.mid+'75');gradient.addColorStop(1,family.hot+'c4');
- c.strokeStyle=gradient;c.lineWidth=(p.effect==='electric'?.8:1.2)+tier*.35;c.globalAlpha*=p.effect==='dynamite'?.28:.8;
+ c.strokeStyle=gradient;c.lineWidth=1.2+tier*.35;c.globalAlpha*=p.effect==='dynamite'?.28:.8;
  trace(c,p.points,start,floor,p.effect,tier,clock,0,tip);
  if(tier>=2&&p.effect!=='dynamite'){c.globalAlpha*=.45;c.lineWidth=.8;trace(c,p.points,start,floor,p.effect,tier,clock,1,tip);trace(c,p.points,start,floor,p.effect,tier,clock,-1,tip);}
  c.restore();
  c.save();c.globalCompositeOperation='screen';trailParticles(c,p,sample,tier,clock,options);c.restore();
  c.save();c.translate(tip[0],tip[1]);c.rotate(angle);
- const pulse=reduced(options)?0:Math.sin(clock/(p.effect==='electric'?70:140)),size=family.size[tier]*(p.powered?1.16:1)*(1+pulse*(tier?.045:.02));
+ const pulse=reduced(options)?0:Math.sin(clock/140),size=family.size[tier]*(p.powered?1.16:1)*(1+pulse*(tier?.045:.02));
  glow(c,0,0,8+tier*3,family.mid,.18+tier*.025);
  if(tier||p.powered){
   c.save();c.globalCompositeOperation='screen';c.lineWidth=.8;c.strokeStyle=family.hot;c.globalAlpha*=.38;
-  if(p.effect==='electric'){
-   for(let n=0;n<(tier>=2?2:1);n++){const phase=clock/210+n*Math.PI;c.beginPath();c.ellipse(-4-n*6,0,2.4+Math.cos(phase)*1.2,5+tier*2,phase*.13,phase,phase+Math.PI*1.5);c.stroke();}
-  }else if(p.effect==='fire'){
+  if(p.effect==='fire'){
    for(const side of [-1,1]){c.beginPath();c.moveTo(4,side*2);c.bezierCurveTo(-7,side*(6+tier*2+pulse*2),-18,side*3,-25-tier*3,side*(2+Math.sin(clock/120+side)*3));c.stroke();}
   }else if(p.effect==='crystal'&&tier>=2){
    for(let n=0;n<(tier===3?3:2);n++){const phase=clock/270+n*TAU/3,x=-10+Math.cos(phase)*9,y=Math.sin(phase)*(8+tier*2);c.save();c.translate(x,y);c.rotate(phase);c.beginPath();c.moveTo(-4,0);c.lineTo(0,-1.5);c.lineTo(4,0);c.lineTo(0,1.5);c.closePath();c.stroke();c.restore();}
@@ -282,7 +280,7 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  }
  const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid)c.scale(1,1+pulse*.09);
- const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
+ const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'?.5:p.effect==='fire'?.76:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
  const painted=(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
@@ -464,11 +462,12 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
  if(p.effect==='boomerang'){drawBoomerangImpact(c,p.impact.x,p.impact.y,elapsed,!!p.powered,reduced(options));return;}
  if(p.fragment){drawBrickFragmentImpact(c,p,elapsed,strength(level),material,options);return;}
  if(p.effect==='brick'){drawBrickImpact(c,p,elapsed,strength(level),options);return;}
+ if(p.effect==='electric'){drawThunderImpact(c,p,elapsed,strength(level),thunderOptions(options),glow);return;}
  const tier=strength(level),duration=630+tier*20,age=elapsed/duration;if(age<0||age>=1)return;
  const family=FAMILY[p.effect],radius=Math.min(130,Math.max(10,p.impact.radius))*(p.powered?1.18:1),open=1-Math.pow(1-clamp(age*3),3),fade=clamp(age/.045)*Math.pow(1-age,.68),motion=reduced(options)?age*.4:age;
  c.save();c.translate(p.impact.x,p.impact.y);c.globalAlpha*=fade;c.lineCap='round';c.lineJoin='round';
  glow(c,0,0,radius*(.35+open*.7),family.mid,.24*(1-age));
- const lift=p.effect==='fire'?-radius*age*.36:p.effect==='dynamite'?-radius*age*.15:0,rotation=p.effect==='electric'?motion*.8:p.effect==='fire'?motion*.3:p.effect==='crystal'?motion*.08:0;
+ const lift=p.effect==='fire'?-radius*age*.36:p.effect==='dynamite'?-radius*age*.15:0,rotation=p.effect==='fire'?motion*.3:p.effect==='crystal'?motion*.08:0;
  // The painting becomes a light layer, then erodes; particles continue its motion.
  const size=radius*(p.effect==='crystal'?2.05:1.9)*(.48+open*.52)*(1+tier*.06);
  const pow=!!p.powered&&sprite(c,p.effect,1,tier,0,lift,size*POW_SPRITE_SCALE,rotation,.5,.98,clamp((age-.04)/.84),true,'pow');
@@ -477,9 +476,7 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
  c.save();c.globalCompositeOperation='screen';
  if(age<.23)glow(c,0,0,radius*(.15+age*.8),family.hot,(1-age/.23)*.65);
  const ring=radius*(.2+open*.95);c.strokeStyle=family.mid;c.lineWidth=1.2*(1-age);c.globalAlpha*=.48*(1-age);
- if(p.effect==='electric'){
-  c.beginPath();for(let n=0;n<=18;n++){const theta=n*TAU/18,r=ring*(.78+noise(n+Math.floor(elapsed/50)*31)*.22),x=Math.cos(theta)*r,y=Math.sin(theta)*r*.72;if(!n)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();
- }else if(p.effect==='crystal'){
+ if(p.effect==='crystal'){
   for(let side=0;side<(tier>=2?2:1);side++){c.beginPath();for(let n=0;n<=6;n++){const theta=n*TAU/6+motion*.2,r=ring*(1-side*.23),x=Math.cos(theta)*r,y=Math.sin(theta)*r*.6;if(!n)c.moveTo(x,y);else c.lineTo(x,y);}c.stroke();}
  }else if(p.effect==='dynamite'){c.strokeStyle='#ffd88b';c.beginPath();c.ellipse(0,radius*.1,ring,ring*.25,0,0,TAU);c.stroke();}
  else{for(let n=0;n<2+tier;n++){const theta=n*TAU/(2+tier)+motion*2;c.beginPath();c.ellipse(0,-radius*age*.2,ring*(.8+n*.035),ring*.5,theta,theta,theta+.7);c.stroke();}}
@@ -489,8 +486,7 @@ export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:numbe
   const seed=noise(n*3+7),start=(n%4)*.026,life=clamp((age-start)/(1-start));if(age<start)continue;
   const theta=n*2.399963+seed*.45,distance=radius*(.12+life*(1.1+seed*.85)),x=Math.cos(theta)*distance,y=Math.sin(theta)*distance*.66+(p.effect==='crystal'||p.effect==='dynamite'?life*life*28:-life*16),length=(4+tier*2)*(1-life)+1;
   c.save();c.translate(x,y);c.rotate(theta+life*(p.effect==='crystal'?2:0));c.globalAlpha*=Math.pow(1-life,1.2)*(.45+seed*.25);c.globalCompositeOperation='screen';c.strokeStyle=n%3?family.mid:family.hot;c.fillStyle=family.hot;c.lineWidth=1;
-  if(p.effect==='electric'){c.beginPath();c.moveTo(-length*1.8,0);c.lineTo(-length*.7,2);c.lineTo(-length*.3,-2);c.lineTo(length*.4,0);c.stroke();}
-  else if(p.effect==='crystal'){c.beginPath();c.moveTo(-length,0);c.lineTo(0,-length*.25);c.lineTo(length*.6,0);c.lineTo(0,length*.25);c.closePath();c.globalAlpha*=.75;c.fill();c.stroke();}
+  if(p.effect==='crystal'){c.beginPath();c.moveTo(-length,0);c.lineTo(0,-length*.25);c.lineTo(length*.6,0);c.lineTo(0,length*.25);c.closePath();c.globalAlpha*=.75;c.fill();c.stroke();}
   else if(p.effect==='fire'){c.beginPath();c.moveTo(-length*2,Math.sin(life*12+n)*3);c.quadraticCurveTo(-length*.5,-length*.35,length*.5,0);c.stroke();if(n%5===0)glow(c,0,0,length*.8,family.mid,.2);}
    else{if(n%3===0){c.globalCompositeOperation='source-over';c.fillStyle=n%2?'#ef6a45':'#d8bb89';c.fillRect(-length*.3,-1,length*.7,2);}else{c.beginPath();c.moveTo(-length,0);c.lineTo(length*.5,0);c.stroke();}}
   c.restore();
