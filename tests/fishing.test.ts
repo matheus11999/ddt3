@@ -7,8 +7,8 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_PIERS,FISHING_SPOTS,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,fishChallenge,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
-import type {FishingView} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_PIERS,FISHING_SPOTS,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
  for(const spot of FISHING_SPOTS){
@@ -41,6 +41,22 @@ test('the bar sweeps back and forth and grades presses by the target',()=>{
  assert.equal(gradePress(c,0,at(Math.min(1,c.zones[0]+c.width*.4))),'hit');
  assert.equal(gradePress(c,0,at(c.zones[0]>.5?c.zones[0]-c.width*1.2:c.zones[0]+c.width*1.2)),'miss');
  const wide=fishChallenge(fish,ROD_BY_ID.get('rod-oak')!,42);assert.ok(wide.width>c.width);
+});
+
+/** First moment from `after` ms when the marker crosses the middle of the (maybe swimming) target. */
+function centredAt(c:FishChallenge,press:number,after:number):number{
+ for(let t=after;t<after+20000;t+=1)if(Math.abs(markerAt(c,t)-zoneAt(c,press,t))<c.perfect/4)return t;
+ throw Error('o marcador nunca passou pelo alvo');
+}
+test('hard fish move the target: a press on its old place misses, one on the moving target lands',()=>{
+ const easy=fishChallenge(FISH_BY_ID.get('lambari-dourado')!,ROD_BY_ID.get('rod-bamboo')!,7);assert.equal(easy.drift,0);
+ const c=fishChallenge(FISH_BY_ID.get('carpa-dragao')!,ROD_BY_ID.get('rod-bamboo')!,7);assert.ok(c.drift>0);
+ for(const z of c.zones){assert.ok(z-c.drift-c.width/2>=0&&z+c.drift+c.width/2<=1,'o alvo sai da barra');}
+ assert.ok(Math.abs(zoneAt(c,0,c.driftMs/4)-zoneAt(c,0,0))>c.drift*.5);
+ const t=centredAt(c,0,0);assert.equal(gradePress(c,0,t),'perfect');
+ // Where the target is far from its resting place, pressing there misses.
+ let away=-1;for(let k=0;k<20000;k++)if(Math.abs(markerAt(c,k)-c.zones[0])<.005&&Math.abs(zoneAt(c,0,k)-c.zones[0])>c.width){away=k;break;}
+ assert.ok(away>=0);assert.equal(gradePress(c,0,away),'miss');
 });
 
 test('automatic fishing is always less reliable than a good manual player, and luck favors rare fish',()=>{
@@ -118,7 +134,7 @@ test('manual fishing: bite, presses on the target land the fish; walking away re
  const view=last(f.events.get(f.a.id)!,'fishing')!.fishing as FishingView;assert.equal(view.phase,'bite');
  const c=view.challenge!;
  for(let n=0;n<c.hits;n++){
-  const zone=c.zones[n],at=c.start+zone/c.speed*1000;
+  const at=c.start+centredAt(c,n,n*1500);
   const realNow=Date.now;Date.now=()=>at+50;try{await f.game.command(f.a.id,{type:'fish-press',at});}finally{Date.now=realNow;}
  }
  await flush();

@@ -6,94 +6,7 @@
  * Map coordinates are world px like the plaza (the view is 1536×864; the camera follows the player).
  * Numbers here are provisional: matheus balances them later.
  */
-export const FISHING_WIDTH=6144;
-export const FISHING_HEIGHT=864;
-/** Where the grass begins, under the tree line. */
-export const FISHING_GROUND_TOP=548;
-export const FISHING_WALK={minX:140,maxX:FISHING_WIDTH-140,minY:575,maxY:805};
-export const FISHING_SPAWN={x:380,y:690};
-export type Zone='plaza'|'fishing';
-
-export interface FishingLake {id:string;name:string;x:number;y:number;rx:number;ry:number;}
-/** Water surfaces on the floor: ellipses players walk around (and onto the piers). */
-export const FISHING_LAKES:readonly FishingLake[]=[
- {id:'ninfeias',name:'Lago das Ninfeias',x:1380,y:704,rx:420,ry:66},
- {id:'profundo',name:'Poço Azul',x:3420,y:708,rx:500,ry:70},
- {id:'cristal',name:'Lagoa de Cristal',x:5180,y:704,rx:420,ry:66},
-];
-/** Wooden piers from the back shore into a lake: walkable rectangles over the water. */
-export interface FishingPier {id:string;lake:string;x0:number;x1:number;y0:number;y1:number;}
-export const FISHING_PIERS:readonly FishingPier[]=[
- {id:'pier-ninfeias',lake:'ninfeias',x0:1290,x1:1354,y0:600,y1:722},
- {id:'pier-profundo-1',lake:'profundo',x0:3170,x1:3234,y0:600,y1:726},
- {id:'pier-profundo-2',lake:'profundo',x0:3620,x1:3684,y0:600,y1:726},
- {id:'pier-cristal',lake:'cristal',x0:5110,x1:5174,y0:600,y1:722},
-];
-/** Solid buildings on the floor (the fishing house, the gate back to the plaza). */
-export interface FishingObstacle {id:string;x:number;y:number;rx:number;ry:number;}
-export const FISHING_OBSTACLES:readonly FishingObstacle[]=[
- {id:'house',x:2330,y:632,rx:190,ry:40},
- {id:'gate',x:170,y:628,rx:70,ry:26},
-];
-/**
- * Where a player stands to fish, facing the water, and where the float lands.
- * One player per spot.
- */
-export interface FishingSpot {id:string;lake:string;x:number;y:number;facing:1|-1;bobX:number;bobY:number;}
-const spotsFor=(lake:FishingLake,piers:readonly FishingPier[]):FishingSpot[]=>{
- const spots:FishingSpot[]=[
-  {id:`${lake.id}-oeste`,lake:lake.id,x:lake.x-lake.rx-36,y:lake.y-8,facing:1,bobX:lake.x-lake.rx+170,bobY:lake.y+6},
-  {id:`${lake.id}-leste`,lake:lake.id,x:lake.x+lake.rx+36,y:lake.y-8,facing:-1,bobX:lake.x+lake.rx-170,bobY:lake.y+6},
- ];
- piers.filter(p=>p.lake===lake.id).forEach((p,n)=>{
-  const mid=(p.x0+p.x1)/2,side:1|-1=mid<lake.x?-1:1;
-  spots.push({id:`${lake.id}-pier${n+1}-ponta`,lake:lake.id,x:mid,y:p.y1-12,facing:side,bobX:mid+side*190,bobY:lake.y+14});
-  spots.push({id:`${lake.id}-pier${n+1}-meio`,lake:lake.id,x:mid,y:p.y0+60,facing:(-side) as 1|-1,bobX:mid-side*170,bobY:lake.y-4});
- });
- return spots;
-};
-export const FISHING_SPOTS:readonly FishingSpot[]=FISHING_LAKES.flatMap(lake=>spotsFor(lake,FISHING_PIERS));
-/** How close (px) a player must stand to a spot to fish from it. */
-export const SPOT_REACH=48;
-
-export const inLake=(lake:FishingLake,x:number,y:number)=>((x-lake.x)/lake.rx)**2+((y-lake.y)/lake.ry)**2<1;
-const onPier=(x:number,y:number)=>FISHING_PIERS.some(p=>x>=p.x0&&x<=p.x1&&y>=p.y0&&y<=p.y1);
-const inObstacle=(x:number,y:number)=>FISHING_OBSTACLES.some(o=>((x-o.x)/o.rx)**2+((y-o.y)/o.ry)**2<1);
-export const lakeAt=(x:number,y:number)=>FISHING_LAKES.find(lake=>inLake(lake,x,y));
-/** Water (not a pier) or a building. */
-export function fishingBlocked(x:number,y:number):boolean{return inObstacle(x,y)||!!lakeAt(x,y)&&!onPier(x,y);}
-const clamp=(x:number,y:number)=>({x:Math.max(FISHING_WALK.minX,Math.min(FISHING_WALK.maxX,x)),y:Math.max(FISHING_WALK.minY,Math.min(FISHING_WALK.maxY,y))});
-/** Nearest walkable spot: a click on the water or a building moves back toward the shore behind it. */
-export function fishingFree(x:number,y:number):{x:number;y:number}{
- let p=clamp(x,y);
- for(let n=0;n<80&&fishingBlocked(p.x,p.y);n++)p=clamp(p.x,p.y-4);
- for(let n=0;n<80&&fishingBlocked(p.x,p.y);n++)p=clamp(p.x,p.y+4);
- return p;
-}
-/** The path behind the lakes: always dry, it links every shore and pier. */
-export const FISHING_PATH_Y=584;
-const clear=(a:{x:number;y:number},b:{x:number;y:number})=>{const n=Math.ceil(Math.hypot(b.x-a.x,b.y-a.y)/2);for(let i=1;i<=n;i++){const k=i/n;if(fishingBlocked(a.x+(b.x-a.x)*k,a.y+(b.y-a.y)*k))return false;}return true;};
-/** Next point to walk to: straight when nothing is in the way, else up to the path behind the lakes, along it and down. */
-export function fishingWaypoint(from:{x:number;y:number},to:{x:number;y:number}):{x:number;y:number}{
- if(clear(from,to))return to;
- const above={x:to.x,y:FISHING_PATH_Y};
- if(clear(from,above)&&clear(above,to))return above;
- return {x:from.x,y:FISHING_PATH_Y};
-}
-/** One walking step of at most `distance` px toward `to`, going around water and buildings. */
-export function fishingStep(from:{x:number;y:number},to:{x:number;y:number},distance:number):{x:number;y:number}{
- const target=fishingFree(to.x,to.y);let p={x:from.x,y:from.y},left=distance;
- for(let n=0;n<3&&left>1e-6;n++){
-  const w=fishingWaypoint(p,target),d=Math.hypot(w.x-p.x,w.y-p.y);
-  if(d<1e-6)break;const k=Math.min(1,left/d);p={x:p.x+(w.x-p.x)*k,y:p.y+(w.y-p.y)*k};left-=d*k;
- }
- return fishingBlocked(p.x,p.y)?{x:from.x,y:from.y}:clamp(p.x,p.y);
-}
-export function nearestSpot(x:number,y:number,lake?:string):FishingSpot|undefined{
- let best:FishingSpot|undefined,bestD=Infinity;
- for(const spot of FISHING_SPOTS){if(lake&&spot.lake!==lake)continue;const d=Math.hypot(spot.x-x,spot.y-y);if(d<bestD){best=spot;bestD=d;}}
- return best;
-}
+export * from './fishingMap';
 
 // ── Gear ──
 /**
@@ -152,21 +65,31 @@ export const AUTO_QUALITY=.3;
 /** Small seeded generator, so the server and a test agree on every number of a bar. */
 export function seeded(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 
-/** The timing bar for one fish: the marker sweeps 0→1→0 at `speed` bar lengths per second. */
-export interface FishChallenge {hits:number;speed:number;/** Centre of the target for each press, 0..1. */zones:number[];width:number;perfect:number;misses:number;limitMs:number;}
+/**
+ * The timing bar for one fish: the marker sweeps 0→1→0 at `speed` bar lengths per second and each
+ * press needs it inside the target. Harder fish move the target back and forth (`drift`).
+ */
+export interface FishChallenge {hits:number;speed:number;/** Centre of the target for each press, 0..1. */zones:number[];width:number;perfect:number;misses:number;limitMs:number;/** How far the target swims each way (0 = still) and the time of one full swing. */drift:number;driftMs:number;}
 export function fishChallenge(fish:Fish,rod:FishingRod,seed:number):FishChallenge{
  const rand=seeded(seed),d=fish.difficulty;
  const hits=d<=2?2:d<=4?3:4,width=Math.min(.4,(.26-.03*(d-1))*(1+rod.control)),perfect=width*.34;
- const zones=Array.from({length:hits},()=>width/2+.04+rand()*(1-width-.08));
- return {hits,speed:.8+.22*(d-1),zones,width,perfect,misses:2,limitMs:3500+2600*hits};
+ const drift=d<=2?0:Math.min(.2,.07*(d-2)),driftMs=2600-220*d;
+ const margin=width/2+drift+.03,zones=Array.from({length:hits},()=>margin+rand()*Math.max(0,1-2*margin));
+ return {hits,speed:.8+.22*(d-1),zones,width,perfect,misses:2,limitMs:3500+2600*hits,drift,driftMs};
 }
 /** Marker position 0..1 after `elapsed` ms of the bar. */
 export function markerAt(challenge:Pick<FishChallenge,'speed'>,elapsed:number):number{
  const p=(Math.max(0,elapsed)/1000*challenge.speed)%2;return p<=1?p:2-p;
 }
+/** Centre of the target for press number `press` at `elapsed` ms (it swims on harder fish). */
+export function zoneAt(challenge:FishChallenge,press:number,elapsed:number):number{
+ const base=challenge.zones[Math.min(press,challenge.zones.length-1)];
+ if(!challenge.drift)return base;
+ return base+challenge.drift*Math.sin(Math.max(0,elapsed)/challenge.driftMs*Math.PI*2+press*1.7);
+}
 export type PressGrade='perfect'|'hit'|'miss';
 export function gradePress(challenge:FishChallenge,press:number,elapsed:number):PressGrade{
- const zone=challenge.zones[Math.min(press,challenge.zones.length-1)],off=Math.abs(markerAt(challenge,elapsed)-zone);
+ const off=Math.abs(markerAt(challenge,elapsed)-zoneAt(challenge,press,elapsed));
  return off<=challenge.perfect/2?'perfect':off<=challenge.width/2?'hit':'miss';
 }
 /** Chance that the automatic mode lands this fish: always below a good manual player. */

@@ -1,6 +1,6 @@
 # Prompts de arte da Pescaria
 
-Arte gerada pelo Codex no PC do usuário (`codex exec` em `D:\APPS\ddt`, uma sessão de Remote Control por vez), anexando como referência as peças já aprovadas do lobby (`public/assets/lobby/parallax/source/*.png`, `public/assets/lobby/floor.webp`, um NPC do lobby e um ícone do menu `public/assets/ui/*-button.png`). Hoje a Pescaria usa as camadas da praça e desenhos provisórios em código (`docs/fishing.md`); cada arquivo abaixo, quando existir, substitui o provisório sozinho ou com o encaixe indicado.
+Arte gerada pelo Codex no PC do usuário (`codex exec` em `D:\APPS\ddt`, uma sessão de Remote Control por vez), anexando como referência as peças já aprovadas do lobby (`public/assets/lobby/parallax/source/*.png`, `public/assets/lobby/floor.webp`, um NPC do lobby e um ícone do menu `public/assets/ui/*-button.png`). Ícones, botão e animações abaixo ainda são desenho provisório em código (`docs/fishing.md`); cada arquivo, quando existir, substitui o provisório sozinho ou com o encaixe indicado.
 
 Regras para todas as peças: nada de texto, letras ou números na imagem; nada vetorial, chapado ou "infantil"; nunca copiar arte do DDTank (só o nível de acabamento).
 
@@ -8,30 +8,9 @@ Regras para todas as peças: nada de texto, letras ou números na imagem; nada v
 
 Pinte no estilo do jogo de navegador Brasa Arena, igual ao acabamento do DDTank: pintura 2D à mão, volume, luz vinda da direita, cores vivas e saturadas, contorno marrom-escuro suave, acabamento de jogo coreano/chinês, mesma paleta e mesma luz das imagens anexadas (Praça Celeste). Nada de texto, letras, números, placas escritas, marcas d'água ou interface. Nada de estilo vetorial, flat, pixel art ou 3D renderizado.
 
-## 1. Cenário de fundo (parallax), `public/assets/fishing/parallax/source/`
+## Cenário
 
-Mesmas regras e tamanhos das pranchas do lobby (ver "Parallax" em `docs/lobby-art-prompts.md`): pranchas largas sobre magenta #FF00FF para as camadas recortadas, céu em duas metades que emendam só no céu. Depois de salvar, troque `source` e os nomes em `scripts/fishing-layout.json` e rode `npm run build:lobby -- --layout=scripts/fishing-layout.json` (a montagem sai em `test-results/fishing-parallax/`).
-
-- `01-ceu-esquerda.png` / `02-ceu-direita.png` — BASE + Céu de fim de tarde dourado sobre um vale de lagos, nuvens grandes e fofas com borda rosada, ao longe montanhas azuladas com cachoeiras finas e ilhas flutuantes pequenas (como as da praça). A linha do horizonte a 62% da altura. As duas metades emendam só no céu e na névoa (nada cortado na emenda).
-- `03-longe.png` — BASE + Prancha sobre magenta com 5 peças separadas por 80 px: colinas verdes distantes com bosques, um moinho de água, uma ponte de pedra em arco sobre um rio, um vilarejo de pescadores com telhados vermelhos, um farol pequeno. Tudo com névoa azulada (está longe).
-- `04-meio.png` — BASE + Prancha sobre magenta com 5 peças: salgueiros-chorões grandes, um bambuzal, uma cabana de palafita, um barco a remo virado na margem com redes secando, um varal de peixes secando entre dois postes.
-- `05-perto.png` — BASE + Prancha sobre magenta com 6 peças para a frente do caminho: moitas de juncos e taboas, tufos de flores azuis e amarelas, cerca baixa de madeira com cordas, cestos de vime com peixes, lanternas de papel penduradas em poste, pedras com musgo.
-
-## 2. Casa de Pesca, `public/assets/fishing/house.png`
-
-BASE + Uma casa de pesca de madeira de dois andares, vista de frente levemente de três-quartos, sobre fundo transparente (ou magenta #FF00FF para recorte), cerca de 760 x 520 px, pés da construção na borda de baixo e centralizados. Telhado de telhas azul-petróleo com chaminé soltando um fio de fumaça, varanda com balcão de vender (vazio, sem placa escrita), redes de pesca, boias coloridas, varas encostadas, um peixe grande de madeira pendurado como enfeite, lanternas quentes acesas, barris e caixotes na frente. Detalhada e aconchegante. Sem personagens. O jogo desenha o nome "Casa de Pesca" por cima.
-
-## 3. Portão de volta, `public/assets/fishing/gate.png`
-
-BASE + Um arco de madeira com cordas e boias penduradas, fundo transparente (ou magenta), cerca de 260 x 300 px, pés na borda de baixo. No alto do arco um medalhão redondo em branco (o jogo escreve o destino "Praça Celeste"). Trepadeira com flores subindo pelas colunas.
-
-## 4. Gramado, lagos e píeres, `public/assets/fishing/ground/`
-
-- `meadow.png` — BASE + Textura de gramado visto de cima em leve perspectiva, 2048 x 320 px, emendável na horizontal (a borda esquerda continua a direita), com trilha de terra batida clara correndo na faixa de cima, flores pequenas espalhadas e tufos de grama mais escura. Sem objetos grandes.
-- `lake.png` — BASE + Um lago oval visto em perspectiva baixa, 1100 x 200 px, fundo transparente, margem de pedras arredondadas e terra úmida, água azul-esverdeada com reflexo do céu e ondulações suaves, ninfeias e flores de lótus rosadas nas bordas. O centro da água sem objetos (o jogo desenha boias e peixes ali).
-- `pier.png` — BASE + Um píer de tábuas de madeira visto de cima em perspectiva, 80 x 160 px, fundo transparente, estacas grossas aparecendo embaixo, cordas amarradas nas estacas da ponta.
-
-Encaixe: hoje gramado, lagos e píeres são desenhados em `src/game/fishingWorld.ts`; quando os PNGs existirem, trocar o desenho pela imagem esticada à elipse de cada lago e ao retângulo de cada píer (`FISHING_LAKES`, `FISHING_PIERS`).
+Não precisa de arte nova (pedido do matheus em 20/10: "faça o cenário mais bonito e condizente ao meu jogo, sem criar imagem"). O jardim em terraços é montado com peças que o jogo já tem, recortadas por `npm run build:fishing` (`scripts/build-fishing-props.mjs`), e pedra, água, madeira e cascata são desenhadas em código no mesmo tom (ver "Cenário" em `docs/fishing.md`).
 
 ## 5. Ícones, `public/assets/fishing/icons/<id>.png`
 
