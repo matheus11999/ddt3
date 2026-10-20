@@ -23,9 +23,10 @@ try{
   const fighter={level:profile.level,equipment:profile.equipment,ready:true,bot:false,connected:true,hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,boosts:[]};
   // The player on the bridge, the enemy in the gap under it, almost at the bottom edge of the map.
   let low={x:0,y:0};for(let x=200;x<terrainWidth(terrain)-200;x+=4){const y=ground(terrain,x);if(y<860&&y>low.y)low={x,y};}
-  const meX=Math.max(200,low.x-380),me={...fighter,id:profile.id,name:profile.name,team:0,slot:0,x:meX,y:ground(terrain,meX),facing:1,aimAngle:50,pet};
+  const meX=Math.max(200,low.x-380),me={...fighter,id:profile.id,name:profile.name,guild:'Brasa Eterna',team:0,slot:0,x:meX,y:ground(terrain,meX),facing:1,aimAngle:50,pet};
   const enemy={...fighter,id:'hud-enemy',name:'Pipoca · BOT',bot:true,team:1,slot:0,x:low.x,y:low.y,facing:-1,hp:4041};
-  client.update({status:'online',offset:0,shot:null,impacts:[],abilityEffects:[],room:null,battle:{id:'hud-preview',roomId:'fixture',map:'snow',players:[me,enemy],turnId:profile.id,turnNumber:1,wind:1.4,deadline:now+300000,phase:'aiming',winner:null}});
+  const chat=[['world','Mundo','Lia','alguém pra expedição?'],['guild','Guilda','Tomás','boa sorte na luta!'],['room','Sala','Pipoca · BOT','vem!'],['private','Privado','Rafa','me chama depois']].map(([channel,,name,text],i)=>({id:'c'+i,channel,name,text,time:now-1000*(4-i),playerId:'p'+i}));
+  client.update({chat,status:'online',offset:0,shot:null,impacts:[],abilityEffects:[],room:null,battle:{id:'hud-preview',roomId:'fixture',map:'snow',players:[me,enemy],turnId:profile.id,turnNumber:1,wind:1.4,deadline:now+300000,phase:'aiming',winner:null}});
  });
  await page.locator('.battle-console').waitFor({timeout:15000}).catch(async error=>{await page.screenshot({path:out+'/failure.png'});console.log(JSON.stringify(errors));throw error;});
  await page.waitForTimeout(2500);
@@ -35,5 +36,11 @@ try{
  // Charging: the numbers stay readable over the fill.
  await page.keyboard.down('Space');await page.waitForTimeout(2100);
  await page.screenshot({path:`${out}/charging.png`,clip:{x:0,y:Math.max(0,console_.y-40),width,height:height-Math.max(0,console_.y-40)}});
+ // Last shot at 62: the band shows where it was.
+ await page.keyboard.up('Space');await page.waitForTimeout(400);
+ await page.screenshot({path:`${out}/last-power.png`,clip:{x:0,y:Math.max(0,console_.y-40),width,height:height-Math.max(0,console_.y-40)}});
+ // Enter opens the line to write under the chat.
+ await page.keyboard.press('Enter');await page.waitForTimeout(300);
+ await page.screenshot({path:`${out}/chat-open.png`,clip:{x:0,y:0,width:Math.min(width,640),height:Math.min(height,480)}});
  if(errors.length)console.log(JSON.stringify(errors));
 }finally{await browser.close();}
