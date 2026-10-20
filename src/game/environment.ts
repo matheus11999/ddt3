@@ -42,6 +42,7 @@ function random(seed:number){return ((Math.sin(seed*127.1+311.7)*43758.5453)%1+1
 function ellipse(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,color:string){c.fillStyle=color;c.beginPath();c.ellipse(x,y,rx,ry,0,0,Math.PI*2);c.fill();}
 interface Bounds {x:number;y:number;width:number;height:number;}
 function makeCanvas(width:number,height:number){const canvas=document.createElement('canvas');canvas.width=Math.ceil(width);canvas.height=Math.ceil(height);return canvas;}
+function lowQuality(c:CanvasRenderingContext2D,draw:()=>void){const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='low';draw();c.imageSmoothingQuality=quality;}
 function smoothImages(c:CanvasRenderingContext2D,filter:ImageSmoothingQuality='high'){c.imageSmoothingEnabled=true;c.imageSmoothingQuality=filter;}
 function intersects(a:Bounds,b:Bounds){return a.x+a.width>=b.x&&a.x<=b.x+b.width&&a.y+a.height>=b.y&&a.y<=b.y+b.height;}
 function cameraBounds(camera:CameraState,depth=1):Bounds {
@@ -184,7 +185,8 @@ export class EnvironmentRenderer {
   // Keep the resampling filter's neighbourhood outside the viewport: changing
   // the integer crop during a subpixel pan must not expose its sampling edge.
   const visible=cameraBounds(this.camera),padding=8,x=Math.max(0,Math.floor(visible.x)-padding),y=Math.max(0,Math.floor(visible.y)-padding),right=Math.min(this.width,Math.ceil(visible.x+visible.width)+padding),bottom=Math.min(H,Math.ceil(visible.y+visible.height)+padding);
-  if(right>x&&bottom>y)c.drawImage(this.terrainDrawing,x,y,right-x,bottom-y,x,y,right-x,bottom-y);
+  // Drawn about 1:1 on screen: plain bilinear looks the same and 'high' made this the costliest draw of a battle.
+  if(right>x&&bottom>y)lowQuality(c,()=>c.drawImage(this.terrainDrawing,x,y,right-x,bottom-y,x,y,right-x,bottom-y));
  }
  drawFront(c:CanvasRenderingContext2D,time:number,camera:CameraState){
   if(!this.isReady()){this.drawLoading(c);return;}
@@ -196,7 +198,10 @@ export class EnvironmentRenderer {
   const depth=span>0?Math.min(1,Math.max(.1,natural/span)):.1,travel=span*depth,width=W+travel+margin*2;
   // Under the painting, its last rows stretched down: the camera can look BATTLE_HUD_COVER below the map.
   const layer=this.cached(key,width,H+margin*2+BATTLE_HUD_COVER,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale,left=(width-image.naturalWidth*scale)/2;smoothImages(ctx);ctx.drawImage(image,left,H+margin*2-height,image.naturalWidth*scale,height);if(key==='backdrop')ctx.drawImage(image,0,image.naturalHeight-2,image.naturalWidth,2,left,H+margin*2-1,image.naturalWidth*scale,BATTLE_HUD_COVER+1);});
-  c.save();applyCamera(c,camera,depth);c.drawImage(layer,-margin,offset-margin);c.restore();
+  c.save();applyCamera(c,camera,depth);
+  // On whole screen pixels the backdrop (the size of the screen) is a plain copy, not a filter pass every frame.
+  const m=c.getTransform(),x=m.a*(-margin)+m.e,y=m.d*(offset-margin)+m.f;c.setTransform(m.a,m.b,m.c,m.d,m.e+Math.round(x)-x,m.f+Math.round(y)-y);
+  c.imageSmoothingQuality='low';c.drawImage(layer,-margin,offset-margin);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
   c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,W,H);

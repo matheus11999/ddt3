@@ -1,6 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
-import {drawDecoded,freeAll,freeSurface} from './spriteCache';
+import {drawScaled,freeAll,freeSurface} from './spriteCache';
 import type {AvatarPart} from './appearance';
 import {asset,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart} from './appearance';
 import type {AvatarPose} from './avatar';
@@ -103,12 +103,12 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  * `shade` darkens the far one a little and `scale` shrinks the forward fist while lying. */
 function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:Fist,shade:number,scale=1){
  const w=COMBAT_FIST_SIZE*.42*scale,h=COMBAT_FIST_SIZE*.38*scale,color=skin??BASE_SKIN;
- c.save();c.translate(x,y);c.rotate(angle);if(shade<1)c.filter=`brightness(${shade})`;
+ c.save();c.translate(x,y);c.rotate(angle);
  const ball=()=>{c.beginPath();c.ellipse(0,0,w,h,0,0,Math.PI*2);};
- ball();c.fillStyle=color;c.fill();
+ ball();c.fillStyle=shadeColor(color,shade);c.fill();
  c.save();ball();c.clip();
- c.fillStyle=shadeColor(color,.86,.74,.66);c.beginPath();c.ellipse(0,h*.95,w*1.2,h*.62,0,0,Math.PI*2);c.fill();
- const glow=c.createRadialGradient(-w*.25,-h*.5,0,-w*.25,-h*.5,w*.6);glow.addColorStop(0,'rgba(255,246,236,.85)');glow.addColorStop(.5,'rgba(255,240,224,.35)');glow.addColorStop(1,'rgba(255,240,224,0)');
+ c.fillStyle=shadeColor(color,.86*shade,.74*shade,.66*shade);c.beginPath();c.ellipse(0,h*.95,w*1.2,h*.62,0,0,Math.PI*2);c.fill();
+ const glow=c.createRadialGradient(-w*.25,-h*.5,0,-w*.25,-h*.5,w*.6);glow.addColorStop(0,lightTone(shade,246,236,.85));glow.addColorStop(.5,lightTone(shade,240,224,.35));glow.addColorStop(1,lightTone(shade,240,224,0));
  c.fillStyle=glow;c.fillRect(-w,-h,w*2,h*2);c.restore();
  ball();c.strokeStyle='#120e09';c.lineWidth=1.25;c.stroke();
  c.restore();
@@ -117,12 +117,12 @@ function drawFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,angle]:F
  * outline all round, so it closes against the face with a line instead of a see-through gap. */
 function drawBlockFist(c:CanvasRenderingContext2D,skin:string|undefined,[x,y,r]:[number,number,number],lift:number,shade:number){
  const w=r*1.04,h=r*.92,color=skin??BASE_SKIN;
- c.save();c.translate(x,y+lift);if(shade<1)c.filter=`brightness(${shade})`;
+ c.save();c.translate(x,y+lift);
  const bun=()=>{c.beginPath();c.roundRect(-w,-h,w*2,h*2,r*.78);};
- bun();c.fillStyle=color;c.fill();
+ bun();c.fillStyle=shadeColor(color,shade);c.fill();
  c.save();bun();c.clip();
- c.fillStyle=shadeColor(color,.9,.8,.73);c.beginPath();c.ellipse(0,h*1.15,w*1.4,h*.6,0,0,Math.PI*2);c.fill();
- const glow=c.createRadialGradient(-w*.3,-h*.45,0,-w*.3,-h*.45,w*.75);glow.addColorStop(0,'rgba(255,246,236,.85)');glow.addColorStop(.5,'rgba(255,240,224,.3)');glow.addColorStop(1,'rgba(255,240,224,0)');
+ c.fillStyle=shadeColor(color,.9*shade,.8*shade,.73*shade);c.beginPath();c.ellipse(0,h*1.15,w*1.4,h*.6,0,0,Math.PI*2);c.fill();
+ const glow=c.createRadialGradient(-w*.3,-h*.45,0,-w*.3,-h*.45,w*.75);glow.addColorStop(0,lightTone(shade,246,236,.85));glow.addColorStop(.5,lightTone(shade,240,224,.3));glow.addColorStop(1,lightTone(shade,240,224,0));
  c.fillStyle=glow;c.fillRect(-w,-h,w*2,h*2);c.restore();
  bun();c.strokeStyle='#120e09';c.lineWidth=.85;c.stroke();
  c.restore();
@@ -143,6 +143,9 @@ function drawArm(c:CanvasRenderingContext2D,shoulder:Point,elbow:Point,[fx,fy]:F
  c.restore();
 }
 const FOREARM_MAX=26;
+/** The fists' near-white highlight, darkened like the rest of a far fist (a canvas filter here cost more than the
+ * whole body painting every frame). */
+const lightTone=(shade:number,g:number,b:number,alpha:number)=>`rgba(${Math.round(255*shade)},${Math.round(g*shade)},${Math.round(b*shade)},${alpha})`;
 const shadeColor=(hex:string,r:number,g=r,b=r)=>{const n=parseInt(hex.slice(1),16),f=(v:number,k:number)=>Math.min(255,Math.round(v*k));return `rgb(${f(n>>16&255,r)},${f(n>>8&255,g)},${f(n&255,b)})`;};
 function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,angle:number,time:number){
  const level=eq.upgrade??0,image=asset(weaponAssetPath(eq.weapon,level));if(!image.complete||!image.naturalWidth)return;
@@ -150,7 +153,8 @@ function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:numbe
  c.save();c.translate(x,y);c.rotate(angle);
  c.save();c.scale(.7,.7);drawWeaponEnergy(c,weapon?.effect??'brick',level,time);c.restore();
  if(level>=9){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=level>=12?9:4;}
- drawDecoded(c,image,-BACK_WEAPON_SIZE/2,-BACK_WEAPON_SIZE/2,BACK_WEAPON_SIZE,BACK_WEAPON_SIZE);c.restore();
+ // The 1254 px weapon painting shown 64 px wide: a copy at screen size, not a full filter pass every frame.
+ drawScaled(c,image,-BACK_WEAPON_SIZE/2,-BACK_WEAPON_SIZE/2,BACK_WEAPON_SIZE,BACK_WEAPON_SIZE);c.restore();
 }
 /** The projectile glows in the fist while the shot charges; the release leaves a short swoosh. */
 function drawThrowCue(c:CanvasRenderingContext2D,name:CombatFrameName,state:CombatBodyState,x:number,y:number,color:string){

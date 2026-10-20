@@ -1,6 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,isEmptyItem,WEAPONS,weaponAssetPath} from '../../shared/catalog';
-import {drawDecoded,scaledCopy,screenScale} from './spriteCache';
+import {drawScaled,scaledCopy,screenScale} from './spriteCache';
 import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
 import {asset,avatarRig,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart,ellipse,getFacePortrait,visual} from './appearance';
@@ -129,7 +129,7 @@ function drawCombatWeapon(c:CanvasRenderingContext2D,eq:Equipment,time:number,an
  const weapon=WEAPONS.find(item=>item.id===eq.weapon),thrown=weapon?.hold!=='hand';
  c.save();c.translate(thrown?-7:-30,thrown?18:4);drawWeaponEnergy(c,weapon?.effect??'brick',level,time);c.restore();
  if(level>=9||charging){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=charging?5+power/18:level>=12?9:4;}
- if(thrown)drawDecoded(c,w,-40,-10,68,68);else drawDecoded(c,w,-67.2,-29.5,82,82);c.restore();
+ if(thrown)drawScaled(c,w,-40,-10,68,68);else drawScaled(c,w,-67.2,-29.5,82,82);c.restore();
 }
 
 interface ProneThrow {angle:number;front:boolean;held:number;trail:number;from:number;dx:number;grow?:number;}
@@ -337,7 +337,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.translate(6,-5);c.scale(weaponScale,weaponScale);c.translate(-6,5);
    if(pose==='charge'){c.save();c.globalAlpha*=.18+clamp(context.power??50,0,100)/250;c.shadowColor='#ffe5a0';c.shadowBlur=12;ellipse(c,11,-9,15+Math.sin(time/80)*2,15,'#fbe3a6');c.restore();}
    c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(weapon=>weapon.id===eq.weapon)?.effect??'fire',level,time);c.restore();
-   drawDecoded(c,w,-35,-46,82,82);c.restore();
+   drawScaled(c,w,-35,-46,82,82);c.restore();
   }}c.restore();c.restore();
  };
  body(m.facing);c.restore();

@@ -72,7 +72,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}
    if(state.room?.kind==='expedition'||state.battle?.instance)preloadMonsters();if(state.room?.kind==='world-boss'||state.battle?.worldBoss)preloadDragon();};
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
-  let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
+  let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='medium';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2),fishing=new FishingWorld();let hoverLake:string|null=null,pendingSpot:string|null=null;let hover:string|null=null,camX=-1,camY=0,walkDir=0,walkDirY=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
@@ -87,7 +87,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
    else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
-  let nextPaint=0,lastPaint=0,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity;
+  let nextPaint=0,lastPaint=0,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity,shownZone=state.zone,zoneChangedAt=-Infinity;
   /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
   const watchSpeed=(t:number)=>{
    const interval=t-lastPaint;lastPaint=t;
@@ -99,7 +99,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let wasFishing=false;
   /** Battle-only paintings and canvases go as soon as the battle ends, not when the garbage collector runs; an expedition's or the dragon's stay while their room is open (the next stage uses them). */
   const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
-  const zoneReady=(scale:number)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale);
+  const zoneReady=(scale:number,scaleY=scale)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale,scaleY);
   /** Spots someone else is fishing from. */
   const takenSpots=()=>new Set(state.players.filter(p=>p.fishing&&p.id!==state.profile?.id).map(p=>p.fishing!.spot));
   const render=(t:number)=>{
@@ -114,8 +114,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // Covered by a menu or the room: nothing under the loading cover is left to paint.
    if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){if(!document.hidden&&scenePaint.wanted())scenePaint.done();frame=requestAnimationFrame(render);lastPaint=0;return;}
    if(t<nextPaint-1){frame=requestAnimationFrame(render);return;}
-   // Back from a battle that ended abruptly (left mid-match): hold the last frame while the plaza decodes, rather than an empty sky.
-   if(!state.battle&&t-leftBattleAt<1500&&!zoneReady(el.width/W)){frame=requestAnimationFrame(render);return;}
+   // Back from a battle that ended abruptly (left mid-match) or into another area: hold the last frame while the
+   // area decodes, rather than an empty sky or a frozen first frame drawing the full paintings.
+   if(state.zone!==shownZone){shownZone=state.zone;zoneChangedAt=t;}
+   if(!state.battle&&t-Math.max(leftBattleAt,zoneChangedAt)<1500&&!zoneReady(el.width/W,el.height/H)){frame=requestAnimationFrame(render);return;}
    nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
@@ -331,7 +333,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     }
    }
    // A loading cover waits for a frame with every painting in it (the plaza's art decodes over a few frames).
-   if(scenePaint.wanted()&&(b||zoneReady(el.width/W)))scenePaint.done();
+   if(scenePaint.wanted()&&(b||zoneReady(el.width/W,el.height/H)))scenePaint.done();
    frame=requestAnimationFrame(render);
   };
   // Right click on someone in the plaza (walkers and the podium) opens the player menu.
