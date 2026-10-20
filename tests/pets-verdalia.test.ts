@@ -56,6 +56,11 @@ test('Raízes da Terra damages only the enemies in the area of the shot, and gro
  // No point (the shot fell off the map): nothing rises.
  const miss=duel(0);assert.ok(!dispatchPetTrigger(miss.ctx,'shot-end',miss.owner,{sourceId:'a'}).some(x=>x.kind==='area-damage'));assert.equal(miss.near.hp,1000);
 });
+test('Raízes da Terra reaches 135 px from the landing point as a sprout (it was 90)',()=>{
+ const {owner,near,far,ctx}=duel(0);near.x=620+120;far.x=620+150;
+ dispatchPetTrigger(ctx,'shot-end',owner,{sourceId:'a',shotId:'s1',point:{x:620,y:500}});
+ assert.ok(near.hp<1000,'120 px away is inside the area');assert.equal(far.hp,1000,'150 px away is outside');
+});
 test('Orvalho Curativo heals the whole team at the start of each of their next 3 turns',()=>{
  const {owner,near,ctx}=duel(0,[{id:'verdalia-dew',level:1}]),ally:PetCombatant={id:'d',team:0,hp:500,maxHp:1000,level:10,x:150,y:500};
  ctx.fighters.push(ally);owner.pet!.mana=100;owner.hp=500;near.hp=500;
