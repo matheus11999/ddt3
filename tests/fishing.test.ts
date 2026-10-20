@@ -173,4 +173,6 @@ test('automatic fishing lands fish by chance and casts again by itself (AFK)',as
  }
  assert.equal(f.store.profiles.get(f.a.id)!.fishing.total,3);
  assert.ok(HOOK_LEAD_MS>0);
+ // Leaving the Pescaria stops the line and turns automatic mode off (the HUD comes back in manual).
+ await f.game.command(f.a.id,{type:'zone',zone:'plaza'});assert.equal(peer.fishing,undefined);assert.equal(peer.fishAuto,undefined);
 });

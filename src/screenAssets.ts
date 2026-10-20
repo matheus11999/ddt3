@@ -7,9 +7,9 @@
 const URL_PATTERN=/url\(\s*(["']?)([^"')]+)\1\s*\)/g;
 const GATE_MS=1500;
 const IGNORE='.screen-curtain';
-/** Every picture seen once, kept so it can be decoded again (the browser drops decoded art of a hidden tab). */
-const known=new Map<string,HTMLImageElement>();
-const settled=new Set<string>();
+/** URLs already decoded once, and the decodes still running. No picture is kept: holding an Image here would keep
+ * every window's backgrounds decoded for the whole session (the loading screen's map, the Pescaria's frames...). */
+const settled=new Set<string>(),running=new Map<string,Promise<void>>();
 
 function backgrounds(style:CSSStyleDeclaration,into:Set<string>){
  const value=style.backgroundImage;if(!value||value==='none'||!value.includes('url('))return;
@@ -26,9 +26,12 @@ export function screenPictures(root:Element){
  }
  return {images,urls:[...urls]};
 }
-function picture(url:string){let image=known.get(url);if(!image){image=new Image();image.decoding='async';image.src=url;known.set(url,image);}return image;}
-/** Decodes one CSS background picture; a broken one counts as done. */
-export function decodeUrl(url:string){return picture(url).decode().then(()=>{settled.add(url);},()=>{settled.add(url);});}
+/** Decodes one CSS background picture (again, after a hidden tab); a broken one counts as done. */
+export function decodeUrl(url:string){
+ let job=running.get(url);if(job)return job;
+ const image=new Image();image.decoding='async';image.src=url;
+ job=image.decode().catch(()=>{}).then(()=>{settled.add(url);running.delete(url);});running.set(url,job);return job;
+}
 function decodeImage(image:HTMLImageElement){return image.decode().catch(()=>{});}
 const pause=(ms:number)=>new Promise<void>(resolve=>setTimeout(resolve,ms));
 

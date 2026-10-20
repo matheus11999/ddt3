@@ -1,4 +1,5 @@
 import clips from './boomerangImpactData.json';
+import {freeImage} from './spriteCache';
 
 export const BOOMERANG_IMPACT_DURATION=51/24*1000;
 type Clip=typeof clips.normal;
@@ -10,6 +11,8 @@ function sheet(clip:Clip){
  current.ready=new Promise<void>(resolve=>{image.onload=()=>{current.loaded=true;resolve();};image.onerror=()=>resolve();});
  cache.set(clip.url,current);image.src=clip.url;return current;
 }
+/** Lets the impact sheets go when the battle ends (they come back with the next battle that needs them). */
+export function releaseBoomerangImpacts(){for(const entry of cache.values())freeImage(entry.image);cache.clear();}
 export function preloadBoomerangImpacts(){return Promise.all([sheet(clips.normal).ready,sheet(clips.pow).ready]);}
 /** One shared timeline for all normal-family upgrades; POW has its own 471 timeline.
  * The PNG registration comes from the original SWF bounds, not the image centre. */

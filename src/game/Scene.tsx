@@ -7,10 +7,10 @@ import {getMap} from '../../shared/maps';
 import {createAvatarMotion,drawAvatar,heldMuzzle} from './avatar';
 import type {AvatarContext,AvatarMotion} from './avatar';
 import {audio,startEnvironmentAudio,stopEnvironmentAudio} from './audio';
-import {TerrainResidues} from './terrainResidues';
+import {releaseTerrainMarks,TerrainResidues} from './terrainResidues';
 import {playImpactSound,playShotSound} from './weaponSounds';
 import {applyDueImpacts} from './terrainPlayback';
-import {drawImpact,drawMuzzle,drawProjectile} from './weaponEffects';
+import {drawImpact,drawMuzzle,drawProjectile,releaseWeaponEffects} from './weaponEffects';
 import {BOOMERANG_IMPACT_DURATION} from './boomerangImpact';
 import type {Projectile} from '../../shared/protocol';
 import {drawHitFeedback,hitStackSlot,HIT_FEEDBACK_DURATION} from './hitFeedback';
@@ -23,21 +23,23 @@ import {drawWalkDebug,WALK_DEBUG} from './walkDebug';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
-import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds} from './petEffects';
+import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds,releasePetEffects} from './petEffects';
 import {INSTANCE_INTRO_MS,MONSTER_MOVE_MS,MONSTER_TURN_ID,QUEEN_DRAW_MS} from '../../shared/instanceTurn';
 import {MONSTERS} from '../../shared/expeditions';
 import {bubbleStyle,CHAT_BUBBLE_MS,drawSpeechBubble,drawSpeechBubbles} from './speechBubble';
 import type {SpeechLine} from './speechBubble';
 import type {ChatLine} from '../../shared/protocol';
-import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters} from './monsters';
+import {drawArrow,drawArrowImpact,drawMonster,MONSTER_DEATH_MS,monsterPlateY,monsterView,preloadMonsters,releaseMonsters} from './monsters';
 import {drawScorchSmoke,scorchAmount,scorchFilter} from './scorch';
-import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,drawDragonPaw,preloadDragon} from './worldBoss/dragon';
+import {dragonFocus,dragonLift,dragonPose,drawDragonBack,drawDragonFront,drawDragonPaw,preloadDragon,releaseDragon} from './worldBoss/dragon';
 import type {DragonPose} from './worldBoss/dragon';
 import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
-import {CONSUMABLE_ICON_DURATION,drawConsumableIcon,drawFrozenBlock,drawIceImpact,drawIceProjectile,ICE_SHATTER_DURATION,playConsumableSound} from './consumableEffects';
+import {CONSUMABLE_ICON_DURATION,drawConsumableIcon,drawFrozenBlock,drawIceImpact,drawIceProjectile,ICE_SHATTER_DURATION,playConsumableSound,releaseConsumables} from './consumableEffects';
+import {releaseCombatBodies} from './combatBody';
+import {releaseWalkBodies} from './walkBody';
 import {scenePaint} from './scenePaint';
 import {BATTLE_HUD_COVER,EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -95,6 +97,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    slowFrames=frameTotal=0;
   };
   let wasFishing=false;
+  /** Battle-only paintings and canvases go as soon as the battle ends, not when the garbage collector runs; an expedition's or the dragon's stay while their room is open (the next stage uses them). */
+  const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
   const zoneReady=(scale:number)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale);
   /** Spots someone else is fishing from. */
   const takenSpots=()=>new Set(state.players.filter(p=>p.fishing&&p.id!==state.profile?.id).map(p=>p.fishing!.spot));
@@ -102,9 +106,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // The plaza's paintings leave memory while a battle runs and come back once it ends
    // (on the result screen, before the players walk out), so the return shows no gap.
    // Only the zone the player is in keeps its paintings in memory.
-   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
+   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();releaseWalkBodies();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
    // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
-   if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
+   if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();environment?.dispose();residues?.dispose();releaseBattleArt(state.room?.kind);releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
    // avoid repainting the full world at the monitor's refresh rate underneath.
    // Covered by a menu or the room: nothing under the loading cover is left to paint.
@@ -133,7 +137,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(b){
     if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();toolIcons.clear();seenBoosts.clear();frozenSeen.clear();}
     const knownMatch=matchId===b.id;
-    if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain,b.map);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
+    if(matchId!==b.id){environment?.dispose();residues?.dispose();matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain,b.map);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
     if(turnId!==b.turnId){turnId=b.turnId;if(b.turnId===state.profile?.id)audio.play('turn');}

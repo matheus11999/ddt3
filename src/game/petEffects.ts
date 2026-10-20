@@ -2,6 +2,7 @@ import {PET_SKILLS,petSkill} from '../../shared/petSkills';
 import {audio} from './audio';
 import type {PetApplication} from '../../shared/petSkills';
 import type {Projectile} from '../../shared/protocol';
+import {freeAll} from './spriteCache';
 /**
  * The art of pet skills in battle (shared/petSkills.ts `visual`): area effects where they rise, healing on the
  * fighter, and a special shot's own projectile and impact. Only registered art is drawn; without it, nothing.
@@ -40,6 +41,8 @@ export function drawPetApplication(c:CanvasRenderingContext2D,app:PetApplication
 const rand=(n:number)=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v);};
 // The painted ring with its edge faded out, so the whirl never shows the outline of a disc.
 const softRings=new Map<HTMLImageElement,HTMLCanvasElement>();
+/** The pet skills' paintings are battle-only: let go when the battle ends. */
+export function releasePetEffects(){freeAll(softRings);freeAll(images);}
 function softRing(img:HTMLImageElement){
  let soft=softRings.get(img);if(soft)return soft;
  soft=document.createElement('canvas');soft.width=img.naturalWidth;soft.height=img.naturalHeight;const g=soft.getContext('2d')!,cx=soft.width/2,cy=soft.height/2;

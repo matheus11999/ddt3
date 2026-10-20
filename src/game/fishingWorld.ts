@@ -20,7 +20,7 @@ import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
 import {ROD_FRAMES,SPLASHES} from '../../shared/generated/fishingFx';
 import type {RodFrame} from '../../shared/generated/fishingFx';
-import {drawScaled,imageReady,screenScale} from './spriteCache';
+import {drawScaled,freeAll,freeImage,imageReady,screenScale} from './spriteCache';
 import {plaque} from './lobbyWorld';
 
 const VIEW_W=1536,VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
@@ -110,7 +110,13 @@ export class FishingWorld {
   this.rod=image('/assets/fishing/rod-bamboo.webp');this.splash={bait:image('/assets/fishing/splash-bait.webp'),catch:image('/assets/fishing/splash-catch.webp')};
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[])this.art.set(id,image(`/assets/fishing/props/${id}.webp`));
  }
- release(){if(!this.assets)return;this.assets=false;this.art.clear();this.tiles.clear();this.casts.clear();for(const k of ['sky','floor','grass','water','rod'] as const)this[k]=new Image();this.splash={bait:new Image(),catch:new Image()};}
+ /** Lets go of every painting and baked tile at once (not at the next garbage collection) when the player leaves the Pescaria. */
+ release(){
+  if(!this.assets)return;this.assets=false;
+  freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);
+  for(const k of ['sky','floor','grass','water','rod'] as const){freeImage(this[k]);this[k]=new Image();}
+  freeImage(this.splash.bait);freeImage(this.splash.catch);this.splash={bait:new Image(),catch:new Image()};
+ }
  get isLoaded(){return this.assets;}
  /** True once everything on screen can be painted without a gap. */
  ready(_scale:number){return this.assets&&[this.sky,this.floor,this.grass,this.water,this.rod,this.splash.bait,this.splash.catch].every(imageReady)&&[...this.art.values()].every(imageReady);}
@@ -119,7 +125,7 @@ export class FishingWorld {
   const v=fishingLayoutVersion();if(v===this.built)return;this.built=v;placeStations();
   const all=[...fixedPieces(),...FISHING_ITEMS.filter(i=>i.prop in FISHING_PROPS) as Piece[]];
   this.flat=all.filter(p=>p.layer==='ground');this.floating=all.filter(p=>p.layer==='water');this.standing=all.filter(p=>p.layer==='stand');
-  this.tiles.clear();
+  freeAll(this.tiles);
  }
  /** Camera that keeps the player a little below the middle (they are tall), never past the island's edges. */
  static camera(focusX:number,focusY:number){return {x:Math.max(0,Math.min(W-VIEW_W,focusX-VIEW_W/2)),y:Math.max(0,Math.min(H-VIEW_H,focusY-VIEW_H*.6))};}
@@ -135,7 +141,7 @@ export class FishingWorld {
   c.save();c.imageSmoothingQuality='low';
   this.drawSky(c,camX,camY);
   const scale=Math.min(1.5,Math.max(1,Math.ceil(screenScale(c)*4)/4));
-  if(scale!==this.tileScale){this.tiles.clear();this.tileScale=scale;}
+  if(scale!==this.tileScale){freeAll(this.tiles);this.tileScale=scale;}
   for(let n=Math.floor(camX/TILE);n*TILE<camX+VIEW_W;n++){const tile=this.tile(n);if(!tile)continue;
    const y0=Math.max(GROUND_TOP,camY),y1=Math.min(H,camY+VIEW_H);if(y1>y0)c.drawImage(tile,0,(y0-GROUND_TOP)*scale,tile.width,(y1-y0)*scale,n*TILE,y0,TILE,y1-y0);}
   this.live(c,t,camX,camY,VIEW_W,VIEW_H);

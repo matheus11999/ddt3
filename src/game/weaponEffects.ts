@@ -3,7 +3,8 @@ import {WEAPONS,weaponPhaseTier} from '../../shared/catalog';
 import {weaponEffectsPath,weaponKit,weaponPowPath} from '../../shared/weaponKit';
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
-import {drawBoomerangImpact,preloadBoomerangImpacts} from './boomerangImpact';
+import {drawBoomerangImpact,preloadBoomerangImpacts,releaseBoomerangImpacts} from './boomerangImpact';
+import {freeImage,freeSurface} from './spriteCache';
 import stripData from './projectileStrips.json';
 
 type Effect=Projectile['effect'];
@@ -136,7 +137,8 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
     const cut=row===rows-1?paintedPieces(original):undefined;
     atlas.cells.push({solid,energy,width,height,pieces:cut?.pieces??[],body:cut?.body,core:row===0?paintedCore(solid,original):undefined});
    }
-   image.onload=null;image.onerror=null;resolve();
+   // The full-size working copy and the file are no longer needed: only the cut cells are drawn.
+   freeSurface(canvas);image.onload=null;image.onerror=null;freeImage(image);resolve();
   };
   // Each weapon paints its own atlas (shared/weaponKit.ts); an effect no weapon uses keeps the drawn fallback.
   if(!weapon){resolve();return;}
@@ -175,7 +177,14 @@ function drawStrip(c:CanvasRenderingContext2D,effect:Effect,powered:boolean,tier
 export function preloadWeaponEffects(effects:readonly Effect[]=[...new Set(WEAPONS.map(weapon=>weapon.effect))]){return Promise.all([...effects.includes('boomerang' as Effect)?[preloadBoomerangImpacts()]:[],...effects.flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready,...preloadStrips(effect)])]);}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
-if(typeof Image!=='undefined')void preloadWeaponEffects();
+/**
+ * Battle-only: the loading screen warms the fighters' weapons (battlePreload.ts) and the battle lets them go
+ * when it ends (`releaseWeaponEffects`), so the plaza and the Pescaria never hold every weapon's cut atlases.
+ */
+export function releaseWeaponEffects(){
+ for(const atlas of atlases.values())for(const cell of atlas.cells){freeSurface(cell.solid);cell.energy.forEach(freeSurface);freeSurface(cell.body);freeSurface(cell.core?.image);for(const piece of cell.pieces)freeSurface(piece.image);}
+ atlases.clear();for(const strip of strips.values())freeImage(strip.image);strips.clear();releaseBoomerangImpacts();
+}
 
 function sprite(c:CanvasRenderingContext2D,effect:Effect,row:number,tier:number,x:number,y:number,width:number,angle=0,anchor=.5,alpha=1,dissolve=0,energy=row!==0,sheet:Sheet='effects'){
  const atlas=atlasFor(effect,sheet),cell=atlas.cells[row*4+tier];if(!cell)return false;

@@ -6,7 +6,7 @@ import {destructionProfile,destructionProfileById} from '../../shared/destructio
 import type {DestructionProfile} from '../../shared/destruction';
 import {weaponTerrainPath} from '../../shared/weaponKit';
 import {keepVisibleMarks,terrainMarkBox} from '../../shared/terrainMarks';
-import {imageReady} from './spriteCache';
+import {freeAll,freeSurface,imageReady} from './spriteCache';
 
 /** Same mark, same shape on every client and after a reload. */
 function seeded(seed:number){let state=Math.floor(Math.abs(seed))%2147483646+1;return ()=>(state=state*16807%2147483647)/2147483647;}
@@ -42,6 +42,8 @@ function markSource(mark:TerrainMark,profile:DestructionProfile|undefined):{src:
  const weapon=WEAPONS.find(item=>item.effect===mark.effect);return weapon?{src:weaponTerrainPath(weapon.id),legacy:true}:undefined;
 }
 /** Starts loading the marks a battle can leave: each fighter's weapon at its level, normal and POW. */
+/** The ground marks' paintings are battle-only: let go when the battle ends (the next one warms its own). */
+export function releaseTerrainMarks(){freeAll(art);}
 export function preloadTerrainMarks(weapons:readonly {weapon:string;upgrade:number}[]):Promise<unknown>{
  const images=weapons.flatMap(({weapon,upgrade})=>[false,true].map(powered=>destructionProfile(weapon,upgrade,powered))).flatMap(profile=>profile?[markImage(profileSource(profile).src)]:[]);
  return Promise.all([...new Set(images)].filter((image):image is HTMLImageElement=>!!image).map(image=>image.decode().catch(()=>undefined)));
@@ -135,8 +137,10 @@ export class TerrainResidues {
   for(let y=0;y<h;y++)for(let x=0,i=(top+y)*this.cols+left;x<w;x++,i++)if(this.terrain[i]&&(!onlyBreakable||template.definition[template.regions[i]]?.destructible))keep.data[(y*w+x)*4+3]=255;
   const patch=this.patch(w,h);patch.getContext('2d')!.putImageData(keep,0,0);
   b.setTransform(1,0,0,1,0,0);b.globalAlpha=1;b.globalCompositeOperation='destination-in';b.imageSmoothingEnabled=false;b.drawImage(patch,0,0,w,h,0,0,w*k,h*k);
-  this.canvas.getContext('2d')!.drawImage(buffer,left*k,top*k);
+  this.canvas.getContext('2d')!.drawImage(buffer,left*k,top*k);freeSurface(buffer);
   return 'done';
  }
  draw(c:CanvasRenderingContext2D){this.flush();c.drawImage(this.canvas,0,0);}
+ /** Gives the marks' canvases back at once when the battle ends. */
+ dispose(){freeSurface(this.canvas);freeSurface(this.scratch);}
 }

@@ -27,6 +27,15 @@ Análise feita com `scripts/perf-probe.mjs` (Chromium headless, tempo de cada qu
 ## Descarregar a praça na batalha
 A praça ocupa mais de 100 MB de imagens decodificadas. Ela é liberada quando a batalha começa (`LobbyWorld.release`) e recarregada na tela de resultado (`load`); ao sair no meio da partida, o último quadro fica parado até a praça estar pronta (no máx. 1,5 s), sem tela vazia. A arte do mapa da batalha é liberada ao sair (`releaseEnvironment`), menos o mapa da sala.
 
+## Trocar de área (20/10)
+Pedido do matheus depois de entrar na Pescaria, sair e ir para o PvP com o jogo "super bugado". As pinturas ficam fora da memória do JavaScript, então o coletor de lixo demora a devolvê-las: cada troca de área podia começar com a anterior ainda na memória. Agora cada área devolve o que usava **na hora** (`freeImage`, `freeSurface`, `freeAll`, `forgetCopies` em `src/game/spriteCache.ts`: tira a imagem decodificada, zera canvas e fecha `ImageBitmap`):
+- **Praça e Pescaria** (`LobbyWorld.release`, `FishingWorld.release`): pinturas, cópias reduzidas, sombras, piso e blocos assados do jardim. Só a área em que o jogador está fica carregada; na batalha nenhuma das duas. As folhas de andar tingidas (`releaseWalkBodies`) saem na batalha.
+- **Batalha** (`releaseBattleArt` em `Scene.tsx`, ao sair): canvases do terreno e das marcas (`EnvironmentRenderer.dispose`, `TerrainResidues.dispose`), pinturas do mapa (`releaseEnvironment`, menos o mapa da sala), atlas das armas (`releaseWeaponEffects`), Enfurecer/Gelo, efeitos do pet, corpos de combate tingidos, marcas no chão, monstros (menos com a sala de expedição aberta) e dragão (menos com a sala do Chefão aberta). O terreno reaproveita o mesmo canvas a cada repintura inteira.
+- **Só carrega o que a área usa**: os atlas de todas as armas e o Enfurecer/Gelo eram carregados ao abrir o jogo e ficavam para sempre; agora a tela de carregamento traz só as armas dos lutadores (`battlePreload.ts`). O minimapa usa as mesmas pinturas da batalha (antes decodificava o fundo e o terreno de novo) e o portão de imagens (`screenAssets.ts`) não guarda mais cada fundo de CSS já visto.
+- Servidor: sair da Pescaria desliga também o automático (antes o HUD voltava em manual e o servidor seguia no automático).
+
+Medição com `npx tsx scripts/probe-area-memory.mjs` (memória de pixels ainda presa, MB; jogo rodando): praça 454 → 382 (superfícies vivas 1032 → 122); batalha 366 → 249; praça depois da batalha 509 → 388 (a batalha não deixa mais 60 MB para trás).
+
 ## Tentado e descartado
 - Cortar as pinturas largas em blocos de 4096 px (para GPUs com limite de textura): ficou mais lento; o Chrome já divide sozinho.
 - Cópia reduzida das armas na batalha: não ganhou nada e piorou a medição; ficou só a decodificação antecipada.

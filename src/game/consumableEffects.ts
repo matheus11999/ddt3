@@ -1,5 +1,6 @@
 import type {Projectile} from '../../shared/protocol';
 import {audio} from './audio';
+import {freeImage} from './spriteCache';
 
 /**
  * Enfurecer and Gelo in the arena (docs/consumables.md). Paintings by Codex, cut by
@@ -8,7 +9,9 @@ import {audio} from './audio';
  */
 const ART={rage:'/assets/consumables/rage-icon.png',ice:'/assets/consumables/ice-icon.png',ball:'/assets/consumables/ice-projectile.png',impact:'/assets/consumables/ice-impact.png',block:'/assets/consumables/ice-block.png'} as const;
 export const CONSUMABLE_SOUNDS={fire:'/assets/audio/consumables/ice-fire.mp3',impact:'/assets/audio/consumables/ice-impact.mp3'} as const;
-const images=new Map<keyof typeof ART,HTMLImageElement>();
+const files=new Map<keyof typeof ART,HTMLImageElement>();
+/** A painting once loaded; asks for it the first time (battle-only art: the loading screen warms it, `releaseConsumables` lets it go). */
+const images={get(key:keyof typeof ART){let image=files.get(key);if(!image){if(typeof Image==='undefined')return undefined;image=new Image();image.decoding='async';image.src=ART[key];files.set(key,image);}return image.complete&&image.naturalWidth?image:undefined;}};
 /** Impact strip: 7 frames of 256 px; block strip: intact, cracked, shattering (320 px). */
 const IMPACT_FRAMES=7,IMPACT_FRAME_MS=80,BLOCK_SIZE=320,IMPACT_SIZE=256;
 export const ICE_IMPACT_DURATION=IMPACT_FRAMES*IMPACT_FRAME_MS;
@@ -17,12 +20,14 @@ export const ICE_FORM_DURATION=320;
 export const CONSUMABLE_ICON_DURATION=1200;
 const clamp=(v:number,lo=0,hi=1)=>Math.min(hi,Math.max(lo,v));
 
-export function preloadConsumables(){
- if(typeof Image==='undefined')return;
- for(const [key,src] of Object.entries(ART) as [keyof typeof ART,string][]){if(images.has(key))continue;const image=new Image();image.onload=()=>images.set(key,image);image.src=src;}
+/** Warms the paintings and sounds (the loading screen awaits the images). */
+export function preloadConsumables():HTMLImageElement[]{
+ if(typeof Image==='undefined')return [];
+ for(const key of Object.keys(ART) as (keyof typeof ART)[])images.get(key);
  audio.preload(Object.values(CONSUMABLE_SOUNDS));
+ return [...files.values()];
 }
-if(typeof Image!=='undefined')preloadConsumables();
+export function releaseConsumables(){for(const image of files.values())freeImage(image);files.clear();}
 export function playConsumableSound(id:keyof typeof CONSUMABLE_SOUNDS){audio.playFile(CONSUMABLE_SOUNDS[id],.8);}
 
 /** The ice ball along the server path, turned to its velocity (DDTank SimpleBomb rotates by the speed angle). */
