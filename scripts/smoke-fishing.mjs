@@ -81,9 +81,12 @@ await page.waitForTimeout(400);await shot(page,'08-casa-de-pesca');
 await clickWorld(house.x,house.y-house.height*.72,page.at());
 await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.locator('.fishing-shop-window .close-button').click();
 // The Trocas button opens the same window from anywhere.
-await page.locator('.fishing-trade').click();await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
+await page.locator('.fishing-trade:not(.fishing-history-button)').click();await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
 await page.getByRole('button',{name:/^Coleção/}).click();await page.waitForTimeout(500);await shot(page,'10-colecao');
 await page.locator('.fishing-shop-window .close-button').click();await expect(page.locator('.fishing-shop-window')).toHaveCount(0);
+// Histórico: the latest catches, newest first.
+await page.locator('.fishing-history-button').click();await expect(page.locator('.fishing-history-window')).toBeVisible();await page.waitForTimeout(500);await shot(page,'10b-historico');
+await page.locator('.fishing-history-window .close-button').click();await expect(page.locator('.fishing-history-window')).toHaveCount(0);
 await page.locator('.fishing-exit').click();await expect(page.locator('.lobby-dock-button.arena')).toBeVisible();
 await page.waitForTimeout(1500);await shot(page,'11-de-volta');
 await browser.close();console.log('fishing smoke ok');

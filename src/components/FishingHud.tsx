@@ -1,9 +1,10 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {DoorOpen} from 'lucide-react';
+import {DoorOpen,ScrollText} from 'lucide-react';
+import {FishingHistory} from './FishingHistory';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
+import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
 import type {FishingView,PressGrade} from '../../shared/fishing';
 import {FishingIcon} from './FishingIcon';
 import {fishingPick} from '../game/fishingPick';
@@ -18,6 +19,7 @@ type GearMenu='rod'|'bait'|null;
 export function FishingHud({blocked}:{blocked:boolean}){
  const {profile,fishing,offset}=useGame();
  const f=normalizeFishing(profile!.fishing),progress=fishingLevelProgress(f.xp);
+ const [history,setHistory]=useState(false);
  const [gear,setGear]=useState<GearMenu>(null),hoverLake=useHoverLake();
  const phase=fishing?.phase,busy=phase==='waiting'||phase==='bite';
  const picking=usePicking();
@@ -47,6 +49,8 @@ export function FishingHud({blocked}:{blocked:boolean}){
   <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/> Sair da Pescaria</button>
   {/* Trocas de Pontos de Pesca de qualquer lugar da zona (pedido do matheus). */}
   <button className="fishing-trade" onClick={()=>{client.openFishShop();audio.play('click');}} title="Trocar Pontos de Pesca por itens"><span className="fishing-trade-art"/><span>Trocas</span></button>
+  <button className="fishing-trade fishing-history-button" onClick={()=>{setHistory(true);audio.play('click');}} title="Últimas capturas"><span className="fishing-trade-art"><ScrollText size={30} strokeWidth={2.2}/></span><span>Histórico</span></button>
+  {history&&<FishingHistory onClose={()=>setHistory(false)}/>}
   <section className="fishing-card" aria-label="Pescador" title="Nível de pescador: sobe com a EXP de pesca">
    <b className="fishing-card-level">{progress.level}</b>
    <div className="fishing-card-title"><small>Pescador</small><span className="fishing-points" title="Pontos de Pesca: troque na Casa de Pesca"><FishingIcon id="fishing-points" size={20}/><b>{f.points.toLocaleString('pt-BR')}</b></span></div>
@@ -151,13 +155,22 @@ const SHADOW='carpa-lua';
 function Result({view}:{view:FishingView}){
  const r=view.result!,c=r.catch,fish=FISH_BY_ID.get(c?.fish??r.fish??'');
  if(!r.success||!c)return <div className="fishing-result lost"><strong>O peixe escapou!</strong>{fish&&<span>Era um(a) {fish.name}</span>}</div>;
- return <div className="fishing-result caught">
-  <div className="fishing-result-art"><FishingIcon id={c.fish} size={92}/></div>
-  <div className="fishing-result-text">
-   <strong>{fish?.name}</strong>
-   <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b>{fish&&<span className="fishing-stars">{Array.from({length:fish.difficulty},(_,i)=><i key={i} className="on">★</i>)}</span>}</span>
-   <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span></div>
-   {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
+ const rarity=fishRarity(fish??{difficulty:1}),glow=rarity.id==='epico'||rarity.id==='lendario';
+ return <>
+  {rarity.id==='lendario'&&<div className="fishing-legend-flash" aria-hidden/>}
+  <div className={`fishing-result caught rarity-${rarity.id}`} style={{'--rarity':rarity.color} as CSSProperties}>
+   <div className="fishing-result-art">
+    {rarity.id!=='comum'&&<span className="fishing-result-glow"/>}
+    {glow&&<span className="fishing-sparkles">{Array.from({length:7},(_,i)=><i key={i}/>)}</span>}
+    <FishingIcon id={c.fish} size={92}/>
+   </div>
+   <div className="fishing-result-text">
+    <em className="fishing-rarity">{rarity.name}</em>
+    <strong>{fish?.name}</strong>
+    <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b></span>
+    <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
+   </div>
   </div>
- </div>;
+ </>;
 }

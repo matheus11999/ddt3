@@ -7,12 +7,12 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
+import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
 import type {Fish,FishChallenge,FishingPhase,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
-import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
+import type {ChatLine,LoadingPlayer,MatchLoading} from '../shared/protocol';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
 import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,upgradeTerrain,volley,walkPosition,supportBelow,WALK_COMMAND_MS,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
@@ -207,8 +207,11 @@ export class Game {
   const fish=f.fish;let caught;
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
-   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
+   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
    p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
+   // Épico e Lendário: o canal inteiro fica sabendo, no chat Mundo.
+   if(caught&&fish&&fishRarity(fish).announce){const r=fishRarity(fish),line:ChatLine={id:randomUUID(),name:'Pescaria',text:`${p.profile.name} pescou ${fish.name} (${r.name}, ${caught.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg)!`,channel:'world',time:Date.now()};
+    for(const peer of this.peers.values())if(peer.connected&&peer.channel===p.channel)this.emit(peer,{type:'chat',message:line});}
   }catch(e){this.report(e);success=false;}
   finally{f.settling=false;}
   if(silent||p.fishing!==f)return;

@@ -1,5 +1,6 @@
 import {useGame,client} from '../client';
-import {FISH,FISHING_BAITS,FISHING_RODS,normalizeFishing} from '../../shared/fishing';
+import type {CSSProperties} from 'react';
+import {FISH,FISHING_BAITS,FISHING_RODS,fishRarity,normalizeFishing} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
 import './Fishing.css';
@@ -16,7 +17,7 @@ export function FishingBag(){
   <div className="fishing-bag">
    <h3>Peixes pescados<small>{f.total.toLocaleString('pt-BR')}</small></h3>
    <ul className="fishing-bag-slots">{Array.from({length:Math.max(SLOTS,Math.ceil(fish.length/8)*8)},(_,i)=>{const x=fish[i];
-    return x?<li key={x.id} className="fishing-bag-slot" title={`${x.name}: ${f.caught[x.id]} pescado(s), recorde ${f.best[x.id]?.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg`}>
+    return x?<li key={x.id} className={`fishing-bag-slot rarity-${fishRarity(x).id}`} style={{'--rarity':fishRarity(x).color} as CSSProperties} title={`${x.name} (${fishRarity(x).name}): ${f.caught[x.id]} pescado(s), recorde ${f.best[x.id]?.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg`}>
      <FishingIcon id={x.id} size={46}/><em>×{f.caught[x.id]}</em><small>{x.name}</small></li>
     :<li key={`empty-${i}`} className="fishing-bag-slot empty"/>;})}</ul>
    {!fish.length&&<p className="fishing-bag-empty">A sacola está vazia. Aperte Lançar, escolha um lago e pesque!</p>}

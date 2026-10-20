@@ -37,6 +37,13 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - **Isca Simples** (infinita) e **Isca Brilhante** (gasta 1 por lançamento, morde mais rápido, +30% sorte).
 - 20 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Traíra das Taboas, Pacu Esmeralda e Peixe-Junco Dourado (Lago dos Juncos), Carpa Termal, Salamandra do Vapor e Fênix d'Água (Fonte Termal), Carpa-Dragão.
 
+## Raridade e histórico (20/10, pedido do matheus)
+
+- Raridade vem da dificuldade do peixe (`fishRarity`, `FISH_RARITIES`): 1 Comum (cinza), 2 Normal (verde), 3 Raro (azul), 4 Épico (roxo), 5 Lendário (dourado).
+- Resultado da pesca com selo e borda na cor da raridade; Raro ganha brilho, Épico brilho com faixa de luz e faíscas, Lendário tudo isso maior e um clarão dourado nas bordas da tela. Épico e Lendário são anunciados no chat Mundo do canal ("Fulano pescou Koi Celeste (Épico, 3,4 kg)!").
+- Botão Histórico (ao lado de Trocas) abre as últimas 30 capturas (`FishingProfile.history`, `FISHING_HISTORY`), com raridade, kg, pontos, EXP, selo Auto e há quanto tempo. A Sacola pinta cada peixe na cor da raridade.
+- Prévia: `npx tsx scripts/preview-fishing-rarity.mjs` (jogo rodando).
+
 ## Nível de pescador
 
 - EXP = 10 × pontos do peixe. Nível n pede `60 × (n−1)^1,7` de EXP total; máximo 50 (`fishingLevel`, `fishingLevelProgress`).
@@ -63,7 +70,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 ## Testes
 
-- `tests/fishing.test.ts`: lugares e píeres, caminhada até todos os lugares, notas da barra, automático e sorte, gravação, loja, separação das zonas, fluxo manual, dois erros e três rodadas AFK.
+- `tests/fishing.test.ts`: lugares e píeres, caminhada até todos os lugares, notas da barra, automático e sorte, gravação, raridade, histórico, loja, separação das zonas, fluxo manual, dois erros e três rodadas AFK.
 - `npm run test:fishing:browser` (jogo rodando): um amigo pesca no automático, o jogador entra, sobe a escada até o gramado do Lago das Ninfeias, aperta Lançar, escolhe o lago, pesca à mão até pegar, troca a vara, abre a Casa de Pesca e a Coleção e volta à praça. Prévias em `test-results/fishing/`.
 
 ## Falta
@@ -71,3 +78,4 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Arte pintada (prompts em `docs/fishing-art-prompts.md`): ícones de peixe/vara/isca/pontos, botão `fishing-button.png` e a folha da Vara de Carvalho. 
 - Sons de lançar, morder, acertar e escapar.
 - Mais varas e iscas, eventos de pesca, ranking de pescadores.
+- Ícone pintado do botão Histórico (hoje um desenho provisório).

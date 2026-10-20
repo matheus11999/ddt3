@@ -7,7 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -76,6 +76,24 @@ test('a catch adds points, fisher EXP and the collection; counted bait runs out 
  p.fishing.baits['bait-glow']=1;chooseFishingGear(p,undefined,'bait-glow');assert.equal(p.fishing.bait,'bait-glow');
  settleFishing(p,{bait:'bait-glow'});assert.equal(p.fishing.bait,'bait-simple');assert.equal(p.fishing.baits['bait-glow'],undefined);
  assert.throws(()=>chooseFishingGear(p,'rod-oak'),/não tem essa vara/);
+});
+
+test('fish rarity follows difficulty, from Comum to Lendário',()=>{
+ assert.deepEqual(([1,2,3,4,5] as const).map(d=>fishRarity({difficulty:d}).id),['comum','normal','raro','epico','lendario']);
+ assert.equal(fishRarity(FISH_BY_ID.get('carpa-dragao')!).name,'Lendário');
+ assert.ok(FISH.every(f=>fishRarity(f)));
+});
+
+test('every catch goes to the history, newest first, keeping only the last ones',()=>{
+ const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
+ settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},at:1000});
+ settleFishing(p,{bait:'bait-simple',fish:{id:'carpa-lua',kg:2,points:1,xp:5},auto:true,at:2000});
+ settleFishing(p,{bait:'bait-simple'});
+ assert.deepEqual(p.fishing.history.slice(0,2),[{fish:'carpa-lua',kg:2,points:1,xp:5,at:2000,auto:true},{fish:'lambari-dourado',kg:.3,points:2,xp:20,at:1000}]);
+ for(let i=0;i<FISHING_HISTORY+5;i++)settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.2,points:2,xp:20},at:3000+i});
+ assert.equal(p.fishing.history.length,FISHING_HISTORY);assert.equal(p.fishing.history[0].at,3000+FISHING_HISTORY+4);
+ const saved=normalizeFishing({...p.fishing,history:[...p.fishing.history,{fish:'peixe-falso',kg:1,points:1,xp:1,at:1}] as never});
+ assert.equal(saved.history.length,FISHING_HISTORY);assert.ok(saved.history.every(h=>FISH_BY_ID.has(h.fish)));
 });
 
 test('the fishing shop trades points for rewards, checks level and never sells a rod twice',()=>{
