@@ -1,20 +1,12 @@
 /* Poder counting to its new value, the change floating up from it (PowerCounter.tsx). */
-.power-counter { position: relative; display: inline-block; font-variant-numeric: tabular-nums; transition: color .25s; }
-.power-counter[data-change="up"] { color: #1d7a2c !important; }
-.power-counter[data-change="down"] { color: #b3261e !important; }
-.power-delta {
-  position: absolute; right: 0; bottom: 100%; z-index: 5;
-  font-family: 'Lilita One', 'Nunito', sans-serif; font-size: 20px; font-weight: 400; line-height: 1; white-space: nowrap;
-  -webkit-text-stroke: 3px #4a1f05; paint-order: stroke fill; text-shadow: 0 2px 0 #3a1503;
-  pointer-events: none; animation: power-delta-rise 1.4s ease-out forwards;
-}
-.power-delta.up { color: #7dff6a; }
-.power-delta.down { color: #ff6b5c; }
+.power-counter, .bag-window .combat-power > .power-counter { position: relative; display: inline-flex; align-items: center; line-height: 0; text-shadow: none; }
+.power-volume-text { display: block; overflow: visible; filter: drop-shadow(0 2px 2px #0006); }
+.power-delta { position: absolute; right: -6px; bottom: 78%; z-index: 5; line-height: 0; pointer-events: none; animation: power-delta-rise 1.4s ease-out forwards; }
 @keyframes power-delta-rise {
-  0% { opacity: 0; transform: translateY(10px) scale(.7); }
-  15% { opacity: 1; transform: translateY(0) scale(1.12); }
-  30% { transform: translateY(-4px) scale(1); }
+  0% { opacity: 0; transform: translateY(10px) scale(.6); }
+  14% { opacity: 1; transform: translateY(0) scale(1.15); }
+  28% { transform: translateY(-3px) scale(1); }
   75% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-26px); }
+  100% { opacity: 0; transform: translateY(-28px); }
 }
-@media (prefers-reduced-motion: reduce) { .power-delta { animation-duration: .01s; animation-iteration-count: 1; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .power-delta { animation-duration: .01s; opacity: 1; } }
