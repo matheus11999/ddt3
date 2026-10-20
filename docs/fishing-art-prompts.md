@@ -10,7 +10,7 @@ Pinte no estilo do jogo de navegador Brasa Arena, igual ao acabamento do DDTank:
 
 ## Cenário
 
-Não precisa de arte nova (pedido do matheus em 20/10: "faça o cenário mais bonito e condizente ao meu jogo, sem criar imagem"). O jardim em terraços é montado com peças que o jogo já tem, recortadas por `npm run build:fishing` (`scripts/build-fishing-props.mjs`), e pedra, água, madeira e cascata são desenhadas em código no mesmo tom (ver "Cenário" em `docs/fishing.md`).
+Pintado pelo Codex no PC do matheus em 20/10 (gpt-6-astra, esforço médio), depois de ele rejeitar o cenário montado só com peças da praça e a versão do Gemini. As pranchas ficam em `public/assets/fishing/source/` (1 céu, 2 lagos, 3 píeres, 4 escadas e muros, 5 construções, 6 enfeites, 7 gramado, 8 peças de grama) e são recortadas por `npm run build:fishing`. Lagos, píeres, ponte e grama são vistos **de cima, no ângulo do mapa** (a primeira leva veio de lado, com parede de pedra mostrando a profundidade, e ficou errada). Prompts usados para o Gemini, que também servem de base: `/mnt/project-files/pescaria/prompts/nano-banana-pescaria.md`; imagem-alvo: `/mnt/project-files/pescaria/codex/9-cena-conceito.png`.
 
 ## 5. Ícones, `public/assets/fishing/icons/<id>.png`
 

@@ -31,7 +31,7 @@ export function FishingShop(){
  return <Modal title="Casa de Pesca" onClose={close} className="bag-window fishing-shop-window" viewport>
   <div className="fishing-shop">
    <aside className="fishing-counter">
-    <div className="fishing-counter-art"><img className="sigil" src="/assets/ui/aura-gold-sigil.png" alt="" draggable={false}/><img className="house" src="/assets/fishing/props/gazebo.webp" alt="" draggable={false}/></div>
+    <div className="fishing-counter-art"><img className="sigil" src="/assets/ui/aura-gold-sigil.png" alt="" draggable={false}/><img className="house" src="/assets/fishing/props/fishing-house.webp" alt="" draggable={false}/></div>
     <div className="fishing-counter-level"><small>Pescador</small><b>Nível {level}</b>
      <div className="fishing-xp"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div></div>
     <div className="fishing-counter-points"><FishingIcon id="fishing-points" size={34}/><div><b>{f.points.toLocaleString('pt-BR')}</b><small>Pontos de Pesca</small></div></div>
