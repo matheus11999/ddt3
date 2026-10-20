@@ -1,7 +1,6 @@
 import {attributes} from './catalog';
 import type {BoostId,Equipment} from './catalog';
 import type {HitKind} from './protocol';
-import {FIGHTER_HIT_RADIUS} from './physics';
 import {powerUpShot} from './powerUps';
 import {armorReduction,attackMultiplier,combinedReduction,CRITICAL_ROLL_MODE,criticalBonusMultiplier,criticalChancePercent,defenseReduction} from './stats';
 import type {CriticalRollMode} from './stats';
@@ -11,6 +10,9 @@ export const VOLLEY_CADENCE_MS=570;
 export const TURN_GAP_MS=1200;
 export const SPLASH_RADIUS_SCALE=.60;
 export const SPLASH_MAX_MULTIPLIER=.82;
+/** Splash keeps its own body circle (radius 22, centred 31 px above the feet), separate from the player hit
+ * box of shared/physics.ts: adopting the DDTank collision box did not change the splash rule (docs/hitbox-aim.md). */
+export const SPLASH_BODY={radius:22,height:31} as const;
 /** Chance of a critical as a probability (0–1): 45 × Sorte / (800 + Sorte) percent (DDTank 4.1). */
 export function criticalChance(luck:number){return criticalChancePercent(luck)/100;}
 /** The server supplies the roll, uniform in [0, 1). No outcome is inferred from client animation.
@@ -25,11 +27,11 @@ export function shotModifiers(boosts:readonly BoostId[]){
  const shot=powerUpShot(boosts);
  return {volleys:shot.sequentialShots,spread:shot.spread,projectileMultiplier:shot.modeMultiplier,damageMultiplier:shot.bonusMultiplier};
 }
-/** Approach quality is the penetration of the projectile's travel line through
- * the expanded fighter circle; surface distance cannot distinguish a graze. */
+/** A direct contact brings its quality from the collision (path line through the player box or the
+ * monster circle, shared/physics.ts); surface distance cannot distinguish a graze. */
 export function impactExposure(target:{id:string;x:number;y:number;hitRadius?:number;hitHeight?:number},impact:{x:number;y:number;hitId?:string;hitQuality?:number},blast:number):{kind:HitKind;quality:number;attenuation:number}{
  if(impact.hitId===target.id){const quality=Math.max(0,Math.min(1,impact.hitQuality??0)),direct=quality>=.65;return {kind:direct?'direct':'graze',quality,attenuation:.84+.16*quality};}
- const distance=Math.max(0,Math.hypot(target.x-impact.x,target.y-(target.hitHeight??31)-impact.y)-(target.hitRadius??FIGHTER_HIT_RADIUS)),radius=Math.max(0,blast*SPLASH_RADIUS_SCALE),quality=radius>0&&distance<radius-1e-7?Math.max(0,1-distance/radius):0;
+ const distance=Math.max(0,Math.hypot(target.x-impact.x,target.y-(target.hitHeight??SPLASH_BODY.height)-impact.y)-(target.hitRadius??SPLASH_BODY.radius)),radius=Math.max(0,blast*SPLASH_RADIUS_SCALE),quality=radius>0&&distance<radius-1e-7?Math.max(0,1-distance/radius):0;
  return {kind:'splash',quality,attenuation:SPLASH_MAX_MULTIPLIER*(1-(1-quality)**1.5)};
 }
 export interface DamageModifiers {attenuation?:number;shotMultiplier?:number;boostMultiplier?:number;critical?:boolean;/** The attacker's character level: Armadura loses 3 points per level (DDTank 3.0). */attackerLevel?:number;}

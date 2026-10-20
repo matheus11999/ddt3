@@ -6,7 +6,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {attributes,DEFAULT_EQUIPMENT,WEAPONS,weaponStats,MAX_UPGRADE} from '../shared/catalog';
 import {criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,VOLLEY_CADENCE_MS} from '../shared/combat';
-import {trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {fighterHitBounds,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {STRAIGHT_BALL} from './fixtures/weapons';
 import type {Profile,ServerEvent} from '../shared/protocol';
 
@@ -46,14 +46,15 @@ test('critical chance follows 45 × Sorte / (800 + Sorte) and uses an explicit s
 
 test('approach geometry distinguishes center contact, grazing and splash despite identical surface radius',()=>{
  const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},weapon={...WEAPONS[0],ball:STRAIGHT_BALL};
- const center={id:'center',x:300,y:91,hp:100},graze={id:'graze',x:300,y:118.99,hp:100};
+ const center={id:'center',x:300,y:91,hp:100},graze={id:'graze',x:300,y:111.99,hp:100};
  const direct=trajectory(terrain,origin,0,100,0,weapon,[center]),edge=trajectory(terrain,origin,0,100,0,weapon,[graze]);
  assert.equal(direct.hitId,'center');assert.equal(edge.hitId,'graze');assert.ok((direct.hitQuality??0)>.99);assert.ok((edge.hitQuality??1)<.05);
- for(const [target,path] of [[center,direct],[graze,edge]] as const)assert.ok(Math.abs(Math.hypot(path.x-target.x,path.y-(target.y-31))-22)<1e-7);
+ for(const [target,path] of [[center,direct],[graze,edge]] as const){const box=fighterHitBounds(target);assert.ok(path.x===box.left&&path.y>=box.top&&path.y<=box.bottom);}
  const full=impactExposure(center,direct,weapon.blast),skim=impactExposure(graze,edge,weapon.blast),splash=impactExposure(center,{x:center.x-40,y:center.y-31},weapon.blast);
  assert.equal(full.kind,'direct');assert.equal(skim.kind,'graze');assert.equal(splash.kind,'splash');assert.ok(full.attenuation>skim.attenuation&&skim.attenuation>splash.attenuation);
  assert.equal(impactExposure(center,{x:0,y:0},weapon.blast).attenuation,0);
- assert.ok(Math.abs(direct.flightTime-(300-28-77)/2000*1000)<1e-8);
+ // Box left face at 285, minus the 6 px disk radius.
+ assert.ok(Math.abs(direct.flightTime-(300-21-77)/2000*1000)<1e-8);
 });
 
 test('shot modes set the projectile penalty and percentage bonuses add up',()=>{

@@ -27,9 +27,25 @@ export function ballMotion(ball:Ball=COMMON_BALL,map:{weight:number;drag:number}
  return {launch:FORCE_PER_POWER,gravity:map.weight*ball.weight,windAccel:ball.wind/ball.mass,drag:map.drag*ball.drag/ball.mass};
 }
 const f32=Math.fround;
-export const FIGHTER_HIT_RADIUS=22;
+/** Player hit box, DDTank 4.1 Player.cs `m_rect=Rectangle(-15,-20,30,30)` around the logical origin O:
+ * an axis-aligned 30×30 box, the same for every outfit, costume, head, hat, pose, facing and slope
+ * (docs/hitbox-aim.md). Brasa ballistics use DDTank units 1:1 (docs/ballistics.md), so the scale is 1. */
+export const FIGHTER_HIT_BOX={left:-15,top:-20,width:30,height:30} as const;
+/** Brasa `fighter.y` is the feet; the box origin O sits this far above them. A Brasa adaptation, not a
+ * DDTank constant: it keeps the body centre where the previous hit circle had it (31 px above the feet). */
+export const FIGHTER_ORIGIN_LIFT=26;
+/** Centre of the player box above the feet (homing aim). */
+export const FIGHTER_BODY_CENTER=FIGHTER_ORIGIN_LIFT-FIGHTER_HIT_BOX.top-FIGHTER_HIT_BOX.height/2;
+export interface HitBounds {left:number;top:number;right:number;bottom:number;originX:number;originY:number;}
+/** World bounds of a player's hit box: the one contract shared by the server and the client debug. */
+export function fighterHitBounds(fighter:{x:number;y:number}):HitBounds {
+ const originX=fighter.x,originY=fighter.y-FIGHTER_ORIGIN_LIFT,left=originX+FIGHTER_HIT_BOX.left,top=originY+FIGHTER_HIT_BOX.top;
+ return {left,top,right:left+FIGHTER_HIT_BOX.width,bottom:top+FIGHTER_HIT_BOX.height,originX,originY};
+}
+/** Where every shot leaves, relative to the shooter's feet (the dotted aim pivots here too). */
+export const SHOT_ORIGIN={forward:27,up:40} as const;
 /** A rival standing this close (horizontally) to the shooter shares its body: the shot
- * passes through him until it leaves his hit circle. A little further aside, it hits. */
+ * passes through him until it leaves his hit box. A little further aside, it hits. */
 export const FIGHTER_OVERLAP=16;
 interface TerrainTemplate {solid:Uint8Array;regions:Int16Array;definition:readonly MapRegion[];cols:number;}
 const templates=new Map<MapId,TerrainTemplate>();
@@ -151,7 +167,7 @@ export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEF
 export function packTerrain(t:Uint8Array):Uint8Array{const b=new Uint8Array(Math.ceil(t.length/8));for(let i=0;i<t.length;i++)if(t[i])b[i>>3]|=1<<(i%8);return b;}
 export function unpackTerrain(b:Uint8Array){const t=new Uint8Array(b.length*8);for(let i=0;i<t.length;i++)t[i]=(b[i>>3]>>(i%8))&1;return t;}
 interface ProjectileOrigin {x:number;y:number;facing:number;}
-/** Monsters bring their own body size; fighters use FIGHTER_HIT_RADIUS centred 31 px above the feet. */
+/** Monsters bring their own body circle; players use the fixed box of `fighterHitBounds`. */
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;hitRadius?:number;hitHeight?:number;}
 /** Homing guidance. Without `projectileIndex` every projectile of the volley is guided. */
 export interface ProjectileGuidance {projectileIndex?:number;targets:ProjectileTarget[];}
@@ -186,10 +202,10 @@ function circleContact(x:number,y:number,dx:number,dy:number,cx:number,cy:number
  if(fraction>=-1e-9&&fraction<=1+1e-9)return Math.max(0,Math.min(1,fraction));
 }
 
-/** Sweeping a disk against a cell is a point against a rectangle with rounded
- * corners. A square expansion alone would incorrectly catch near-corner shots. */
-function cellContact(x:number,y:number,dx:number,dy:number,left:number,top:number,radius:number):number|undefined {
- const right=left+WORLD.cell,bottom=top+WORLD.cell;
+/** Sweeping a disk against a rectangle is a point against the rectangle with rounded
+ * corners (Minkowski sum). A square expansion alone would incorrectly catch near-corner shots.
+ * Edges are inclusive: an exact tangent counts as contact, as with the terrain cells. */
+function rectContact(x:number,y:number,dx:number,dy:number,left:number,top:number,right:number,bottom:number,radius:number):number|undefined {
  let enter=0,exit=1;
  for(const [value,delta,min,max] of [[x,dx,left-radius,right+radius],[y,dy,top-radius,bottom+radius]]){
   if(delta===0){if(value<min||value>max)return;continue;}
@@ -208,7 +224,7 @@ function terrainContact(t:Uint8Array,x:number,y:number,dx:number,dy:number,radiu
  let contact:Contact|undefined;
  for(let cy=minY;cy<=maxY;cy++)for(let cx=minX;cx<=maxX;cx++){
   if(!t[cy*cols+cx])continue;
-  const left=cx*WORLD.cell,top=cy*WORLD.cell,fraction=cellContact(x,y,dx,dy,left,top,radius);
+  const left=cx*WORLD.cell,top=cy*WORLD.cell,fraction=rectContact(x,y,dx,dy,left,top,left+WORLD.cell,top+WORLD.cell,radius);
   if(fraction===undefined||(contact&&fraction>=contact.fraction))continue;
   const centerX=x+dx*fraction,centerY=y+dy*fraction,inset=.00001;
   // Impact/material/crater use the actual surface cell; animation retains the
@@ -217,17 +233,35 @@ function terrainContact(t:Uint8Array,x:number,y:number,dx:number,dy:number,radiu
  }
  return contact;
 }
+/** Monsters and bosses keep their own hit circle; players use the fixed box of `fighterHitBounds`. */
+function targetContact(x:number,y:number,dx:number,dy:number,target:ProjectileTarget,radius:number):Contact|undefined {
+ const travel=Math.hypot(dx,dy);
+ if(target.hitRadius!==undefined){
+  const body=target.hitRadius,cy=target.y-(target.hitHeight??FIGHTER_BODY_CENTER);
+  const fraction=circleContact(x,y,dx,dy,target.x,cy,body+radius);if(fraction===undefined)return;
+  const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-cy,distance=Math.hypot(ox,oy);
+  const lineOffset=travel?Math.abs((target.x-x)*dy-(cy-y)*dx)/travel:distance;
+  const hitQuality=Math.sqrt(Math.max(0,1-(lineOffset/(body+radius))**2));
+  return {fraction,centerX,centerY,x:target.x+(distance?ox/distance*body:0),y:cy+(distance?oy/distance*body:0),hitId:target.id,hitQuality};
+ }
+ const box=fighterHitBounds(target),fraction=rectContact(x,y,dx,dy,box.left,box.top,box.right,box.bottom,radius);if(fraction===undefined)return;
+ const centerX=x+dx*fraction,centerY=y+dy*fraction,mx=(box.left+box.right)/2,my=(box.top+box.bottom)/2;
+ // Quality: how far the path line passes from the box centre, over the widest offset that still touches the
+ // rounded box in that direction (its support: half extents projected on the normal, plus the disk radius).
+ // 1 through the centre, 0 at a tangent, whichever face or corner is struck.
+ const nx=travel?-dy/travel:0,ny=travel?dx/travel:1,lineOffset=Math.abs((mx-x)*nx+(my-y)*ny);
+ const support=FIGHTER_HIT_BOX.width/2*Math.abs(nx)+FIGHTER_HIT_BOX.height/2*Math.abs(ny)+radius;
+ const hitQuality=travel?Math.sqrt(Math.max(0,1-(lineOffset/support)**2)):1;
+ // The surface point is the box point nearest to the disk centre, kept apart from the centre itself.
+ return {fraction,centerX,centerY,x:Math.max(box.left,Math.min(box.right,centerX)),y:Math.max(box.top,Math.min(box.bottom,centerY)),hitId:target.id,hitQuality};
+}
 function projectileContact(terrain:Uint8Array,x:number,y:number,dx:number,dy:number,radius:number,targets:ProjectileTarget[],ignored?:ReadonlySet<string>):Contact|undefined {
  let contact=terrainContact(terrain,x,y,dx,dy,radius);
  for(const target of targets){
   if(target.hp<=0||ignored?.has(target.id))continue;
-  const body=target.hitRadius??FIGHTER_HIT_RADIUS,cy=target.y-(target.hitHeight??31);
-  const fraction=circleContact(x,y,dx,dy,target.x,cy,body+radius);
-  if(fraction===undefined||(contact&&fraction>contact.fraction))continue;
-  const centerX=x+dx*fraction,centerY=y+dy*fraction,ox=centerX-target.x,oy=centerY-cy,distance=Math.hypot(ox,oy);
-  const travel=Math.hypot(dx,dy),lineOffset=travel?Math.abs((target.x-x)*dy-(cy-y)*dx)/travel:distance;
-  const hitQuality=Math.sqrt(Math.max(0,1-(lineOffset/(body+radius))**2));
-  contact={fraction,centerX,centerY,x:target.x+(distance?ox/distance*body:0),y:cy+(distance?oy/distance*body:0),hitId:target.id,hitQuality};
+  const hit=targetContact(x,y,dx,dy,target,radius);
+  if(!hit||(contact&&hit.fraction>contact.fraction))continue;
+  contact=hit;
  }
  // Arena exits are also swept, keeping impact coordinates bounded at every velocity.
  for(const [value,delta,limit,exiting] of [[x,dx,-80,x+dx<-80],[x,dx,terrainWidth(terrain)+80,x+dx>terrainWidth(terrain)+80],[y,dy,WORLD.height+50,y+dy>WORLD.height+50]] as const){
@@ -250,10 +284,10 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
  while(shots.some(shot=>!shot.done)){
   for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+eps){
    // DDTank Living.cs: the launch velocity is the force split by the angle and truncated toward zero.
-   const rad=shot.angle*Math.PI/180;shot.x=shot.stepX=origin.x+origin.facing*27;shot.y=shot.stepY=origin.y-40;
+   const rad=shot.angle*Math.PI/180;shot.x=shot.stepX=origin.x+origin.facing*SHOT_ORIGIN.forward;shot.y=shot.stepY=origin.y-SHOT_ORIGIN.up;
    shot.vx=f32(Math.trunc(force*Math.cos(rad))*origin.facing);shot.vy=f32(-Math.trunc(force*Math.sin(rad)));
    shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextStep=time;shot.nextSample=time+sampleMs;
-   if(passOverlapping)for(const target of targets)if(Math.abs(target.x-origin.x)<FIGHTER_OVERLAP&&Math.abs(target.y-origin.y)<FIGHTER_HIT_RADIUS*2&&insideTarget(shot,target,weapon.projectileRadius))shot.ignored.add(target.id);}
+   if(passOverlapping)for(const target of targets)if(Math.abs(target.x-origin.x)<FIGHTER_OVERLAP&&insideTarget(shot,target,weapon.projectileRadius))shot.ignored.add(target.id);}
   // Each shot runs its own fixed 0.04 s clock (semi-implicit Euler, DDTank EulerVector.cs):
   // at the start of a step the velocity changes, then the shot moves in a straight line for the whole step.
   for(let index=0;index<shots.length;index++){const shot=shots[index];if(!shot.launched||shot.done||shot.nextStep>time+eps)continue;
@@ -263,7 +297,7 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
    if(locked){
     // Magnet lock: pure pursuit that ignores wind/gravity. The turn rate grows as the
     // distance shrinks (turn radius <= half the distance), so it always closes in.
-    const dx=locked.x-shot.x,dy=locked.y-31-shot.y,distance=Math.max(1,Math.hypot(dx,dy)),speed=Math.max(HOMING_MIN_SPEED,Math.hypot(shot.vx,shot.vy)),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=Math.max(HOMING_TURN_RATE,2*speed/distance)*dt,next=heading+Math.max(-limit,Math.min(limit,delta));
+    const dx=locked.x-shot.x,dy=locked.y-FIGHTER_BODY_CENTER-shot.y,distance=Math.max(1,Math.hypot(dx,dy)),speed=Math.max(HOMING_MIN_SPEED,Math.hypot(shot.vx,shot.vy)),heading=Math.atan2(shot.vy,shot.vx),desired=Math.atan2(dy,dx),delta=Math.atan2(Math.sin(desired-heading),Math.cos(desired-heading)),limit=Math.max(HOMING_TURN_RATE,2*speed/distance)*dt,next=heading+Math.max(-limit,Math.min(limit,delta));
     shot.vx=f32(Math.cos(next)*speed);shot.vy=f32(Math.sin(next)*speed);
    }else{
     const ax=f32(motion.windAccel*wind-motion.drag*shot.vx),ay=f32(motion.gravity-motion.drag*shot.vy);
@@ -289,11 +323,14 @@ export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonl
  }
  return results;
 }
-function insideTarget(shot:{x:number;y:number},target:ProjectileTarget,radius:number){return Math.hypot(shot.x-target.x,shot.y-(target.y-(target.hitHeight??31)))<=(target.hitRadius??FIGHTER_HIT_RADIUS)+radius;}
+function insideTarget(shot:{x:number;y:number},target:ProjectileTarget,radius:number){
+ if(target.hitRadius!==undefined)return Math.hypot(shot.x-target.x,shot.y-(target.y-(target.hitHeight??FIGHTER_BODY_CENTER)))<=target.hitRadius+radius;
+ const box=fighterHitBounds(target);return Math.hypot(shot.x-Math.max(box.left,Math.min(box.right,shot.x)),shot.y-Math.max(box.top,Math.min(box.bottom,shot.y)))<=radius;
+}
 /** Acquires the nearest living enemy within HOMING_RADIUS and keeps that lock while it lives. */
 function homingTarget(shot:{x:number;y:number;lockId?:string},guidance:ProjectileGuidance):ProjectileTarget|undefined {
  const current=shot.lockId?guidance.targets.find(target=>target.id===shot.lockId&&target.hp>0):undefined;if(current)return current;
- const distance=(target:ProjectileTarget)=>Math.hypot(target.x-shot.x,target.y-31-shot.y);
+ const distance=(target:ProjectileTarget)=>Math.hypot(target.x-shot.x,target.y-FIGHTER_BODY_CENTER-shot.y);
  const target=guidance.targets.filter(target=>target.hp>0&&distance(target)<=HOMING_RADIUS).sort((a,b)=>distance(a)-distance(b))[0];
  shot.lockId=target?.id;return target;
 }
@@ -304,7 +341,7 @@ export function trajectory(terrain:Uint8Array,origin:ProjectileOrigin,angle:numb
 export function shatter(terrain:Uint8Array,origin:{x:number;y:number},count:number,facing:1|-1,weapon:Weapon,wind:number,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void):TrajectoryResult[] {
  const fragments=weapon.fragments;if(!fragments||count<1)return [];
  const angles=Array.from({length:count},(_,index)=>count===1?80:32+index*116/(count-1));
- const launch={x:origin.x-facing*27,y:origin.y+40-fragments.radius-2,facing};
+ const launch={x:origin.x-facing*SHOT_ORIGIN.forward,y:origin.y+SHOT_ORIGIN.up-fragments.radius-2,facing};
  // Brasa's own brick chunks (not a DDTank ball): no drag, their own gravity and half the wind.
  return volley(terrain,launch,angles,1,wind,{...weapon,projectileRadius:fragments.radius},targets,onImpact,[],undefined,false,{launch:fragments.speed,gravity:fragments.gravity,windAccel:3.5,drag:0});
 }

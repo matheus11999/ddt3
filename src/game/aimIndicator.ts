@@ -1,27 +1,51 @@
-/** Aim around the fighter, DDTank style: the green weapon-range band and the needle
- * pivot on the body centre and sit behind the avatar ('back'); the angle plate is
- * drawn over it ('front'). No rim, ticks, numbers or terrain-slope readout (user
- * requests, 17/10/2026): the slope still shifts the band, silently, and tilts the pivot with the body. */
-// Radius 104 (was 78): the band and needle sit clear of the body and head (user request, 18/10/2026).
-export const AIM_PIVOT={x:0,y:-24,radius:104};
-export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,facing:1|-1,angle:number,slope:number,changedAge:number,minAngle=5,maxAngle=90,layer:'back'|'front'='back'){
- // The pivot rides the tilted body: rotate its offset by the ground angle (aim slope).
- const tilt=-slope*facing*Math.PI/180,cx=x+facing*AIM_PIVOT.x*Math.cos(tilt)-AIM_PIVOT.y*Math.sin(tilt),cy=y+facing*AIM_PIVOT.x*Math.sin(tilt)+AIM_PIVOT.y*Math.cos(tilt),radius=AIM_PIVOT.radius,changed=changedAge>=0&&changedAge<1500,shown=Math.max(0,Math.min(90,angle));
- const point=(degree:number,r:number)=>({x:cx+facing*Math.cos(degree*Math.PI/180)*r,y:cy-Math.sin(degree*Math.PI/180)*r});
- const arc=(start:number,end:number,r:number,move=true)=>{const steps=Math.max(1,Math.ceil(Math.abs(end-start)/3));for(let i=0;i<=steps;i++){const p=point(start+(end-start)*i/steps,r);if(i===0&&move)c.moveTo(p.x,p.y);else c.lineTo(p.x,p.y);}};
- c.save();c.lineJoin='round';c.lineCap='round';
+import art from './aimArt.json';
+import {SHOT_ORIGIN} from '../../shared/physics';
+
+/** Aim next to the fighter, after DDTank's TakeAimAsset (docs/hitbox-aim.md): a fixed red arc that rides the
+ * body (mirrored by the facing, turned with the ground tilt) behind the avatar ('back'), and a dotted yellow
+ * direction of ten points in front of it ('front'), pivoting on the real shot origin so it shows the true
+ * initial direction. The degree plate is Brasa's own readout, drawn with the dots. No rim, ticks, numbers or
+ * range band around the fighter: the weapon limits stay in the controls and on the server. */
+const draw=art.draw,scale=draw.scale;
+const images=new Map<string,HTMLImageElement>();
+function request(src:string){
+ let img=images.get(src);if(!img&&typeof Image!=='undefined'){img=new Image();img.decoding='async';img.src=src;images.set(src,img);}
+ return img;
+}
+function image(src:string){const img=request(src);return img?.complete&&img.naturalWidth?img:undefined;}
+/** The aim's paintings, for the battle preloader. */
+export function aimImages(){return [art.arc.file,art.dot.file].map(request).filter((img):img is HTMLImageElement=>!!img);}
+
+/** Pivot of the dotted direction: the shot origin, where the server launches the projectile. */
+export function aimPivot(x:number,y:number,facing:1|-1){return {x:x+facing*SHOT_ORIGIN.forward,y:y-SHOT_ORIGIN.up};}
+
+/** `angle` is the world elevation of the shot (slope already included), as the server launches it;
+ * `tilt` is the drawn body's rotation in screen radians and only turns the painted arc. */
+export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,facing:1|-1,angle:number,tilt:number,changedAge:number,layer:'back'|'front'='back'){
+ const pivot=aimPivot(x,y,facing),changed=changedAge>=0&&changedAge<1500;
+ c.save();
  if(layer==='back'){
- // Weapon range band only: no rim, ticks or numbers around the fighter.
- c.beginPath();arc(minAngle,maxAngle,radius-6);c.strokeStyle='#0b2a1aaa';c.lineWidth=9;c.stroke();
- c.beginPath();arc(minAngle,maxAngle,radius-6);c.strokeStyle='#4fe08a';c.lineWidth=5;c.shadowColor='#7dff9e';c.shadowBlur=6;c.stroke();c.shadowBlur=0;
- // Tapered needle from the hub to the rim.
- const tip=point(shown,radius-2),mid=point(shown,radius-30),tail=point(shown,radius-38),ux=(tip.x-mid.x)/28,uy=(tip.y-mid.y)/28;
- const needle=c.createLinearGradient(tail.x,tail.y,tip.x,tip.y);needle.addColorStop(0,'#ffe36b');needle.addColorStop(.6,'#ff8a1f');needle.addColorStop(1,changed?'#ff3b1f':'#e2261b');
- c.beginPath();c.moveTo(tip.x,tip.y);c.lineTo(mid.x-uy*5.5,mid.y+ux*5.5);c.lineTo(tail.x,tail.y);c.lineTo(mid.x+uy*5.5,mid.y-ux*5.5);c.closePath();
- c.shadowColor=changed?'#ffcf5a':'#ff9a3a';c.shadowBlur=changed?10:5;c.fillStyle=needle;c.fill();c.shadowBlur=0;c.strokeStyle='#5c1a0e';c.lineWidth=1.2;c.stroke();
- c.restore();return;}
- // Readout plate on the ground just past the band, on the facing side.
- const label=Math.round(angle)+'°',labelX=cx+facing*(radius+6),labelY=cy+12;
+  const arc=image(art.arc.file);
+  if(arc){
+   // Body frame: +x forward, rotated by the tilt. The arc is painted facing left and its rim centre sits
+   // `arcCenter` from the pivot (+x toward the back of the body, original units).
+   const k=draw.arcRimRadius*scale/art.arc.rimRadius;
+   c.translate(pivot.x,pivot.y);c.rotate(tilt);c.scale(-facing,1);
+   c.translate(draw.arcCenter[0]*scale,draw.arcCenter[1]*scale);c.globalAlpha*=draw.arcAlpha;
+   c.drawImage(arc,-art.arc.pivot[0]*k,-art.arc.pivot[1]*k,art.arc.size[0]*k,art.arc.size[1]*k);
+  }
+  c.restore();return;
+ }
+ const dot=image(art.dot.file),rad=angle*Math.PI/180,ux=facing*Math.cos(rad),uy=-Math.sin(rad);
+ const size=draw.dotSize*scale*art.dot.size[0]/art.dot.bodySize,base=c.globalAlpha;
+ for(const point of draw.dots){
+  const px=pivot.x+ux*point.distance*scale,py=pivot.y+uy*point.distance*scale;c.globalAlpha=base*point.alpha;
+  if(dot){c.save();c.translate(px,py);c.rotate(Math.atan2(uy,ux));c.drawImage(dot,-size/2,-size/2,size,size);c.restore();}
+  else{const s=draw.dotSize*scale;c.fillStyle='#ffe600';c.fillRect(px-s/2,py-s/2,s,s);}
+ }
+ c.globalAlpha=base;
+ // Readout plate on the ground past the arc, on the facing side.
+ const label=Math.round(angle)+'°',labelX=x+facing*draw.plate.forward,labelY=y-draw.plate.up;
  c.textAlign='center';c.textBaseline='middle';c.font='900 17px "Nunito","Trebuchet MS",sans-serif';const w=c.measureText(label).width+14;
  c.beginPath();c.roundRect(labelX-w/2,labelY-11,w,22,8);c.fillStyle='#071629d9';c.fill();c.strokeStyle=changed?'#fff0a8':'#d8ab55';c.lineWidth=1.5;c.stroke();
  c.lineWidth=3;c.strokeStyle='#3a1a06';c.fillStyle=changed?'#fff7b0':'#ffe35e';c.strokeText(label,labelX,labelY+1);c.fillText(label,labelX,labelY+1);

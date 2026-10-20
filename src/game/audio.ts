@@ -8,7 +8,10 @@ const IMPACT_LAYERS=[{url:'/assets/audio/sfx/impact-base.mp3',volume:.3},{url:'/
 const variants=(name:string)=>[1,2,3].map(n=>`/assets/audio/sfx/${name}-0${n}.mp3`);
 /** POW and ordinary power-ups share the activation sample supplied by the user. */
 const POWERUP_CUE={urls:['/assets/audio/sfx/powerup.mp3'],volume:.22} as const;
-const CUES={pow:POWERUP_CUE,boost:POWERUP_CUE,powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:['/assets/audio/sfx/ui-click.mp3'],volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
+/** Same short tick for raising and lowering the angle (DDTank Sound006 study, docs/hitbox-aim.md); original
+ * sound made by scripts/make-angle-click.py. `gap` lets it repeat at the 90 ms key repeat. */
+const ANGLE_CUE={urls:['/assets/audio/sfx/angle-change.mp3'],volume:.28,gap:.06} as const;
+const CUES={angleChange:ANGLE_CUE,pow:POWERUP_CUE,boost:POWERUP_CUE,powShot:{urls:variants('pow-shot'),volume:.4},powImpact:{urls:variants('pow-impact'),volume:.45},launch:{urls:['/assets/audio/sfx/launch-throw.mp3'],volume:.3},click:{urls:['/assets/audio/sfx/ui-click.mp3'],volume:.25},turn:{urls:variants('turn-yours'),volume:.3}} as const;
 export type AudioCue=keyof typeof CUES;
 /** Encoded files fetched once per page, before any AudioContext exists, so the first cue of a match is never late. */
 const encoded=new Map<string,Promise<ArrayBuffer|null>>();
@@ -40,6 +43,7 @@ class AudioEngine {
  private requested=new Set<string>(BUILT_IN_SAMPLES);
  private decoding=new Set<string>();
  private cueAt=new Map<AudioCue,number>();
+ private voices=new Map<AudioCue,AudioBufferSourceNode[]>();
  constructor(){
   if(typeof document==='undefined')return;
   for(const url of this.requested)void fetchEncoded(url);
@@ -126,14 +130,18 @@ class AudioEngine {
  }
  private playSample(c:AudioContext,buffer:AudioBuffer,volume:number,rate=1){
   const source=c.createBufferSource(),g=c.createGain();source.buffer=buffer;source.playbackRate.value=rate;g.gain.value=volume;source.connect(g);g.connect(c.destination);source.start();
+  return source;
  }
  /** Plays one random recorded variation of a cue; false until its files are decoded. */
  private playCue(c:AudioContext,id:AudioCue){
   const cue=CUES[id],loaded=cue.urls.map(url=>this.samples.get(url)).filter((buffer):buffer is AudioBuffer=>!!buffer);
   if(!loaded.length)return false;
   // Simultaneous projectiles (trident, volleys) share one cue instead of stacking copies.
-  const now=c.currentTime;if(now-(this.cueAt.get(id)??-1)<.25)return true;this.cueAt.set(id,now);
-  this.playSample(c,loaded[Math.floor(Math.random()*loaded.length)],cue.volume,.97+Math.random()*.06);return true;
+  const now=c.currentTime;if(now-(this.cueAt.get(id)??-1)<('gap' in cue?cue.gap:.25))return true;this.cueAt.set(id,now);
+  const source=this.playSample(c,loaded[Math.floor(Math.random()*loaded.length)],cue.volume,.97+Math.random()*.06);
+  // A repeating cue keeps at most two voices: the oldest still ringing is cut.
+  if('gap' in cue){const voices=this.voices.get(id)??[];voices.push(source);source.onended=()=>{const at=voices.indexOf(source);if(at>=0)voices.splice(at,1);};while(voices.length>2)try{voices.shift()!.stop();}catch{/* already ended */}this.voices.set(id,voices);}
+  return true;
  }
  /** Plays a recorded battle cue; falls back to a short synthesized chime until its files are decoded. */
  cue(id:AudioCue){
@@ -141,6 +149,7 @@ class AudioEngine {
   try{
    const c=this.getContext();this.resume(c);
    if(this.playCue(c,id))return;
+   if(id==='angleChange'){const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(2600,t);o.frequency.exponentialRampToValueAtTime(1100,t+.05);g.gain.setValueAtTime(.03,t);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.07);return;}
    const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(id==='pow'?330:880,t);o.frequency.exponentialRampToValueAtTime(id==='pow'?990:1320,t+.25);g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.32);
   }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
