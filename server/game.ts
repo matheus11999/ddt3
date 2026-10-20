@@ -185,7 +185,7 @@ export class Game {
   const f=p.fishing!;if(f.settling)return false;
   if(f.phase==='waiting'&&now>=f.biteAt){
    const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp)),bait=BAIT_BY_ID.get(f.bait)??BAIT_BY_ID.get('bait-simple')!;
-   f.fish=pickFish(f.spot.lake,rod,bait,this.fishRoll());f.challenge=fishChallenge(f.fish,rod,randomInt(2**31));
+   f.fish=pickFish(f.spot.fish,rod,bait,this.fishRoll());f.challenge=fishChallenge(f.fish,rod,randomInt(2**31));
    f.phase='bite';f.since=now;f.start=now+HOOK_LEAD_MS;f.resolveAt=now+AUTO_BASE_MS+AUTO_PER_HIT_MS*f.challenge.hits;
    this.emitFishing(p);return true;
   }

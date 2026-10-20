@@ -1,6 +1,6 @@
-/* Pescaria: controles sobre a cena (FishingHud) e a Casa de Pesca (FishingShop). O cartão do
-   pescador e o desafio usam o vidro azul com ouro do retrato do jogador; o console de pesca é de
-   madeira escura com friso dourado, como a barra de menus da praça. */
+/* Pescaria: controles sobre a cena (FishingHud) e a Casa de Pesca (FishingShop). Painel do
+   pescador, bandeja de vara/isca e botão de lançar são pintados (vidro azul com ouro); o desafio
+   usa o mesmo vidro azul do retrato do jogador. */
 .fishing-hud{position:absolute;inset:0;pointer-events:none;font-family:Nunito,'Trebuchet MS',sans-serif;color:var(--wood-ink)}
 .fishing-hud>*{pointer-events:auto}
 .fishing-hud kbd{padding:0 5px;border-radius:5px;background:#0003;font:800 11px Nunito,sans-serif}
@@ -8,53 +8,59 @@
 
 .fishing-exit{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font:900 15px Nunito,sans-serif}
 
-/* Cartão do pescador: medalhão com a aura azul do jogo, nível, EXP em água e os Pontos. */
-.fishing-card{position:absolute;top:150px;left:14px;display:flex;align-items:center;gap:4px;width:262px;padding:6px 12px 7px 4px;border:1px solid #e3aa4399;border-radius:40px 14px 14px 40px;background:linear-gradient(90deg,#112c50f2,#102a4be0 80%,#102a4bb8);box-shadow:inset 0 1px #ffffff1c,0 4px 12px #0007;color:#eaf4ff}
-.fishing-medal{position:relative;flex:none;display:grid;place-items:center;width:74px;height:74px}
-.fishing-medal>img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:.95}
-.fishing-medal>.fishing-icon{position:relative;filter:drop-shadow(0 2px 2px #061325)}
-.fishing-medal-level{position:absolute;right:0;bottom:2px;min-width:26px;padding:0 4px;border:1px solid #ffe7a3;border-radius:9px;background:linear-gradient(#ffd25a,#d98a12);font:400 16px/18px 'Lilita One',Nunito,sans-serif;color:#fff;text-align:center;-webkit-text-stroke:.6px #6b3405;text-shadow:0 1px #6b3405;box-shadow:0 2px 4px #0008}
-.fishing-card-lines{flex:1;display:grid;gap:2px;min-width:0}
-.fishing-card-lines>small{font:800 10px Nunito,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#e3b766}
-.fishing-card-lines>strong{margin-top:-3px;font:400 19px/1.1 'Lilita One',Nunito,sans-serif;color:#fff;-webkit-text-stroke:.6px #0b1a33;text-shadow:0 2px #0b1a33}
+/* Painel do pescador e bandeja de vara/isca: pintura do Codex (vidro azul com ouro, opção B,
+   `scripts/build-fishing-ui.py`); nível, Pontos, EXP e nomes são escritos pelo jogo por cima. */
+.fishing-card{position:absolute;top:150px;left:10px;width:300px;height:118px;background:url(/assets/fishing/ui/fisher-panel.webp) center/100% 100% no-repeat;filter:drop-shadow(0 4px 6px #0008);color:#eaf4ff}
+.fishing-card-level{position:absolute;left:33px;top:31px;display:grid;place-items:center;width:68px;height:60px;font:400 32px/1 'Lilita One',Nunito,sans-serif;color:#ffe07a;-webkit-text-stroke:1.2px #4a2600;text-shadow:0 3px 0 #4a2600,0 0 12px #6fd3ff88;pointer-events:none}
+.fishing-card-title{position:absolute;left:124px;top:46px;width:158px;height:29px;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 6px 0 8px}
+.fishing-card-title>small{font:400 15px/1 'Lilita One',Nunito,sans-serif;letter-spacing:.4px;color:#ffe2a0;-webkit-text-stroke:.5px #0b1a33;text-shadow:0 1px #0b1a33}
+.fishing-points{display:flex;align-items:center;gap:3px}
+.fishing-points b{font:400 15px 'Lilita One',Nunito,sans-serif;color:#bff0ff;-webkit-text-stroke:.4px #0b1a33;text-shadow:0 1px #0b1a33}
 .fishing-xp{position:relative;height:13px;border:1px solid #f0bf60;border-radius:7px;background:#0a1734;overflow:hidden}
 .fishing-xp i{position:absolute;inset:0 auto 0 0;background:repeating-linear-gradient(105deg,#ffffff26 0 6px,transparent 6px 14px),linear-gradient(#8ff0ff,#2fa4e8 55%,#1a6fc0);background-size:28px 100%,100% 100%;animation:fishing-flow 1.6s linear infinite;transition:width .4s}
 .fishing-xp span{position:relative;display:block;text-align:center;font:800 9.5px/12px Nunito,sans-serif;color:#fff;text-shadow:0 1px 1px #000}
-.fishing-points{display:flex;align-items:center;gap:5px;margin-top:2px}
-.fishing-points b{font:400 16px 'Lilita One',Nunito,sans-serif;color:#bff0ff;text-shadow:0 1px #0b1a33}
-.fishing-points span{font:700 10.5px Nunito,sans-serif;color:#a9c3e3}
+.fishing-card .fishing-xp{position:absolute;left:130px;top:83px;width:150px;height:11px;border:0;border-radius:5px;background:transparent}
+.fishing-card .fishing-xp span{font:900 8.5px/11px Nunito,sans-serif;text-shadow:0 0 2px #000,0 1px 1px #000}
 
-/* Console de pesca: madeira escura, friso dourado, vara e isca em molduras de item. */
-.fishing-bar-panel{position:absolute;left:432px;bottom:22px;display:flex;align-items:center;gap:10px;padding:9px 12px 9px 10px;border:2px solid #e9b64f;border-radius:18px;background:var(--wood-grain),radial-gradient(ellipse at 50% 0%,#a2531f,#5c280b 70%);box-shadow:inset 0 1px #ffd59a88,inset 0 0 0 3px #3a1505,inset 0 0 0 4px #c9893a66,0 0 0 2px #3a1505,0 8px 20px #000b}
-.fishing-bar-panel:before,.fishing-bar-panel:after{content:'';position:absolute;top:50%;width:10px;height:10px;margin-top:-5px;border:1px solid #fff0c4;background:linear-gradient(135deg,#ffe48a,#c97c12);transform:rotate(45deg);box-shadow:0 1px 3px #0009}
-.fishing-bar-panel:before{left:-7px}.fishing-bar-panel:after{right:-7px}
-.fishing-gear{position:relative;display:flex;gap:6px}
-.fishing-slot{display:grid;justify-items:center;gap:2px;padding:0;color:#ffe2ad;font:900 11px Nunito,sans-serif;text-shadow:0 1px #2a0f02;cursor:pointer}
-.fishing-slot-art{position:relative;display:grid;place-items:center;width:54px;height:54px;border:2px solid #e9c48f;border-radius:11px;background:radial-gradient(ellipse at 50% 80%,#fff3dc55,#8a5a3240 85%),#3b1a07;box-shadow:inset 0 1px #fff3dc,inset 0 0 0 3px #7a4a2455,inset 0 -3px 8px #0006,0 2px #2a0f02}
-.fishing-slot-art:before{content:'';position:absolute;inset:4px;border:1px solid #fff3dc33;border-radius:7px}
-.fishing-slot-art>em{position:absolute;right:2px;bottom:1px;font:400 13px 'Lilita One',Nunito,sans-serif;font-style:normal;color:#fff;-webkit-text-stroke:.5px #2a0f02;text-shadow:0 1px #2a0f02}
-.fishing-slot:hover .fishing-slot-art,.fishing-slot.open .fishing-slot-art{border-color:#fff2c8;box-shadow:inset 0 1px #fff3dc,0 0 12px #ffd36b,0 2px #2a0f02}
-.fishing-gear-menu{position:absolute;bottom:calc(100% + 18px);left:-4px;width:330px;padding:0 8px 8px;border:2px solid #e9b64f;border-radius:14px;background:var(--wood-grain),linear-gradient(#8a4318,#5b2a0e);box-shadow:0 0 0 2px #3a1505,0 10px 26px #000b;animation:fishing-rise .2s ease-out}
-.fishing-gear-menu header{margin:0 -8px 8px;padding:6px 12px;border-bottom:2px solid #e9b64f;border-radius:12px 12px 0 0;background:linear-gradient(#7a3a14,#55250b);font:700 15px Cinzel,Georgia,serif;color:var(--wood-gold);text-shadow:0 1px #2c1004}
-.fishing-gear-menu button{position:relative;display:flex;align-items:center;gap:9px;width:100%;margin-bottom:6px;padding:5px 8px;border:1px solid var(--wood-edge);border-radius:10px;background:linear-gradient(#fff8e8,var(--wood-cream-mid));text-align:left;cursor:pointer;color:var(--wood-ink)}
-.fishing-gear-menu button .fishing-slot-art{width:46px;height:46px;flex:none}
-.fishing-gear-menu button.selected{border:2px solid #f2c24a;box-shadow:0 0 0 1px #8a5a12,0 0 10px #ffd36b88}
+.fishing-bar-panel{position:absolute;left:428px;bottom:18px;display:flex;align-items:center;gap:4px}
+.fishing-tray{position:relative;width:340px;height:113px;background:url(/assets/fishing/ui/gear-tray.webp) center/100% 100% no-repeat;filter:drop-shadow(0 5px 7px #0009)}
+.fishing-slot{position:absolute;top:22px;display:grid;place-items:center;width:76px;height:76px;padding:0;border-radius:50%;cursor:pointer;transition:box-shadow .15s}
+.fishing-slot.rod{left:77px}.fishing-slot.bait{left:174px}
+.fishing-slot>.fishing-icon{filter:drop-shadow(0 2px 2px #061325);transition:transform .15s}
+.fishing-slot>span{position:absolute;bottom:3px;font:400 11.5px/1 'Lilita One',Nunito,sans-serif;letter-spacing:.3px;color:#ffe2a0;-webkit-text-stroke:.4px #0b1a33;text-shadow:0 1px #0b1a33}
+.fishing-slot>em{position:absolute;right:6px;top:8px;font:400 18px/1 'Lilita One',Nunito,sans-serif;font-style:normal;color:#fff;-webkit-text-stroke:.5px #0b1a33;text-shadow:0 1px #0b1a33}
+.fishing-slot:hover,.fishing-slot.open{box-shadow:inset 0 0 18px #6fd3ffaa,0 0 10px #ffd36b99}
+.fishing-slot:hover>.fishing-icon,.fishing-slot.open>.fishing-icon{transform:scale(1.08)}
+.fishing-gear-menu{position:absolute;bottom:calc(100% + 8px);left:4px;width:330px;padding:0 8px 8px;border:2px solid #e9b64f;border-radius:14px;background:radial-gradient(ellipse at 50% 0%,#2a64a8,#123460 60%,#0b2245);box-shadow:inset 0 1px #ffffff2a,0 0 0 2px #0a1734,0 10px 26px #000b;animation:fishing-rise .2s ease-out;color:#eaf4ff}
+.fishing-gear-menu header{margin:0 -8px 8px;padding:6px 12px;border-bottom:2px solid #e9b64f;border-radius:12px 12px 0 0;background:linear-gradient(#173f74,#0e2a52);font:700 15px Cinzel,Georgia,serif;color:#ffd77a;text-shadow:0 1px #061325}
+.fishing-gear-menu button{position:relative;display:flex;align-items:center;gap:9px;width:100%;margin-bottom:6px;padding:5px 8px;border:1px solid #6f9fd666;border-radius:10px;background:linear-gradient(#ffffff1c,#ffffff0a);text-align:left;cursor:pointer;color:#eaf4ff}
+.fishing-gear-menu button:hover{background:linear-gradient(#ffffff2a,#ffffff12)}
+.fishing-gear-menu .fishing-slot-art{display:grid;place-items:center;width:46px;height:46px;flex:none;border:2px solid #e9b64f;border-radius:50%;background:radial-gradient(circle at 50% 35%,#2f7fd0,#123a6e 70%);box-shadow:inset 0 2px 6px #0007}
+.fishing-gear-menu button.selected{border:2px solid #f2c24a;box-shadow:0 0 10px #ffd36b66}
 .fishing-gear-menu button>i{position:absolute;top:5px;right:7px;padding:1px 7px;border-radius:7px;background:#2f9a3a;font:900 10px Nunito,sans-serif;font-style:normal;color:#fff}
 .fishing-gear-menu button:disabled{opacity:.6;cursor:not-allowed}
-.fishing-gear-menu b{display:block;font:900 13px Nunito,sans-serif}
-.fishing-gear-menu small{display:block;font:600 11px/1.25 Nunito,sans-serif;color:var(--wood-ink-soft)}
-.fishing-gear-hint{margin:2px 4px 0;font:700 11px Nunito,sans-serif;color:#f3c58a}
-.fishing-auto{display:grid;justify-items:center;gap:5px;padding:4px 2px;color:#ffe2ad;font:900 11px Nunito,sans-serif;text-shadow:0 1px #2a0f02;cursor:pointer}
-.fishing-switch{position:relative;display:block;width:50px;height:26px;border:2px solid #e9c48f;border-radius:13px;background:linear-gradient(#2a1205,#4a2209);box-shadow:inset 0 2px 5px #000a}
-.fishing-switch i{position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#d8c7a8 60%,#9a8466);box-shadow:0 1px 3px #000a;transition:left .2s}
-.fishing-auto.on .fishing-switch{background:linear-gradient(#3fbf4e,#1d7a2c);box-shadow:inset 0 2px 5px #0006,0 0 10px #8fff9a77}
-.fishing-auto.on .fishing-switch i{left:26px;background:radial-gradient(circle at 35% 30%,#fff,#fff2c8 60%,#e9b64f)}
-.fishing-auto.on>span:last-child{color:#a8ffb2}
-.fishing-main{display:flex;align-items:center;gap:7px;height:52px;margin-left:2px;padding:0 20px;border:2px solid #fff0c4;border-radius:26px;background:linear-gradient(#ffe48a,#f6b42c 55%,#d9861a);box-shadow:inset 0 2px #fffbe0,inset 0 -3px #b8650f,0 3px #6b3405,0 5px 10px #0007;font:400 21px 'Lilita One',Nunito,sans-serif;letter-spacing:.3px;color:#fff;-webkit-text-stroke:.8px #7a3a05;text-shadow:0 2px #7a3a05;cursor:pointer}
-.fishing-main kbd{-webkit-text-stroke:0;text-shadow:none;color:#7a3a05;background:#ffffff66;letter-spacing:0}
-.fishing-main.reel{background:linear-gradient(#8fe6ff,#2fa4e8 55%,#1a6fc0);border-color:#e6fbff;box-shadow:inset 0 2px #e6fbff,inset 0 -3px #12508e,0 3px #0b2a50,0 5px 10px #0007;-webkit-text-stroke-color:#0b3a6e;text-shadow:0 2px #0b3a6e}
-.fishing-main:disabled{filter:grayscale(.75) brightness(.9);opacity:.7;cursor:default}
-.fishing-tip{position:absolute;left:432px;bottom:118px;display:flex;align-items:center;gap:8px;margin:0;padding:6px 16px;border:1px solid #e3aa4399;border-radius:12px;background:linear-gradient(90deg,#112c50ee,#102a4bdd);color:#eaf4ff;font:800 14px Nunito,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 3px 10px #0006}
+.fishing-gear-menu b{display:block;font:900 13px Nunito,sans-serif;color:#fff}
+.fishing-gear-menu small{display:block;font:600 11px/1.25 Nunito,sans-serif;color:#b8d0ee}
+.fishing-gear-hint{margin:2px 4px 0;font:700 11px Nunito,sans-serif;color:#ffd77a}
+.fishing-auto{position:absolute;left:266px;top:69px;width:52px;height:23px;padding:0;cursor:pointer}
+.fishing-switch{position:relative;display:block;width:52px;height:23px;border-radius:12px;transition:background .2s,box-shadow .2s}
+.fishing-switch>b{position:absolute;top:0;right:4px;width:24px;font:400 10px/23px 'Lilita One',Nunito,sans-serif;letter-spacing:.2px;text-align:center;color:#ffe2a0;-webkit-text-stroke:.3px #0b1a33;text-shadow:0 1px #0b1a33;transition:right .2s}
+.fishing-auto.on .fishing-switch>b{right:24px;color:#fff;text-shadow:0 1px #0b5a2a}
+.fishing-switch img{position:absolute;top:-.5px;left:1px;width:24px;height:24px;transition:left .2s;filter:drop-shadow(0 1px 2px #0009)}
+.fishing-auto.on .fishing-switch{background:linear-gradient(#6ff59a,#1f9a4a);box-shadow:inset 0 2px 4px #0006,0 0 8px #8fff9a88}
+.fishing-auto.on .fishing-switch img{left:27px}
+/* O botão redondo de lançar (aceso enquanto escolhe o lago); o nome fica numa plaquinha embaixo. */
+.fishing-main{position:relative;width:108px;height:108px;padding:0;background:url(/assets/fishing/ui/cast-button.webp) center/contain no-repeat;filter:drop-shadow(0 5px 7px #0009);cursor:pointer;transition:transform .12s,filter .12s}
+.fishing-main:hover,.fishing-main.picking{background-image:url(/assets/fishing/ui/cast-button-lit.webp)}
+.fishing-main:hover{transform:translateY(-2px)}
+.fishing-main.picking{animation:fishing-cast-glow 1.2s ease-in-out infinite}
+.fishing-main>span{position:absolute;left:50%;bottom:-6px;transform:translateX(-50%);display:flex;align-items:center;gap:5px;padding:2px 10px 3px;border:1.5px solid #f0bf60;border-radius:11px;background:linear-gradient(#1d4f8f,#0d2a52);box-shadow:0 2px 5px #0008;white-space:nowrap;font:400 16px/1.1 'Lilita One',Nunito,sans-serif;letter-spacing:.3px;color:#fff;-webkit-text-stroke:.6px #0b1a33;text-shadow:0 1px #0b1a33}
+.fishing-main kbd{padding:0 4px;border-radius:4px;background:#ffffff26;font:800 9.5px/14px Nunito,sans-serif;-webkit-text-stroke:0;text-shadow:none;color:#cfe6ff}
+.fishing-main.reel{filter:drop-shadow(0 5px 7px #0009) hue-rotate(-10deg) saturate(1.2)}
+.fishing-main.reel>span{border-color:#9fe8ff;background:linear-gradient(#2fa4e8,#145a9a)}
+.fishing-main:disabled{filter:grayscale(.75) brightness(.9);opacity:.7;cursor:default;transform:none}
+@keyframes fishing-cast-glow{50%{filter:drop-shadow(0 0 14px #8ff0ff) brightness(1.1)}}
+.fishing-tip{position:absolute;left:432px;bottom:146px;display:flex;align-items:center;gap:8px;margin:0;padding:6px 16px;border:1px solid #e3aa4399;border-radius:12px;background:linear-gradient(90deg,#112c50ee,#102a4bdd);color:#eaf4ff;font:800 14px Nunito,sans-serif;white-space:nowrap;pointer-events:none;box-shadow:0 3px 10px #0006}
 .fishing-dots{display:flex;gap:3px}
 .fishing-dots i{width:6px;height:6px;border-radius:50%;background:#8ff0ff;animation:fishing-dot 1.2s ease-in-out infinite}
 .fishing-dots i:nth-child(2){animation-delay:.2s}.fishing-dots i:nth-child(3){animation-delay:.4s}
@@ -170,3 +176,4 @@
 
 html.mobile-landscape .fishing-card{top:96px;transform:scale(.85);transform-origin:top left}
 html.mobile-landscape .fishing-challenge{top:170px}
+html.mobile-landscape .fishing-bar-panel{transform:scale(.85);transform-origin:bottom left}

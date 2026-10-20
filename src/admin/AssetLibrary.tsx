@@ -10,7 +10,7 @@ interface Usage {map:string;name:string;items:string[];}
 /** Which maps use each piece (by sheet URL and piece number), from the saved drafts or the shipped layouts. */
 async function usages(){
  const {maps}=await api.maps(),found=new Map<string,Usage[]>();
- await Promise.all(maps.filter(m=>m.kind!=='lobby').map(async m=>{
+ await Promise.all(maps.filter(m=>m.kind!=='lobby'&&m.kind!=='fishing').map(async m=>{
   const draft=await api.map(m.id).catch(()=>null),layout=(draft?.draft?.layout as MapLayout|undefined)??shippedLayout(m.id)??shippedLayout(m.base);if(!layout)return;
   const files=layout.sheets??{pieces:layout.pieces??''},first=Object.keys(files)[0];
   for(const item of layout.items)for(const [sheet,piece] of [[item.sheet??first,item.piece],...(item.mirrorAs?.piece!==undefined?[[item.mirrorAs.sheet??item.sheet??first,item.mirrorAs.piece]]:[])] as [string,number][]){

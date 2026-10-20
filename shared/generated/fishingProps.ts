@@ -172,6 +172,34 @@ export const FISHING_PROPS={
  "tuft-3": {
   "w": 59,
   "h": 44
+ },
+ "lily-pad-1": {
+  "w": 78,
+  "h": 40
+ },
+ "lily-pad-2": {
+  "w": 61,
+  "h": 34
+ },
+ "lily-pad-3": {
+  "w": 51,
+  "h": 28
+ },
+ "lily-pad-4": {
+  "w": 65,
+  "h": 36
+ },
+ "lotus-1": {
+  "w": 98,
+  "h": 58
+ },
+ "lotus-2": {
+  "w": 79,
+  "h": 50
+ },
+ "lily-cluster": {
+  "w": 97,
+  "h": 56
  }
 } as const;
 export type FishingPropId=keyof typeof FISHING_PROPS;

@@ -5,7 +5,7 @@ import {navigate} from './AdminApp';
 import {MAP_KIND_NAMES,MAP_ID_PATTERN} from '../../shared/mapAdmin';
 import type {AdminMapSummary,MapKind} from '../../shared/mapAdmin';
 
-const FILTERS:[MapKind|'all',string][]=[['all','Todos'],['pvp','PvP'],['instance','Instâncias'],['lobby','Lobby']];
+const FILTERS:[MapKind|'all',string][]=[['all','Todos'],['pvp','PvP'],['instance','Instâncias'],['lobby','Lobby'],['fishing','Pescaria']];
 const slug=(name:string)=>name.normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,32);
 
 export function status(map:AdminMapSummary){
@@ -36,7 +36,7 @@ export function MapList(){
 }
 
 function CreateDialog({maps,onClose}:{maps:AdminMapSummary[];onClose:()=>void}){
- const bases=maps.filter(m=>m.kind!=='lobby');
+ const bases=maps.filter(m=>m.kind!=='lobby'&&m.kind!=='fishing');
  const [name,setName]=useState(''),[id,setId]=useState(''),[edited,setEdited]=useState(false),[kind,setKind]=useState<'pvp'|'instance'>('pvp'),[base,setBase]=useState(bases[0]?.id??''),[error,setError]=useState('');
  const code=edited?id:slug(name);
  const submit=async(e:React.FormEvent)=>{e.preventDefault();setError('');

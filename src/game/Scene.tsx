@@ -49,6 +49,7 @@ import {LOBBY_SPAWN,LOBBY_WIDTH} from '../../shared/lobby';
 function recentSpeech(chat:ChatLine[],channel:ChatLine['channel'],now:number){const lines=new Map<string,ChatLine>();for(const m of chat)if(m.channel===channel&&m.playerId&&now-m.time<CHAT_BUBBLE_MS&&now>=m.time-1000)lines.set(m.playerId,m);return [...lines].sort((a,b)=>a[1].time-b[1].time);}
 import {chaseLobbyPosition} from './lobbyMotion';
 import {FishingWorld} from './fishingWorld';
+import {fishingPick} from './fishingPick';
 import {FISHING_SPAWN,FISHING_SPOTS,FISHING_WALK,FISHING_WIDTH,SPOT_REACH} from '../../shared/fishing';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
@@ -120,11 +121,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const meId=state.profile?.id,me=state.players.find(p=>p.id===meId),seen=meId?entities.get(meId):undefined,focus=seen?.x||me?.x||LOBBY_SPAWN.x;
     // The Pescaria is taller than the view too: there the camera follows up and down as well.
     const target=fishingZone?FishingWorld.camera(focus,seen?.y||me?.y||FISHING_SPAWN.y):{x:LobbyWorld.camera(focus),y:0};
-    if(fishingZone!==wasFishing){wasFishing=fishingZone;camX=-1;pendingSpot=null;}
+    if(fishingZone!==wasFishing){wasFishing=fishingZone;camX=-1;pendingSpot=null;fishingPick.set(false);}
     if(camX<0){camX=target.x;camY=target.y;}else{camX+=(target.x-camX)*.12;camY+=(target.y-camY)*.12;}
     c.save();c.translate(-camX,-camY);
-    if(fishingZone){fishing.drawBack(c,t,camX,camY);fishing.drawSpots(c,t,takenSpots(),hoverLake);}else lobby.drawBack(c,t,camX);
-    if((walkDir||walkDirY)&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;pendingSpot=null;client.send({type:'move',x:Math.max(walk.minX,Math.min(walk.maxX,me.x+walkDir*240)),y:fishingZone?Math.max(walk.minY,Math.min(walk.maxY,me.y+walkDirY*160)):me.y});}
+    if(fishingZone){fishing.drawBack(c,t,camX,camY);if(fishingPick.get())fishing.drawPick(c,t,hoverLake);}else lobby.drawBack(c,t,camX);
+    if((walkDir||walkDirY)&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;pendingSpot=null;fishingPick.set(false);client.send({type:'move',x:Math.max(walk.minX,Math.min(walk.maxX,me.x+walkDir*240)),y:fishingZone?Math.max(walk.minY,Math.min(walk.maxY,me.y+walkDirY*160)):me.y});}
     // Walking to a spot picked on the water: cast once there.
     const spot=pendingSpot?FISHING_SPOTS.find(s=>s.id===pendingSpot):undefined;
     if(spot&&me&&Math.hypot(me.x-spot.x,me.y-spot.y)<SPOT_REACH*.5){pendingSpot=null;client.send({type:'fish-cast',spot:spot.id});}
@@ -340,20 +341,24 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   };
   const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room||e.button!==0)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H+camY;
    if(state.zone==='fishing'){
-    const hit=fishing.hit(x,y);pendingSpot=null;
+    const hit=fishing.hit(x,y),picking=fishingPick.get();pendingSpot=null;fishingPick.set(false);
     if(hit?.kind==='station'){if(hit.station.action==='plaza')client.goTo('plaza');else client.openFishShop();return;}
     if(hit?.kind==='lake'){
-     // The nearest free spot of that lake to the click: walk there and cast on arrival.
-     const taken=takenSpots(),spot=FISHING_SPOTS.filter(s=>s.lake===hit.lake.id&&!taken.has(s.id)).sort((a,b)=>Math.hypot(a.bobX-x,a.bobY-y)-Math.hypot(b.bobX-x,b.bobY-y))[0];
+     // The nearest free spot of that lake to the click: walk there, and after Lançar, cast on arrival.
+     const taken=takenSpots(),free=FISHING_SPOTS.filter(s=>s.lake===hit.lake.id&&!taken.has(s.id)),me=state.players.find(p=>p.id===state.profile?.id);
+     // Already standing at one of its spots: fish right there.
+     const here=me&&free.find(s=>Math.hypot(s.x-me.x,s.y-me.y)<=SPOT_REACH);
+     if(picking&&here){client.send({type:'fish-cast',spot:here.id});return;}
+     const spot=free.sort((a,b)=>Math.hypot(a.bobX-x,a.bobY-y)-Math.hypot(b.bobX-x,b.bobY-y))[0];
      if(!spot){client.update({error:'Todos os lugares deste lago estão ocupados.'});return;}
-     pendingSpot=spot.id;client.send({type:'move',x:spot.x,y:spot.y});click={x:spot.x,y:spot.y,time:performance.now()};return;
+     if(picking)pendingSpot=spot.id;client.send({type:'move',x:spot.x,y:spot.y});click={x:spot.x,y:spot.y,time:performance.now()};return;
     }
     const target={x:Math.max(FISHING_WALK.minX,Math.min(FISHING_WALK.maxX,x)),y:Math.max(FISHING_WALK.minY,Math.min(FISHING_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};return;
    }
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
   const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W+Math.max(0,camX),py=(e.clientY-r.top)/r.height*H+camY;
-   if(state.zone==='fishing'){const hit=fishing.hit(px,py);hover=hit?.kind==='station'?hit.station.id:null;const lake=hit?.kind==='lake'?hit.lake:null;if((lake?.id??null)!==hoverLake){hoverLake=lake?.id??null;window.dispatchEvent(new CustomEvent('brasa-fishing-lake',{detail:lake?.name??null}));}el.style.cursor=hit?'pointer':'';return;}
+   if(state.zone==='fishing'){const hit=fishing.hit(px,py);hover=hit?.kind==='station'?hit.station.id:null;const lake=hit?.kind==='lake'?hit.lake:null;if((lake?.id??null)!==hoverLake){hoverLake=lake?.id??null;window.dispatchEvent(new CustomEvent('brasa-fishing-lake',{detail:lake?.name??null}));}el.style.cursor=hit?'pointer':fishingPick.get()?'not-allowed':'';return;}
    hoverLake=null;hover=lobby.hover(px,py)?.id??null;el.style.cursor=hover?'pointer':'';};
   // Arrow keys / A-D walk sideways along the plaza; releasing stops where the player is.
   const typing=(e:KeyboardEvent)=>['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName);
@@ -361,7 +366,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   // Up and down (W/S) only in the Pescaria, whose terraces climb with stairs.
   const keyDirY=(e:KeyboardEvent)=>state.zone!=='fishing'?0:['arrowup','w'].includes(e.key.toLowerCase())?-1:['arrowdown','s'].includes(e.key.toLowerCase())?1:0;
   const keyDown=(e:KeyboardEvent)=>{if(state.battle||state.room||typing(e))return;const dir=keyDir(e),dirY=keyDirY(e);if(dir){walkDir=dir;lastWalk=0;}if(dirY){walkDirY=dirY;lastWalk=0;e.preventDefault();}};
-  const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e),dirY=keyDirY(e);if(dirY&&dirY===walkDirY)walkDirY=0;else if(!dir||dir!==walkDir)return;else walkDir=0;if(walkDir||walkDirY)return;pendingSpot=null;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
+  const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e),dirY=keyDirY(e);if(dirY&&dirY===walkDirY)walkDirY=0;else if(!dir||dir!==walkDir)return;else walkDir=0;if(walkDir||walkDirY)return;pendingSpot=null;fishingPick.set(false);const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
   const stopWalk=()=>{walkDir=0;walkDirY=0;};
   window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',stopWalk);
   // Holding and dragging the battlefield looks around; letting go hands the camera back to the turn and the shot.
