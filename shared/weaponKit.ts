@@ -103,7 +103,8 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
   identity:'shuriken de três lâminas curvas e afiadas girando em volta de um cubo central redondo; lâminas e cubo mudam de material a cada fase. Contorno marrom grosso, pintura suave com volume, luz de cima à esquerda; sem mão, personagem ou pedestal.',
   palette:'aço prateado e ferrugem no início, lâminas de fogo carmim e laranja com rubi em +10, pétalas vermelho-douradas e aletas lilás em +12, ouro de nuvens com núcleo de safira em +15',
   powTrident:'exclusivo',projectileTilt:0,
-  sounds:['fire','flight','impact','terrain'],powSounds:['fire','impact'],
+  // The launch is only the package's disparo-normal.mp3 (20/10): no flight loop and no separate POW launch, which layered a second throw over it.
+  sounds:['fire','impact','terrain'],powSounds:['impact'],
   terrain:'pequeno resíduo de cortes finos em leque ao redor de uma cratera oval com centro transparente, poeira clara e lascas metálicas; sem pedra ou tijolos',
   destruction:{
    normal:'sombra em DEGRADÊ que nasce escura colada à borda OVAL do buraco e se dissolve para fora, em cinza-azulado escuro, atravessada por muitos CORTES finos e direcionais saindo da borda (como golpes de lâmina), alguns ramificados, que se apagam aos poucos. Função do craterBrink do Vento de Deus do DDTank: chão cortado, nunca uma moldura, nunca lâminas desenhadas',
