@@ -10,7 +10,7 @@ import {WEAPON_FRAGMENT_RECIPES} from '../../shared/synthesis';
 import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
 import {ItemCard} from './ItemCard';
-import {ROD_LEVEL,RodInfo} from './FishingRodInfo';
+import {ROD_LEVEL,useRodTip} from './FishingRodInfo';
 import {FishingRanking} from './FishingRanking';
 import {weightClass} from './FishingFish';
 import {fishingPick} from '../game/fishingPick';
@@ -191,21 +191,20 @@ export const dropLabel=(kind:keyof typeof DROP_NAMES,amount:number)=>amount!==1?
 const percent=(chance:number)=>`${(chance*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%`;
 
 const shortRod=(name:string)=>name.replace(/^Vara (de |da |do )?/,'');
-/** Troca de vara (pedido do matheus): as seis varas em cards de item, a equipada com brilho, as que faltam em cinza com o nível; um clique troca. */
+/** Troca de vara (pedido do matheus): as seis varas em cards de item, a equipada com brilho, as que faltam em cinza com o nível; um clique troca. As informações da vara só aparecem ao passar o mouse no card. */
 function RodPicker({fishing,level,locked,onPick}:{fishing:FishingProfile;level:number;locked:boolean;onPick:(id:string)=>void}){
- const [hover,setHover]=useState(fishing.rod);
- const shown=ROD_BY_ID.get(hover)??ROD_BY_ID.get(fishing.rod)!,owned=fishing.rods.includes(shown.id);
- return <div className="fishing-gear-menu fishing-rod-picker" role="menu" onMouseLeave={()=>setHover(fishing.rod)}>
+ const tip=useRodTip(fishing.rods,fishing.rod,level);
+ return <div className="fishing-gear-menu fishing-rod-picker" role="menu">
   <header>Trocar vara</header>
   <div className="fishing-rod-grid">{FISHING_RODS.map(r=>{const has=fishing.rods.includes(r.id),using=r.id===fishing.rod,lvl=ROD_LEVEL.get(r.id)??1;
    return <ItemCard key={r.id} role="menuitem" variant="detail" selected={using} className={`fishing-rod-card ${has?'':'locked'}`} aria-label={has?r.name:`${r.name}: nível ${lvl} na Casa de Pesca`}
-    onMouseEnter={()=>setHover(r.id)} onFocus={()=>setHover(r.id)} onClick={()=>{if(has&&!using&&!locked)onPick(r.id);else if(!has){client.openFishShop();audio.play('click');}}}>
+    {...tip.handlers(r)} onClick={()=>{if(has&&!using&&!locked)onPick(r.id);else if(!has){client.openFishShop();audio.play('click');}}}>
     <FishingIcon id={r.id} size={58}/>
     {using&&<i className="fishing-rod-using">Em uso</i>}
     {!has&&<i className="fishing-rod-lock"><Lock size={10} strokeWidth={3}/>Nv. {lvl}</i>}
     <small>{shortRod(r.name)}</small>
    </ItemCard>;})}</div>
-  <RodInfo rod={shown} owned={owned} using={shown.id===fishing.rod} level={level}/>
+  {tip.node}
   {locked&&<p className="fishing-gear-hint">Espere terminar a puxada para trocar.</p>}
  </div>;
 }

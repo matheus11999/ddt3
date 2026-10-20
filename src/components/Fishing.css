@@ -326,7 +326,6 @@ html.mobile-landscape .fishing-history-button{top:270px}
 /* Informações da vara (Trocar vara, Sacola, Trocas): marcas de 0 a 5, sem números (pedido do matheus). */
 .rod-tip{position:fixed;z-index:9000;width:270px;pointer-events:none;animation:fishing-rise .15s ease-out}
 .rod-info{display:grid;gap:5px;padding:10px 12px;border:2px solid #e9b64f;border-radius:13px;background:radial-gradient(ellipse at 50% 0%,#2a64a8,#123460 60%,#0b2245);box-shadow:inset 0 1px #ffffff2a,0 0 0 2px #0a1734,0 10px 22px #000b;color:#eaf4ff}
-.fishing-rod-picker .rod-info{margin:0 2px;border-width:1px;border-color:#e9b64f88;box-shadow:none;background:#0a173499}
 .rod-info header{display:flex;align-items:center;gap:9px}
 .rod-info-art{display:grid;place-items:center;width:52px;height:52px;flex:none;border:2px solid #e9b64f;border-radius:50%;background:radial-gradient(circle at 50% 35%,#2f7fd0,#123a6e 70%)}
 .rod-info header b{display:block;font:400 16px/1.1 'Lilita One',Nunito,sans-serif;color:#ffe2a0}
