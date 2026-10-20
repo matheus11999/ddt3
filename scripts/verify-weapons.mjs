@@ -112,25 +112,30 @@ try{
       // Geometry against the template: hole transparent, rim touching the hole's outline, nothing far outside the band, centred on the pivot.
       const W=D.MARK_ART.width,H=D.MARK_ART.height,canvas=new OffscreenCanvas(W,H),c=canvas.getContext('2d');c.drawImage(bitmap,0,0,W,H);const px=c.getImageData(0,0,W,H).data;
       const shape=CRATER_MASKS[profile.mask],R=profile.radius*W/profile.mark.world,outer=.97/(2*profile.radius/profile.mark.world);
-      let hole=0,holeSolid=0,edge=0,edgeSolid=0,out=0,outSolid=0,sx=0,sy=0,sum=0;
+      let gaps=0,hole=0,holeSolid=0,edge=0,edgeSolid=0,out=0,outSolid=0,sx=0,sy=0,sum=0,near=0,nearAlpha=0,far=0,farAlpha=0,band=0,bandOpaque=0;const third=(outer-1)/3;
       for(let y=0;y<H;y+=2)for(let x=0;x<W;x+=2){const a=px[(y*W+x)*4+3],u=(x+.5-D.MARK_ART.pivotX)/R,v=(y+.5-D.MARK_ART.pivotY)/R;
        if(a>20){sx+=x*a;sy+=y*a;sum+=a;}
        if(shape.inside(u/.9,v/.9)){hole++;if(a>60)holeSolid++;}
        else if(!shape.inside(u,v)&&shape.inside(u/1.06,v/1.06)){edge++;if(a>60)edgeSolid++;}
-       else if(!shape.inside(u/(outer*1.08),v/(outer*1.08))){out++;if(a>60)outSolid++;}}
+       else if(!shape.inside(u/(outer*1.08),v/(outer*1.08))){out++;if(a>60)outSolid++;}
+       // Gradient check (20/10, the user rejected solid rims): the band is darkest at the hole and fades outward.
+       if(!shape.inside(u,v)&&shape.inside(u/outer,v/outer)){band++;if(a>235)bandOpaque++;if(a<15)gaps++;
+        if(shape.inside(u/(1+third),v/(1+third))){near++;nearAlpha+=a;}else if(!shape.inside(u/(1+2*third),v/(1+2*third))){far++;farAlpha+=a;}}}
       const cx=sum?sx/sum/W-.5:1,cy=sum?sy/sum/H-.5:1;
       if(bitmap.width!==W||bitmap.height!==H){item.status='falta';item.detail=`Tamanho ${bitmap.width}×${bitmap.height}; o contrato é ${W}×${H}.`;}
       else if(m.coverage<.01){item.status='falta';item.detail='Marca vazia.';}
       else if(m.coverage>.97){item.status='falta';item.detail='Sem transparência: o fundo precisa ser transparente.';}
       else if(edgeSolid/edge<.55){item.status='falta';item.detail=`A borda não acompanha o buraco do template (${Math.round(edgeSolid/edge*100)}% do contorno pintado).`;}
       else if(outSolid/out>.04){item.status='falta';item.detail=`Pintura fora da faixa do template (${Math.round(outSolid/out*100)}% da área externa).`;}
+      else if(bandOpaque/band>.3||farAlpha/far>nearAlpha/near*.5){item.status='falta';item.detail=`Borda sólida, sem degradê: precisa nascer escura no buraco e sumir para fora (${Math.round(bandOpaque/band*100)}% opaca, ponta externa ${Math.round(farAlpha/far)} contra ${Math.round(nearAlpha/near)} junto ao buraco).`;}
+      else if(gaps/band<.25){item.status='falta';item.detail=`Marca contínua: precisa de falhas transparentes onde o terreno aparece entre as rachaduras (${Math.round(gaps/band*100)}% da faixa livre; mínimo 25%).`;}
       else if(Math.hypot(cx,cy)>.06){item.status='falta';item.detail='A marca não está centrada no pivô do template.';}
       else if(same(marks[`${mode}-prev`],m.signature)){item.status='falta';item.detail='Igual à fase anterior: cada fase precisa de marca própria.';}
       else if(mode==='pow'&&same(marks[`normal-${stage}`],m.signature)){item.status='falta';item.detail='Igual à marca normal desta fase: o POW precisa de marca própria.';}
       else if(m.style.colors<350||m.style.flat>.3||m.style.softEdge<.003){item.status='falta';item.detail=`Fora do estilo da casa (${m.style.colors} cores, ${Math.round(m.style.flat*100)}% pixels repetidos).`;}
       else if(holeSolid/hole>.05){item.status='aviso';item.detail=`Centro pintado (${Math.round(holeSolid/hole*100)}% do buraco): o jogo recorta, mas o contrato prefere centro transparente.`;}
       else if(!profile.painted){item.status='aviso';item.detail='Pronta, mas ainda não aprovada: o jogo usa terrain.png até entrar em PAINTED (shared/destruction.ts).';}
-      item.geometry={edge:Math.round(edgeSolid/edge*100),outside:Math.round(outSolid/out*1000)/10,hole:Math.round(holeSolid/hole*100),centre:[Math.round(cx*1000)/10,Math.round(cy*1000)/10]};
+      item.geometry={gaps:Math.round(gaps/band*100),fade:[Math.round(nearAlpha/near),Math.round(farAlpha/far)],opaque:Math.round(bandOpaque/band*100),edge:Math.round(edgeSolid/edge*100),outside:Math.round(outSolid/out*1000)/10,hole:Math.round(holeSolid/hole*100),centre:[Math.round(cx*1000)/10,Math.round(cy*1000)/10]};
       marks[`${mode}-prev`]=m.signature;marks[`${mode}-${stage}`]=m.signature;
      }
      if(item.status==='falta')entry.prompts.push({key:`mark-${mode}-${stage}`,order:K.destructionOrder(mode,stage),file:`marca-${mode}-${stage}.txt`,title:label,kind:'imagem',text:K.destructionPrompt(weapon,kit,mode,stage)});

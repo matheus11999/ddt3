@@ -1,6 +1,6 @@
 [
  {
-  "id": "brick:normal:0@1",
+  "id": "brick:normal:0@2",
   "weapon": "brick",
   "mode": "normal",
   "stage": 0,
@@ -26,11 +26,11 @@
     512,
     512
    ],
-   "world": 56,
-   "artPerWorld": 18.286,
+   "world": 71,
+   "artPerWorld": 14.423,
    "holeInArt": [
-    805,
-    531
+    635,
+    419
    ],
    "bandOuterInArt": [
     993,
@@ -39,7 +39,7 @@
   }
  },
  {
-  "id": "brick:normal:10@1",
+  "id": "brick:normal:10@2",
   "weapon": "brick",
   "mode": "normal",
   "stage": 10,
@@ -65,11 +65,11 @@
     512,
     512
    ],
-   "world": 56,
-   "artPerWorld": 18.286,
+   "world": 71,
+   "artPerWorld": 14.423,
    "holeInArt": [
-    805,
-    531
+    635,
+    419
    ],
    "bandOuterInArt": [
     993,
@@ -78,7 +78,7 @@
   }
  },
  {
-  "id": "brick:normal:12@1",
+  "id": "brick:normal:12@2",
   "weapon": "brick",
   "mode": "normal",
   "stage": 12,
@@ -104,11 +104,11 @@
     512,
     512
    ],
-   "world": 56,
-   "artPerWorld": 18.286,
+   "world": 71,
+   "artPerWorld": 14.423,
    "holeInArt": [
-    805,
-    531
+    635,
+    419
    ],
    "bandOuterInArt": [
     993,
@@ -117,7 +117,7 @@
   }
  },
  {
-  "id": "brick:normal:15@1",
+  "id": "brick:normal:15@2",
   "weapon": "brick",
   "mode": "normal",
   "stage": 15,
@@ -143,11 +143,11 @@
     512,
     512
    ],
-   "world": 56,
-   "artPerWorld": 18.286,
+   "world": 71,
+   "artPerWorld": 14.423,
    "holeInArt": [
-    805,
-    531
+    635,
+    419
    ],
    "bandOuterInArt": [
     993,
@@ -156,7 +156,7 @@
   }
  },
  {
-  "id": "brick:pow:0@1",
+  "id": "brick:pow:0@2",
   "weapon": "brick",
   "mode": "pow",
   "stage": 0,
@@ -182,11 +182,11 @@
     512,
     512
    ],
-   "world": 62,
-   "artPerWorld": 16.516,
+   "world": 80,
+   "artPerWorld": 12.8,
    "holeInArt": [
-    763,
-    504
+    591,
+    390
    ],
    "bandOuterInArt": [
     993,
@@ -195,7 +195,7 @@
   }
  },
  {
-  "id": "brick:pow:10@1",
+  "id": "brick:pow:10@2",
   "weapon": "brick",
   "mode": "pow",
   "stage": 10,
@@ -221,11 +221,11 @@
     512,
     512
    ],
-   "world": 62,
-   "artPerWorld": 16.516,
+   "world": 80,
+   "artPerWorld": 12.8,
    "holeInArt": [
-    763,
-    504
+    591,
+    390
    ],
    "bandOuterInArt": [
     993,
@@ -234,7 +234,7 @@
   }
  },
  {
-  "id": "brick:pow:12@1",
+  "id": "brick:pow:12@2",
   "weapon": "brick",
   "mode": "pow",
   "stage": 12,
@@ -260,11 +260,11 @@
     512,
     512
    ],
-   "world": 62,
-   "artPerWorld": 16.516,
+   "world": 80,
+   "artPerWorld": 12.8,
    "holeInArt": [
-    763,
-    504
+    591,
+    390
    ],
    "bandOuterInArt": [
     993,
@@ -273,7 +273,7 @@
   }
  },
  {
-  "id": "brick:pow:15@1",
+  "id": "brick:pow:15@2",
   "weapon": "brick",
   "mode": "pow",
   "stage": 15,
@@ -299,11 +299,11 @@
     512,
     512
    ],
-   "world": 62,
-   "artPerWorld": 16.516,
+   "world": 80,
+   "artPerWorld": 12.8,
    "holeInArt": [
-    763,
-    504
+    591,
+    390
    ],
    "bandOuterInArt": [
     993,
@@ -312,7 +312,7 @@
   }
  },
  {
-  "id": "love-boomerang:normal:0@1",
+  "id": "love-boomerang:normal:0@2",
   "weapon": "love-boomerang",
   "mode": "normal",
   "stage": 0,
@@ -338,11 +338,11 @@
     512,
     512
    ],
-   "world": 74,
-   "artPerWorld": 13.838,
+   "world": 90,
+   "artPerWorld": 11.378,
    "holeInArt": [
-    720,
-    482
+    592,
+    396
    ],
    "bandOuterInArt": [
     993,
@@ -351,7 +351,7 @@
   }
  },
  {
-  "id": "love-boomerang:normal:10@1",
+  "id": "love-boomerang:normal:10@2",
   "weapon": "love-boomerang",
   "mode": "normal",
   "stage": 10,
@@ -377,11 +377,11 @@
     512,
     512
    ],
-   "world": 74,
-   "artPerWorld": 13.838,
+   "world": 90,
+   "artPerWorld": 11.378,
    "holeInArt": [
-    720,
-    482
+    592,
+    396
    ],
    "bandOuterInArt": [
     993,
@@ -390,7 +390,7 @@
   }
  },
  {
-  "id": "love-boomerang:normal:12@1",
+  "id": "love-boomerang:normal:12@2",
   "weapon": "love-boomerang",
   "mode": "normal",
   "stage": 12,
@@ -416,11 +416,11 @@
     512,
     512
    ],
-   "world": 74,
-   "artPerWorld": 13.838,
+   "world": 90,
+   "artPerWorld": 11.378,
    "holeInArt": [
-    720,
-    482
+    592,
+    396
    ],
    "bandOuterInArt": [
     993,
@@ -429,7 +429,7 @@
   }
  },
  {
-  "id": "love-boomerang:normal:15@1",
+  "id": "love-boomerang:normal:15@2",
   "weapon": "love-boomerang",
   "mode": "normal",
   "stage": 15,
@@ -455,11 +455,11 @@
     512,
     512
    ],
-   "world": 74,
-   "artPerWorld": 13.838,
+   "world": 90,
+   "artPerWorld": 11.378,
    "holeInArt": [
-    720,
-    482
+    592,
+    396
    ],
    "bandOuterInArt": [
     993,
@@ -468,7 +468,7 @@
   }
  },
  {
-  "id": "love-boomerang:pow:0@1",
+  "id": "love-boomerang:pow:0@2",
   "weapon": "love-boomerang",
   "mode": "pow",
   "stage": 0,
@@ -494,11 +494,11 @@
     512,
     512
    ],
-   "world": 83,
-   "artPerWorld": 12.337,
+   "world": 99,
+   "artPerWorld": 10.343,
    "holeInArt": [
-    674,
-    397
+    565,
+    333
    ],
    "bandOuterInArt": [
     993,
@@ -507,7 +507,7 @@
   }
  },
  {
-  "id": "love-boomerang:pow:10@1",
+  "id": "love-boomerang:pow:10@2",
   "weapon": "love-boomerang",
   "mode": "pow",
   "stage": 10,
@@ -533,11 +533,11 @@
     512,
     512
    ],
-   "world": 83,
-   "artPerWorld": 12.337,
+   "world": 99,
+   "artPerWorld": 10.343,
    "holeInArt": [
-    674,
-    397
+    565,
+    333
    ],
    "bandOuterInArt": [
     993,
@@ -546,7 +546,7 @@
   }
  },
  {
-  "id": "love-boomerang:pow:12@1",
+  "id": "love-boomerang:pow:12@2",
   "weapon": "love-boomerang",
   "mode": "pow",
   "stage": 12,
@@ -572,11 +572,11 @@
     512,
     512
    ],
-   "world": 83,
-   "artPerWorld": 12.337,
+   "world": 99,
+   "artPerWorld": 10.343,
    "holeInArt": [
-    674,
-    397
+    565,
+    333
    ],
    "bandOuterInArt": [
     993,
@@ -585,7 +585,7 @@
   }
  },
  {
-  "id": "love-boomerang:pow:15@1",
+  "id": "love-boomerang:pow:15@2",
   "weapon": "love-boomerang",
   "mode": "pow",
   "stage": 15,
@@ -611,11 +611,11 @@
     512,
     512
    ],
-   "world": 83,
-   "artPerWorld": 12.337,
+   "world": 99,
+   "artPerWorld": 10.343,
    "holeInArt": [
-    674,
-    397
+    565,
+    333
    ],
    "bandOuterInArt": [
     993,
