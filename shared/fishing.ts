@@ -54,6 +54,18 @@ export const FISH:readonly Fish[]=[
 ];
 export const FISH_BY_ID=new Map(FISH.map(f=>[f.id,f]));
 
+/** Raridade dos peixes (pedido do matheus, 20/10): sai da dificuldade, 1 Comum a 5 Lendário. */
+export type FishRarity='comum'|'normal'|'raro'|'epico'|'lendario';
+export interface FishRarityInfo {id:FishRarity;name:string;color:string;/** Épico e Lendário são anunciados no chat Mundo do canal. */announce:boolean;}
+export const FISH_RARITIES:readonly FishRarityInfo[]=[
+ {id:'comum',name:'Comum',color:'#c9d3de',announce:false},
+ {id:'normal',name:'Normal',color:'#7ee07a',announce:false},
+ {id:'raro',name:'Raro',color:'#5ab4ff',announce:false},
+ {id:'epico',name:'Épico',color:'#c07aff',announce:true},
+ {id:'lendario',name:'Lendário',color:'#ffc93a',announce:true},
+];
+export const fishRarity=(fish:Pick<Fish,'difficulty'>):FishRarityInfo=>FISH_RARITIES[Math.max(1,Math.min(5,fish.difficulty))-1];
+
 /** Seconds waiting for a bite, before the rod and the bait (and ×AUTO_WAIT in automatic). */
 export const BITE_WAIT=[6,13] as const;
 export const AUTO_WAIT=1.2;
@@ -136,7 +148,10 @@ export function effectiveRod(rod:FishingRod,level:number):FishingRod{const b=lev
 
 // ── Profile ──
 /** What a profile keeps about fishing (persisted inside the profile JSON). */
-export interface FishingProfile {rod:string;bait:string;rods:string[];/** Consumable baits; the simple bait is not counted. */baits:Record<string,number>;/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;}
+export interface FishingProfile {rod:string;bait:string;rods:string[];/** Consumable baits; the simple bait is not counted. */baits:Record<string,number>;/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];}
+/** One catch in the history window. */
+export interface FishingHistoryEntry {fish:string;kg:number;points:number;xp:number;at:number;auto?:boolean;}
+export const FISHING_HISTORY=30;
 const int=(v:unknown,max=1e9)=>typeof v==='number'&&Number.isFinite(v)?Math.max(0,Math.min(max,Math.floor(v))):0;
 export function normalizeFishing(raw:unknown):FishingProfile{
  const r=(raw&&typeof raw==='object'?raw:{}) as Partial<FishingProfile>;
@@ -145,7 +160,9 @@ export function normalizeFishing(raw:unknown):FishingProfile{
  const bait=typeof r.bait==='string'&&BAIT_BY_ID.has(r.bait)&&(BAIT_BY_ID.get(r.bait)!.infinite||baits[r.bait]>0)?r.bait:STARTER_BAIT;
  const caught=Object.fromEntries(Object.entries(r.caught??{}).filter(([id])=>FISH_BY_ID.has(id)).map(([id,n])=>[id,int(n)]).filter(([,n])=>(n as number)>0));
  const best=Object.fromEntries(Object.entries(r.best??{}).filter(([id,kg])=>FISH_BY_ID.has(id)&&typeof kg==='number'&&kg>0).map(([id,kg])=>[id,Math.round((kg as number)*100)/100]));
- return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,bait,rods,baits,points:int(r.points),caught,best,total:int(r.total),xp:int(r.xp)};
+ const history=(Array.isArray(r.history)?r.history:[]).filter((h):h is FishingHistoryEntry=>!!h&&typeof h==='object'&&FISH_BY_ID.has(h.fish)&&typeof h.at==='number').slice(0,FISHING_HISTORY)
+  .map(h=>({fish:h.fish,kg:typeof h.kg==='number'?Math.round(h.kg*100)/100:0,points:int(h.points),xp:int(h.xp),at:h.at,...(h.auto?{auto:true}:{})}));
+ return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,bait,rods,baits,points:int(r.points),caught,best,total:int(r.total),xp:int(r.xp),history};
 }
 
 // ── Fishing shop (Casa de Pesca): Pontos de Pesca for rewards ──

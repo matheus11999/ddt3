@@ -1,7 +1,7 @@
 import type {Profile} from '../shared/protocol';
 import {MAX_COLOR_TICKETS} from '../shared/colors';
 import {PET_FOODS} from '../shared/pets';
-import {BAIT_BY_ID,FISHING_OFFER_BY_ID,FISH_BY_ID,ROD_BY_ID,STARTER_BAIT,fishingLevel,normalizeFishing} from '../shared/fishing';
+import {BAIT_BY_ID,FISHING_OFFER_BY_ID,FISH_BY_ID,ROD_BY_ID,STARTER_BAIT,FISHING_HISTORY,fishingLevel,normalizeFishing} from '../shared/fishing';
 import type {FishingCatch} from '../shared/fishing';
 
 /**
@@ -9,7 +9,7 @@ import type {FishingCatch} from '../shared/fishing';
  * Store runs them inside its row lock, tests run them directly. The session itself (cast, bite,
  * bar, automatic mode) lives in server/game.ts.
  */
-export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** The bait used on this cast (a counted bait loses one, caught or not). */bait:string;}
+export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** Caught in automatic mode (shown in the history). */auto?:boolean;/** When (the history's clock; tests pass their own). */at?:number;/** The bait used on this cast (a counted bait loses one, caught or not). */bait:string;}
 export interface FishSettleOutcome {profile:Profile;catch?:FishingCatch;}
 export interface FishBuyOutcome {profile:Profile;spent:number;}
 
@@ -23,6 +23,7 @@ export function settleFishing(profile:Profile,settle:FishSettle):FishSettleOutco
  const before=fishingLevel(f.xp),first=!f.caught[fish.id],record=settle.fish.kg>(f.best[fish.id]??0);
  f.caught[fish.id]=(f.caught[fish.id]??0)+1;f.total++;f.points+=settle.fish.points;f.xp+=settle.fish.xp;
  if(record)f.best[fish.id]=settle.fish.kg;
+ f.history=[{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,at:settle.at??Date.now(),...(settle.auto?{auto:true}:{})},...f.history].slice(0,FISHING_HISTORY);
  const after=fishingLevel(f.xp);
  return {profile,catch:{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,record:record&&!first,first,...(after>before?{levelUp:after}:{})}};
 }
