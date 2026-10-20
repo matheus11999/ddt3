@@ -14,10 +14,19 @@
 .battle-chat.open .battle-chat-log{pointer-events:auto}
 .battle-chat-open{pointer-events:auto;display:none;place-items:center;width:30px;height:30px;padding:0;border:1px solid #e9b64f;border-radius:9px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 3px #0008;color:#ffd36b;cursor:pointer}
 .battle-chat-open:hover{filter:brightness(1.12)}
-.battle-chat-input{pointer-events:auto;display:flex;align-items:center;width:100%;height:32px;padding:0 4px 0 10px;border:1px solid #e9b64f;border-radius:10px;background:linear-gradient(#2e1405b8,#1a0d05b8);box-shadow:0 2px 6px #0006}
-.battle-chat-input input{flex:1;min-width:0;border:0;background:none;color:#fff3dc;font:700 13px Nunito,sans-serif;outline:none}
-.battle-chat-input input::placeholder{color:#e6c79c99}
-.battle-chat-input button{display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:7px;background:linear-gradient(#ffe07a,#e9a422);color:#6b2c05;cursor:pointer}
+.battle-chat-input{pointer-events:auto;display:flex;align-items:center;gap:6px;width:100%;height:24px;padding:0 3px 0 3px;border:1px solid #e9b64f66;border-radius:7px;background:#0b142699;box-shadow:0 1px 4px #0006}
+.battle-chat-input:focus-within{border-color:#e9b64fb3}
+.battle-chat-channels{display:flex;gap:2px;flex:none}
+.battle-chat-channels>button{height:18px;max-width:90px;padding:0 6px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;border:0;border-radius:5px;background:#ffffff14;color:#cfd8e6;font:800 11px/18px Nunito,sans-serif;cursor:pointer;outline:none}
+.battle-chat-channels>button:hover{background:#ffffff26}
+.battle-chat-channels>button.active[data-channel="room"]{background:#8fd8ff33;color:#8fd8ff}
+.battle-chat-channels>button.active[data-channel="guild"]{background:#6dff7a2e;color:#6dff7a}
+.battle-chat-channels>button.active[data-channel="world"]{background:#fff2c42e;color:#fff2c4}
+.battle-chat-channels>button.active[data-channel="private"]{background:#ff9be033;color:#ff9be0}
+.battle-chat-input input{flex:1;min-width:0;height:100%;padding:0;border:0;background:none;box-shadow:none;color:#fff;font:700 12px Nunito,sans-serif;outline:none;text-shadow:0 1px 1px #000}
+.battle-chat-input input:focus,.battle-chat-input input:focus-visible{outline:none;box-shadow:none;border:0}
+.battle-chat-input input::placeholder{color:#ffffff66}
+.battle-chat-send{display:grid;place-items:center;flex:none;width:20px;height:18px;padding:0;border:0;border-radius:5px;background:#e9b64fcc;color:#4a2209;cursor:pointer}
 .artillery-hud.battle-finished .battle-chat{display:none}
 html.mobile-landscape .artillery-hud .battle-chat{left:calc(13px / var(--game-scale));top:calc(158px / var(--game-scale));transform:scale(calc(1 / var(--game-scale)));transform-origin:top left;width:300px}
 html.mobile-landscape .battle-chat-open{display:grid}
