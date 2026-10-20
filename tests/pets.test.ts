@@ -213,7 +213,7 @@ test('the equipped pet enters the battle snapshot: bonus Vida, Magia and skills;
  const {game,a,pet,events,start,pets}=await arena();
  const m=await start(),me=m.state.players.find(f=>f.id===a.id)!;
  assert.equal(me.pet?.petId,pet.id);assert.deepEqual(me.pet?.skills.map(s=>s.id),['test-strike']);
- assert.equal(me.maxHp,attributes(DEFAULT_EQUIPMENT,me.level).hp+204);
+ assert.equal(me.maxHp,attributes(DEFAULT_EQUIPMENT,me.level).hp+203);
  await game.command(a.id,{type:'pet-unequip',pet:pet.id});assert.match(errors(events.get(a.id)!).at(-1)!.message,/entre as batalhas/);
  assert.equal(me.equipment.pet?.id,pet.id);assert.equal((await pets.list(a.id)).pets[0].equipped,true);
 });

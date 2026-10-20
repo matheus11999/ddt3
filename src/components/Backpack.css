@@ -785,8 +785,6 @@
 .bag-tooltip .bag-tip-delta { font-size: 10px; font-weight: 900; }
 .bag-tooltip .bag-tip-delta.up { color: #72f08f; }
 .bag-tooltip .bag-tip-delta.down { color: #ff7a6b; }
-.bag-tooltip .bag-tip-weapon { display: flex; justify-content: space-between; gap: 8px; margin: 7px 12px 0; font-size: 11px; font-weight: 800; color: #e7c79c; }
-.bag-tooltip .bag-tip-weapon b { color: #fff; }
 .bag-tooltip .bag-tip-note,
 .bag-tooltip .bag-tip-composed,
 .bag-tooltip .bag-tip-compare { margin: 8px 12px 0; font-size: 11px; font-weight: 700; color: #d9b98e; }

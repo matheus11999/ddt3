@@ -4,6 +4,9 @@
 # to public/assets/weapons/<id>/projectile/<mode>-<stage>.png, plus src/game/projectileStrips.json (frame count,
 # fps and where the core sits in the frame), which src/game/weaponEffects.ts reads.
 # Usage: python3 scripts/build-projectile-strips.py --weapon=thunder-coil --src=output/thunder-projectiles-original-v1
+# --spin is for a package whose frames only rotate one painting rigidly (rotation.bakedSpin, the wind shuriken):
+# it keeps the first frame and records rotation.degreesPerSecond, and the game turns that frame in code.
+# --spin-factor scales that speed (the wind flies at 0.5, matheus 20/10).
 import argparse, json, os
 from PIL import Image
 
@@ -12,6 +15,8 @@ MAX_SIDE = 192
 parser = argparse.ArgumentParser()
 parser.add_argument('--weapon', required=True)
 parser.add_argument('--src', required=True)
+parser.add_argument('--spin', action='store_true')
+parser.add_argument('--spin-factor', type=float, default=1)
 args = parser.parse_args()
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 manifest = json.load(open(os.path.join(args.src, 'manifest.json'), encoding='utf-8'))
@@ -21,7 +26,7 @@ index_path = os.path.join(root, 'src', 'game', 'projectileStrips.json')
 index = json.load(open(index_path, encoding='utf-8')) if os.path.exists(index_path) else {}
 entry = {}
 for sequence in manifest['sequences']:
-    frames = [Image.open(os.path.join(args.src, item['file'])).convert('RGBA') for item in sequence['frameFiles']]
+    frames = [Image.open(os.path.join(args.src, item['file'])).convert('RGBA') for item in sequence['frameFiles'][:1 if args.spin else None]]
     box = None
     for frame in frames:
         b = frame.getchannel('A').point(lambda v: 255 if v > 8 else 0).getbbox()
@@ -44,6 +49,7 @@ for sequence in manifest['sequences']:
         'span': round(w / frames[0].width, 4)
     }
     entry['fps'] = sequence['frameRate']
+    if args.spin: entry['spin'] = sequence['rotation']['degreesPerSecond'] * args.spin_factor * (1 if sequence['rotation']['direction'] == 'clockwise' else -1)
 index[args.weapon] = entry
 with open(index_path, 'w', encoding='utf-8') as f:
     json.dump(index, f, indent=1)

@@ -115,7 +115,7 @@ test('composition persists one tier per attribute and participates in equipped c
  assert.equal(second.result.previous,10);assert.equal(second.result.value,20);
  assert.equal(attributes(second.profile.equipment).attack,base.attack+20);
  const equipped=await store.saveEquipment(before.id,{...second.profile.equipment,weapon:'volt',compositions:{volt:{attack:999}}});
- assert.equal(attributes(equipped.equipment).attack,attributes({...DEFAULT_EQUIPMENT,weapon:'volt'}).attack);
+ assert.equal(attributes(equipped.equipment).attack,attributes({...before.equipment,weapon:'volt'}).attack);
  assert.deepEqual(equipped.compositions,{ember:{attack:20}});
  const restored=await store.saveEquipment(before.id,{...equipped.equipment,weapon:'ember'});
  assert.equal(attributes(restored.equipment).attack,base.attack+20);

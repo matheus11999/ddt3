@@ -1,5 +1,5 @@
 import {CouponIcon,RewardIcon} from './RewardIcon';
-import {useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
+import {Fragment,useCallback,useEffect,useLayoutEffect,useMemo,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
@@ -199,7 +199,9 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
  </Modal>;
 }
 
-const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
+// Weapons lead with Dano (the angle sits beside it) and never show Armadura; other items never show Dano (matheus, 20/10).
+const WEAPON_TIP_STATS=[['damage','Dano',Flame],['attack','Ataque',Swords],['defense','Defesa',Shield],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
+const ITEM_TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['agility','Agilidade',Zap],['luck','Sorte',Clover],['armor','Armadura',ShieldCheck]] as const;
 export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false,colors={},tickets}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean;colors?:Record<string,string>;tickets?:number}){
  const {id,anchor}=tip,ticket=id===COLOR_TICKET.id,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null;
  const equipped=!!item&&slotsForItem(item).some(slot=>equippedCopy(equipment,slot)===id);
@@ -231,8 +233,8 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
   {item?<>
    <p className="bag-tip-desc">{item.description}</p>
    {!!item.hpPercent&&<dl className="bag-tip-stats bag-tip-percent"><div><dt><Heart size={13} aria-hidden="true"/>Vida</dt><dd>+{item.hpPercent}%</dd></div></dl>}
-   {hasAttributes?<dl className="bag-tip-stats">{TIP_STATS.map(([key,label,Icon])=><div key={key} data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{bare![key]}{values![key]!==bare![key]&&<span className="bag-tip-bonus">{values![key]>bare![key]?'+':'−'}{Math.abs(values![key]-bare![key])}</span>}{delta(candidate[key]-current[key])}</dd></div>)}</dl>:!item.hpPercent&&<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
-   {stats&&<div className="bag-tip-weapon"><span>Ângulo <b>{stats.minAngle}°–{stats.maxAngle}°</b></span></div>}
+   {hasAttributes?<dl className="bag-tip-stats">{(stats?WEAPON_TIP_STATS:ITEM_TIP_STATS).map(([key,label,Icon])=><Fragment key={key}><div data-zero={values![key]===0||undefined}><dt><Icon size={13} aria-hidden="true"/>{label}</dt><dd>{bare![key]}{values![key]!==bare![key]&&<span className="bag-tip-bonus">{values![key]>bare![key]?'+':'−'}{Math.abs(values![key]-bare![key])}</span>}{delta(candidate[key]-current[key])}</dd></div>
+    {stats&&key==='damage'&&<div className="bag-tip-angle"><dt><Crosshair size={13} aria-hidden="true"/>Ângulo</dt><dd>{stats.minAngle}°–{stats.maxAngle}°</dd></div>}</Fragment>)}</dl>:!item.hpPercent&&<div className="bag-tip-note">Visual cosmético · não altera atributos</div>}
    {compatible&&!equipped&&hasAttributes&&target&&<div className="bag-tip-compare">Comparado com {CATALOG[equipment[target]]&&!isEmptyItem(equipment[target])?CATALOG[equipment[target]].name:'o slot vazio'}</div>}
    {(action||!compatible)&&<footer className={`bag-tip-foot ${action?'':'blocked'}`}>{action??'Incompatível com este personagem'}</footer>}
    {colors[id]&&<div className="bag-tip-composed"><i className="bag-tip-color" style={{background:colors[id]}} aria-hidden="true"/>Cor personalizada</div>}

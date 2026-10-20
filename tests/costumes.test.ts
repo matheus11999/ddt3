@@ -8,11 +8,11 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {normalizeProfile,Store} from '../server/store';
 import {Game} from '../server/game';
 
-test('both full-body costumes are unisex cosmetics with no combat attribute bonus',()=>{
+test('both full-body costumes are unisex cosmetics with the accessory bonus',()=>{
  for(const id of STARTER_COSTUMES){
   assert.equal(CATALOG[id].slot,'costume');assert.equal(itemGender(id),'unisex');assert.equal(isEmptyItem(id),false);
-  assert.deepEqual(itemAttributes(CATALOG[id]),{attack:0,defense:0,agility:0,luck:0,damage:0,armor:0});
-  for(const gender of ['male','female'] as const){assert.ok(canEquipItem(id,gender));assert.deepEqual(attributes({...starterEquipment(gender),costume:id}),attributes(starterEquipment(gender)));}
+  assert.deepEqual(itemAttributes(CATALOG[id]),{attack:10,defense:10,agility:10,luck:10,damage:0,armor:0});
+  for(const gender of ['male','female'] as const){assert.ok(canEquipItem(id,gender));assert.equal(attributes({...starterEquipment(gender),costume:id}).attack,attributes(starterEquipment(gender)).attack+10);}
  }
  assert.ok(isEmptyItem('costume-none'));assert.equal(isEmptyItem('missing-none'),false);
 });
@@ -49,7 +49,7 @@ async function database(gender:CharacterGender='male'){
 
 test('costume and hidden flags save atomically for both genders; internal empty sentinels need no inventory entry',async()=>{
  for(const gender of ['male','female'] as const){
-  const {store,state}=await database(gender),before=structuredClone(state.profile),stats=attributes(before.equipment);
+  const {store,state}=await database(gender),before=structuredClone(state.profile),stats=attributes({...before.equipment,costume:STARTER_COSTUMES[0]});
   for(const costume of STARTER_COSTUMES){
    const saved=await store.saveEquipment(before.id,{...before.equipment,costume,visibility:{hat:false,glasses:false,costume:true}});
    assert.equal(saved.gender,gender);assert.equal(saved.equipment.costume,costume);assert.deepEqual(saved.equipment.visibility,{hat:false,glasses:false,costume:true});assert.deepEqual(saved.inventory,before.inventory);assert.deepEqual(attributes(saved.equipment),stats);
