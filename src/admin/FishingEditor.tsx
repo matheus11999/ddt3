@@ -2,7 +2,8 @@ import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {AlertTriangle,ArrowDown,ArrowLeft,ArrowUp,Copy,Eye,FlipHorizontal,History,Loader2,Maximize,Plus,Redo2,Rocket,RotateCcw,Save,Search,Trash2,Undo2,X,MapPin,Waves,Footprints} from 'lucide-react';
 import {api} from './api';
 import {FishingWorld} from '../game/fishingWorld';
-import {FISHING_AIRSHIP,FISHING_HEIGHT,FISHING_LAKES,FISHING_OBSTACLES,FISHING_SPAWN,FISHING_SPOTS,FISHING_TERRACES,FISHING_WIDTH,FISH_TABLES,POND_ARTS,applyFishingLayout,deckOf,defaultFishingLayout,fishingBlocked,isSolid,isWalkway,itemLocal,itemPoint,itemSize,lakeOf,pondPlace,stairPlace} from '../../shared/fishingMap';
+import {FISHING_AIRSHIP,FISHING_HEIGHT,FISHING_LAKES,FISHING_OBSTACLES,FISHING_SPAWN,FISHING_SPOTS,FISHING_TERRACES,FISHING_WIDTH,FISH_TABLES,POND_ARTS,applyFishingLayout,deckOf,defaultFishingLayout,fishingBlocked,isSolid,isWalkway,itemLocal,itemPoint,itemSize,lakeOf,pondPlace,stairPlace,FRONT_STAIRS} from '../../shared/fishingMap';
+import type {StairArt} from '../../shared/fishingMap';
 import type {FishTable,FishingItem,FishingLakeDef,FishingLayer,FishingLayout} from '../../shared/fishingMap';
 import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
@@ -35,7 +36,7 @@ const PROP_NAMES:Record<string,string>={
 };
 const LAYER_NAMES:Record<FishingLayer,string>={ground:'Chão (deitada)',water:'Na água (boia)',stand:'Em pé'};
 /** Pieces the editor does not offer: the ponds (added as lakes), and pieces the terraces place by themselves. */
-const HIDDEN=new Set(['pond-lily','pond-well','pond-crystal','pond-reeds','stair','wall','airship','fishing-house','balustrade']);
+const HIDDEN=new Set(['pond-lily','pond-well','pond-crystal','pond-reeds','pond-clear','stair','stair-grand','stair-narrow','wall','airship','fishing-house','balustrade']);
 const defaultLayer=(prop:string):FishingLayer=>/^(grass|tuft|stone-trail|pond-rocks|pier|bridge|dock|cascade)/.test(prop)?'ground':/^(rowboat|lily|lotus)/.test(prop)?'water':'stand';
 const nameOf=(prop:string)=>PROP_NAMES[prop]??prop;
 
@@ -257,6 +258,7 @@ export function FishingEditor({onBack}:{onBack:()=>void}){
       {layout.lakes.length>1&&<button className="adm-btn ghost wide danger" onClick={remove}><Trash2 size={15}/>Apagar lago</button>}</>
     :stair?<><header><h3>Escada</h3><code>{stair.id}</code></header>
       <label className="adm-field"><span>Sobe para</span><select value={stair.upper} onChange={e=>change(l=>{const s2=l.stairs.find(x=>x.id===stair.id);if(s2)s2.upper=e.target.value as 'mirante'|'jardim';})}><option value="mirante">Mirante (do Jardim)</option><option value="jardim">Jardim (do Cais)</option></select></label>
+      <label className="adm-field"><span>Desenho</span><select value={stair.art??'side'} onChange={e=>change(l=>{const s2=l.stairs.find(x=>x.id===stair.id);if(s2)s2.art=e.target.value==='side'?undefined:e.target.value as StairArt;})}><option value="side">De lado, subindo o muro</option>{Object.entries(FRONT_STAIRS).map(([id,a])=><option key={id} value={id}>{a.name} (de frente)</option>)}</select></label>
       {num('X (esquerda)',stair.x,v=>change(l=>{const s2=l.stairs.find(x=>x.id===stair.id);if(s2)s2.x=v;}))}
       <button className="adm-btn ghost wide" onClick={()=>change(l=>{const s2=l.stairs.find(x=>x.id===stair.id);if(s2)s2.flip=!s2.flip||undefined;})}><FlipHorizontal size={15}/>Espelhar (sobe para o outro lado)</button>
       <button className="adm-btn ghost wide danger" onClick={remove}><Trash2 size={15}/>Apagar escada</button></>

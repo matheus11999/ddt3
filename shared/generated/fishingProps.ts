@@ -173,6 +173,34 @@ export const FISHING_PROPS={
   "w": 59,
   "h": 44
  },
+ "pond-clear": {
+  "w": 1642,
+  "h": 300
+ },
+ "stair-grand": {
+  "w": 416,
+  "h": 260
+ },
+ "stair-narrow": {
+  "w": 248,
+  "h": 240
+ },
+ "bridge-arch": {
+  "w": 533,
+  "h": 170
+ },
+ "bridge-arch-v": {
+  "w": 170,
+  "h": 260
+ },
+ "walkway": {
+  "w": 358,
+  "h": 120
+ },
+ "pier-stone": {
+  "w": 255,
+  "h": 260
+ },
  "lily-pad-1": {
   "w": 78,
   "h": 40

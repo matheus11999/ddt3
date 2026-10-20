@@ -105,3 +105,10 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Sacola com abas **Peixes** e **Varas** (as seis varas, com a ficha no mouse) e o encaixe de Fragmentos x/50.
 - Os Pontos de Pesca saíram do cartão de pescador e ficam ao lado das moedas do jogo enquanto se está na Pescaria (`currency-fishing` em `Hud.tsx`, ícone `23-moeda-pesca.png`).
 - Cais sem barraca e sem deque com guarda-sol (pedido do matheus: "remova essas casas do início").
+
+## Escadarias de frente, pontes e lago limpo (20/10, pedido do matheus)
+
+- Arte do Codex: `24-escadarias.png` (escadaria larga e estreita vistas de frente, trecho que se repete e patamar), `25-pontes.png` (ponte em arco horizontal e vertical, passarela e píer, todos com cabeceira em terra) e `26-lagos-limpos.png` (lagos só com água e margem). Peças `stair-grand`, `stair-narrow`, `bridge-arch`, `bridge-arch-v`, `walkway`, `pier-stone` e o lago `pond-clear`.
+- Escadas têm `art` (`side` de lado, `grand` ou `narrow` de frente, `FRONT_STAIRS`): a de frente fica encostada no muro, do gramado de cima ao terraço de baixo, e anda-se reto pelo meio. Escolha no editor do `/admin` (campo Desenho).
+- O Lago das Ninfeias usa o lago limpo; as vitórias-régias e lótus são peças soltas que balançam por cima da água, e a isca nunca cai sobre uma delas (`clearOfPads` em `shared/fishingMap.ts`, vale para qualquer layout).
+- A ponte em arco liga a ilha à margem leste com as duas cabeceiras de pedra em terra; o píer de pedra sai da margem da frente.
