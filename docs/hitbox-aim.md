@@ -19,7 +19,7 @@ Pedido do matheus em 19/10/2026, a partir do estudo do DDTank 4.1 em `output/pla
 
 - **Referência**: `TakeAimAsset`, com arco vermelho fixo no símbolo e a mão de dez pontos amarelos girando por `gunAngle`. Não é o mostrador do HUD.
 - **Arte original pintada pelo Codex** (19/10) a partir das peças extraídas: `public/assets/ui/aim/aim-red-arc.png` e `aim-yellow-dot.png`, montadas por `py -3 scripts/build-aim-art.py <arco-bruto> <ponto-bruto>`. O script ajusta um círculo na borda externa do arco (centro de curvatura = pivô da textura) e grava tamanhos e pivôs em `aimArt.json`.
-- **Geometria** (`aimArt.json`, `draw`, em unidades do TakeAimAsset × `scale` 1,8):
+- **Geometria** (`aimArt.json`, `draw`, em unidades do TakeAimAsset × `scale` 1,2; era 1,8 e o matheus achou grande em 20/10):
   - Os 10 pontos ficam a 15 até 58,95 com as opacidades do original.
   - O centro da borda do arco fica 6 para trás e 3,5 para cima do pivô, com raio 53, medido em `faixa-angular.png`.
 - **Pivô**: a origem real do tiro (`SHOT_ORIGIN`, 27 à frente e 40 acima dos pés). Os pontos seguem o mesmo ângulo de elevação mundial que o servidor usa no lançamento, então mostram a direção inicial verdadeira, sem somar a rampa duas vezes.
