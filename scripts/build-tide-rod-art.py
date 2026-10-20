@@ -82,9 +82,33 @@ def cells(path, cols, rows, body_only=False):
     return image, out
 
 
+def dry(frame):
+    """Erases the water spray painted behind the shark (matheus, 20/10: no water coming out of the fish): light
+    foam and cyan water touching the back third of the frame, plus everything behind the tail, never the belly."""
+    rgba = np.asarray(frame, dtype=np.int32).copy()
+    r, g, b, a = rgba[..., 0], rgba[..., 1], rgba[..., 2], rgba[..., 3]
+    lum = (r * 3 + g * 6 + b) / 10
+    water = (a > 0) & (((b > r + 25) & (b >= g - 10) & (lum > 130)) | ((r > 200) & (g > 215) & (b > 225) & (b >= r + 4)))
+    water = ndimage.binary_dilation(water, iterations=2) & (a > 0)
+    labels, count = ndimage.label(water)
+    w = rgba.shape[1]
+    for n, sl in enumerate(ndimage.find_objects(labels), 1):
+        if sl[1].start < w * .3 and sl[1].stop < w * .55:
+            rgba[..., 3][labels == n] = 0
+    # Loose bits left behind once the spray is gone.
+    solid = rgba[..., 3] > 40
+    labels, count = ndimage.label(solid, structure=np.ones((3, 3)))
+    if count > 1:
+        sizes = ndimage.sum(solid, labels, range(1, count + 1))
+        keep = 1 + int(np.argmax(sizes))
+        near = ndimage.binary_dilation(labels == keep, iterations=3)
+        rgba[..., 3] = np.where(near, rgba[..., 3], 0)
+    return Image.fromarray(rgba.astype(np.uint8), 'RGBA')
+
+
 def strips(sheet, mode, entry):
-    # The fish flies clean, without the painted drops behind it (matheus, 20/10); the shark keeps its spray.
-    image, found = cells(sheet, 4, 4, body_only=mode == 'normal')
+    # Fish and shark fly clean, without the painted drops behind them (matheus, 20/10).
+    image, found = cells(sheet, 4, 4, body_only=True)
     for r, stage in enumerate(STAGES):
         # Frames share one box lined up on the nose (the body's right edge), so the head stays still while the
         # tail swings; the pivot is the body's average centre.
@@ -102,7 +126,10 @@ def strips(sheet, mode, entry):
         strip = Image.new('RGBA', (fw * 4, fh))
         for c, v in enumerate(rel):
             ox, oy = v[4], v[5]
-            frame = found[(r, c)]['image'].crop((round(ox + x0), round(oy + y0), round(ox + x1), round(oy + y1))).resize((fw, fh), Image.LANCZOS)
+            frame = found[(r, c)]['image'].crop((round(ox + x0), round(oy + y0), round(ox + x1), round(oy + y1)))
+            if mode == 'pow':
+                frame = dry(frame)
+            frame = frame.resize((fw, fh), Image.LANCZOS)
             strip.paste(frame, (c * fw, 0))
         (OUT / 'projectile').mkdir(parents=True, exist_ok=True)
         strip.save(OUT / 'projectile' / f'{mode}-{stage}.png', optimize=True)
@@ -140,7 +167,7 @@ def main():
         # The cast spray was painted narrowing to the right: mirrored, it widens away from the rod like the other muzzles.
         place(effects, fx_cells[(0, col)]['image'].crop(fx_cells[(0, col)]['union']).transpose(Image.FLIP_LEFT_RIGHT), col, 1)
         place(effects, fx_cells[(1, col)]['image'].crop(fx_cells[(1, col)]['union']), col, 2)
-        place(pow_atlas, shark_cells[(col, 0)]['image'].crop(shark_cells[(col, 0)]['union']), col, 0)
+        place(pow_atlas, dry(shark_cells[(col, 0)]['image'].crop(shark_cells[(col, 0)]['union'])), col, 0)
         place(pow_atlas, fx_cells[(2, col)]['image'].crop(fx_cells[(2, col)]['union']), col, 1)
     effects.save(OUT / 'effects.png', optimize=True)
     pow_atlas.save(OUT / 'pow.png', optimize=True)
