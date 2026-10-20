@@ -18,6 +18,8 @@ import './Backpack.css';
 import './Mailbox.css';
 
 const pending=(m:MailMessage)=>!m.claimed&&m.attachments.length>0;
+/** Remover lidas never takes a letter that still has something to receive. */
+const removable=(m:MailMessage)=>m.read&&!pending(m);
 const day=(iso:string)=>new Date(iso).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'});
 const when=(iso:string)=>new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
 
@@ -46,8 +48,8 @@ function AttachmentCell({a,claimed}:{a:MailAttachment;claimed?:boolean}){
 /** Correio: the player's inbox, like e-mail. Letters from the team carry coins and items to receive. */
 export function Mailbox(){
  const {mails,mailLoaded,mailClaim,mailPending}=useGame();
- const [selected,setSelected]=useState<number|null>(null);
- const letter=mails.find(m=>m.id===selected)??null,toClaim=useMemo(()=>mails.filter(pending),[mails]);
+ const [selected,setSelected]=useState<number|null>(null),[clearing,setClearing]=useState(false);
+ const letter=mails.find(m=>m.id===selected)??null,toClaim=useMemo(()=>mails.filter(pending),[mails]),readCount=useMemo(()=>mails.filter(removable).length,[mails]);
  useEffect(()=>{if(selected!==null&&!mails.some(m=>m.id===selected))setSelected(null);},[mails,selected]);
  useEffect(()=>{if(selected===null&&mails.length)setSelected(mails[0].id);},[mails,selected]);
  useEffect(()=>{if(letter&&!letter.read)client.readMail(letter.id);},[letter?.id,letter?.read]);
@@ -62,7 +64,10 @@ export function Mailbox(){
      <span className="mail-row-text"><b>{m.subject}</b><small>{m.sender}</small></span>
      <span className="mail-row-side"><time>{day(m.createdAt)}</time>{pending(m)?<Gift className="mail-gift" size={16} aria-label="Com anexos para receber"/>:m.attachments.length?<Paperclip size={14} aria-label="Anexos recebidos"/>:null}</span>
     </button></li>):<li className="mail-empty"><Mail size={26}/>Nenhuma carta por enquanto.</li>}</ul>
-    <button className="mail-claim-all" disabled={!toClaim.length||mailPending} onClick={()=>client.claimMail()}><Gift size={18}/>Receber tudo{toClaim.length>0&&<b>{toClaim.length}</b>}</button>
+    <div className="mail-inbox-actions">
+     <button className="mail-delete mail-delete-read" disabled={!readCount} title={readCount?'Apagar as cartas lidas sem anexos para receber':'Nenhuma carta lida para remover'} onClick={()=>{setClearing(true);audio.play('click');}}><Trash2 size={16}/>Remover lidas</button>
+     <button className="mail-claim-all" disabled={!toClaim.length||mailPending} onClick={()=>client.claimMail()}><Gift size={18}/>Receber tudo{toClaim.length>0&&<b>{toClaim.length}</b>}</button>
+    </div>
    </section>
    <section className="mail-pane mail-reader" aria-label="Carta">
     {letter?<>
@@ -79,6 +84,11 @@ export function Mailbox(){
     </>:<div className="mail-reader-empty wood-cream"><MailOpen size={40}/><p>{mails.length?'Escolha uma carta para ler.':'Quando a equipe enviar presentes, eles chegam aqui.'}</p></div>}
    </section>
   </div>
+  {clearing&&<div className="mail-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setClearing(false);}}><section className="mail-confirm" role="alertdialog" aria-label="Remover cartas lidas">
+   <strong>Remover cartas lidas?</strong>
+   <p>{readCount===1?'1 carta lida será apagada.':`${readCount} cartas lidas serão apagadas.`} Cartas com anexos para receber continuam na caixa.</p>
+   <div><button className="wood-quiet" onClick={()=>setClearing(false)}>Voltar</button><button className="mail-delete" disabled={!readCount} onClick={()=>{client.deleteReadMail();setClearing(false);audio.play('click');}}><Trash2 size={16}/>Remover</button></div>
+  </section></div>}
   {mailClaim&&<div className="mail-received" role="status"><div><strong>Você recebeu</strong><div className="mail-attachment-grid">{mailClaim.attachments.slice(0,12).map((a,i)=><AttachmentCell key={i} a={a}/>)}</div>{mailClaim.attachments.length>12&&<small>e mais {mailClaim.attachments.length-12} anexos</small>}</div></div>}
  </Modal>;
 }

@@ -99,6 +99,7 @@ class Client {
  /** Receives one letter's attachments, or every letter's ("Receber tudo"). */
  claimMail(id?:number){if(this.state.mailPending)return;this.update({error:null,mailClaim:null,mailPending:true});this.send({type:'mail-claim',...(id!==undefined?{id}:{})});}
  deleteMail(id:number){this.update({error:null});this.send({type:'mail-delete',id});}
+ deleteReadMail(){this.update({error:null});this.send({type:'mail-delete-read'});}
  paint(changes:ColorChange[]){this.update({error:null,colorResult:null});this.send({type:'paint',changes});}
  discard(item:string){this.update({error:null});this.send({type:'discard',item});}
  customize(patch:CustomizationPatch){
