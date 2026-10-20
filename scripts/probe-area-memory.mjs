@@ -10,7 +10,7 @@ const base='http://127.0.0.1:5177',dir=process.argv[2]??'test-results/area-memor
 import {mkdirSync} from 'node:fs';mkdirSync(dir,{recursive:true});
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium',args:['--enable-precise-memory-info','--js-flags=--expose-gc']});
 const context=await browser.newContext({viewport:{width:1536,height:864}});await context.addInitScript({path:'scripts/memory-probe.js'});const page=await context.newPage();let me=null,at=null;
-page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='welcome')me=e.profile.id;const p=(e.type==='lobby'||e.type==='welcome'||e.type==='zone')&&e.players?.find(q=>q.id===me);if(p)at={x:p.x,y:p.y};}catch{}}));
+page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='welcome')me=e.profile.id;const p=(e.type==='lobby'||e.type==='welcome'||e.type==='zone'||e.type==='lobby-moves')&&(e.players??e.moves)?.find(q=>q.id===me);if(p)at={x:p.x,y:p.y};}catch{}}));
 const errors=[];page.on('pageerror',e=>errors.push(String(e)));page.on('console',m=>{if(m.type()==='error')errors.push(m.text());});
 const cdp=await page.context().newCDPSession(page);await cdp.send('Performance.enable');
 await enterGame(page,base);await page.waitForTimeout(2000);

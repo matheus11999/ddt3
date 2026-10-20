@@ -10,7 +10,7 @@ const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/
 const shot=(page,name)=>page.screenshot({path:`${dir}/${name}.png`});
 /** A player's page, with its real position kept from the server's updates (`page.at()`). */
 const open=async()=>{const context=await browser.newContext({viewport:{width:1536,height:864}});const page=await context.newPage();let me=null,at=null;
- page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='welcome')me=e.profile.id;const p=(e.type==='lobby'||e.type==='welcome')&&e.players?.find(q=>q.id===me);if(p)at={x:p.x,y:p.y};}catch{}}));
+ page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='welcome')me=e.profile.id;const p=(e.type==='lobby'||e.type==='welcome'||e.type==='lobby-moves')&&(e.players??e.moves)?.find(q=>q.id===me);if(p)at={x:p.x,y:p.y};}catch{}}));
  page.at=()=>at;await enterGame(page,base);return page;};
 /** Walks to a world point a screen at a time, clicking only the open middle of the view (clear of the HUD). */
 const walkTo=async(page,x,y)=>{for(let n=0;n<8;n++){const p=page.at();if(Math.hypot(p.x-x,p.y-y)<10)return;const cam=camera(p.x,p.y);
