@@ -9,6 +9,13 @@
 - Verificação: `npm run check`, `npm test` (442, novo `tests/hitbox.test.ts` com centro, faces, quatro cantos nas duas direções, tangência, alta velocidade, parede antes do alvo, raios por arma, mortos, monstros, saída do lançador), `npm run build`; `node scripts/preview-aim.mjs` (com e sem `DEBUG=1`) capturou mínimo/meio/máximo, esquerda/direita e rampas e conferiu o som (3 cliques = 3 toques, 0 no limite, 0 em snapshot, repetição segurando a tecla).
 - Limitações: análise estática da fonte, sem medir o cliente oficial em execução; `CanCollied`/`m_demageRect` não reproduzidos; o tamanho em tela do arco (escala 1,8) foi escolhido para o boneco maior do Brasa.
 
+## Destruição por arma, fase e POW — 19/10/2026
+
+- Feito: terreno a 1 px com recorte por máscara compilada (servidor = clientes), formato de rede em run lengths, conversão explícita de terrenos salvos em 3 px; 16 perfis em `shared/destruction.ts`; composição ordenada das marcas recortada pelo chão restante; histórico sem o corte de 48; templates, prompts e validador das 16 marcas.
+- Evidências: `npm test` (434), `tests/destruction.test.ts`, `node scripts/test-destruction-browser.mjs` (0 falhas, 80 impactos, 64 marcas mantidas, reconstrução idêntica), `npm run test:maps:integration` e `test:power:integration` verdes. `test:integration` (forge-result) e `test:rooms:integration` falham igual na `main` (mapa de teste `celestial` fora do servidor), não vêm desta mudança.
+- Pendente: as 16 pinturas (Codex no PC do usuário, prompts 12–19 de `npm run verify:weapons`); depois entrar em `PAINTED` e rever a sombra/lábio genérico de `environment.ts` para não duplicar a borda pintada.
+- Limite: as máscaras seguem a proporção medida das referências do DDTank 4.1, não os `.bomb` do servidor original (ausentes); não é cópia exata de uma versão executada.
+
 ## Combate em quadros pintados (rig do DDTank) — 18/10/2026
 
 - A partir do relatório `output/pdf/DDTank-rig-corpo-combate.pdf`: compositor por quadros como o `GameCharacter` do DDTank. Contrato de 12 quadros em `src/game/rig/combatFrames.json`, sequências portadas (WALK, SHOWTHROWS, THROWS, HIDETHROWS) em `combatFrames.ts`, desenho em `src/game/combatBody.ts` (arma nas costas → cabeça e cabelo → roupa → óculos e chapéu).
@@ -452,3 +459,5 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 
 - Voo dos tiros com as fórmulas do DDTank (força ×20, `ax = 24·vento − 0,2·vx`, `ay = 700 − 0,2·vy`, passo 0,04 s, float32) e régua que sobe em 4 s, desce e passa a vez no zero. Detalhes, adaptações e tabela antes/depois em `docs/ballistics.md`.
 - Evidência: `tests/ballistics.test.ts` (vetores de referência −3/0/+3, simetria, alcance com arrasto, relógio da régua) e `npm run test:battle:browser` (régua desce depois de 100, soltar envia o valor que cai, segurar até zero passa a vez).
+
+Power-ups no padrão do DDTank 4.1 (19/10/2026, `docs/power-ups.md`): Delay +1 500, +2 600, Tridente 600, Dano +50% 400, +40% 340, +30% 200, +20% 150, +10% 70 (custos de Vigor iguais); Tridente com abertura −5°, 0°, +5°. Cada ativação válida soma o Delay uma vez; recusada não gasta nada. `VOLLEY_CADENCE_MS` não mudou. Testes em `tests/power-ups.test.ts`.

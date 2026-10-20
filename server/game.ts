@@ -10,10 +10,12 @@ import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
 import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,upgradeTerrain,volley,walkPosition,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps';
+import {destructionProfile} from '../shared/destruction';
+import {keepVisibleMarks} from '../shared/terrainMarks';
 import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
 import {clampHp,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
@@ -267,7 +269,8 @@ export class Game {
   this.nextRoomNumber=Math.max(this.nextRoomNumber,game.nextRoomNumber);
   for(const saved of matches){
    const {invisibilityActivated,instance,...rest}=saved.match,s=rest.state;
-   const m:Match={...rest,terrain:saved.terrain,resolveAt:0,...(invisibilityActivated?{invisibilityActivated:new Map(invisibilityActivated)}:{}),...(instance?{instance:{...instance,events:[]}}:{})};
+   // A terrain saved before the fine 1px grid is expanded from its 3px cells.
+   const m:Match={...rest,terrain:upgradeTerrain(saved.terrain,getMap(s.map).dimensions.width),resolveAt:0,...(invisibilityActivated?{invisibilityActivated:new Map(invisibilityActivated)}:{}),...(instance?{instance:{...instance,events:[]}}:{})};
    delete m.retryRewardsAt;delete s.powerCutIn;delete s.activeShot;delete s.terrain;
    for(const f of s.players){if(!f.bot&&!f.monster)f.connected=false;f.charging=false;delete f.fall;}
    if(s.phase==='aiming'){s.deadline=now+Math.min(30000,Math.max(15000,s.deadline-game.savedAt));m.botAt=now+2500;}
@@ -313,7 +316,9 @@ export class Game {
  private broadcastBattle(m:Match,withTerrain=false){for(const peer of this.matchPeers(m))this.emit(peer,{type:'battle',battle:this.snapshot(m,withTerrain||m.state.phase==='finished',peer.profile.id)});}
  private snapshot(m:Match,withTerrain=false,viewer=''):Battle {
   const players=m.state.players.map(f=>{if(!this.hiddenFrom(m,f.id,viewer))return {...f};const redacted={...f,hidden:true,x:HIDDEN_POSITION,y:HIDDEN_POSITION,facing:1 as const};delete redacted.aimAngle;delete redacted.aimSlope;delete redacted.chargePower;delete redacted.charging;delete redacted.fall;return redacted;});
-  return {...m.state,players,terrainMarks:[...(m.state.terrainMarks??[])],...(withTerrain?{terrain:Buffer.from(packTerrain(m.terrain)).toString('base64'),...(m.activeShot?{activeShot:this.visibleShot(m,m.activeShot,viewer)}:{})}:{})};
+  // The mark history travels with the terrain (full snapshots): the client adds the marks of live impacts itself, in order.
+  const {terrainMarks,...state}=m.state;
+  return {...state,players,...(withTerrain?{terrainMarks:[...(terrainMarks??[])],terrain:Buffer.from(packTerrain(m.terrain)).toString('base64'),...(m.activeShot?{activeShot:this.visibleShot(m,m.activeShot,viewer)}:{})}:{})};
  }
  private abilityEffect(m:Match,effect:AbilityEffect){for(const peer of this.matchPeers(m))this.emit(peer,{type:'ability-effect',...effect,...(this.hiddenFrom(m,effect.playerId,peer.profile.id)?{hidden:true,x:HIDDEN_POSITION,y:HIDDEN_POSITION}:{})});}
  private room(p:Peer){const room=p.roomId?this.rooms.get(p.roomId):undefined;if(!room)throw Error('Entre em uma sala primeiro.');return room;}
@@ -1047,7 +1052,9 @@ export class Game {
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{
    // The hole is the weapon's fixed mask; a projectile that strikes a body digs that mask at 75% in the ground under the target's feet.
    const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined,dig:TerrainDig|undefined=victim?{x:result.x,y:victim.y,radius:Math.round(radius*DIRECT_HIT_CRATER)}:undefined;
-   const rough=weaponRoughness(w),shape=fragment?undefined:powered&&w.powCraterShape?w.powCraterShape:w.craterShape,impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
+   // The destruction profile is fixed here, from the weapon and level of this shot: its mask and painting never follow later equipment changes.
+   const profile=fragment?undefined:destructionProfile(w.id,f.equipment.upgrade,powered);
+   const rough=weaponRoughness(w),shape=fragment?undefined:profile?.mask??(powered&&w.powCraterShape?w.powCraterShape:w.craterShape),impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...(profile?{profile:profile.id}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
@@ -1061,7 +1068,7 @@ export class Game {
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,1,shape);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(shape?{shape}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(shape?{shape}:{}),...(profile?{profile:profile.id}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
@@ -1120,7 +1127,7 @@ export class Game {
   const standing=m.state.players.filter(player=>player.hp>0).map(player=>({id:player.id,hp:player.hp,x:player.x,y:player.y}));this.settle(m,impact.at);
   for(const before of standing){const target=m.state.players.find(player=>player.id===before.id)!;if(target.hp<=0){target.powerArmed=false;hits.push({id:target.id,damage:before.hp,x:before.x,y:before.y-85,projectileIndex:impact.projectileIndex,critical:false,kind:'fall',quality:1});}}
   // Unbreakable instance ground (the anthill) keeps no burn marks either.
-  if(!impact.fragment&&(dug>0||!m.state.instance))m.state.terrainMarks=[...(m.state.terrainMarks??[]),impact.mark].slice(-48);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
+  if(!impact.fragment&&(dug>0||!m.state.instance))m.state.terrainMarks=keepVisibleMarks([...(m.state.terrainMarks??[]),impact.mark],m.terrain,m.state.map);shot.hits.push(...hits);shot.impacted.push(impact.projectileIndex);
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:this.visibleHits(m,hits,peer.profile.id)});
   // The match only ends in nextTurn, once every projectile of the shot has landed and settled.
   this.broadcastBattle(m,true);

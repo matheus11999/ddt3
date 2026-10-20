@@ -1,9 +1,14 @@
 import type {CraterShape, MapId, Weapon} from './catalog';
-import {canonicalMap,cellBits,contains,getMap,MAP_DEFAULT} from './maps';
+import {canonicalMap,cellBits,contains,getMap,MAP_CELL,MAP_DEFAULT} from './maps';
+export {MAP_CELL};
 import type {MaterialId,MapRegion} from './maps';
 import {HOMING_MIN_SPEED,HOMING_RADIUS,HOMING_TURN_RATE} from './abilities';
 /** Default arena; a map may be wider (`MapDefinition.dimensions.width`), never taller. */
-export const WORLD={width:1536,height:864,cell:3,cols:512,rows:288};
+/** Terrain is one cell per world pixel (19/10/2026, DDTank-style fine digging). Map data authored on the old
+ * 3px grid (`cells` shapes, saved terrains) is expanded explicitly: see MAP_CELL and `upgradeTerrain`. */
+export const WORLD={width:1536,height:864,cell:1,cols:1536,rows:864};
+/** Rows of a terrain saved on the old 3px grid. */
+const LEGACY_ROWS=WORLD.height/MAP_CELL;
 /** Terrain arrays are always `rows` tall, so their length carries the map width. */
 export function terrainCols(t:{length:number}){return t.length/WORLD.rows;}
 export function terrainWidth(t:{length:number}){return terrainCols(t)*WORLD.cell;}
@@ -58,30 +63,38 @@ export function terrainTemplate(map:MapId=MAP_DEFAULT.id):TerrainTemplate {
  for(let r=0;r<definition.length;r++){
   const shape=definition[r].shape;
   if(shape.kind==='polygon'){
-   const points=shape.points,minY=Math.max(0,Math.ceil(Math.min(...points.map(p=>p[1]))/3)),maxY=Math.min(WORLD.rows,Math.ceil(Math.max(...points.map(p=>p[1]))/3));
-   for(let cy=minY;cy<maxY;cy++){const y=cy*3,intersections:number[]=[];
+   const c=WORLD.cell,points=shape.points,minY=Math.max(0,Math.ceil(Math.min(...points.map(p=>p[1]))/c)),maxY=Math.min(WORLD.rows,Math.ceil(Math.max(...points.map(p=>p[1]))/c));
+   for(let cy=minY;cy<maxY;cy++){const y=cy*c,intersections:number[]=[];
     for(let n=0,j=points.length-1;n<points.length;j=n++){const [ax,ay]=points[n],[bx,by]=points[j];if((ay>y)!==(by>y))intersections.push((bx-ax)*(y-ay)/(by-ay)+ax);}
     intersections.sort((a,b)=>a-b);
-    for(let n=0;n<intersections.length;n+=2){const left=Math.max(0,Math.ceil(intersections[n]/3)),right=Math.min(cols,Math.ceil(intersections[n+1]/3));for(let cx=left;cx<right;cx++){const i=cy*cols+cx;solid[i]=1;regions[i]=r;}}
+    for(let n=0;n<intersections.length;n+=2){const left=Math.max(0,Math.ceil(intersections[n]/c)),right=Math.min(cols,Math.ceil(intersections[n+1]/c));for(let cx=left;cx<right;cx++){const i=cy*cols+cx;solid[i]=1;regions[i]=r;}}
    }
   }else if(shape.kind==='cells'){
-   const bits=cellBits(shape);
-   for(let y=0;y<shape.rows;y++)for(let x=0;x<shape.cols;x++){const n=y*shape.cols+x,cx=shape.col+x,cy=shape.row+y;if(!(bits[n>>3]>>(n&7)&1)||cx<0||cy<0||cx>=cols||cy>=WORLD.rows)continue;const i=cy*cols+cx;solid[i]=1;regions[i]=r;}
+   // Each map cell (MAP_CELL px) fills its block of world pixels.
+   const bits=cellBits(shape),k=MAP_CELL/WORLD.cell;
+   for(let y=0;y<shape.rows;y++)for(let x=0;x<shape.cols;x++){const n=y*shape.cols+x;if(!(bits[n>>3]>>(n&7)&1))continue;
+    for(let sy=0;sy<k;sy++)for(let sx=0;sx<k;sx++){const cx=(shape.col+x)*k+sx,cy=(shape.row+y)*k+sy;if(cx<0||cy<0||cx>=cols||cy>=WORLD.rows)continue;const i=cy*cols+cx;solid[i]=1;regions[i]=r;}}
   }else{
    const bounds=shape.kind==='rect'?[shape.x,shape.y,shape.x+shape.width,shape.y+shape.height]:[shape.x-shape.rx,shape.y-shape.ry,shape.x+shape.rx,shape.y+shape.ry];
-   for(let cy=Math.max(0,Math.floor(bounds[1]/3));cy<Math.min(WORLD.rows,Math.ceil(bounds[3]/3)+1);cy++)for(let cx=Math.max(0,Math.floor(bounds[0]/3));cx<Math.min(cols,Math.ceil(bounds[2]/3)+1);cx++)if(contains(shape,cx*3,cy*3)){const i=cy*cols+cx;solid[i]=1;regions[i]=r;}
+   const c=WORLD.cell;
+   for(let cy=Math.max(0,Math.floor(bounds[1]/c));cy<Math.min(WORLD.rows,Math.ceil(bounds[3]/c)+1);cy++)for(let cx=Math.max(0,Math.floor(bounds[0]/c));cx<Math.min(cols,Math.ceil(bounds[2]/c)+1);cx++)if(contains(shape,cx*c,cy*c)){const i=cy*cols+cx;solid[i]=1;regions[i]=r;}
   }
  }
  const value={solid,regions,definition,cols};templates.set(id,value);return value;
 }
 export function createTerrain(map:MapId=MAP_DEFAULT.id):Uint8Array{return terrainTemplate(map).solid.slice();}
 export function terrainMaterial(map:MapId,x:number,y:number):{material:MaterialId;destructible:boolean;region?:string}{
- const template=terrainTemplate(map);const cx=Math.floor(x/3),cy=Math.floor(y/3);
+ const template=terrainTemplate(map);const cx=Math.floor(x/WORLD.cell),cy=Math.floor(y/WORLD.cell);
  if(cx<0||cx>=template.cols||cy<0||cy>=WORLD.rows)return {material:'earth',destructible:false};
  const r=template.definition[template.regions[cy*template.cols+cx]];return r?{material:r.material,destructible:r.destructible,region:r.id}:{material:'earth',destructible:false};
 }
-export function solid(t:Uint8Array,x:number,y:number){const cols=terrainCols(t);if(x<0||x>=cols*3||y<0||y>=WORLD.height)return false;return t[Math.floor(y/3)*cols+Math.floor(x/3)]===1;}
-export function ground(t:Uint8Array,x:number,start=0){for(let y=Math.max(0,Math.floor(start/3)*3);y<WORLD.height;y+=3){if(solid(t,x,y))return y;}return WORLD.height+80;}
+export function solid(t:Uint8Array,x:number,y:number){const cols=terrainCols(t);if(x<0||x>=cols*WORLD.cell||y<0||y>=WORLD.height)return false;return t[Math.floor(y/WORLD.cell)*cols+Math.floor(x/WORLD.cell)]===1;}
+/** Top of the first solid pixel at or below `start` in the column of `x` (or past the bottom: the void). */
+export function ground(t:Uint8Array,x:number,start=0){
+ const cols=terrainCols(t),cx=Math.floor(x/WORLD.cell);if(cx<0||cx>=cols)return WORLD.height+80;
+ for(let cy=Math.max(0,Math.floor(start/WORLD.cell));cy<WORLD.rows;cy++)if(t[cy*cols+cx]===1)return cy*WORLD.cell;
+ return WORLD.height+80;
+}
 /** One walk command moves this far, one pixel at a time, so every bump and dip on the way is felt. */
 export const WALK_STEP=8;
 /** Highest lip the feet can step onto in one pixel (about a knee): taller walls stop the walk. */
@@ -152,20 +165,66 @@ export const CRATER_MASKS:Record<CraterShape,{height:number;inside:(x:number,y:n
  oval:{height:.67,inside:(x,y)=>x*x+(y/.67)**2<=1},
  'oval-pow':{height:.59,inside:(x,y)=>x*x+(y/.59)**2<=1},
 };
-/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep); `shape` picks a fixed mask instead of the circle. */
-export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1,shape?:CraterShape){
- const template=terrainTemplate(map),cols=template.cols,seed=Math.floor(x)*73856093^Math.floor(y)*19349663,mask=shape?CRATER_MASKS[shape]:undefined,tall=mask?.height??1;let removed=0;const extent=r*(1+rough)*tall,reach=r*(1+rough)*stretch;
- for(let cy=Math.max(0,Math.floor((y-extent)/3));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/3));cy++)
- for(let cx=Math.max(0,Math.floor((x-reach)/3));cx<Math.min(cols,Math.ceil((x+reach)/3));cx++){
-  const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
-  if(!region?.destructible)continue;
-  const dx=(cx*3-x)/stretch,dy=cy*3-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
-  if(mask?mask.inside(dx/edge,dy/edge):dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+/** A fixed hole mask compiled to world pixels: `bits[j*width+i]` is 1 where pixel (i,j) is cut.
+ * Pixel (i,j) lands on world pixel (anchorX-pivotX+i, anchorY-pivotY+j), with the anchor at the impact point
+ * rounded to the nearest pixel corner (`craterAnchor`). Built from the analytic shape alone (no images), so the
+ * server and every client dig exactly the same pixels. */
+export interface CraterMask {shape:CraterShape;radius:number;width:number;height:number;pivotX:number;pivotY:number;bits:Uint8Array;}
+const compiledMasks=new Map<string,CraterMask>();
+/** Sampling rule: the centre of each pixel, (i+.5-pivot)/radius in shape units, is tested once; inside cuts the
+ * whole pixel (binary, no alpha). The box is ceil(radius) to each side and ceil(radius×height) up and down. */
+export function craterMask(shape:CraterShape,radius:number):CraterMask{
+ const key=`${shape}@${radius}`,cached=compiledMasks.get(key);if(cached)return cached;
+ const def=CRATER_MASKS[shape],pivotX=Math.ceil(radius),pivotY=Math.ceil(radius*def.height),width=pivotX*2,height=pivotY*2,bits=new Uint8Array(width*height);
+ for(let j=0;j<height;j++)for(let i=0;i<width;i++)if(def.inside((i+.5-pivotX)/radius,(j+.5-pivotY)/radius))bits[j*width+i]=1;
+ const mask={shape,radius,width,height,pivotX,pivotY,bits};compiledMasks.set(key,mask);return mask;
+}
+/** The pixel corner a mask is pinned to: the impact point rounded (half up), the same on every machine. */
+export function craterAnchor(x:number,y:number):[number,number]{return [Math.floor(x+.5),Math.floor(y+.5)];}
+/** Removes the destructible pixels a mask covers; returns how many went. */
+export function digMask(t:Uint8Array,mask:CraterMask,x:number,y:number,map:MapId=MAP_DEFAULT.id){
+ const template=terrainTemplate(map),cols=template.cols,[ax,ay]=craterAnchor(x,y),left=ax-mask.pivotX,top=ay-mask.pivotY;let removed=0;
+ for(let j=Math.max(0,-top);j<mask.height&&top+j<WORLD.rows;j++){const row=(top+j)*cols;
+  for(let i=Math.max(0,-left);i<mask.width&&left+i<cols;i++){
+   if(!mask.bits[j*mask.width+i])continue;const n=row+left+i;if(!t[n]||!template.definition[template.regions[n]]?.destructible)continue;t[n]=0;removed++;
+  }
  }
  return removed;
 }
-export function packTerrain(t:Uint8Array):Uint8Array{const b=new Uint8Array(Math.ceil(t.length/8));for(let i=0;i<t.length;i++)if(t[i])b[i>>3]|=1<<(i%8);return b;}
-export function unpackTerrain(b:Uint8Array){const t=new Uint8Array(b.length*8);for(let i=0;i<t.length;i++)t[i]=(b[i>>3]>>(i%8))&1;return t;}
+/** `stretch` widens the hole sideways (an ellipse `r*stretch` wide and `r` deep); `shape` digs that weapon's fixed mask (`craterMask`) instead of the circle. */
+export function crater(t:Uint8Array,x:number,y:number,r:number,map:MapId=MAP_DEFAULT.id,rough=CRATER_ROUGHNESS,stretch=1,shape?:CraterShape){
+ if(shape)return r>0?digMask(t,craterMask(shape,r),x,y,map):0;
+ const template=terrainTemplate(map),cols=template.cols,c=WORLD.cell,seed=Math.floor(x)*73856093^Math.floor(y)*19349663;let removed=0;const extent=r*(1+rough),reach=r*(1+rough)*stretch;
+ for(let cy=Math.max(0,Math.floor((y-extent)/c));cy<Math.min(WORLD.rows,Math.ceil((y+extent)/c));cy++)
+ for(let cx=Math.max(0,Math.floor((x-reach)/c));cx<Math.min(cols,Math.ceil((x+reach)/c));cx++){
+  const i=cy*cols+cx;if(!t[i])continue;const region=template.definition[template.regions[i]];
+  if(!region?.destructible)continue;
+  const dx=((cx+.5)*c-x)/stretch,dy=(cy+.5)*c-y,edge=r*(1+rough*roughness(Math.atan2(dy,dx),seed));
+  if(dx*dx+dy*dy<=edge*edge){t[i]=0;removed++;}
+ }
+ return removed;
+}
+/** Wire/save format: the run lengths of alternating empty/solid cells (starting with empty) as LEB128 varints,
+ * after the cell count. A fine terrain is millions of cells but only a few thousand runs. */
+export function packTerrain(t:Uint8Array):Uint8Array{
+ const out:number[]=[],varint=(v:number)=>{while(v>=128){out.push(v&127|128);v=Math.floor(v/128);}out.push(v);};
+ varint(t.length);let value=0,run=0;
+ for(let i=0;i<t.length;i++){const bit=t[i]?1:0;if(bit===value)run++;else{varint(run);value=bit;run=1;}}
+ varint(run);return Uint8Array.from(out);
+}
+export function unpackTerrain(b:Uint8Array){
+ let at=0;const read=()=>{let v=0,scale=1,byte;do{byte=b[at++];v+=(byte&127)*scale;scale*=128;}while(byte&128);return v;};
+ const length=read(),t=new Uint8Array(length);let i=0,value=0;
+ while(i<length&&at<b.length){const run=read();if(value)t.fill(1,i,i+run);i+=run;value^=1;}
+ return t;
+}
+/** A terrain saved on the old 3px grid (`MAP_CELL`) expanded to world pixels; a fine terrain is returned as is. */
+export function upgradeTerrain(t:Uint8Array,width:number):Uint8Array{
+ const legacyCols=width/MAP_CELL;if(t.length!==legacyCols*LEGACY_ROWS||t.length===width/WORLD.cell*WORLD.rows)return t;
+ const cols=width/WORLD.cell,k=MAP_CELL/WORLD.cell,out=new Uint8Array(cols*WORLD.rows);
+ for(let y=0;y<WORLD.rows;y++)for(let x=0;x<cols;x++)out[y*cols+x]=t[Math.floor(y/k)*legacyCols+Math.floor(x/k)];
+ return out;
+}
 interface ProjectileOrigin {x:number;y:number;facing:number;}
 /** Monsters bring their own body circle; players use the fixed box of `fighterHitBounds`. */
 interface ProjectileTarget {id:string;x:number;y:number;hp:number;hitRadius?:number;hitHeight?:number;}

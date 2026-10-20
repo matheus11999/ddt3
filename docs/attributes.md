@@ -64,8 +64,8 @@ Valores de Delay das ações (escolha de balanceamento do Brasa, sem valor hist�
 | --- | --- |
 | Tiro do Quebra-Tijolos (`shotDelay` em `WEAPONS`) | 150 + segundos × 20 |
 | Passar o turno | 100 |
-| +1, +2, Tridente (`BOOSTS`) | 110 cada |
-| Dano +50% / +40% / +30% / +20% / +10% | 85 / 80 / 70 / 55 / 50 (igual ao Vigor gasto) |
+| +1 / +2 / Tridente (`BOOSTS`, DDTank 4.1) | 500 / 600 / 600 |
+| Dano +50% / +40% / +30% / +20% / +10% (DDTank 4.1) | 400 / 340 / 200 / 150 / 70 |
 | Cura / Míssil teleguiado / Invisibilidade (`ABILITIES`) | 150 / 100 / 150 |
 
 Expedições continuam com o turno da instância (`shared/instanceTurn.ts`): cada aventureiro uma vez por rodada, por Agilidade, e os monstros juntos.

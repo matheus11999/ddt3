@@ -80,7 +80,7 @@ async function arena(){
  await game.command(players[0].id,{type:'create',practice:true,name:'Verdália',mode:'1v1',map:'celestial'});
  const roomId=game.peers.get(players[0].id)!.roomId!;await game.command(players[1].id,{type:'join',roomId});await game.command(players[1].id,{type:'ready'});await game.command(players[0].id,{type:'start'});
  const match=game.matches.get(roomId)!,shooter=match.state.players.find(p=>p.id===match.state.turnId)!,target=match.state.players.find(p=>p.id!==shooter.id)!;
- match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,200*WORLD.cols);
+ match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);
  Object.assign(shooter,{x:300,y:600,hp:5000,maxHp:5000});Object.assign(target,{x:520,y:600,hp:5000,maxHp:5000});
  shooter.pet=createBattlePet({petId:randomUUID(),species:'verdalia',stage:0,skills:[{id:'verdalia-roots',level:1},{id:'verdalia-orb',level:1}]},'pvp');shooter.pet!.mana=100;
  const weapon=weaponStats(WEAPONS.find(w=>w.id===shooter.equipment.weapon)!,0);let aim:{angle:number;power:number}|undefined;

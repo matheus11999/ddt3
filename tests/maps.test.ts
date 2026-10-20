@@ -60,7 +60,7 @@ test('walking cannot enter tall containers and still climbs both park ramps',()=
  for(const direction of [1,-1] as const){
   const x=direction===1?430:1106;let position={x,y:ground(park,x)};
   for(let step=0;step<23;step++){const next=walkPosition(park,position,direction);assert.ok(next,'a supported park ramp must remain walkable');position=next;}
-  assert.equal(position.y,549);assert.equal(terrainMaterial('park',position.x,position.y).region,'park-bridge');
+  assert.ok(Math.abs(position.y-549)<=3,`${position.y}`);assert.equal(terrainMaterial('park',position.x,position.y).region,'park-bridge');
  }
 });
 

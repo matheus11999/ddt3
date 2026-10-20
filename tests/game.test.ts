@@ -166,8 +166,11 @@ test('late and foreign reward picks are rejected; failed saves retry without unl
 test('terrain marks are not exposed before impact and survive later snapshots',async()=>{
  const f=await battleFixture();await f.game.command(f.match.state.turnId,{type:'fire',angle:45,power:30});
  const immediate=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!.battle!;
- assert.equal(immediate.terrainMarks!.length,0);assert.ok(f.match.pendingImpacts!.length);
+ assert.equal(immediate.terrainMarks?.length??0,0);assert.ok(f.match.pendingImpacts!.length);
  f.game.tick(Math.max(...f.match.pendingImpacts!.map(impact=>impact.at))+1);assert.ok(f.match.state.terrainMarks!.length);
+ // The history rides on full snapshots only (with the terrain it was clipped by).
+ const after=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!.battle!;
+ assert.ok(after.terrain);assert.deepEqual(after.terrainMarks,f.match.state.terrainMarks);
 });
 
 test('a shrapnel shot sends authoritative shards after the main impact without muzzle residue marks',async()=>{
@@ -293,7 +296,7 @@ test('a kill on the first projectile of a +2 lets the rest fly through the body,
 
 test('tools, passing and shots add their Delay to the fighter who used them',async()=>{
  const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,start=player.delay!;
- await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+110);
- await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+165);
- await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+265);
+ await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+500);
+ await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+650);
+ await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+750);
 });
