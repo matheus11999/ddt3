@@ -1,6 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
-import {drawScaled,freeAll,freeSurface} from './spriteCache';
+import {drawCell,drawScaled,forgetCopies,freeAll,freeSurface} from './spriteCache';
 import type {AvatarPart} from './appearance';
 import {asset,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart} from './appearance';
 import type {AvatarPose} from './avatar';
@@ -29,7 +29,7 @@ function combatAtlas(eq:Equipment):HTMLCanvasElement|null {
  const key=`${eq.outfit}:${eq.colors?.outfit??''}:${eq.skin??''}`,known=tinted.get(key);if(known)return known;
  const out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;out.getContext('2d')!.drawImage(image,0,0);
  recolorItem(out,eq.outfit,eq.colors?.outfit);tintSkin(out,eq.skin,true);
- tinted.set(key,out);if(tinted.size>24){const oldest=tinted.keys().next().value!;freeSurface(tinted.get(oldest));tinted.delete(oldest);}return out;
+ tinted.set(key,out);if(tinted.size>24){const oldest=tinted.keys().next().value!,gone=tinted.get(oldest)!;forgetCopies(gone);freeSurface(gone);tinted.delete(oldest);}return out;
 }
 /** The tinted combat sheets live only while a battle is on screen. */
 export function releaseCombatBodies(){freeAll(tinted);}
@@ -98,7 +98,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  if(drawnHands)arm(1,fist(1));
  // Painted hands carry their own depth (DDTank): the near fist is painted over the chin, the far one only
  // where it shows past the face, so the body painting goes over the head as it is.
- c.drawImage(atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4-bob,cw/ppu,ch/ppu);
+ drawCell(c,atlas,sx,sy,cw,ch,-ox/ppu,-oy/ppu+breath*.4-bob,cw/ppu,ch/ppu);
  atHead(()=>drawHeadLayers(c,eq,state.time,state.pose,state.modular,state.face,'top'));
  if(lifted)drawBlockFist(c,eq.skin,lifted[0],breath*.4,1);
  // The near fist goes over everything, under the chin while lying, like in DDTank.
