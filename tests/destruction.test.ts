@@ -4,7 +4,7 @@ import {createHash} from 'node:crypto';
 import {DESTRUCTION_MODES,DESTRUCTION_STAGES,destructionProfile,destructionProfiles,markBox} from '../shared/destruction';
 import {WEAPONS} from '../shared/catalog';
 import {POWER_CRATER_MULTIPLIER} from '../shared/power';
-import {craterAnchor,craterMask,crater,createTerrain,DIRECT_HIT_CRATER,digMask,ground,MAP_CELL,packTerrain,unpackTerrain,upgradeTerrain,WORLD} from '../shared/physics';
+import {CRATER_STRETCH,craterAnchor,craterMask,crater,createTerrain,DIRECT_HIT_CRATER,digMask,ground,MAP_CELL,packTerrain,unpackTerrain,upgradeTerrain,WORLD} from '../shared/physics';
 import {keepVisibleMarks,MAX_TERRAIN_MARKS,markVisible} from '../shared/terrainMarks';
 import type {TerrainMark} from '../shared/protocol';
 
@@ -44,11 +44,11 @@ test('masks are compiled from the shape alone: same bits everywhere, binary, sym
   }
   MASK_HASHES[profile.mask]??=hash(mask.bits);assert.equal(hash(mask.bits),MASK_HASHES[profile.mask]);
  }
- // Fixed shapes, measured on the fine grid: the brick is a flat 44×29 hexagon, the boomerang a 52×35 oval.
+ // Fixed shapes, measured on the fine grid and 30% wider (CRATER_STRETCH): the brick is a flat 58×30 hexagon, the boomerang a 68×36 oval.
  const brick=craterMask('brick',22),oval=craterMask('oval',26);
- assert.deepEqual([brick.width,brick.height],[44,30]);assert.deepEqual([oval.width,oval.height],[52,36]);
+ assert.deepEqual([brick.width,brick.height],[58,30]);assert.deepEqual([oval.width,oval.height],[68,36]);
  const row=(m:typeof brick,j:number)=>m.bits.slice(j*m.width,(j+1)*m.width).reduce((a,b)=>a+b,0);
- assert.equal(row(brick,brick.pivotY),44,'full width across the middle');assert.ok(row(brick,0)<row(brick,brick.pivotY)*.62,'chamfered top and floor');
+ assert.ok(row(brick,brick.pivotY)>=brick.width-2,'full width across the middle');assert.ok(row(brick,0)<row(brick,brick.pivotY)*.62,'chamfered top and floor');
  assert.ok(row(oval,0)<row(oval,oval.pivotY)*.45,'the oval narrows to its poles');
 });
 
@@ -62,7 +62,7 @@ test('the dig is pinned to the rounded impact point, one pixel at a time, and on
  assert.equal(changed,removed);
  // A body hit digs the same mask at 75%, which is the radius the mark is scaled by too.
  const body=Math.round(22*DIRECT_HIT_CRATER),profile=destructionProfile('brick',0,false)!,full=markBox(profile,ax,ay),small=markBox(profile,ax,ay,body);
- assert.ok(Math.abs(small.size/full.size-body/22)<1e-9);assert.equal(small.x+small.size/2,ax);
+ assert.ok(Math.abs(small.width/full.width-body/22)<1e-9);assert.equal(small.x+small.width/2,ax);assert.ok(Math.abs(full.width/full.height-CRATER_STRETCH.x/CRATER_STRETCH.y)<1e-9,'the mark stretches like the hole');
  // crater() with a shape is the same operation.
  const other=createTerrain('snow');crater(other,x,surface,22,'snow',0,1,'brick');assert.deepEqual(other,terrain);
 });

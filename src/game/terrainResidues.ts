@@ -111,7 +111,7 @@ export class TerrainResidues {
  }
  private paint(mark:TerrainMark):'done'|'wait'{
   const profile=mark.scorch?undefined:destructionProfileById(mark.profile),box=terrainMarkBox(mark),k=WORLD.cell;
-  const left=Math.max(0,Math.floor(box.x/k)),top=Math.max(0,Math.floor(box.y/k)),right=Math.min(this.cols,Math.ceil((box.x+box.size)/k)),bottom=Math.min(WORLD.rows,Math.ceil((box.y+box.size)/k));
+  const left=Math.max(0,Math.floor(box.x/k)),top=Math.max(0,Math.floor(box.y/k)),right=Math.min(this.cols,Math.ceil((box.x+box.width)/k)),bottom=Math.min(WORLD.rows,Math.ceil((box.y+box.height)/k));
   if(right<=left||bottom<=top)return 'done';
   const w=right-left,h=bottom-top,buffer=document.createElement('canvas');buffer.width=w*k;buffer.height=h*k;const b=buffer.getContext('2d')!;
   b.imageSmoothingEnabled=true;b.imageSmoothingQuality='high';b.translate(-left*k,-top*k);
@@ -125,9 +125,9 @@ export class TerrainResidues {
     const size=Math.max(56,mark.radius*4.3);
     b.translate(mark.x,mark.y);b.rotate((mark.x*.017+mark.y*.011)%6.283);b.globalAlpha=.82;b.drawImage(image,-size/2,-size/2,size,size);
    }else{
-    // Never rotated or stretched: the painting's pivot sits on the hole's anchor, scaled like the dig itself.
+    // Never rotated: the painting's pivot sits on the hole's anchor, scaled and stretched like the dig itself (CRATER_STRETCH).
     // Drawn straight from the decoded file (once per mark, never per frame), so a rebuild paints exactly the same pixels.
-    b.drawImage(image,box.x,box.y,box.size,box.size);
+    b.drawImage(image,box.x,box.y,box.width,box.height);
    }
   }
   // Clip by the ground that is left (only breakable ground for a painted mark), then add it on top of the older marks.
