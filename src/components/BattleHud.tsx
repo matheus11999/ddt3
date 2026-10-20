@@ -53,7 +53,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // Turning in place is free and allowed at any time of the match: anyone's turn, a shot in flight, the monsters' turn (the server checks it too).
  const canFace=b.phase!=='finished'&&!blocked&&!exit&&status==='online'&&me.hp>0;
  // The angle can be set at any time too (user request, 18/10/2026); off turn it stays local and is sent when the turn starts.
- const canAim=canFace&&!charging&&!(mine&&!!submitted);
+ // Also while the force bar is held (user request, 20/10/2026): the aim sync sends it and the release fires with it.
+ const canAim=canFace&&!(mine&&!!submitted);
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
