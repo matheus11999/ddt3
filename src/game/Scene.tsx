@@ -47,6 +47,8 @@ import {LOBBY_SPAWN,LOBBY_WIDTH} from '../../shared/lobby';
 /** Each speaker's latest line of this channel still on screen (chat balloons over the heads). */
 function recentSpeech(chat:ChatLine[],channel:ChatLine['channel'],now:number){const lines=new Map<string,ChatLine>();for(const m of chat)if(m.channel===channel&&m.playerId&&now-m.time<CHAT_BUBBLE_MS&&now>=m.time-1000)lines.set(m.playerId,m);return [...lines].sort((a,b)=>a[1].time-b[1].time);}
 import {chaseLobbyPosition} from './lobbyMotion';
+import {FishingWorld} from './fishingWorld';
+import {FISHING_SPOTS,FISHING_WALK,FISHING_WIDTH,SPOT_REACH} from '../../shared/fishing';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
 const W=1536,H=864;
@@ -67,7 +69,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(state.room?.kind==='expedition'||state.battle?.instance)preloadMonsters();if(state.room?.kind==='world-boss'||state.battle?.worldBoss)preloadDragon();};
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
   let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
-  resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2);let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
+  resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2),fishing=new FishingWorld();let hoverLake:string|null=null,pendingSpot:string|null=null;let hover:string|null=null,camX=-1,walkDir=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
   let residues:TerrainResidues|null=null;
@@ -88,10 +90,15 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(frameTotal/slowFrames>SLOW_FRAME_MS&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
    slowFrames=frameTotal=0;
   };
+  let wasFishing=false;
+  const zoneReady=(scale:number)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale);
+  /** Spots someone else is fishing from. */
+  const takenSpots=()=>new Set(state.players.filter(p=>p.fishing&&p.id!==state.profile?.id).map(p=>p.fishing!.spot));
   const render=(t:number)=>{
    // The plaza's paintings leave memory while a battle runs and come back once it ends
    // (on the result screen, before the players walk out), so the return shows no gap.
-   if(state.loading||state.battle&&state.battle.phase!=='finished')lobby.release();else lobby.load();
+   // Only the zone the player is in keeps its paintings in memory.
+   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
    // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
    if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
@@ -100,15 +107,21 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    if(document.hidden||(!state.battle&&(blockedRef.current||state.room))){if(!document.hidden&&scenePaint.wanted())scenePaint.done();frame=requestAnimationFrame(render);lastPaint=0;return;}
    if(t<nextPaint-1){frame=requestAnimationFrame(render);return;}
    // Back from a battle that ended abruptly (left mid-match): hold the last frame while the plaza decodes, rather than an empty sky.
-   if(!state.battle&&t-leftBattleAt<1500&&!lobby.ready(el.width/W)){frame=requestAnimationFrame(render);return;}
+   if(!state.battle&&t-leftBattleAt<1500&&!zoneReady(el.width/W)){frame=requestAnimationFrame(render);return;}
    nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
    if(!b){
     // The plaza is wider than the view: the camera eases after the player.
-    const meId=state.profile?.id,me=state.players.find(p=>p.id===meId),focus=(meId&&entities.get(meId)?.x)||me?.x||LOBBY_SPAWN.x,target=LobbyWorld.camera(focus);
-    camX=camX<0?target:camX+(target-camX)*.12;c.save();c.translate(-camX,0);lobby.drawBack(c,t,camX);
-    if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;client.send({type:'move',x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,me.x+walkDir*240)),y:me.y});}
+    const fishingZone=state.zone==='fishing',walk=fishingZone?FISHING_WALK:LOBBY_WALK;
+    const meId=state.profile?.id,me=state.players.find(p=>p.id===meId),focus=(meId&&entities.get(meId)?.x)||me?.x||LOBBY_SPAWN.x,target=fishingZone?FishingWorld.camera(focus):LobbyWorld.camera(focus);
+    if(fishingZone!==wasFishing){wasFishing=fishingZone;camX=-1;pendingSpot=null;}
+    camX=camX<0?target:camX+(target-camX)*.12;c.save();c.translate(-camX,0);
+    if(fishingZone){fishing.drawBack(c,t,camX);fishing.drawSpots(c,t,takenSpots(),hoverLake);}else lobby.drawBack(c,t,camX);
+    if(walkDir&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;pendingSpot=null;client.send({type:'move',x:Math.max(walk.minX,Math.min(walk.maxX,me.x+walkDir*240)),y:me.y});}
+    // Walking to a spot picked on the water: cast once there.
+    const spot=pendingSpot?FISHING_SPOTS.find(s=>s.id===pendingSpot):undefined;
+    if(spot&&me&&Math.hypot(me.x-spot.x,me.y-spot.y)<SPOT_REACH*.5){pendingSpot=null;client.send({type:'fish-cast',spot:spot.id});}
    }
    if(b){
     if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();}
@@ -265,6 +278,21 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(WALK_DEBUG)drawWalkDebug(c,b,terrain,state.profile?.id);
     c.restore();environment!.drawFront(c,t,camera);
    }else{
+    if(state.zone==='fishing'){
+     const people=state.players.map(p=>({...p,name:p.name+(p.id===state.profile?.id?' · você':'')}));
+     const now=Date.now()+state.offset;
+     const drawn=[...fishing.sprites(t,hover),...people.map(p=>({y:p.y,draw:()=>{
+      const spot=p.fishing?FISHING_SPOTS.find(s=>s.id===p.fishing!.spot):undefined;
+      const e=avatar(p.id,p.name,p.equipment,p.x,p.y,134,t,spot?.facing,{},false,true);
+      if(spot&&p.fishing)fishing.drawGear(c,p.fishing,spot,e.x,e.y,134,now);
+     }}))].sort((a,b)=>a.y-b.y);
+     for(const item of drawn)item.draw(c);
+     fishing.drawFront(c,t,hover);
+     const spoken:SpeechLine[]=[];for(const [id,line] of recentSpeech(state.chat,'world',now)){const seen=entities.get(id);if(!seen||!state.players.some(p=>p.id===id))continue;spoken.push({text:line.text,tipX:seen.x+seen.facing*6,tipY:seen.y-134*1.15-30,facing:seen.facing<0?-1:1,age:now-line.time,left:line.time+CHAT_BUBBLE_MS-now,options:{style:bubbleStyle(line.bubble),top:24,scale:.78}});}
+     drawSpeechBubbles(c,spoken,FISHING_WIDTH);
+     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}
+     c.restore();fishing.drawOverlay(c,t);
+    }else{
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.
     const npcs=lobby.keepers().map(k=>({id:k.id,x:k.x,y:k.y,name:'',facing:k.facing,equipment:{...DEFAULT_EQUIPMENT,hat:k.hat}}));
     const people=[...npcs,...state.players.map(p=>({...p,facing:undefined,name:p.name+(p.id===state.profile?.id?' · você':'')}))];
@@ -280,29 +308,43 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     drawSpeechBubbles(c,spoken,LOBBY_WIDTH);
     if(click&&t-click.time<800){const a=(t-click.time)/800;c.strokeStyle=`rgba(255,242,164,${1-a})`;c.lineWidth=2;c.beginPath();c.ellipse(click.x,click.y,10+a*30,4+a*9,0,0,Math.PI*2);c.stroke();}
     c.restore();lobby.drawOverlay(c,t);
+    }
    }
    // A loading cover waits for a frame with every painting in it (the plaza's art decodes over a few frames).
-   if(scenePaint.wanted()&&(b||lobby.ready(el.width/W)))scenePaint.done();
+   if(scenePaint.wanted()&&(b||zoneReady(el.width/W)))scenePaint.done();
    frame=requestAnimationFrame(render);
   };
   // Right click on someone in the plaza (walkers and the podium) opens the player menu.
   const contextMenu=(e:MouseEvent)=>{
    e.preventDefault();if(blockedRef.current||state.battle||state.room)return;
    const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
-   const candidates=[...state.players.map(p=>({id:p.id,name:p.name,key:p.id,size:134,context:'lobby' as const})),...state.ranking.map(entry=>({id:entry.id,name:entry.name,key:`podium-${entry.id}`,size:PODIUM_AVATAR,context:'ranking' as const}))];
+   const candidates=[...state.players.map(p=>({id:p.id,name:p.name,key:p.id,size:134,context:'lobby' as const})),...(state.zone==='fishing'?[]:state.ranking).map(entry=>({id:entry.id,name:entry.name,key:`podium-${entry.id}`,size:PODIUM_AVATAR,context:'ranking' as const}))];
    let best:typeof candidates[number]|null=null,bestDistance=Infinity;
    for(const candidate of candidates){const e=entities.get(candidate.key);if(!e)continue;const half=candidate.size*.32,top=e.y-candidate.size*1.12;if(x<e.x-half||x>e.x+half||y<top||y>e.y+8)continue;const d=Math.abs(x-e.x)+Math.abs(y-(e.y-candidate.size*.5));if(d<bestDistance){best=candidate;bestDistance=d;}}
    if(best)client.openPlayerMenu(e,{id:best.id,name:best.name,context:best.context});
   };
   const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room||e.button!==0)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H;
+   if(state.zone==='fishing'){
+    const hit=fishing.hit(x,y);pendingSpot=null;
+    if(hit?.kind==='station'){if(hit.station.action==='plaza')client.goTo('plaza');else client.openFishShop();return;}
+    if(hit?.kind==='lake'){
+     // The nearest free spot of that lake to the click: walk there and cast on arrival.
+     const taken=takenSpots(),spot=FISHING_SPOTS.filter(s=>s.lake===hit.lake.id&&!taken.has(s.id)).sort((a,b)=>Math.hypot(a.bobX-x,a.bobY-y)-Math.hypot(b.bobX-x,b.bobY-y))[0];
+     if(!spot){client.update({error:'Todos os lugares deste lago estão ocupados.'});return;}
+     pendingSpot=spot.id;client.send({type:'move',x:spot.x,y:spot.y});click={x:spot.x,y:spot.y,time:performance.now()};return;
+    }
+    const target={x:Math.max(FISHING_WALK.minX,Math.min(FISHING_WALK.maxX,x)),y:Math.max(FISHING_WALK.minY,Math.min(FISHING_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};return;
+   }
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
-  const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect();hover=lobby.hover((e.clientX-r.left)/r.width*W+Math.max(0,camX),(e.clientY-r.top)/r.height*H)?.id??null;el.style.cursor=hover?'pointer':'';};
+  const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W+Math.max(0,camX),py=(e.clientY-r.top)/r.height*H;
+   if(state.zone==='fishing'){const hit=fishing.hit(px,py);hover=hit?.kind==='station'?hit.station.id:null;const lake=hit?.kind==='lake'?hit.lake:null;if((lake?.id??null)!==hoverLake){hoverLake=lake?.id??null;window.dispatchEvent(new CustomEvent('brasa-fishing-lake',{detail:lake?.name??null}));}el.style.cursor=hit?'pointer':'';return;}
+   hoverLake=null;hover=lobby.hover(px,py)?.id??null;el.style.cursor=hover?'pointer':'';};
   // Arrow keys / A-D walk sideways along the plaza; releasing stops where the player is.
   const typing=(e:KeyboardEvent)=>['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement)?.tagName);
   const keyDir=(e:KeyboardEvent)=>['arrowleft','a'].includes(e.key.toLowerCase())?-1:['arrowright','d'].includes(e.key.toLowerCase())?1:0;
   const keyDown=(e:KeyboardEvent)=>{if(state.battle||state.room||typing(e))return;const dir=keyDir(e);if(dir){walkDir=dir;lastWalk=0;}};
-  const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e);if(!dir||dir!==walkDir)return;walkDir=0;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
+  const keyUp=(e:KeyboardEvent)=>{const dir=keyDir(e);if(!dir||dir!==walkDir)return;pendingSpot=null;walkDir=0;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&!state.battle&&!state.room)client.send({type:'move',x:me.x,y:me.y});};
   const stopWalk=()=>{walkDir=0;};
   window.addEventListener('keydown',keyDown);window.addEventListener('keyup',keyUp);window.addEventListener('blur',stopWalk);
   // Holding and dragging the battlefield looks around; letting go hands the camera back to the turn and the shot.

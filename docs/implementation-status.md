@@ -487,3 +487,10 @@ Pedido do matheus: o jogador ficava preso em obstáculos que deveriam deixar pas
 - **Evidência**: `tests/walk.test.ts` (chão plano e rampas nos dois sentidos, degrau de 7 px e parede de 8 px nos dois sentidos, busca a partir de y−8 com x±1, descida de 7 px, queda e vazio, cratera funda com borda percorrível, cratera única e lado a lado no Sonho Nevado, crateras uma dentro da outra prendendo, passagem sob plataforma, teto baixo, ponte fina e borda, terreno recém-destruído, presentes, borda do mapa); `tests/fall.test.ts` (andar recusado não move nem cobra vigor, queda andando); `npm run test:walk:browser` (jogo real: passos de 3 px, ~89 px/s, 1 vigor por passo, presentes como parede sem cobrar); prévia `node scripts/preview-walk.mjs` (casos reais do Sonho Nevado; `WALK_MODULE` compara com outra física).
 
 - POW por dano recebido (20/10, pedido do matheus): todo dano recebido carrega o POW do alvo (tiro próprio, aliado, inimigo, pet e monstros), com o mesmo ganho de dano recebido; quem atira só ganha carga por dano em inimigo. Queda no vazio não dá nada. Teste em `tests/power.test.ts`.
+
+## Pescaria (20/10/2026)
+
+Pedido do matheus: zona de pesca separada da praça, com lagos, Casa de Pesca, pesca manual (barra) e automática (AFK), Pontos de Pesca, loja de trocas e nível de pescador. Detalhes em `docs/fishing.md`; prompts de arte em `docs/fishing-art-prompts.md`.
+
+- Evidência: `tests/fishing.test.ts` (10 testes: lugares, caminhada até todos os lugares, barra, automático, gravação, loja, zonas, fluxo manual, dois erros, três rodadas AFK) e `npm run test:fishing:browser` (dois jogadores, pesca à mão até pegar, Casa de Pesca, Coleção, três lagos e volta à praça; prévias em `test-results/fishing/`).
+- Pendente: arte pintada (cenário, casa, portão, gramado/lagos/píeres, ícones, `fishing-button.png`, animações de lançar/fisgar/sucesso/escapar), sons, mais varas e iscas.

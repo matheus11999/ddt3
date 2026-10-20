@@ -11,6 +11,8 @@ import {Pets} from './components/Pets';
 import {HallOfFame} from './components/HallOfFame';
 import {WorldBossWindow} from './components/WorldBoss';
 import {MatchLoading} from './components/MatchLoading';
+import {FishingHud} from './components/FishingHud';
+import {FishingShop} from './components/FishingShop';
 import {MobileOrientationGate,useMobileOrientation} from './components/MobileOrientation';
 import {createPortal} from 'react-dom';
 import './components/Notifications.css';
@@ -36,12 +38,12 @@ export default function App(){
   setHeadingToForge(false);
  },[orientation.portrait]);
  // The player info and report windows hold the keyboard like any other window.
- const playerWindow=!!state.playerPanel&&state.playerPanel.kind!=='menu'||state.mailOpen||state.auctionOpen||state.guildOpen||state.petsOpen||state.worldBossOpen&&!state.battle||state.hallOpen;
+ const playerWindow=!!state.playerPanel&&state.playerPanel.kind!=='menu'||state.fishShopOpen||state.mailOpen||state.auctionOpen||state.guildOpen||state.petsOpen||state.worldBossOpen&&!state.battle||state.hallOpen;
  const close=useCallback(()=>{setPanel(null);setHeadingToForge(false);},[]);
- const openArena=useCallback(()=>{if(!client.state.room&&!client.state.battle)setPanel('arena');audio.play('click');},[]);
- const openExpeditions=useCallback(()=>{if(!client.state.room&&!client.state.battle)setPanel('expeditions');audio.play('click');},[]);
+ const openArena=useCallback(()=>{if(!client.state.room&&!client.state.battle&&client.state.zone!=='fishing')setPanel('arena');audio.play('click');},[]);
+ const openExpeditions=useCallback(()=>{if(!client.state.room&&!client.state.battle&&client.state.zone!=='fishing')setPanel('expeditions');audio.play('click');},[]);
  const openInventory=useCallback(()=>{setPanel('inventory');audio.play('click');},[]);
- const openForge=useCallback((item?:string)=>{if(client.state.room){client.update({error:'Volte à rua para visitar o ferreiro.'});return;}setForgeItem(typeof item==='string'?item:undefined);setPanel(null);setHeadingToForge(true);client.send({type:'move',...SMITH_POSITION});audio.play('click');},[]);
+ const openForge=useCallback((item?:string)=>{if(client.state.room||client.state.zone==='fishing'){client.update({error:client.state.zone==='fishing'?'O ferreiro fica na Praça Celeste.':'Volte à rua para visitar o ferreiro.'});return;}setForgeItem(typeof item==='string'?item:undefined);setPanel(null);setHeadingToForge(true);client.send({type:'move',...SMITH_POSITION});audio.play('click');},[]);
  const openShop=useCallback(()=>{setPanel('shop');audio.play('click');},[]);
  const lobbyAction=useCallback((action:LobbyAction)=>{if(action==='arena'||action==='practice')openArena();else if(action==='shop')openShop();else if(action==='storage')openInventory();else openForge();},[openArena,openShop,openInventory,openForge]);
  useEffect(()=>{if(!headingToForge)return;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&Math.hypot(me.x-SMITH_POSITION.x,me.y-SMITH_POSITION.y)<125){setHeadingToForge(false);setPanel('forge');}},[headingToForge,state.players,state.profile?.id]);
@@ -51,15 +53,16 @@ export default function App(){
  useEffect(()=>{if(state.loading){setPanel(null);client.closeMail();client.closeAuction();client.closeGuild();client.closeHall();client.closePets();}},[state.loading?.id]);
  useEffect(()=>{if(state.loadingDropped&&!client.state.room&&!client.state.battle)setPanel(state.loadingDropped.kind==='expedition'?'expeditions':'arena');},[state.loadingDropped?.at]);
  useEffect(()=>{if(state.error){const t=setTimeout(()=>client.update({error:null}),4500);return()=>clearTimeout(t);}},[state.error]);
- useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||client.state.loading||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room)setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
+ useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||client.state.loading||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room&&client.state.zone!=='fishing')setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
  return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
-  {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&panel!=='expeditions'&&<Hud onArena={openArena} onExpeditions={openExpeditions} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}</>):null}
+  {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&panel!=='expeditions'&&<Hud onArena={openArena} onExpeditions={openExpeditions} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}{!state.room&&state.zone==='fishing'&&<FishingHud blocked={orientation.portrait||!!panel||playerWindow||state.fishShopOpen}/>}</>):null}
   {state.profile&&state.loading&&!state.battle&&<MatchLoading scale={scale}/>}
   {state.needsCharacter&&!state.profile&&<CharacterCreation/>}
   {state.profile&&panel==='shop'&&<Shop onClose={close}/>}
   {state.profile&&state.mailOpen&&!state.battle&&<Mailbox/>}
   {state.profile&&state.auctionOpen&&!state.battle&&<Auction/>}
   {state.profile&&state.petsOpen&&!state.battle&&<Pets/>}
+  {state.profile&&state.fishShopOpen&&state.zone==='fishing'&&!state.battle&&<FishingShop/>}
   {state.profile&&state.hallOpen&&!state.battle&&<HallOfFame/>}
   {state.profile&&state.worldBossOpen&&!state.battle&&!state.room&&<WorldBossWindow/>}
   {state.profile&&state.guildOpen&&!state.battle&&<Guild onForge={()=>{client.closeGuild();setPanel('forge');audio.play('click');}}/>}

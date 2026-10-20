@@ -24,10 +24,13 @@ import {petCommandSchemas} from './petProtocol';
 import type {PetsState,PetResult} from './petProtocol';
 import type {BattlePetState,PetApplication,PetEffect} from './petSkills';
 import {hallCommandSchemas} from './hall';
+import {fishingCommandSchemas} from './fishingProtocol';
+import type {FishingPose,FishingProfile,FishingView,Zone} from './fishing';
+import {FISHING_WALK} from './fishing';
 import type {HallEvent} from './hall';
 import type {GuildState,GuildSummary} from './guilds';
 import type {BattleWorldBoss,WorldBossRanking,WorldBossStatus} from './worldBoss';
-export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;/** Pet food stacks (shared/pets.ts PET_FOODS), counted like stones. */petFood:Record<string,number>;/** One-time pet gifts already received (shared/petContent.ts PET_GIFTS). */petGifts?:string[];}
+export interface Profile {id:string;name:string;gender:CharacterGender;level:number;xp:number;gold:number;/** Cupons: the cash currency (bought with real money later; the admin panel can mail them). */coupons:number;wins:number;matches:number;equipment:Equipment;inventory:string[];equippedOnce:boolean;upgrades:Record<string,number>;stones:Record<string,number>;compositionStones:Record<string,number>;compositions:Compositions;contentVersion?:number;abilityLoadout?:AbilityLoadout;/** Ticket color of each owned copy that was recolored (key = inventory key). */itemColors:Record<string,string>;bodyColors:BodyColors;colorTickets:number;/** Pet food stacks (shared/pets.ts PET_FOODS), counted like stones. */petFood:Record<string,number>;/** One-time pet gifts already received (shared/petContent.ts PET_GIFTS). */petGifts?:string[];/** Pescaria: rods, baits, Pontos de Pesca, fisher EXP and the collection (shared/fishing.ts). */fishing:FishingProfile;}
 /** `target` is an item copy key, or `skin`/`eyes`. */
 export interface ColorChange {target:string;color:string|null;}
 export interface ColorResult {changes:ColorChange[];tickets:number;}
@@ -35,7 +38,7 @@ export interface ShopResult {items:string[];spent:number;quantity?:number;}
 export interface ForgeResult {item:string;success:boolean;level:number;chance:number;consumed:Record<string,number>;}
 export interface SynthesisResult {stone:string;target:string;count:number;consumed:number;cost:number;}
 export interface CompositionResult {item:string;stone:string;stat:CompositionStat;success:boolean;previous:number;value:number;chance:number;cost:number;}
-export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;}
+export interface LobbyPlayer {id:string;name:string;level:number;x:number;y:number;equipment:Equipment;/** Fishing at a spot of the Pescaria (rod out, float, catch). */fishing?:FishingPose;}
 export interface Seat {id:string;name:string;level:number;equipment:Equipment;ready:boolean;bot:boolean;team:0|1;slot:number;connected:boolean;abilityLoadout?:AbilityLoadout;vipLevel?:number;/** Guild name shown under the player's name on the room cards. */guild?:string;}
 /** One of the day's top three PvP players, shown standing on the lobby podium. Bot matches count too. */
 export interface RankingEntry {rank:1|2|3;id:string;name:string;level:number;wins:number;equipment:Equipment;}
@@ -95,12 +98,14 @@ export const commandSchema=z.discriminatedUnion('type',[
  ...guildCommandSchemas,
  ...petCommandSchemas,
  ...hallCommandSchemas,
+ ...fishingCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete-read')}).strict(),
  // Without an id: "Receber tudo".
  z.object({type:z.literal('mail-claim'),id:z.number().int().positive().optional()}).strict(),
- z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),
+ // Bounds of the widest zone (the Pescaria); the server clamps to the walkable floor of the player's zone.
+ z.object({type:z.literal('move'),x:finite(Math.min(FISHING_WALK.minX,LOBBY_WALK.minX),Math.max(FISHING_WALK.maxX,LOBBY_WALK.maxX)),y:finite(Math.min(FISHING_WALK.minY,LOBBY_WALK.minY),Math.max(FISHING_WALK.maxY,LOBBY_WALK.maxY))}),
  z.object({type:z.literal('rename'),name}),
  z.object({type:z.literal('equip'),item:z.string().max(40)}).strict(),
  // Several pieces, skin and eyes at once; one ticket per real change; null goes back to the painted original colors.
@@ -151,7 +156,7 @@ export const commandSchema=z.discriminatedUnion('type',[
 ]);
 export type Command=z.infer<typeof commandSchema>;
 export type ServerEvent =
- | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;arenaOnline?:number;ranking?:RankingEntry[];worldBoss?:WorldBossStatus}
+ | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;/** Praça Celeste or the Pescaria; `players` are the ones in the same zone. */zone?:Zone;arenaOnline?:number;ranking?:RankingEntry[];worldBoss?:WorldBossStatus}
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
@@ -160,6 +165,11 @@ export type ServerEvent =
  | {type:'composition-result';result:CompositionResult}
  | {type:'synthesis-result';result:SynthesisResult}
  | {type:'lobby';players:LobbyPlayer[];online:number}
+ /** Moved between Praça Celeste and the Pescaria. */
+ | {type:'zone';zone:Zone;players:LobbyPlayer[]}
+ /** My fishing session (null: not fishing). */
+ | {type:'fishing';fishing:FishingView|null}
+ | {type:'fish-buy-result';offer:string;quantity:number;spent:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}
