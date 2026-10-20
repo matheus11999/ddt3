@@ -3,6 +3,7 @@ import {useGame} from '../client';
 import {FISH_BY_ID,fishRarity,normalizeFishing} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
+import {DROP_NAMES,PrizeArt} from './FishingHud';
 import './Fishing.css';
 
 const ago=(at:number,now:number)=>{const s=Math.max(0,Math.round((now-at)/1000));return s<60?'agora':s<3600?`há ${Math.floor(s/60)} min`:s<86400?`há ${Math.floor(s/3600)} h`:`há ${Math.floor(s/86400)} d`;};
@@ -16,7 +17,7 @@ export function FishingHistory({onClose}:{onClose:()=>void}){
     <span className="fishing-history-art"><FishingIcon id={fish.id} size={40}/></span>
     <span className="fishing-history-name"><b>{fish.name}</b><em>{r.name}</em></span>
     <span className="fishing-history-kg">{h.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</span>
-    <span className="fishing-history-reward"><FishingIcon id="fishing-points" size={16}/>+{h.points}<small>+{h.xp} EXP</small></span>
+    <span className="fishing-history-reward"><FishingIcon id="fishing-points" size={16}/>+{h.points}<small>+{h.xp} EXP</small>{h.drops?.map(d=><span key={d.kind} className={`fishing-drop ${d.kind}`} title={DROP_NAMES[d.kind]}><PrizeArt kind={d.kind} size={16}/>+{d.amount}</span>)}</span>
     <span className="fishing-history-when">{h.auto&&<i>Auto</i>}{ago(h.at,now)}</span>
    </li>;})}</ol>
   :<p className="fishing-bag-empty">Nenhuma captura ainda. Aperte Lançar, escolha um lago e pesque!</p>}

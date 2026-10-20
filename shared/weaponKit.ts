@@ -151,6 +151,22 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
    15:{ammo:'carga elétrica azul-gelo e rubi',held:'pistola de raio violeta real com filigrana dourada e diamante vermelho na lateral; os terminais viram dois grandes cristais facetados, azul-gelo e rubi, presos num colar dourado com gemas verdes',projectile:'bola de energia branca com raios azul-gelo e rubi',muzzle:'faísca dupla azul e rubi',impact:'explosão de raios azul-gelo e rubi',powProjectile:'raio rosa-violeta com cristais de luz',powImpact:'grande explosão violeta com raios azul-gelo e rubi'}
   }
  },
+ 'tide-rod':{
+  // Pedido do matheus (20/10): a vara de pesca do DDTank (hook1) com desenho próprio; fases pintadas pelo Codex (21-arma-vara-fases).
+  id:'tide-rod',
+  concept:'Vara das Marés: vara de pesca curta com um peixe grande montado no cabo e um peixinho preso no anzol. O personagem arremessa o peixinho do anzol. Tiro normal: um peixe que voa de lado e explode em água. POW: um tubarão inteiro, bem maior, de boca aberta, um único projétil (sem Tridente, +1 ou +2 juntos).',
+  identity:'vara de madeira e latão curvada em diagonal, carretilha redonda na base, linha preta fina até o anzol com um peixinho pendurado; um peixe gordinho de olho grande abraça a vara. Peixe, enfeites e pedras mudam a cada fase. Contorno marrom grosso, pintura suave com volume, luz de cima à esquerda; sem mão, personagem ou pedestal.',
+  palette:'azul-celeste e madeira no início, dourado com coral e estrela-do-mar em +10, carmim com pérolas e algas em +12, ouro real com coroa de coração e rubis em +15; água azul-clara nos efeitos',
+  powTrident:'pow-unico',projectileTilt:0,
+  terrain:'respingo de água escura e escamas soltas em volta de uma cratera oval com centro transparente; sem pedra ou tijolos',
+  sound:{fire:'whip of a fishing rod cast with a reel click',flight:'wet fish flapping through the air',impact:'big wet splash with a fish slap',terrain:'muddy splash cracking wet ground'},
+  phases:{
+   0:{ammo:'peixinho azul',held:'vara de madeira com carretilha azul e um peixe azul gordinho de olho grande montado nela; peixinho azul no anzol',projectile:'peixinho azul de lado, nadadeiras abertas, sem rastro pintado',muzzle:'gotas de água azul em leque',impact:'respingo de água azul com bolhas',powProjectile:'tubarão azul-acinzentado de boca aberta e dentes brancos, grande, de lado',powImpact:'grande onda de água azul com espuma branca'},
+   10:{ammo:'peixinho dourado',held:'vara de latão com coral vermelho, estrela-do-mar laranja, pérolas e gema azul; carpa dourada montada; peixinho dourado no anzol',projectile:'peixinho dourado de lado, sem rastro pintado',muzzle:'gotas de água com brilho dourado',impact:'respingo de água com escamas douradas',powProjectile:'tubarão dourado de boca aberta com barbatanas de coral',powImpact:'onda dourada com espuma e escamas'},
+   12:{ammo:'peixinho carmim',held:'vara dourada com pérolas e algas verdes, peixe carmim de nadadeiras longas e véu montado; peixinho carmim no anzol',projectile:'peixinho carmim de nadadeiras longas, sem rastro pintado',muzzle:'gotas de água rosada e pérolas pequenas',impact:'respingo carmim com pérolas',powProjectile:'tubarão carmim com pérolas e nadadeiras em véu, de boca aberta',powImpact:'onda carmim com espuma e pérolas'},
+   15:{ammo:'peixinho dourado real',held:'vara real de ouro com rubis e coração, carpa dourada com coroa de coração e nadadeiras reais montada; peixinho dourado no anzol',projectile:'peixinho dourado real com nadadeiras em véu, sem rastro pintado',muzzle:'gotas de água dourada com faíscas vermelhas',impact:'respingo dourado com corações e rubis pequenos',powProjectile:'tubarão real dourado com coroa de coração, de boca aberta',powImpact:'grande onda dourada com espuma e corações'}
+  }
+ },
  'love-boomerang':{
   id:'love-boomerang',
   concept:'Arma de arremesso romântica e ágil: um bumerangue curvo de lâminas com um coração central, que evolui de madeira e bronze para joia rosa e asas brancas. Tiro único normal; POW lança uma estrela alada de coração, maior e com silhueta própria.',

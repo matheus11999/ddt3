@@ -10,14 +10,14 @@ import {RewardIcon} from './RewardIcon';
 import {ItemCardFrame} from './ItemCard';
 import './Fishing.css';
 
-/** Prizes the game already has art for use it (coins, stones, tickets, pet food); rods and baits use the fishing icons. */
+/** Prizes the game already has art for use it (coins, stones, tickets, pet food); rods use the fishing icons. */
 function PrizeIcon({offer,size}:{offer:FishingOffer;size:number}){
  const p=offer.prize;
  if(p.kind==='gold')return <RewardIcon kind="coins" size={size}/>;
  if(p.kind==='stone')return <RewardIcon kind="stone" level={p.level} size={size}/>;
  if(p.kind==='ticket')return <RewardIcon kind="ticket" size={size}/>;
  if(p.kind==='pet-food')return <img src={`/assets/pets/${p.food.replace('pet-food-','food-')}.png`} width={size} height={size} alt="" draggable={false} style={{objectFit:'contain'}}/>;
- return <FishingIcon id={p.kind==='rod'?p.rod:p.bait} size={size}/>;
+ return <FishingIcon id={p.rod} size={size}/>;
 }
 /** Casa de Pesca: trade Pontos de Pesca for rewards, and the collection of every fish caught. */
 export function FishingShop(){

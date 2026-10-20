@@ -7,7 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -61,20 +61,18 @@ test('hard fish move the target: a press on its old place misses, one on the mov
 
 test('automatic fishing is always less reliable than a good manual player, and luck favors rare fish',()=>{
  for(const fish of FISH)for(const rod of ROD_BY_ID.values())assert.ok(autoChance(fish,rod)<=.85);
- const rare=(luckyBait:boolean)=>{let n=0;for(let i=0;i<1000;i++)if(pickFish('profundo',ROD_BY_ID.get('rod-bamboo')!,BAIT_BY_ID.get(luckyBait?'bait-glow':'bait-simple')!,i/1000).difficulty>=4)n++;return n;};
- assert.ok(rare(true)>rare(false));
- for(let i=0;i<50;i++)assert.ok(pickFish('cristal',ROD_BY_ID.get('rod-bamboo')!,BAIT_BY_ID.get('bait-simple')!,i/50).lakes.includes('cristal'));
+ const rare=(rod:string)=>{let n=0;for(let i=0;i<1000;i++)if(pickFish('profundo',ROD_BY_ID.get(rod)!,i/1000).difficulty>=4)n++;return n;};
+ assert.ok(rare('rod-royal')>rare('rod-bamboo'));
+ for(let i=0;i<50;i++)assert.ok(pickFish('cristal',ROD_BY_ID.get('rod-bamboo')!,i/50).lakes.includes('cristal'));
 });
 
-test('a catch adds points, fisher EXP and the collection; counted bait runs out back to the simple bait',()=>{
+test('a catch adds points, fisher EXP and the collection',()=>{
  const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
- assert.equal(p.fishing.rod,'rod-bamboo');assert.equal(p.fishing.bait,'bait-simple');assert.equal(fishingLevel(p.fishing.xp),1);
- const first=settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2)}});
+ assert.equal(p.fishing.rod,'rod-bamboo');assert.equal(fishingLevel(p.fishing.xp),1);
+ const first=settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2)}});
  assert.deepEqual({...first.catch},{fish:'lambari-dourado',kg:.3,points:2,xp:fishingXpFor(2),record:false,first:true,levelUp:2});
- const second=settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.35,points:2,xp:20}});
+ const second=settleFishing(p,{fish:{id:'lambari-dourado',kg:.35,points:2,xp:20}});
  assert.equal(second.catch!.record,true);assert.equal(p.fishing.points,4);assert.equal(p.fishing.caught['lambari-dourado'],2);assert.equal(p.fishing.best['lambari-dourado'],.35);
- p.fishing.baits['bait-glow']=1;chooseFishingGear(p,undefined,'bait-glow');assert.equal(p.fishing.bait,'bait-glow');
- settleFishing(p,{bait:'bait-glow'});assert.equal(p.fishing.bait,'bait-simple');assert.equal(p.fishing.baits['bait-glow'],undefined);
  assert.throws(()=>chooseFishingGear(p,'rod-oak'),/não tem essa vara/);
 });
 
@@ -86,14 +84,48 @@ test('fish rarity follows difficulty, from Comum to Lendário',()=>{
 
 test('every catch goes to the history, newest first, keeping only the last ones',()=>{
  const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
- settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},at:1000});
- settleFishing(p,{bait:'bait-simple',fish:{id:'carpa-lua',kg:2,points:1,xp:5},auto:true,at:2000});
- settleFishing(p,{bait:'bait-simple'});
+ settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},at:1000});
+ settleFishing(p,{fish:{id:'carpa-lua',kg:2,points:1,xp:5},auto:true,at:2000});
+ settleFishing(p,{});
  assert.deepEqual(p.fishing.history.slice(0,2),[{fish:'carpa-lua',kg:2,points:1,xp:5,at:2000,auto:true},{fish:'lambari-dourado',kg:.3,points:2,xp:20,at:1000}]);
- for(let i=0;i<FISHING_HISTORY+5;i++)settleFishing(p,{bait:'bait-simple',fish:{id:'lambari-dourado',kg:.2,points:2,xp:20},at:3000+i});
+ for(let i=0;i<FISHING_HISTORY+5;i++)settleFishing(p,{fish:{id:'lambari-dourado',kg:.2,points:2,xp:20},at:3000+i});
  assert.equal(p.fishing.history.length,FISHING_HISTORY);assert.equal(p.fishing.history[0].at,3000+FISHING_HISTORY+4);
  const saved=normalizeFishing({...p.fishing,history:[...p.fishing.history,{fish:'peixe-falso',kg:1,points:1,xp:1,at:1}] as never});
  assert.equal(saved.history.length,FISHING_HISTORY);assert.ok(saved.history.every(h=>FISH_BY_ID.has(h.fish)));
+});
+
+test('baits are gone: leftover Iscas Brilhantes come back as Pontos de Pesca',()=>{
+ const f=normalizeFishing({rod:'rod-bamboo',bait:'bait-glow',rods:['rod-bamboo'],baits:{'bait-glow':7},points:10});
+ assert.equal(f.points,10+7*6);assert.equal('bait' in f,false);assert.equal('baits' in f,false);
+});
+
+test('rods bring their own prizes: gold, Cupons and fragments, a quarter in automatic, never past the daily caps',()=>{
+ assert.deepEqual(rollRodDrops(ROD_BY_ID.get('rod-bamboo')!,false,()=>0),[]);
+ const royal=ROD_BY_ID.get('rod-royal')!;
+ assert.deepEqual(rollRodDrops(royal,false,()=>0).map(d=>d.kind),['gold','coupons','fragments']);
+ // A roll just under the manual chance lands by hand but not in automatic.
+ const fragment=royal.drops!.find(d=>d.kind==='fragment')!.chance,justUnder=()=>fragment*.9;
+ assert.ok(rollRodDrops(royal,false,justUnder).some(d=>d.kind==='fragments'));
+ assert.ok(!rollRodDrops(royal,true,justUnder).some(d=>d.kind==='fragments'));
+ const p=normalizeProfile({id:randomUUID(),name:'Pescador',gold:0}),coupons=p.coupons,day=Date.UTC(2026,9,20,15);
+ const catchWith=(drops:Parameters<typeof settleFishing>[1]['drops'],at=day)=>settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},drops,at});
+ const first=catchWith([{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
+ assert.deepEqual(first.catch!.drops,[{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
+ assert.equal(p.gold,150);assert.equal(p.coupons,coupons+1);assert.equal(p.fragments[FISHING_WEAPON],1);
+ assert.deepEqual(p.fishing.history[0].drops,first.catch!.drops);
+ for(let i=0;i<20;i++)catchWith([{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
+ assert.equal(p.gold,FISHING_DAILY_CAPS.gold);assert.equal(p.coupons,coupons+FISHING_DAILY_CAPS.coupons);assert.equal(p.fragments[FISHING_WEAPON],FISHING_DAILY_CAPS.fragments);
+ assert.equal(catchWith([{kind:'coupons',amount:1}]).catch!.drops,undefined);
+ // The next Brasília day starts over.
+ const tomorrow=day+24*3600_000;assert.notEqual(fishingDay(tomorrow),fishingDay(day));
+ assert.deepEqual(catchWith([{kind:'coupons',amount:1}],tomorrow).catch!.drops,[{kind:'coupons',amount:1}]);
+});
+
+test('the fisher level gates every rod in the Casa de Pesca and never helps the rod prizes',()=>{
+ const rods=FISHING_SHOP.filter(o=>o.prize.kind==='rod');
+ assert.equal(rods.length,FISHING_RODS.length-1);
+ assert.ok(rods.every((o,i)=>o.level&&(i===0||o.level>rods[i-1].level!)));
+ assert.deepEqual(effectiveRod(ROD_BY_ID.get('rod-royal')!,50).drops,ROD_BY_ID.get('rod-royal')!.drops);
 });
 
 test('the fishing shop trades points for rewards, checks level and never sells a rod twice',()=>{
@@ -102,7 +134,8 @@ test('the fishing shop trades points for rewards, checks level and never sells a
  assert.throws(()=>buyFishingOffer(p,'rod-oak',1),/nível de pescador 5/);
  p.fishing.xp=fishingXpFor(5);p.fishing.points=900;buyFishingOffer(p,'rod-oak',1);assert.ok(p.fishing.rods.includes('rod-oak'));
  assert.throws(()=>buyFishingOffer(p,'rod-oak',1),/já tem/);
- assert.throws(()=>buyFishingOffer(p,'bait-glow-10',5),/insuficientes/);
+ assert.throws(()=>buyFishingOffer(p,'rod-coral',1),/nível de pescador 12/);
+ p.fishing.xp=fishingXpFor(12);assert.throws(()=>buyFishingOffer(p,'rod-coral',1),/insuficientes/);
 });
 
 class FishStore implements ProfileStore {
@@ -116,7 +149,7 @@ class FishStore implements ProfileStore {
  async finishMatch(){}
  async getProfile(id:string){return structuredClone(this.profiles.get(id)??null);}
  async fishSettle(id:string,settle:FishSettle){const outcome=settleFishing(this.profiles.get(id)!,settle);return {...outcome,profile:structuredClone(outcome.profile)};}
- async fishGear(id:string,rod?:string,bait?:string){return structuredClone(chooseFishingGear(this.profiles.get(id)!,rod,bait));}
+ async fishGear(id:string,rod:string){return structuredClone(chooseFishingGear(this.profiles.get(id)!,rod));}
  async fishBuy(id:string,offer:string,quantity:number){const outcome=buyFishingOffer(this.profiles.get(id)!,offer,quantity);return {...outcome,profile:structuredClone(outcome.profile)};}
 }
 function fixture(){

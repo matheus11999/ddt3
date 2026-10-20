@@ -34,8 +34,6 @@ BASE + Ícone de item de jogo, peixe de lado olhando para a esquerda, corpo com 
 - `carpa-dragao` — carpa vermelha e dourada com barbatanas em forma de chama e pequenos bigodes de dragão.
 - `rod-bamboo` — vara de bambu simples com carretilha pequena de madeira e linha enrolada.
 - `rod-oak` — vara de carvalho envernizada com detalhes de latão e carretilha dourada.
-- `bait-simple` — minhoca rosada enrolada.
-- `bait-glow` — isca em forma de bolinha que brilha em azul-turquesa, com anzol.
 - `fishing-points` — moeda de Pontos de Pesca: moeda de bronze-azulado com um peixe em relevo (sem número).
 
 ## 6. Botão do menu, `public/assets/ui/fishing-button.png`

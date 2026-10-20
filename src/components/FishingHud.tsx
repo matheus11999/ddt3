@@ -4,13 +4,16 @@ import {DoorOpen,ScrollText} from 'lucide-react';
 import {FishingHistory} from './FishingHistory';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
-import type {FishingView,PressGrade} from '../../shared/fishing';
+import {FISHING_DAILY_CAPS,FISHING_RODS,FISHING_WEAPON,fishingDay,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
+import type {FishingProfile,FishingRod,FishingView,PressGrade} from '../../shared/fishing';
+import {WEAPON_FRAGMENT_RECIPES} from '../../shared/synthesis';
 import {FishingIcon} from './FishingIcon';
+import {RewardIcon} from './RewardIcon';
 import {fishingPick} from '../game/fishingPick';
 import './Fishing.css';
 
-type GearMenu='rod'|'bait'|null;
+type GearMenu='rod'|'prizes'|null;
+const FRAGMENTS_NEEDED=WEAPON_FRAGMENT_RECIPES.find(r=>r.weapon===FISHING_WEAPON)?.count??50;
 /**
  * The Pescaria's own controls over the plaza HUD: the way back, the fisher level and Pontos de
  * Pesca, the rod and bait (switchable at any time but mid-bar), automatic mode, the timing bar and
@@ -42,8 +45,8 @@ export function FishingHud({blocked}:{blocked:boolean}){
   };
   window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);
  });
- const rod=ROD_BY_ID.get(f.rod)!,bait=BAIT_BY_ID.get(f.bait)!;
- const pick=(c:{rod?:string;bait?:string})=>{client.send({type:'fish-gear',...c});setGear(null);audio.play('click');};
+ const rod=ROD_BY_ID.get(f.rod)!,fragments=profile!.fragments?.[FISHING_WEAPON]??0;
+ const pick=(id:string)=>{client.send({type:'fish-gear',rod:id});setGear(null);audio.play('click');};
  const autoOn=fishing?auto:autoPref;
  return <div className="fishing-hud">
   <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/> Sair da Pescaria</button>
@@ -61,20 +64,20 @@ export function FishingHud({blocked}:{blocked:boolean}){
    {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: rende 25% da pesca à mão">AUTOMÁTICO</span>}
    <div className={`fishing-tray ${autoOn?'auto-on':''}`}>
     <button className={`fishing-slot rod ${gear==='rod'?'open':''}`} onClick={()=>setGear(gear==='rod'?null:'rod')} title={`Vara: ${rod.name}. ${rod.description}`}><FishingIcon id={rod.id} size={56}/><span>Vara</span></button>
-    <button className={`fishing-slot bait ${gear==='bait'?'open':''}`} onClick={()=>setGear(gear==='bait'?null:'bait')} title={`Isca: ${bait.name}. ${bait.description}`}><FishingIcon id={bait.id} size={56}/><em>{bait.infinite?'∞':f.baits[bait.id]??0}</em><span>Isca</span></button>
+    <button className={`fishing-slot prizes ${gear==='prizes'?'open':''}`} onClick={()=>setGear(gear==='prizes'?null:'prizes')} title={`Prêmios da ${rod.name} e Fragmentos da Vara das Marés`}><FishingIcon id="fragment" size={50}/><em>{fragments}/{FRAGMENTS_NEEDED}</em><span>Prêmios</span></button>
     <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i className="off"/><i className="on"/><b>Auto</b></span></button>
     {gear&&<div className="fishing-gear-menu" role="menu">
-     <header>{gear==='rod'?'Suas varas':'Suas iscas'}</header>
-     {gear==='rod'?FISHING_RODS.filter(r=>f.rods.includes(r.id)).map(r=><button key={r.id} role="menuitem" className={r.id===f.rod?'selected':''} disabled={phase==='bite'} onClick={()=>pick({rod:r.id})}><span className="fishing-slot-art"><FishingIcon id={r.id} size={36}/></span><span><b>{r.name}</b><small>{r.description}</small></span>{r.id===f.rod&&<i>Em uso</i>}</button>)
-      :FISHING_BAITS.filter(b=>b.infinite||f.baits[b.id]).map(b=><button key={b.id} role="menuitem" className={b.id===f.bait?'selected':''} disabled={phase==='bite'} onClick={()=>pick({bait:b.id})}><span className="fishing-slot-art"><FishingIcon id={b.id} size={36}/></span><span><b>{b.name}{b.infinite?'':` ×${f.baits[b.id]}`}</b><small>{b.description}</small></span>{b.id===f.bait&&<i>Em uso</i>}</button>)}
-     <p className="fishing-gear-hint">Mais varas e iscas na Casa de Pesca.</p>
+     <header>{gear==='rod'?'Suas varas':`Prêmios da ${rod.name}`}</header>
+     {gear==='rod'?FISHING_RODS.filter(r=>f.rods.includes(r.id)).map(r=><button key={r.id} role="menuitem" className={r.id===f.rod?'selected':''} disabled={phase==='bite'} onClick={()=>pick(r.id)}><span className="fishing-slot-art"><FishingIcon id={r.id} size={36}/></span><span><b>{r.name}</b><small>{r.description}</small></span>{r.id===f.rod&&<i>Em uso</i>}</button>)
+      :<RodPrizes rod={rod} fishing={f}/>}
+     <p className="fishing-gear-hint">{gear==='rod'?'Mais varas na Casa de Pesca, liberadas pelo nível de pescador.':`Fragmentos: ${fragments} de ${FRAGMENTS_NEEDED} para a Vara das Marés (Síntese do Ferreiro).`}</p>
     </div>}
    </div>
    {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span>Recolher</span></button>
     :<button className={`fishing-main ${picking?'picking':''}`} disabled={phase==='result'&&!fishing?.spot} onClick={cast} title={picking?'Clique num lago (Esc cancela)':'Lançar (Espaço)'}><span>{picking?'Escolha o lago':'Lançar'}<kbd>{picking?'Esc':'Espaço'}</kbd></span></button>}
   </section>
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
-   :!fishing&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
+   :!fishing&&!gear&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
   {fishing?.phase==='waiting'&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>{auto?'Pescando no automático':'Esperando o peixe morder'}</p>}
   {/* No automático o minigame não aparece (pedido do matheus): só o aviso de que está puxando. */}
   {fishing?.phase==='bite'&&auto&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>Fisgou! Puxando no automático</p>}
@@ -169,8 +172,26 @@ function Result({view}:{view:FishingView}){
     <strong>{fish?.name}</strong>
     <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b></span>
     <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    {c.drops?.length?<div className="fishing-drops">{c.drops.map(d=><span key={d.kind} className={`fishing-drop ${d.kind}`}><PrizeArt kind={d.kind} size={22}/>+{d.amount} {dropLabel(d.kind,d.amount)}</span>)}</div>:null}
     {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
    </div>
   </div>
  </>;
+}
+
+/** Gold and Cupons use the game's own icons; fragments the fishing one. */
+export function PrizeArt({kind,size}:{kind:'gold'|'coupons'|'fragments';size:number}){
+ if(kind!=='fragments')return <RewardIcon kind={kind==='gold'?'coins':'coupons'} size={size}/>;
+ return <FishingIcon id="fragment" size={size}/>;
+}
+export const DROP_NAMES={gold:'Ouro',coupons:'Cupons',fragments:'Fragmentos'} as const;
+/** "+1 Fragmento", "+2 Fragmentos", "+120 Ouro". */
+export const dropLabel=(kind:keyof typeof DROP_NAMES,amount:number)=>amount!==1?DROP_NAMES[kind]:{gold:'Ouro',coupons:'Cupom',fragments:'Fragmento'}[kind];
+const percent=(chance:number)=>`${(chance*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%`;
+/** What the rod can bring up with a fish, and how much of each prize is left today (FISHING_DAILY_CAPS). */
+function RodPrizes({rod,fishing}:{rod:FishingRod;fishing:FishingProfile}){
+ const today=fishing.daily.day===fishingDay(Date.now())?fishing.daily:{gold:0,coupons:0,fragments:0};
+ if(!rod.drops?.length)return <p className="fishing-prizes-empty">Esta vara só pesca peixes. Varas melhores trazem Ouro, Cupons e Fragmentos.</p>;
+ return <ul className="fishing-prizes">{rod.drops.map(d=>{const kind=d.kind==='fragment'?'fragments':d.kind;
+  return <li key={kind}><PrizeArt kind={kind} size={30}/><span><b>{DROP_NAMES[kind]}{d.kind==='gold'?` ${d.min} a ${d.max}`:''}</b><small>{percent(d.chance)} por peixe à mão, {percent(d.chance*.25)} no automático</small></span><em>Hoje {today[kind]}/{FISHING_DAILY_CAPS[kind]}</em></li>;})}</ul>;
 }
