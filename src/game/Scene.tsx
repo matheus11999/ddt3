@@ -13,7 +13,7 @@ import {applyDueImpacts} from './terrainPlayback';
 import {drawImpact,drawMuzzle,drawProjectile} from './weaponEffects';
 import {BOOMERANG_IMPACT_DURATION} from './boomerangImpact';
 import type {Projectile} from '../../shared/protocol';
-import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
+import {drawHitFeedback,hitStackSlot,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
 import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
@@ -258,7 +258,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // A pet heal is only a green number over the fighter, stacked like damage when several land at once.
      if((app.kind==='hot'||app.kind==='heal')&&seen&&(app.amount??0)>0){const stack=healed.get(app.targetId)??0;healed.set(app.targetId,stack+1);drawHitFeedback(c,{id:app.targetId,damage:app.amount!,x:seen.x,y:seen.y-85,projectileIndex:stack,critical:false,kind:'direct',quality:1},age,{heal:true,stack});continue;}
      drawPetApplication(c,app,age,seen?{x:seen.x,y:seen.y}:undefined,(x,y)=>ground(terrain,x,y));}}
-    for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=state.impacts.reduce((n,other)=>other.shotId===impact.shotId&&(other.at<impact.at||(other.at===impact.at&&other.projectileIndex<impact.projectileIndex))?n+other.hits.filter(h=>h.id===hit.id&&!h.hidden&&h.damage>0).length:n,0);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
+    for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=hitStackSlot(state.impacts,impact,hit);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     if(HITBOX_DEBUG)drawHitboxDebug(c,b,shot??null,elapsed,state.profile?.id);
     c.restore();environment!.drawFront(c,t,camera);
