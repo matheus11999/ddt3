@@ -203,12 +203,11 @@ html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(
 .artillery-hud .active-portrait.enemy{--team:#ff4a5a;--team-deep:#6a1020}
 .artillery-hud .active-portrait-name{position:relative;z-index:1;max-width:164px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:400 16px/1 var(--hud-font);color:#fff;text-shadow:var(--hud-outline);margin-bottom:3px}
 .artillery-hud .active-portrait-guild{position:relative;z-index:1;max-width:164px;margin:-2px 0 2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font:400 12px/1 var(--hud-font);color:#e0b8ff;text-shadow:var(--hud-outline)}
-/* Pet medallion: gold ring on the portrait's lower right, pet inside, level under it */
-.artillery-hud .active-portrait-pet{position:absolute;right:-6px;bottom:-2px;z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none}
-.artillery-hud .active-portrait-pet-ring{position:relative;display:block;width:50px;height:50px;padding:4px;border-radius:50%;background:conic-gradient(from 210deg,#7a4512,#ffe9a8,#c27a22,#fff3b8,#8a5a1c,#f2c25a,#7a4512);box-shadow:0 0 0 1.5px #3b200a,0 3px 5px #000a,0 0 10px #ffb02e66}
-.artillery-hud .active-portrait-pet-ring::before{content:'';position:absolute;inset:4px;border-radius:50%;background:radial-gradient(circle at 50% 35%,#ffe9a8 0,#f0a43a 38%,#a2520e 75%,#5a2a06);box-shadow:inset 0 2px 5px #0008}
-.artillery-hud .active-portrait-pet-ring>img{position:relative;width:100%;height:100%;object-fit:contain;transform:scale(1.15);filter:drop-shadow(0 1px 1px #0009)}
-.artillery-hud .active-portrait-pet>b{margin-top:-6px;padding:1px 6px;border-radius:8px;background:#2a1505e6;border:1px solid #f2c25a;font:400 11px/1.1 var(--hud-font);color:#ffe36b;text-shadow:0 1px #000}
+/* Pet: a small dark glass circle with a thin gold rim beside the portrait (as in DDTank); the pet overflows it a little */
+.artillery-hud .active-portrait-pet{position:absolute;right:-8px;bottom:22px;z-index:2;display:flex;flex-direction:column;align-items:center;pointer-events:none}
+.artillery-hud .active-portrait-pet-ring{position:relative;display:block;width:40px;height:40px;border-radius:50%;border:1.5px solid #e9c46ad9;background:radial-gradient(circle at 50% 40%,#2f5a86b3,#0b1a33cc 70%);box-shadow:0 0 0 1px #3b200a99,0 0 8px #ffcf6a66,inset 0 0 8px #000a}
+.artillery-hud .active-portrait-pet-ring>img{position:absolute;left:50%;bottom:2px;width:46px;height:46px;object-fit:contain;transform:translateX(-50%);filter:drop-shadow(0 1px 1px #000a)}
+.artillery-hud .active-portrait-pet>b{margin-top:1px;font:400 11px/1 var(--hud-font);color:#ffe9a8;text-shadow:var(--hud-outline)}
 .artillery-hud .active-portrait-stage{position:relative;width:164px;height:150px}
 .artillery-hud .active-portrait-sigil{position:absolute;left:50%;top:50%;width:140px;height:140px;margin:-74px 0 0 -70px;background:url('/assets/ui/aura-blue-sigil.png') center/contain no-repeat;filter:drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);opacity:.9;animation:power-spin 40s linear infinite;pointer-events:none}
 .artillery-hud .active-portrait-avatar{position:absolute;inset:-24px -10px -6px;display:grid;place-items:end center;pointer-events:none;filter:drop-shadow(0 3px 3px #0009)}
