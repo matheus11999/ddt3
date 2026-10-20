@@ -4,6 +4,7 @@ import {recolorItem,tintSkin} from './recolor';
 import contract from './rig/walkFrames.json';
 import atlases from './walkAtlas.json';
 import idleAtlases from './idleAtlas.json';
+import {freeAll,freeSurface} from './spriteCache';
 
 /** DDTank-style lobby walk (docs/walk-frames.md): the outfit's painted walk cycle, hands included, picked by
  * the distance walked; the universal head goes on top where each painting expects it. */
@@ -24,8 +25,10 @@ function walkAtlas(eq:Equipment,sheets:Record<string,WalkAtlasEntry>=ATLASES):HT
  const key=`${entry.path}:${eq.colors?.outfit??''}:${eq.skin??''}`,known=tinted.get(key);if(known)return known;
  const out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;out.getContext('2d')!.drawImage(image,0,0);
  recolorItem(out,eq.outfit,eq.colors?.outfit);tintSkin(out,eq.skin,true);
- tinted.set(key,out);if(tinted.size>24)tinted.delete(tinted.keys().next().value!);return out;
+ tinted.set(key,out);if(tinted.size>24){const oldest=tinted.keys().next().value!;freeSurface(tinted.get(oldest));tinted.delete(oldest);}return out;
 }
+/** The tinted walk sheets are for the plaza and the Pescaria: let go while a battle covers them. */
+export function releaseWalkBodies(){freeAll(tinted);}
 /** Frame for a distance walked in avatar units: each painting holds for `frameUnits`, so the feet never slide. */
 export const walkFrameIndex=(distance:number)=>{const n=contract.frames.length;return ((Math.floor(distance/contract.frameUnits)%n)+n)%n;};
 /** Draws the walking body facing right in avatar units from the contact point and returns how far the head

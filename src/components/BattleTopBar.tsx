@@ -6,6 +6,8 @@ import type {Battle,Fighter} from '../../shared/protocol';
 import {petSpecies,petVisual} from '../../shared/pets';
 import type {PetSnapshot} from '../../shared/pets';
 import {sceneView} from '../game/sceneView';
+import {mapImage} from '../game/environment';
+import {drawScaled,freeSurface} from '../game/spriteCache';
 import {Avatar} from './Avatar';
 import {LevelBadge} from './LevelBadge';
 import {playerMenuProps} from './PlayerActions';
@@ -64,20 +66,21 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
   // A coarse copy of the fine terrain is plenty for a 216 px overview: one mask pixel per 3x3 cells.
   const STEP=Math.max(1,Math.round(3/WORLD.cell)),maskCols=Math.ceil(cols/STEP),maskRows=Math.ceil(WORLD.rows/STEP);
   const mask=document.createElement('canvas');mask.width=maskCols;mask.height=maskRows;const m=mask.getContext('2d')!;
-  let painted=-1,frame=0,last=0;const backdrop=new Image();backdrop.src=map.art.background;const art=new Image();art.src=map.art.terrain;
+  let painted=-1,frame=0,last=0;// The battle's own decoded paintings (environment.ts), not a second copy of each.
+  const backdrop=mapImage(map.art.background),art=mapImage(map.art.terrain);
   const paintTerrain=(terrain:Uint8Array)=>{
    const image=m.createImageData(maskCols,maskRows);for(let y=0;y<maskRows;y++)for(let x=0;x<maskCols;x++)if(terrain[Math.min(WORLD.rows-1,y*STEP+1)*cols+Math.min(cols-1,x*STEP+1)]===1)image.data[(y*maskCols+x)*4+3]=255;m.putImageData(image,0,0);
    g.globalCompositeOperation='source-over';g.clearRect(0,0,ground.width,ground.height);g.imageSmoothingEnabled=true;g.drawImage(mask,0,0,ground.width,ground.height);
    g.globalCompositeOperation='source-in';if(art.complete&&art.naturalWidth)g.drawImage(art,0,0,ground.width,ground.height);else{g.fillStyle='#c9d6f2';g.fillRect(0,0,ground.width,ground.height);}
   };
-  art.onload=()=>{painted=-1;};
+  const artLoaded=()=>{painted=-1;};if(!art.complete)art.addEventListener('load',artLoaded,{once:true});
   const draw=(now:number)=>{
    frame=requestAnimationFrame(draw);if(now-last<120)return;last=now;
    const {battle:b,myTeam:team,myId:id}=live.current;
    if(sceneView.terrain?.length===cols*WORLD.rows&&sceneView.version!==painted){painted=sceneView.version;paintTerrain(sceneView.terrain);}
    const sx=MINI_W/worldWidth,sy=MINI_H/WORLD.height;
    const sky=c.createLinearGradient(0,0,0,MINI_H);sky.addColorStop(0,'#1d3b6e');sky.addColorStop(1,'#0b1730');c.fillStyle=sky;c.fillRect(0,0,MINI_W,MINI_H);
-   if(backdrop.complete&&backdrop.naturalWidth){const h=backdrop.naturalHeight*MINI_W/backdrop.naturalWidth;c.globalAlpha=.6;c.drawImage(backdrop,0,MINI_H-h,MINI_W,h);c.globalAlpha=1;c.fillStyle='#0b173044';c.fillRect(0,0,MINI_W,MINI_H);}
+   if(backdrop.complete&&backdrop.naturalWidth){const h=backdrop.naturalHeight*MINI_W/backdrop.naturalWidth;c.globalAlpha=.6;drawScaled(c,backdrop,0,MINI_H-h,MINI_W,h);c.globalAlpha=1;c.fillStyle='#0b173044';c.fillRect(0,0,MINI_W,MINI_H);}
    c.drawImage(ground,0,0,MINI_W,MINI_H);
    const cam=sceneView.camera,hw=WORLD.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
    if(cam.zoom>1.02||worldWidth>WORLD.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
@@ -92,7 +95,7 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
     c.beginPath();c.arc(x,y,3.6,0,Math.PI*2);c.fillStyle=ally?'#3aa8ff':'#ff3b3b';c.fill();c.lineWidth=1.2;c.strokeStyle=player.id===id?'#ffe36b':'#0b1426';c.stroke();
    }
   };
-  frame=requestAnimationFrame(draw);return()=>cancelAnimationFrame(frame);
+  frame=requestAnimationFrame(draw);return()=>{cancelAnimationFrame(frame);art.removeEventListener('load',artLoaded);freeSurface(ground);freeSurface(mask);};
  },[battle.map]);
  // Hold and drag on the minimap to look around the map, as in DDTank; letting go hands the camera back to the turn.
  const look=(event:React.PointerEvent<HTMLCanvasElement>)=>{

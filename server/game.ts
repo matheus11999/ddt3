@@ -138,7 +138,8 @@ export class Game {
  private changeZone(p:Peer,zone:Zone){
   if(p.roomId)throw Error('Saia da sala antes de ir para outro lugar.');
   if((p.zone??'plaza')===zone)return;
-  this.stopFishing(p,false);delete p.fishing;
+  // Nothing of the Pescaria follows the player out: the line, and automatic mode (the HUD comes back in manual).
+  this.stopFishing(p,false);delete p.fishing;delete p.fishAuto;
   const spawn=zone==='fishing'?FISHING_SPAWN:LOBBY_SPAWN;
   p.zone=zone==='plaza'?undefined:zone;p.x=p.targetX=spawn.x-40+Math.random()*80;p.y=p.targetY=spawn.y;
   this.emit(p,{type:'zone',zone,players:this.lobby(p.channel,zone)});this.sendLobby(p.channel);

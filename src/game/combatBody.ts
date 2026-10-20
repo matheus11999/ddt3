@@ -1,6 +1,6 @@
 import type {Equipment} from '../../shared/catalog';
 import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
-import {drawDecoded} from './spriteCache';
+import {drawDecoded,freeAll,freeSurface} from './spriteCache';
 import type {AvatarPart} from './appearance';
 import {asset,AVATAR_UNIT,drawHeadLayers,drawHeadRearLayers,drawPart} from './appearance';
 import type {AvatarPose} from './avatar';
@@ -28,8 +28,10 @@ function combatAtlas(eq:Equipment):HTMLCanvasElement|null {
  const key=`${eq.outfit}:${eq.colors?.outfit??''}:${eq.skin??''}`,known=tinted.get(key);if(known)return known;
  const out=document.createElement('canvas');out.width=image.naturalWidth;out.height=image.naturalHeight;out.getContext('2d')!.drawImage(image,0,0);
  recolorItem(out,eq.outfit,eq.colors?.outfit);tintSkin(out,eq.skin,true);
- tinted.set(key,out);if(tinted.size>24)tinted.delete(tinted.keys().next().value!);return out;
+ tinted.set(key,out);if(tinted.size>24){const oldest=tinted.keys().next().value!;freeSurface(tinted.get(oldest));tinted.delete(oldest);}return out;
 }
+/** The tinted combat sheets live only while a battle is on screen. */
+export function releaseCombatBodies(){freeAll(tinted);}
 export const combatBodyReady=(eq:Equipment)=>!!combatAtlas(eq);
 
 const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4',shuriken:'#ffd27a'};
