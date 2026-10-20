@@ -44,8 +44,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 ## Interface
 
-- Cartão do pescador (vidro azul com ouro, como o retrato do jogador): medalhão com a aura azul do jogo e a vara, nível, EXP em água e Pontos.
-- Console de pesca (madeira escura com friso dourado): vara e isca em molduras de item (a isca mostra quantas restam), chave Auto e o botão Lançar/Recolher.
+- Painel do pescador e bandeja (20/10, pedido do matheus: "redesenhe onde fica o nível do pescador, e onde seleciona a vara e a isca"): pintura do Codex em vidro azul com ouro (opção B, `15-ui-pescador-b.png`, recortada por `python3 scripts/build-fishing-ui.py` para `public/assets/fishing/ui/`). Painel com a carpa dourada: nível no hexágono, "Pescador" e Pontos na faixa, EXP na barra fina. Bandeja com vara e isca nos dois círculos (a isca mostra quantas restam; clicar abre a lista em vidro azul) e a chave Auto (o botão dourado é peça separada e desliza; ligada fica verde). Botão redondo de lançar com a vara pintada, aceso no passar do mouse e pulsando enquanto escolhe o lago; o nome (Lançar, Escolha o lago, Recolher) numa plaquinha embaixo. Texto e números são do jogo.
 - Vara de Bambu em quadros pintados (`rod-bamboo.webp`, 12 quadros: preparo, lançamento, espera, fisgada, puxada forte, sucesso, falha; `ROD_FRAMES` em `shared/generated/fishingFx.ts` com punho e ponta de cada quadro, de onde sai a linha). A Vara de Carvalho usa a mesma folha por enquanto. Respingos pintados: isca caindo na água (`splash-bait.webp`) e captura (`splash-catch.webp`), 8 quadros cada.
 - Desafio pequeno sobre a cabeça: relógio redondo com a sombra do peixe, estrelas de dificuldade, faixa de água com o alvo e a boia, acertos em losangos e erros em pontos.
 - Resultado: o peixe (sem círculo atrás, pedido do matheus), nome em Lilita One, peso, estrelas, Pontos e EXP.
@@ -67,6 +66,6 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 ## Falta
 
-- Arte pintada (prompts em `docs/fishing-art-prompts.md`): ícones de peixe/vara/isca/pontos, botão `fishing-button.png` e a folha da Vara de Carvalho. O painel do pescador e a bandeja de vara/isca vão ser redesenhados com as pranchas `15-ui-pescador-a/b.png`.
+- Arte pintada (prompts em `docs/fishing-art-prompts.md`): ícones de peixe/vara/isca/pontos, botão `fishing-button.png` e a folha da Vara de Carvalho. 
 - Sons de lançar, morder, acertar e escapar.
 - Mais varas e iscas, eventos de pesca, ranking de pescadores.
