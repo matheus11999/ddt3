@@ -26,13 +26,13 @@ export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mi
  </section>;
 }
 
-/** The fighter's pet in a small gold medallion beside the portrait, its level underneath (as in DDTank). */
+/** The fighter's pet in a small glass circle beside the portrait, its level underneath (as in DDTank). */
 function PetMedallion({pet}:{pet?:PetSnapshot}){
  const visual=petVisual(pet),art=visual?.portrait??visual?.icon??visual?.sprite;
  if(!pet||!art)return null;
  return <div className="active-portrait-pet" title={petSpecies(pet.species)?.name}>
   <span className="active-portrait-pet-ring"><img src={art} alt="" draggable={false}/></span>
-  <b>LV{pet.level}</b>
+  <b>Lv.{pet.level}</b>
  </div>;
 }
 
