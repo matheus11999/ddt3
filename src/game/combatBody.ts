@@ -35,6 +35,9 @@ export const combatBodyReady=(eq:Equipment)=>!!combatAtlas(eq);
 const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4'};
 /** Weapon art is drawn this many avatar units across on the back. */
 const BACK_WEAPON_SIZE=64;
+/** The weapon hangs this far further back and up from the body than combatFrames.json's `back` (20/10,
+ * matheus: a little gap so it reads as strapped on, not stuck into the body). The hands are not moved. */
+const BACK_WEAPON_GAP:Point=[-8,-3];
 /** The painted body sinks this many avatar units into the ground, as in DDTank: the terrain's
  * painted top (snow, grass) is soft and a body standing exactly on the collision line reads as floating. */
 const GROUND_SINK=7;
@@ -62,7 +65,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // faceDown: the weapon on the back, behind the body and the head. Kneeling, the far fist goes behind the
  // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
- if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+dx,spec.back[1]+dy+breath,spec.backAngle,state.time);
+ if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+BACK_WEAPON_GAP[0]+dx,spec.back[1]+BACK_WEAPON_GAP[1]+dy+breath,spec.backAngle,state.time);
  // Each fist hangs from a short forearm in the outfit's own sleeve color that starts under the painted
  // sleeve, so the hand reads as part of the arm (the outfit art ends its sleeves at the elbow).
  const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(art%COMBAT_ATLAS.columns)*cw,sy=Math.floor(art/COMBAT_ATLAS.columns)*ch;
