@@ -49,7 +49,7 @@ Escala única 0,486 (largura do DDTank → diâmetro no Brasa), a mesma do Bumer
 - Trovão: efeitos elétricos (família `electric` do renderer) pela última imagem do Nano Banana 2.
 - Trovão, projéteis (20/10): normal e POW das 4 fases voam como animação pintada de 5 quadros a 25 FPS (4 no normal +15), do pacote `output/thunder-projectiles-original-v1` (gerado pelo Codex). `py scripts/build-projectile-strips.py --weapon=thunder-coil --src=<pacote>` recorta e reduz cada sequência para `public/assets/weapons/thunder-coil/projectile/<normal|pow>-<fase>.png` e escreve `src/game/projectileStrips.json` (quadros, FPS e o núcleo, que fica na posição do projétil). Arma listada ali troca a célula parada de `effects.png`/`pow.png` pela animação e perde os anéis desenhados em código; disparo e impacto continuam nos atlas.
 - `terrain.png` provisório das duas (`py -3 scripts/build-terrain-fallback.py`): degradê escuro com cortes (Vento) ou queimadura ramificada (Trovão). As 8 marcas de destruição por arma seguem o fluxo de `docs/weapon-kit.md` e só entram quando aprovadas em `PAINTED`.
-- Sons gerados no ElevenLabs (`npm run sounds:weapons`): disparo, voo, colisão e cenário, mais `pow-fire` e `pow-impact`. Nenhum áudio do DDTank foi usado.
+- Sons gerados no ElevenLabs (`npm run sounds:weapons`): disparo, voo, colisão e cenário, mais `pow-fire` e `pow-impact`. Exceção (20/10, escolha do matheus): o disparo normal do Trovão (`fire.mp3`) é o `disparo-normal.mp3` do pacote `output/thunder-projectiles-original-v1`.
 
 ## Fora do escopo, de propósito
 
