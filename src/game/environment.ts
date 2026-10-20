@@ -1,10 +1,11 @@
+import {view} from './viewport';
 import {getMap} from '../../shared/maps';
 import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
 import {freeAll,freeImage,freeSurface} from './spriteCache';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
-const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,SOFT_EDGE_GAIN=3;
+const H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,SOFT_EDGE_GAIN=3;
 /** The painted rim cut around a hole (6 px) and the cells it spans on the terrain grid. */
 const RIM_PX=6,RIM_CELLS=Math.round(RIM_PX/WORLD.cell);
 /** Art direction: dim only the distant/parallax painting, never the playfield. */
@@ -46,26 +47,26 @@ function lowQuality(c:CanvasRenderingContext2D,draw:()=>void){const quality=c.im
 function smoothImages(c:CanvasRenderingContext2D,filter:ImageSmoothingQuality='high'){c.imageSmoothingEnabled=true;c.imageSmoothingQuality=filter;}
 function intersects(a:Bounds,b:Bounds){return a.x+a.width>=b.x&&a.x<=b.x+b.width&&a.y+a.height>=b.y&&a.y<=b.y+b.height;}
 function cameraBounds(camera:CameraState,depth=1):Bounds {
- const zoom=1+(camera.zoom-1)*Math.min(1,depth),width=W/zoom,height=H/zoom;
- return {x:W/2+(camera.x-W/2)*depth-width/2,y:H/2+(camera.y-H/2)*depth-height/2,width,height};
+ const zoom=1+(camera.zoom-1)*Math.min(1,depth),width=view.width/zoom,height=H/zoom;
+ return {x:view.width/2+(camera.x-view.width/2)*depth-width/2,y:H/2+(camera.y-H/2)*depth-height/2,width,height};
 }
 
 /** How far below the map the battle camera may look. Zero by the owner's choice (20/10): the view never goes
  * past the map's bottom edge; a fighter there shows through the translucent console. */
 export const BATTLE_HUD_COVER=0;
 export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;worldWidth:number;}
-export function createCamera(worldWidth=W):CameraState{return {x:W/2,y:H/2,zoom:1,targetZoom:1,targetX:W/2,targetY:H/2,worldWidth};}
+export function createCamera(worldWidth=view.width):CameraState{return {x:view.width/2,y:H/2,zoom:1,targetZoom:1,targetX:view.width/2,targetY:H/2,worldWidth};}
 export function zoomCamera(camera:CameraState,delta:number,map:MapDefinition){camera.targetZoom=Math.max(map.camera.minZoom,Math.min(map.camera.maxZoom,camera.targetZoom+delta));}
 export function updateCamera(camera:CameraState,x:number,y:number){
  camera.zoom+=(camera.targetZoom-camera.zoom)*.09;
- const hw=W/(2*camera.zoom),hh=H/(2*camera.zoom);
- const right=camera.worldWidth??W;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,y));
+ const hw=view.width/(2*camera.zoom),hh=H/(2*camera.zoom);
+ const right=camera.worldWidth??view.width;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,y));
  camera.x+=(camera.targetX-camera.x)*.075;camera.y+=(camera.targetY-camera.y)*.075;
  camera.x=Math.max(hw,Math.min(right-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,camera.y));
 }
 export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=1){
  const zoom=1+(camera.zoom-1)*Math.min(1,depth);
- c.translate(W/2,H/2);c.scale(zoom,zoom);c.translate(-W/2-(camera.x-W/2)*depth,-H/2-(camera.y-H/2)*depth);
+ c.translate(view.width/2,H/2);c.scale(zoom,zoom);c.translate(-view.width/2-(camera.x-view.width/2)*depth,-H/2-(camera.y-H/2)*depth);
 }
 
 /** Terrain cells → a smooth shape at the terrain buffer's scale, only over the damaged box (in cells). Thresholding the
@@ -176,7 +177,7 @@ export class EnvironmentRenderer {
   else{
    this.drawOnce(c,camera,'backdrop',this.background,0);
    if(this.mid)this.drawOnce(c,camera,'mid',this.mid,MID_OFFSET);
-   c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,W,H);
+   c.fillStyle=`rgba(7,13,24,${PARALLAX_SHADE_ALPHA})`;c.fillRect(0,0,view.width,H);
   }
   c.restore();
  }
@@ -194,24 +195,24 @@ export class EnvironmentRenderer {
  }
  private drawOnce(c:CanvasRenderingContext2D,camera:CameraState,key:string,image:HTMLImageElement,offset:number){
   if(!image.naturalWidth)return;
-  const margin=48,span=this.width-W,fit=(H+margin*2)/image.naturalHeight,natural=image.naturalWidth*fit-W-margin*2;
-  const depth=span>0?Math.min(1,Math.max(.1,natural/span)):.1,travel=span*depth,width=W+travel+margin*2;
+  const margin=48,span=this.width-view.width,fit=(H+margin*2)/image.naturalHeight,natural=image.naturalWidth*fit-view.width-margin*2;
+  const depth=span>0?Math.min(1,Math.max(.1,natural/span)):.1,travel=span*depth,width=view.width+travel+margin*2;
   // Under the painting, its last rows stretched down: the camera can look BATTLE_HUD_COVER below the map.
-  const layer=this.cached(key,width,H+margin*2+BATTLE_HUD_COVER,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale,left=(width-image.naturalWidth*scale)/2;smoothImages(ctx);ctx.drawImage(image,left,H+margin*2-height,image.naturalWidth*scale,height);if(key==='backdrop')ctx.drawImage(image,0,image.naturalHeight-2,image.naturalWidth,2,left,H+margin*2-1,image.naturalWidth*scale,BATTLE_HUD_COVER+1);});
+  const layer=this.cached(`${key}@${Math.round(width)}`,width,H+margin*2+BATTLE_HUD_COVER,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale,left=(width-image.naturalWidth*scale)/2;smoothImages(ctx);ctx.drawImage(image,left,H+margin*2-height,image.naturalWidth*scale,height);if(key==='backdrop')ctx.drawImage(image,0,image.naturalHeight-2,image.naturalWidth,2,left,H+margin*2-1,image.naturalWidth*scale,BATTLE_HUD_COVER+1);});
   c.save();applyCamera(c,camera,depth);
   // On whole screen pixels the backdrop (the size of the screen) is a plain copy, not a filter pass every frame.
   const m=c.getTransform(),x=m.a*(-margin)+m.e,y=m.d*(offset-margin)+m.f;c.setTransform(m.a,m.b,m.c,m.d,m.e+Math.round(x)-x,m.f+Math.round(y)-y);
   c.imageSmoothingQuality='low';c.drawImage(layer,-margin,offset-margin);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
-  c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,W,H);
-  if(this.preview.complete&&this.preview.naturalWidth){const p=this.preview,share=W/this.width;c.drawImage(p,p.naturalWidth*(1-share)/2,0,p.naturalWidth*share,p.naturalHeight,0,0,W,H);}
-  c.fillStyle='#08132999';c.fillRect(0,0,W,H);c.textAlign='center';c.fillStyle='#fff3ce';c.font='600 24px sans-serif';
-  c.fillText(this.loadState==='error'?'Não foi possível carregar o cenário. Recarregue para tentar novamente.':'Preparando cenário…',W/2,H/2);c.restore();
+  c.save();c.globalAlpha=1;c.fillStyle=this.definition.lighting.sky;c.fillRect(0,0,view.width,H);
+  if(this.preview.complete&&this.preview.naturalWidth){const p=this.preview,share=view.width/this.width;c.drawImage(p,p.naturalWidth*(1-share)/2,0,p.naturalWidth*share,p.naturalHeight,0,0,view.width,H);}
+  c.fillStyle='#08132999';c.fillRect(0,0,view.width,H);c.textAlign='center';c.fillStyle='#fff3ce';c.font='600 24px sans-serif';
+  c.fillText(this.loadState==='error'?'Não foi possível carregar o cenário. Recarregue para tentar novamente.':'Preparando cenário…',view.width/2,H/2);c.restore();
  }
  /** Soft snowfall across the whole world, a little denser near the camera. */
  private snowfall(c:CanvasRenderingContext2D,time:number){
-  const t=time/1000,visible=cameraBounds(this.camera,.85),flakes=Math.round(count(30,60,100)*this.width/W);c.save();
+  const t=time/1000,visible=cameraBounds(this.camera,.85),flakes=Math.round(count(30,60,100)*this.width/view.width);c.save();
   for(let i=0;i<flakes;i++){const fall=14+random(i+7)*22,x=(random(i+80)*this.width+Math.sin(t*.6+i)*18+t*6)%this.width,y=((random(i+190)*(H+40)+t*fall)%(H+40))-20;
    if(!intersects({x:x-4,y:y-4,width:8,height:8},visible))continue;c.globalAlpha=.35+random(i+3)*.45;ellipse(c,x,y,1.2+random(i+11)*2.2,1.2+random(i+11)*2.2,'#ffffff');}
   c.restore();

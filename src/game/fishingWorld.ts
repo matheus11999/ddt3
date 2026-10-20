@@ -14,6 +14,7 @@
  * (public/assets/fishing/source/, cut by `npm run build:fishing`) except the balustrades, lamps,
  * cypresses and airship, which come from the plaza, and the quay's floor, the plaza's own.
  */
+import {view} from './viewport';
 import {FISHING_AIRSHIP,FISHING_HEIGHT,FISHING_ITEMS,FISHING_LAKES,FISHING_STAIRS,FISHING_TERRACES,FISHING_WIDTH,FISH_BY_ID,fishingBlocked,fishingLayoutVersion,isWalkway,itemPoint,itemSize,deckOf,pondPlace,stairPlace,terraceAt} from '../../shared/fishing';
 import type {FishingItem,FishingLake,FishingPose,FishingSpot} from '../../shared/fishing';
 import {FISHING_PROPS} from '../../shared/generated/fishingProps';
@@ -23,7 +24,7 @@ import type {RodFrame} from '../../shared/generated/fishingFx';
 import {drawScaled,freeAll,freeImage,imageReady,resizedBitmap,screenScale,visibleArea} from './spriteCache';
 import {plaque,releaseStamps} from './lobbyWorld';
 
-const VIEW_W=1536,VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
+const VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
 
 /** Width of one baked ground tile (world px). */
 const TILE=768;
@@ -146,10 +147,10 @@ export class FishingWorld {
   freeAll(this.tiles);
  }
  /** Camera that keeps the player a little below the middle (they are tall), never past the island's edges. */
- static camera(focusX:number,focusY:number){return {x:Math.max(0,Math.min(W-VIEW_W,focusX-VIEW_W/2)),y:Math.max(0,Math.min(H-VIEW_H,focusY-VIEW_H*.6))};}
+ static camera(focusX:number,focusY:number){return {x:Math.max(0,Math.min(W-view.width,focusX-view.width/2)),y:Math.max(0,Math.min(H-VIEW_H,focusY-VIEW_H*.6))};}
  /** The sky fills the view and slides a little as the camera moves. */
  private drawSky(c:CanvasRenderingContext2D,camX:number,camY:number){
-  const iw=this.sky.naturalWidth,ih=this.sky.naturalHeight,k=Math.max((VIEW_W+(W-VIEW_W)*SKY_X)/iw,(VIEW_H+(H-VIEW_H)*SKY_Y)/ih);
+  const iw=this.sky.naturalWidth,ih=this.sky.naturalHeight,k=Math.max((view.width+(W-view.width)*SKY_X)/iw,(VIEW_H+(H-VIEW_H)*SKY_Y)/ih);
   // Stretched past the screen: only the part on screen is drawn (the whole painting enlarged was the costliest draw here).
   const x=camX-camX*SKY_X,y=camY-camY*SKY_Y,[vx0,vy0,vx1,vy1]=visibleArea(c),x0=Math.max(x,vx0-2),y0=Math.max(y,vy0-2),x1=Math.min(x+iw*k,vx1+2),y1=Math.min(y+ih*k,vy1+2);
   if(x1<=x0||y1<=y0||!imageReady(this.sky))return;
@@ -164,15 +165,15 @@ export class FishingWorld {
  }
  /** Back of the scene, in world coordinates (the caller has translated by the camera). */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number,camY:number){
-  if(!this.ready(1)){c.fillStyle='#9ed4e8';c.fillRect(camX,camY,VIEW_W,VIEW_H);return;}
+  if(!this.ready(1)){c.fillStyle='#9ed4e8';c.fillRect(camX,camY,view.width,VIEW_H);return;}
   this.sync();
   c.save();c.imageSmoothingQuality='low';
   this.drawSky(c,camX,camY);
   const scale=Math.min(1.5,Math.max(1,Math.ceil(screenScale(c)*4)/4));
   if(scale!==this.tileScale){freeAll(this.tiles);this.tileScale=scale;}
-  for(let n=Math.floor(camX/TILE);n*TILE<camX+VIEW_W;n++){const tile=this.tile(n);if(!tile)continue;
+  for(let n=Math.floor(camX/TILE);n*TILE<camX+view.width;n++){const tile=this.tile(n);if(!tile)continue;
    const y0=Math.max(GROUND_TOP,camY),y1=Math.min(H,camY+VIEW_H);if(y1>y0)c.drawImage(tile,0,(y0-GROUND_TOP)*scale,tile.width,(y1-y0)*scale,n*TILE,y0,TILE,y1-y0);}
-  this.live(c,t,camX,camY,VIEW_W,VIEW_H);
+  this.live(c,t,camX,camY,view.width,VIEW_H);
   c.restore();
  }
  /** Everything that moves over the floor: falling water, the ponds' surface, floating pieces, then the shadows. */
@@ -333,7 +334,7 @@ export class FishingWorld {
   this.casts.set(id,blurred);return blurred;
  }
  /** Standing pieces and stations, sorted with the walkers by their base. */
- sprites(t:number,hover:string|null,camX:number,camY:number,viewW=VIEW_W,viewH=VIEW_H){
+ sprites(t:number,hover:string|null,camX:number,camY:number,viewW=view.width,viewH=VIEW_H){
   this.sync();
   const list:{y:number;draw:(c:CanvasRenderingContext2D)=>void}[]=[];
   const seen=(x0:number,x1:number,y0:number,y1:number)=>x1>camX-20&&x0<camX+viewW+20&&y1>camY-10&&y0<camY+viewH+10;
@@ -364,7 +365,7 @@ export class FishingWorld {
   drawScaled(c,image,s.x-s.width/2,s.y-s.height+bob,s.width,s.height);
   c.restore();
  }
- drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null,camX:number,camY:number,viewW=VIEW_W,viewH=VIEW_H){
+ drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null,camX:number,camY:number,viewW=view.width,viewH=VIEW_H){
   // Clouds drifting under the island, in front of everything.
   if(camY+viewH>CLOUDS_TOP){const r=random(5);
    for(let i=0;i<46;i++){const base=r()*W,speed=4+r()*6,x=((base+t/1000*speed)%(W+300))-150,y=CLOUDS_TOP+18+r()*60,s=60+r()*80;if(x+s<camX||x-s>camX+viewW)continue;
@@ -372,7 +373,7 @@ export class FishingWorld {
   for(const s of FISHING_STATIONS){const top=s.y-s.height-16;if(top>camY-40&&top<camY+viewH)plaque(c,s.title,s.x,top,true,hover===s.id);}
  }
  drawOverlay(c:CanvasRenderingContext2D,t:number){
-  for(let i=0;i<18;i++){const x=(i*137+t*.012)%VIEW_W,y=140+(i*71)%460+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.22+Math.sin(t/800+i)*.16})`;c.beginPath();c.arc(x,y,1.4+i%2,0,Math.PI*2);c.fill();}
+  for(let i=0;i<18;i++){const x=(i*137+t*.012)%view.width,y=140+(i*71)%460+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.22+Math.sin(t/800+i)*.16})`;c.beginPath();c.arc(x,y,1.4+i%2,0,Math.PI*2);c.fill();}
  }
  hit(x:number,y:number):FishingHit|null{
   // A tall building pokes over the terrace above it: clicks on that terrace's floor still walk.

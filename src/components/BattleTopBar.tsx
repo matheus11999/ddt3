@@ -1,3 +1,4 @@
+import {view} from '../game/viewport';
 import {useEffect,useRef} from 'react';
 import {LogOut} from 'lucide-react';
 import {getMap} from '../../shared/maps';
@@ -82,8 +83,8 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
    const sky=c.createLinearGradient(0,0,0,MINI_H);sky.addColorStop(0,'#1d3b6e');sky.addColorStop(1,'#0b1730');c.fillStyle=sky;c.fillRect(0,0,MINI_W,MINI_H);
    if(backdrop.complete&&backdrop.naturalWidth){const h=backdrop.naturalHeight*MINI_W/backdrop.naturalWidth;c.globalAlpha=.6;drawScaled(c,backdrop,0,MINI_H-h,MINI_W,h);c.globalAlpha=1;c.fillStyle='#0b173044';c.fillRect(0,0,MINI_W,MINI_H);}
    c.drawImage(ground,0,0,MINI_W,MINI_H);
-   const cam=sceneView.camera,hw=WORLD.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
-   if(cam.zoom>1.02||worldWidth>WORLD.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
+   const cam=sceneView.camera,hw=view.width/(2*cam.zoom),hh=WORLD.height/(2*cam.zoom);
+   if(cam.zoom>1.02||worldWidth>view.width){c.strokeStyle='#ffffffcc';c.lineWidth=1;c.strokeRect((cam.x-hw)*sx+.5,(cam.y-hh)*sy+.5,hw*2*sx-1,hh*2*sy-1);}
    // Expeditions: the nest as a ring, the queen as a big gold-rimmed dot, ants as small ones.
    const nest=b.instance?.nest;if(nest){c.beginPath();c.arc(nest.x*sx,(nest.y-10)*sy,4.5,0,Math.PI*2);c.strokeStyle='#e3a25a';c.lineWidth=2;c.stroke();}
    for(const player of b.players){
