@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {DoorOpen,Hand,Anchor} from 'lucide-react';
+import {DoorOpen} from 'lucide-react';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
 import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
@@ -43,18 +43,16 @@ export function FishingHud({blocked}:{blocked:boolean}){
  const autoOn=fishing?auto:autoPref;
  return <div className="fishing-hud">
   <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/> Sair da Pescaria</button>
-  <section className="fishing-card" aria-label="Pescador">
-   <div className="fishing-medal"><img src="/assets/ui/aura-blue-sigil.png" alt="" draggable={false}/><FishingIcon id={rod.id} size={40}/><b className="fishing-medal-level">{progress.level}</b></div>
-   <div className="fishing-card-lines">
-    <small>Pescador</small><strong>Nível {progress.level}</strong>
-    <div className="fishing-xp" title="EXP de pescador"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div>
-    <div className="fishing-points" title="Pontos de Pesca: troque na Casa de Pesca"><FishingIcon id="fishing-points" size={22}/><b>{f.points.toLocaleString('pt-BR')}</b><span>Pontos de Pesca</span></div>
-   </div>
+  <section className="fishing-card" aria-label="Pescador" title="Nível de pescador: sobe com a EXP de pesca">
+   <b className="fishing-card-level">{progress.level}</b>
+   <div className="fishing-card-title"><small>Pescador</small><span className="fishing-points" title="Pontos de Pesca: troque na Casa de Pesca"><FishingIcon id="fishing-points" size={20}/><b>{f.points.toLocaleString('pt-BR')}</b></span></div>
+   <div className="fishing-xp" title="EXP de pescador"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div>
   </section>
   <section className="fishing-bar-panel" aria-label="Pescar">
-   <div className="fishing-gear">
-    <button className={`fishing-slot ${gear==='rod'?'open':''}`} onClick={()=>setGear(gear==='rod'?null:'rod')} title={`${rod.name}: ${rod.description}`}><span className="fishing-slot-art"><FishingIcon id={rod.id} size={42}/></span><span>Vara</span></button>
-    <button className={`fishing-slot ${gear==='bait'?'open':''}`} onClick={()=>setGear(gear==='bait'?null:'bait')} title={`${bait.name}: ${bait.description}`}><span className="fishing-slot-art"><FishingIcon id={bait.id} size={42}/><em>{bait.infinite?'∞':f.baits[bait.id]??0}</em></span><span>Isca</span></button>
+   <div className="fishing-tray">
+    <button className={`fishing-slot rod ${gear==='rod'?'open':''}`} onClick={()=>setGear(gear==='rod'?null:'rod')} title={`Vara: ${rod.name}. ${rod.description}`}><FishingIcon id={rod.id} size={56}/><span>Vara</span></button>
+    <button className={`fishing-slot bait ${gear==='bait'?'open':''}`} onClick={()=>setGear(gear==='bait'?null:'bait')} title={`Isca: ${bait.name}. ${bait.description}`}><FishingIcon id={bait.id} size={56}/><em>{bait.infinite?'∞':f.baits[bait.id]??0}</em><span>Isca</span></button>
+    <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><b>Auto</b><img src="/assets/fishing/ui/switch-knob.webp" alt="" draggable={false}/></span></button>
     {gear&&<div className="fishing-gear-menu" role="menu">
      <header>{gear==='rod'?'Suas varas':'Suas iscas'}</header>
      {gear==='rod'?FISHING_RODS.filter(r=>f.rods.includes(r.id)).map(r=><button key={r.id} role="menuitem" className={r.id===f.rod?'selected':''} disabled={phase==='bite'} onClick={()=>pick({rod:r.id})}><span className="fishing-slot-art"><FishingIcon id={r.id} size={36}/></span><span><b>{r.name}</b><small>{r.description}</small></span>{r.id===f.rod&&<i>Em uso</i>}</button>)
@@ -62,9 +60,8 @@ export function FishingHud({blocked}:{blocked:boolean}){
      <p className="fishing-gear-hint">Mais varas e iscas na Casa de Pesca.</p>
     </div>}
    </div>
-   <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i/></span><span>Auto</span></button>
-   {busy?<button className="fishing-main reel" onClick={reel}><Anchor size={20}/> Recolher</button>
-    :<button className={`fishing-main ${picking?'picking':''}`} disabled={phase==='result'&&!fishing?.spot} onClick={cast}><Hand size={20}/> {picking?'Escolha o lago':'Lançar'} <kbd>{picking?'Esc':'Espaço'}</kbd></button>}
+   {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span>Recolher</span></button>
+    :<button className={`fishing-main ${picking?'picking':''}`} disabled={phase==='result'&&!fishing?.spot} onClick={cast} title={picking?'Clique num lago (Esc cancela)':'Lançar (Espaço)'}><span>{picking?'Escolha o lago':'Lançar'}<kbd>{picking?'Esc':'Espaço'}</kbd></span></button>}
   </section>
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
    :!fishing&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}

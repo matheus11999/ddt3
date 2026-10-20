@@ -41,8 +41,8 @@ await page.waitForTimeout(2500);await shot(page,'02-entrada');
 await climb(page);
 // Lançar, then pick the lake: walk to its nearest free spot and cast.
 await page.locator('.fishing-main').click();await expect(page.locator('.fishing-tip.picking')).toBeVisible();
-await canvas.hover({position:onLake(-lake.rx+90)});await page.waitForTimeout(500);await shot(page,'03-escolher-lago');
-await canvas.click({position:onLake(-lake.rx+90)});
+await canvas.hover({position:onLake(-lake.rx+300)});await page.waitForTimeout(500);await shot(page,'03-escolher-lago');
+await canvas.click({position:onLake(-lake.rx+300)});
 await page.waitForTimeout(300);await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});await page.waitForTimeout(150);await shot(page,'03b-isca-na-agua');
 await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});
 await page.waitForTimeout(800);await shot(page,'03c-esperando');
