@@ -190,8 +190,13 @@ html.mobile-landscape .expedition-cover-top small{display:none}
 .pvp-hall.expedition-hall .hall-online-row:nth-child(even){background:#ffffff08}
 .pvp-hall.expedition-hall .hall-online-row.is-me{background:#f2cd7224;box-shadow:inset 0 0 0 1px #8a7444}
 .pvp-hall.expedition-hall .hall-online-headrow{background:#0d121b!important;color:#7d899c}
-.pvp-hall.expedition-hall .hall-big{box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #000,0 6px 12px #00000066}
-.pvp-hall.expedition-hall .hall-quick{box-shadow:inset 0 2px #e8ffd9,inset 0 -4px #17702b,0 3px #000,0 6px 12px #00000066}
+.pvp-hall.expedition-hall .hall-big{border-color:#c9a65a;background:radial-gradient(ellipse at 50% 0%,#3a4a66,transparent 70%),linear-gradient(#253044,#151c28 60%,#0d121b);box-shadow:inset 0 1px #ffffff26,inset 0 -4px #05080d,0 0 0 1px #05080d,0 3px #000,0 6px 12px #00000066;color:var(--wood-gold);text-shadow:0 1px #000,0 0 8px #f2cd7244}
+.pvp-hall.expedition-hall .hall-big-icon{border-color:#f2cd72;background:radial-gradient(circle at 40% 30%,#ffe7a0,#e2b04a 55%,#9c7022);box-shadow:inset 0 -3px #6e4c14,0 0 12px #f2cd7244;color:#2a1d06}
+.pvp-hall.expedition-hall .hall-big-icon svg{filter:drop-shadow(0 1px #fff3c455)}
+.pvp-hall.expedition-hall .hall-quick{border-color:#7fc79a;color:#b8f0c8;text-shadow:0 1px #000,0 0 8px #6fe09a44}
+.pvp-hall.expedition-hall .hall-quick .hall-big-icon{border-color:#b8f0c8;background:radial-gradient(circle at 40% 30%,#c4f5cf,#4fbf72 55%,#24753f);box-shadow:inset 0 -3px #16502a,0 0 12px #6fe09a44;color:#0c2a16}
+.pvp-hall.expedition-hall .hall-big:not(:disabled):hover{filter:brightness(1.18)}
+.pvp-hall.expedition-hall .hall-big:disabled{filter:saturate(.2);opacity:.5}
 .pvp-hall.expedition-hall .wood-chat .chat-tabs>button{border-color:#3a4760;background:linear-gradient(#1a2230,#121924);box-shadow:inset 0 1px #ffffff10;color:#97a3b6;text-shadow:0 1px #000}
 .pvp-hall.expedition-hall .wood-chat .chat-tabs>button.active{border-color:#8a7444;background:linear-gradient(#2c3749,#1d2636);color:var(--wood-gold);text-shadow:0 1px #000}
 .pvp-hall.expedition-hall .wood-chat .chat-messages{border-color:#2a3446;background:linear-gradient(#131a25,var(--wood-cream-deep));box-shadow:inset 0 0 0 1px var(--wood-edge),inset 0 3px 8px #00000066;scrollbar-color:#3a4760 transparent}
