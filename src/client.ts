@@ -136,7 +136,7 @@ class Client {
  private connect(){
   this.update({status:'connecting',invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[]});const ws=new WebSocket(`${location.protocol==='https:'?'wss:':'ws:'}//${location.host}/ws`);this.ws=ws;
   const connectTimeout=window.setTimeout(()=>{if(ws.readyState!==WebSocket.OPEN)ws.close();},10000);
-  ws.onopen=()=>{clearTimeout(connectTimeout);this.retry=0;this.update({status:'online',error:null});this.send({type:'client-features',loading:true});this.pingTimer=window.setInterval(()=>this.send({type:'ping',time:Date.now()}),5000);};
+  ws.onopen=()=>{clearTimeout(connectTimeout);this.retry=0;this.update({status:'online',error:null});this.send({type:'client-features',loading:true});const ping=()=>this.send({type:'ping',time:Date.now()});ping();this.pingTimer=window.setInterval(ping,3000);};
   ws.onmessage=e=>{let event:ServerEvent;try{event=JSON.parse(e.data);}catch{return;}this.receive(event);};
   ws.onclose=e=>{clearTimeout(connectTimeout);clearInterval(this.pingTimer);clearTimeout(this.loadoutTimer);this.abilityLoadoutQueue.cancel();clearTimeout(this.customizationTimer);this.customizationQueue.cancel();if(e.code===4001){this.update({status:'replaced',roomInvitations:[],invitePlayers:[],inviteListRoomId:null});return;}this.update({status:'offline',roomInvitations:[],invitePlayers:[],inviteListRoomId:null});this.reconnectTimer=window.setTimeout(()=>this.connect(),Math.min(10000,1000*2**this.retry++));};
   ws.onerror=()=>ws.close();

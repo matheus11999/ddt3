@@ -21,6 +21,7 @@ import './components/Notifications.css';
 import {useCallback,useEffect,useLayoutEffect,useState} from 'react';
 import {Swords,Settings,Volume2,Check,WifiOff} from 'lucide-react';
 import {ScreenCurtain} from './components/ScreenCurtain';
+import {NetStats} from './components/NetStats';
 import {startCurtain} from './screenCurtain';
 import {installPictureGate} from './screenAssets';
 import {client,useGame} from './client';import {Scene} from './game/Scene';import type {LobbyAction} from './game/lobbyWorld';import {audio} from './game/audio';import {Hud} from './components/Hud';import {Inventory} from './components/Inventory';import {Arena,RoomView} from './components/Arena';import {BattleHud} from './components/BattleHud';import {Modal} from './components/Modal';import {Forge} from './components/Forge';import {SMITH_POSITION} from '../shared/catalog';
@@ -59,6 +60,7 @@ export default function App(){
  return <main className="app-shell"><div className="game-frame" style={{width:frameWidth,transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale,'--frame-width':`${frameWidth}px`} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
   {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&panel!=='expeditions'&&<Hud onArena={openArena} onExpeditions={openExpeditions} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}{!state.room&&state.zone==='fishing'&&<FishingHud blocked={orientation.portrait||!!panel||playerWindow||state.fishShopOpen}/>}</>):null}
   {state.profile&&state.loading&&!state.battle&&<MatchLoading scale={scale}/>}
+  {state.profile&&<NetStats/>}
   {state.needsCharacter&&!state.profile&&<CharacterCreation/>}
   {state.profile&&panel==='shop'&&<Shop onClose={close}/>}
   {state.profile&&state.mailOpen&&!state.battle&&<Mailbox/>}

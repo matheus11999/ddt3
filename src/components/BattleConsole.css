@@ -270,7 +270,8 @@ html.mobile-landscape .artillery-hud .queued-boost .boost-damage-label>i{top:9px
 .artillery-hud.fighter-fallen .boost-queue,.artillery-hud.battle-finished .boost-queue{display:none}
 @media(prefers-reduced-motion:reduce){.artillery-hud .queued-boost{animation:none}}
 /* Wind: no plate (matheus, 17/10): outlined number, an arrow that drifts a little more the stronger the wind, and the wind of my last shot. */
-.artillery-hud .wind-gauge{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;min-width:150px;pointer-events:none;color:#fff}
+/* margin-top: room for the FPS and latency readout above it (NetStats). */
+.artillery-hud .wind-gauge{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:12px;min-width:150px;pointer-events:none;color:#fff}
 .artillery-hud .wind-gauge .wind-title{font:400 12px/1 var(--hud-font);letter-spacing:.6px;color:#d9f4ff;text-shadow:var(--hud-outline)}
 .artillery-hud .wind-now,.artillery-hud .wind-last{display:flex;align-items:center;gap:6px}
 .artillery-hud .wind-now-left{flex-direction:row-reverse}
