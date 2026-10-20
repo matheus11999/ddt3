@@ -7,7 +7,7 @@
 - Som `angleChange` original (`scripts/make-angle-click.py`, ~120 ms, inspirado no `Sound006`), tocado por `BattleHud.stepAngle` uma vez por mudança real de grau (teclado e botões/toque), nunca no limite, em correção de terreno ou snapshot.
 - Debug temporário: `?hitbox=1` ou `localStorage['brasa-debug-hitbox']='1'`.
 - Verificação: `npm run check`, `npm test` (442, novo `tests/hitbox.test.ts` com centro, faces, quatro cantos nas duas direções, tangência, alta velocidade, parede antes do alvo, raios por arma, mortos, monstros, saída do lançador), `npm run build`; `node scripts/preview-aim.mjs` (com e sem `DEBUG=1`) capturou mínimo/meio/máximo, esquerda/direita e rampas e conferiu o som (3 cliques = 3 toques, 0 no limite, 0 em snapshot, repetição segurando a tecla).
-- Limitações: análise estática da fonte, sem medir o cliente oficial em execução; `CanCollied`/`m_demageRect` não reproduzidos; o tamanho em tela do arco (escala 1,8) foi escolhido para o boneco maior do Brasa.
+- Limitações: análise estática da fonte, sem medir o cliente oficial em execução; `CanCollied`/`m_demageRect` não reproduzidos; o tamanho em tela do arco (escala 1,2 desde 20/10, era 1,8) foi escolhido para o boneco maior do Brasa.
 
 ## Destruição por arma, fase e POW — 19/10/2026
 
