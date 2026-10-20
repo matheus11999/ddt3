@@ -7,7 +7,7 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
+import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
 import type {Fish,FishChallenge,FishingPhase,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
@@ -71,7 +71,7 @@ export type SavedMatch=Omit<Match,'terrain'|'invisibilityActivated'|'pendingImpa
 export interface SavedGame {savedAt:number;nextRoomNumber:number;rooms:Room[];roomMatches:[string,string][];peers:{id:string;roomId:string;channel:number;profile:Profile}[];}
 const ROOM_INVITE_TTL_MS=60000,ROOM_INVITE_SEND_MS=2000,ROOM_INVITE_PAIR_MS=30000,ROOM_INVITE_LIST_MS=1000,ONLINE_LIST_MS=2000,ONLINE_LIST_LIMIT=100,PLAYER_INFO_MS=300,CHAT_LOG_LIMIT=300;
 /** One cast at a spot: waiting for a bite, the bar, then the result on screen. */
-interface FishingSession {spot:FishingSpot;phase:FishingPhase;since:number;biteAt:number;bait:string;fish?:Fish;challenge?:FishChallenge;start:number;press:number;misses:number;grades:PressGrade[];resolveAt:number;settling?:boolean;result?:FishingView['result'];}
+interface FishingSession {spot:FishingSpot;phase:FishingPhase;since:number;biteAt:number;/** The rod this cast was thrown with (its prizes are rolled on the catch). */rod:string;fish?:Fish;challenge?:FishChallenge;start:number;press:number;misses:number;grades:PressGrade[];resolveAt:number;settling?:boolean;result?:FishingView['result'];}
 /** Rooms, matches and hall sessions open only from Praça Celeste: the Pescaria has to walk back first. */
 const PLAZA_ONLY_COMMANDS=new Set<Command['type']>(['create','create-expedition','join','spectate','world-boss-enter']);
 const SPECTATOR_BLOCKED_COMMANDS=new Set<Command['type']>(['expedition-select','ability-loadout','ready','queue','cancel-queue','start','practice-start','room-gvg','bot','room-slot','room-rename','kick','room-spectator-slot','spectator-kick','room-invite','room-invite-list','power','ability','flight','boost','aim','walk','face','fire','pass','reward-pick','rematch','pet-skill']);
@@ -157,16 +157,16 @@ export class Game {
   if(f&&f.spot.id!==spot.id)this.stopFishing(p,false);
   if(f&&(f.settling||f.phase==='waiting'||f.phase==='bite'))return;
   for(const other of this.peers.values())if(other!==p&&other.connected&&other.fishing?.spot.id===spot.id&&other.channel===p.channel)throw Error('Alguém já está pescando aí.');
-  const fishing=normalizeFishing(p.profile.fishing),rod=ROD_BY_ID.get(fishing.rod)!,bait=BAIT_BY_ID.get(fishing.bait)!,now=Date.now();
+  const fishing=normalizeFishing(p.profile.fishing),rod=ROD_BY_ID.get(fishing.rod)!,now=Date.now();
   p.x=p.targetX=spot.x;p.y=p.targetY=spot.y;
-  p.fishing={spot,phase:'waiting',since:now,biteAt:now+biteWaitMs(rod,bait,!!p.fishAuto,this.fishRoll()),bait:bait.id,start:0,press:0,misses:0,grades:[],resolveAt:0};
+  p.fishing={spot,phase:'waiting',since:now,biteAt:now+biteWaitMs(rod,!!p.fishAuto,this.fishRoll()),rod:rod.id,start:0,press:0,misses:0,grades:[],resolveAt:0};
   this.emitFishing(p);this.sendLobby(p.channel);
  }
  /** Server roll for fishing, uniform in [0, 1). */
  fishRoll:()=>number=()=>randomInt(1_000_000)/1_000_000;
  private stopFishing(p:Peer,announce=true){
   const f=p.fishing;if(!f)return;
-  // A bar already being saved finishes on its own; the bait of a cast that had a bite is spent.
+  // A bar already being saved finishes on its own.
   if(f.settling)return;
   delete p.fishing;
   if(f.phase==='bite')void this.settleFish(p,f,false,0,true).catch(this.report);
@@ -185,8 +185,8 @@ export class Game {
  private tickFishing(p:Peer,now:number):boolean{
   const f=p.fishing!;if(f.settling)return false;
   if(f.phase==='waiting'&&now>=f.biteAt){
-   const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp)),bait=BAIT_BY_ID.get(f.bait)??BAIT_BY_ID.get('bait-simple')!;
-   f.fish=pickFish(f.spot.fish,rod,bait,this.fishRoll());f.challenge=fishChallenge(f.fish,rod,randomInt(2**31));
+   const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp));
+   f.fish=pickFish(f.spot.fish,rod,this.fishRoll());f.challenge=fishChallenge(f.fish,rod,randomInt(2**31));
    f.phase='bite';f.since=now;f.start=now+HOOK_LEAD_MS;f.resolveAt=now+AUTO_BASE_MS+AUTO_PER_HIT_MS*f.challenge.hits;
    this.emitFishing(p);return true;
   }
@@ -202,17 +202,21 @@ export class Game {
   }
   return false;
  }
- /** Saves the end of a cast (bait, catch, points, EXP) and shows the result. */
+ /** Saves the end of a cast (catch, points, EXP, the rod's prizes) and shows the result. */
  private async settleFish(p:Peer,f:FishingSession,success:boolean,quality:number,silent=false,auto=false){
   if(f.settling)return;f.settling=true;
   const fish=f.fish;let caught;
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
-   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
+   const drops=fish&&success?rollRodDrops(ROD_BY_ID.get(f.rod)??ROD_BY_ID.get(STARTER_ROD)!,auto,this.fishRoll):[];
+   const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
    p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
    // Épico e Lendário: o canal inteiro fica sabendo, no chat Mundo.
-   if(caught&&fish&&fishRarity(fish).announce){const r=fishRarity(fish),line:ChatLine={id:randomUUID(),name:'Pescaria',text:`${p.profile.name} pescou ${fish.name} (${r.name}, ${caught.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg)!`,channel:'world',time:Date.now()};
-    for(const peer of this.peers.values())if(peer.connected&&peer.channel===p.channel)this.emit(peer,{type:'chat',message:line});}
+   const announce=(text:string)=>{const line:ChatLine={id:randomUUID(),name:'Pescaria',text,channel:'world',time:Date.now()};
+    for(const peer of this.peers.values())if(peer.connected&&peer.channel===p.channel)this.emit(peer,{type:'chat',message:line});};
+   if(caught&&fish&&fishRarity(fish).announce){const r=fishRarity(fish);announce(`${p.profile.name} pescou ${fish.name} (${r.name}, ${caught.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg)!`);}
+   // Cupons e Fragmentos são raros: também vão para o chat Mundo.
+   for(const d of caught?.drops??[])if(d.kind!=='gold')announce(`${p.profile.name} pescou ${d.amount} ${d.kind==='coupons'?(d.amount===1?'Cupom':'Cupons'):d.amount===1?'Fragmento da Vara das Marés':'Fragmentos da Vara das Marés'}!`);
   }catch(e){this.report(e);success=false;}
   finally{f.settling=false;}
   if(silent||p.fishing!==f)return;
@@ -541,8 +545,8 @@ export class Game {
     }
     case 'fish-gear':{
      if(!this.store.fishGear)throw Error('A pescaria está indisponível no momento.');
-     if(p.fishing&&p.fishing.phase!=='idle'&&p.fishing.phase!=='result')throw Error('Recolha a linha antes de trocar a vara ou a isca.');
-     p.profile=await this.store.fishGear(id,c.rod,c.bait);this.emit(p,{type:'profile',profile:p.profile});return;
+     if(p.fishing&&p.fishing.phase!=='idle'&&p.fishing.phase!=='result')throw Error('Recolha a linha antes de trocar a vara.');
+     p.profile=await this.store.fishGear(id,c.rod);this.emit(p,{type:'profile',profile:p.profile});return;
     }
     case 'fish-buy':{
      if(!this.store.fishBuy)throw Error('A pescaria está indisponível no momento.');

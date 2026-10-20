@@ -2,7 +2,10 @@ import {useEffect,useRef,useState} from 'react';
 import type {ReactNode} from 'react';
 import {ArrowRight,ChevronDown,Combine,LoaderCircle,Minus,Plus} from 'lucide-react';
 import {COMPOSITION_STONE_BY_ID} from '../../shared/composition';
-import {SYNTHESIS_CATEGORIES,SYNTHESIS_RECIPES,SYNTHESIS_RECIPE_BY_ID,stockOf,synthesisMax,synthesisStone} from '../../shared/synthesis';
+import {SYNTHESIS_CATEGORIES,SYNTHESIS_RECIPES,SYNTHESIS_RECIPE_BY_ID,fragmentWeapon,stockOf,synthesisMax,synthesisName,synthesisStone} from '../../shared/synthesis';
+import {CATALOG} from '../../shared/catalog';
+import {FishingIcon} from './FishingIcon';
+import {ItemIcon} from './ItemIcon';
 import type {SynthesisRecipe} from '../../shared/synthesis';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
@@ -16,12 +19,14 @@ const SYNTHESIS_ANIMATION_MS=1300;
 const ROMAN=['I','II','III','IV','V'];
 const money=(value:number)=>value.toLocaleString('pt-BR');
 
-/** Pedra de fortalecimento ou de composição pelo id da síntese (`fortify-2`, `attack-1`…). */
+/** Pedra de fortalecimento ou de composição pelo id da síntese (`fortify-2`, `attack-1`…), fragmento de arma ou a arma. */
 function SynthIcon({id,size,tier=false}:{id:string;size:number;tier?:boolean}){
+ if(fragmentWeapon(id))return <span className="synthesis-icon" style={{width:size,height:size}}><FishingIcon id="fragment" size={size}/></span>;
+ if(CATALOG[id]?.slot==='weapon')return <span className="synthesis-icon" style={{width:size,height:size}}><ItemIcon id={id} size={size}/></span>;
  const stone=synthesisStone(id);if(!stone)return null;
  return <span className="synthesis-icon" style={{width:size,height:size}}>{stone.kind==='fortify'?<StoneIcon level={stone.level} size={size}/>:<CompositionIcon stat={COMPOSITION_STONE_BY_ID[id].stat} size={size}/>}{tier&&<small>{ROMAN[stone.level-1]}</small>}</span>;
 }
-const nameOf=(id:string)=>synthesisStone(id)?.name??'';
+const nameOf=synthesisName;
 
 /** Aba Síntese do ferreiro: receitas em tabela, uma categoria por menu que abre; a bancada à esquerda mostra a receita escolhida. */
 export function ForgeSynthesis({tabs}:{tabs:ReactNode}){
@@ -53,7 +58,7 @@ export function ForgeSynthesis({tabs}:{tabs:ReactNode}){
   if(!canSynthesize||pendingRef.current)return;pendingRef.current=true;submitted.current=state.synthesisResult;startedAt.current=performance.now();
   setPending(true);setResult(null);setError(null);client.update({error:null});client.send({type:'synthesize',stone:selected,count:amount});audio.play('click');
  }
- const feedback=error??(pending?'A forja está trabalhando…':result?`Recebeu ${result.count} × ${nameOf(result.target)} por ${money(result.cost)} de ouro.`:!recipe?'Escolha uma receita na tabela.':have<recipe.inputCount?`Faltam pedras: cada síntese usa ${recipe.inputCount} × ${nameOf(recipe.input)}.`:max<1?'Ouro insuficiente para esta síntese.':`${amount*recipe.inputCount} × ${nameOf(recipe.input)} viram ${amount} × ${nameOf(recipe.result)}.`);
+ const feedback=error??(pending?'A forja está trabalhando…':result?`Recebeu ${result.count} × ${nameOf(result.target)} por ${money(result.cost)} de ouro.`:!recipe?'Escolha uma receita na tabela.':have<recipe.inputCount?`Falta material: cada síntese usa ${recipe.inputCount} × ${nameOf(recipe.input)}.`:max<1?'Ouro insuficiente para esta síntese.':`${amount*recipe.inputCount} × ${nameOf(recipe.input)} viram ${amount} × ${nameOf(recipe.result)}.`);
  return <div className="smith-layout synthesis-layout">
   <section className={`smith-bench forge-workbench synthesis-bench ${pending?'is-strengthening':''}`} id="forge-service-content" role="tabpanel" aria-label="Bancada de síntese" aria-busy={pending}>
    <header className="smith-head">
@@ -92,7 +97,7 @@ export function ForgeSynthesis({tabs}:{tabs:ReactNode}){
    </div>
   </section>
   <section className="smith-pane synthesis-pane" aria-label="Receitas de síntese">
-   <div className="smith-toolbar"><h2><Combine size={16}/>Receitas</h2><span className="capacity">4 pedras → 1 do nível seguinte</span></div>
+   <div className="smith-toolbar"><h2><Combine size={16}/>Receitas</h2><span className="capacity">Fragmentos viram armas; 4 pedras → 1 do nível seguinte</span></div>
    <div className="smith-shelf">
     <div className="smith-grid synthesis-table-wrap">
      <table className="synthesis-table">
@@ -107,7 +112,7 @@ export function ForgeSynthesis({tabs}:{tabs:ReactNode}){
        </tr>;})}
       </tbody>;})}
      </table>
-     {!categories.length&&<p className="synthesis-empty">Nenhuma pedra para sintetizar na mochila.</p>}
+     {!categories.length&&<p className="synthesis-empty">Nenhum material para sintetizar na mochila.</p>}
     </div>
     {tabs}
    </div>

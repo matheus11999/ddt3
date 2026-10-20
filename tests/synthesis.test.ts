@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {commandSchema} from '../shared/protocol';
 import {CATALOG} from '../shared/catalog';
 import {canCompose} from '../shared/composition';
-import {COMPOSE_SYNTHESIS_COST,FORTIFY_SYNTHESIS_COST,SYNTHESIS_CATEGORIES,SYNTHESIS_RECIPES,SYNTHESIS_RECIPE_BY_ID,synthesisMax,synthesize} from '../shared/synthesis';
+import {WEAPON_FRAGMENT_RECIPES,fragmentId,COMPOSE_SYNTHESIS_COST,FORTIFY_SYNTHESIS_COST,SYNTHESIS_CATEGORIES,SYNTHESIS_RECIPES,SYNTHESIS_RECIPE_BY_ID,synthesisMax,synthesize} from '../shared/synthesis';
 
 test('síntese junta 4 pedras de um nível em 1 do nível seguinte pagando ouro, para fortalecimento e composição', ()=>{
  const profile={gold:200,stones:{'1':9,'2':0,'5':3},compositionStones:{'luck-2':8,'luck-3':1}};
@@ -19,7 +19,7 @@ test('síntese junta 4 pedras de um nível em 1 do nível seguinte pagando ouro,
  assert.throws(()=>synthesize(profile,'fortify-5',1),/não pode/);
  assert.throws(()=>synthesize(profile,'luck-3',1),/não pode/);
  assert.throws(()=>synthesize(profile,'fortify-1',0),/quantas/);
- assert.equal(SYNTHESIS_RECIPES.length,4+5*2);
+ assert.equal(SYNTHESIS_RECIPES.length,1+4+5*2);
  assert.ok(SYNTHESIS_RECIPES.every(r=>r.cost>0&&SYNTHESIS_CATEGORIES.some(c=>c.id===r.category)));
 });
 
@@ -32,4 +32,16 @@ test('o comando de síntese só aceita pedras que sobem de nível', ()=>{
 
 test('colar não tem aprimoramento no ferreiro', ()=>{
  for(const id of ['necklace-star','necklace-guild-1'])assert.equal(canCompose(CATALOG[id]),false);
+});
+
+test('50 fragmentos pescados viram a Vara das Marés na síntese, como item novo ou cópia', ()=>{
+ const recipe=WEAPON_FRAGMENT_RECIPES.find(r=>r.weapon==='tide-rod')!;
+ assert.equal(recipe.count,50);assert.equal(CATALOG['tide-rod'].slot,'weapon');
+ const profile={gold:recipe.cost*2,stones:{},compositionStones:{},fragments:{'tide-rod':120},inventory:['brick'],upgrades:{brick:3} as Record<string,number>};
+ assert.equal(synthesisMax(profile,SYNTHESIS_RECIPE_BY_ID[fragmentId('tide-rod')]),2);
+ synthesize(profile,fragmentId('tide-rod'),2);
+ assert.deepEqual(profile.inventory,['brick','tide-rod','tide-rod~2']);assert.equal(profile.upgrades['tide-rod~2'],0);
+ assert.equal(profile.fragments['tide-rod'],20);assert.equal(profile.gold,0);
+ assert.throws(()=>synthesize(profile,fragmentId('tide-rod'),1),/50 fragmentos/);
+ assert.equal(commandSchema.safeParse({type:'synthesize',stone:'frag-tide-rod',count:1}).success,true);
 });

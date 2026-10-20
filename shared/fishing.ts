@@ -12,20 +12,48 @@ export * from './fishingMap';
 /**
  * control widens the bar's target, speed multiplies the wait for a bite (lower = faster),
  * luck raises the odds of the harder fish, auto adds to the automatic mode's chance.
+ * `drops` are the rod's own extra prizes, rolled on every catch (never helped by the fisher level).
+ * Iscas saíram do jogo (pedido do matheus, 20/10): a vara é a progressão da pesca.
  */
-export interface FishingRod {id:string;name:string;description:string;control:number;speed:number;luck:number;auto:number;}
-export interface FishingBait {id:string;name:string;description:string;/** Never runs out (the simple bait). */infinite?:boolean;speed:number;luck:number;}
+export interface FishingRod {id:string;name:string;description:string;control:number;speed:number;luck:number;auto:number;drops?:readonly RodDrop[];}
+/** One extra prize a rod can bring up with a fish: `chance` per manual catch (automatic: × AUTO_EFFICIENCY). */
+export type RodDrop={kind:'gold';chance:number;min:number;max:number}|{kind:'coupons';chance:number;amount:number}|{kind:'fragment';chance:number;weapon:string;amount:number};
+/** The weapon whose fragments come from fishing (50 make it in the Ferreiro, shared/synthesis.ts). */
+export const FISHING_WEAPON='tide-rod';
 export const FISHING_RODS:readonly FishingRod[]=[
  {id:'rod-bamboo',name:'Vara de Bambu',description:'Vara inicial, leve e confiável.',control:0,speed:1,luck:0,auto:0},
- {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e peixes raros com mais frequência.',control:.18,speed:.9,luck:.12,auto:.06},
+ {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e peixes raros com mais frequência. Às vezes traz Ouro.',control:.18,speed:.9,luck:.12,auto:.06,
+  drops:[{kind:'gold',chance:.02,min:10,max:30}]},
+ {id:'rod-coral',name:'Vara de Coral',description:'Mais Ouro e, raramente, um Fragmento da Vara das Marés.',control:.24,speed:.86,luck:.2,auto:.08,
+  drops:[{kind:'gold',chance:.03,min:20,max:50},{kind:'fragment',chance:.002,weapon:FISHING_WEAPON,amount:1}]},
+ {id:'rod-crystal',name:'Vara de Cristal',description:'Peixes raros mordem bem mais; Fragmentos com mais frequência.',control:.3,speed:.82,luck:.28,auto:.1,
+  drops:[{kind:'gold',chance:.03,min:30,max:80},{kind:'fragment',chance:.005,weapon:FISHING_WEAPON,amount:1}]},
+ {id:'rod-aurora',name:'Vara da Aurora',description:'Pode pescar Cupons, com chance muito baixa.',control:.36,speed:.78,luck:.36,auto:.12,
+  drops:[{kind:'gold',chance:.04,min:40,max:100},{kind:'coupons',chance:.0005,amount:1},{kind:'fragment',chance:.01,weapon:FISHING_WEAPON,amount:1}]},
+ {id:'rod-royal',name:'Vara Real',description:'A melhor vara: mais Cupons e Fragmentos.',control:.42,speed:.74,luck:.45,auto:.14,
+  drops:[{kind:'gold',chance:.04,min:50,max:150},{kind:'coupons',chance:.001,amount:1},{kind:'fragment',chance:.02,weapon:FISHING_WEAPON,amount:1}]},
 ];
-export const FISHING_BAITS:readonly FishingBait[]=[
- {id:'bait-simple',name:'Isca Simples',description:'Minhoca comum. Nunca acaba.',infinite:true,speed:1,luck:0},
- {id:'bait-glow',name:'Isca Brilhante',description:'Atrai peixes raros e morde mais rápido. Gasta 1 por lançamento.',speed:.8,luck:.3},
-];
-export const STARTER_ROD='rod-bamboo',STARTER_BAIT='bait-simple';
+export const STARTER_ROD='rod-bamboo';
 export const ROD_BY_ID=new Map(FISHING_RODS.map(r=>[r.id,r]));
-export const BAIT_BY_ID=new Map(FISHING_BAITS.map(b=>[b.id,b]));
+/** Most of each rod prize one player can fish per day (Brasília): keeps the AFK from minting cash. */
+export const FISHING_DAILY_CAPS={gold:2000,coupons:5,fragments:10} as const;
+export type FishingDropKind=keyof typeof FISHING_DAILY_CAPS;
+/** A prize that came up with a fish (what was actually given, after the daily cap). */
+export interface FishingDrop {kind:FishingDropKind;amount:number;/** Fragments: the weapon they belong to. */weapon?:string;}
+/** Rolls the rod's prizes for one catch; `roll` is the server's [0,1) generator. */
+export function rollRodDrops(rod:FishingRod,auto:boolean,roll:()=>number):FishingDrop[]{
+ const out:FishingDrop[]=[];
+ for(const d of rod.drops??[]){
+  if(roll()>=d.chance*(auto?AUTO_EFFICIENCY:1))continue;
+  if(d.kind==='gold')out.push({kind:'gold',amount:d.min+Math.floor(roll()*(d.max-d.min+1))});
+  else if(d.kind==='coupons')out.push({kind:'coupons',amount:d.amount});
+  else out.push({kind:'fragments',amount:d.amount,weapon:d.weapon});
+ }
+ return out;
+}
+const DAY=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
+/** The Brasília calendar day of a time, as the daily caps count it. */
+export function fishingDay(at:number):string{return DAY.format(new Date(at));}
 
 // ── Fish ──
 /** difficulty 1–5 sets the bar (speed, target, presses); points are the Pontos de Pesca a catch is worth. */
@@ -66,7 +94,7 @@ export const FISH_RARITIES:readonly FishRarityInfo[]=[
 ];
 export const fishRarity=(fish:Pick<Fish,'difficulty'>):FishRarityInfo=>FISH_RARITIES[Math.max(1,Math.min(5,fish.difficulty))-1];
 
-/** Seconds waiting for a bite, before the rod and the bait (and ×AUTO_WAIT in automatic). */
+/** Seconds waiting for a bite, before the rod (and ×AUTO_WAIT in automatic). */
 export const BITE_WAIT=[6,13] as const;
 export const AUTO_WAIT=1.2;
 /** After the bite the bar shows "Fisgou!" this long before the marker counts. */
@@ -116,9 +144,9 @@ export function gradePress(challenge:FishChallenge,press:number,elapsed:number):
 }
 /** Chance that the automatic mode lands this fish: always below a good manual player. */
 export function autoChance(fish:Fish,rod:FishingRod):number{return Math.max(.2,Math.min(.85,.82-.11*(fish.difficulty-1)+rod.auto));}
-/** Picks the fish that bites, by lake, rod and bait luck (harder fish gain weight with luck). */
-export function pickFish(lake:string,rod:FishingRod,bait:FishingBait,roll:number):Fish{
- const luck=rod.luck+bait.luck,pool=FISH.filter(f=>f.lakes.includes(lake));
+/** Picks the fish that bites, by lake and the rod's luck (with the fisher level; harder fish gain weight with luck). */
+export function pickFish(lake:string,rod:FishingRod,roll:number):Fish{
+ const luck=rod.luck,pool=FISH.filter(f=>f.lakes.includes(lake));
  const weights=pool.map(f=>f.weight*(f.difficulty>=3?1+luck*(f.difficulty-2):1)),total=weights.reduce((a,b)=>a+b,0);
  let r=roll*total;for(let i=0;i<pool.length;i++){r-=weights[i];if(r<0)return pool[i];}
  return pool[pool.length-1];
@@ -129,8 +157,8 @@ export function fishWeight(fish:Fish,roll:number,quality:number):number{
 }
 /** Pontos de Pesca for a catch: the fish's points plus up to half again for perfect presses. */
 export function catchPoints(fish:Fish,quality:number):number{return fish.points+Math.round(fish.points*.5*quality);}
-export function biteWaitMs(rod:FishingRod,bait:FishingBait,auto:boolean,roll:number):number{
- return Math.round((BITE_WAIT[0]+(BITE_WAIT[1]-BITE_WAIT[0])*roll)*1000*rod.speed*bait.speed*(auto?AUTO_WAIT:1));
+export function biteWaitMs(rod:FishingRod,auto:boolean,roll:number):number{
+ return Math.round((BITE_WAIT[0]+(BITE_WAIT[1]-BITE_WAIT[0])*roll)*1000*rod.speed*(auto?AUTO_WAIT:1));
 }
 
 // ── Nível de pescador ──
@@ -141,48 +169,59 @@ export function fishingLevel(xp:number):number{let level=1;while(level<MAX_FISHI
 export function fishingLevelProgress(xp:number){const level=fishingLevel(xp),from=fishingXpFor(level),to=fishingXpFor(level+1);return {level,current:xp-from,required:level>=MAX_FISHING_LEVEL?0:to-from,percent:level>=MAX_FISHING_LEVEL?100:Math.floor((xp-from)/(to-from)*100)};}
 /** EXP for a manual catch (automatic gets AUTO_EFFICIENCY of it, `autoReward`). */
 export function catchXp(fish:Fish):number{return fish.points*10;}
-/** Each fisher level widens the bar's target a little and raises the odds of rare fish (and the automatic chance). */
+/** Each fisher level widens the bar's target a little and raises the odds of rare fish (and the automatic chance); never the rod's prizes. */
 export function levelBonus(level:number){const n=Math.max(0,Math.min(MAX_FISHING_LEVEL,level)-1);return {control:n*.008,luck:n*.006,auto:n*.002};}
 /** The rod as it fishes for a player of this fisher level. */
 export function effectiveRod(rod:FishingRod,level:number):FishingRod{const b=levelBonus(level);return {...rod,control:rod.control+b.control,luck:rod.luck+b.luck,auto:rod.auto+b.auto};}
 
 // ── Profile ──
 /** What a profile keeps about fishing (persisted inside the profile JSON). */
-export interface FishingProfile {rod:string;bait:string;rods:string[];/** Consumable baits; the simple bait is not counted. */baits:Record<string,number>;/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];}
+export interface FishingProfile {rod:string;rods:string[];/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];/** Rod prizes fished today (Brasília), against FISHING_DAILY_CAPS. */daily:{day:string;gold:number;coupons:number;fragments:number};}
 /** One catch in the history window. */
-export interface FishingHistoryEntry {fish:string;kg:number;points:number;xp:number;at:number;auto?:boolean;}
+export interface FishingHistoryEntry {fish:string;kg:number;points:number;xp:number;at:number;auto?:boolean;drops?:FishingDrop[];}
 export const FISHING_HISTORY=30;
+/** Pontos de Pesca given back per leftover Isca Brilhante (60 points bought 10). */
+const BAIT_REFUND=6;
 const int=(v:unknown,max=1e9)=>typeof v==='number'&&Number.isFinite(v)?Math.max(0,Math.min(max,Math.floor(v))):0;
 export function normalizeFishing(raw:unknown):FishingProfile{
  const r=(raw&&typeof raw==='object'?raw:{}) as Partial<FishingProfile>;
  const rods=[...new Set([STARTER_ROD,...(Array.isArray(r.rods)?r.rods.filter(id=>ROD_BY_ID.has(id)):[])])];
- const baits=Object.fromEntries(Object.entries(r.baits??{}).filter(([id,n])=>BAIT_BY_ID.has(id)&&!BAIT_BY_ID.get(id)!.infinite&&int(n)>0).map(([id,n])=>[id,int(n,9999)]));
- const bait=typeof r.bait==='string'&&BAIT_BY_ID.has(r.bait)&&(BAIT_BY_ID.get(r.bait)!.infinite||baits[r.bait]>0)?r.bait:STARTER_BAIT;
  const caught=Object.fromEntries(Object.entries(r.caught??{}).filter(([id])=>FISH_BY_ID.has(id)).map(([id,n])=>[id,int(n)]).filter(([,n])=>(n as number)>0));
  const best=Object.fromEntries(Object.entries(r.best??{}).filter(([id,kg])=>FISH_BY_ID.has(id)&&typeof kg==='number'&&kg>0).map(([id,kg])=>[id,Math.round((kg as number)*100)/100]));
  const history=(Array.isArray(r.history)?r.history:[]).filter((h):h is FishingHistoryEntry=>!!h&&typeof h==='object'&&FISH_BY_ID.has(h.fish)&&typeof h.at==='number').slice(0,FISHING_HISTORY)
-  .map(h=>({fish:h.fish,kg:typeof h.kg==='number'?Math.round(h.kg*100)/100:0,points:int(h.points),xp:int(h.xp),at:h.at,...(h.auto?{auto:true}:{})}));
- return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,bait,rods,baits,points:int(r.points),caught,best,total:int(r.total),xp:int(r.xp),history};
+  .map(h=>{const drops=(Array.isArray(h.drops)?h.drops:[]).filter(d=>d&&typeof d==='object'&&Object.hasOwn(FISHING_DAILY_CAPS,d.kind)&&int(d.amount)>0).map(d=>({kind:d.kind,amount:int(d.amount),...(typeof d.weapon==='string'?{weapon:d.weapon}:{})}));
+   return {fish:h.fish,kg:typeof h.kg==='number'?Math.round(h.kg*100)/100:0,points:int(h.points),xp:int(h.xp),at:h.at,...(h.auto?{auto:true}:{}),...(drops.length?{drops}:{})};});
+ // Iscas saíram do jogo (20/10): cada Isca Brilhante que sobrou volta como Pontos de Pesca (o preço dela na Casa de Pesca).
+ const legacy=(raw&&typeof raw==='object'?raw:{}) as {baits?:Record<string,unknown>};
+ const refund=int(legacy.baits?.['bait-glow'],9999)*BAIT_REFUND;
+ const d=r.daily&&typeof r.daily==='object'?r.daily:undefined;
+ const daily={day:typeof d?.day==='string'?d.day:'',gold:int(d?.gold),coupons:int(d?.coupons),fragments:int(d?.fragments)};
+ return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,rods,points:int(r.points)+refund,caught,best,total:int(r.total),xp:int(r.xp),history,daily};
 }
 
 // ── Fishing shop (Casa de Pesca): Pontos de Pesca for rewards ──
-export type FishingPrize={kind:'gold';amount:number}|{kind:'stone';level:number;amount:number}|{kind:'ticket';amount:number}|{kind:'pet-food';food:string;amount:number}|{kind:'rod';rod:string}|{kind:'bait';bait:string;amount:number};
+export type FishingPrize={kind:'gold';amount:number}|{kind:'stone';level:number;amount:number}|{kind:'ticket';amount:number}|{kind:'pet-food';food:string;amount:number}|{kind:'rod';rod:string};
 export interface FishingOffer {id:string;name:string;description:string;cost:number;prize:FishingPrize;/** Fisher level needed to buy it. */level?:number;}
 export const FISHING_SHOP:readonly FishingOffer[]=[
  {id:'gold-100',name:'100 de Ouro',description:'Moedas Brasa.',cost:50,prize:{kind:'gold',amount:100}},
- {id:'bait-glow-10',name:'Isca Brilhante ×10',description:'Peixes raros mordem mais.',cost:60,prize:{kind:'bait',bait:'bait-glow',amount:10}},
  {id:'stone-1',name:'Pedra de Fortalecimento Nv. 1',description:'Para o Ferreiro.',cost:30,prize:{kind:'stone',level:1,amount:1}},
  {id:'stone-2',name:'Pedra de Fortalecimento Nv. 2',description:'Para o Ferreiro.',cost:110,prize:{kind:'stone',level:2,amount:1},level:3},
  {id:'ticket-1',name:'Ticket de Cor',description:'Troca a cor de uma peça.',cost:150,prize:{kind:'ticket',amount:1}},
  {id:'pet-food-dew',name:'Adubo de Orvalho',description:'Comida de pet.',cost:40,prize:{kind:'pet-food',food:'pet-food-dew',amount:1}},
- {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e mais peixes raros.',cost:800,prize:{kind:'rod',rod:'rod-oak'},level:5},
+ {id:'stone-3',name:'Pedra de Fortalecimento Nv. 3',description:'Para o Ferreiro.',cost:400,prize:{kind:'stone',level:3,amount:1},level:10},
+ {id:'gold-1000',name:'1000 de Ouro',description:'Moedas Brasa.',cost:450,prize:{kind:'gold',amount:1000},level:15},
+ {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e mais peixes raros; às vezes traz Ouro.',cost:800,prize:{kind:'rod',rod:'rod-oak'},level:5},
+ {id:'rod-coral',name:'Vara de Coral',description:'Mais Ouro e, raramente, Fragmentos da Vara das Marés.',cost:2500,prize:{kind:'rod',rod:'rod-coral'},level:12},
+ {id:'rod-crystal',name:'Vara de Cristal',description:'Mais peixes raros e mais Fragmentos.',cost:5000,prize:{kind:'rod',rod:'rod-crystal'},level:20},
+ {id:'rod-aurora',name:'Vara da Aurora',description:'Pode pescar Cupons (chance muito baixa).',cost:10000,prize:{kind:'rod',rod:'rod-aurora'},level:30},
+ {id:'rod-royal',name:'Vara Real',description:'A melhor vara: mais Cupons e Fragmentos.',cost:20000,prize:{kind:'rod',rod:'rod-royal'},level:40},
 ];
 export const FISHING_OFFER_BY_ID=new Map(FISHING_SHOP.map(o=>[o.id,o]));
 export const MAX_FISHING_BUY=20;
 
 // ── What the client sees ──
 export type FishingPhase='idle'|'waiting'|'bite'|'result';
-export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
+export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;/** Rod prizes that came up with the fish. */drops?:FishingDrop[];/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
 /** My own fishing session: the bar runs from `start` (server time); `press`/`hits`/`misses` count the presses so far. */
 export interface FishingView {spot:string;phase:FishingPhase;auto:boolean;since:number;challenge?:FishChallenge&{start:number;press:number;misses:number;grades:PressGrade[]};result?:{success:boolean;catch?:FishingCatch;fish?:string};}
 /** What other players see of someone fishing (rod out, float, the fish coming out of the water). */

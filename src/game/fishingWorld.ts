@@ -80,8 +80,17 @@ function fixedPieces():Piece[]{
  return list;
 }
 
-/** A fish seen from the side (stand-in for the painted fish atlas), nose toward +x. */
+/** Painted fish icons (public/assets/fishing/icons, painted facing left), loaded on first use. */
+const paintedFish=new Map<string,HTMLImageElement>();
+function fishArt(id:string){
+ if(typeof Image==='undefined')return null;
+ let image=paintedFish.get(id);if(!image){image=new Image();image.src=`/assets/fishing/icons/${id}.png`;paintedFish.set(id,image);}
+ return image.complete&&image.naturalWidth?image:null;
+}
+/** A fish seen from the side, nose toward +x: the painted icon, or a drawn stand-in while it loads or has no art. */
 export function drawFish(c:CanvasRenderingContext2D,id:string,x:number,y:number,length:number,angle=0,alpha=1){
+ const art=fishArt(id);
+ if(art){const size=length*1.12;c.save();c.globalAlpha*=alpha;c.translate(x,y);c.rotate(angle);c.scale(-1,1);c.drawImage(art,-size/2,-size/2,size,size);c.restore();return;}
  const fish=FISH_BY_ID.get(id),color=fish?.color??'#8fb8d8',l=length;c.save();c.globalAlpha*=alpha;c.translate(x,y);c.rotate(angle);
  if(id==='bota-velha'){c.fillStyle='#6b4a2e';c.strokeStyle='#2e1c10';c.lineWidth=l*.05;c.beginPath();c.moveTo(-l*.3,-l*.35);c.lineTo(l*.05,-l*.35);c.lineTo(l*.08,-l*.02);c.quadraticCurveTo(l*.45,0,l*.42,l*.18);c.lineTo(-l*.32,l*.18);c.closePath();c.fill();c.stroke();c.fillStyle='#3a2616';c.fillRect(-l*.34,l*.12,l*.78,l*.08);c.restore();return;}
  const body=c.createLinearGradient(0,-l*.22,0,l*.22);body.addColorStop(0,shade(color,-.35));body.addColorStop(.45,color);body.addColorStop(1,shade(color,.45));
@@ -111,7 +120,7 @@ export class FishingWorld {
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[])this.art.set(id,image(`/assets/fishing/props/${id}.webp`));
  }
  /** Lets go of every painting and baked tile at once (not at the next garbage collection) when the player leaves the Pescaria. */
- release(){
+ release(){paintedFish.clear();
   if(!this.assets)return;this.assets=false;
   freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);
   for(const k of ['sky','floor','grass','water','rod','autoSeal'] as const){freeImage(this[k]);this[k]=new Image();}

@@ -68,7 +68,7 @@ export function hasAccessoryStats(slot:Slot,variant?:string):boolean {return !['
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',...(hasAccessoryStats(slot,variant)?ACCESSORY_STATS:{attack:0,defense:0,agility:0}),visual:{variant,color,...visual}});
 /** Fixed hole shapes, one per weapon and one for its POW, as in DDTank (shared/physics.ts CRATER_MASKS). */
 export type CraterShape='brick'|'brick-pow'|'oval'|'oval-pow'|'wind'|'wind-pow'|'thunder'|'thunder-pow';
-export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang'|'shuriken';
+export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang'|'shuriken'|'fish';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
 /** Ataque/Defesa/Agilidade/Sorte of one evolution phase, read from a table instead of the +10/+12 milestone rule. */
 export type WeaponPhaseStats=Pick<ItemAttributes,'attack'|'defense'|'agility'|'luck'>;
@@ -93,7 +93,11 @@ export const WEAPONS: Weapon[] = [
  // fanned −5°/0°/+5° with force ×0.9/×1/×1.1, each with its own smaller crater.
  {id:'thunder-coil',name:'Bobina do Trovão',slot:'weapon',rarity:'epic',color:'#4fb6ff',description:'Disparador elétrico de bobina para quem confia na Sorte. O POW solta três raios em leque, cada um com a sua cratera. Evolui na forja em +10, +12 e +15.',attack:30,defense:40,agility:60,luck:250,damage:200,crater:25,craterRoughness:0,craterShape:'thunder',powCraterShape:'thunder-pow',blast:92,splash:55,projectileRadius:3,effect:'electric',minAngle:25,maxAngle:60,hold:'hand',shotDelay:150,
   phaseStats:{0:{attack:30,defense:40,agility:60,luck:250},10:{attack:36,defense:48,agility:72,luck:300},12:{attack:46,defense:62,agility:93,luck:390},15:{attack:55,defense:77,agility:111,luck:488}},
-  pow:{damage:.6,crater:22.5,splash:65,fan:[{angle:-5,force:.9},{angle:0,force:1},{angle:5,force:1.1}]}}
+  pow:{damage:.6,crater:22.5,splash:65,fan:[{angle:-5,force:.9},{angle:0,force:1},{angle:5,force:1.1}]}},
+ // Pedido do matheus (20/10): a vara de pesca do DDTank (hook1, ID 7072) com os atributos dela; não se compra:
+ // 50 Fragmentos pescados (shared/fishing.ts) viram a arma na Síntese do Ferreiro. Tiro normal = um peixe; POW = um tubarão, único.
+ {id:'tide-rod',name:'Vara das Marés',slot:'weapon',rarity:'epic',color:'#3fb6ff',description:'Vara de pesca que arremessa peixes. O POW lança um tubarão inteiro num só golpe. Só se consegue juntando 50 Fragmentos pescados na Pescaria e sintetizando no Ferreiro. Evolui na forja em +10, +12 e +15.',attack:193,defense:138,agility:28,luck:39,damage:242,crater:26,craterRoughness:0,craterShape:'oval',powCraterShape:'oval-pow',blast:92,splash:55,projectileRadius:4,effect:'fish',minAngle:20,maxAngle:65,shotDelay:150,
+  pow:{damage:1.5,crater:30,splash:70}}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',...ACCESSORY_STATS,armor:5},

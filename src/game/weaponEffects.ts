@@ -32,7 +32,8 @@ const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly numb
  crystal:{hot:'#e6caff',mid:'#ed58ff',dark:'#7033d9',size:[51,58,65,73],trail:[5,10,15,21]},
  brick:{hot:'#ffdc9c',mid:'#ff6a2e',dark:'#9c2a1a',size:[36,42,50,58],trail:[7,10,14,18]},
  boomerang:{hot:'#fff0dd',mid:'#ff70ae',dark:'#af2773',size:[38,44,51,59],trail:[6,10,15,20]},
- shuriken:{hot:'#fff6dc',mid:'#ffc24a',dark:'#b8641c',size:[34,38,42,46],trail:[5,8,11,14]}
+ shuriken:{hot:'#fff6dc',mid:'#ffc24a',dark:'#b8641c',size:[34,38,42,46],trail:[5,8,11,14]},
+ fish:{hot:'#e8fbff',mid:'#3fb6ff',dark:'#1e5aa8',size:[40,46,53,60],trail:[5,8,11,14]}
 };
 const atlases=new Map<string,Atlas>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -320,9 +321,9 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
   }
   c.restore();
  }
- const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)||animated?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
+ const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken'||p.effect==='fish',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)||animated?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid&&!animated)c.scale(1,1+pulse*.09);
- const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
+ const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'||p.effect==='fish'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
  // A painted animation already carries its own flicker, sparks and trail; a spinning painting is cropped tight, so it keeps the cell's size.
  const painted=(animated&&drawStrip(c,p.effect,!!p.powered,tier,size*(strip?.spin?(p.powered?POW_SPRITE_SCALE:1):STRIP_SCALE*(p.powered?1.1:1)),clock))||(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();

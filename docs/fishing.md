@@ -31,11 +31,13 @@ Servidor autoritativo (`server/game.ts`, `castLine`/`pressBar`/`tickFishing`):
 
 Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos no meio da barra (`fish-gear`).
 
-## Varas, iscas e peixes
+## Varas, prêmios e peixes
 
-- **Vara de Bambu** (inicial, dada a todos) e **Vara de Carvalho** (Casa de Pesca, Nv. 5: +18% de verde, marcador 10% mais lento, +12% sorte, +6% no automático).
-- **Isca Simples** (infinita) e **Isca Brilhante** (gasta 1 por lançamento, morde mais rápido, +30% sorte).
-- 20 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Traíra das Taboas, Pacu Esmeralda e Peixe-Junco Dourado (Lago dos Juncos), Carpa Termal, Salamandra do Vapor e Fênix d'Água (Fonte Termal), Carpa-Dragão.
+- **Sem iscas** (pedido do matheus, 20/10): a vara é a progressão da pesca. Quem tinha Isca Brilhante recebe 6 Pontos de Pesca por isca (`normalizeFishing`).
+- 6 varas (`FISHING_RODS`), compradas na Casa de Pesca com nível de pescador: Bambu (inicial), Carvalho (Nv. 5), Coral (Nv. 12), Cristal (Nv. 20), Aurora (Nv. 30) e Real (Nv. 40). Cada uma tem controle, velocidade, sorte, bônus no automático e uma **tabela de prêmios** própria (`drops`): Ouro a partir do Carvalho, Fragmentos da Vara das Marés a partir do Coral, Cupons na Aurora e na Real (0,05% e 0,1% por peixe).
+- Os prêmios são sorteados no servidor a cada peixe pescado (`rollRodDrops`); no automático a chance cai para 25%. **Limite diário** por jogador (dia de Brasília, `FISHING_DAILY_CAPS`): 2000 de Ouro, 5 Cupons e 10 Fragmentos. O nível de pescador melhora só os peixes (barra, sorte, automático), nunca os prêmios.
+- Cupons e Fragmentos são anunciados no chat Mundo, como os peixes Épicos e Lendários; aparecem no resultado e no Histórico. No console, o segundo encaixe mostra os Fragmentos (x/50) e abre os prêmios da vara com o quanto já saiu hoje.
+- 20 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Traíra das Taboas, Pacu Esmeralda e Peixe-Junco Dourado (Lago dos Juncos), Carpa Termal, Salamandra do Vapor e Fênix d'Água (Fonte Termal), Carpa-Dragão. Ícones pintados pelo Codex em `public/assets/fishing/icons/` (`python3 scripts/build-fishing-icons.py`, pranchas 19a/19b/19c e 20-varas); falta a Fênix d'Água.
 
 ## Raridade e histórico (20/10, pedido do matheus)
 
@@ -77,5 +79,5 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 - Arte pintada (prompts em `docs/fishing-art-prompts.md`): ícones de peixe/vara/isca/pontos, botão `fishing-button.png` e a folha da Vara de Carvalho. 
 - Sons de lançar, morder, acertar e escapar.
-- Mais varas e iscas, eventos de pesca, ranking de pescadores.
-- Ícone pintado do botão Histórico (hoje um desenho provisório).
+- Eventos de pesca, ranking de pescadores.
+- Ícone pintado do botão Histórico (hoje um desenho provisório); ícone da Fênix d'Água; pranchas de animação das varas novas (hoje todas usam a do Bambu); a bandeja do console ainda tem a minhoca pintada.
