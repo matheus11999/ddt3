@@ -1,5 +1,5 @@
-/* Items sit on a transparent slot with a thin edge (no rarity classes, no painted fill); the chrome has one owner. */
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) [data-card]{--card-edge:#c98d4f99;--card-light:#ffe6b8;--card-mid:transparent;--card-deep:transparent;--card-shadow:#331a0a;--card-glow:#ffc77a55;--rarity-ink:#a8692e}
+/* One neutral card for every item (no rarity classes): the old frame, corners, gloss and bevel over a translucent, colourless fill. */
+:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) [data-card]{--card-edge:#e9c48f;--card-light:#fff3dc;--card-mid:#5a3a2233;--card-deep:#2a160a77;--card-shadow:#3a1f0eaa;--card-glow:#ffd99a66;--rarity-ink:#a8692e}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]{position:relative;display:flex;align-items:center;justify-content:center;isolation:isolate;min-width:0;padding:3px;border:2px solid var(--card-edge);border-radius:13px;background:radial-gradient(ellipse at 50% 80%,color-mix(in srgb,var(--card-mid) 77%,#fff1d8) 0%,var(--card-mid) 31%,var(--card-deep) 85%);box-shadow:inset 0 1px 0 var(--card-light),inset 0 0 0 3px color-mix(in srgb,var(--card-shadow) 65%,transparent),inset 0 -3px 8px #0a1e2855,0 3px 0 var(--card-shadow),0 4px 8px #302a251f;overflow:visible;transition:transform .18s ease,filter .18s,box-shadow .18s}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]:before{content:'';position:absolute;inset:5px;z-index:0;border:1px solid color-mix(in srgb,var(--card-light) 30%,transparent);border-radius:8px;pointer-events:none}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]>.item-card-ornament{position:absolute;inset:0;width:100%;height:100%;z-index:2;opacity:.79;color:var(--card-light);pointer-events:none;filter:drop-shadow(0 1px 0 var(--card-shadow));transform:none}
@@ -39,18 +39,13 @@
 @keyframes item-card-sheen{0%,75%{transform:translateX(-75%);opacity:0}80%{opacity:.55}95%{transform:translateX(75%);opacity:0}100%{transform:translateX(75%);opacity:0}}
 @media(prefers-reduced-motion:reduce){:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card,:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card *,:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card *:after{animation:none!important;transition:none!important}}
 
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]{border-radius:10px;border-width:1px;background:transparent;box-shadow:none}
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant][data-card-empty]{background:radial-gradient(ellipse at bottom,#6b3d1a55,#2a160a33);border-color:#b9844e80;box-shadow:inset 0 2px 7px #1a0a0477,0 1px #ffe6b811;opacity:.62}
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]>:is(.item-card-ornament,.item-card-gloss){display:none}
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]:before{display:none}
+:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]{border-radius:10px;background:radial-gradient(ellipse at 50% 80%,var(--card-mid),var(--card-deep) 85%);box-shadow:inset 0 1px var(--card-light),inset 0 0 0 3px color-mix(in srgb,var(--card-shadow) 45%,transparent),inset 0 -3px 8px #1a0a0444,0 3px var(--card-shadow),0 5px 9px #1a0a0422}
+:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant][data-card-empty]{background:radial-gradient(ellipse at bottom,#6b3d1a33,#2a160a22);border-color:#b9844e80;box-shadow:inset 0 2px 7px #1a0a0455,0 1px #ffe6b811;opacity:.62}
+:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]>.item-card-ornament{opacity:.6}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant][data-card-selected]{outline-color:#ffe57b;outline-offset:2px}
 
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) button.item-card[data-card][data-card-variant]:hover:not(:disabled){box-shadow:0 0 10px var(--card-glow)}
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) button.item-card[data-card][data-card-variant]:active:not(:disabled){box-shadow:none}
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) button.item-card[data-card][data-card-variant][data-card-selected],:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant][data-card-selected]{box-shadow:0 0 10px var(--card-glow)}
-
-/* Super starts at +9: a soft gold glow on the transparent slot. It belongs to the weapon's forge level. */
-:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]:has(>.item-art[data-weapon-super]){background:radial-gradient(ellipse at 50% 50%,#ffc74355,transparent 65%);border-color:#ffd05d;box-shadow:0 0 10px #ffab3044}
+/* Super starts at +9: a soft gold glow on the same card. It belongs to the weapon's forge level. */
+:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card[data-card][data-card-variant]:has(>.item-art[data-weapon-super]){background:radial-gradient(ellipse at 50% 45%,#ffc74355,transparent 62%),radial-gradient(ellipse at 50% 80%,var(--card-mid),var(--card-deep) 85%);border-color:#ffd05d;box-shadow:inset 0 1px #fff2b5,inset 0 0 0 3px color-mix(in srgb,var(--card-shadow) 45%,transparent),0 3px var(--card-shadow),0 0 13px #ffab3033}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card:has(>.item-art[data-weapon-super])>.item-card-ornament{color:#ffe28b;opacity:1;filter:drop-shadow(0 1px #793322)}
 :is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card:has(>.item-art[data-weapon-super])>.item-card-gloss:after{animation:item-card-sheen 6s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){:is(.game-window,.room-stage,.battle-console,.inventory-tooltip) .item-card:has(>.item-art[data-weapon-super])>.item-card-gloss:after{animation:none}}
