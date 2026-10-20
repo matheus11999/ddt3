@@ -120,7 +120,7 @@ export class FishingWorld {
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[])this.art.set(id,image(`/assets/fishing/props/${id}.webp`));
  }
  /** Lets go of every painting and baked tile at once (not at the next garbage collection) when the player leaves the Pescaria. */
- release(){
+ release(){paintedFish.clear();
   if(!this.assets)return;this.assets=false;
   freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);
   for(const k of ['sky','floor','grass','water','rod','autoSeal'] as const){freeImage(this[k]);this[k]=new Image();}
