@@ -5,6 +5,7 @@
 .battle-chat-log strong{color:#ffd36b;pointer-events:auto;cursor:pointer}
 .battle-chat-log p.private strong{color:#ff9be0}
 .battle-chat.open .battle-chat-log{padding:6px 8px;border-radius:8px;background:#1a0d0599}
+.battle-chat.open .battle-chat-log{pointer-events:auto}
 .battle-chat-open{pointer-events:auto;display:grid;place-items:center;width:30px;height:30px;padding:0;border:1px solid #e9b64f;border-radius:9px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 3px #0008;color:#ffd36b;cursor:pointer}
 .battle-chat-open:hover{filter:brightness(1.12)}
 .battle-chat-input{pointer-events:auto;display:flex;align-items:center;width:100%;height:32px;padding:0 4px 0 10px;border:1px solid #e9b64f;border-radius:10px;background:linear-gradient(#4e2309f0,#2e1405f0);box-shadow:0 2px 6px #0009}
