@@ -32,7 +32,7 @@ function combatAtlas(eq:Equipment):HTMLCanvasElement|null {
 }
 export const combatBodyReady=(eq:Equipment)=>!!combatAtlas(eq);
 
-const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4'};
+const effectColor:Record<string,string>={fire:'#ffb45a',electric:'#69dfff',dynamite:'#ffb52c',brick:'#ff7a3d',crystal:'#d4a0ff',boomerang:'#ff8fc4',shuriken:'#ffd27a'};
 /** Weapon art is drawn this many avatar units across on the back. */
 const BACK_WEAPON_SIZE=64;
 /** The weapon hangs this far further back and up from the body than combatFrames.json's `back` (20/10,

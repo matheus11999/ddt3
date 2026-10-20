@@ -7,7 +7,7 @@ import {POWER_CRATER_MULTIPLIER} from './power';
  * names the fixed physical mask that cuts the ground and the painting that marks the ground left around it.
  * In DDTank a projectile's `craterID` picks `crater.png` (cut) and `craterBrink.png` (mark); here the cut is the
  * analytic mask compiled by `craterMask()` (shared/physics.ts, identical on server and clients, no images) and the
- * mark is one of 16 paintings (2 weapons × 4 phases × 2 modes). Phases share the cut: a stronger weapon does not
+ * mark is one of 8 paintings per weapon (4 phases × 2 modes). Phases share the cut: a stronger weapon does not
  * dig a bigger hole, it only leaves a different mark.
  *
  * The server picks the profile from the shooter's weapon and level at the moment of the shot and writes its id
@@ -37,11 +37,13 @@ export interface DestructionProfile {
 /** How much of the mark's width the hole takes, per weapon and mode. Version 1 took DDTank 4.1's proportions
  * (crater ÷ craterBrink: brick 96/122, boomerang 107/152 and 131/198); version 2 (20/10, the user asked for a
  * fading gradient with cracks instead of a solid rim) leaves a wider band so the fade and the cracks have room. */
-const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.62,pow:.58},'love-boomerang':{normal:.58,pow:.55}};
+const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.62,pow:.58},'love-boomerang':{normal:.58,pow:.55},'wind-shuriken':{normal:.58,pow:.55},'thunder-coil':{normal:.58,pow:.55}};
 /** Phases whose painting is approved (filled in when the art lands). Empty since 20/10: the user rejected the
  * first set (solid rims); the weapons use their legacy terrain.png until the gradient marks are in. */
 const PAINTED=new Set<string>([]);
 
+/** The POW hole radius: the weapon's own (Bobina do Trovão digs a smaller one per bolt) or crater × POWER_CRATER_MULTIPLIER. */
+export function powCraterRadius(weapon:{crater:number;pow?:{crater?:number}}){return weapon.pow?.crater??weapon.crater*POWER_CRATER_MULTIPLIER;}
 export function destructionMarkPath(weapon:string,mode:DestructionMode,stage:DestructionStage){return `/assets/weapons/${weapon}/destruction/${mode}/mark-${stage}.png`;}
 export function destructionProfileId(weapon:string,mode:DestructionMode,stage:DestructionStage,version=DESTRUCTION_VERSION){return `${weapon}:${mode}:${stage}@${version}`;}
 
@@ -50,7 +52,7 @@ function build():Map<string,DestructionProfile>{
  for(const weapon of WEAPONS){
   const framing=FRAMING[weapon.id];if(!framing||!weapon.craterShape)continue;
   for(const mode of DESTRUCTION_MODES)for(const stage of DESTRUCTION_STAGES){
-   const mask=mode==='pow'?weapon.powCraterShape??weapon.craterShape:weapon.craterShape,radius=weapon.crater*(mode==='pow'?POWER_CRATER_MULTIPLIER:1),holeShare=framing[mode];
+   const mask=mode==='pow'?weapon.powCraterShape??weapon.craterShape:weapon.craterShape,radius=mode==='pow'?powCraterRadius(weapon):weapon.crater,holeShare=framing[mode];
    const id=destructionProfileId(weapon.id,mode,stage);
    out.set(id,{id,version:DESTRUCTION_VERSION,weapon:weapon.id,stage,mode,mask,radius,mark:{src:destructionMarkPath(weapon.id,mode,stage),world:Math.round(radius*2/holeShare),holeShare},painted:PAINTED.has(`${weapon.id}:${mode}:${stage}`)});
   }

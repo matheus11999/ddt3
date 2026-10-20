@@ -1,7 +1,7 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {powerUpConflict} from '../shared/powerUps';
 import {chargeHoldsTurn} from '../shared/forceBar';
-import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
+import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
@@ -15,11 +15,11 @@ import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,g
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps';
-import {destructionProfile} from '../shared/destruction';
+import {destructionProfile,powCraterRadius} from '../shared/destruction';
 import {keepVisibleMarks} from '../shared/terrainMarks';
 import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
 import {clampHp,PASS_DELAY} from '../shared/stats';
-import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
+import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,SPLASH_RADIUS_SCALE,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
@@ -1044,17 +1044,23 @@ export class Game {
  private resolveFire(m:Match,f:Fighter,angle:number,power:number,powered:boolean,startedAt=Date.now()){
   f.aimAngle=angle;f.chargePower=power;f.charging=false;
   const w=weaponStats(WEAPONS.find(w=>w.id===f.equipment.weapon)!,f.equipment.upgrade);
-  if(powered){w.crater*=POWER_CRATER_MULTIPLIER;w.blast*=POWER_BLAST_MULTIPLIER;}
+  // A weapon with its own POW (shared/catalog.ts WeaponPow) replaces the global multipliers, applied once each.
+  const ownPow=powered?w.pow:undefined;
+  if(powered){w.crater=powCraterRadius(w);w.blast=ownPow?.splash!==undefined?ownPow.splash/SPLASH_RADIUS_SCALE:w.blast*POWER_BLAST_MULTIPLIER;}
+  else if(w.splash!==undefined)w.blast=w.splash/SPLASH_RADIUS_SCALE;
+  const powDamage=powered?ownPow?.damage??POWER_DAMAGE_MULTIPLIER:1;
   const homing=f.homingArmed;f.homingArmed=false;
   // The pet's special shot: one projectile of its own, no tools, its multiplier, maybe always critical.
   const special=consumeSpecialShot(f);
-  const modifiers=shotModifiers(special?[]:boostsForShot(f.equipment.weapon,f.boosts,powered)),shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
+  const modifiers=shotModifiers(special?[]:boostsForShot(f.equipment.weapon,f.boosts,powered)),fan=special?undefined:ownPow?.fan,shot:Shot={powered,id:randomUUID(),shooterId:f.id,projectiles:[],hits:[],duration:0,startedAt,impacted:[]};
   // Pet bonuses of the whole shot: decided once, however many volleys or projectiles it has.
   let petShot=1;if(f.pet||f.petEffects?.length){const ctx=this.petContext(m);this.petEffect(m,[...this.petTrigger(m,'before-fire',f,{sourceId:f.id,shotId:shot.id},ctx),...this.petTrigger(m,'before-damage',f,{sourceId:f.id,shotId:shot.id},ctx)]);petShot=consumeShotBonus(f)*outgoingPetFactor(f);}
   if(special)petShot*=special.multiplier??1;
   const offense=this.combatEquipment(f);
   const simulated:Match={...m,terrain:m.terrain.slice(),state:{...m.state,players:structuredClone(m.state.players)}},shooter=simulated.state.players.find(player=>player.id===f.id)!;
-  const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
+  // A POW fan (Bobina do Trovão) replaces the single projectile of each volley; it never stacks with the Tridente (exclusive rule).
+  if(fan)modifiers.spread=fan.map(shot=>shot.angle);
+  const angles=Array.from({length:modifiers.volleys},()=>modifiers.spread.map(spread=>angle+spread)).flat(),forces=fan?angles.map((_,index)=>fan[index%fan.length].force):[],delays=angles.map((_,index)=>Math.floor(index/modifiers.spread.length)*VOLLEY_CADENCE_MS),impacts:Shot['projectiles'][number]['impact'][]=[],pending:PendingImpact[]=[];
   const planImpact=(result:TrajectoryResult,index:number,delay:number,radius:number,blast:number,damageScale:number,fragment=false):Shot['projectiles'][number]['impact']=>{
    // The hole is the weapon's fixed mask; a projectile that strikes a body digs that mask at 75% in the ground under the target's feet.
    const victim=result.hitId?simulated.state.players.find(player=>player.id===result.hitId):undefined,dig:TerrainDig|undefined=victim?{x:result.x,y:victim.y,radius:Math.round(radius*DIRECT_HIT_CRATER)}:undefined;
@@ -1064,7 +1070,7 @@ export class Game {
    const hits:ShotHit[]=[];
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
-    const critical=special?.critical||criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*(powered?POWER_DAMAGE_MULTIPLIER:1)*petShot,critical});
+    const critical=special?.critical||criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*powDamage*petShot,critical});
     if(target.monster)damage=Math.round(damage/MONSTERS[target.monster].toughness);
     // Pet damage reduction and shields (the simulated copy spends the shield for the later projectiles; applyImpact repeats it on the real one).
     const guarded=incomingPetDamage(target,damage);damage=guarded.damage;
@@ -1079,7 +1085,7 @@ export class Game {
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
    impacts[index]=planImpact(result,index,delays[index],w.crater,w.blast,1);
-  },delays,homing&&!special?{targets:homingTargets(simulated.state.players,shooter)}:undefined);
+  },delays,homing&&!special?{targets:homingTargets(simulated.state.players,shooter)}:undefined,true,undefined,forces);
   const petProjectile=special&&f.pet?{projectile:special.projectile!,species:f.pet.species,stage:f.pet.stage??0,skill:special.skill}:undefined;
   shot.projectiles=results.map((result,index)=>({points:result.points,delay:delays[index],flightTime:result.flightTime,impact:impacts[index],effect:w.effect,powered,...(petProjectile?{pet:petProjectile}:{})}));
   const shardCount=special?0:weaponFragmentCount(w,f.equipment.upgrade,powered);

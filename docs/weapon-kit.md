@@ -2,6 +2,8 @@
 
 **Arsenal refeito do zero (17/10/2026).** As cinco armas antigas e toda a arte delas foram apagadas. O Quebra-Tijolos é a única arma e a arma inicial: de início e meio de jogo, atributos equilibrados (85/95/85/85), cratera pequena (22) e mais redonda (`craterRoughness` .04 contra .14 padrão), um tijolo por tiro sem estilhaços que acertam alvos (os cacos são só efeito visual) e POW `exclusivo`: combina com +1, +2 e dano extra, só não com o Tridente (pedido do usuário em 18/10). Perfis com armas antigas passam para ele. As 4 fases, o atlas de efeitos, a marca no cenário e os 4 sons dele estão prontos.
 
+**20/10/2026:** entraram o Vento Celeste e a Bobina do Trovão (`docs/wind-thunder.md`), com atributos por fase em tabela (`phaseStats`) e POW próprio (`pow`: dano, leque, cratera e área do POW por arma, no lugar dos padrões globais).
+
 Cada arma do Brasa Arena é única, como no DDTank: arte própria em cada fase de evolução, projétil próprio (o DDTank lança uma TV, bisturis, um bumerangue), efeitos e sons próprios e uma regra de POW × Tridente. O contrato fica em `shared/weaponKit.ts` (`WEAPON_KITS`) e é conferido por `npm run verify:weapons`.
 
 ## O que cada arma precisa

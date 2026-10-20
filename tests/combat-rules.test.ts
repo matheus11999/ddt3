@@ -27,13 +27,13 @@ const impacts=(events:ServerEvent[])=>events.filter((event):event is Extract<Ser
 
 test('weapon families retain their declared four-stat budgets, fixture roles and bounded upgrades',()=>{
  // Original combat fixtures keep their budget and roles; the real arsenal has its own stat contracts.
- const budgets=Object.fromEntries(WEAPONS.map(weapon=>[weapon.id,weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0)]));assert.deepEqual(budgets,{ember:360,volt:360,crystal:360,dynamite:360,brick:350,'love-boomerang':460});
+ const budgets=Object.fromEntries(WEAPONS.map(weapon=>[weapon.id,weapon.attack+weapon.defense+weapon.agility+(weapon.luck??0)]));assert.deepEqual(budgets,{ember:360,volt:360,crystal:360,dynamite:360,brick:350,'love-boomerang':460,'wind-shuriken':380,'thunder-coil':380});
  const [ember,volt,crystal,dynamite]=WEAPONS;
  const fixtures=[ember,volt,crystal,dynamite];assert.deepEqual(fixtures.map(w=>w.id),['ember','volt','crystal','dynamite']);
  assert.equal(Math.max(...fixtures.map(weapon=>weapon.attack)),ember.attack);assert.equal(Math.max(...WEAPONS.map(weapon=>weapon.defense)),crystal.defense);
  assert.equal(Math.max(...fixtures.map(weapon=>weapon.agility)),volt.agility);assert.equal(Math.max(...fixtures.map(weapon=>weapon.luck??0)),volt.luck);
  assert.ok(Math.max(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)-Math.min(dynamite.attack,dynamite.defense,dynamite.agility,dynamite.luck!)<=45);
- for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);for(const key of ['attack','defense','agility','luck'] as const)assert.equal(max[key],Math.trunc(Math.trunc(weapon[key]!*1.2)*1.3+1e-9));assert.equal(max.damage,Math.round(weapon.damage*1.1**MAX_UPGRADE));}
+ for(const weapon of WEAPONS){const max=weaponStats(weapon,MAX_UPGRADE);assert.deepEqual(weaponStats(weapon,999),max);for(const key of ['attack','defense','agility','luck'] as const)assert.equal(max[key],weapon.phaseStats?weapon.phaseStats[15][key]:Math.trunc(Math.trunc(weapon[key]!*1.2)*1.3+1e-9));assert.equal(max.damage,Math.round(weapon.damage*1.1**MAX_UPGRADE));}
 });
 
 test('critical chance follows 45 × Sorte / (800 + Sorte) and uses an explicit server roll',()=>{
