@@ -6,6 +6,7 @@
 # Usage: python3 scripts/build-projectile-strips.py --weapon=thunder-coil --src=output/thunder-projectiles-original-v1
 # --spin is for a package whose frames only rotate one painting rigidly (rotation.bakedSpin, the wind shuriken):
 # it keeps the first frame and records rotation.degreesPerSecond, and the game turns that frame in code.
+# --spin-factor scales that speed (the wind flies at 0.5, matheus 20/10).
 import argparse, json, os
 from PIL import Image
 
@@ -15,6 +16,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--weapon', required=True)
 parser.add_argument('--src', required=True)
 parser.add_argument('--spin', action='store_true')
+parser.add_argument('--spin-factor', type=float, default=1)
 args = parser.parse_args()
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 manifest = json.load(open(os.path.join(args.src, 'manifest.json'), encoding='utf-8'))
@@ -47,7 +49,7 @@ for sequence in manifest['sequences']:
         'span': round(w / frames[0].width, 4)
     }
     entry['fps'] = sequence['frameRate']
-    if args.spin: entry['spin'] = sequence['rotation']['degreesPerSecond'] * (1 if sequence['rotation']['direction'] == 'clockwise' else -1)
+    if args.spin: entry['spin'] = sequence['rotation']['degreesPerSecond'] * args.spin_factor * (1 if sequence['rotation']['direction'] == 'clockwise' else -1)
 index[args.weapon] = entry
 with open(index_path, 'w', encoding='utf-8') as f:
     json.dump(index, f, indent=1)
