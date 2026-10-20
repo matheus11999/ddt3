@@ -17,6 +17,8 @@ Poder = arredondar(Ataque×6 + Defesa×4 + Agilidade×3 + Sorte×3 + Dano×3 + A
 
 Só conta o que está vestido (`attributes(equipamento)`: base do personagem, cada slot equipado e o pet equipado). Uma conta nova tem cerca de 4.900: uns 1.800 do próprio personagem (atributos base 850 + Vida de nível 1 950), uns 2.000 do Quebra-Tijolos (Dano 200 pesa 600 sozinho), uns 300 do chapéu e da roupa iniciais e uns 800 da Verdália. A arma pode ser desequipada (`weapon-none`); sem arma o Poder cai e, na batalha, o jogador luta com o Quebra-Tijolos +0 (`battleEquipment`). A mochila e o retrato da praça animam o Poder ao mudar (`PowerCounter`: número contando e +N/−N subindo).
 
+Atributos dos itens (20/10, pedido do matheus): toda peça que não é arma, pulseira, bracelete ou anel dá **10 de Ataque, Defesa, Agilidade e Sorte** (`ACCESSORY_STATS` em `shared/catalog.ts`): chapéu, rosto, cabelo, óculos, roupa, fantasia, colar e bolha; os itens "sem" não dão nada. Chapéus, roupas e colares mantêm a Armadura própria. Arma nunca tem Armadura (nem pela Ametista de Aço: `canComposeStat` recusa no servidor e a composição antiga some ao normalizar o perfil) e roupa nunca tem Dano. Na janela do item, a arma mostra Dano primeiro com o Ângulo ao lado; os outros itens não mostram Dano.
+
 As divisões inteiras repetem o código C# (`int`). A Vida é calculada no início de cada partida com o nível do jogador; a cura nunca passa do máximo (`clampHp`).
 
 ## Fortalecimento +0 a +15

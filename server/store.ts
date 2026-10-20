@@ -5,7 +5,7 @@ import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
 import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
-import {canCompose,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
+import {canCompose,canComposeStat,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
 import {normalizeAbilityLoadout} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
@@ -220,6 +220,7 @@ export class Store implements ProfileStore {
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const profile=normalizeProfile({...r.rows[0].profile,name:r.rows[0].name});
    if(!profile.inventory.includes(item)||!canCompose(CATALOG[copyBase(item)]))throw Error('Escolha um equipamento compatível da sua mochila.');
+   if(!canComposeStat(CATALOG[copyBase(item)],stone.stat))throw Error('Armas não recebem Armadura.');
    const previous=profile.compositions[item]?.[stone.stat]??0;
    if(stone.value<=previous)throw Error('Este atributo já possui uma composição igual ou melhor.');
    if((profile.compositionStones[stoneId]??0)<1)throw Error('Você não tem essa pedra de composição.');

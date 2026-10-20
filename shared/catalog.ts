@@ -62,7 +62,10 @@ export interface ItemVisual {variant:string;visible?:boolean;pose?:'adventurer'|
 export type Rarity = 'common'|'uncommon'|'rare'|'epic'|'legendary';
 export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; luck?:number; damage?:number; armor?:number; /** Extra Vida in percent (guild necklaces); several add up. */ hpPercent?:number; visual?:ItemVisual; gender?:ItemGender; }
 export interface ItemAttributes {attack:number;defense:number;agility:number;luck:number;damage:number;armor:number;}
-const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
+/** Weapons, wristbands, bracelets and rings carry their own numbers; every other accessory and cosmetic gives 10 of each (matheus, 20/10). */
+export const ACCESSORY_STATS={attack:10,defense:10,agility:10,luck:10} as const;
+export function hasAccessoryStats(slot:Slot,variant?:string):boolean {return !['weapon','wristband','bracelet','ring','ring2'].includes(slot)&&variant!=='none';}
+const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',...(hasAccessoryStats(slot,variant)?ACCESSORY_STATS:{attack:0,defense:0,agility:0}),visual:{variant,color,...visual}});
 /** Fixed hole shapes, one per weapon and one for its POW, as in DDTank (shared/physics.ts CRATER_MASKS). */
 export type CraterShape='brick'|'brick-pow'|'oval'|'oval-pow'|'wind'|'wind-pow'|'thunder'|'thunder-pow';
 export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang'|'shuriken';
@@ -93,15 +96,15 @@ export const WEAPONS: Weapon[] = [
   pow:{damage:.6,crater:22.5,splash:65,fan:[{angle:-5,force:.9},{angle:0,force:1},{angle:5,force:1.1}]}}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
- {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
- {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',attack:8,defense:14,agility:0,armor:10},
- {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
- {id:'outfit-explorer',name:'Exploradora da Aurora',slot:'outfit',rarity:'rare',color:'#1f5fc4',description:'Casaco curto de viagem, saia pregueada e botinhas: a roupa inicial das aventureiras.',attack:10,defense:22,agility:14,armor:20,visual:{variant:'explorer',asset:'/assets/outfits/explorer-atlas.png'}},
- {id:'outfit-idol',name:'Estrela Pop',slot:'outfit',rarity:'epic',color:'#f06aa8',description:'Vestido de palco com babados, laço no peito e botas brancas.',attack:12,defense:18,agility:18,armor:18,visual:{variant:'idol',asset:'/assets/outfits/idol-atlas.png'}},
- {id:'outfit-surf',name:'Onda Tropical',slot:'outfit',rarity:'rare',color:'#19b4c8',description:'Blusa de surfe com hibiscos, short jeans e canga laranja.',attack:12,defense:16,agility:20,armor:18,visual:{variant:'surf',asset:'/assets/outfits/surf-atlas.png'}},
- {id:'outfit-captain',name:'Capitão Escarlate',slot:'outfit',rarity:'rare',color:'#c4162a',description:'Casaca escarlate de capitão dos céus, dragonas douradas e botas altas.',attack:14,defense:20,agility:12,armor:20,visual:{variant:'captain',asset:'/assets/outfits/captain-atlas.png'}},
- {id:'outfit-hiphop',name:'Rima de Rua',slot:'outfit',rarity:'rare',color:'#7a2fd6',description:'Moletom largo com estrela grafitada, corrente dourada e tênis de cano alto.',attack:12,defense:18,agility:18,armor:18,visual:{variant:'hiphop',asset:'/assets/outfits/hiphop-atlas.png'}},
- {id:'outfit-swordsman',name:'Espadachim Errante',slot:'outfit',rarity:'epic',color:'#1d8f97',description:'Haori de ondas sobre quimono, faixa vermelha e hakama de viajante.',attack:16,defense:18,agility:16,armor:18,visual:{variant:'swordsman',asset:'/assets/outfits/swordsman-atlas.png'}},
+ {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',...ACCESSORY_STATS,armor:5},
+ {id:'hat-mage',name:'Chapéu Astral',slot:'hat',rarity:'epic',color:'#9b83df',description:'Um pedacinho do céu.',...ACCESSORY_STATS,armor:10},
+ {id:'outfit-cartographer',name:'Cartógrafo da Aurora',slot:'outfit',rarity:'rare',color:'#137fba',description:'Casaco de viagem, mapa no cinto e postura de explorador.',...ACCESSORY_STATS,armor:20,visual:{variant:'cartographer',pose:'cartographer',asset:'/assets/outfits/cartographer-atlas.png'}},
+ {id:'outfit-explorer',name:'Exploradora da Aurora',slot:'outfit',rarity:'rare',color:'#1f5fc4',description:'Casaco curto de viagem, saia pregueada e botinhas: a roupa inicial das aventureiras.',...ACCESSORY_STATS,armor:20,visual:{variant:'explorer',asset:'/assets/outfits/explorer-atlas.png'}},
+ {id:'outfit-idol',name:'Estrela Pop',slot:'outfit',rarity:'epic',color:'#f06aa8',description:'Vestido de palco com babados, laço no peito e botas brancas.',...ACCESSORY_STATS,armor:18,visual:{variant:'idol',asset:'/assets/outfits/idol-atlas.png'}},
+ {id:'outfit-surf',name:'Onda Tropical',slot:'outfit',rarity:'rare',color:'#19b4c8',description:'Blusa de surfe com hibiscos, short jeans e canga laranja.',...ACCESSORY_STATS,armor:18,visual:{variant:'surf',asset:'/assets/outfits/surf-atlas.png'}},
+ {id:'outfit-captain',name:'Capitão Escarlate',slot:'outfit',rarity:'rare',color:'#c4162a',description:'Casaca escarlate de capitão dos céus, dragonas douradas e botas altas.',...ACCESSORY_STATS,armor:20,visual:{variant:'captain',asset:'/assets/outfits/captain-atlas.png'}},
+ {id:'outfit-hiphop',name:'Rima de Rua',slot:'outfit',rarity:'rare',color:'#7a2fd6',description:'Moletom largo com estrela grafitada, corrente dourada e tênis de cano alto.',...ACCESSORY_STATS,armor:18,visual:{variant:'hiphop',asset:'/assets/outfits/hiphop-atlas.png'}},
+ {id:'outfit-swordsman',name:'Espadachim Errante',slot:'outfit',rarity:'epic',color:'#1d8f97',description:'Haori de ondas sobre quimono, faixa vermelha e hakama de viajante.',...ACCESSORY_STATS,armor:18,visual:{variant:'swordsman',asset:'/assets/outfits/swordsman-atlas.png'}},
  cosmetic('face-captain','Olhar do Capitão','face','captain','#c98a5e','rare',{asset:'/assets/faces/face-captain.png'}),
  cosmetic('face-idol','Brilho de Palco','face','idol','#f08fb8','rare',{asset:'/assets/faces/face-idol.png'}),
  cosmetic('face-surf','Sorriso de Verão','face','surf','#e7a26b','rare',{asset:'/assets/faces/face-surf.png'}),
@@ -149,9 +152,9 @@ export const ITEMS: Item[] = [...WEAPONS,
  {...cosmetic('ring-ember','Anel da Brasa','ring','ember','#ff7a2e','rare',{visible:false}),description:'Aro dourado com uma brasa que nunca apaga.',attack:6,luck:6,agility:2,defense:0},
  {...cosmetic('ring-tide','Anel da Maré','ring','tide','#18b9d6','uncommon',{visible:false}),description:'Prata polida com uma pérola azul do mar.',attack:2,defense:6,agility:4,luck:2},
  cosmetic('necklace-none','Sem colar','necklace','none','#bfb3a5','common',{visible:false}),
- {...cosmetic('necklace-star','Colar Estelar','necklace','star','#ffc93a','epic',{visible:false}),description:'Uma estrela cadente presa num cordão de ouro.',attack:6,defense:10,agility:4,luck:8,armor:6},
+ {...cosmetic('necklace-star','Colar Estelar','necklace','star','#ffc93a','epic',{visible:false}),description:'Uma estrela cadente presa num cordão de ouro.',...ACCESSORY_STATS,armor:6},
  // Loja da Guilda (shared/guilds.ts): sold only to guild members.
- {...cosmetic('necklace-guild-1','Colar da Guilda Nv. 1','necklace','guild-1','#3f8fe0','rare',{visible:false,asset:'/assets/items/necklace-guild-1.png'}),description:'Medalhão da guilda num cordão trançado. Só membros de uma guilda podem comprá-lo.',attack:0,defense:0,agility:0,hpPercent:5},
+ {...cosmetic('necklace-guild-1','Colar da Guilda Nv. 1','necklace','guild-1','#3f8fe0','rare',{visible:false,asset:'/assets/items/necklace-guild-1.png'}),description:'Medalhão da guilda num cordão trançado. Só membros de uma guilda podem comprá-lo.',hpPercent:5},
  cosmetic('bubble-none','Sem bolha','bubble','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('bubble-classic','Bolha Clássica','bubble','classic','#f4ead6','common',{visible:false}),description:'O balão de fala de todo aventureiro.'},
  {...cosmetic('bubble-cloud','Bolha Nuvem','bubble','cloud','#7ec8ff','uncommon',{visible:false}),description:'Balão de nuvem fofinha que solta nuvenzinhas.'},

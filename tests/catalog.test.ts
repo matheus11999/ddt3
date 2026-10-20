@@ -156,7 +156,7 @@ test('prototype retirement exchanges owned items and preserves equipment, compos
  const retired=Object.keys(RETIRED_COSMETIC_REPLACEMENTS);
  const raw={id:'prototype-migration',name:'Veterano',gender:'male' as const,contentVersion:9,inventory:['ember','face-taunt','outfit-cartographer','hat-tide',...retired],
   equipment:{...DEFAULT_EQUIPMENT,face:'face-taunt',outfit:'outfit-cartographer',hat:'hat-knight',hair:'hair-silver',glasses:'glasses-round',dyes:{hat:'coral' as const}},
-  gold:575,xp:1234,wins:7,matches:10,upgrades:{ember:9},stones:{'1':0,'5':3},compositionStones:{'attack-1':0},compositions:{'hat-knight':{attack:20},'hat-tide':{attack:10,defense:30},ember:{armor:20}}};
+  gold:575,xp:1234,wins:7,matches:10,upgrades:{ember:9},stones:{'1':0,'5':3},compositionStones:{'attack-1':0},compositions:{'hat-knight':{attack:20},'hat-tide':{attack:10,defense:30},ember:{armor:20,luck:20}}};
  const result=normalizeProfile(raw);
  assert.ok(retired.every(id=>!result.inventory.includes(id)));
  assert.ok(Object.values(RETIRED_COSMETIC_REPLACEMENTS).every(id=>result.inventory.includes(id)));
@@ -164,7 +164,8 @@ test('prototype retirement exchanges owned items and preserves equipment, compos
  assert.equal(result.equipment.face,'face-taunt');assert.equal(result.equipment.outfit,'outfit-cartographer');
  // The retired free dye becomes the worn hat's ticket color.
  assert.equal(result.itemColors['hat-tide'],'#f24b64');assert.equal(result.equipment.colors?.hat,'#f24b64');
- assert.deepEqual(result.compositions,{'hat-tide':{attack:20,defense:30},ember:{armor:20}});
+ // Weapons never keep Armadura, not even from an old composition.
+ assert.deepEqual(result.compositions,{'hat-tide':{attack:20,defense:30},ember:{luck:20}});
  assert.equal(result.gold,575);assert.equal(result.xp,1234);assert.equal(result.wins,7);assert.equal(result.matches,10);assert.equal(result.upgrades.ember,9);
  assert.equal(result.stones['1'],0);assert.equal(result.stones['5'],3);assert.equal(result.compositionStones['attack-1'],0);
  assert.deepEqual(normalizeProfile(result),result);
