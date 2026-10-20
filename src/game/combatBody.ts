@@ -10,7 +10,7 @@ import {HEAD_SCALE} from './rig/anchors';
 import type {CombatFrameName,Fist} from './rig/combatFrames';
 import {COMBAT_ATLAS,COMBAT_FIST_SIZE,COMBAT_FRAMES,COMBAT_MANNEQUIN,combatFrameBlend,combatFrameIndex,HEAD_SILHOUETTE_CENTER} from './rig/combatFrames';
 import {drawWeaponEnergy} from './weaponEffects';
-import {ROD,ROD_THROW_SLOW,rodInHand,TIDE_ROD} from './rodCast';
+import {ROD,ROD_FRONT_TURN,ROD_THROW_SLOW,rodInHand,TIDE_ROD} from './rodCast';
 import atlases from './combatAtlas.json';
 
 /** DDTank-style combat body (docs/combat-frames.md): the outfit's small painted body for the current
@@ -72,8 +72,10 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
  // The Vara das Marés leaves the back while charging and casting: it is drawn in the front fist below.
  const rod=state.weapon&&eq.weapon===TIDE_ROD?rodInHand(state.pose,state.poseTime,name,state.power):undefined;
- // Behind the head and body like the back mount; the painted fist then closes over its grip.
- if(rod){const grip=fist(1);drawRod(c,eq,grip[0],grip[1],rod.turn,rod.thrown);}
+ // Pulled back over the head the rod goes behind it; raised forward (charging, the end of the cast) it is drawn in
+ // front, in the fist, so it reads as held (matheus, 20/10: behind the big head it looked like it stayed on the back).
+ const rodFront=!!rod&&rod.turn>=ROD_FRONT_TURN;
+ if(rod&&!rodFront){const grip=fist(1);drawRod(c,eq,grip[0],grip[1],rod.turn,rod.thrown);}
  if(state.weapon&&!rod)drawBackWeapon(c,eq,spec.back[0]+BACK_WEAPON_GAP[0]+dx,spec.back[1]+BACK_WEAPON_GAP[1]+dy+breath,spec.backAngle,state.time);
  // Each fist hangs from a short forearm in the outfit's own sleeve color that starts under the painted
  // sleeve, so the hand reads as part of the arm (the outfit art ends its sleeves at the elbow).
@@ -102,6 +104,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // The near fist goes over everything, under the chin while lying, like in DDTank.
  if(drawnHands&&prone)drawFist(c,eq.skin,fist(0),1);
  const front=fist(1);if(drawnHands)drawFist(c,eq.skin,front,1,prone?.8:1);
+ if(rod&&rodFront){drawRod(c,eq,front[0],front[1],rod.turn,rod.thrown);if(drawnHands)drawFist(c,eq.skin,front,1,prone?.8:1);}
  if(!rod&&state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
