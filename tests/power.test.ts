@@ -78,9 +78,21 @@ test('Power deals greater actual enemy damage and charges both combatants withou
   assert.equal(shot.shot.hits.length,0);assert.equal(f.shooter.powerCharge,0);assert.equal(f.target.powerCharge,0);
   f.game.tick(f.match.resolveAt+1);
   const damage=f.events.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact').flatMap(e=>e.hits).filter(h=>h.id===f.target.id).reduce((sum,h)=>sum+h.damage,0)/2;
-  assert.ok(damage>0);assert.ok((f.shooter.powerCharge??0)>0);assert.ok((f.target.powerCharge??0)>(f.shooter.powerCharge??0));
+  assert.ok(damage>0);assert.ok((f.shooter.powerCharge??0)>0);assert.ok((f.target.powerCharge??0)>0); // the shooter also takes splash at this range, so its charge can be the larger one
   assert.equal(f.shooter.equipment.upgrade,0);
   return {damage,shot:shot.shot};
  };
  const normal=await run(false),powered=await run(true);assert.ok(powered.damage>normal.damage*1.5);assert.ok(powered.shot.projectiles[0].impact.radius>normal.shot.projectiles[0].impact.radius);
+});
+
+test('damage from any source charges the target Power: own shot charges only as received damage',async()=>{
+ const f=await fixture();f.match.state.wind=0;
+ // Straight up with little force: the shot falls back on the shooter.
+ f.shooter.x=300;f.shooter.y=500;f.shooter.facing=1;f.target.x=1400;f.target.y=500;
+ f.match.terrain.fill(0);f.match.terrain.fill(1,510*WORLD.cols);
+ await f.game.command(f.shooter.id,{type:'fire',angle:90,power:15});
+ f.game.tick(f.match.resolveAt+1);
+ const taken=f.events.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact').flatMap(e=>e.hits).filter(h=>h.id===f.shooter.id).reduce((sum,h)=>sum+h.damage,0)/2;
+ assert.ok(taken>0);assert.equal(f.target.powerCharge??0,0);
+ assert.equal(f.shooter.powerCharge,chargeFromDamage(0,taken,f.shooter.maxHp,true));
 });
