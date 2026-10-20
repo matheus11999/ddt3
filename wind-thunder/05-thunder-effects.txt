@@ -1,0 +1,13 @@
+MODEL: Nano Banana 2, aspect ratio 4:5, 1k (1024×1280).
+ATTACH: thunder-sheet-approved.png (the four phases of this weapon: use its colors per phase).
+
+STYLE: hand-painted 2D game VFX in the polished DDTank-like browser-game style: glowing painted energy with soft brush strokes, bright cores, crisp lightning lines, vivid saturated colors. FORBIDDEN: photo, 3D render, pixel art, flat vector. No text, letters, numbers, labels, gridlines or frames. No weapon bodies, only energy.
+
+Create ONE sprite atlas of electric effects for the weapon "Bobina do Trovão": an invisible grid of FOUR columns × FIVE rows of equal square cells (no lines). Columns left to right are the four phases of the attached image: (1) rusty copper gadget = white-blue electricity, (2) red-orange with cyan capsule = cyan electricity with golden sparks, (3) teal armored = deep blue electricity with small orange sparks, (4) violet with blue and red crystals = white core with ice-blue and ruby-red lightning. Every sprite is centered in its own cell and stays inside the central 65% of it.
+- Row 1, projectile: a flying ball of electricity heading RIGHT, bright white core, crackling arcs around it, a short wispy electric tail to the LEFT.
+- Row 2, launch: a short electric discharge spark bursting from the left toward the RIGHT.
+- Row 3, impact: a round explosion of electricity, bright core and branching lightning arcs in a sphere.
+- Row 4, POW projectile: an elongated pink-violet lightning bolt flying RIGHT with a white core, with accents of that phase's color; clearly different and bigger than row 1.
+- Row 5, POW impact: a bigger pink-violet electric explosion with branching lightning, accents of that phase's color.
+
+BACKGROUND: pure solid BLACK #000000 everywhere, so the glow can be extracted as light. Nothing dark inside the effects except where they fade into the black.

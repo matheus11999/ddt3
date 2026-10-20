@@ -1,0 +1,13 @@
+MODEL: Nano Banana 2, aspect ratio 4:5, 1k (1024×1280).
+ATTACH: wind-sheet-approved-style.png (the four phases of this weapon: copy its style, materials and colors).
+
+HOUSE STYLE: same artist and brush as the attached image: hand-painted 2D chibi browser-game art, polished DDTank-like style, soft brush blending, bold clean dark-brown contour on solid objects, vivid colors, light from the top left. FORBIDDEN: pixel art, 3D render, flat vector, photo, sketch. No text, letters, numbers, labels, gridlines or frames.
+
+Create ONE sprite atlas for the weapon "Vento Celeste" (the three-bladed shuriken in the attached image): an invisible grid of FOUR columns × FIVE rows of equal square cells (no lines between them). Columns left to right are the four phases, matching the attached image in order: (1) silver rusty steel, (2) crimson flame blades with ruby hub, (3) red-gold petal blades with lilac fins and golden flower hub, (4) golden cloud blades with sapphire core. Every sprite is centered in its own cell and stays inside the central 65% of it, never touching another cell.
+- Row 1, projectile: the shuriken of that phase seen flat from the front, spinning, with two short curved white motion streaks around it; no trail.
+- Row 2, launch: a small swirl of wind from the left blowing toward the RIGHT, cream-white air ribbons with sparks in the colors of that phase; no weapon.
+- Row 3, impact: a round burst of white wind rings with small sparks and thin slash marks in the colors of that phase.
+- Row 4, POW projectile: THREE small shurikens of that phase grouped in a tight triangle, overlapping, with a warm golden glow behind them; one single compact object, clearly bigger than row 1.
+- Row 5, POW impact: a bigger, stronger burst of golden-orange wind rings and sparks than row 3, with the colors of that phase.
+
+BACKGROUND: one flat, uniform pure magenta #FF00FF everywhere (no gradient, no shadow, no glow spilling onto it). Never use magenta or hot pink in the sprites: wind and light are white, cream, gold, orange, lilac or sky blue.
