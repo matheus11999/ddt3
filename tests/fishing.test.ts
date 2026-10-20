@@ -7,7 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,sellFish,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,fishWeight,catchPoints,catchXp,weightShare,fishingWeek,FISH_BAG_MAX,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,fishWeight,catchPoints,catchXp,weightShare,fishingWeek,FISH_BAG_MAX,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS,FISHING_IGNORED_STOP,autoHourlyShare,biteWaitMs,ROD_MARK_TOP} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -55,7 +55,7 @@ test('hard fish move the target: a press on its old place misses, one on the mov
  assert.ok(Math.abs(zoneAt(c,0,c.driftMs/4)-zoneAt(c,0,0))>c.drift*.5);
  const t=centredAt(c,0,0);assert.equal(gradePress(c,0,t),'perfect');
  // Where the target is far from its resting place, pressing there misses.
- let away=-1;for(let k=0;k<20000;k++)if(Math.abs(markerAt(c,k)-c.zones[0])<.005&&Math.abs(zoneAt(c,0,k)-c.zones[0])>c.width){away=k;break;}
+ let away=-1;for(let k=0;k<20000;k++)if(Math.abs(markerAt(c,k)-c.zones[0])<.005&&Math.abs(zoneAt(c,0,k)-c.zones[0])>c.width/2+.01){away=k;break;}
  assert.ok(away>=0);assert.equal(gradePress(c,0,away),'miss');
 });
 
@@ -202,7 +202,8 @@ test('manual fishing: bite, presses on the target land the fish; walking away re
  assert.equal(done.result!.catch!.first,true);{const fp=f.store.profiles.get(f.a.id)!.fishing;assert.equal(fp.bag.length,1);assert.ok(fp.bag[0].value>0);assert.equal(fp.points,0);}
  // Others see the catch on the lakeside.
  assert.equal(last(f.events.get(f.b.id)!,'lobby')!.players.find(p=>p.id===f.a.id)!.fishing!.success,true);
- f.game.tick(done.since+RESULT_MS+1);assert.equal(last(f.events.get(f.a.id)!,'fishing')!.fishing!.phase,'idle');
+ // Pegou: a linha volta para a água sozinha.
+ f.game.tick(done.since+RESULT_MS+1);assert.equal(last(f.events.get(f.a.id)!,'fishing')!.fishing!.phase,'waiting');
  await f.game.command(f.a.id,{type:'move',x:FISHING_SPAWN.x,y:FISHING_SPAWN.y});assert.equal(last(f.events.get(f.a.id)!,'fishing')!.fishing,null);
 });
 
@@ -215,6 +216,21 @@ test('two misses lose the fish but the cast still counts as used',async()=>{
  await flush();
  const done=last(f.events.get(f.a.id)!,'fishing')!.fishing!;assert.equal(done.phase,'result');assert.equal(done.result!.success,false);
  assert.equal(f.store.profiles.get(f.a.id)!.fishing.total,0);
+ // Escapou: também volta para a água sozinha.
+ f.game.tick(done.since+RESULT_MS);assert.equal(peer.fishing!.phase,'waiting');
+});
+
+test('manual fishing keeps recasting, but stops after bars left untouched (the player walked off)',async()=>{
+ const f=fixture(),spot=FISHING_SPOTS[1],peer=f.game.peers.get(f.a.id)!;
+ await f.game.command(f.a.id,{type:'zone',zone:'fishing'});peer.x=spot.x;peer.y=spot.y;
+ await f.game.command(f.a.id,{type:'fish-cast',spot:spot.id});
+ for(let round=0;round<FISHING_IGNORED_STOP;round++){
+  f.game.tick(peer.fishing!.biteAt);const s=peer.fishing!;f.game.tick(s.start+s.challenge!.limitMs+1);await flush();
+  assert.equal(peer.fishing!.phase,'result');f.game.tick(peer.fishing!.since+RESULT_MS);
+ }
+ assert.equal(peer.fishing!.phase,'idle');
+ // Lançar de novo recomeça a contagem.
+ await f.game.command(f.a.id,{type:'fish-cast',spot:spot.id});assert.equal(peer.fishing!.phase,'waiting');
 });
 
 test('automatic fishing lands fish by chance and casts again by itself (AFK)',async()=>{
@@ -240,6 +256,17 @@ test('automatic fishing lands fish by chance and casts again by itself (AFK)',as
  await f.game.command(f.a.id,{type:'zone',zone:'plaza'});assert.equal(peer.fishing,undefined);assert.equal(peer.fishAuto,undefined);
 });
 
+test('automatic fishing makes about a quarter of a manual player per hour, with slower bites',()=>{
+ for(const rod of FISHING_RODS){const shares=[1,2,3,4,5].map(d=>autoHourlyShare(d,rod)),mean=shares.reduce((a,b)=>a+b,0)/shares.length;
+  assert.ok(mean>.18&&mean<.32,`${rod.id}: ${mean.toFixed(2)}`);assert.ok(shares.every(x=>x<.35),rod.id);}
+ const rod=ROD_BY_ID.get('rod-bamboo')!;assert.ok(biteWaitMs(rod,true,.5)>=biteWaitMs(rod,false,.5)*2);
+});
+test('today\'s rods top out at 3 marks of Ouro, 2 of Cupons and 3 of Fragmentos (the rest is for future rods)',()=>{
+ const marks=(rod:typeof FISHING_RODS[number])=>{const g=rod.drops?.find(d=>d.kind==='gold'),c=rod.drops?.find(d=>d.kind==='coupons'),f=rod.drops?.find(d=>d.kind==='fragment');
+  return {gold:g&&g.kind==='gold'?g.chance*(g.min+g.max)/2/ROD_MARK_TOP.gold*5:0,coupons:(c?.chance??0)/ROD_MARK_TOP.coupons*5,fragments:(f?.chance??0)/ROD_MARK_TOP.fragments*5};};
+ for(const rod of FISHING_RODS){const m=marks(rod);assert.ok(m.gold<=3.01&&m.coupons<=2.01&&m.fragments<=3.01,rod.id);}
+ const royal=marks(ROD_BY_ID.get('rod-royal')!);assert.deepEqual([Math.round(royal.gold),Math.round(royal.coupons),Math.round(royal.fragments)],[3,2,3]);
+});
 test('heavy fish are very hard to get, for every rarity, and only perfect presses reach the top',()=>{
  for(const fish of FISH){
   const shares=Array.from({length:1000},(_,i)=>weightShare(fish,fishWeight(fish,(i+.5)/1000,1))).sort((a,b)=>a-b);

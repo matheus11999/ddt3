@@ -16,24 +16,30 @@ export * from './fishingMap';
  * Iscas saíram do jogo (pedido do matheus, 20/10): a vara é a progressão da pesca.
  */
 export interface FishingRod {id:string;name:string;description:string;control:number;speed:number;luck:number;auto:number;drops?:readonly RodDrop[];}
-/** One extra prize a rod can bring up with a fish: `chance` per manual catch (automatic: × AUTO_EFFICIENCY). */
+/** One extra prize a rod can bring up with a fish: `chance` per manual catch (automatic: × AUTO_EFFICIENCY per fish, slower fish). */
 export type RodDrop={kind:'gold';chance:number;min:number;max:number}|{kind:'coupons';chance:number;amount:number}|{kind:'fragment';chance:number;weapon:string;amount:number};
 /** The weapon whose fragments come from fishing (50 make it in the Ferreiro, shared/synthesis.ts). */
 export const FISHING_WEAPON='tide-rod';
 export const FISHING_RODS:readonly FishingRod[]=[
  {id:'rod-bamboo',name:'Vara de Bambu',description:'Vara inicial, leve e confiável.',control:0,speed:1,luck:0,auto:0},
  {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e peixes raros com mais frequência. Às vezes traz Ouro.',control:.18,speed:.9,luck:.12,auto:.06,
-  drops:[{kind:'gold',chance:.02,min:10,max:30}]},
+  drops:[{kind:'gold',chance:.02,min:6,max:18}]},
  {id:'rod-coral',name:'Vara de Coral',description:'Mais Ouro e, raramente, um Fragmento da Vara das Marés.',control:.24,speed:.86,luck:.2,auto:.08,
-  drops:[{kind:'gold',chance:.03,min:20,max:50},{kind:'fragment',chance:.002,weapon:FISHING_WEAPON,amount:1}]},
+  drops:[{kind:'gold',chance:.03,min:12,max:30},{kind:'fragment',chance:.0012,weapon:FISHING_WEAPON,amount:1}]},
  {id:'rod-crystal',name:'Vara de Cristal',description:'Peixes raros mordem bem mais; Fragmentos com mais frequência.',control:.3,speed:.82,luck:.28,auto:.1,
-  drops:[{kind:'gold',chance:.03,min:30,max:80},{kind:'fragment',chance:.005,weapon:FISHING_WEAPON,amount:1}]},
+  drops:[{kind:'gold',chance:.03,min:18,max:48},{kind:'fragment',chance:.003,weapon:FISHING_WEAPON,amount:1}]},
  {id:'rod-aurora',name:'Vara da Aurora',description:'Pode pescar Cupons, com chance muito baixa.',control:.36,speed:.78,luck:.36,auto:.12,
-  drops:[{kind:'gold',chance:.04,min:40,max:100},{kind:'coupons',chance:.0005,amount:1},{kind:'fragment',chance:.01,weapon:FISHING_WEAPON,amount:1}]},
+  drops:[{kind:'gold',chance:.04,min:24,max:60},{kind:'coupons',chance:.0002,amount:1},{kind:'fragment',chance:.006,weapon:FISHING_WEAPON,amount:1}]},
  {id:'rod-royal',name:'Vara Real',description:'A melhor vara: mais Cupons e Fragmentos.',control:.42,speed:.74,luck:.45,auto:.14,
-  drops:[{kind:'gold',chance:.04,min:50,max:150},{kind:'coupons',chance:.001,amount:1},{kind:'fragment',chance:.02,weapon:FISHING_WEAPON,amount:1}]},
+  drops:[{kind:'gold',chance:.04,min:30,max:90},{kind:'coupons',chance:.0004,amount:1},{kind:'fragment',chance:.012,weapon:FISHING_WEAPON,amount:1}]},
 ];
 export const STARTER_ROD='rod-bamboo';
+/**
+ * What 5 marks mean on the rod card (expected Ouro per fish, chance of a Cupom, chance of a Fragmento).
+ * Pedido do matheus (20/10): as varas de agora, que qualquer um consegue pescando, chegam no máximo a
+ * 3 marcas de Ouro, 2 de Cupons e 3 de Fragmentos (a Vara Real); as marcas de cima ficam para varas futuras.
+ */
+export const ROD_MARK_TOP={gold:4,coupons:.001,fragments:.02} as const;
 export const ROD_BY_ID=new Map(FISHING_RODS.map(r=>[r.id,r]));
 /** Most of each rod prize one player can fish per day (Brasília): keeps the AFK from minting cash. */
 export const FISHING_DAILY_CAPS={gold:2000,coupons:5,fragments:10} as const;
@@ -96,20 +102,27 @@ export const fishRarity=(fish:Pick<Fish,'difficulty'>):FishRarityInfo=>FISH_RARI
 
 /** Seconds waiting for a bite, before the rod (and ×AUTO_WAIT in automatic). */
 export const BITE_WAIT=[6,13] as const;
-export const AUTO_WAIT=1.2;
+/**
+ * Pedido do matheus (20/10, segunda vez): no automático o peixe demora bem mais para morder (×AUTO_WAIT) e
+ * cada peixe vale AUTO_EFFICIENCY do manual, então por hora o AFK rende cerca de 25% de quem está jogando
+ * (`autoHourlyShare`, conferido em tests/fishing.test.ts).
+ */
+export const AUTO_WAIT=2.2;
 /** After the bite the bar shows "Fisgou!" this long before the marker counts. */
 export const HOOK_LEAD_MS=700;
-/** The result stays on screen this long; then the line can be cast again (automatic recasts by itself). */
+/** The result stays on screen this long; then the line goes back into the water by itself (manual and automatic). */
 export const RESULT_MS=2600;
+/** Manual bars in a row left without a single press before the line stops recasting by itself (the player walked off). */
+export const FISHING_IGNORED_STOP=2;
 /** Presses may be stamped up to this long before they reach the server (latency). */
 export const PRESS_GRACE_MS=700;
 /** The bar in automatic mode resolves itself after AUTO_BASE_MS + AUTO_PER_HIT_MS per press, with a lower chance. */
 export const AUTO_BASE_MS=1200,AUTO_PER_HIT_MS=900;
 /** Automatic catches count as this quality for the weight (manual perfect presses go up to 1). */
 export const AUTO_QUALITY=.3;
-/** Pedido do matheus (20/10): o automático rende 25% da pesca manual (Pontos e EXP de cada peixe). */
-export const AUTO_EFFICIENCY=.25;
-/** Points and EXP of an automatic catch: a quarter of the manual value of the same fish and weight, never zero. */
+/** Each automatic fish is worth this share of a manual one (Pontos, EXP, the rod's prizes); with the slower bites the hour comes to ~25%. */
+export const AUTO_EFFICIENCY=.5;
+/** Points and EXP of an automatic catch: AUTO_EFFICIENCY of the manual value of the same fish and weight, never zero. */
 export function autoReward(fish:Fish,kg:number){return {points:Math.max(1,Math.round(catchPoints(fish,kg,0)*AUTO_EFFICIENCY)),xp:Math.max(1,Math.round(catchXp(fish,kg)*AUTO_EFFICIENCY))};}
 
 /** Small seeded generator, so the server and a test agree on every number of a bar. */
@@ -120,12 +133,15 @@ export function seeded(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;le
  * press needs it inside the target. Harder fish move the target back and forth (`drift`).
  */
 export interface FishChallenge {hits:number;speed:number;/** Centre of the target for each press, 0..1. */zones:number[];width:number;perfect:number;misses:number;limitMs:number;/** How far the target swims each way (0 = still) and the time of one full swing. */drift:number;driftMs:number;}
+/** Marker speed of the bar: base for the easiest fish, plus this per difficulty step (the HUD reads the stars back from it). */
+export const BAR_SPEED=[.72,.2] as const;
 export function fishChallenge(fish:Fish,rod:FishingRod,seed:number):FishChallenge{
  const rand=seeded(seed),d=fish.difficulty;
- const hits=d<=2?2:d<=4?3:4,width=Math.min(.4,(.26-.03*(d-1))*(1+rod.control)),perfect=width*.34;
- const drift=d<=2?0:Math.min(.2,.07*(d-2)),driftMs=2600-220*d;
+ // Pedido do matheus (20/10): um pouco mais fácil (alvo ~15% mais largo, barra ~10% mais lenta, peixe fugindo menos).
+ const hits=d<=2?2:d<=4?3:4,width=Math.min(.44,(.3-.03*(d-1))*(1+rod.control)),perfect=width*.36;
+ const drift=d<=2?0:Math.min(.17,.06*(d-2)),driftMs=2800-220*d;
  const margin=width/2+drift+.03,zones=Array.from({length:hits},()=>margin+rand()*Math.max(0,1-2*margin));
- return {hits,speed:.8+.22*(d-1),zones,width,perfect,misses:2,limitMs:3500+2600*hits,drift,driftMs};
+ return {hits,speed:BAR_SPEED[0]+BAR_SPEED[1]*(d-1),zones,width,perfect,misses:2,limitMs:3500+2600*hits,drift,driftMs};
 }
 /** Marker position 0..1 after `elapsed` ms of the bar. */
 export function markerAt(challenge:Pick<FishChallenge,'speed'>,elapsed:number):number{
@@ -170,6 +186,12 @@ export function weightShare(fish:Pick<Fish,'minKg'|'maxKg'>,kg:number):number{re
  */
 export function catchPoints(fish:Fish,kg:number,quality:number):number{
  return Math.max(1,Math.round(fish.points*(.5+2.5*weightShare(fish,kg))*(1+.25*Math.max(0,Math.min(1,quality)))));
+}
+/** Rough share of a manual player's hourly Pontos the automatic mode makes on a fish of difficulty `d` (wait, pull, result, chance and value). */
+export function autoHourlyShare(d:number,rod:FishingRod=ROD_BY_ID.get(STARTER_ROD)!,manualChance=.85){
+ const fish={difficulty:d} as Fish,hits=d<=2?2:d<=4?3:4,wait=(BITE_WAIT[0]+BITE_WAIT[1])/2*1000*rod.speed;
+ const manual=wait+HOOK_LEAD_MS+hits*1300+RESULT_MS,auto=wait*AUTO_WAIT+AUTO_BASE_MS+AUTO_PER_HIT_MS*hits+RESULT_MS;
+ return autoChance(fish,rod)*AUTO_EFFICIENCY/auto/(manualChance/manual);
 }
 export function biteWaitMs(rod:FishingRod,auto:boolean,roll:number):number{
  return Math.round((BITE_WAIT[0]+(BITE_WAIT[1]-BITE_WAIT[0])*roll)*1000*rod.speed*(auto?AUTO_WAIT:1));
