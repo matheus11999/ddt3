@@ -223,7 +223,7 @@ const nearEye=headPoint(FACE_REGISTRATION.sockets.leftEye),farEye=headPoint(FACE
 function drawGlasses(c:CanvasRenderingContext2D,v:ItemVisual,time:number,color?:string){layer(c,v,()=>{
  // The manifest pins each lens's optical centre to the universal eye sockets.
  const id=`glasses-${v.variant}`,registration=COSMETIC_MANIFEST[id]?.worn;if(registration){
-  const cut=v.variant==='navigator'||color?getAccessoryPortrait(id,color):null;if(cut){drawPinned(c,cut,registration,true);return;}
+  const cut=getAccessoryPortrait(id,color);if(cut){drawPinned(c,cut,registration,true);return;}
   const img=asset(registration.atlas);if(img.complete&&img.naturalWidth)drawPinned(c,img,registration);return;
  }
  const pilot=v.variant==='pilot';c.strokeStyle=shade(v.color!,.5);c.lineWidth=pilot?2.2:1.35;const glass=c.createLinearGradient(0,-111,0,-88);glass.addColorStop(0,pilot?'#70b7cf80':'#e5fcff12');glass.addColorStop(1,'#72c6da16');

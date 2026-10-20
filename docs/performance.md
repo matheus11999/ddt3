@@ -36,6 +36,11 @@ Pedido do matheus depois de entrar na Pescaria, sair e ir para o PvP com o jogo 
 
 Medição com `npx tsx scripts/probe-area-memory.mjs` (memória de pixels ainda presa, MB; jogo rodando): praça 454 → 382 (superfícies vivas 1032 → 122); batalha 366 → 249; praça depois da batalha 509 → 388 (a batalha não deixa mais 60 MB para trás).
 
+## Pescaria com muitos jogadores (20/10)
+Pedido do matheus ("desempenho baixo na pescaria, esse cenário terá vários players"). Medido com `npx tsx scripts/perf-fishing.mjs` (bots andando e pescando no automático, um navegador na Pescaria):
+- **Cabelo, chapéu e óculos** eram desenhados a partir do recorte inteiro (centenas de px) reduzido a poucas dezenas a cada quadro, para cada cabeça na tela. Agora `drawPinned` (`src/game/rig/draw.ts`) usa a cópia no tamanho da tela (`scaledCopy`), e o chapéu sem cor também usa o recorte em cache. JS por quadro com 20 jogadores: 15,6 ms → 2,2 ms (50 jogadores: 3,1 ms). Vale também para a praça e as prévias.
+- **Rede**: o servidor mandava a lista inteira de jogadores (com roupas) para todos a cada 100 ms, o que cresce com o quadrado dos jogadores. Agora o passo de andar manda só `lobby-moves` (posição e pose de pesca de quem mudou); a lista completa (`lobby`) só sai quando alguém entra, sai ou troca de roupa. Com 20 jogadores: 168 KB/s → 13 KB/s por jogador; com 50, 35 KB/s. Canal continua com até 60 jogadores.
+
 ## Tentado e descartado
 - Cortar as pinturas largas em blocos de 4096 px (para GPUs com limite de textura): ficou mais lento; o Chrome já divide sozinho.
 - Cópia reduzida das armas na batalha: não ganhou nada e piorou a medição; ficou só a decodificação antecipada.

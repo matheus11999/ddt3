@@ -8,7 +8,7 @@ const base=process.env.BASE??'http://127.0.0.1:5177',dir=process.argv[2]??'test-
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium'});
 const page=await (await browser.newContext({viewport:{width:1536,height:864}})).newPage();
 // The real position, from the server's lobby updates (alone in the zone, so the only player listed).
-let real=null;page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='lobby'&&e.players?.length===1)real={x:e.players[0].x,y:e.players[0].y};}catch{}}));
+let real=null;page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));const list=e.type==='lobby'?e.players:e.type==='lobby-moves'?e.moves:null;if(list?.length===1)real={x:list[0].x,y:list[0].y};}catch{}}));
 await enterGame(page,base);
 await page.locator('.lobby-dock-button.fishing').click();await page.waitForTimeout(3500);
 const canvas=page.locator('.world-canvas'),camera=(x,y)=>({x:Math.max(0,Math.min(FISHING_WIDTH-1536,x-768)),y:Math.max(0,Math.min(FISHING_HEIGHT-864,y-864*.6))});

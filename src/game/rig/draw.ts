@@ -1,4 +1,5 @@
 import type {ArtRegion} from './manifest';
+import {scaledCopy} from '../spriteCache';
 
 const UNIT=160/1254;
 type Art=CanvasImageSource&{width:number;height:number};
@@ -9,7 +10,9 @@ export function drawPinned(c:CanvasRenderingContext2D,art:Art,region:ArtRegion,p
  const dx=b[0]-a[0],dy=b[1]-a[1],tx=B[0]-A[0],ty=B[1]-A[1],den=dx*dx+dy*dy,p=(tx*dx+ty*dy)/den,q=(ty*dx-tx*dy)/den;
  c.save();c.translate((A[0]-625)*UNIT,(A[1]-1225)*UNIT);c.transform(p*UNIT,q*UNIT,-q*UNIT,p*UNIT,0,0);
  if(!preCut&&region.clip){c.beginPath();region.clip.forEach(([x,y],index)=>index?c.lineTo(x-a[0],y-a[1]):c.moveTo(x-a[0],y-a[1]));c.closePath();c.clip();}
- if(preCut)c.drawImage(art,0,0,art.width,art.height,sx-a[0],sy-a[1],sw,sh);
+ // Pre-cut art (hair, hats, glasses: a few hundred px) is shown a few dozen px wide: draw a copy already at that size,
+ // or every head on screen makes the browser filter the full painting again each frame (docs/performance.md, "Pescaria").
+ if(preCut){const m=c.getTransform(),shown=art instanceof HTMLCanvasElement?scaledCopy(art,sw*Math.hypot(m.a,m.b))??art:art;c.drawImage(shown,0,0,shown.width,shown.height,sx-a[0],sy-a[1],sw,sh);}
  else{c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';c.drawImage(art,sx,sy,sw,sh,sx-a[0],sy-a[1],sw,sh);}
  c.restore();
 }

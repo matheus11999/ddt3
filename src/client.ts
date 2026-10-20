@@ -153,6 +153,7 @@ class Client {
   case 'composition-result':this.update({compositionResult:e.result});break;
   case 'synthesis-result':this.update({synthesisResult:e.result});break;
   case 'lobby':this.update({players:e.players,online:e.online});break;
+  case 'lobby-moves':{const moves=new Map(e.moves.map(m=>[m.id,m]));this.update({players:this.state.players.map(p=>{const m=moves.get(p.id);if(!m)return p;const {fishing:_,...rest}=p;return m.fishing?{...rest,x:m.x,y:m.y,fishing:m.fishing}:{...rest,x:m.x,y:m.y};})});break;}
   case 'zone':this.update({zone:e.zone,players:e.players,fishing:null,fishShopOpen:false,fishBagOpen:false});rememberZone(this.state.profile?.id,e.zone);break;
   case 'fishing':this.update({fishing:e.fishing});break;
   case 'fish-buy-result':this.update({fishBuy:{offer:e.offer,quantity:e.quantity,at:Date.now()}});break;

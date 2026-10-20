@@ -30,7 +30,7 @@ export function getHeadwearProfile(eq:Equipment):HeadwearProfile {
 /** True means the painted hat owns this item, including while its image loads. */
 export function drawWornHat(c:CanvasRenderingContext2D,eq:Equipment):boolean {
  const region=wornRegion(eq.hat);if(!region)return false;
- const color=eq.colors?.hat;if(!color){const atlas=atlasFor(region.atlas);if(ready(atlas))drawPinned(c,atlas,region);return true;}
- const art=getWornHatPortrait(eq.hat,color);if(art)drawPinned(c,art,region,true);
+ // Always the cut portrait (cached per color), so drawPinned can show a copy at screen size.
+ const art=getWornHatPortrait(eq.hat,eq.colors?.hat);if(art)drawPinned(c,art,region,true);
  return true;
 }
