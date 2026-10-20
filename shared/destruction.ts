@@ -1,5 +1,6 @@
 import {WEAPONS,weaponVisualStage} from './catalog';
 import type {CraterShape} from './catalog';
+import {CRATER_STRETCH} from './physics';
 import {POWER_CRATER_MULTIPLIER} from './power';
 
 /**
@@ -69,7 +70,8 @@ export function destructionProfileById(id:string|undefined):DestructionProfile|u
 export function destructionProfile(weapon:string,level:number,powered:boolean):DestructionProfile|undefined{
  return destructionProfiles().get(destructionProfileId(weapon,powered?'pow':'normal',weaponVisualStage(level)));
 }
-/** World box (left, top, size) a mark covers around the anchor at a dig of `radius`. */
+/** World box (left, top, width, height) a mark covers around the anchor at a dig of `radius`, stretched like the hole (CRATER_STRETCH). */
 export function markBox(profile:DestructionProfile,anchorX:number,anchorY:number,radius=profile.radius){
- const size=profile.mark.world*radius/profile.radius;return {x:anchorX-size/2,y:anchorY-size/2,size};
+ const size=profile.mark.world*radius/profile.radius,width=size*CRATER_STRETCH.x,height=size*CRATER_STRETCH.y;
+ return {x:anchorX-width/2,y:anchorY-height/2,width,height};
 }

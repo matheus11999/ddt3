@@ -8,7 +8,7 @@ import type {ServerEvent} from '../shared/protocol';
 import {CATALOG,itemAttributes,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {destructionProfile} from '../shared/destruction';
-import {CRATER_MASKS,craterMask,volley,WORLD} from '../shared/physics';
+import {CRATER_MASKS,CRATER_STRETCH,craterMask,volley,WORLD} from '../shared/physics';
 import {powBoostConflict,powTridentRule,WEAPON_KITS} from '../shared/weaponKit';
 import {SHOP_OFFER_BY_ID} from '../shared/shop';
 
@@ -46,7 +46,7 @@ test('four crater masks keep the measured proportions; the Trovão POW hole is s
  assert.ok(area('thunder-pow',thunder.pow!.crater!)<area('thunder',thunder.crater));
  assert.ok(area('wind-pow',wind.pow!.crater!)>area('wind',wind.crater));
  // The serrated Trovão holes cover a little less than their ellipse, like the measured PNG areas (97.7% and 95.6%).
- for(const [shape,radius,share] of [['thunder',200,.977],['thunder-pow',200,.956]] as const){const ellipse=Math.PI*radius*radius*CRATER_MASKS[shape].height;assert.ok(Math.abs(area(shape,radius)/ellipse-share)<.01,`${shape} ${area(shape,radius)/ellipse}`);}
+ for(const [shape,radius,share] of [['thunder',200,.977],['thunder-pow',200,.956]] as const){const ellipse=Math.PI*radius*radius*CRATER_MASKS[shape].height*CRATER_STRETCH.x*CRATER_STRETCH.y;assert.ok(Math.abs(area(shape,radius)/ellipse-share)<.01,`${shape} ${area(shape,radius)/ellipse}`);}
  for(const level of [0,10,12,15]){
   assert.equal(destructionProfile('thunder-coil',level,true)?.radius,22.5);assert.equal(destructionProfile('thunder-coil',level,true)?.mask,'thunder-pow');
   assert.equal(destructionProfile('wind-shuriken',level,true)?.radius,28.5);assert.equal(destructionProfile('wind-shuriken',level,false)?.mask,'wind');

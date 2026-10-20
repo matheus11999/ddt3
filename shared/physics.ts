@@ -185,10 +185,15 @@ export interface CraterMask {shape:CraterShape;radius:number;width:number;height
 const compiledMasks=new Map<string,CraterMask>();
 /** Sampling rule: the centre of each pixel, (i+.5-pivot)/radius in shape units, is tested once; inside cuts the
  * whole pixel (binary, no alpha). The box is ceil(radius) to each side and ceil(radius×height) up and down. */
+/** Every shaped hole is dug this much wider than its weapon's crater radius (20/10, matheus: the holes were too narrow
+ * for every weapon). The depth stays, so two or three nested Quebra-Tijolos holes can still be climbed out of (WALK_CLIMB).
+ * Painted marks are authored unstretched and drawn with the same stretch, so they keep hugging the hole.
+ * Changing it changes every hole in the game. */
+export const CRATER_STRETCH={x:1.3,y:1} as const;
 export function craterMask(shape:CraterShape,radius:number):CraterMask{
  const key=`${shape}@${radius}`,cached=compiledMasks.get(key);if(cached)return cached;
- const def=CRATER_MASKS[shape],pivotX=Math.ceil(radius),pivotY=Math.ceil(radius*def.height),width=pivotX*2,height=pivotY*2,bits=new Uint8Array(width*height);
- for(let j=0;j<height;j++)for(let i=0;i<width;i++)if(def.inside((i+.5-pivotX)/radius,(j+.5-pivotY)/radius))bits[j*width+i]=1;
+ const def=CRATER_MASKS[shape],rx=radius*CRATER_STRETCH.x,ry=radius*CRATER_STRETCH.y,pivotX=Math.ceil(rx),pivotY=Math.ceil(ry*def.height),width=pivotX*2,height=pivotY*2,bits=new Uint8Array(width*height);
+ for(let j=0;j<height;j++)for(let i=0;i<width;i++)if(def.inside((i+.5-pivotX)/rx,(j+.5-pivotY)/ry))bits[j*width+i]=1;
  const mask={shape,radius,width,height,pivotX,pivotY,bits};compiledMasks.set(key,mask);return mask;
 }
 /** The pixel corner a mask is pinned to: the impact point rounded (half up), the same on every machine. */
