@@ -751,6 +751,7 @@ export class Game {
     case 'mail-list':await this.sendInbox(p);return;
     case 'mail-read':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.markRead(id,c.id);await this.sendInbox(p);return;
     case 'mail-delete':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.remove(id,c.id);await this.sendInbox(p);return;
+    case 'mail-delete-read':if(!this.mail)throw Error('Correio indisponível no momento.');await this.mail.removeRead(id);await this.sendInbox(p);return;
     case 'mail-claim':{
      if(!this.mail)throw Error('Correio indisponível no momento.');
      if(this.profileChanges.has(id))throw Error('Aguarde a atualização do seu equipamento.');

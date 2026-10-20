@@ -97,6 +97,7 @@ export const commandSchema=z.discriminatedUnion('type',[
  ...hallCommandSchemas,
  z.object({type:z.literal('mail-read'),id:z.number().int().positive()}).strict(),
  z.object({type:z.literal('mail-delete'),id:z.number().int().positive()}).strict(),
+ z.object({type:z.literal('mail-delete-read')}).strict(),
  // Without an id: "Receber tudo".
  z.object({type:z.literal('mail-claim'),id:z.number().int().positive().optional()}).strict(),
  z.object({type:z.literal('move'),x:finite(LOBBY_WALK.minX,LOBBY_WALK.maxX),y:finite(LOBBY_WALK.minY,LOBBY_WALK.maxY)}),

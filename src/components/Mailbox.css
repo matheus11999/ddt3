@@ -137,6 +137,14 @@
 .mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):hover:not(:disabled) { filter: brightness(1.08); }
 .mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):active:not(:disabled) { transform: translateY(1px); }
 .mail-window :is(.mail-claim-all, .mail-claim, .mail-delete):disabled { filter: grayscale(.7); opacity: .6; cursor: default; }
+.mail-window .mail-inbox-actions { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 7px; }
+.mail-window .mail-inbox-actions button { padding: 0 10px; gap: 5px; font-size: 15px; white-space: nowrap; }
+.mail-window .mail-confirm-layer { position: absolute; inset: 0; z-index: 5; display: grid; place-items: center; border-radius: inherit; background: #2a120688; }
+.mail-window .mail-confirm { display: grid; gap: 10px; width: min(400px, calc(100% - 32px)); padding: 16px; border: 2px solid #f2b56b; border-radius: 16px; background: #fff5df; box-shadow: 0 0 0 3px #8a4318, 0 18px 40px #1a0c04a0; color: var(--wood-ink); }
+.mail-window .mail-confirm strong { font-size: 17px; font-weight: 900; color: #7a3a0a; }
+.mail-window .mail-confirm p { margin: 0; font-size: 14px; font-weight: 700; }
+.mail-window .mail-confirm > div { display: flex; justify-content: flex-end; gap: 8px; }
+.mail-window .mail-confirm .mail-delete { height: 40px; }
 .mail-window .mail-claim-all b { min-width: 24px; height: 24px; padding: 0 6px; border: 2px solid #fff; border-radius: 12px; background: #d1281b; font-size: 13px; line-height: 20px; text-shadow: none; }
 
 /* Carta aberta */
@@ -215,6 +223,10 @@
   .mail-window .mail-row { min-height: 42px; padding: 4px 7px; }
   .mail-window .mail-envelope { width: 28px; height: 28px; }
   .mail-window :is(.mail-claim-all, .mail-claim, .mail-delete) { height: 36px; font-size: 14px; }
+  .mail-window .mail-inbox-actions { gap: 5px; }
+  .mail-window .mail-inbox-actions button { padding: 0 7px; gap: 4px; font-size: 12px; }
+  .mail-window .mail-inbox-actions svg { width: 14px; height: 14px; }
+  .mail-window .mail-inbox-actions .mail-claim-all b { min-width: 20px; height: 20px; padding: 0 4px; font-size: 11px; line-height: 16px; }
   .mail-window .mail-attachment { width: 62px; }
   .mail-window .mail-attachment-card.item-card[data-rarity][data-card-variant] { width: 52px; height: 52px; }
 }

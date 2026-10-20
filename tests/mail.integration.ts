@@ -31,6 +31,13 @@ try{
  box=await mail.inbox(profile.id);assert.equal(box.mails.length,2);assert.equal(box.unread,0);
  const history=await mail.history(profile.id);assert.equal(history.length,3);assert.ok(history.some(m=>m.deleted));
 
+ // Remover lidas: the two claimed letters go; an unread one and a read one with coins to receive stay.
+ const unread=await mail.send({playerId:profile.id,subject:'Nova',body:'',attachments:[],createdBy:'teste'});
+ const gift=await mail.send({playerId:profile.id,subject:'Presente',body:'',attachments:[{kind:'coins',amount:5}],createdBy:'teste'});
+ await mail.markRead(profile.id,gift);
+ assert.equal(await mail.removeRead(profile.id),2);
+ box=await mail.inbox(profile.id);assert.deepEqual(box.mails.map(m=>m.id).sort((x,y)=>x-y),[unread,gift]);
+
  const presence=new Map([[profile.id,'lobby' as const]]);
  const online=await players.list({online:true},presence);assert.equal(online.total,1);assert.equal(online.players[0].presence,'lobby');
  const found=await players.list({search:profile.name.slice(0,8),sort:'gold'},new Map());assert.ok(found.players.some(p=>p.id===profile.id));
