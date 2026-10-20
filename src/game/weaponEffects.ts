@@ -150,7 +150,7 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
 /** Animated projectile strips (scripts/build-projectile-strips.py): a weapon listed there flies its painted frames
  * instead of the still projectile cell of effects.png / pow.png, normal and POW. */
 type StripInfo={frames:number;width:number;height:number;pivot:number[];span:number};
-type StripWeapon={fps:number;spin?:number;normal?:Record<string,StripInfo>;pow?:Record<string,StripInfo>};
+type StripWeapon={fps:number;spin?:number;powScale?:number;normal?:Record<string,StripInfo>;pow?:Record<string,StripInfo>};
 type Strip={image:HTMLImageElement;ready:Promise<void>;loaded:boolean};
 const STRIPS=stripData as Record<string,StripWeapon>;
 const STAGES=[0,10,12,15] as const;
@@ -164,14 +164,15 @@ function stripFor(effect:Effect,powered:boolean,tier:number){
   entry.ready=new Promise<void>(resolve=>{image.onload=()=>{entry.loaded=true;resolve();};image.onerror=()=>resolve();image.src=`/assets/weapons/${weapon.id}/projectile/${mode}-${stage}.png`;});
   strips.set(key,entry);strip=entry;
  }
- return {strip,info,fps:data.fps,spin:data.spin};
+ return {strip,info,fps:data.fps,spin:data.spin,scale:powered?data.powScale??1:1};
 }
 function preloadStrips(effect:Effect){return STAGES.flatMap((_,tier)=>[false,true].map(powered=>typeof Image==='undefined'?Promise.resolve():stripFor(effect,powered,tier)?.strip.ready??Promise.resolve()));}
 /** Draws the current frame with the painted core on (0,0), pointing along +x; false while the strip is missing.
  * A `spin` strip (--spin) is one painting the game turns at the package's degrees per second. */
 function drawStrip(c:CanvasRenderingContext2D,effect:Effect,powered:boolean,tier:number,width:number,time:number,alpha=1){
  const found=stripFor(effect,powered,tier);if(!found?.strip.loaded)return false;
- const {info}=found,frame=Math.floor(time/1000*found.fps)%info.frames,height=width*info.height/info.width;
+ // `powScale` (the Vara das Marés shark) flies the POW painting bigger than the normal shot.
+ const {info}=found;width*=found.scale;const frame=Math.floor(time/1000*found.fps)%info.frames,height=width*info.height/info.width;
  c.save();c.globalAlpha*=alpha;if(found.spin)c.rotate(time/1000*found.spin*Math.PI/180);c.drawImage(found.strip.image,frame*info.width,0,info.width,info.height,-width*info.pivot[0],-height*info.pivot[1],width,height);c.restore();return true;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
@@ -323,6 +324,8 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  }
  const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken'||p.effect==='fish',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)||animated?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid&&!animated)c.scale(1,1+pulse*.09);
+ // A fish is painted belly down: flying leftward it is mirrored instead of turned upside down.
+ if(p.effect==='fish'&&Math.cos(angle)<0)c.scale(1,-1);
  const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'||p.effect==='fish'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
  // A painted animation already carries its own flicker, sparks and trail; a spinning painting is cropped tight, so it keeps the cell's size.
