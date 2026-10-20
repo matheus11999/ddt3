@@ -264,7 +264,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  // Combat fighters lie along the ground under them, as in DDTank: the whole body
  // (weapon included) turns about the contact point by the ground angle.
  // Every body lying in combat follows the ground: the painted frames too, not only the old cut-out rig (19/10/2026).
- const tilt=context.combat&&(rig.combat||hasCombatFrames(eq.outfit))?slope:0;
+ // Kneeling to charge and throw, the body stays mostly upright on a steep slope instead of tipping over with it.
+ const tilt=context.combat&&(rig.combat||hasCombatFrames(eq.outfit))?slope*(pose==='charge'||pose==='fire'?.35:1):0;
  c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);else if(!context.combat)ellipse(c,-lie*3,-1,30+lie*25,7-lie*2,'#162c3c35'); // No contact shadow in combat: it read as a dark smear on slopes and in craters.
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
