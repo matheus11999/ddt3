@@ -1,3 +1,4 @@
+import {view,viewWidthFor,VIEW_HEIGHT} from './game/viewport';
 import {SpectatorHud} from './components/SpectatorHud';
 import {ExpeditionHall} from './components/ExpeditionHall';
 import {Shop} from './components/Shop';
@@ -26,8 +27,8 @@ import {client,useGame} from './client';import {Scene} from './game/Scene';impor
 type Panel='shop'|'inventory'|'arena'|'expeditions'|'forge'|'settings'|'help'|null;
 export default function App(){
  const orientation=useMobileOrientation();
- const state=useGame();const [panel,setPanel]=useState<Panel>(null),[scale,setScale]=useState(1),[angle,setAngle]=useState(45),[name,setName]=useState(''),[sound,setSound]=useState(audio.enabled),[headingToForge,setHeadingToForge]=useState(false),[forgeItem,setForgeItem]=useState<string|undefined>();
- useEffect(()=>{installPictureGate();startCurtain();client.start();const resize=()=>setScale(Math.min(innerWidth/1536,innerHeight/864));resize();window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[]);
+ const state=useGame();const [panel,setPanel]=useState<Panel>(null),[scale,setScale]=useState(1),[frameWidth,setFrameWidth]=useState(view.width),[angle,setAngle]=useState(45),[name,setName]=useState(''),[sound,setSound]=useState(audio.enabled),[headingToForge,setHeadingToForge]=useState(false),[forgeItem,setForgeItem]=useState<string|undefined>();
+ useEffect(()=>{installPictureGate();startCurtain();client.start();const resize=()=>{const width=viewWidthFor(innerWidth,innerHeight);view.width=width;setFrameWidth(width);setScale(Math.min(innerWidth/width,innerHeight/VIEW_HEIGHT));};resize();window.addEventListener('resize',resize);return()=>window.removeEventListener('resize',resize);},[]);
  useLayoutEffect(()=>{document.documentElement.classList.toggle('mobile-landscape',orientation.landscape);return()=>document.documentElement.classList.remove('mobile-landscape');},[orientation.landscape]);
  useLayoutEffect(()=>{
   if(!orientation.portrait)return;
@@ -55,7 +56,7 @@ export default function App(){
  useEffect(()=>{if(state.loadingDropped&&!client.state.room&&!client.state.battle)setPanel(state.loadingDropped.kind==='expedition'?'expeditions':'arena');},[state.loadingDropped?.at]);
  useEffect(()=>{if(state.error){const t=setTimeout(()=>client.update({error:null}),4500);return()=>clearTimeout(t);}},[state.error]);
  useEffect(()=>{const key=(e:KeyboardEvent)=>{if(orientation.portrait||client.state.loading||['INPUT','TEXTAREA','SELECT'].includes((e.target as HTMLElement).tagName))return;if(e.key==='Escape')setPanel(null);if(e.key.toLowerCase()==='b')setPanel(p=>p==='inventory'?null:'inventory');if(e.key.toLowerCase()==='r'&&!state.battle&&!state.room&&client.state.zone!=='fishing')setPanel(p=>p==='arena'?null:'arena');if(e.key==='?')setPanel('help');};window.addEventListener('keydown',key);return()=>window.removeEventListener('keydown',key);},[state.battle,state.room,orientation.portrait]);
- return <main className="app-shell"><div className="game-frame" style={{transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
+ return <main className="app-shell"><div className="game-frame" style={{width:frameWidth,transform:`translate(-50%, -50%) scale(${scale})`,'--game-scale':scale,'--frame-width':`${frameWidth}px`} as React.CSSProperties}><Scene angle={angle} onLobby={lobbyAction} blocked={orientation.portrait||!!panel||playerWindow}/>
   {state.profile?(state.battle?(state.battle.players.some(player=>player.id===state.profile!.id)?<BattleHud angle={angle} setAngle={setAngle} blocked={!!panel||orientation.portrait||playerWindow}/>:<SpectatorHud/>):<>{!state.room&&panel!=='arena'&&panel!=='expeditions'&&<Hud onArena={openArena} onExpeditions={openExpeditions} onInventory={openInventory} onForge={openForge} onShop={openShop} onSettings={()=>{setName(state.profile!.name);setPanel('settings');}}/>}{state.room&&<RoomView onInventory={openInventory}/>}{!state.room&&state.zone==='fishing'&&<FishingHud blocked={orientation.portrait||!!panel||playerWindow||state.fishShopOpen}/>}</>):null}
   {state.profile&&state.loading&&!state.battle&&<MatchLoading scale={scale}/>}
   {state.needsCharacter&&!state.profile&&<CharacterCreation/>}

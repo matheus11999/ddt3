@@ -1,3 +1,4 @@
+import {view} from './viewport';
 import {ROD_THROW_MS,TIDE_ROD} from './rodCast';
 import {useEffect,useRef} from 'react';
 import {client} from '../client';
@@ -56,7 +57,7 @@ import {fishingPick} from './fishingPick';
 import {FISHING_SPAWN,FISHING_SPOTS,FISHING_WALK,FISHING_WIDTH,SPOT_REACH} from '../../shared/fishing';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
-const W=1536,H=864;
+const H=864;
 /** Painting faster than 60 frames per second (120/144 Hz monitors) only doubles the work: the animations are timed for 60. */
 const FRAME_MS=1000/60;
 /** Sustained frames slower than this lower the canvas resolution a step, down to 1 pixel per game unit. */
@@ -73,7 +74,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let preloadedMap='';const prepareRoom=()=>{const map=state.room?.map;if(map&&map!==preloadedMap){preloadedMap=map;void preloadEnvironment(map);}
    if(state.room?.kind==='expedition'||state.battle?.instance)preloadMonsters();if(state.room?.kind==='world-boss'||state.battle?.worldBoss)preloadDragon();};
   const unsubscribe=client.subscribe(()=>{state=client.state;prepareRoom();});prepareRoom();
-  let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/W));const width=Math.round(W*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
+  let density=1,densityCap=2,quality=getEnvironmentQuality();const resizeCanvas=()=>{const rect=el.getBoundingClientRect();quality=getEnvironmentQuality();density=Math.min(quality==='low'?1:densityCap,Math.max(1,rect.width*(window.devicePixelRatio||1)/view.width));const width=Math.round(view.width*density),height=Math.round(H*density);if(el.width!==width||el.height!==height){el.width=width;el.height=height;}c.imageSmoothingEnabled=true;c.imageSmoothingQuality='high';};
   resizeCanvas();const lobby=new LobbyWorld(quality==='low'?1:2),fishing=new FishingWorld();let hoverLake:string|null=null,pendingSpot:string|null=null;let hover:string|null=null,camX=-1,camY=0,walkDir=0,walkDirY=0,lastWalk=0;const sizeObserver=new ResizeObserver(resizeCanvas);sizeObserver.observe(document.documentElement);window.addEventListener('resize',resizeCanvas);
   let matchId='',terrain=createTerrain(),environment:EnvironmentRenderer|null=null,terrainSource='',shotId='',shotStart=0;const exploded=new Set<number>(),launched=new Set<number>();const entities=new Map<string,Entity>(),fallenAt=new Map<string,number>(),hurtAt=new Map<string,{at:number;critical:boolean}>();let fallenBattle='';let click:{x:number;y:number;time:number}|null=null;let turnId='';let cueMatch='',cueBoosts=0,cuePower=false;let camera=createCamera();
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
@@ -118,10 +119,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // Back from a battle that ended abruptly (left mid-match) or into another area: hold the last frame while the
    // area decodes, rather than an empty sky or a frozen first frame drawing the full paintings.
    if(state.zone!==shownZone){shownZone=state.zone;zoneChangedAt=t;}
-   if(!state.battle&&t-Math.max(leftBattleAt,zoneChangedAt)<1500&&!zoneReady(el.width/W,el.height/H)){frame=requestAnimationFrame(render);return;}
+   if(!state.battle&&t-Math.max(leftBattleAt,zoneChangedAt)<1500&&!zoneReady(el.width/view.width,el.height/H)){frame=requestAnimationFrame(render);return;}
    nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);
    if(quality!==getEnvironmentQuality())resizeCanvas();
-   c.setTransform(el.width/W,0,0,el.height/H,0,0);c.clearRect(0,0,W,H);const b=state.battle;
+   c.setTransform(el.width/view.width,0,0,el.height/H,0,0);c.clearRect(0,0,view.width,H);const b=state.battle;
    if(!b){
     // The plaza is wider than the view: the camera eases after the player.
     const fishingZone=state.zone==='fishing',walk=fishingZone?FISHING_WALK:LOBBY_WALK;
@@ -155,7 +156,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
      for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='ice'&&elapsed-impactTime(p)<700)playConsumableSound('impact');if(p.kind==='flight'||p.kind==='ice'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,...(p.impact.shape?{shape:p.impact.shape}:{}),...(p.impact.profile?{profile:p.impact.profile}:{}),...(p.impact.destructible===false?{scorch:true}:{}),effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
     }
-    const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
+    const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??view.width/2,focusY=(focus?.y??H/2)-140;
     // The monsters' shared turn has no fighter of its own: watch the queen while she aims, the nest while ants come out, else the walking monsters.
     const monsterTurn=b.instance?.monsterTurn;
     if(b.turnId===MONSTER_TURN_ID&&monsterTurn){const now=Date.now()+state.offset,queen=b.players.find(f=>f.id===b.instance!.boss&&f.hp>0),walkers=b.players.filter(f=>monsterTurn.moves.some(m=>m.id===f.id&&m.from[0]!==m.to[0]));
@@ -184,7 +185,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     const pose:DragonPose|null=dragon?dragonPose(b,dragon,dragonNow,t,dragonHurtAge,heroFloor,x=>ground(terrain,x,0)):null;
     // While aiming, a living fighter near the bottom edge would hide behind the console: lower the view
     // just enough to show it, never so far that the fighter in focus leaves the top.
-    if(b.phase==='aiming'&&focus&&!shot){const hw=W/(2*camera.zoom),hh=H/(2*camera.zoom),low=b.players.filter(f=>f.hp>0&&!f.left&&!f.hidden&&!f.boss&&Math.abs(f.x-focusX)<hw-30).reduce((y,f)=>Math.max(y,f.y),0);
+    if(b.phase==='aiming'&&focus&&!shot){const hw=view.width/(2*camera.zoom),hh=H/(2*camera.zoom),low=b.players.filter(f=>f.hp>0&&!f.left&&!f.hidden&&!f.boss&&Math.abs(f.x-focusX)<hw-30).reduce((y,f)=>Math.max(y,f.y),0);
      if(low)focusY=Math.max(focusY,Math.min(low+40-hh+BATTLE_HUD_COVER/camera.zoom,focus.y-170+hh));}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
@@ -337,19 +338,19 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     }
    }
    // A loading cover waits for a frame with every painting in it (the plaza's art decodes over a few frames).
-   if(scenePaint.wanted()&&(b||zoneReady(el.width/W,el.height/H)))scenePaint.done();
+   if(scenePaint.wanted()&&(b||zoneReady(el.width/view.width,el.height/H)))scenePaint.done();
    frame=requestAnimationFrame(render);
   };
   // Right click on someone in the plaza (walkers and the podium) opens the player menu.
   const contextMenu=(e:MouseEvent)=>{
    e.preventDefault();if(blockedRef.current||state.battle||state.room)return;
-   const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H+camY;
+   const r=el.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*view.width+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H+camY;
    const candidates=[...state.players.map(p=>({id:p.id,name:p.name,key:p.id,size:134,context:'lobby' as const})),...(state.zone==='fishing'?[]:state.ranking).map(entry=>({id:entry.id,name:entry.name,key:`podium-${entry.id}`,size:PODIUM_AVATAR,context:'ranking' as const}))];
    let best:typeof candidates[number]|null=null,bestDistance=Infinity;
    for(const candidate of candidates){const e=entities.get(candidate.key);if(!e)continue;const half=candidate.size*.32,top=e.y-candidate.size*1.12;if(x<e.x-half||x>e.x+half||y<top||y>e.y+8)continue;const d=Math.abs(x-e.x)+Math.abs(y-(e.y-candidate.size*.5));if(d<bestDistance){best=candidate;bestDistance=d;}}
    if(best)client.openPlayerMenu(e,{id:best.id,name:best.name,context:best.context});
   };
-  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room||e.button!==0)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*W+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H+camY;
+  const pointer=(e:PointerEvent)=>{if(blockedRef.current)return;if(state.battle){if(e.button===0){el.focus({preventScroll:true});el.setPointerCapture(e.pointerId);drag={x:e.clientX,y:e.clientY,cameraX:camera.x,cameraY:camera.y};}return;}if(state.room||e.button!==0)return;const r=el.getBoundingClientRect();const x=(e.clientX-r.left)/r.width*view.width+Math.max(0,camX),y=(e.clientY-r.top)/r.height*H+camY;
    if(state.zone==='fishing'){
     const hit=fishing.hit(x,y),picking=fishingPick.get();pendingSpot=null;fishingPick.set(false);
     if(hit?.kind==='station'){if(hit.station.action==='plaza')client.goTo('plaza');else client.openFishShop();return;}
@@ -367,7 +368,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    }
    const action=lobby.hit(x,y);if(action){onLobbyRef.current(action);return;}
    const target={x:Math.max(LOBBY_WALK.minX,Math.min(LOBBY_WALK.maxX,x)),y:Math.max(LOBBY_WALK.minY,Math.min(LOBBY_WALK.maxY,y))};client.send({type:'move',...target});click={...target,time:performance.now()};};
-  const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*W/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*W+Math.max(0,camX),py=(e.clientY-r.top)/r.height*H+camY;
+  const pointerMove=(e:PointerEvent)=>{if(drag&&state.battle){const r=el.getBoundingClientRect();sceneView.look={x:drag.cameraX-(e.clientX-drag.x)/r.width*view.width/camera.zoom,y:drag.cameraY-(e.clientY-drag.y)/r.height*H/camera.zoom};el.style.cursor='grabbing';return;}if(state.battle||state.room||blockedRef.current){hover=null;el.style.cursor='';return;}const r=el.getBoundingClientRect(),px=(e.clientX-r.left)/r.width*view.width+Math.max(0,camX),py=(e.clientY-r.top)/r.height*H+camY;
    if(state.zone==='fishing'){const hit=fishing.hit(px,py);hover=hit?.kind==='station'?hit.station.id:null;const lake=hit?.kind==='lake'?hit.lake:null;if((lake?.id??null)!==hoverLake){hoverLake=lake?.id??null;window.dispatchEvent(new CustomEvent('brasa-fishing-lake',{detail:lake?.name??null}));}el.style.cursor=hit?'pointer':fishingPick.get()?'not-allowed':'';return;}
    hoverLake=null;hover=lobby.hover(px,py)?.id??null;el.style.cursor=hover?'pointer':'';};
   // Arrow keys / A-D walk sideways along the plaza; releasing stops where the player is.

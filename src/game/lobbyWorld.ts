@@ -8,6 +8,7 @@
  * The parallax layers are the only backdrop. No flat panorama or procedural
  * plaza is allocated or loaded while those assets are arriving.
  */
+import {view} from './viewport';
 import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
 import {LOBBY_PARALLAX,LOBBY_FLOATERS} from '../../shared/generated/lobbyParallax';
 import type {LobbyParallaxLayer,LobbyFloater} from '../../shared/generated/lobbyParallax';
@@ -91,6 +92,17 @@ function groundShadow(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:
  if(!disc){disc=document.createElement('canvas');disc.width=disc.height=128;const g=disc.getContext('2d')!,a=(k:number)=>`rgba(55,36,18,${Math.min(1,k*dark)})`;
   const fill=g.createRadialGradient(64,64,0,64,64,64);fill.addColorStop(0,a(.55));fill.addColorStop(.6,a(.34));fill.addColorStop(1,a(0));g.fillStyle=fill;g.fillRect(0,0,128,128);shadowDiscs.set(key,disc);}
  c.drawImage(disc,x-rx,y-ry,rx*2,ry*2);
+}
+
+/**
+ * Where a depth layer sits with the camera at `cam`. Each layer was painted to cover a 1536 view as it slides
+ * (`factor`); a wider view (viewport.ts) keeps the same slide on screen, and a layer narrower than the view
+ * is stretched sideways just enough to cover it.
+ */
+function layerSpan(layer:LobbyParallaxLayer,cam:number){
+ const travel=Math.max(1,LOBBY_WIDTH-view.width),width=Math.max(layer.width,view.width+1),slack=width-view.width;
+ // At the base view slack equals travel·factor, so this is the painted slide, cam·(1-factor).
+ return {width,left:cam-cam/travel*Math.min(slack,travel*layer.factor)};
 }
 
 export interface LobbySprite {y:number;draw:(c:CanvasRenderingContext2D)=>void;}
@@ -216,7 +228,7 @@ export class LobbyWorld {
   if(!this.deep()||!imageReady(this.floor))return false;
   // The screen-size copies of the backdrop too: drawing the full paintings for the first frames froze the return.
   let copies=true;
-  for(const {layer,image} of this.depth)if(layer&&!this.exactCopy(image,Math.round(layer.width*scale),Math.round(layer.height*scaleY)))copies=false;
+  for(const {layer,image} of this.depth)if(layer&&!this.exactCopy(image,Math.round(layerSpan(layer,0).width*scale),Math.round(layer.height*scaleY)))copies=false;
   const band=this.floorBand();if(!band||!this.exactCopy(band,Math.round(LOBBY_WIDTH*scale),Math.round((LOBBY_H-FLOOR_TOP)*scaleY)))copies=false;
   if(!copies)return false;
   for(const station of LOBBY_STATIONS){
@@ -250,8 +262,8 @@ export class LobbyWorld {
   flush(true);
  }
  private drawLayer(c:CanvasRenderingContext2D,layer:LobbyParallaxLayer,cam:number,x0:number,x1:number){
-  const image=this.depth.find(entry=>entry.layer===layer)!.image;
-  if(imageReady(image))this.drawStrip(c,image,cam*(1-layer.factor),layer.y,layer.width,layer.height,x0,x1);
+  const image=this.depth.find(entry=>entry.layer===layer)!.image,{width,left}=layerSpan(layer,cam);
+  if(imageReady(image))this.drawStrip(c,image,left,layer.y,width,layer.height,x0,x1);
  }
  /**
   * A painting `width`×`height` world px placed at (left, top), drawn between world columns x0..x1. While
@@ -339,12 +351,12 @@ export class LobbyWorld {
   this.floorCanvas=canvas;return canvas;
  }
  /** Camera x that keeps `focusX` centred without showing past the plaza's ends. */
- static camera(focusX:number){return Math.max(0,Math.min(LOBBY_WIDTH-LOBBY_W,focusX-LOBBY_W/2));}
+ static camera(focusX:number,width=view.width){return Math.max(0,Math.min(LOBBY_WIDTH-width,focusX-width/2));}
  /** Draws the backdrop in world coordinates; the caller has already translated by -camX. */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number){
-  if(!this.deep()){c.fillStyle='#9ed4e8';c.fillRect(camX,0,LOBBY_W,LOBBY_H);return;}
+  if(!this.deep()){c.fillStyle='#9ed4e8';c.fillRect(camX,0,view.width,LOBBY_H);return;}
   // The copies are already at screen size, so plain bilinear filtering is enough (and far cheaper than 'high').
-  c.save();c.imageSmoothingQuality='low';this.drawDepth(c,t,camX,camX,camX+LOBBY_W,true);c.restore();
+  c.save();c.imageSmoothingQuality='low';this.drawDepth(c,t,camX,camX,camX+view.width,true);c.restore();
  }
  /** Stations that share the avatars' depth order. */
  sprites(t:number,hover:string|null):LobbySprite[]{
@@ -375,7 +387,7 @@ export class LobbyWorld {
  }
  /** Screen-space sparkle, drawn after the camera transform is undone. */
  drawOverlay(c:CanvasRenderingContext2D,t:number){
-  for(let i=0;i<22;i++){const x=(i*137+t*.014)%LOBBY_W,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}
+  for(let i=0;i<22;i++){const x=(i*137+t*.014)%view.width,y=140+(i*71)%560+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.25+Math.sin(t/800+i)*.18})`;c.beginPath();c.arc(x,y,1.5+i%2,0,Math.PI*2);c.fill();}
  }
  /**
   * The station's outline as a blurred dark shape, built once its art has loaded.
