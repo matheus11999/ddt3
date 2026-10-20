@@ -59,11 +59,10 @@ test('a frozen fighter loses 2 turns, then thaws and plays',async()=>{
  assert.equal(f2.match.state.turnId,f2.target.id,'with nobody else ready the two frozen turns pass and it plays');assert.equal(f2.target.frozenTurns,0);
 });
 
-test('frozen fighters take no damage: the first attack only breaks the ice, the rest of that shot too',async()=>{
+test('frozen fighters take no damage: the first projectile only breaks the ice, the next ones of the same shot hurt',async()=>{
  const f=await battle();f.target.frozenTurns=ICE_FROZEN_TURNS;f.match.state.phase='resolving';
  const hit=(index:number)=>({at:Date.now(),projectileIndex:index,hits:[{id:f.target.id,damage:700,x:f.target.x,y:f.target.y,projectileIndex:index,critical:false,kind:'direct',quality:1}],mark:{id:`m${index}`,x:f.target.x,y:f.target.y,radius:0,effect:'brick',level:0}});
  const shot=(id:string):Shot=>({id,shooterId:f.shooter.id,startedAt:Date.now(),duration:1000,hits:[],impacted:[],projectiles:[0,1].map(()=>({points:[[0,0]],delay:0,flightTime:0,impact:{x:f.target.x,y:f.target.y,radius:0},effect:'brick' as const}))});
  f.match.activeShot=shot('first');f.applyImpact(hit(0));assert.equal(f.target.hp,5000);assert.equal(f.target.frozenTurns,0);
- f.applyImpact(hit(1));assert.equal(f.target.hp,5000,'same shot: still spent on the ice');
- f.match.activeShot=shot('second');f.applyImpact(hit(0));assert.equal(f.target.hp,4300);
+ f.applyImpact(hit(1));assert.equal(f.target.hp,4300,'the next projectile of the same shot already hurts');
 });

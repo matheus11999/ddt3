@@ -3,11 +3,11 @@ import {audio} from './audio';
 
 /**
  * Enfurecer and Gelo in the arena (docs/consumables.md). Paintings by Codex, cut by
- * scripts/build-consumables-art.py; sounds are the DDTank reference cues (039 activation,
- * 023 ice launch, 093 ice impact), the same files the reference package names for these items.
+ * scripts/build-consumables-art.py; sounds are the DDTank reference cues (023 ice launch,
+ * 093 ice impact). Using a tool plays the game's default tool cue (matheus rejected 039).
  */
 const ART={rage:'/assets/consumables/rage-icon.png',ice:'/assets/consumables/ice-icon.png',ball:'/assets/consumables/ice-projectile.png',impact:'/assets/consumables/ice-impact.png',block:'/assets/consumables/ice-block.png'} as const;
-export const CONSUMABLE_SOUNDS={activate:'/assets/audio/consumables/activate.mp3',fire:'/assets/audio/consumables/ice-fire.mp3',impact:'/assets/audio/consumables/ice-impact.mp3'} as const;
+export const CONSUMABLE_SOUNDS={fire:'/assets/audio/consumables/ice-fire.mp3',impact:'/assets/audio/consumables/ice-impact.mp3'} as const;
 const images=new Map<keyof typeof ART,HTMLImageElement>();
 /** Impact strip: 7 frames of 256 px; block strip: intact, cracked, shattering (320 px). */
 const IMPACT_FRAMES=7,IMPACT_FRAME_MS=80,BLOCK_SIZE=320,IMPACT_SIZE=256;
@@ -45,10 +45,10 @@ export function drawIceImpact(c:CanvasRenderingContext2D,x:number,y:number,age:n
  */
 export function drawFrozenBlock(c:CanvasRenderingContext2D,x:number,y:number,state:{since:number;turns:number;thawAt?:number},now:number){
  const block=images.get('block');if(!block)return;
- const size=124,top=y-size*.9;
+ const size=190,top=y-size*.88;
  if(state.thawAt!==undefined){
   const t=(now-state.thawAt)/ICE_SHATTER_DURATION;if(t>=1)return;
-  c.save();c.globalAlpha*=1-t*t;const grow=1+t*.18;c.translate(x,y);c.scale(grow,grow);c.drawImage(block,2*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,-size/2,-size*.9,size,size);c.restore();return;
+  c.save();c.globalAlpha*=1-t*t;const grow=1+t*.18;c.translate(x,y);c.scale(grow,grow);c.drawImage(block,2*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,-size/2,-size*.88,size,size);c.restore();return;
  }
  const form=clamp((now-state.since)/ICE_FORM_DURATION),rise=1-Math.pow(1-form,3),shimmer=.7+Math.sin(now/420)*.04;
  c.save();c.globalAlpha*=shimmer*(.4+.6*form);

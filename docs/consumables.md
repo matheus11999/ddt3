@@ -12,7 +12,7 @@ Pedido do matheus em 20/10/2026, a partir do pacote de referência `output/ddtan
 - Enfurecer não é o bônus de dano +50% e não muda a força do lançamento. Usar o POW continua sendo outro clique.
 - Gelo: uma vez por turno; não combina com +1, +2, Tridente, bônus de dano, POW nem mira assistida (combina com Enfurecer). Voa como o avião (Ball1 = Ball3) e para em corpos.
 - Congelado (`Fighter.frozenTurns`): perde os próximos 2 turnos próprios (`ICE_FROZEN_TURNS = 3`, cada início de turno tira 1; em 0 descongela e joga). No PvP o turno perdido soma mais um Delay base, como o `PrepareSelfTurn` do DDTank. Monstros de expedição congelados ficam parados no turno dos monstros; o dragão do Chefão Mundial não congela.
-- Congelado não toma dano: o primeiro ataque só quebra o gelo, e o resto daquele mesmo tiro também é gasto no gelo (`thawedBy`). Queda na base continua matando. Limitação: dano em área de pet ainda atinge quem está congelado.
+- Congelado não toma dano: o primeiro projétil que acerta só quebra o gelo; os próximos, mesmo do mesmo turno, já causam dano (pedido do matheus em 20/10). Queda na base continua matando. Limitação: dano em área de pet ainda atinge quem está congelado.
 
 ## Arte e sons
 
@@ -20,5 +20,5 @@ Pedido do matheus em 20/10/2026, a partir do pacote de referência `output/ddtan
   - `rage-icon.png`, `ice-icon.png` (256 px): botões da barra (o jogo escreve "POW +50" no Enfurecer) e ícone de 60×60 sobre a cabeça ao usar (AutoPropEffect em (−5, −140), some em 1,2 s).
   - `ice-projectile.png` (192 px): bola de gelo girada pela velocidade.
   - `ice-impact.png`: 7 quadros de 256 px, 80 ms cada.
-  - `ice-block.png`: 3 quadros de 320 px (inteiro, rachado no último turno congelado, quebrando); cresce do chão em 320 ms, translúcido sobre o lutador.
-- Sons do pacote de referência, como pedido: `activate.mp3` (039, ativação compartilhada, ao usar Enfurecer ou Gelo), `ice-fire.mp3` (023, lançamento da bola de gelo), `ice-impact.mp3` (093, impacto e gelo quebrando), em `public/assets/audio/consumables/`.
+  - `ice-block.png`: 3 quadros de 320 px (inteiro, rachado no último turno congelado, quebrando); cresce do chão em 320 ms, translúcido sobre o lutador, 190 px para cobrir o corpo inteiro (o matheus achou o de 124 pequeno).
+- Sons do pacote de referência: `ice-fire.mp3` (023, lançamento da bola de gelo), `ice-impact.mp3` (093, impacto e gelo quebrando), em `public/assets/audio/consumables/`. Ao usar Enfurecer ou Gelo toca o som padrão das ferramentas (o 039 da referência saiu: o matheus achou feio).

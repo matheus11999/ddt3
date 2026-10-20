@@ -1251,7 +1251,7 @@ export class Game {
   if(impact.petStrike){this.petStrike(m,shot,shooter,impact);return;}
   if(impact.ice){
    // Freezing again resets the count (IceFronzeEffect.Start); a fighter whose ice the same shot broke stays free.
-   for(const target of iceTargets(m.state.players,shooter.team,impact.mark)){target.frozenTurns=ICE_FROZEN_TURNS;delete target.thawedBy;target.charging=false;}
+   for(const target of iceTargets(m.state.players,shooter.team,impact.mark)){target.frozenTurns=ICE_FROZEN_TURNS;target.charging=false;}
    shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:[]});this.broadcastBattle(m,true);return;
   }
   if(impact.flight){
@@ -1268,8 +1268,8 @@ export class Game {
   for(const planned of impact.hits){
    // Hits are only planned on fighters still alive when the projectile lands (killed ones are let through).
    const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height)continue;
-   // Frozen: no damage; the first attack only breaks the ice, and the rest of that shot is spent on it too (DDTank IsFrost).
-   if((isFrozen(target)||target.thawedBy===shot.id)&&(planned.damage>0||planned.shield)){target.frozenTurns=0;target.thawedBy=shot.id;continue;}
+   // Frozen: the first projectile that hits only breaks the ice; the next ones, even of the same shot, deal damage (matheus 20/10).
+   if(isFrozen(target)&&(planned.damage>0||planned.shield)){target.frozenTurns=0;continue;}
    if(planned.shield)drainShield(target,planned.shield);if(planned.damage<=0&&!planned.shield)continue;
    // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
    if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}

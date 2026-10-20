@@ -232,7 +232,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      {const count=f.boosts.length,before=seenBoosts.get(f.id)??(knownMatch?0:count);seenBoosts.set(f.id,count);
-      if(count>before&&!f.hidden){const used=f.boosts.slice(before).filter((id):id is 'rage'|'ice'=>id==='rage'||id==='ice').at(-1);if(used){toolIcons.set(f.id,{id:used,at:t});playConsumableSound('activate');}}
+      if(count>before&&!f.hidden){const used=f.boosts.slice(before).filter((id):id is 'rage'|'ice'=>id==='rage'||id==='ice').at(-1);if(used)toolIcons.set(f.id,{id:used,at:t});}
       const turns=hp>0?f.frozenTurns??0:0,ice=frozenSeen.get(f.id);
       if(turns>0&&(!ice||ice.thawAt!==undefined))frozenSeen.set(f.id,{since:knownMatch?t:t-1e4,turns});else if(turns>0&&ice)ice.turns=turns;
       else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
