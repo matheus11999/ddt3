@@ -1,0 +1,14 @@
+MODEL: Nano Banana 2, square 1:1, the highest resolution available (2K if it costs the same).
+ATTACH, in this order: house-style-anchors.png and wind-sheet-approved-style.png (both STYLE ONLY). Do NOT attach any DDTank image.
+
+HOUSE STYLE (mandatory): original hand-painted 2D chibi browser-game art, polished DDTank-like style. Smooth digital painting with soft brush blending, chunky readable silhouette, bold clean dark-brown contour of even thickness, sculpted volume, vivid saturated colors, soft painted highlights, light from the top left, three-quarter view. Match EXACTLY the painting quality, outline, smoothness and lighting of the two attached images (same artist, same brush). FORBIDDEN: gritty or noisy texture, heavy black ink, pixel art, voxel, 3D render, CGI, flat vector, clipart, photo, sketch. No text, letters, numbers, labels, UI, frame, floor or cast shadow.
+
+WEAPON: "Bobina do Trovão", a compact hand-held ELECTRIC BLASTER for one hand. Every phase keeps the same anatomy: a curved pistol grip at the bottom-left, a thick body, a coil wound around the body, and TWO electrode prongs at the top-right shaped like a tuning fork, where the lightning leaves. Diagonal, prongs pointing up-right. It must look like a fun cartoon gadget, not a real firearm.
+
+Create ONE square image split into an invisible 2×2 grid (no gridlines, no labels). One phase per cell, each object centered in its cell, filling about 70% of it, never touching another cell. Same angle, scale, outline and light in all four. Each phase is a NEW silhouette with new materials, not a recolor:
+- top-left (+0 to +9): humble workshop device: chunky rounded body of rust-red painted metal with a riveted plate, a copper wire coil wound around the grip, two short brass prongs with little white porcelain insulator caps, a small round glass gauge on the side.
+- top-right (+10 and +11): sleek glossy red-orange body with flame-shaped highlights, golden ribbed spring coils climbing both prongs, a glowing cyan energy capsule set into the side of the body, golden trigger guard.
+- bottom-left (+12 to +14): engineered teal-blue armored body with ribbed vents, silver bolts, a row of tiny orange indicator lights and a green gem, the prongs become blue ribbed towers ending in sharp golden spikes, a golden coil cylinder on the side.
+- bottom-right (+15): royal violet-purple body with gold filigree, gold pipes and a red diamond gem; the prongs become two big faceted crystal lightning blades, the left one icy blue, the right one ruby red; a golden collar with small green and violet crystals between them.
+
+BACKGROUND: the whole background is ONE flat, uniform pure magenta #FF00FF (no gradient, no texture, no shadow, no glow on it). No magenta or hot pink on the weapons. Clean anti-aliased outer contour. No lightning bolts or sparks around the weapons: only the objects.
