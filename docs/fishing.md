@@ -81,3 +81,11 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Sons de lançar, morder, acertar e escapar.
 - Eventos de pesca, ranking de pescadores.
 - Ícone pintado do botão Histórico (hoje um desenho provisório); ícone da Fênix d'Água; pranchas de animação das varas novas (hoje todas usam a do Bambu); a bandeja do console ainda tem a minhoca pintada.
+
+## Console da pesca (20/10, pedidos do matheus)
+
+- A vara equipada aparece dentro do círculo de Lançar (anel pintado vazio, `22-hud-lancar.png` linha B, recortado por `scripts/build-fishing-ui.py` em `cast-ring*` e `rod-swap`); o selo de setas na borda abre **Trocar vara**: as seis varas em cards de item, a equipada com brilho e "Em uso", as que faltam em cinza com o nível; um clique troca, clicar numa bloqueada abre a Casa de Pesca.
+- Prêmios ficam num círculo menor ao lado; a bandeja antiga (`gear-tray.webp`, com a minhoca) saiu do console.
+- Cartão do pescador 30% menor.
+- Trocas compactas: 4 por linha, ícone pequeno, nome e custo; a quantidade só aparece depois de clicar em Trocar.
+- Atualizar a página ou reiniciar o servidor devolve à Pescaria quem estava nela (zona lembrada no navegador, `brasa-zone:<id>`); botão de sair ao lado de Configurações.

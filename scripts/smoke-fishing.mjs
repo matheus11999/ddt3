@@ -63,9 +63,9 @@ for(let attempt=0;attempt<4&&!caught;attempt++){
 }
 if(!caught)throw new Error('não pescou nada em 4 tentativas');
 // The rod menu, then the rod's prizes (Fragmentos da Vara das Marés).
-await page.waitForTimeout(2600);await page.locator('.fishing-slot').first().click();await expect(page.locator('.fishing-gear-menu')).toBeVisible();await shot(page,'07-trocar-vara');
-await page.locator('.fishing-slot').first().click();
-await page.locator('.fishing-slot.prizes').click();await expect(page.locator('.fishing-gear-menu')).toContainText('Vara das Marés');await page.locator('.fishing-slot.prizes').click();
+await page.waitForTimeout(2600);await page.locator('.fishing-rod-swap').click();await expect(page.locator('.fishing-gear-menu')).toBeVisible();await shot(page,'07-trocar-vara');
+await page.locator('.fishing-rod-swap').click();
+await page.locator('.fishing-orb.prizes').click();await expect(page.locator('.fishing-gear-menu')).toContainText('Vara das Marés');await page.locator('.fishing-orb.prizes').click();
 // The Pescaria menu: no backpack, shop, auction, pets, missions or guild; the Sacola holds what was fished.
 for(const id of ['bag','shop','auction','pets','quests','guild'])await expect(page.locator(`.lobby-dock-button.${id}`)).toHaveCount(0);
 await page.locator('.lobby-dock-button.fish-bag').click();await expect(page.locator('.fishing-bag-slot:not(.empty)')).not.toHaveCount(0);

@@ -49,17 +49,15 @@ export function FishingShop(){
     {tab==='shop'?<ul className="fishing-offers">{FISHING_SHOP.map(offer=>{
      const locked=!!offer.level&&level<offer.level,single=offer.prize.kind==='rod',owned=offer.prize.kind==='rod'&&f.rods.includes(offer.prize.rod);
      const n=single?1:amount(offer.id),cost=offer.cost*n,poor=f.points<cost;
-     return <li key={offer.id} className={`fishing-offer ${locked?'locked':''} ${owned?'owned':''}`}>
-      <ItemCardFrame variant="preview" className="fishing-offer-art"><PrizeIcon offer={offer} size={50}/>{locked&&<span className="fishing-lock"><Lock size={14}/> Nv. {offer.level}</span>}</ItemCardFrame>
-      <div className="fishing-offer-text"><b>{offer.name}</b><small>{offer.description}</small></div>
+     return <li key={offer.id} className={`fishing-offer ${locked?'locked':''} ${owned?'owned':''} ${asking===offer.id?'asking':''}`} title={offer.description}>
+      <ItemCardFrame variant="preview" className="fishing-offer-art"><PrizeIcon offer={offer} size={40}/>{locked&&<span className="fishing-lock"><Lock size={10}/> Nv. {offer.level}</span>}</ItemCardFrame>
+      <div className="fishing-offer-text"><b>{offer.name.replace(/Nv\. /,"Nv.\u00a0")}</b><span className="fishing-cost"><FishingIcon id="fishing-points" size={15}/>{cost.toLocaleString('pt-BR')}</span></div>
       <div className="fishing-offer-foot">
-       <span className="fishing-cost"><FishingIcon id="fishing-points" size={18}/>{cost.toLocaleString('pt-BR')}</span>
        {locked?<span className="fishing-need">Pescador Nv. {offer.level}</span>:owned?<span className="fishing-need">Já tem</span>:
-        asking===offer.id?<span className="fishing-buy"><button className="wood-button" onClick={()=>{client.send({type:'fish-buy',offer:offer.id,quantity:n});audio.play('click');}}>Confirmar</button><button className="wood-quiet" onClick={()=>setAsking(null)}>Não</button></span>
-        :<span className="fishing-buy">
+        asking===offer.id?<span className="fishing-buy">
          {!single&&<span className="fishing-stepper"><button onClick={()=>setAmount(offer.id,n-1)} disabled={n<=1} aria-label="Menos">−</button><input type="number" min={1} max={MAX_FISHING_BUY} value={n} aria-label="Quantidade" onChange={e=>setAmount(offer.id,Number(e.target.value))}/><button onClick={()=>setAmount(offer.id,n+1)} disabled={n>=MAX_FISHING_BUY} aria-label="Mais">+</button></span>}
-         <button className="wood-button" disabled={poor} title={poor?'Pontos de Pesca insuficientes':undefined} onClick={()=>setAsking(offer.id)}>Trocar</button>
-        </span>}
+         <button className="wood-button" disabled={poor} title={poor?'Pontos de Pesca insuficientes':undefined} onClick={()=>{client.send({type:'fish-buy',offer:offer.id,quantity:n});audio.play('click');}}>OK</button><button className="wood-quiet" onClick={()=>setAsking(null)} aria-label="Cancelar">×</button></span>
+        :<button className="wood-button" disabled={f.points<offer.cost} title={f.points<offer.cost?'Pontos de Pesca insuficientes':undefined} onClick={()=>setAsking(offer.id)}>Trocar</button>}
       </div>
      </li>;})}</ul>
     :<div className="fishing-collection">{Object.entries(FISH_TABLES).map(([id,name])=>{const list=FISH.filter(fish=>fish.lakes[0]===id),got=list.filter(fish=>f.caught[fish.id]).length;
