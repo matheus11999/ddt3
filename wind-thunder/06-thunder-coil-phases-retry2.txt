@@ -1,0 +1,15 @@
+MODEL: Nano Banana 2, square 1:1, 1k.
+ATTACH, in this order: thunder-ddtank-phases.png (DESIGN AND STYLE REFERENCE), wind-sheet-approved-style.png (outline and polish reference).
+
+GOAL: the user wants the Bobina do Trovão to look like the weapon in the FIRST attached image (same art style, same kind of object, same silhouette family, same color per phase) but NOT a copy: a variation, as if the same DDTank artist drew a sibling weapon. Do not trace it. Redraw each phase by hand with these deliberate changes, keeping everything else close to the reference:
+- MIRROR every weapon horizontally: the grip and the hook at the bottom-RIGHT, the two terminals pointing up-LEFT.
+- top-left (+0 to +9): the same brownish-red U-shaped electric device with the copper coil, but with a small round glass gauge on the body, three rivets, and the two terminal tips as little porcelain insulators instead of plain white tips.
+- top-right (+10 and +11): the same glossy red-orange body with flame highlights and golden ribbed terminal coils, but the blue energy window becomes a round glowing cyan capsule held by two gold clamps, and a gold trim line runs along the hook.
+- bottom-left (+12 to +14): the same dark teal mechanical body with gold-spiked blue ribbed terminals, but with two green gems instead of one, a row of tiny orange lights along the spine, and the side coil turned into a gold coil cylinder with a small fan.
+- bottom-right (+15): the same violet-purple ornate body with gold pipes and the two crystal lightning blades (one icy blue, one ruby red), but with the blades a bit wider and faceted, a golden crown-shaped collar between them, and a red diamond gem on the side of the body.
+
+STYLE: exactly the painting style of the first image (DDTank 2D painted weapon icons: bold dark outline, saturated colors, painted shading and highlights), cleaned up with the smooth anti-aliased finish and even outline of the second image. Not 3D, not vector, not pixel art. No text, letters, numbers, labels or frames.
+
+LAYOUT: ONE square image, invisible 2×2 grid (no gridlines), phases in the order above, each weapon centered in its cell, about 70% of the cell, never touching another cell, same scale and angle.
+
+BACKGROUND: one flat, uniform pure magenta #FF00FF (no gradient, no shadow, no glow). No magenta or hot pink on the weapons. No sparks or lightning around them.
