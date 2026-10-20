@@ -65,8 +65,12 @@ export const RESULT_MS=2600;
 export const PRESS_GRACE_MS=700;
 /** The bar in automatic mode resolves itself after AUTO_BASE_MS + AUTO_PER_HIT_MS per press, with a lower chance. */
 export const AUTO_BASE_MS=1200,AUTO_PER_HIT_MS=900;
-/** Automatic catches count as this quality (manual perfect presses go up to 1). */
+/** Automatic catches count as this quality for the weight (manual perfect presses go up to 1). */
 export const AUTO_QUALITY=.3;
+/** Pedido do matheus (20/10): o automático rende 25% da pesca manual (Pontos e EXP de cada peixe). */
+export const AUTO_EFFICIENCY=.25;
+/** Points and EXP of an automatic catch: a quarter of a plain manual catch, never zero. */
+export function autoReward(fish:Fish){return {points:Math.max(1,Math.round(fish.points*AUTO_EFFICIENCY)),xp:Math.max(1,Math.round(catchXp(fish)*AUTO_EFFICIENCY))};}
 
 /** Small seeded generator, so the server and a test agree on every number of a bar. */
 export function seeded(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
@@ -123,7 +127,7 @@ export const MAX_FISHING_LEVEL=50;
 export function fishingXpFor(level:number):number{return level<=1?0:Math.round(60*(level-1)**1.7);}
 export function fishingLevel(xp:number):number{let level=1;while(level<MAX_FISHING_LEVEL&&xp>=fishingXpFor(level+1))level++;return level;}
 export function fishingLevelProgress(xp:number){const level=fishingLevel(xp),from=fishingXpFor(level),to=fishingXpFor(level+1);return {level,current:xp-from,required:level>=MAX_FISHING_LEVEL?0:to-from,percent:level>=MAX_FISHING_LEVEL?100:Math.floor((xp-from)/(to-from)*100)};}
-/** EXP for a catch (the same in manual and automatic; automatic just lands fewer fish). */
+/** EXP for a manual catch (automatic gets AUTO_EFFICIENCY of it, `autoReward`). */
 export function catchXp(fish:Fish):number{return fish.points*10;}
 /** Each fisher level widens the bar's target a little and raises the odds of rare fish (and the automatic chance). */
 export function levelBonus(level:number){const n=Math.max(0,Math.min(MAX_FISHING_LEVEL,level)-1);return {control:n*.008,luck:n*.006,auto:n*.002};}
@@ -165,4 +169,4 @@ export interface FishingCatch {fish:string;kg:number;points:number;xp:number;rec
 /** My own fishing session: the bar runs from `start` (server time); `press`/`hits`/`misses` count the presses so far. */
 export interface FishingView {spot:string;phase:FishingPhase;auto:boolean;since:number;challenge?:FishChallenge&{start:number;press:number;misses:number;grades:PressGrade[]};result?:{success:boolean;catch?:FishingCatch;fish?:string};}
 /** What other players see of someone fishing (rod out, float, the fish coming out of the water). */
-export interface FishingPose {spot:string;phase:FishingPhase;since:number;success?:boolean;fish?:string;}
+export interface FishingPose {spot:string;phase:FishingPhase;since:number;success?:boolean;fish?:string;/** Fishing in automatic mode: everyone sees the seal over this fisher. */auto?:boolean;}

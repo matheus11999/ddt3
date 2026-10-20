@@ -7,7 +7,7 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
+import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,BAIT_BY_ID,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
 import type {Fish,FishChallenge,FishingPhase,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
@@ -190,7 +190,7 @@ export class Game {
    this.emitFishing(p);return true;
   }
   if(f.phase==='bite'&&f.challenge&&f.fish){
-   if(p.fishAuto&&now>=f.resolveAt){const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp));void this.settleFish(p,f,this.fishRoll()<autoChance(f.fish,rod),AUTO_QUALITY).catch(this.report);return false;}
+   if(p.fishAuto&&now>=f.resolveAt){const fishing=normalizeFishing(p.profile.fishing),rod=effectiveRod(ROD_BY_ID.get(fishing.rod)!,fishingLevel(fishing.xp));void this.settleFish(p,f,this.fishRoll()<autoChance(f.fish,rod),AUTO_QUALITY,false,true).catch(this.report);return false;}
    if(!p.fishAuto&&now>f.start+f.challenge.limitMs){void this.settleFish(p,f,false,0).catch(this.report);return false;}
   }
   if(f.phase==='result'&&now>=f.since+RESULT_MS){
@@ -202,12 +202,12 @@ export class Game {
   return false;
  }
  /** Saves the end of a cast (bait, catch, points, EXP) and shows the result. */
- private async settleFish(p:Peer,f:FishingSession,success:boolean,quality:number,silent=false){
+ private async settleFish(p:Peer,f:FishingSession,success:boolean,quality:number,silent=false,auto=false){
   if(f.settling)return;f.settling=true;
   const fish=f.fish;let caught;
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
-   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(fish&&success?{fish:{id:fish.id,kg,points:catchPoints(fish,quality),xp:catchXp(fish)}}:{})});
+   const outcome=await this.store.fishSettle!(p.profile.id,{bait:f.bait,...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
    p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
   }catch(e){this.report(e);success=false;}
   finally{f.settling=false;}
@@ -386,7 +386,7 @@ export class Game {
   for(const m of [...this.matches.values()])if(!m.roomIds.some(id=>this.roomMatches.get(id)===m.key)&&m.state.rewards?.saved)this.matches.delete(m.key);
   this.roomsDirty=true;
  }
- lobby(channel:number,zone:Zone='plaza'):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel&&(p.zone??'plaza')===zone).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y,...(p.fishing?{fishing:{spot:p.fishing.spot.id,phase:p.fishing.phase,since:p.fishing.since,...(p.fishing.result?{success:p.fishing.result.success,...(p.fishing.result.success&&p.fishing.fish?{fish:p.fishing.fish.id}:{})}:{})}}:{})}));}
+ lobby(channel:number,zone:Zone='plaza'):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel&&(p.zone??'plaza')===zone).map(p=>({id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y,...(p.fishing?{fishing:{spot:p.fishing.spot.id,phase:p.fishing.phase,since:p.fishing.since,...(p.fishAuto?{auto:true}:{}),...(p.fishing.result?{success:p.fishing.result.success,...(p.fishing.result.success&&p.fishing.fish?{fish:p.fishing.fish.id}:{})}:{})}}:{})}));}
  private emit(p:Peer,e:ServerEvent){if(p.connected)p.send(e);}
  private sendLobby(channel:number){const lists=new Map<Zone,LobbyPlayer[]>();const online=[...this.peers.values()].filter(p=>p.connected).length;for(const p of this.peers.values())if(p.channel===channel&&!p.roomId){const zone=p.zone??'plaza';if(!lists.has(zone))lists.set(zone,this.lobby(channel,zone));this.emit(p,{type:'lobby',players:lists.get(zone)!,online});}}
  private broadcastRooms(){const rooms=this.publicRooms();for(const p of this.peers.values())this.emit(p,{type:'rooms',rooms});this.roomsDirty=false;}
@@ -533,7 +533,7 @@ export class Game {
      if(f&&c.on&&f.phase==='idle')this.castLine(p,f.spot.id);
      // Switching on in the middle of a bar lets the automatic mode finish it.
      else if(f&&c.on&&f.phase==='bite'&&!f.settling)f.resolveAt=Math.max(Date.now()+AUTO_BASE_MS,f.start);
-     if(f)this.emitFishing(p);return;
+     if(f){this.emitFishing(p);this.sendLobby(p.channel);}return;
     }
     case 'fish-gear':{
      if(!this.store.fishGear)throw Error('A pescaria está indisponível no momento.');

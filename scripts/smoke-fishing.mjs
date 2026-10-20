@@ -65,6 +65,13 @@ if(!caught)throw new Error('não pescou nada em 4 tentativas');
 // Rod and bait from the fishing bag.
 await page.waitForTimeout(2600);await page.locator('.fishing-slot').first().click();await expect(page.locator('.fishing-gear-menu')).toBeVisible();await shot(page,'07-trocar-vara');
 await page.locator('.fishing-slot').first().click();
+// The Pescaria menu: no backpack, shop, auction, pets, missions or guild; the Sacola holds what was fished.
+for(const id of ['bag','shop','auction','pets','quests','guild'])await expect(page.locator(`.lobby-dock-button.${id}`)).toHaveCount(0);
+await page.locator('.lobby-dock-button.fish-bag').click();await expect(page.locator('.fishing-bag-slot:not(.empty)')).not.toHaveCount(0);
+await page.waitForTimeout(600);await shot(page,'07b-sacola');await page.locator('.fishing-bag-window .close-button').click();
+// The Auto switch: lit, with the AUTOMÁTICO seal and a short notice; then off again.
+await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
+await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toHaveCount(0);
 // The Casa de Pesca on its island opens from anywhere it shows.
 const clickWorld=async(x,y,from)=>{const cam=camera(from.x,from.y);await canvas.click({position:{x:x-cam.x,y:y-cam.y}});};
 const house=FISHING_STATIONS.find(s=>s.id==='casa');
@@ -72,7 +79,9 @@ const house=FISHING_STATIONS.find(s=>s.id==='casa');
 await walkTo(page,lawn.x,lawn.y);
 await page.waitForTimeout(400);await shot(page,'08-casa-de-pesca');
 await clickWorld(house.x,house.y-house.height*.72,page.at());
-await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
+await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.locator('.fishing-shop-window .close-button').click();
+// The Trocas button opens the same window from anywhere.
+await page.locator('.fishing-trade').click();await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
 await page.getByRole('button',{name:/^Coleção/}).click();await page.waitForTimeout(500);await shot(page,'10-colecao');
 await page.locator('.fishing-shop-window .close-button').click();await expect(page.locator('.fishing-shop-window')).toHaveCount(0);
 await page.locator('.fishing-exit').click();await expect(page.locator('.lobby-dock-button.arena')).toBeVisible();

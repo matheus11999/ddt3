@@ -7,7 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -169,6 +169,9 @@ test('automatic fishing lands fish by chance and casts again by itself (AFK)',as
   await f.game.command(f.a.id,{type:'fish-press',at:Date.now()});assert.equal(peer.fishing!.press,0);
   f.game.tick(peer.fishing!.resolveAt);await flush();
   assert.equal(peer.fishing!.phase,'result');assert.equal(peer.fishing!.result!.success,true);
+  // Automatic yields a quarter of a manual catch.
+  const c=peer.fishing!.result!.catch!,fish=FISH_BY_ID.get(c.fish)!;
+  assert.deepEqual({points:c.points,xp:c.xp},autoReward(fish));assert.ok(c.points<=Math.ceil(fish.points/4));
   f.game.tick(peer.fishing!.since+RESULT_MS);
  }
  assert.equal(f.store.profiles.get(f.a.id)!.fishing.total,3);
