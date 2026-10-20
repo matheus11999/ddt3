@@ -39,7 +39,7 @@ export interface DestructionProfile {
  * keeps a wider rim than DDTank's 116/142, since its hole is only 5% bigger and the POW mark must read as its own. */
 const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.79,pow:.74},'love-boomerang':{normal:.70,pow:.66}};
 /** Phases whose painting is approved (filled in when the art lands). */
-const PAINTED=new Set<string>([]);
+const PAINTED=new Set<string>(['brick','love-boomerang'].flatMap(weapon=>DESTRUCTION_MODES.flatMap(mode=>DESTRUCTION_STAGES.map(stage=>`${weapon}:${mode}:${stage}`))));
 
 export function destructionMarkPath(weapon:string,mode:DestructionMode,stage:DestructionStage){return `/assets/weapons/${weapon}/destruction/${mode}/mark-${stage}.png`;}
 export function destructionProfileId(weapon:string,mode:DestructionMode,stage:DestructionStage,version=DESTRUCTION_VERSION){return `${weapon}:${mode}:${stage}@${version}`;}
