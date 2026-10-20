@@ -7,7 +7,8 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish} from '../shared/fishing';
+import {AUTO_BASE_MS,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingWeek,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish,FISH_RANKING_SIZE} from '../shared/fishing';
+import type {FishRanking} from '../shared/fishing';
 import type {Fish,FishChallenge,FishingPhase,FishingPose,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
@@ -95,6 +96,8 @@ export class Game {
  private nextRoomNumber=1;private roomMatches=new Map<string,string>();private queueIds=new Set<string>();private profileChanges=new Set<string>();
  private lastTick=Date.now();private lobbyTick=0;private roomsDirty=false;private arenaPopulation=0;
  private ranking:RankingEntry[]=[];private rankingAt=0;private rankingLoading:Promise<void>|null=null;
+ /** The week's heaviest fish (Pescaria), refreshed with the podium and after catches that change it. */
+ private fishRanking:FishRanking={week:fishingWeek(Date.now()),entries:[]};private fishRankingLoading:Promise<void>|null=null;
  /** Where reports go (the admin panel's store); without it reports are refused. */
  reports?:ReportSink;
  /** Player mail (server/mail.ts); without it the inbox stays empty. */
@@ -128,7 +131,7 @@ export class Game {
   else {let channel=1;while([...this.peers.values()].filter(x=>x.channel===channel).length>=60)channel++;p={profile,send,connected:true,roomId:null,arenaOpen:false,channel,x:LOBBY_SPAWN.x-60+Math.random()*120,y:LOBBY_SPAWN.y,targetX:LOBBY_SPAWN.x,targetY:LOBBY_SPAWN.y,lastSeen:Date.now(),lastWalk:0};p.targetX=p.x;this.peers.set(profile.id,p);}
   const room=p.roomId?this.rooms.get(p.roomId):undefined;const match=room?this.matchForRoom(room.id):undefined;
   if(room){const seat=this.roomMembers(room).find(s=>s.id===profile.id);if(seat)seat.connected=true;const fighter=match?.state.players.find(s=>s.id===profile.id);if(fighter)fighter.connected=true;this.broadcastRoom(room);}
-  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel,p.zone),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,zone:p.zone??'plaza',arenaOnline:this.countArena(),ranking:this.ranking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
+  send({type:'welcome',profile:p.profile,players:this.lobby(p.channel,p.zone),rooms:this.publicRooms(),room:room??null,battle:match?this.snapshot(match,true,profile.id):null,serverTime:Date.now(),channel:p.channel,zone:p.zone??'plaza',arenaOnline:this.countArena(),ranking:this.ranking,fishRanking:this.fishRanking,...(this.worldBoss?{worldBoss:this.worldBoss.status()}:{})});
   const load=room?this.loads.get(this.roomLoads.get(room.id)??''):undefined;if(load)this.emit(p,{type:'loading',loading:load.view});
   this.pruneInvitations();for(const pending of this.roomInvitations.values())if(pending.playerId===profile.id)this.emit(p,{type:'room-invitation',invite:{...pending.invite}});
   this.sendLobby(p.channel);this.publishArenaPopulation();void this.sendInbox(p).catch(this.report);void this.sendAuctionMine(p).catch(this.report);void this.refreshGuildMember(profile.id).catch(this.report);void this.sendPets(p).catch(this.report);return p;
@@ -209,8 +212,11 @@ export class Game {
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
    const drops=fish&&success?rollRodDrops(ROD_BY_ID.get(f.rod)??ROD_BY_ID.get(STARTER_ROD)!,auto,this.fishRoll):[];
-   const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish):{points:catchPoints(fish,quality),xp:catchXp(fish)})}}:{})});
+   const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish,kg):{points:catchPoints(fish,kg,quality),xp:catchXp(fish,kg)})}}:{})});
    p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
+   // A new heaviest fish of the week for this player: the ranking changes when it makes the top or the player is on it.
+   const r=outcome.weekRecord,board=this.fishRanking;
+   if(r&&(r.week!==board.week||board.entries.length<FISH_RANKING_SIZE||r.kg>board.entries[board.entries.length-1].kg||board.entries.some(e=>e.id===p.profile.id)))void this.refreshFishRanking();
    // Épico e Lendário: o canal inteiro fica sabendo, no chat Mundo.
    const announce=(text:string)=>{const line:ChatLine={id:randomUUID(),name:'Pescaria',text,channel:'world',time:Date.now()};
     for(const peer of this.peers.values())if(peer.connected&&peer.channel===p.channel)this.emit(peer,{type:'chat',message:line});};
@@ -560,6 +566,12 @@ export class Game {
      if(!this.store.fishGear)throw Error('A pescaria está indisponível no momento.');
      if(p.fishing&&p.fishing.phase!=='idle'&&p.fishing.phase!=='result')throw Error('Recolha a linha antes de trocar a vara.');
      p.profile=await this.store.fishGear(id,c.rod);this.emit(p,{type:'profile',profile:p.profile});return;
+    }
+    case 'fish-sell':{
+     if(!this.store.fishSell)throw Error('A pescaria está indisponível no momento.');
+     if(p.zone!=='fishing')throw Error('Venda os peixes na Pescaria.');
+     const outcome=await this.store.fishSell(id,c.ids);p.profile=outcome.profile;
+     this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'fish-sell-result',sold:outcome.sold,points:outcome.points});return;
     }
     case 'fish-buy':{
      if(!this.store.fishBuy)throw Error('A pescaria está indisponível no momento.');
@@ -1432,12 +1444,23 @@ export class Game {
  refreshRanking():Promise<void>{
   if(!this.store.dailyRanking)return Promise.resolve();
   if(this.rankingLoading)return this.rankingLoading.then(():Promise<void>=>this.refreshRanking());
-  this.rankingAt=Date.now();
+  this.rankingAt=Date.now();void this.refreshFishRanking();
   this.rankingLoading=this.store.dailyRanking().then(ranking=>{
    if(JSON.stringify(ranking)===JSON.stringify(this.ranking))return;
    this.ranking=ranking;for(const peer of this.peers.values())this.emit(peer,{type:'ranking',ranking});
   }).catch(this.report).finally(()=>{this.rankingLoading=null;});
   return this.rankingLoading;
+ }
+ /** Reloads the week's fish ranking (rolls over on Monday in Brasília) and sends it to everyone when it changed. */
+ refreshFishRanking():Promise<void>{
+  if(!this.store.fishRanking)return Promise.resolve();
+  if(this.fishRankingLoading)return this.fishRankingLoading.then(():Promise<void>=>this.refreshFishRanking());
+  const week=fishingWeek(Date.now());
+  this.fishRankingLoading=this.store.fishRanking(week).then(entries=>{
+   const ranking={week,entries};if(JSON.stringify(ranking)===JSON.stringify(this.fishRanking))return;
+   this.fishRanking=ranking;for(const peer of this.peers.values())if(peer.connected)this.emit(peer,{type:'fish-ranking',ranking});
+  }).catch(this.report).finally(()=>{this.fishRankingLoading=null;});
+  return this.fishRankingLoading;
  }
  private bot(m:Match,f:Fighter){
   const target=m.state.players.filter(p=>p.team!==f.team&&p.hp>0&&!(p.invisibleTurns??0)).sort((a,b)=>a.hp-b.hp)[0];if(!target){this.nextTurn(m);return;}f.facing=target.x>f.x?1:-1;

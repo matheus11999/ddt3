@@ -25,7 +25,7 @@ import type {PetsState,PetResult} from './petProtocol';
 import type {BattlePetState,PetApplication,PetEffect} from './petSkills';
 import {hallCommandSchemas} from './hall';
 import {fishingCommandSchemas} from './fishingProtocol';
-import type {FishingPose,FishingProfile,FishingView,Zone} from './fishing';
+import type {FishRanking,FishingPose,FishingProfile,FishingView,Zone} from './fishing';
 import {FISHING_WALK} from './fishing';
 import type {HallEvent} from './hall';
 import type {GuildState,GuildSummary} from './guilds';
@@ -158,7 +158,7 @@ export const commandSchema=z.discriminatedUnion('type',[
 ]);
 export type Command=z.infer<typeof commandSchema>;
 export type ServerEvent =
- | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;/** Praça Celeste or the Pescaria; `players` are the ones in the same zone. */zone?:Zone;arenaOnline?:number;ranking?:RankingEntry[];worldBoss?:WorldBossStatus}
+ | {type:'welcome';profile:Profile;players:LobbyPlayer[];rooms:Room[];room:Room|null;battle:Battle|null;serverTime:number;channel:number;/** Praça Celeste or the Pescaria; `players` are the ones in the same zone. */zone?:Zone;arenaOnline?:number;ranking?:RankingEntry[];/** The week's heaviest fish (Pescaria). */fishRanking?:FishRanking;worldBoss?:WorldBossStatus}
  | {type:'profile';profile:Profile;requestId?:string}
  | {type:'shop-result';result:ShopResult}
  | {type:'forge-result';result:ForgeResult}
@@ -174,9 +174,11 @@ export type ServerEvent =
  /** My fishing session (null: not fishing). */
  | {type:'fishing';fishing:FishingView|null}
  | {type:'fish-buy-result';offer:string;quantity:number;spent:number}
+ | {type:'fish-sell-result';sold:number;points:number}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}
+ | {type:'fish-ranking';ranking:FishRanking}
  /** Chefão Mundial: the event as everyone sees it, the window's table, and the end of one's attempt (the window opens again). */
  | {type:'world-boss';status:WorldBossStatus}
  | {type:'world-boss-ranking';ranking:WorldBossRanking}

@@ -69,6 +69,10 @@ await page.locator('.fishing-rod-swap').click();
 for(const id of ['bag','shop','auction','pets','quests','guild'])await expect(page.locator(`.lobby-dock-button.${id}`)).toHaveCount(0);
 await page.locator('.lobby-dock-button.fish-bag').click();await expect(page.locator('.fishing-bag-slot:not(.empty)')).not.toHaveCount(0);
 await page.waitForTimeout(600);await shot(page,'07b-sacola');await page.locator('.fishing-bag-window .close-button').click();
+// Maior peixe da semana: at the side, hidden and opened again.
+await expect(page.locator('.fishing-rank')).toBeVisible();await expect(page.locator('.fishing-rank li')).not.toHaveCount(0);await shot(page,'07d-ranking');
+await page.locator('.fishing-rank header button').click();await expect(page.locator('.fishing-rank-tab')).toBeVisible();await shot(page,'07e-ranking-oculto');
+await page.locator('.fishing-rank-tab').click();await expect(page.locator('.fishing-rank')).toBeVisible();
 // The Auto switch: lit, with the AUTOMÁTICO seal and a short notice; then off again.
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toHaveCount(0);
@@ -76,6 +80,10 @@ await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-
 await expect(FISHING_STATIONS.some(s=>s.id==='casa')).toBe(false);
 // The Trocas button opens the same window from anywhere.
 await page.locator('.fishing-trade:not(.fishing-history-button)').click();await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
+// Vender: pick the caught fish (records are picked by hand) and sell them for Pontos de Pesca.
+await page.getByRole('button',{name:/^Vender/}).click();await expect(page.locator('.fishing-sell-grid .fish-card')).not.toHaveCount(0);
+await page.locator('.fishing-sell-grid .fish-card').first().click();await page.locator('.fishing-sell-grid .fish-card').first().hover();await page.waitForTimeout(400);await shot(page,'09b-vender');
+await page.locator('.fishing-sell-go').click();await expect(page.locator('.fishing-sell.empty, .fishing-sell-go:text-is("Vender")').first()).toBeVisible();await page.waitForTimeout(700);await shot(page,'09c-vendido');
 await page.getByRole('button',{name:/^Coleção/}).click();await page.waitForTimeout(500);await shot(page,'10-colecao');
 await page.locator('.fishing-shop-window .close-button').click();await expect(page.locator('.fishing-shop-window')).toHaveCount(0);
 // Histórico: the latest catches, newest first.

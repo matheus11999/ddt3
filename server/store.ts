@@ -15,15 +15,16 @@ import {normalizePetSnapshot,PET_FOODS} from '../shared/pets';
 import type {HallStore,MatchRecord} from './hall';
 import type {ColorChange,ColorResult,CompositionResult,ForgeResult,Profile,RankingEntry,ShopResult,SynthesisResult} from '../shared/protocol';
 import {WEAPON_FRAGMENT_RECIPES,synthesize} from '../shared/synthesis';
-import {normalizeFishing} from '../shared/fishing';
-import {buyFishingOffer,chooseFishingGear,settleFishing} from './fishing';
-import type {FishBuyOutcome,FishSettle,FishSettleOutcome} from './fishing';
+import {FISH_RANKING_SIZE,normalizeFishing} from '../shared/fishing';
+import type {FishRankEntry} from '../shared/fishing';
+import {buyFishingOffer,chooseFishingGear,sellFish,settleFishing} from './fishing';
+import type {FishBuyOutcome,FishSellOutcome,FishSettle,FishSettleOutcome} from './fishing';
 export interface ForgeOutcome {profile:Profile;result:ForgeResult;}
 export interface CompositionOutcome {profile:Profile;result:CompositionResult;}
 export interface ShopOutcome {profile:Profile;result:ShopResult;}
 export interface ColorOutcome {profile:Profile;result:ColorResult;}
 export interface SynthesisOutcome {profile:Profile;result:SynthesisResult;}
-export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;synthesize?(id:string,stone:string,count:number):Promise<SynthesisOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;/** Pescaria (server/fishing.ts): end of a cast, rod choice, the Casa de Pesca. */fishSettle?(id:string,settle:FishSettle):Promise<FishSettleOutcome>;fishGear?(id:string,rod:string):Promise<Profile>;fishBuy?(id:string,offer:string,quantity:number):Promise<FishBuyOutcome>;}
+export interface ProfileStore {buy(id:string,items:string[],quantity?:number):Promise<ShopOutcome>;paint?(id:string,changes:readonly ColorChange[]):Promise<ColorOutcome>;discard?(id:string,item:string):Promise<Profile>;saveEquipment(id:string,equipment:Equipment):Promise<Profile>;saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>;/** `bonus`: success points added by the Ferreiro da Guilda (shared/guilds.ts). */forge(id:string,item:string,stones:Record<string,number>,bonus?:number):Promise<ForgeOutcome>;compose(id:string,item:string,stone:string,bonus?:number):Promise<CompositionOutcome>;synthesize?(id:string,stone:string,count:number):Promise<SynthesisOutcome>;dailyRanking?():Promise<RankingEntry[]>;rename(id:string,name:string):Promise<void>;/** `record`: the official result for the Hall da Fama (server/hall.ts), saved in the same transaction. */finishMatch(matchId:string,winners:string[],players:string[],bonuses?:MatchBonuses,record?:MatchRecord):Promise<void>;/** An expedition stage: fixed award plus each player's card; no PvP match, win or ranking. */finishExpedition?(stageId:string,players:string[],award:{coins:number;xp:number},bonuses?:MatchBonuses):Promise<void>;getProfile(id:string):Promise<Profile|null>;/** Pescaria (server/fishing.ts): end of a cast, rod choice, the Casa de Pesca. */fishSettle?(id:string,settle:FishSettle):Promise<FishSettleOutcome>;fishGear?(id:string,rod:string):Promise<Profile>;fishBuy?(id:string,offer:string,quantity:number):Promise<FishBuyOutcome>;fishSell?(id:string,ids:readonly string[]):Promise<FishSellOutcome>;/** The week's heaviest fish per player (fishingWeek), heaviest first. */fishRanking?(week:string):Promise<FishRankEntry[]>;}
 
 /** One reward card into the profile: coins, EXP, forge stones or Color Tickets. */
 export function applyPrize(p:Profile,prize:MatchBonuses[string]|undefined){
@@ -160,6 +161,8 @@ export class Store implements ProfileStore {
  CREATE INDEX IF NOT EXISTS sessions_expiration ON sessions(expires_at);
  CREATE TABLE IF NOT EXISTS matches(id uuid PRIMARY KEY,winners jsonb NOT NULL,players jsonb NOT NULL,finished_at timestamptz NOT NULL DEFAULT now());
  CREATE INDEX IF NOT EXISTS matches_finished ON matches(finished_at);
+ CREATE TABLE IF NOT EXISTS fishing_week_records(week char(10) NOT NULL,player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,name varchar(24) NOT NULL,fish varchar(40) NOT NULL,kg real NOT NULL,caught_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(week,player_id));
+ CREATE INDEX IF NOT EXISTS fishing_week_top ON fishing_week_records(week,kg DESC,caught_at);
  DELETE FROM sessions WHERE expires_at<now();
  `);}
  hash(token:string){return createHash('sha256').update(token).digest('hex');}
@@ -312,12 +315,12 @@ export class Store implements ProfileStore {
   })).profile;
  }
  /** Reads, changes and saves one profile inside a row lock. */
- private async mutate<T extends {profile:Profile}>(id:string,change:(profile:Profile)=>T):Promise<T>{
+ private async mutate<T extends {profile:Profile}>(id:string,change:(profile:Profile)=>T,after?:(c:pg.PoolClient,outcome:T)=>Promise<void>):Promise<T>{
   const c=await this.pool.connect();try{
    await c.query('BEGIN');const r=await c.query('SELECT profile,name FROM players WHERE id=$1 FOR UPDATE',[id]);
    if(!r.rows[0])throw Error('Jogador não encontrado.');
    const outcome=change(normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}));
-   await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,outcome.profile]);await c.query('COMMIT');return outcome;
+   await c.query('UPDATE players SET profile=$2 WHERE id=$1',[id,outcome.profile]);if(after)await after(c,outcome);await c.query('COMMIT');return outcome;
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
  /**
@@ -342,7 +345,18 @@ export class Store implements ProfileStore {
    }await c.query('COMMIT');
   }catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}
  }
- async fishSettle(id:string,settle:FishSettle){return this.mutate(id,profile=>settleFishing(profile,settle));}
+ async fishSettle(id:string,settle:FishSettle){
+  return this.mutate(id,profile=>settleFishing(profile,settle),async(c,o)=>{
+   // The player's heaviest fish of the week, in the same transaction as the profile.
+   if(o.weekRecord)await c.query(`INSERT INTO fishing_week_records(week,player_id,name,fish,kg) VALUES($1,$2,$3,$4,$5)
+    ON CONFLICT(week,player_id) DO UPDATE SET name=EXCLUDED.name,fish=EXCLUDED.fish,kg=EXCLUDED.kg,caught_at=now() WHERE fishing_week_records.kg<EXCLUDED.kg`,[o.weekRecord.week,id,o.profile.name,o.weekRecord.fish,o.weekRecord.kg]);
+  });
+ }
+ async fishSell(id:string,ids:readonly string[]){return this.mutate(id,profile=>sellFish(profile,ids));}
+ async fishRanking(week:string):Promise<FishRankEntry[]>{
+  const r=await this.pool.query('SELECT player_id,name,fish,kg FROM fishing_week_records WHERE week=$1 ORDER BY kg DESC,caught_at ASC LIMIT $2',[week,FISH_RANKING_SIZE]);
+  return r.rows.map((row,i)=>({rank:i+1,id:row.player_id,name:row.name,fish:row.fish,kg:Math.round(Number(row.kg)*100)/100}));
+ }
  async fishGear(id:string,rod:string){return (await this.mutate(id,profile=>({profile:chooseFishingGear(profile,rod)}))).profile;}
  async fishBuy(id:string,offer:string,quantity:number){return this.mutate(id,profile=>buyFishingOffer(profile,offer,quantity));}
  async rename(id:string,name:string){await this.pool.query('UPDATE players SET name=$2 WHERE id=$1',[id,name]);}
