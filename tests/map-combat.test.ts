@@ -5,7 +5,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
-import {crater,ground,unpackTerrain} from '../shared/physics';
+import {crater,ground,supportBelow,unpackTerrain} from '../shared/physics';
 import {VOLLEY_CADENCE_MS} from '../shared/combat';
 
 async function fixture(){
@@ -29,7 +29,10 @@ test('leaving players never receive a stale match after another player leaves',a
 });
 
 test('the server rejects walking into a crate without consuming movement vigor',async()=>{
- const {game,match,shooter}=await fixture();shooter.x=496;shooter.y=ground(match.terrain,shooter.x);const before={x:shooter.x,y:shooter.y,stamina:shooter.stamina};
+ const {game,match,shooter}=await fixture();shooter.x=496;shooter.y=ground(match.terrain,shooter.x);
+ // A shorter step reaches the crate's foot (2 px, one vigor); after that the crate is a wall and nothing is charged.
+ await game.command(shooter.id,{type:'walk',direction:1});assert.equal(shooter.x,498);(game as unknown as {peers:Map<string,{lastWalk:number}>}).peers.get(shooter.id)!.lastWalk=0;
+ const before={x:shooter.x,y:shooter.y,stamina:shooter.stamina};
  await game.command(shooter.id,{type:'walk',direction:1});
  assert.deepEqual({x:shooter.x,y:shooter.y,stamina:shooter.stamina},before);
 });
@@ -42,9 +45,9 @@ test('extra volleys use a fixed cadence before the first impact and terrain sett
  assert.equal(second.delay,VOLLEY_CADENCE_MS);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
  game.tick(shot.startedAt+first.flightTime-.001);assert.deepEqual(match.terrain,before);
  crater(before,first.impact.x,first.impact.y,first.impact.radius,'garden');
- const settled=ground(before,shooter.x,first.points[0][1]+40-3);
+ const settled=supportBelow(before,shooter.x,first.points[0][1]+40-3);
  game.tick(shot.startedAt+first.flightTime);assert.equal(shooter.y,settled);assert.deepEqual(match.terrain,before);
- game.tick(match.resolveAt+1);assert.equal(shooter.y,ground(match.terrain,shooter.x,settled-3));
+ game.tick(match.resolveAt+1);assert.equal(shooter.y,supportBelow(match.terrain,shooter.x,settled-3));
 });
 
 test('resolution completion and battle end publish authoritative terrain snapshots',async()=>{

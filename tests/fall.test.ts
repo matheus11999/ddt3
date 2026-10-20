@@ -12,6 +12,7 @@ import {TURN_GAP_MS} from '../shared/combat';
 import {REWARD_RESULT_MS} from '../shared/rewards';
 
 /** Sets one 3px block (the old terrain cell these cases were written for). */
+function fill(t:Uint8Array,x0:number,x1:number,y0:number,y1:number,value:number){for(let y=y0;y<=y1;y++)t.fill(value,y*WORLD.cols+x0,y*WORLD.cols+x1+1);}
 function block(t:Uint8Array,cx:number,cy:number,value:number){for(let y=cy*3;y<cy*3+3;y++)t.fill(value,y*WORLD.cols+cx*3,y*WORLD.cols+cx*3+3);}
 async function fixture(lowerFloor=true){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),game=new Game({getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore,()=>{},()=>.99);
@@ -63,21 +64,23 @@ test('void falls are authoritative at contact, remain visible on own reconnect a
 });
 
 test('walking off a ledge publishes a falling body and delays result presentation beyond its exit',async()=>{
- const f=await fixture(false),nextColumn=Math.floor((f.actor.x+8)/3);block(f.match.terrain,nextColumn,190,0);
+ // The first 3 px step finds no support at x+3±1: the walk ends in the fall.
+ const f=await fixture(false);fill(f.match.terrain,f.actor.x+2,f.actor.x+40,570,572,0);
  await f.game.command(f.actor.id,{type:'walk',direction:1});assert.equal(f.actor.hp,0);assert.equal(f.actor.fall!.fromY,570);assert.equal(f.actor.fall!.toY,WORLD.height+150);assert.equal(f.actor.fall!.void,true);
  assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.rewards!.opensAt,f.actor.fall!.startedAt+f.actor.fall!.duration+REWARD_RESULT_MS);
 });
 
 test('walking falls reject turn actions until landing, then an uphill step clears the completed fall',async t=>{
- const f=await fixture(),column=Math.floor((f.actor.x+8)/3);let now=Date.now();t.mock.method(Date,'now',()=>now);
- block(f.match.terrain,column,190,0);await f.game.command(f.actor.id,{type:'walk',direction:1});
+ const f=await fixture();let now=Date.now();t.mock.method(Date,'now',()=>now);
+ fill(f.match.terrain,f.actor.x+2,f.actor.x+40,570,572,0);await f.game.command(f.actor.id,{type:'walk',direction:1});
  const fall=structuredClone(f.actor.fall!);assert.ok(fall);assert.equal(f.actor.y,780);assert.equal(f.match.state.phase,'aiming');const before=structuredClone(f.actor),phase=f.match.state.phase;
  for(const command of [{type:'walk',direction:1},{type:'fire',angle:45,power:25},{type:'aim',angle:45,power:25,charging:true},{type:'boost',boost:'damage20'},{type:'ability',ability:'heal'},{type:'flight',active:true},{type:'power'},{type:'pass'}] as const){
   await f.game.command(f.actor.id,command);assert.deepEqual(f.actor,before);assert.equal(f.match.state.phase,phase);
   const error=f.events.get(f.actor.id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').at(-1)!;assert.match(error.message,/pousar/);
  }
- now=fall.startedAt+fall.duration+1;const nextX=f.actor.x+8,nextColumn=Math.floor(nextX/3);block(f.match.terrain,nextColumn,258,1);
- await f.game.command(f.actor.id,{type:'walk',direction:1});assert.equal(f.actor.x,nextX);assert.equal(f.actor.y,774);assert.equal(f.actor.fall,undefined);assert.equal(f.actor.stamina,before.stamina-3);
+ now=fall.startedAt+fall.duration+1;const startX=f.actor.x;fill(f.match.terrain,startX+2,startX+30,774,779,1);
+ // A 6 px rise, then flat: three 3 px steps, one vigor each.
+ await f.game.command(f.actor.id,{type:'walk',direction:1});assert.equal(f.actor.x,startX+9);assert.equal(f.actor.y,774);assert.equal(f.actor.fall,undefined);assert.equal(f.actor.stamina,before.stamina-3);
 });
 
 test('settling clears an expired fall on unchanged support and preserves a still-active fall there',async()=>{
@@ -96,4 +99,10 @@ test('every shot holds the turn for the pause after its last impact before the n
  const f=await fixture();await f.game.command(f.actor.id,{type:'fire',...f.aim});const shot=f.match.activeShot!,end=shot.startedAt+shot.duration;
  assert.ok(f.match.resolveAt>=end+TURN_GAP_MS);f.game.tick(end+TURN_GAP_MS-1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.turnId,f.actor.id);
  f.game.tick(f.match.resolveAt+.001);assert.notEqual(f.match.state.turnId,f.actor.id);
+});
+
+test('a refused walk (a wall taller than a step) moves nothing and costs no vigor',async()=>{
+ const f=await fixture();f.actor.facing=1;fill(f.match.terrain,f.actor.x+2,f.actor.x+40,550,569,1);
+ const before={x:f.actor.x,y:f.actor.y,stamina:f.actor.stamina};
+ await f.game.command(f.actor.id,{type:'walk',direction:1});assert.deepEqual({x:f.actor.x,y:f.actor.y,stamina:f.actor.stamina},before);
 });
