@@ -30,7 +30,7 @@ try{
  await page.screenshot({path:`${output}/menu-hat.png`});
  const weapon=bag.locator('.bag-grid').getByRole('button',{name:'Quebra-Tijolos',exact:true});
  await weapon.click({button:'right'});
- await expect(page.getByRole('menu',{name:'Quebra-Tijolos'}).getByRole('menuitem')).toHaveText(['Aprimorar','Excluir']);
+ await expect(page.getByRole('menu',{name:'Quebra-Tijolos'}).getByRole('menuitem')).toHaveText(['Remover','Aprimorar','Excluir']);
  await expect(page.getByRole('menu',{name:'Quebra-Tijolos'}).getByRole('menuitem',{name:'Excluir'})).toBeDisabled();
  await page.screenshot({path:`${output}/menu-weapon.png`});
  await page.keyboard.press('Escape');await expect(page.getByRole('menu')).toHaveCount(0);

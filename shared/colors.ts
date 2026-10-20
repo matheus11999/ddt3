@@ -30,6 +30,9 @@ export const SKIN_PRESETS=SKIN_TONES.flatMap(tone=>tone.color?[tone.color]:[]);
 export const isSkinTone=(color:string|null)=>color===null||(SKIN_PRESETS as readonly string[]).includes(color);
 export const EYE_PALETTE=[{color:'#7a4a1c',name:'Castanho'},{color:'#3c2a1e',name:'Escuro'},{color:'#c08a2e',name:'Mel'},{color:'#4f8a4a',name:'Verde'},{color:'#3a78b8',name:'Azul'},{color:'#8a8f99',name:'Cinza'},{color:'#8a3a3a',name:'Rubi'},{color:'#6f4a9a',name:'Violeta'}] as const;
 export const EYE_PRESETS=EYE_PALETTE.map(entry=>entry.color);
+/** Faces painted with both eyes closed (happy arcs) have no iris to paint: no eye color for them. */
+export const CLOSED_EYE_FACES:ReadonlySet<string>=new Set(['face-smile','face-surf']);
+export function canColorEyes(face:string){return !CLOSED_EYE_FACES.has(face);}
 /** Whether a ticket may paint `color` on `target` (an item copy, `skin` or `eyes`); `null` is always the original. */
 export function isPaletteColor(target:string,color:string|null):boolean{
  if(color===null)return true;
