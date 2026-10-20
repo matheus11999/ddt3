@@ -18,8 +18,10 @@ export const ROD={
  /** The little fish on the hook, hidden once it has been thrown. */
  hook:[.75,.4,.96,.62] as const
 };
-/** Turn of the painting (radians, facing right): +0.9 holds it up and a little forward so it rises clear of the big head, leaning back to +0.25 with the power, the cast ends pointing forward. */
-const HOLD=.9,BACK=.25,CAST=1.6;
+/** Turn of the painting (radians, facing right): +1.15 holds it up and forward, clear of the face, leaning back to
+ * +0.7 with the power; the cast swings it down to +1.6, pointing forward. From ROD_FRONT_TURN on it is drawn in front. */
+const HOLD=1.15,BACK=.7,CAST=1.6;
+export const ROD_FRONT_TURN=.6;
 const ease=(k:number)=>{const t=Math.min(1,Math.max(0,k));return t*t*(3-2*t);};
 /** The body's throw drawings run this many times slower with the rod (matheus, 20/10: the cast was too fast). */
 export const ROD_THROW_SLOW=2.2;
