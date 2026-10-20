@@ -8,6 +8,7 @@ import type {Battle,Fighter} from '../../../shared/protocol';
 import {DRAGON_ACTIONS,FIRESWEEP_WINDOW,sweepFrontX,sweepReachAt} from '../../../shared/worldBoss';
 import type {DragonAct} from '../../../shared/worldBoss';
 import {glow,groundFire,hash,jet} from './fire';
+import {freeAll} from '../spriteCache';
 
 type Part='body'|'head'|'jaw'|'lid'|'clawOpen'|'clawFist';
 /** Each part: its file, the pivot in image pixels and the size it is drawn at (world px per image px). */
@@ -28,6 +29,8 @@ export const DRAGON_RIG={
  hinge:[-132,-48] as const,eye:[-252,-135] as const,mouth:[-408,-48] as const,nostril:[-381,-108] as const,
 };
 const images=new Map<Part,HTMLImageElement>();
+/** Lets the dragon's paintings go after its battle. */
+export function releaseDragon(){freeAll(images);}
 export function preloadDragon(){
  if(typeof Image==='undefined'||images.size)return;
  for(const [part,def] of Object.entries(DRAGON_PARTS) as [Part,typeof DRAGON_PARTS[Part]][]){const image=new Image();image.decoding='async';image.src=def.src;images.set(part,image);}

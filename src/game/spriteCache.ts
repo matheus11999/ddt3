@@ -52,7 +52,8 @@ export function scaledCopy(source:Source,pixels:number):Drawable|null{
   const height=Math.max(1,Math.round(width*sourceHeight(source)/natural)),done=sizes;
   if(typeof createImageBitmap==='undefined'){const out=shrink(source,width,height);sizes.set(bucket,out);return out;}
   sizes.set(bucket,'pending');
-  createImageBitmap(source,{resizeWidth:width,resizeHeight:height,resizeQuality:'high'}).then(bitmap=>done.set(bucket,bitmap),()=>done.set(bucket,shrink(source,width,height)));
+  // A copy that arrives after its painting was let go (`forgetCopies`) is closed at once.
+  createImageBitmap(source,{resizeWidth:width,resizeHeight:height,resizeQuality:'high'}).then(bitmap=>{if(copies.get(source)===done)done.set(bucket,bitmap);else bitmap.close();},()=>{if(copies.get(source)===done)done.set(bucket,shrink(source,width,height));});
  }
  let nearest:Drawable|null=null,gap=Infinity;
  for(const [other,ready] of sizes)if(ready!=='pending'&&Math.abs(other-bucket)<gap){nearest=ready;gap=Math.abs(other-bucket);}
@@ -75,4 +76,24 @@ export function drawScaled(c:CanvasRenderingContext2D,image:HTMLImageElement,x:n
  const art=scaledCopy(image,Math.abs(width)*screenScale(c));if(!art)return false;
  c.drawImage(art,x,y,width,height);
  return true;
+}
+
+/**
+ * Leaving an area (the plaza, the Pescaria, a battle) must give its memory back at once: the browser
+ * only frees pixels when the garbage collector runs, which can take long because the paintings live
+ * outside the JavaScript heap, so the next area (a battle) starts with the last one still in memory.
+ */
+/** Empties a canvas or closes a bitmap now: its pixels go back to the browser right away. */
+export function freeSurface(surface:Drawable|'pending'|null|undefined){
+ if(!surface||surface==='pending'||surface instanceof HTMLImageElement)return;
+ if(surface instanceof HTMLCanvasElement){surface.width=0;surface.height=0;}else surface.close();
+}
+/** Frees the resized copies `drawScaled`/`scaledCopy` keep of `source`. */
+export function forgetCopies(source:Source){const sizes=copies.get(source);if(!sizes)return;copies.delete(source);for(const copy of sizes.values())freeSurface(copy);}
+/** Lets go of a painting only its area uses: its resized copies and its decoded pixels (the file stays in the HTTP cache). */
+export function freeImage(image:HTMLImageElement){forgetCopies(image);decoded.delete(image);image.onload=image.onerror=null;image.removeAttribute('src');}
+/** freeImage/freeSurface for every value of a cache, then empties it. */
+export function freeAll(cache:Map<unknown,HTMLImageElement|HTMLCanvasElement|null|undefined>){
+ for(const item of cache.values()){if(item instanceof HTMLImageElement)freeImage(item);else{if(item)forgetCopies(item);freeSurface(item);}}
+ cache.clear();
 }

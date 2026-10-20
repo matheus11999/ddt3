@@ -1,6 +1,7 @@
 import {getMap} from '../../shared/maps';
 import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
+import {freeAll,freeImage,freeSurface} from './spriteCache';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
 const W=WORLD.width,H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,SOFT_EDGE_GAIN=3;
@@ -11,6 +12,8 @@ export const PARALLAX_SHADE_ALPHA=.14;
 const images=new Map<string,HTMLImageElement>();
 const decodedImages=new WeakMap<HTMLImageElement,Promise<boolean>>();
 function loadImage(src:string){let image=images.get(src);if(!image){image=new Image();image.decoding='async';image.src=src;images.set(src,image);decodedImages.set(image,image.decode().then(()=>true,()=>false));}return image;}
+/** A map painting, shared with the minimap so the same file is decoded once. */
+export const mapImage=(src:string)=>loadImage(src);
 const preloadedMaps=new Map<string,Promise<boolean>>();
 /** Decode before entering a map; callers may prefetch while its room is open. */
 export function preloadEnvironment(map:MapId):Promise<boolean>{
@@ -26,7 +29,8 @@ export function preloadEnvironment(map:MapId):Promise<boolean>{
 export function releaseEnvironment(keep?:MapId){
  const kept=new Set<string>();
  if(keep){const def=getMap(keep);for(const src of [def.art.background,def.art.mid,def.art.terrain,`/assets/maps/${def.id}-preview.png`])if(src)kept.add(src);}
- for(const src of [...images.keys()])if(!kept.has(src))images.delete(src);
+ // Freed now, not when the garbage collector gets to them (docs/performance.md, "Trocar de área").
+ for(const [src,image] of [...images])if(!kept.has(src)){images.delete(src);freeImage(image);}
  for(const key of [...preloadedMaps.keys()])if(!kept.has(key))preloadedMaps.delete(key);
 }
 let quality:EnvironmentQuality='high';
@@ -141,10 +145,12 @@ export class EnvironmentRenderer {
   // A crater repaints only the cells it can affect; the first paint (or a huge change) does the whole map.
   const region=changed&&changed.width*changed.height<cols*WORLD.rows/3?{x:Math.max(0,changed.x-INFLUENCE_CELLS),y:Math.max(0,changed.y-INFLUENCE_CELLS),width:0,height:0}:null;
   if(region&&changed){region.width=Math.min(cols,changed.x+changed.width+INFLUENCE_CELLS)-region.x;region.height=Math.min(WORLD.rows,changed.y+changed.height+INFLUENCE_CELLS)-region.y;}
-  this.terrain=region?paintTerrain(data,this.definition.id,this.worldArt,this.terrain,region):paintTerrain(data,this.definition.id,this.worldArt);
+  // The full paint reuses the same canvas (cleared) instead of leaving a 6144 px one per repaint for the garbage collector.
+  if(!region)this.terrain.getContext('2d')!.clearRect(0,0,this.terrain.width,this.terrain.height);
+  paintTerrain(data,this.definition.id,this.worldArt,this.terrain,region??undefined);
   // Resolve supersampled coverage once at the artwork's native world resolution.
   // Re-filtering the full 2x surface on every pan is expensive in software Canvas.
-  if(!region){this.terrainDrawing=makeCanvas(this.width,H);const resolved=this.terrainDrawing.getContext('2d')!;smoothImages(resolved);resolved.drawImage(this.terrain,0,0,this.width,H);return;}
+  if(!region){const resolved=this.terrainDrawing.getContext('2d')!;resolved.clearRect(0,0,this.width,H);smoothImages(resolved);resolved.drawImage(this.terrain,0,0,this.width,H);return;}
   const resolved=this.terrainDrawing.getContext('2d')!,x=region.x*WORLD.cell,y=region.y*WORLD.cell,w=region.width*WORLD.cell,h=region.height*WORLD.cell,pad=4;
   // Filter from a slightly larger source than the cleared box, so its edge matches the untouched pixels around it.
   const sx=Math.max(0,x-pad),sy=Math.max(0,y-pad),sw=Math.min(this.width,x+w+pad)-sx,sh=Math.min(H,y+h+pad)-sy;
@@ -152,6 +158,8 @@ export class EnvironmentRenderer {
   resolved.drawImage(this.terrain,sx*TERRAIN_SCALE,sy*TERRAIN_SCALE,sw*TERRAIN_SCALE,sh*TERRAIN_SCALE,sx,sy,sw,sh);resolved.restore();
  }
  getTerrainLayer(){return this.terrain;}
+ /** Gives the battle's canvases back at once when it ends (the paintings go with `releaseEnvironment`). */
+ dispose(){freeSurface(this.terrain);freeSurface(this.terrainDrawing);freeAll(this.layers);this.painted=null;this.loadState='loading';}
  private cached(key:string,width:number,height:number,paint:(c:CanvasRenderingContext2D)=>void){
   let layer=this.layers.get(key);if(!layer){layer=makeCanvas(width,height);paint(layer.getContext('2d')!);this.layers.set(key,layer);}return layer;
  }

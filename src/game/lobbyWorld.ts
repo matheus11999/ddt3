@@ -12,7 +12,7 @@ import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
 import {LOBBY_PARALLAX,LOBBY_FLOATERS} from '../../shared/generated/lobbyParallax';
 import type {LobbyParallaxLayer,LobbyFloater} from '../../shared/generated/lobbyParallax';
 import type {LobbyStationSpot} from '../../shared/lobby';
-import {drawScaled,imageReady,scaledCopy,screenScale} from './spriteCache';
+import {drawScaled,freeAll,freeImage,freeSurface,imageReady,scaledCopy,screenScale} from './spriteCache';
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
 
@@ -202,7 +202,10 @@ export class LobbyWorld {
   */
  release(){
   if(!this.assets)return;this.assets=false;
-  this.depth=[];this.art.clear();this.layers.clear();this.casts.clear();this.floorCanvas=null;this.floor=new Image();
+  // Freed now, not at the next garbage collection: a battle or the Pescaria needs the room.
+  for(const {image} of this.depth)freeImage(image);
+  freeAll(this.art);freeAll(this.layers);freeAll(this.casts);freeImage(this.floor);freeSurface(this.floorCanvas);
+  this.depth=[];this.floorCanvas=null;this.floor=new Image();
  }
  get isLoaded(){return this.assets;}
  /** True once the backdrop, the floor and every station (at `scale` screen pixels per unit) can be painted without a gap; starts what is missing. */
