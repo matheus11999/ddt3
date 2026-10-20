@@ -76,10 +76,14 @@
 .pvp-hall .hall-spectate:focus-visible{outline:2px solid #c25f12;outline-offset:2px}
 @keyframes hall-spin{to{rotate:360deg}}
 
-.pvp-hall .hall-empty{grid-column:1/-1;align-self:center;display:grid;justify-items:center;gap:4px;padding:60px 20px;color:var(--wood-ink-soft);text-align:center}
-.pvp-hall .hall-empty svg{color:#e2a55c}
-.pvp-hall .hall-empty h3{margin:8px 0 0;font-size:19px;font-weight:900;color:var(--wood-ink)}
-.pvp-hall .hall-empty p{margin:0;font-size:13px;font-weight:700}
+.pvp-hall .hall-room-list.is-empty{display:flex;align-items:center;justify-content:center}
+.pvp-hall .hall-empty{display:grid;justify-items:center;gap:6px;max-width:500px;padding:20px 24px 28px;text-align:center}
+.pvp-hall .hall-empty-art{width:clamp(92px,13vh,128px);height:auto;margin-bottom:4px;filter:drop-shadow(0 6px 8px #7a3a1440);animation:hall-empty-float 3.2s ease-in-out infinite}
+.pvp-hall .hall-empty[data-searching] .hall-empty-art{filter:grayscale(.55) drop-shadow(0 6px 8px #7a3a1440);opacity:.85}
+.pvp-hall .hall-empty h3{margin:0;font-size:22px;font-weight:900;color:var(--wood-ink);letter-spacing:.01em}
+.pvp-hall .hall-empty p{margin:0;font-size:14px;font-weight:700;line-height:1.4;color:var(--wood-ink-soft)}
+@keyframes hall-empty-float{50%{translate:0 -5px}}
+@media(prefers-reduced-motion:reduce){.pvp-hall .hall-empty-art{animation:none}}
 
 /* ---------- Faixa de baixo: conversa e botões grandes ---------- */
 .pvp-hall .hall-bottom{grid-area:bottom;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;min-width:0;min-height:0}
@@ -110,20 +114,15 @@
 .pvp-hall .hall-me-stats dt{display:flex;align-items:center;gap:4px;font-size:11px;font-weight:800;color:#ffd99a}
 .pvp-hall .hall-me-stats dd{margin:0;font-size:15px;font-weight:900;color:#fff4d4}
 .pvp-hall .hall-online-list{display:grid;align-content:start;min-height:0;padding:4px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#d98f45 transparent}
-.pvp-hall .hall-online-row{display:grid;grid-template-columns:44px minmax(0,1fr) 46px;align-items:center;gap:6px;height:30px;padding:0 6px;border-radius:7px}
+.pvp-hall .hall-online-row{display:grid;grid-template-columns:44px minmax(0,1fr) 46px;align-items:center;gap:6px;height:34px;padding:0 6px;border-radius:7px}
 .pvp-hall .hall-online-row:nth-child(even){background:#f6dfb466}
 .pvp-hall .hall-online-row.is-me{background:#ffd27a80;box-shadow:inset 0 0 0 1px #e9a447}
 .pvp-hall .hall-online-headrow{position:sticky;top:-4px;z-index:1;height:26px;background:#f3d29a!important;font-size:11px;font-weight:900;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.03em}
 .pvp-hall .hall-online-headrow span:last-child,.pvp-hall .hall-online-gender{text-align:center}
-.pvp-hall .hall-online-level{justify-self:start;min-width:34px;padding:2px 5px;border-radius:7px;background:linear-gradient(#a8a8a8,#6f6f6f);box-shadow:inset 0 1px #ffffff80,0 1px #00000040;color:#fff;font-size:13px;font-weight:900;font-style:italic;text-align:center;-webkit-text-stroke:2px #3a3a3a;paint-order:stroke fill}
-.pvp-hall .hall-online-level[data-tier="2"]{background:linear-gradient(#7fe07a,#2f9b3d);-webkit-text-stroke-color:#13501f}
-.pvp-hall .hall-online-level[data-tier="3"]{background:linear-gradient(#6cc2ff,#2364c8);-webkit-text-stroke-color:#0f2f66}
-.pvp-hall .hall-online-level[data-tier="4"]{background:linear-gradient(#f1b47c,#b0612b);-webkit-text-stroke-color:#5a2e12}
-.pvp-hall .hall-online-level[data-tier="5"]{background:linear-gradient(#c49cff,#7443c9);-webkit-text-stroke-color:#38176e}
-.pvp-hall .hall-online-level[data-tier="6"]{background:linear-gradient(#ffe57a,#f09a14);-webkit-text-stroke-color:#7a3207}
+.pvp-hall .hall-online-level{justify-self:start;display:grid;place-items:center;width:36px}
+.pvp-hall .hall-online-level .level-badge-effect{display:none}
 .pvp-hall .hall-online-name{min-width:0;overflow:hidden;font-size:13px;font-weight:800;color:var(--wood-ink);text-overflow:ellipsis;white-space:nowrap}
-.pvp-hall .hall-online-gender{justify-self:center;display:grid;place-items:center;width:22px;height:22px;border:1px solid #ffffffb0;border-radius:50%;background:linear-gradient(#69b4ff,#2a6fd6);box-shadow:inset 0 -2px #1c4f9e,0 1px #00000033;color:#fff;font:900 15px/1 Arial,sans-serif}
-.pvp-hall .hall-online-gender.is-female{background:linear-gradient(#ff8cc0,#e0408a);box-shadow:inset 0 -2px #a82462,0 1px #00000033}
+.pvp-hall .hall-online-gender{justify-self:center;display:grid;place-items:center}
 
 /* ---------- Telas menores ---------- */
 @media(max-width:900px){
@@ -181,9 +180,9 @@ html.mobile-landscape .pvp-hall .hall-online{grid-template-rows:28px minmax(0,1f
 html.mobile-landscape .pvp-hall .hall-side-title{height:28px;padding-left:9px;font-size:12px}
 html.mobile-landscape .pvp-hall .hall-online-row{grid-template-columns:34px minmax(0,1fr) 40px;gap:4px;height:24px;padding:0 3px}
 html.mobile-landscape .pvp-hall .hall-online-headrow{height:20px;font-size:9px}
-html.mobile-landscape .pvp-hall .hall-online-level{min-width:28px;padding:1px 3px;font-size:11px}
+html.mobile-landscape .pvp-hall .hall-online-level{width:28px}html.mobile-landscape .pvp-hall .hall-online-level .level-badge{width:21px!important;height:21px!important;--level-size:21px!important}
 html.mobile-landscape .pvp-hall .hall-online-name{font-size:11px}
-html.mobile-landscape .pvp-hall .hall-online-gender{width:18px;height:18px;font-size:12px}
+html.mobile-landscape .pvp-hall .hall-online-gender .gender-icon{width:18px!important;height:18px!important}
 html.mobile-landscape .pvp-hall .wood-chat{grid-template-rows:24px minmax(0,1fr) 28px;gap:3px;padding:4px;border-radius:12px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-tabs>button{min-width:0;padding:0 10px;font-size:11px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-messages{padding:5px 7px;font-size:11px}
@@ -191,3 +190,11 @@ html.mobile-landscape .pvp-hall .wood-chat .chat-input>input{font-size:12px}
 html.mobile-landscape .pvp-hall .wood-chat .chat-input>button{width:26px;height:26px}
 
 @media(prefers-reduced-motion:reduce){.pvp-hall :is(.hall-room,.hall-big){transition:none}.pvp-hall .hall-room.is-searching .hall-room-status svg{animation:none}}
+html.mobile-landscape .pvp-hall .hall-empty{gap:3px;padding:8px 14px}
+html.mobile-landscape .pvp-hall .hall-empty-art{width:64px;margin-bottom:0}
+html.mobile-landscape .pvp-hall .hall-empty h3{font-size:15px}
+html.mobile-landscape .pvp-hall .hall-empty p{font-size:11px}
+
+/* Medalhão de gênero pintado (folha 2×1: masculino, feminino). */
+.gender-icon{display:inline-block;flex:none;background:url('/assets/ui/gender-icons.webp') 0 0 / 200% 100% no-repeat;filter:drop-shadow(0 1px 1px #4a1f0866)}
+.gender-icon[data-gender=female]{background-position:100% 0}
