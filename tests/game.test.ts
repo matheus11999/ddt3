@@ -8,7 +8,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 import {withShrapnel} from './fixtures/weapons';
-import {FIGHTER_HIT_RADIUS} from '../shared/physics';
+import {fighterHitBounds} from '../shared/physics';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -221,8 +221,9 @@ test('a fighter who leaves mid-match becomes a tombstone and forfeits the end-of
  assert.ok(!players.includes(f.a.id));assert.ok(!winners.includes(f.a.id));assert.equal(bonuses[f.a.id],undefined);assert.ok(players.includes(f.b.id));
 });
 
-/** The projectile stopped on a fighter's body (its impact sits on the body circle, 31 px above the feet). */
-const onBody=(impact:{x:number;y:number},target:{x:number;y:number})=>Math.hypot(impact.x-target.x,impact.y-(target.y-31))<=FIGHTER_HIT_RADIUS+1;
+/** The projectile stopped on a fighter's body: its impact sits on the player hit box and digs under the
+ * feet (terrain inside the box, such as a crate beside him, also touches the box but digs nothing). */
+const onBody=(impact:{x:number;y:number;dig?:object},target:{x:number;y:number})=>{if(!impact.dig)return false;const b=fighterHitBounds(target);return Math.hypot(impact.x-Math.max(b.left,Math.min(b.right,impact.x)),impact.y-Math.max(b.top,Math.min(b.bottom,impact.y)))<=1;};
 test('a direct hit digs the weapon mask at 75% in the ground under the target feet',async()=>{
  let found=false;
  for(let power=20;power<=100&&!found;power+=2){

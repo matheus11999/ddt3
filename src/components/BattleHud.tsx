@@ -23,6 +23,7 @@ import type {AbilityId} from '../../shared/abilities';
 import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
 import type {Fighter} from '../../shared/protocol';
 import {client,useGame} from '../client';
+import {audio} from '../game/audio';
 import './BattleHud.css';
 import './BattleHudRefinement.css';
 import './BattleConsole.css';
@@ -69,6 +70,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   live.current.angle=next;
   if(next!==angle)setAngle(next);
  },[b.id,weapon,aimSlope,angle,setAngle]);
+
+ // Keyboard and the on-screen buttons (touch) all step the angle here: 1° per step, clamped to the
+ // weapon limits; the tick sounds once per real change, never at a limit or on a terrain correction.
+ const stepAngle=useCallback((delta:1|-1)=>{
+  const current=live.current;if(!current.canAim)return;
+  const next=Math.max(current.minAngle,Math.min(current.maxAngle,current.angle+delta));if(next===current.angle)return;
+  current.angle=next;setAngle(next);audio.cue('angleChange');
+ },[setAngle]);
 
  // This ref represents the value committed to the visible meter, not a pending
  // RAF/state update. Release never recalculates elapsed time or uses stale state.
@@ -168,8 +177,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   const timer=setInterval(()=>{
    if(ignoresMoveKeys(document.activeElement))return;
    if(live.current.canAim){
-    if(keys.has('w')||keys.has('arrowup'))setAngle(Math.min(live.current.maxAngle,live.current.angle+1));
-    if(keys.has('s')||keys.has('arrowdown'))setAngle(Math.max(live.current.minAngle,live.current.angle-1));
+    if(keys.has('w')||keys.has('arrowup'))stepAngle(1);
+    if(keys.has('s')||keys.has('arrowdown'))stepAngle(-1);
    }
    if(!live.current.canAct||turnSubmitted.current)return;
    if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
@@ -177,7 +186,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   },90);
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);window.addEventListener('focusin',focus);document.addEventListener('visibilitychange',visibility);
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
- },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,setAngle]);
+ },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,stepAngle]);
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
@@ -246,7 +255,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
     <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
-    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{setAngle(Math.min(maxAngle,angle+1));if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{setAngle(Math.max(minAngle,angle-1));if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
+    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{stepAngle(1);if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{stepAngle(-1);if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>

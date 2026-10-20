@@ -2,8 +2,10 @@ import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS,weaponFragmentCount} from '../shared/catalog';
 import {STRAIGHT_BALL} from './fixtures/weapons';
-import {crater,CRATER_MASKS,CRATER_ROUGHNESS,weaponRoughness,createTerrain,FIGHTER_HIT_RADIUS,ground,packTerrain,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
+import {crater,CRATER_MASKS,CRATER_ROUGHNESS,weaponRoughness,createTerrain,fighterHitBounds,ground,packTerrain,shatter,solid,terrainMaterial,terrainTemplate,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {SHRAPNEL_FIXTURE} from './fixtures/weapons';
+/** Distance from a point to a player's hit box (0 inside). */
+const boxDistance=(x:number,y:number,target:{x:number;y:number})=>{const b=fighterHitBounds(target);return Math.hypot(x-Math.max(b.left,Math.min(b.right,x)),y-Math.max(b.top,Math.min(b.bottom,y)));};
 
 test('terrain is deterministic, map-specific and round-trips its compact network representation',()=>{
  const sky=createTerrain('sky'),valley=createTerrain('valley');
@@ -52,10 +54,12 @@ test('fast projectiles sweep through thin terrain cells in both directions',()=>
 });
 
 test('a grazing fighter collision is detected between fixed integration positions',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),rad=5*Math.PI/180,dx=Math.cos(rad)*980/120,dy=-Math.sin(rad)*980/120,radius=FIGHTER_HIT_RADIUS+WEAPONS[0].projectileRadius;
- // Both integration endpoints are outside the circle; the segment crosses its rim.
- const target={id:'grazing',x:77+dx/2+Math.sin(rad)*(radius-.1),y:60+dy/2+Math.cos(rad)*(radius-.1)+31,hp:100};
- for(const [x,y] of [[77,60],[77+dx,60+dy]])assert.ok(Math.hypot(x-target.x,y-(target.y-31))>radius);
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),rad=5*Math.PI/180,dx=Math.cos(rad)*980/120,dy=-Math.sin(rad)*980/120,radius=WEAPONS[0].projectileRadius;
+ // The box's top-left corner sits just inside the disk swept past the segment midpoint; both
+ // integration endpoints stay outside the rounded box, so only the continuous sweep finds it.
+ const corner={x:77+dx/2+Math.sin(rad)*(radius-.1),y:60+dy/2+Math.cos(rad)*(radius-.1)};
+ const target={id:'grazing',x:corner.x+15,y:corner.y+46,hp:100};
+ for(const [x,y] of [[77,60],[77+dx,60+dy]])assert.ok(boxDistance(x,y,target)>radius);
  const result=trajectory(terrain,{x:50,y:100,facing:1},5,100,0,WEAPONS[0],[target]);
  assert.equal(result.hitId,target.id);assert.ok(result.flightTime<1000/120);
 });
@@ -90,18 +94,19 @@ test('disk tangency detects the top and bottom of a cell without square corner f
  assert.equal(trajectory(terrain,{x:50,y:162,facing:1},45,100,0,weapon).x,WORLD.width+80);
 });
 
-test('fighter collision uses body plus weapon radius and returns a body surface contact',()=>{
- const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},target={id:'tangent',x:300,y:119,hp:100};
+test('fighter collision uses the hit box plus weapon radius and returns a box surface contact',()=>{
+ // Box top = y-46 = 66: six pixels under the flat shot line at y=60.
+ const terrain=new Uint8Array(WORLD.cols*WORLD.rows),origin={x:50,y:100,facing:1},target={id:'tangent',x:300,y:112,hp:100};
  const results=WEAPONS.map(weapon=>trajectory(terrain,origin,0,100,0,{...weapon,ball:STRAIGHT_BALL},[target]));
  assert.equal(results[0].hitId,target.id,'6px ember disk must detect an exact body tangent');
  assert.equal(results[1].hitId,undefined,'3px volt disk clears the same gap');
  assert.equal(results[2].hitId,target.id,'9px crystal disk reaches the body earlier');
- assert.equal(trajectory(terrain,origin,0,100,0,{...WEAPONS[0],ball:STRAIGHT_BALL},[{...target,y:121}]).hitId,undefined,'a shot two pixels beyond the tighter fighter boundary must miss');
+ assert.equal(trajectory(terrain,origin,0,100,0,{...WEAPONS[0],ball:STRAIGHT_BALL},[{...target,y:114}]).hitId,undefined,'a shot two pixels beyond the tighter fighter boundary must miss');
  assert.ok(results[2].flightTime<results[0].flightTime);
  for(const index of [0,2]){
   const result=results[index],center=result.points.at(-1)!;
-  assert.ok(Math.abs(Math.hypot(center[0]-target.x,center[1]-(target.y-31))-(FIGHTER_HIT_RADIUS+WEAPONS[index].projectileRadius))<1e-7);
-  assert.ok(Math.abs(Math.hypot(result.x-target.x,result.y-(target.y-31))-FIGHTER_HIT_RADIUS)<1e-7);
+  assert.ok(Math.abs(boxDistance(center[0],center[1],target)-WEAPONS[index].projectileRadius)<1e-7);
+  const box=fighterHitBounds(target);assert.ok(result.x>=box.left&&result.x<=box.right&&result.y>=box.top&&result.y<=box.bottom&&(result.x===box.left||result.x===box.right||result.y===box.top||result.y===box.bottom));
  }
 });
 
@@ -185,8 +190,10 @@ test('a rival standing on top of the shooter is passed through, one a little asi
  for(const dx of [0,-10,10]){const r=trajectory(terrain,origin,60,40,0,weapon,at(dx));assert.equal(r.hitId,undefined,`dx=${dx}`);assert.ok(r.x-origin.x>100);}
  // A little aside in front: the launch point is inside him, so it hits at once.
  assert.equal(trajectory(terrain,origin,60,40,0,weapon,at(24)).hitId,'rival');
- // After leaving him, a shot falling straight back down can still hit him.
- assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(0)).hitId,'rival');
+ // After leaving him, a shot falling straight back down can still hit him. It falls 27 px ahead of the
+ // shooter's feet: past the 15 px half-width of a box right on top of him, inside one 10 px ahead.
+ assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(0)).hitId,undefined);
+ assert.equal(trajectory(terrain,origin,90,30,0,weapon,at(10)).hitId,'rival');
 });
 
 test('weapon masks are fixed DDTank-like shapes: flat brick hexagon, ovals, own POW masks, never noisy',()=>{
