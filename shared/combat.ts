@@ -5,7 +5,8 @@ import {powerUpShot} from './powerUps';
 import {armorReduction,attackMultiplier,combinedReduction,CRITICAL_ROLL_MODE,criticalBonusMultiplier,criticalChancePercent,defenseReduction} from './stats';
 import type {CriticalRollMode} from './stats';
 
-export const VOLLEY_CADENCE_MS=570;
+/** Gap between consecutive launches of one turn (+1/+2 shots); 570 ms until 20/10, when matheus asked for 0.5 s more. */
+export const VOLLEY_CADENCE_MS=1070;
 /** Pause after the last impact, damage number or fall of a shot before the next turn opens and the camera moves. */
 export const TURN_GAP_MS=1200;
 export const SPLASH_RADIUS_SCALE=.60;

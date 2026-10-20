@@ -45,7 +45,7 @@ modo: normal 1,00 · +1 0,90 (2 disparos seguidos) · +2 0,60 (3 seguidos) · Tr
 ângulos do Tridente = ângulo escolhido + [-5°, 0°, +5°]
 ```
 
-O intervalo entre disparos seguidos é `VOLLEY_CADENCE_MS` (570 ms); projéteis do mesmo leque saem juntos.
+O intervalo entre disparos seguidos é `VOLLEY_CADENCE_MS` (1070 ms; era 570 até 20/10); projéteis do mesmo leque saem juntos.
 
 ## Relógio e terreno autoritativos
 
