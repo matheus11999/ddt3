@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
 import {WEAPONS} from '../shared/catalog';
-import {forceBarValue,FORCE_BAR_STEP_MS} from '../shared/forceBar';
+import {forceBarFill,forceBarValue,FORCE_BAR_STEP_MS} from '../shared/forceBar';
 import {trajectory,WORLD} from '../shared/physics';
 
 const brick=WEAPONS.find(weapon=>weapon.id==='brick')!;
@@ -40,4 +40,13 @@ test('the force bar rises 1→100 in 4 s, falls back and reaches zero after 8 s'
  assert.deepEqual(forceBarValue(150*FORCE_BAR_STEP_MS),{power:50,falling:true});
  assert.equal(forceBarValue(200*FORCE_BAR_STEP_MS).power,0);
  assert.equal(forceBarValue(10).power,forceBarValue(39).power,'the bar moves on its own clock, not per frame');
+});
+
+test('the painted fill glides between whole points and never leaves the shot value behind',()=>{
+ assert.ok(forceBarFill(10)>forceBarFill(0)&&forceBarFill(39)>forceBarFill(10),'the fill moves every frame');
+ for(let ms=0;ms<200*FORCE_BAR_STEP_MS;ms+=7){
+  const fill=forceBarFill(ms),{power,falling}=forceBarValue(ms);
+  assert.ok(falling?fill<=power&&fill>power-1:fill>=power&&fill<power+1,`at ${ms} ms fill ${fill} vs power ${power}`);
+ }
+ assert.equal(forceBarFill(99.5*FORCE_BAR_STEP_MS),100);
 });
