@@ -9,6 +9,7 @@ import {normalizeProfile} from '../server/store';
 import type {ForgeOutcome,ProfileStore} from '../server/store';
 import {withShrapnel} from './fixtures/weapons';
 import {fighterHitBounds} from '../shared/physics';
+import {CHARGE_HOLD_MS} from '../shared/forceBar';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -299,4 +300,26 @@ test('tools, passing and shots add their Delay to the fighter who used them',asy
  await f.game.command(player.id,{type:'boost',boost:'extra1'});assert.equal(player.delay,start+500);
  await f.game.command(player.id,{type:'boost',boost:'damage20'});assert.equal(player.delay,start+650);
  await f.game.command(player.id,{type:'pass'});assert.equal(player.delay,start+750);
+});
+
+test('a charge started before the turn clock runs out holds the turn until the shot (capped)',async()=>{
+ const f=await battleFixture(),s=f.match.state,shooter=s.turnId===f.a.id?f.a:f.b,turn=s.turnNumber;
+ await f.game.command(shooter.id,{type:'aim',angle:45,power:30,charging:true});
+ const deadline=Date.now()+50;s.deadline=deadline;
+ f.game.tick(deadline+2000);assert.equal(s.turnNumber,turn,'still holding: the turn waits');
+ f.game.peers.get(shooter.id)!.lastAim=0;f.match.chargingSince=Date.now()-1000;s.deadline=Date.now()-500;
+ await f.game.command(shooter.id,{type:'aim',angle:45,power:60,charging:false});
+ assert.equal(s.players.find(p=>p.id===shooter.id)!.charging,true,'the charge cannot be dropped in overtime');
+ await f.game.command(shooter.id,{type:'fire',angle:45,power:60});
+ assert.deepEqual(errors(f.events.get(shooter.id)!).map(e=>e.message),[]);assert.equal(s.phase,'resolving');
+});
+
+test('overtime ends at the cap, and a charge started after the deadline holds nothing',async()=>{
+ const f=await battleFixture(),s=f.match.state,shooter=s.turnId===f.a.id?f.a:f.b,turn=s.turnNumber;
+ await f.game.command(shooter.id,{type:'aim',angle:45,power:30,charging:true});
+ s.deadline=f.match.chargingSince!;f.game.tick(f.match.chargingSince!+CHARGE_HOLD_MS);assert.equal(s.turnNumber,turn+1);
+ const g=await battleFixture(),late=g.match.state,player=late.turnId===g.a.id?g.a:g.b;late.deadline=Date.now()-1;
+ await g.game.command(player.id,{type:'aim',angle:45,power:30,charging:true});
+ assert.ok(!late.players.find(p=>p.id===player.id)!.charging);
+ await g.game.command(player.id,{type:'walk',direction:1});assert.match(errors(g.events.get(player.id)!).at(-1)!.message,/tempo do turno/);
 });
