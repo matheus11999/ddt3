@@ -13,8 +13,11 @@ const fake=(patch)=>page.evaluate(patch=>{const c=window.__c,p=c.state.profile;c
 await fake({profile:{fragments:{'tide-rod':37}},fishing:{rods:['rod-bamboo','rod-oak','rod-coral'],rod:'rod-coral',xp:60*13**1.7,points:12500,daily:{day:new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date()),gold:640,coupons:1,fragments:3}}});
 await page.waitForTimeout(600);
 await page.locator('.fishing-rod-swap').click();await page.waitForTimeout(500);await page.screenshot({path:`${dir}/01-varas.png`});
-await page.locator('.fishing-orb.prizes').click();await page.waitForTimeout(500);await page.screenshot({path:`${dir}/02-premios.png`});
-await page.locator('.fishing-orb.prizes').click();
+await page.locator('.fishing-rod-card').nth(4).hover();await page.waitForTimeout(400);await page.screenshot({path:`${dir}/01b-vara-bloqueada.png`});
+await page.locator('.fishing-rod-swap').click();
+// A Sacola, aba Varas, com as informações da vara ao passar o mouse.
+await page.locator('.lobby-dock-button.fish-bag').click();await page.locator('.fishing-bag-window').waitFor({timeout:5000}).catch(()=>{});
+if(await page.locator('.fishing-bag-window').count()){await page.getByRole('button',{name:/^Varas/}).click();await page.locator('.fishing-bag-slot.rod').nth(2).hover();await page.waitForTimeout(400);await page.screenshot({path:`${dir}/02-sacola-varas.png`});await page.locator('.fishing-bag-window .close-button').click();}
 await page.evaluate(()=>window.__c.update({fishing:{spot:'x',phase:'result',auto:false,since:Date.now(),result:{success:true,fish:'koi-celeste',catch:{fish:'koi-celeste',kg:4.12,points:27,xp:180,record:false,first:false,drops:[{kind:'gold',amount:120},{kind:'fragments',amount:1,weapon:'tide-rod'}]}}}}));
 await page.waitForTimeout(900);await page.screenshot({path:`${dir}/03-resultado.png`,clip:{x:368,y:150,width:800,height:260}});
 await page.evaluate(()=>window.__c.update({fishing:null}));

@@ -348,7 +348,7 @@ export function defaultFishingLayout():FishingLayout{
  const lily=placed[0].lake,island={x:lily.x+318,y:lily.y-9,rx:127,ry:49};
  add('grass-patch-2',island.x,island.y+68,{layer:'ground',scale:1.32,walk:true});
  for(const [dx,dy,s] of [[-1,.55,.5],[.1,.95,.55],[.95,.45,.48],[-.5,1,.42]] as const)add('pond-rocks',island.x+dx*island.rx,island.y+dy*island.ry,{layer:'ground',scale:s});
- add('bridge',lily.x+590,lily.y+32,{layer:'ground',scale:1.47});
+ add('bridge',lily.x+610,lily.y+32,{layer:'ground',scale:1.47});
  add('pier',lily.x-420,lily.y+236,{layer:'ground',scale:1.12});
  // Floating: the rowboat on the lilies, lily pads and lotus that bob.
  add('rowboat',lily.x-lily.rx*.15,lily.y+FISHING_PROPS.rowboat.h*.45,{layer:'water'});
@@ -366,9 +366,9 @@ export function defaultFishingLayout():FishingLayout{
  for(const [x,y] of [[40,620],[2270,620],[30,1220],[2280,1220],[2250,1830]] as const)add('cypress-pair',x,y,{flip:x>FISHING_WIDTH/2});
  for(const x of [700,1600])add('hedge-low',x,MIRANTE.y0+60,{scale:.9});
  for(const x of [520,1700])add('flower-bed',x,JARDIM.y0+30,{scale:.85});
- // The quay: the arch to the airship, a stall and a deck with a parasol.
- add('arch',640,CAIS.y1-60);add('stall',1500,CAIS.y1-70);add('deck-umbrella',1950,CAIS.y1-50);
- add('paper-lantern',900,CAIS.y1-90,{scale:.85});add('hydrangea',1200,CAIS.y1-30,{scale:.8});add('fish-basket',1680,CAIS.y1-40);
+ // The quay: only the arch to the airship, lanterns and flowers (pedido do matheus: sem as barracas na chegada).
+ add('arch',640,CAIS.y1-60);
+ add('paper-lantern',900,CAIS.y1-90,{scale:.85});add('hydrangea',1200,CAIS.y1-30,{scale:.8});add('paper-lantern',1500,CAIS.y1-90,{scale:.85});add('hydrangea',1980,CAIS.y1-30,{scale:.75,flip:true});
  return {lakes,items,
   stairs:[{id:'escada-mirante',upper:'mirante',x:280},{id:'escada-cais',upper:'jardim',x:1640}],
   casa:{x:1150,y:CAIS.y1-50},airship:{x:400},spawn:{x:620,y:CAIS.y1-80}};

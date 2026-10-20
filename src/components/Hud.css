@@ -61,5 +61,7 @@ html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(cal
 .lobby-chat.wood-chat .chat-input>button{width:24px;height:24px;border-radius:7px}
 .lobby-chat.wood-chat .chat-input>button svg{width:13px;height:13px}
 /* Carteira do topo: ouro e cupons (a moeda cash, ícone pintado coupon.png). */
-.top-right .currency :is(.currency-gold, .currency-coupons) { display: inline-flex; align-items: center; gap: 7px; }
+.top-right .currency :is(.currency-gold, .currency-coupons, .currency-fishing) { display: inline-flex; align-items: center; gap: 7px; }
 .top-right .currency .currency-coupons img { margin: -4px 0; filter: drop-shadow(0 1px 1px #0008); }
+
+.top-right .currency .currency-fishing .fishing-icon { margin: -4px 0; filter: drop-shadow(0 1px 1px #0008); }

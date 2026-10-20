@@ -82,6 +82,8 @@ SHEETS={
     '19b-peixes.png':['baiacu-bolha','tucunare-brasa','truta-aurora','pacu-esmeralda','salamandra-vapor','koi-celeste','enguia-trovao','dourado-real','dourado-do-junco'],
     '19c-peixes.png':['pirarucu-ancestral','carpa-dragao'],
     '20-varas.png':['rod-bamboo','rod-oak','rod-coral','rod-crystal','rod-aurora','rod-royal','fragment'],
+    # Ficha dos Pontos de Pesca (ao lado do ouro e dos cupons) e a pilha para valores grandes.
+    '23-moeda-pesca.png':['fishing-points','fishing-points-stack'],
 }
 if __name__=='__main__':
     import os;os.makedirs(OUT,exist_ok=True)
