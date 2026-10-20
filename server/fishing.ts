@@ -58,5 +58,6 @@ export function buyFishingOffer(profile:Profile,offerId:string,quantity:number):
  else if(prize.kind==='ticket')profile.colorTickets+=prize.amount*quantity;
  else if(prize.kind==='pet-food')profile.petFood[prize.food]=(profile.petFood[prize.food]??0)+prize.amount*quantity;
  else if(prize.kind==='rod')f.rods.push(prize.rod);
+ else if(prize.kind==='fragment')profile.fragments={...profile.fragments,[prize.weapon]:(profile.fragments?.[prize.weapon]??0)+prize.amount*quantity};
  return {profile,spent};
 }

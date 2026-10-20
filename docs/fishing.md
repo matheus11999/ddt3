@@ -97,3 +97,11 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Layouts publicados no `/admin` para o mapa antigo (fora dos limites novos) são ignorados até serem publicados de novo (`publishedFishingLayout`).
 - Prévia do mapa inteiro: `npx tsx scripts/preview-fishing-map.mjs <pasta>` (Vite rodando).
 - Falta: o cenário redesenhado em pintura única pelo Codex, com sombras e profundidade.
+
+## Casa de Pesca, Sacola e informações da vara (20/10, pedidos do matheus)
+
+- Trocas em cards pequenos de coluna (ícone 42 px, nome, preço, botão); a troca de **Fragmento da Vara das Marés** (300 Pontos, Pescador Nv. 12) credita `profile.fragments['tide-rod']` no servidor.
+- Sem a lista de prêmios ao lado da vara. Passar o mouse numa vara (Trocar vara, Sacola, Trocas) abre a ficha da vara (`src/components/FishingRodInfo.tsx`): peixes raros, alvo na barra, automático, Ouro, Cupons e Fragmentos em 0 a 5 marcas comparadas com a melhor vara, **sem números**.
+- Sacola com abas **Peixes** e **Varas** (as seis varas, com a ficha no mouse) e o encaixe de Fragmentos x/50.
+- Os Pontos de Pesca saíram do cartão de pescador e ficam ao lado das moedas do jogo enquanto se está na Pescaria (`currency-fishing` em `Hud.tsx`, ícone `23-moeda-pesca.png`).
+- Cais sem barraca e sem deque com guarda-sol (pedido do matheus: "remova essas casas do início").

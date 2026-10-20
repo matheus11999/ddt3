@@ -2,12 +2,13 @@ import {useEffect,useState} from 'react';
 import {Lock} from 'lucide-react';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {FISH,FISH_RARITIES,FISHING_SHOP,fishRarity,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
+import {FISH,FISH_RARITIES,FISHING_SHOP,ROD_BY_ID,fishRarity,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
 import type {FishingOffer} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
 import {ItemCardFrame} from './ItemCard';
+import {useRodTip} from './FishingRodInfo';
 import './Fishing.css';
 
 /** Prizes the game already has art for use it (coins, stones, tickets, pet food); rods use the fishing icons. */
@@ -17,6 +18,7 @@ function PrizeIcon({offer,size}:{offer:FishingOffer;size:number}){
  if(p.kind==='stone')return <RewardIcon kind="stone" level={p.level} size={size}/>;
  if(p.kind==='ticket')return <RewardIcon kind="ticket" size={size}/>;
  if(p.kind==='pet-food')return <img src={`/assets/pets/${p.food.replace('pet-food-','food-')}.png`} width={size} height={size} alt="" draggable={false} style={{objectFit:'contain'}}/>;
+ if(p.kind==='fragment')return <FishingIcon id="fragment" size={size}/>;
  return <FishingIcon id={p.rod} size={size}/>;
 }
 /** Casa de Pesca: trade Pontos de Pesca for rewards, and the collection of every fish caught. */
@@ -27,11 +29,11 @@ export function FishingShop(){
  const close=()=>client.closeFishShop();
  const amount=(id:string)=>amounts[id]??1;
  const setAmount=(id:string,n:number)=>setAmounts(a=>({...a,[id]:Math.max(1,Math.min(MAX_FISHING_BUY,Math.floor(n)||1))}));
- const known=Object.keys(f.caught).length;
+ const known=Object.keys(f.caught).length,rodTip=useRodTip(f.rods,f.rod,level);
  return <Modal title="Casa de Pesca" onClose={close} className="bag-window fishing-shop-window" viewport>
   <div className="fishing-shop">
    <aside className="fishing-counter">
-    <div className="fishing-counter-art"><img className="sigil" src="/assets/ui/aura-gold-sigil.png" alt="" draggable={false}/><img className="house" src="/assets/fishing/props/fishing-house.webp" alt="" draggable={false}/></div>
+    <div className="fishing-counter-art"><img className="sigil" src="/assets/ui/aura-gold-sigil.png" alt="" draggable={false}/><img className="house" src="/assets/fishing/icons/fishing-points-stack.png" alt="" draggable={false}/></div>
     <div className="fishing-counter-level"><small>Pescador</small><b>Nível {level}</b>
      <div className="fishing-xp"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div></div>
     <div className="fishing-counter-points"><FishingIcon id="fishing-points" size={34}/><div><b>{f.points.toLocaleString('pt-BR')}</b><small>Pontos de Pesca</small></div></div>
@@ -49,9 +51,11 @@ export function FishingShop(){
     {tab==='shop'?<ul className="fishing-offers">{FISHING_SHOP.map(offer=>{
      const locked=!!offer.level&&level<offer.level,single=offer.prize.kind==='rod',owned=offer.prize.kind==='rod'&&f.rods.includes(offer.prize.rod);
      const n=single?1:amount(offer.id),cost=offer.cost*n,poor=f.points<cost;
-     return <li key={offer.id} className={`fishing-offer ${locked?'locked':''} ${owned?'owned':''} ${asking===offer.id?'asking':''}`} title={offer.description}>
-      <ItemCardFrame variant="preview" className="fishing-offer-art"><PrizeIcon offer={offer} size={40}/>{locked&&<span className="fishing-lock"><Lock size={10}/> Nv. {offer.level}</span>}</ItemCardFrame>
-      <div className="fishing-offer-text"><b>{offer.name.replace(/Nv\. /,"Nv.\u00a0")}</b><span className="fishing-cost"><FishingIcon id="fishing-points" size={15}/>{cost.toLocaleString('pt-BR')}</span></div>
+     const rod=offer.prize.kind==='rod'?ROD_BY_ID.get(offer.prize.rod):undefined;
+     return <li key={offer.id} className={`fishing-offer ${locked?'locked':''} ${owned?'owned':''} ${asking===offer.id?'asking':''}`} title={rod?undefined:offer.description} {...(rod?rodTip.handlers(rod):{})}>
+      <ItemCardFrame variant="preview" className="fishing-offer-art"><PrizeIcon offer={offer} size={42}/>{locked&&<span className="fishing-lock"><Lock size={9}/>{offer.level}</span>}</ItemCardFrame>
+      <b className="fishing-offer-name">{offer.name.replace(/Nv\. /,"Nv.\u00a0")}</b>
+      <span className="fishing-cost"><FishingIcon id="fishing-points" size={15}/>{cost.toLocaleString('pt-BR')}</span>
       <div className="fishing-offer-foot">
        {locked?<span className="fishing-need">Pescador Nv. {offer.level}</span>:owned?<span className="fishing-need">Já tem</span>:
         asking===offer.id?<span className="fishing-buy">
@@ -69,6 +73,7 @@ export function FishingShop(){
        <span className="fishing-stars" aria-label={`Dificuldade ${fish.difficulty}`}>{Array.from({length:5},(_,i)=><i key={i} className={i<fish.difficulty?'on':''}>★</i>)}</span>
        <small>{count?`Recorde ${f.best[fish.id]?.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg`:'Ainda não pescado'}</small>
       </li>;})}</ul></section>;})}</div>}
+    {rodTip.node}
     {fishBuy&&<p className="fishing-shop-done">Troca feita: {FISHING_SHOP.find(o=>o.id===fishBuy.offer)?.name}{fishBuy.quantity>1?` ×${fishBuy.quantity}`:''}.</p>}
    </div>
   </div>

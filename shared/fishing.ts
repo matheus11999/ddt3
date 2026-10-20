@@ -200,15 +200,17 @@ export function normalizeFishing(raw:unknown):FishingProfile{
 }
 
 // ── Fishing shop (Casa de Pesca): Pontos de Pesca for rewards ──
-export type FishingPrize={kind:'gold';amount:number}|{kind:'stone';level:number;amount:number}|{kind:'ticket';amount:number}|{kind:'pet-food';food:string;amount:number}|{kind:'rod';rod:string};
+export type FishingPrize={kind:'gold';amount:number}|{kind:'stone';level:number;amount:number}|{kind:'ticket';amount:number}|{kind:'pet-food';food:string;amount:number}|{kind:'rod';rod:string}|{kind:'fragment';weapon:string;amount:number};
 export interface FishingOffer {id:string;name:string;description:string;cost:number;prize:FishingPrize;/** Fisher level needed to buy it. */level?:number;}
 export const FISHING_SHOP:readonly FishingOffer[]=[
  {id:'gold-100',name:'100 de Ouro',description:'Moedas Brasa.',cost:50,prize:{kind:'gold',amount:100}},
- {id:'stone-1',name:'Pedra de Fortalecimento Nv. 1',description:'Para o Ferreiro.',cost:30,prize:{kind:'stone',level:1,amount:1}},
- {id:'stone-2',name:'Pedra de Fortalecimento Nv. 2',description:'Para o Ferreiro.',cost:110,prize:{kind:'stone',level:2,amount:1},level:3},
+ {id:'stone-1',name:'Pedra Nv. 1',description:'Pedra de Fortalecimento, para o Ferreiro.',cost:30,prize:{kind:'stone',level:1,amount:1}},
+ {id:'stone-2',name:'Pedra Nv. 2',description:'Pedra de Fortalecimento, para o Ferreiro.',cost:110,prize:{kind:'stone',level:2,amount:1},level:3},
  {id:'ticket-1',name:'Ticket de Cor',description:'Troca a cor de uma peça.',cost:150,prize:{kind:'ticket',amount:1}},
  {id:'pet-food-dew',name:'Adubo de Orvalho',description:'Comida de pet.',cost:40,prize:{kind:'pet-food',food:'pet-food-dew',amount:1}},
- {id:'stone-3',name:'Pedra de Fortalecimento Nv. 3',description:'Para o Ferreiro.',cost:400,prize:{kind:'stone',level:3,amount:1},level:10},
+ {id:'stone-3',name:'Pedra Nv. 3',description:'Pedra de Fortalecimento, para o Ferreiro.',cost:400,prize:{kind:'stone',level:3,amount:1},level:10},
+ // Fragmentos da Vara das Marés (pedido do matheus, 20/10): 50 = a arma na Síntese do Ferreiro.
+ {id:'fragment-tide',name:'Fragmento da Vara das Marés',description:'Junte 50 e forje a Vara das Marés na Síntese do Ferreiro.',cost:300,prize:{kind:'fragment',weapon:FISHING_WEAPON,amount:1},level:12},
  {id:'gold-1000',name:'1000 de Ouro',description:'Moedas Brasa.',cost:450,prize:{kind:'gold',amount:1000},level:15},
  {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e mais peixes raros; às vezes traz Ouro.',cost:800,prize:{kind:'rod',rod:'rod-oak'},level:5},
  {id:'rod-coral',name:'Vara de Coral',description:'Mais Ouro e, raramente, Fragmentos da Vara das Marés.',cost:2500,prize:{kind:'rod',rod:'rod-coral'},level:12},
