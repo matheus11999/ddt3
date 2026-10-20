@@ -127,8 +127,8 @@ try{
       else if(m.coverage>.97){item.status='falta';item.detail='Sem transparência: o fundo precisa ser transparente.';}
       else if(edgeSolid/edge<.55){item.status='falta';item.detail=`A borda não acompanha o buraco do template (${Math.round(edgeSolid/edge*100)}% do contorno pintado).`;}
       else if(outSolid/out>.04){item.status='falta';item.detail=`Pintura fora da faixa do template (${Math.round(outSolid/out*100)}% da área externa).`;}
-      else if(bandOpaque/band>.3||farAlpha/far>nearAlpha/near*.5){item.status='falta';item.detail=`Borda sólida, sem degradê: precisa nascer escura no buraco e sumir para fora (${Math.round(bandOpaque/band*100)}% opaca, ponta externa ${Math.round(farAlpha/far)} contra ${Math.round(nearAlpha/near)} junto ao buraco).`;}
-      else if(gaps/band<.25){item.status='falta';item.detail=`Marca contínua: precisa de falhas transparentes onde o terreno aparece entre as rachaduras (${Math.round(gaps/band*100)}% da faixa livre; mínimo 25%).`;}
+      else if(!kit.destruction.rim&&(bandOpaque/band>.3||farAlpha/far>nearAlpha/near*.5)){item.status='falta';item.detail=`Borda sólida, sem degradê: precisa nascer escura no buraco e sumir para fora (${Math.round(bandOpaque/band*100)}% opaca, ponta externa ${Math.round(farAlpha/far)} contra ${Math.round(nearAlpha/near)} junto ao buraco).`;}
+      else if(!kit.destruction.rim&&gaps/band<.25){item.status='falta';item.detail=`Marca contínua: precisa de falhas transparentes onde o terreno aparece entre as rachaduras (${Math.round(gaps/band*100)}% da faixa livre; mínimo 25%).`;}
       else if(Math.hypot(cx,cy)>.06){item.status='falta';item.detail='A marca não está centrada no pivô do template.';}
       else if(same(marks[`${mode}-prev`],m.signature)){item.status='falta';item.detail='Igual à fase anterior: cada fase precisa de marca própria.';}
       else if(mode==='pow'&&same(marks[`normal-${stage}`],m.signature)){item.status='falta';item.detail='Igual à marca normal desta fase: o POW precisa de marca própria.';}
