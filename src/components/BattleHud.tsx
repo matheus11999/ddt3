@@ -5,7 +5,7 @@ import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
 import {PetSkillBar} from './PetSkillBar';
-import {AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
+import {AngleArrow,AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
@@ -13,7 +13,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {WorldBossBanner,WorldBossBar} from './WorldBoss';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {ChevronDown,ChevronUp,Zap} from 'lucide-react';
+import {Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
 import {petSkill} from '../../shared/petSkills';
@@ -256,23 +256,25 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
     <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
-    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{stepAngle(1);if(event.detail>0)event.currentTarget.blur();}}><ChevronUp size={23}/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{stepAngle(-1);if(event.detail>0)event.currentTarget.blur();}}><ChevronDown size={23}/></button></div>
+    <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" onClick={event=>{stepAngle(1);if(event.detail>0)event.currentTarget.blur();}}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" onClick={event=>{stepAngle(-1);if(event.detail>0)event.currentTarget.blur();}}><AngleArrow up={false}/></button></div>
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
     <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`} style={{'--shot-power':`${power}%`} as CSSProperties}>
      <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
      {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
+     {/* The scale and its numbers sit inside the bar, over the fill. */}
+     <div className="power-ruler" aria-hidden="true">
+      <div className="power-graduations">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>
+      <div className="power-ticks">{[10,20,30,40,50,60,70,80,90].map(value=><span key={value} style={{left:`${value}%`}}>{value}</span>)}</div>
+     </div>
      <span className="power-cursor" aria-hidden="true" style={{left:`${power}%`}}/>
-    </div>
-    <div className="power-ruler" aria-hidden="true">
-     <div className="power-graduations">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>
-     <div className="power-ticks">{[0,10,20,30,40,50,60,70,80,90,100].map(value=><span key={value} style={{left:`${value}%`}}>{value}</span>)}</div>
     </div>
     <div className="power-hint"><kbd>ESPAÇO</kbd><span>{chargeHint}</span></div>
    </div>
    <span id="charge-instructions" className="battle-sr-only">Segure Espaço ou toque e segure a régua para carregar. Solte para disparar a força mostrada; depois de 100 ela volta a cair e, se chegar a zero, você passa a vez. Use as setas do teclado para andar e mirar.</span>
-   <div className="battle-actions">
+   <div className={`battle-actions ${me.pet?'with-pet':''}`}>
+    {me.pet&&<div className="pet-mana-display"><span className="hud-bar-label">Pet</span><div className="pet-mana-bar" role="meter" aria-label="Energia do pet" aria-valuenow={me.pet.mana} aria-valuemin={0} aria-valuemax={me.pet.maxMana}><i style={{width:`${me.pet.mana/Math.max(1,me.pet.maxMana)*100}%`}}/><b>{me.pet.mana}/{me.pet.maxMana}</b></div></div>}
     <div className="vigor-display"><span className="hud-bar-label">Energia</span><div className="vigor-bar" role="meter" aria-label="Vigor" aria-valuenow={me.stamina} aria-valuemin={0} aria-valuemax={me.maxStamina}><i style={{width:`${me.stamina/me.maxStamina*100}%`}}/><b>{me.stamina}/{me.maxStamina}</b></div></div>
     <div className="vida-display"><span className="hud-bar-label">Vida</span><div className={`vida-bar ${me.hp/me.maxHp<=.25?'critical-health':''}`} role="meter" aria-label="Vida no console" aria-valuenow={me.hp} aria-valuemin={0} aria-valuemax={me.maxHp}><i style={{width:`${Math.max(0,me.hp/me.maxHp)*100}%`}}/><b>{me.hp.toLocaleString('pt-BR')}</b></div></div>
    </div>

@@ -37,7 +37,7 @@ import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
 import {scenePaint} from './scenePaint';
-import {EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
+import {BATTLE_HUD_COVER,EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
 import {LobbyWorld,LOBBY_STATIONS,LOBBY_WALK} from './lobbyWorld';
 /** Size of the ranked players on the lobby podium: 50% bigger than the 124 they started at. */
@@ -153,6 +153,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     let dragonHurt=-1;if(dragon)for(const impact of state.impacts)if(impact.hits.some(hit=>hit.id===dragon.id&&hit.damage>0))dragonHurt=Math.max(dragonHurt,impact.at);
     const dragonHurtAge=dragonHurt<0?-1:dragonNow-dragonHurt,heroFloor=dragon?(own?.y??ground(terrain,dragon.x-900)):0;
     const pose:DragonPose|null=dragon?dragonPose(b,dragon,dragonNow,t,dragonHurtAge,heroFloor,x=>ground(terrain,x,0)):null;
+    // While aiming, a living fighter near the bottom edge would hide behind the console: lower the view
+    // just enough to show it, never so far that the fighter in focus leaves the top.
+    if(b.phase==='aiming'&&focus&&!shot){const hw=W/(2*camera.zoom),hh=H/(2*camera.zoom),low=b.players.filter(f=>f.hp>0&&!f.left&&!f.hidden&&!f.boss&&Math.abs(f.x-focusX)<hw-30).reduce((y,f)=>Math.max(y,f.y),0);
+     if(low)focusY=Math.max(focusY,Math.min(low+40-hh+BATTLE_HUD_COVER/camera.zoom,focus.y-170+hh));}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
     updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
     if(pose&&pose.shake>0)c.translate(Math.sin(t*.091)*pose.shake,Math.cos(t*.077)*pose.shake*.6);

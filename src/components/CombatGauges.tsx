@@ -8,28 +8,49 @@ const arcPath=(cx:number,cy:number,facing:1|-1,start:number,end:number,radius:nu
 };
 
 /** Artillery gauge: the quadrant faces the same side as the fighter and the
- * band shows the weapon limits already shifted by the ground under the feet. */
+ * band shows the weapon limits already shifted by the ground under the feet.
+ * Gold bezel with rivets over a glass face; the scale fills the upper quarter
+ * and the reading sits on its own plaque in the lower half, clear of the needle. */
 export function AngleGauge({angle,minAngle,maxAngle,facing,slope}:{angle:number;minAngle:number;maxAngle:number;facing:1|-1;slope:number}){
- const cx=60,cy=58,shown=Math.max(0,Math.min(90,angle));
- const tip=polar(cx,cy,facing,shown,44),left=polar(cx,cy,facing,shown+90,3.6),right=polar(cx,cy,facing,shown-90,3.6),tail=polar(cx,cy,facing,shown+180,9);
+ const cx=60,cy=60,shown=Math.max(0,Math.min(90,angle));
+ const tip=polar(cx,cy,facing,shown,47),left=polar(cx,cy,facing,shown+90,4.2),right=polar(cx,cy,facing,shown-90,4.2),tail=polar(cx,cy,facing,shown+180,10);
+ const shine=polar(cx,cy,facing,shown,30),shineLeft=polar(cx,cy,facing,shown+90,1.6);
  return <div className="angle-gauge" data-facing={facing}>
   <svg viewBox="0 0 120 120" aria-hidden="true">
    <defs>
-    <radialGradient id="angle-gauge-face" cx="50%" cy="40%" r="65%"><stop offset="0" stopColor="#1f4a6e"/><stop offset=".7" stopColor="#0d2541"/><stop offset="1" stopColor="#071629"/></radialGradient>
-    <linearGradient id="angle-gauge-needle" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#ffe36b"/><stop offset=".55" stopColor="#ff8a1f"/><stop offset="1" stopColor="#e2261b"/></linearGradient>
+    <linearGradient id="angle-gauge-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff3b8"/><stop offset=".28" stopColor="#f2c25a"/><stop offset=".62" stopColor="#c27a22"/><stop offset="1" stopColor="#6e3a0c"/></linearGradient>
+    <radialGradient id="angle-gauge-face" cx="50%" cy="34%" r="70%"><stop offset="0" stopColor="#2f6a98"/><stop offset=".55" stopColor="#123557"/><stop offset="1" stopColor="#06162b"/></radialGradient>
+    <radialGradient id="angle-gauge-plaque" cx="50%" cy="0%" r="100%"><stop offset="0" stopColor="#071629" stopOpacity=".2"/><stop offset="1" stopColor="#030b18" stopOpacity=".85"/></radialGradient>
+    <linearGradient id="angle-gauge-range" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stopColor="#ff7a2a"/><stop offset="1" stopColor="#e2261b"/></linearGradient>
+    <linearGradient id="angle-gauge-needle" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#fff2a0"/><stop offset=".5" stopColor="#ffb22e"/><stop offset="1" stopColor="#d4541a"/></linearGradient>
+    <radialGradient id="angle-gauge-hub" cx="40%" cy="35%" r="70%"><stop offset="0" stopColor="#fff6c8"/><stop offset=".5" stopColor="#f0b444"/><stop offset="1" stopColor="#7a4210"/></radialGradient>
    </defs>
-   <circle className="angle-gauge-bezel" cx="60" cy="60" r="57"/>
-   <circle className="angle-gauge-face" cx="60" cy="60" r="51" fill="url(#angle-gauge-face)"/>
-   <path className="angle-gauge-sweep" d={`M${cx} ${cy}L${polar(cx,cy,facing,0,47).x} ${polar(cx,cy,facing,0,47).y}${arcPath(cx,cy,facing,0,90,47).replace(/^M[^A]+/,'')}Z`}/>
-   <path className="angle-gauge-blocked" d={arcPath(cx,cy,facing,0,90,47)}/>
-   <path className="angle-gauge-range" d={arcPath(cx,cy,facing,minAngle,maxAngle,47)}/>
-   {Array.from({length:19},(_,index)=>{const degree=index*5,major=degree%15===0,a=polar(cx,cy,facing,degree,major?36:40),b=polar(cx,cy,facing,degree,44);return <line key={degree} className={major?'major':''} x1={a.x} y1={a.y} x2={b.x} y2={b.y}/>;})}
-   {[0,30,60,90].map(degree=>{const p=polar(cx,cy,facing,degree,28);return <text key={degree} x={p.x} y={p.y+2.4}>{degree}</text>;})}
+   <circle className="angle-gauge-shadow" cx="60" cy="62" r="58"/>
+   <circle className="angle-gauge-bezel" cx="60" cy="60" r="57" fill="url(#angle-gauge-gold)"/>
+   <circle className="angle-gauge-bevel" cx="60" cy="60" r="54.5"/>
+   {[30,90,150,210,270,330].map(degree=>{const p=polar(cx,cy,1,degree,55.6);return <g key={degree} className="angle-gauge-rivet"><circle cx={p.x} cy={p.y} r="1.9"/><circle cx={p.x-.5} cy={p.y-.6} r=".7"/></g>;})}
+   <circle className="angle-gauge-face" cx="60" cy="60" r="52" fill="url(#angle-gauge-face)"/>
+   <path className="angle-gauge-plaque" d="M10 63H110A50 50 0 0 1 10 63Z" fill="url(#angle-gauge-plaque)"/>
+   <path className="angle-gauge-quarter" d={`M${cx} ${cy}L${polar(cx,cy,facing,0,48).x} ${polar(cx,cy,facing,0,48).y}${arcPath(cx,cy,facing,0,90,48).replace(/^M[^A]+/,'')}Z`}/>
+   <path className="angle-gauge-range" d={arcPath(cx,cy,facing,minAngle,maxAngle,46.5)} stroke="url(#angle-gauge-range)"/>
+   {Array.from({length:19},(_,index)=>{const degree=index*5,major=degree%30===0,mid=!major&&degree%15===0,a=polar(cx,cy,facing,degree,major?37:mid?40:42),b=polar(cx,cy,facing,degree,45);return <line key={degree} className={major?'major':mid?'mid':''} x1={a.x} y1={a.y} x2={b.x} y2={b.y}/>;})}
+   {[30,60].map(degree=>{const p=polar(cx,cy,facing,degree,30);return <text key={degree} x={p.x} y={p.y+2.6}>{degree}</text>;})}
    <polygon className="angle-gauge-needle" points={`${tip.x},${tip.y} ${left.x},${left.y} ${tail.x},${tail.y} ${right.x},${right.y}`} fill="url(#angle-gauge-needle)"/>
-   <circle className="angle-gauge-hub" cx={cx} cy={cy} r="5.5"/>
+   <polygon className="angle-gauge-needle-shine" points={`${tip.x},${tip.y} ${shineLeft.x},${shineLeft.y} ${shine.x},${shine.y}`}/>
+   <circle className="angle-gauge-hub" cx={cx} cy={cy} r="5.8" fill="url(#angle-gauge-hub)"/>
+   <ellipse className="angle-gauge-glass" cx="52" cy="30" rx="30" ry="15"/>
   </svg>
   <div className="angle-gauge-readout"><strong>{angle}<small>°</small></strong><span>{slope?`TERRENO ${slope>0?'+':''}${slope}°`:'ÂNGULO'}</span></div>
  </div>;
+}
+
+/** Gold arrow of the angle buttons: a bevelled triangle with a lit top face. */
+export function AngleArrow({up}:{up:boolean}){
+ return <svg viewBox="0 0 24 20" aria-hidden="true" className="angle-arrow" style={up?undefined:{transform:'scaleY(-1)'}}>
+  <path className="angle-arrow-body" d="M10.4 2.9Q12 .9 13.6 2.9L22.6 15.8Q23.6 18 21.2 18H2.8Q.4 18 1.4 15.8Z"/>
+  <path className="angle-arrow-face" d="M12 5.4 18.6 15.3H5.4Z"/>
+  <path className="angle-arrow-shine" d="M12 5.4 15.2 10.2Q12 9.2 8.8 10.2Z"/>
+ </svg>;
 }
 
 /** Combat Power orb. The server zeroes the charge when Power is armed; the

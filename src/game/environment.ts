@@ -45,15 +45,18 @@ function cameraBounds(camera:CameraState,depth=1):Bounds {
  return {x:W/2+(camera.x-W/2)*depth-width/2,y:H/2+(camera.y-H/2)*depth-height/2,width,height};
 }
 
+/** World px the battle console covers at the bottom of the view: the camera may look this far below the map,
+ * so a fighter standing at the very bottom edge still shows above the console. */
+export const BATTLE_HUD_COVER=120;
 export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;worldWidth:number;}
 export function createCamera(worldWidth=W):CameraState{return {x:W/2,y:H/2,zoom:1,targetZoom:1,targetX:W/2,targetY:H/2,worldWidth};}
 export function zoomCamera(camera:CameraState,delta:number,map:MapDefinition){camera.targetZoom=Math.max(map.camera.minZoom,Math.min(map.camera.maxZoom,camera.targetZoom+delta));}
 export function updateCamera(camera:CameraState,x:number,y:number){
  camera.zoom+=(camera.targetZoom-camera.zoom)*.09;
  const hw=W/(2*camera.zoom),hh=H/(2*camera.zoom);
- const right=camera.worldWidth??W;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh,y));
+ const right=camera.worldWidth??W;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,y));
  camera.x+=(camera.targetX-camera.x)*.075;camera.y+=(camera.targetY-camera.y)*.075;
- camera.x=Math.max(hw,Math.min(right-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh,camera.y));
+ camera.x=Math.max(hw,Math.min(right-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,camera.y));
 }
 export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=1){
  const zoom=1+(camera.zoom-1)*Math.min(1,depth);
@@ -183,7 +186,8 @@ export class EnvironmentRenderer {
   if(!image.naturalWidth)return;
   const margin=48,span=this.width-W,fit=(H+margin*2)/image.naturalHeight,natural=image.naturalWidth*fit-W-margin*2;
   const depth=span>0?Math.min(1,Math.max(.1,natural/span)):.1,travel=span*depth,width=W+travel+margin*2;
-  const layer=this.cached(key,width,H+margin*2,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale;smoothImages(ctx);ctx.drawImage(image,(width-image.naturalWidth*scale)/2,H+margin*2-height,image.naturalWidth*scale,height);});
+  // Under the painting, its last rows stretched down: the camera can look BATTLE_HUD_COVER below the map.
+  const layer=this.cached(key,width,H+margin*2+BATTLE_HUD_COVER,ctx=>{const scale=Math.max(fit,width/image.naturalWidth),height=image.naturalHeight*scale,left=(width-image.naturalWidth*scale)/2;smoothImages(ctx);ctx.drawImage(image,left,H+margin*2-height,image.naturalWidth*scale,height);if(key==='backdrop')ctx.drawImage(image,0,image.naturalHeight-2,image.naturalWidth,2,left,H+margin*2-1,image.naturalWidth*scale,BATTLE_HUD_COVER+1);});
   c.save();applyCamera(c,camera,depth);c.drawImage(layer,-margin,offset-margin);c.restore();
  }
  private drawLoading(c:CanvasRenderingContext2D){
