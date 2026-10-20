@@ -153,7 +153,7 @@ function splitProneArms(combat:CombatRig){
 }
 export function drawPart(c:CanvasRenderingContext2D,part:AvatarPart,angle=0,dx=0,dy=0){c.save();c.translate((part.pivot[0]-625)*AVATAR_UNIT+dx,(part.pivot[1]-1225)*AVATAR_UNIT+dy);c.rotate(angle);
  // Parts are cut from the 1254 px painting and shown far smaller: the copy at screen size, not a full filter pass every frame.
- const width=part.width*AVATAR_UNIT,art=scaledCopy(part.canvas,width*screenScale(c))??part.canvas;if(art!==part.canvas)c.imageSmoothingQuality='low';
+ const width=part.width*AVATAR_UNIT,art=scaledCopy(part.canvas,width*screenScale(c))??part.canvas;c.imageSmoothingQuality='high';
  c.drawImage(art,(part.x-part.pivot[0])*AVATAR_UNIT,(part.y-part.pivot[1])*AVATAR_UNIT,width,part.height*AVATAR_UNIT);c.restore();}
 
 export function shade(color:string,factor:number){return '#'+[1,3,5].map(i=>Math.round(Math.min(255,parseInt(color.slice(i,i+2),16)*factor)).toString(16).padStart(2,'0')).join('');}

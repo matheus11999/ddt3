@@ -72,6 +72,16 @@ export function scaledCopy(source:Source,pixels:number):Drawable|null{
 }
 /** Screen pixels per canvas unit along x under the current transform (squashes such as breathing only touch y). */
 export function screenScale(c:CanvasRenderingContext2D){const m=c.getTransform();return Math.hypot(m.a,m.b);}
+/**
+ * One cell of a sprite sheet (walk or combat paintings), drawn from a copy of the whole sheet at screen size:
+ * a 1200 px sheet squeezed to a 100 px body with the best filter every frame cost ~10 ms while walking.
+ */
+export function drawCell(c:CanvasRenderingContext2D,sheet:Source,sx:number,sy:number,sw:number,sh:number,dx:number,dy:number,dw:number,dh:number){
+ const natural=sourceWidth(sheet),art=natural?scaledCopy(sheet,natural*Math.abs(dw)/sw*screenScale(c))??sheet:sheet,k=sourceWidth(art)/natural;
+ const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='high';
+ c.drawImage(art,sx*k,sy*k,sw*k,sh*k,dx,dy,dw,dh);
+ c.imageSmoothingQuality=quality;
+}
 /** The part of the canvas's own coordinates (under the current transform) that lands on screen, as [x0,y0,x1,y1]. */
 export function visibleArea(c:CanvasRenderingContext2D):[number,number,number,number]{
  const m=c.getTransform().inverse(),{width,height}=c.canvas,xs=[m.e,m.a*width+m.e,m.c*height+m.e,m.a*width+m.c*height+m.e],ys=[m.f,m.b*width+m.f,m.d*height+m.f,m.b*width+m.d*height+m.f];
@@ -91,9 +101,9 @@ export function drawScaled(c:CanvasRenderingContext2D,image:HTMLImageElement,x:n
  if(!imageReady(image))return false;
  // While the copy is being made the decoded file stands in for a few frames.
  const art=scaledCopy(image,Math.abs(width)*screenScale(c))??image;
- // The copy is at most 25% bigger than its place on screen (already filtered with the best quality when made):
- // plain bilinear is enough. 'high' made every station of the plaza cost ~0.8 ms per frame (docs/performance.md).
- const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='low';
+ // The copy is at most 25% bigger than its place on screen, so the best filter is cheap here; plain bilinear
+ // ('low') left characters and keepers jagged on the owner's GPU (20/10).
+ const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='high';
  c.drawImage(art,x,y,width,height);
  c.imageSmoothingQuality=quality;
  return true;
