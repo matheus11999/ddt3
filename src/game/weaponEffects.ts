@@ -147,7 +147,7 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
 /** Animated projectile strips (scripts/build-projectile-strips.py): a weapon listed there flies its painted frames
  * instead of the still projectile cell of effects.png / pow.png, normal and POW. */
 type StripInfo={frames:number;width:number;height:number;pivot:number[];span:number};
-type StripWeapon={fps:number;normal?:Record<string,StripInfo>;pow?:Record<string,StripInfo>};
+type StripWeapon={fps:number;spin?:number;normal?:Record<string,StripInfo>;pow?:Record<string,StripInfo>};
 type Strip={image:HTMLImageElement;ready:Promise<void>;loaded:boolean};
 const STRIPS=stripData as Record<string,StripWeapon>;
 const STAGES=[0,10,12,15] as const;
@@ -161,14 +161,15 @@ function stripFor(effect:Effect,powered:boolean,tier:number){
   entry.ready=new Promise<void>(resolve=>{image.onload=()=>{entry.loaded=true;resolve();};image.onerror=()=>resolve();image.src=`/assets/weapons/${weapon.id}/projectile/${mode}-${stage}.png`;});
   strips.set(key,entry);strip=entry;
  }
- return {strip,info,fps:data.fps};
+ return {strip,info,fps:data.fps,spin:data.spin};
 }
 function preloadStrips(effect:Effect){return STAGES.flatMap((_,tier)=>[false,true].map(powered=>typeof Image==='undefined'?Promise.resolve():stripFor(effect,powered,tier)?.strip.ready??Promise.resolve()));}
-/** Draws the current frame with the painted core on (0,0), pointing along +x; false while the strip is missing. */
+/** Draws the current frame with the painted core on (0,0), pointing along +x; false while the strip is missing.
+ * A `spin` strip (--spin) is one painting the game turns at the package's degrees per second. */
 function drawStrip(c:CanvasRenderingContext2D,effect:Effect,powered:boolean,tier:number,width:number,time:number,alpha=1){
  const found=stripFor(effect,powered,tier);if(!found?.strip.loaded)return false;
  const {info}=found,frame=Math.floor(time/1000*found.fps)%info.frames,height=width*info.height/info.width;
- c.save();c.globalAlpha*=alpha;c.drawImage(found.strip.image,frame*info.width,0,info.width,info.height,-width*info.pivot[0],-height*info.pivot[1],width,height);c.restore();return true;
+ c.save();c.globalAlpha*=alpha;if(found.spin)c.rotate(time/1000*found.spin*Math.PI/180);c.drawImage(found.strip.image,frame*info.width,0,info.width,info.height,-width*info.pivot[0],-height*info.pivot[1],width,height);c.restore();return true;
 }
 /** Warms all paintings while the player chooses a room or prepares a shot. */
 export function preloadWeaponEffects(effects:readonly Effect[]=[...new Set(WEAPONS.map(weapon=>weapon.effect))]){return Promise.all([...effects.includes('boomerang' as Effect)?[preloadBoomerangImpacts()]:[],...effects.flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready,...preloadStrips(effect)])]);}
@@ -297,7 +298,7 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  c.save();c.globalCompositeOperation='screen';trailParticles(c,p,sample,tier,clock,options);c.restore();
  c.save();c.translate(tip[0],tip[1]);c.rotate(angle);
  const pulse=reduced(options)?0:Math.sin(clock/(p.effect==='electric'?70:140)),size=family.size[tier]*(p.powered?1.16:1)*(1+pulse*(tier?.045:.02));
- const animated=!!stripFor(p.effect,!!p.powered,tier)?.strip.loaded;
+ const strip=stripFor(p.effect,!!p.powered,tier),animated=!!strip?.strip.loaded;
  glow(c,0,0,8+tier*3,family.mid,.18+tier*.025);
  if((tier||p.powered)&&!animated){
   c.save();c.globalCompositeOperation='screen';c.lineWidth=.8;c.strokeStyle=family.hot;c.globalAlpha*=.38;
@@ -310,12 +311,12 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
   }
   c.restore();
  }
- const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
+ const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)||animated?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
  c.save();c.rotate(spin);if(!solid&&!animated)c.scale(1,1+pulse*.09);
  const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
- // A painted animation already carries its own flicker, sparks and trail.
- const painted=(animated&&drawStrip(c,p.effect,!!p.powered,tier,size*STRIP_SCALE*(p.powered?1.1:1),clock))||(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
+ // A painted animation already carries its own flicker, sparks and trail; a spinning painting is cropped tight, so it keeps the cell's size.
+ const painted=(animated&&drawStrip(c,p.effect,!!p.powered,tier,size*(strip?.spin?(p.powered?POW_SPRITE_SCALE:1):STRIP_SCALE*(p.powered?1.1:1)),clock))||(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
   const x=-Math.cos(spin)*size*.35,y=-Math.sin(spin)*size*.35;glow(c,x,y,5+tier*.6,family.hot,.55);
   c.save();c.globalCompositeOperation='screen';c.strokeStyle='#ffeab4';c.lineWidth=.8;const count=Math.min(limits(options).flightParticles,2+tier);
