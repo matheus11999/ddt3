@@ -2,8 +2,8 @@ import art from './aimArt.json';
 import {SHOT_ORIGIN} from '../../shared/physics';
 
 /** Aim next to the fighter, after DDTank's TakeAimAsset (docs/hitbox-aim.md): the painted red arc behind the
- * avatar ('back'), mirrored by the facing and turned with the ground tilt, and a dotted yellow direction of ten
- * points in front of it ('front'), pivoting on the real shot origin so it shows the true initial direction.
+ * avatar ('back'), mirrored by the facing and turned with the ground tilt, and a solid, slightly transparent yellow
+ * direction line in front of it ('front'; the dotted one was rejected on 20/10/2026), pivoting on the real shot origin so it shows the true initial direction.
  * Unlike the original, the arc shows only the angles the fighter can use (user request, 20/10/2026): it is cut
  * to the weapon's limits, the same ones the controls and the server clamp to. The degree plate is Brasa's own. */
 const draw=art.draw,scale=draw.scale;
@@ -14,9 +14,9 @@ function request(src:string){
 }
 function image(src:string){const img=request(src);return img?.complete&&img.naturalWidth?img:undefined;}
 /** The aim's paintings, for the battle preloader. */
-export function aimImages(){return [art.arc.file,art.dot.file].map(request).filter((img):img is HTMLImageElement=>!!img);}
+export function aimImages(){return [art.arc.file].map(request).filter((img):img is HTMLImageElement=>!!img);}
 
-/** Pivot of the dotted direction: the shot origin, where the server launches the projectile. */
+/** Pivot of the direction line: the shot origin, where the server launches the projectile. */
 export function aimPivot(x:number,y:number,facing:1|-1){return {x:x+facing*SHOT_ORIGIN.forward,y:y-SHOT_ORIGIN.up};}
 
 /** `angle` is the world elevation of the shot (slope already included), as the server launches it;
@@ -40,13 +40,13 @@ export function drawAimIndicator(c:CanvasRenderingContext2D,x:number,y:number,fa
   }
   c.restore();return;
  }
- const dot=image(art.dot.file),rad=angle*Math.PI/180,ux=facing*Math.cos(rad),uy=-Math.sin(rad);
- const size=draw.dotSize*scale*art.dot.size[0]/art.dot.bodySize,base=c.globalAlpha;
- for(const point of draw.dots){
-  const px=pivot.x+ux*point.distance*scale,py=pivot.y+uy*point.distance*scale;c.globalAlpha=base*point.alpha;
-  if(dot){c.save();c.translate(px,py);c.rotate(Math.atan2(uy,ux));c.drawImage(dot,-size/2,-size/2,size,size);c.restore();}
-  else{const s=draw.dotSize*scale;c.fillStyle='#ffe600';c.fillRect(px-s/2,py-s/2,s,s);}
- }
+ // Same span as the original ten dots, as one line from pale to gold yellow.
+ const rad=angle*Math.PI/180,ux=facing*Math.cos(rad),uy=-Math.sin(rad),line=draw.line,base=c.globalAlpha;
+ const ax=pivot.x+ux*line.from*scale,ay=pivot.y+uy*line.from*scale,bx=pivot.x+ux*line.to*scale,by=pivot.y+uy*line.to*scale;
+ const fill=c.createLinearGradient(ax,ay,bx,by);fill.addColorStop(0,'#fff6a8');fill.addColorStop(1,'#ffd21f');
+ c.lineCap='round';c.globalAlpha=base*line.alpha;
+ c.beginPath();c.moveTo(ax,ay);c.lineTo(bx,by);c.strokeStyle='#5a3a0099';c.lineWidth=line.width+2;c.stroke();
+ c.strokeStyle=fill;c.lineWidth=line.width;c.stroke();
  c.globalAlpha=base;
  // Readout plate on the ground past the arc, on the facing side.
  const label=Math.round(angle)+'°',labelX=x+facing*draw.plate.forward,labelY=y-draw.plate.up;
