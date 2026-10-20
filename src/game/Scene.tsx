@@ -1,3 +1,4 @@
+import {ROD_THROW_MS,TIDE_ROD} from './rodCast';
 import {useEffect,useRef} from 'react';
 import {client} from '../client';
 import type {Equipment} from '../../shared/catalog';
@@ -230,7 +231,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(Math.abs(slope)>.43&&!walking)pose='prone';
      if(falling)pose='fall';
      if(shot&&hold){
-      const launch=shot.projectiles.filter(p=>!p.fragment&&elapsed>=p.delay&&elapsed-p.delay<500).at(-1);
+      // The Vara das Marés cast plays slower and keeps the throw pose longer (rodCast.ts).
+      const throwMs=f.equipment.weapon===TIDE_ROD?ROD_THROW_MS:500,launch=shot.projectiles.filter(p=>!p.fragment&&elapsed>=p.delay&&elapsed-p.delay<throwMs).at(-1);
       if(f.id===shot.shooterId&&launch){pose='fire';poseTime=elapsed-launch.delay;}
       const hit=shot.hits.filter(h=>h.id===f.id&&exploded.has(h.projectileIndex??0)).at(-1);
       if(hit){const p=shot.projectiles[hit.projectileIndex??0],age=p?elapsed-impactTime(p):500;if(age>=0&&age<500){pose='hit';poseTime=age;}}
