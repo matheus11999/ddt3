@@ -622,5 +622,629 @@
     586
    ]
   }
+ },
+ {
+  "id": "wind-shuriken:normal:0@2",
+  "weapon": "wind-shuriken",
+  "mode": "normal",
+  "stage": 0,
+  "mask": "wind",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/normal/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 90,
+   "artPerWorld": 11.378,
+   "holeInArt": [
+    592,
+    396
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:normal:10@2",
+  "weapon": "wind-shuriken",
+  "mode": "normal",
+  "stage": 10,
+  "mask": "wind",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/normal/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 90,
+   "artPerWorld": 11.378,
+   "holeInArt": [
+    592,
+    396
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:normal:12@2",
+  "weapon": "wind-shuriken",
+  "mode": "normal",
+  "stage": 12,
+  "mask": "wind",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/normal/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 90,
+   "artPerWorld": 11.378,
+   "holeInArt": [
+    592,
+    396
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:normal:15@2",
+  "weapon": "wind-shuriken",
+  "mode": "normal",
+  "stage": 15,
+  "mask": "wind",
+  "radius": 26,
+  "physical": {
+   "width": 52,
+   "height": 36,
+   "pivot": [
+    26,
+    18
+   ],
+   "cut": 1416,
+   "sha256": "cc979bc0d6111003"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/normal/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 90,
+   "artPerWorld": 11.378,
+   "holeInArt": [
+    592,
+    396
+   ],
+   "bandOuterInArt": [
+    993,
+    665
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:pow:0@2",
+  "weapon": "wind-shuriken",
+  "mode": "pow",
+  "stage": 0,
+  "mask": "wind-pow",
+  "radius": 28.5,
+  "physical": {
+   "width": 58,
+   "height": 42,
+   "pivot": [
+    29,
+    21
+   ],
+   "cut": 1796,
+   "sha256": "0f94bbec8fdcd97a"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/pow/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 104,
+   "artPerWorld": 9.846,
+   "holeInArt": [
+    561,
+    398
+   ],
+   "bandOuterInArt": [
+    993,
+    705
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:pow:10@2",
+  "weapon": "wind-shuriken",
+  "mode": "pow",
+  "stage": 10,
+  "mask": "wind-pow",
+  "radius": 28.5,
+  "physical": {
+   "width": 58,
+   "height": 42,
+   "pivot": [
+    29,
+    21
+   ],
+   "cut": 1796,
+   "sha256": "0f94bbec8fdcd97a"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/pow/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 104,
+   "artPerWorld": 9.846,
+   "holeInArt": [
+    561,
+    398
+   ],
+   "bandOuterInArt": [
+    993,
+    705
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:pow:12@2",
+  "weapon": "wind-shuriken",
+  "mode": "pow",
+  "stage": 12,
+  "mask": "wind-pow",
+  "radius": 28.5,
+  "physical": {
+   "width": 58,
+   "height": 42,
+   "pivot": [
+    29,
+    21
+   ],
+   "cut": 1796,
+   "sha256": "0f94bbec8fdcd97a"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/pow/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 104,
+   "artPerWorld": 9.846,
+   "holeInArt": [
+    561,
+    398
+   ],
+   "bandOuterInArt": [
+    993,
+    705
+   ]
+  }
+ },
+ {
+  "id": "wind-shuriken:pow:15@2",
+  "weapon": "wind-shuriken",
+  "mode": "pow",
+  "stage": 15,
+  "mask": "wind-pow",
+  "radius": 28.5,
+  "physical": {
+   "width": 58,
+   "height": 42,
+   "pivot": [
+    29,
+    21
+   ],
+   "cut": 1796,
+   "sha256": "0f94bbec8fdcd97a"
+  },
+  "mark": {
+   "file": "/assets/weapons/wind-shuriken/destruction/pow/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 104,
+   "artPerWorld": 9.846,
+   "holeInArt": [
+    561,
+    398
+   ],
+   "bandOuterInArt": [
+    993,
+    705
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:normal:0@2",
+  "weapon": "thunder-coil",
+  "mode": "normal",
+  "stage": 0,
+  "mask": "thunder",
+  "radius": 25,
+  "physical": {
+   "width": 50,
+   "height": 42,
+   "pivot": [
+    25,
+    21
+   ],
+   "cut": 1576,
+   "sha256": "34e09a73da51bce1"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/normal/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 86,
+   "artPerWorld": 11.907,
+   "holeInArt": [
+    595,
+    488
+   ],
+   "bandOuterInArt": [
+    993,
+    814
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:normal:10@2",
+  "weapon": "thunder-coil",
+  "mode": "normal",
+  "stage": 10,
+  "mask": "thunder",
+  "radius": 25,
+  "physical": {
+   "width": 50,
+   "height": 42,
+   "pivot": [
+    25,
+    21
+   ],
+   "cut": 1576,
+   "sha256": "34e09a73da51bce1"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/normal/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 86,
+   "artPerWorld": 11.907,
+   "holeInArt": [
+    595,
+    488
+   ],
+   "bandOuterInArt": [
+    993,
+    814
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:normal:12@2",
+  "weapon": "thunder-coil",
+  "mode": "normal",
+  "stage": 12,
+  "mask": "thunder",
+  "radius": 25,
+  "physical": {
+   "width": 50,
+   "height": 42,
+   "pivot": [
+    25,
+    21
+   ],
+   "cut": 1576,
+   "sha256": "34e09a73da51bce1"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/normal/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 86,
+   "artPerWorld": 11.907,
+   "holeInArt": [
+    595,
+    488
+   ],
+   "bandOuterInArt": [
+    993,
+    814
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:normal:15@2",
+  "weapon": "thunder-coil",
+  "mode": "normal",
+  "stage": 15,
+  "mask": "thunder",
+  "radius": 25,
+  "physical": {
+   "width": 50,
+   "height": 42,
+   "pivot": [
+    25,
+    21
+   ],
+   "cut": 1576,
+   "sha256": "34e09a73da51bce1"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/normal/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 86,
+   "artPerWorld": 11.907,
+   "holeInArt": [
+    595,
+    488
+   ],
+   "bandOuterInArt": [
+    993,
+    814
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:pow:0@2",
+  "weapon": "thunder-coil",
+  "mode": "pow",
+  "stage": 0,
+  "mask": "thunder-pow",
+  "radius": 22.5,
+  "physical": {
+   "width": 46,
+   "height": 34,
+   "pivot": [
+    23,
+    17
+   ],
+   "cut": 1132,
+   "sha256": "60bfbf54d6dcc718"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/pow/mark-0.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 82,
+   "artPerWorld": 12.488,
+   "holeInArt": [
+    562,
+    416
+   ],
+   "bandOuterInArt": [
+    993,
+    735
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:pow:10@2",
+  "weapon": "thunder-coil",
+  "mode": "pow",
+  "stage": 10,
+  "mask": "thunder-pow",
+  "radius": 22.5,
+  "physical": {
+   "width": 46,
+   "height": 34,
+   "pivot": [
+    23,
+    17
+   ],
+   "cut": 1132,
+   "sha256": "60bfbf54d6dcc718"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/pow/mark-10.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 82,
+   "artPerWorld": 12.488,
+   "holeInArt": [
+    562,
+    416
+   ],
+   "bandOuterInArt": [
+    993,
+    735
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:pow:12@2",
+  "weapon": "thunder-coil",
+  "mode": "pow",
+  "stage": 12,
+  "mask": "thunder-pow",
+  "radius": 22.5,
+  "physical": {
+   "width": 46,
+   "height": 34,
+   "pivot": [
+    23,
+    17
+   ],
+   "cut": 1132,
+   "sha256": "60bfbf54d6dcc718"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/pow/mark-12.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 82,
+   "artPerWorld": 12.488,
+   "holeInArt": [
+    562,
+    416
+   ],
+   "bandOuterInArt": [
+    993,
+    735
+   ]
+  }
+ },
+ {
+  "id": "thunder-coil:pow:15@2",
+  "weapon": "thunder-coil",
+  "mode": "pow",
+  "stage": 15,
+  "mask": "thunder-pow",
+  "radius": 22.5,
+  "physical": {
+   "width": 46,
+   "height": 34,
+   "pivot": [
+    23,
+    17
+   ],
+   "cut": 1132,
+   "sha256": "60bfbf54d6dcc718"
+  },
+  "mark": {
+   "file": "/assets/weapons/thunder-coil/destruction/pow/mark-15.png",
+   "art": [
+    1024,
+    1024
+   ],
+   "pivot": [
+    512,
+    512
+   ],
+   "world": 82,
+   "artPerWorld": 12.488,
+   "holeInArt": [
+    562,
+    416
+   ],
+   "bandOuterInArt": [
+    993,
+    735
+   ]
+  }
  }
 ]
