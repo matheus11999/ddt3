@@ -10,6 +10,7 @@ import {COSTUMES,drawCostume,hasProneCostume} from './costumes';
 import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
+import {rodTip,TIDE_ROD} from './rodCast';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
 export interface AvatarContext {/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
@@ -180,6 +181,8 @@ export const HELD_WEAPON={muzzle:[54,-48] as [number,number],scale:.6,grip:20};
 /** Where a held weapon's painted muzzle is, in world pixels from the fighter's feet, for an
  * avatar drawn `size` tall. Visual only: the server still launches from x+27*facing, y-40. */
 export function heldMuzzle(weaponId:string,facing:number,size:number,tilt=0):[number,number]|null{
+ // The Vara das Marés casts: the fish leaves from the rod tip at the end of the swing.
+ if(weaponId===TIDE_ROD)return rodTip(facing,size);
  if(WEAPONS.find(item=>item.id===weaponId)?.hold!=='hand')return null;
  const mx=HELD_WEAPON.muzzle[0]*size/160*(facing<0?-1:1),my=HELD_WEAPON.muzzle[1]*size/160,cos=Math.cos(tilt),sin=Math.sin(tilt);
  return [mx*cos-my*sin,mx*sin+my*cos];

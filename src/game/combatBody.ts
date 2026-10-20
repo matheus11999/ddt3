@@ -10,6 +10,7 @@ import {HEAD_SCALE} from './rig/anchors';
 import type {CombatFrameName,Fist} from './rig/combatFrames';
 import {COMBAT_ATLAS,COMBAT_FIST_SIZE,COMBAT_FRAMES,COMBAT_MANNEQUIN,combatFrameBlend,combatFrameIndex,HEAD_SILHOUETTE_CENTER} from './rig/combatFrames';
 import {drawWeaponEnergy} from './weaponEffects';
+import {ROD,rodInHand,TIDE_ROD} from './rodCast';
 import atlases from './combatAtlas.json';
 
 /** DDTank-style combat body (docs/combat-frames.md): the outfit's small painted body for the current
@@ -67,7 +68,11 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // faceDown: the weapon on the back, behind the body and the head. Kneeling, the far fist goes behind the
  // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
- if(state.weapon)drawBackWeapon(c,eq,spec.back[0]+BACK_WEAPON_GAP[0]+dx,spec.back[1]+BACK_WEAPON_GAP[1]+dy+breath,spec.backAngle,state.time);
+ // The Vara das Marés leaves the back while charging and casting: it is drawn in the front fist below.
+ const rod=state.weapon&&eq.weapon===TIDE_ROD?rodInHand(state.pose,state.poseTime,name):undefined;
+ // Behind the head and body like the back mount; the painted fist then closes over its grip.
+ if(rod){const grip=fist(1);drawRod(c,eq,grip[0],grip[1],rod.turn,rod.thrown);}
+ if(state.weapon&&!rod)drawBackWeapon(c,eq,spec.back[0]+BACK_WEAPON_GAP[0]+dx,spec.back[1]+BACK_WEAPON_GAP[1]+dy+breath,spec.backAngle,state.time);
  // Each fist hangs from a short forearm in the outfit's own sleeve color that starts under the painted
  // sleeve, so the hand reads as part of the arm (the outfit art ends its sleeves at the elbow).
  const [cw,ch]=COMBAT_ATLAS.cell,[ox,oy]=COMBAT_ATLAS.origin,ppu=COMBAT_ATLAS.pixelsPerUnit,sx=(art%COMBAT_ATLAS.columns)*cw,sy=Math.floor(art/COMBAT_ATLAS.columns)*ch;
@@ -95,7 +100,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // The near fist goes over everything, under the chin while lying, like in DDTank.
  if(drawnHands&&prone)drawFist(c,eq.skin,fist(0),1);
  const front=fist(1);if(drawnHands)drawFist(c,eq.skin,front,1,prone?.8:1);
- if(state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
+ if(!rod&&state.weapon)drawThrowCue(c,name,state,front[0],front[1],color);
  c.restore();return true;
 }
 /** The universal fist, simple like DDTank's: a round skin-colored ball a little wider than tall, painted
@@ -155,6 +160,14 @@ function drawBackWeapon(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:numbe
  if(level>=9){c.shadowColor=weapon?.color??'#ff7a3d';c.shadowBlur=level>=12?9:4;}
  // The 1254 px weapon painting shown 64 px wide: a copy at screen size, not a full filter pass every frame.
  drawScaled(c,image,-BACK_WEAPON_SIZE/2,-BACK_WEAPON_SIZE/2,BACK_WEAPON_SIZE,BACK_WEAPON_SIZE);c.restore();
+}
+/** The Vara das Marés in the front fist (rodCast.ts): the painting turns around its grip; once the fish is thrown the
+ * little fish on the hook is cut out of the painting, the line still hangs from the tip. */
+function drawRod(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,turn:number,thrown:boolean){
+ const image=asset(weaponAssetPath(eq.weapon,eq.upgrade??0));if(!image.complete||!image.naturalWidth)return;
+ const size=ROD.size;c.save();c.translate(x,y);c.rotate(turn);c.translate(-ROD.grip[0]*size,-ROD.grip[1]*size);
+ if(thrown){const [x0,y0,x1,y1]=ROD.hook;c.beginPath();c.rect(-size/2,-size/2,size,size);c.rect((x1-.5)*size,(y0-.5)*size,-(x1-x0)*size,(y1-y0)*size);c.clip('evenodd');}
+ drawScaled(c,image,-size/2,-size/2,size,size);c.restore();
 }
 /** The projectile glows in the fist while the shot charges; the release leaves a short swoosh. */
 function drawThrowCue(c:CanvasRenderingContext2D,name:CombatFrameName,state:CombatBodyState,x:number,y:number,color:string){
