@@ -1,7 +1,7 @@
 /* Central de Expedições: hall, room banner and the expedition picker (wood style of the PvP room). */
-.expedition-hall .expedition-room-choice{display:grid;justify-items:center;gap:1px;min-width:86px;color:var(--wood-ink)}
-.expedition-hall .expedition-room-choice b{font:800 14px/1.1 'Nunito',sans-serif;color:var(--wood-ink)}
-.expedition-hall .expedition-room-choice small{font:800 11px/1 'Nunito',sans-serif;color:var(--wood-ink-soft);text-transform:uppercase;letter-spacing:.5px}
+.expedition-hall .expedition-room-choice{display:grid;justify-items:center;gap:1px;min-width:86px;color:var(--wood-gold)}
+.expedition-hall .expedition-room-choice b{font:900 14px/1.1 'Nunito',sans-serif;color:#fff4d4;text-shadow:0 1px #2c1004}
+.expedition-hall .expedition-room-choice small{font:800 11px/1 'Nunito',sans-serif;color:var(--wood-gold);text-transform:uppercase;letter-spacing:.5px}
 
 .expedition-room .expedition-banner-art{display:block;width:100%;padding:0;cursor:var(--cursor-pointer,pointer);font:inherit;color:inherit}
 .expedition-room .expedition-banner-art:not(:disabled):hover>img{filter:brightness(1.06) saturate(1.05)}

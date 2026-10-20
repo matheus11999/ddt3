@@ -6,7 +6,7 @@ import {arenaMatchTime,arenaRooms} from '../arenaHall';
 import {Chat} from './Hud';
 import {Avatar} from './Avatar';
 import {LevelNumber} from './LevelNumber';
-import {playerMenuProps} from './PlayerActions';
+import {HallEmpty,HallOnlineList} from './HallParts';
 import './ArenaTheme.css';
 import './ArenaHall.css';
 
@@ -26,7 +26,7 @@ export function Arena({onClose}:{onClose:()=>void}){
   <header className="hall-header wood-titlebar"><span className="hall-crest" aria-hidden="true"><Swords size={24}/></span><h1 className="wood-title">Salão PvP</h1><div className="hall-population wood-pill" aria-label={`${arenaOnline} jogadores na arena`}><Users size={16}/><strong>{arenaOnline}</strong><span>na arena</span></div><button className="hall-back wood-close" type="button" aria-label="Sair da arena" title="Voltar à praça" onClick={onClose}><X size={23}/></button></header>
   <div className="hall-body"><section className="hall-rooms wood-pane" aria-label="Salas da arena">
    <div className="hall-toolbar"><h2 className="hall-tab wood-ribbon"><Swords size={16} aria-hidden="true"/>Salas<b>{visible.length}</b></h2><div className={`hall-search ${searchOpen?'is-open':''}`}>{searchOpen&&<><input ref={input} aria-label="Buscar sala" placeholder="Nome da sala" value={query} maxLength={64} onChange={event=>setQuery(event.target.value)} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();closeSearch();}}}/><button type="button" className="hall-search-close" aria-label="Fechar pesquisa" onClick={closeSearch}><X size={15}/></button></>}<button ref={searchButton} type="button" className="hall-search-trigger" aria-label="Pesquisar salas" aria-expanded={searchOpen} onClick={()=>searchOpen?input.current?.focus():setSearchOpen(true)}><Search size={18}/></button></div></div>
-   <div className="hall-room-list wood-cream">
+   <div className={`hall-room-list wood-cream ${visible.length?'':'is-empty'}`}>
     {visible.length?visible.map(room=>{
      const size=room.openSlots.length,full=room.players.length>=size,searching=room.status==='searching',inBattle=room.status==='playing',owner=room.players.find(player=>player.id===room.hostId),available=online&&room.status==='waiting'&&!full;
      const label=inBattle?'Em batalha':searching?'Buscando partida':full?'Completa':'Disponível',watchAvailable=online&&!searching&&(room.spectatorSlots??[]).some(slot=>!(room.spectators??[]).some(player=>player.slot===slot));
@@ -36,7 +36,7 @@ export function Arena({onClose}:{onClose:()=>void}){
       <span className="hall-room-format" aria-label={`${size} contra ${size}`}><Swords size={18} aria-hidden="true"/><b>{size}<small>×</small>{size}</b></span>
       <span className="hall-room-foot"><span className="hall-room-seats" aria-hidden="true">{room.openSlots.map((slot,index)=><i key={slot} className={index<room.players.length?'taken':''}/>)}</span><span className="hall-room-status">{inBattle?<Clock3 size={13}/>:searching?<LoaderCircle size={13}/>:full?<LockKeyhole size={13}/>:<i/>}{label}{inBattle&&<time className="hall-room-time" aria-label="Tempo de batalha">{arenaMatchTime(room.matchStartedAt,now+offset)}</time>}</span></span>
      </button><button type="button" className="hall-spectate" aria-label={`Assistir ${room.name}`} title={watchAvailable?'Assistir à sala':'Sem vaga para espectadores'} disabled={!watchAvailable} onClick={()=>client.send({type:'spectate',roomId:room.id})}><Eye size={15}/></button></div>;
-    }):<div className="hall-empty"><Swords size={44} aria-hidden="true"/><h3>{query?'Nenhuma sala encontrada':'Nenhuma sala criada'}</h3><p>{query?'Tente outro nome.':'Crie uma sala e chame a sua equipe.'}</p></div>}
+    }):<HallEmpty art="/assets/ui/arena-button.png" searching={!!query} title="Nenhuma sala aberta agora" hint="Crie a sua sala e chame os amigos para a batalha, ou espere um desafiante abrir a próxima."/>}
    </div>
 
   </section>
@@ -56,10 +56,7 @@ export function Arena({onClose}:{onClose:()=>void}){
    </section>
    <section className="hall-online wood-pane" aria-label="Jogadores online">
     <h2 className="hall-side-title wood-ribbon"><Users size={15} aria-hidden="true"/>Jogadores online<b>{onlineTotal}</b></h2>
-    <div className="hall-online-list wood-cream" role="table" aria-label="Lista de jogadores online">
-     <div className="hall-online-row hall-online-headrow" role="row"><span role="columnheader">Nível</span><span role="columnheader">Nome</span><span role="columnheader">Gênero</span></div>
-     {onlinePlayers.map(player=><div key={player.id} role="row" className={`hall-online-row ${player.id===profile?.id?'is-me':''}`} {...playerMenuProps({id:player.id,name:player.name,context:'hall'})}><span role="cell" className="hall-online-level" data-tier={Math.min(6,Math.floor((player.level-1)/10)+1)}>{player.level}</span><span role="cell" className="hall-online-name" title={player.name}>{player.name}</span><span role="cell" className={`hall-online-gender is-${player.gender}`} aria-label={player.gender==='female'?'Feminino':'Masculino'}>{player.gender==="female"?"♀":"♂"}</span></div>)}
-    </div>
+    <HallOnlineList players={onlinePlayers} meId={profile?.id}/>
    </section>
   </aside></div>
  </section>;
