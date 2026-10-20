@@ -471,3 +471,4 @@ Verdália, o primeiro pet (18/10/2026, `docs/pets.md`): planta com 3 aparências
 - Evidência: `tests/ballistics.test.ts` (vetores de referência −3/0/+3, simetria, alcance com arrasto, relógio da régua) e `npm run test:battle:browser` (régua desce depois de 100, soltar envia o valor que cai, segurar até zero passa a vez).
 
 Power-ups no padrão do DDTank 4.1 (19/10/2026, `docs/power-ups.md`): Delay +1 500, +2 600, Tridente 600, Dano +50% 400, +40% 340, +30% 200, +20% 150, +10% 70 (custos de Vigor iguais); Tridente com abertura −5°, 0°, +5°. Cada ativação válida soma o Delay uma vez; recusada não gasta nada. `VOLLEY_CADENCE_MS` não mudou. Testes em `tests/power-ups.test.ts`.
+- 20/10: escalada separada: sair de buraco até 45 px (`WALK_CLIMB`), chão aberto só até 24 px (`WALK_LEDGE`); as caixas de presente do Sonho Nevado não são mais escaladas. A borda de 27 px à esquerda do covil do dragão também voltou a ser parede.
