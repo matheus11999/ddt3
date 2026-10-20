@@ -1,5 +1,6 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {powerUpConflict} from '../shared/powerUps';
+import {chargeHoldsTurn} from '../shared/forceBar';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER,POWER_CRATER_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -75,7 +76,7 @@ export interface HallService {
  legends(board:LegendBoard,key?:string):Promise<HallLegends>;
 }
 const HALL_MIN_MS=150;
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;}
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;/** When the turn's player started holding the force bar (shared/forceBar.ts `chargeHoldsTurn`). */chargingSince?:number;}
 
 /** A loading screen in progress: `begin` creates the battle from the rooms as they are when everyone is ready. */
 interface PendingLoad {view:MatchLoading;roomIds:string[];waiting:Set<string>;begin:()=>void;}
@@ -325,7 +326,9 @@ export class Game {
  /** The caller's own living fighter while a match is aiming, whoever has the turn. */
  /** The caller's live fighter; turning in place may skip the aiming check and also works while a shot resolves or the monsters move. */
  private fighter(p:Peer,anyPhase=false){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase==='finished'||!anyPhase&&m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0||f.left)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
- private turn(p:Peer){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(m.state.instance&&Date.now()<m.state.instance.introUntil)throw Error('Aguarde os monstros chegarem.');if(Date.now()>m.state.deadline)throw Error('O tempo do turno terminou.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
+ private turn(p:Peer,holdable=false){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(m.state.instance&&Date.now()<m.state.instance.introUntil)throw Error('Aguarde os monstros chegarem.');const f=m.state.players.find(x=>x.id===p.profile.id);if(Date.now()>m.state.deadline&&!(holdable&&this.chargeHeld(m,Date.now())))throw Error('O tempo do turno terminou.');if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
+ /** A charge started before the clock ran out keeps the turn open until the release (capped by CHARGE_HOLD_MS). */
+ private chargeHeld(m:Match,now:number){const f=m.state.players.find(x=>x.id===m.state.turnId);return m.state.phase==='aiming'&&!!f?.charging&&chargeHoldsTurn(m.state.deadline,m.chargingSince,now);}
  private seat(p:Peer,team:0|1,slot:number):Seat{return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:{...p.profile.equipment},abilityLoadout:normalizeAbilityLoadout(p.profile.abilityLoadout),ready:false,bot:false,team,slot,connected:true,...(this.memberships.get(p.profile.id)?{guild:this.memberships.get(p.profile.id)!.name}:{})};}
  private vacantSeat(room:Room):{team:0|1;slot:number}{
   if(!room.practice){const slot=room.openSlots.find(index=>!room.players.some(p=>p.slot===index));if(slot===undefined)throw Error('Esta equipe está cheia. Peça ao líder para abrir outra vaga.');return {team:0,slot};}
@@ -576,8 +579,11 @@ export class Game {
     case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
-     const {m,f}=this.turn(p);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
-     adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;f.charging=c.charging;this.broadcastBattle(m);break;
+     const {m,f}=this.turn(p,true);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
+     // Past the deadline only the held bar moves: the charge can neither start nor be dropped there.
+     const overtime=Date.now()>m.state.deadline;
+     if(!overtime){if(c.charging&&!f.charging)m.chargingSince=Date.now();f.charging=c.charging;}
+     adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;this.broadcastBattle(m);break;
     }
     case 'walk':{
      const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();this.assertPetFree(f,'walk');
@@ -590,8 +596,8 @@ export class Game {
      const {m,f}=this.fighter(p,true);if(f.facing===c.direction||Date.now()-(p.lastFace??0)<65)return;p.lastFace=Date.now();
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
-    case 'fire':{const {m,f}=this.turn(p);this.assertPetFree(f,'fire');adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
-    case 'pass':{const {m,f}=this.turn(p);f.delay=(f.delay??0)+PASS_DELAY;this.nextTurn(m);break;}
+    case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
+    case 'pass':{const {m,f}=this.turn(p,true);f.delay=(f.delay??0)+PASS_DELAY;this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
      if(!m||m.state.phase!=='finished'||!rewards||rewards.phase!=='picking'||Date.now()>=rewards.deadline)throw Error('A escolha de cartas terminou.');
@@ -1285,7 +1291,7 @@ export class Game {
    while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}
    if(m.state.phase==='resolving'&&now>=m.resolveAt)this.nextTurn(m);
    else if(m.state.phase==='aiming'){
-    if(now>=m.state.deadline)this.nextTurn(m);
+    if(now>=m.state.deadline&&!this.chargeHeld(m,now))this.nextTurn(m);
     else{const f=m.state.players.find(p=>p.id===m.state.turnId);if(f?.bot&&now>=m.botAt){m.botAt=Infinity;this.bot(m,f);}}
    }
   }
