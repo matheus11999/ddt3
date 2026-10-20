@@ -15,6 +15,8 @@ Delay base = 1600 − piso(1200×Agilidade/(Agilidade+1200)) + piso(Ataque/10)
 
 Poder = arredondar(Ataque×6 + Defesa×4 + Agilidade×3 + Sorte×3 + Dano×3 + Armadura×2) + truncar(Vida × 0,95). A parte da Vida é a do DDTank 4.1 (`GamePlayer.UpdateFightPower`: hp × 0,95); a soma dos outros atributos é a do Brasa.
 
+Só conta o que está vestido (`attributes(equipamento)`: base do personagem, cada slot equipado e o pet equipado). Uma conta nova tem cerca de 4.900: uns 1.800 do próprio personagem (atributos base 850 + Vida de nível 1 950), uns 2.000 do Quebra-Tijolos (Dano 200 pesa 600 sozinho), uns 300 do chapéu e da roupa iniciais e uns 800 da Verdália. A arma pode ser desequipada (`weapon-none`); sem arma o Poder cai e, na batalha, o jogador luta com o Quebra-Tijolos +0 (`battleEquipment`). A mochila e o retrato da praça animam o Poder ao mudar (`PowerCounter`: número contando e +N/−N subindo).
+
 As divisões inteiras repetem o código C# (`int`). A Vida é calculada no início de cada partida com o nível do jogador; a cura nunca passa do máximo (`clampHp`).
 
 ## Fortalecimento +0 a +15

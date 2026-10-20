@@ -6,7 +6,7 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {attributes,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
+import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
 import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
@@ -852,7 +852,7 @@ export class Game {
   });
  }
  private beginMatch(rooms:Room[],seats:Seat[],map:Room['map'],played:Battle['map'],practiceParty:boolean){
-  const r=rooms[0],terrain=createTerrain(played);const fighters:Fighter[]=seats.map(s=>{const stats=attributes(s.equipment,s.level);const x=getMap(played).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
+  const r=rooms[0],terrain=createTerrain(played);const fighters:Fighter[]=seats.map(seat=>{const s={...seat,equipment:battleEquipment(seat.equipment)},stats=attributes(s.equipment,s.level);const x=getMap(played).spawns[s.team][s.slot],abilityLoadout=normalizeAbilityLoadout(s.abilityLoadout);return {...s,equipment:structuredClone(s.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:s.team===0?1:-1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};});
   fighters.forEach(fighter=>adjustAimToTerrain(fighter,terrain));
   // Roster order (Agilidade first) only breaks Delay ties; everyone starts at their base Delay.
   fighters.sort((a,b)=>attributes(b.equipment).agility-attributes(a.equipment).agility);
@@ -863,7 +863,7 @@ export class Game {
   if(rooms.length===2&&rooms.every(room=>room.gvg)){const guilds=rooms.map(room=>this.partyGuild(room));if(guilds.every(g=>g!==null))m.gvg=guilds as [number,number];}
   this.matches.set(key,m);for(const room of rooms){this.queueIds.delete(room.id);room.status='playing';delete room.searchStartedAt;room.matchStartedAt=m.createdAt;room.map=map;this.roomMatches.set(room.id,key);this.broadcastRoom(room);}this.armPets(m,first);this.broadcastBattle(m,true);
  }
- private loadingPlayer(seat:Seat):LoadingPlayer{return {id:seat.id,name:seat.name,level:seat.level,equipment:structuredClone(seat.equipment),team:seat.team,...(seat.bot?{bot:true}:{}),...(seat.guild?{guild:seat.guild}:{}),...(seat.vipLevel?{vipLevel:seat.vipLevel}:{}),progress:seat.bot?100:0};}
+ private loadingPlayer(seat:Seat):LoadingPlayer{return {id:seat.id,name:seat.name,level:seat.level,equipment:structuredClone(battleEquipment(seat.equipment)),team:seat.team,...(seat.bot?{bot:true}:{}),...(seat.guild?{guild:seat.guild}:{}),...(seat.vipLevel?{vipLevel:seat.vipLevel}:{}),progress:seat.bot?100:0};}
  /**
   * Opens the loading screen for these rooms. Only players whose client shows it are waited for (bots and
   * older clients count as loaded); `begin` runs once all of them report 100 %, or at the deadline
@@ -1317,7 +1317,7 @@ export class Game {
   if(status.phase!=='active'||!status.occurrenceId||status.hp<=0||(status.endsAt??0)<=now+3000)throw Error('O Chefão Mundial não está ativo agora.');
   if(this.rooms.size>=600)throw Error('As salas estão cheias. Tente novamente em breve.');
   const room:Room={id:randomUUID(),number:0,name:status.name.slice(0,24),hostId:p.profile.id,kind:'world-boss',mode:'1v1',openSlots:[0],spectatorSlots:[],spectators:[],map:WORLD_BOSS_MAP,status:'playing',players:[this.seat(p,0,0)],matchStartedAt:now};
-  const played=pinMap(WORLD_BOSS_MAP),terrain=createTerrain(played),seat=room.players[0],stats=attributes(seat.equipment,seat.level),x=getMap(played).spawns[0][0],abilityLoadout=normalizeAbilityLoadout(seat.abilityLoadout);
+  const played=pinMap(WORLD_BOSS_MAP),terrain=createTerrain(played),seat={...room.players[0],equipment:battleEquipment(room.players[0].equipment)},stats=attributes(seat.equipment,seat.level),x=getMap(played).spawns[0][0],abilityLoadout=normalizeAbilityLoadout(seat.abilityLoadout);
   const hero:Fighter={...seat,equipment:structuredClone(seat.equipment),abilityLoadout,x,y:ground(terrain,x),hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,facing:1,boosts:[],powerCharge:0,powerArmed:false,abilities:initialAbilities(abilityLoadout),homingArmed:false,flightArmed:false,invisibleTurns:0,delay:stats.delay};
   adjustAimToTerrain(hero,terrain);
   const dragon:Fighter={id:DRAGON_FIGHTER_ID,name:status.name,level:seat.level,equipment:{...DEFAULT_EQUIPMENT},ready:true,bot:true,team:1,slot:0,connected:true,x:DRAGON_BODY.x,y:DRAGON_BODY.y,hp:status.hp,maxHp:status.maxHp,stamina:0,maxStamina:0,facing:-1,boosts:[],boss:'dragon',hitRadius:DRAGON_BODY.hitRadius,hitHeight:DRAGON_BODY.hitHeight};

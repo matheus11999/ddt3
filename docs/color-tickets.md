@@ -17,6 +17,8 @@
 - **Cor do corpo e dos olhos**: o botão ao lado do personagem na mochila abre a mesma janela já no Corpo.
   - Corpo: rosto, orelhas, braços e pernas.
   - Olhos: só a íris; o branco e o contorno ficam.
+  - Rostos de olhos fechados (`CLOSED_EYE_FACES` em `shared/colors.ts`: Sorriso Radiante, Sorriso de Verão) não oferecem Olhos, e o servidor recusa a troca.
+  - Corpo: no rosto, o branco dos olhos, brilhos, dentes e boca nunca seguem o tom de pele (`faceFeatures` em `src/game/appearance.ts`); conferir os 6 tons.
 - Cada parte que muda de verdade gasta **1 Ticket de Cor**, inclusive voltar ao Original.
   - Sem ticket, o botão Aplicar fica desativado e a janela manda comprar na loja.
   - Personagem novo (ou perfil antigo) começa com 3 tickets.

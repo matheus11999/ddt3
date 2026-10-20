@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {attributes,CATALOG,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOTS,slotAccepts,slotFamily,slotsForItem,STONES,targetSlotForItem,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {attributes,battleEquipment,CATALOG,STARTER_WEAPON,CONTENT_VERSION,DEFAULT_EQUIPMENT,isEmptyItem,ITEMS,MAX_UPGRADE,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOTS,slotAccepts,slotFamily,slotsForItem,STONES,targetSlotForItem,upgradeChance,WEAPONS,weaponStats} from '../shared/catalog';
+import {canColorEyes} from '../shared/colors';
 import {SHOP_OFFER_BY_ID} from '../shared/shop';
 import {COMPOSITION_STONES,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {levelForXp,levelProgress,MAX_PLAYER_LEVEL} from '../shared/progression';
@@ -210,4 +211,21 @@ test('the Bolha Clássica comes in the starter kit and is given once to older pr
  assert.equal(cloud.equipment.bubble,'bubble-cloud');assert.ok(cloud.inventory.includes('bubble-classic'));
  // Taking it off later is kept: the gift happens only once.
  const off=normalizeProfile({...old,equipment:{...old.equipment,bubble:'bubble-none'}});assert.equal(off.equipment.bubble,'bubble-none');
+});
+
+test('the weapon can be taken off: no weapon in the profile, the starter weapon at +0 in battle',()=>{
+ const unarmed={...DEFAULT_EQUIPMENT,weapon:'weapon-none',upgrade:0,copies:{weapon:`${DEFAULT_EQUIPMENT.weapon}~2`,ring:'ring-a~2'}};
+ assert.ok(isEmptyItem('weapon-none'));assert.ok(slotAccepts('weapon',CATALOG['weapon-none']));
+ const profile=normalizeProfile({id:'unarmed',name:'Sem arma',contentVersion:CONTENT_VERSION,inventory:[DEFAULT_EQUIPMENT.weapon,'outfit-cartographer'],equipment:{...DEFAULT_EQUIPMENT,weapon:'weapon-none'}});
+ assert.equal(profile.equipment.weapon,'weapon-none');
+ // Poder counts only what is worn: taking the weapon off removes all of its share.
+ assert.ok(attributes(unarmed).power<attributes(DEFAULT_EQUIPMENT).power);
+ const armed=battleEquipment(unarmed);
+ assert.equal(armed.weapon,STARTER_WEAPON);assert.equal(armed.upgrade,0);assert.deepEqual(armed.copies,{ring:'ring-a~2'});
+ const kept={...DEFAULT_EQUIPMENT,upgrade:7};assert.equal(battleEquipment(kept),kept);
+});
+
+test('closed-eye faces have no eye color to change',()=>{
+ assert.equal(canColorEyes('face-smile'),false);assert.equal(canColorEyes('face-surf'),false);
+ assert.equal(canColorEyes('face-brave'),true);assert.equal(canColorEyes('face-wink'),true);
 });

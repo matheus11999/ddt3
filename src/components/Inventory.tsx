@@ -4,6 +4,7 @@ import {createPortal} from 'react-dom';
 import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
+import {PowerCounter} from './PowerCounter';
 import {ARMOR_SLOTS,canStrengthen,isArmorSlot,slotUpgrade,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../../shared/catalog';
 import {COLOR_TICKET,equippedColors} from '../../shared/colors';
@@ -26,7 +27,7 @@ import './Inventory.css';
 import './Backpack.css';
 
 const PAGE_SIZE=42;
-const ITEM_DRAG='application/x-brasa-item';
+const ITEM_DRAG='application/x-brasa-item',SLOT_DRAG='application/x-brasa-slot';
 export const LEFT_SLOTS:Slot[]=['hair','hat','glasses','face','ring'];
 export const RIGHT_SLOTS:Slot[]=['outfit','costume','wristband','bracelet','ring2'];
 export const LOWER_SLOTS:Slot[]=['weapon','necklace','bubble'];
@@ -98,7 +99,9 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
   return actions;
  }
  function confirmDiscard(){if(!discarding||locked)return;discardSent.current=state.discardResult??{};setDiscardPending(true);client.discard(discarding);audio.play('click');}
- function removeFromSlot(slot:Slot){const fallback=unequip[slot];if(!locked&&fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback)))equipItem(fallback,slot);}
+ /** Double click, drag to the bag or Remover: the slot goes back to its empty item (or the starter face/outfit). */
+ function canRemove(slot:Slot){const fallback=unequip[slot];return !locked&&!!fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback));}
+ function removeFromSlot(slot:Slot){if(canRemove(slot))equipItem(unequip[slot]!,slot);}
  function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equippedCopy(equipment,slot));setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
  function showTip(id:string,anchor:HTMLElement,mode:Tip['mode']){if(dragging||mode!=='touch'&&Date.now()<touchUntil.current)return;setTooltip({id,anchor,mode});}
  function startTouchTip(id:string,event:ReactPointerEvent<HTMLElement>){
@@ -118,9 +121,10 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
  const renderSlot=(slot:Slot)=>{
   const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
   return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===copy?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
+   draggable={!empty&&canRemove(slot)} onDragStart={e=>{e.dataTransfer.setData(SLOT_DRAG,slot);e.dataTransfer.effectAllowed='move';setTooltip(null);}}
    {...(empty?{onContextMenu:(event:React.MouseEvent)=>event.preventDefault()}:{...tooltipEvents(copy),onContextMenu:(event:React.MouseEvent<HTMLElement>)=>openMenu(event,copy,slot)})}
    onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'copy':'none';}}}
-   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG),dropped=CATALOG[copyBase(id)];if(slotAccepts(slot,dropped))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[dropped?.slot]??'equipamento'}.`);}}>
+   onDrop={e=>{e.preventDefault();setDragging(null);const id=e.dataTransfer.getData(ITEM_DRAG),dropped=CATALOG[copyBase(id)];if(!id)return;if(slotAccepts(slot,dropped))equipItem(id,slot);else setFeedback(`Use o slot de ${SLOT_NAMES[dropped?.slot]??'equipamento'}.`);}}>
    {previewFlash?.id===copy&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{empty?<Placeholder className="bag-slot-placeholder" aria-hidden="true"/>:<ItemIcon id={id} upgrade={slot==='weapon'?preview.upgrade:0} size={60} color={p.itemColors[copy]} skin={preview.skin} eyes={preview.eyes}/>}<span className="equipment-slot-label">{SLOT_NAMES[slot]}</span>{canStrengthen(it)&&!empty&&<UpgradeTag level={slotUpgrade(preview,slot)} className="bag-upgrade-tag"/>}
   </ItemCard>;
  };
@@ -153,7 +157,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
     </div>
     <div className="bag-progress">
      <div className="bag-level" title={`${progress.current} / ${progress.required} XP`}><span>Nv <b>{p.level}</b></span><div className="bag-xp" role="progressbar" aria-label="Experiência" aria-valuemin={0} aria-valuemax={progress.required} aria-valuenow={progress.current}><i style={{width:`${progress.percent}%`}}/><small>{progress.capped?'Nível máximo':`${progress.current} / ${progress.required}`}</small></div></div>
-     <div className="combat-power"><PowerIcon size={28}/><span>Poder</span><strong>{stats.power.toLocaleString('pt-BR')}</strong></div>
+     <div className="combat-power"><PowerIcon size={28}/><span>Poder</span><PowerCounter value={stats.power}/></div>
     </div>
     <div className="stat-grid" aria-label="Atributos do personagem">
      <span data-stat="attack"><Swords size={14}/>Ataque<b>{stats.attack}</b></span><span data-stat="agility"><Zap size={14}/>Agilidade<b>{stats.agility}</b></span>
@@ -162,7 +166,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
      <span data-stat="hp"><Heart size={14}/>Vida<b>{stats.hp}</b></span><span data-stat="stamina"><Footprints size={14}/>Vigor<b>{stats.stamina}</b></span>
     </div>
    </section>
-   <section className="bag-pane" aria-label="Itens da mochila">
+   <section className="bag-pane" aria-label="Itens da mochila" onDragOver={e=>{if(!locked&&e.dataTransfer.types.includes(SLOT_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='move';}}} onDrop={e=>{const slot=e.dataTransfer.getData(SLOT_DRAG) as Slot;if(slot){e.preventDefault();removeFromSlot(slot);}}}>
     <div className="bag-toolbar"><select aria-label="Categoria" value={category} disabled={tab==='stones'} onChange={e=>{setCategory(e.target.value as Slot|'all');setActiveSlot(null);setPage(0);setTooltip(null);}}><option value="all">Todas as categorias</option>{SLOTS.filter(slot=>!SLOT_FAMILY[slot]).filter(slot=>tab!=='weapons'||slot==='weapon').filter(slot=>tab!=='style'||slot!=='weapon').map(slot=><option key={slot} value={slot}>{SLOT_NAMES[slot]}</option>)}</select><label><Search size={14}/><input aria-label="Buscar item" placeholder="Buscar item" value={query} onChange={e=>{setQuery(e.target.value);setPage(0);setTooltip(null);}}/></label><span className="capacity">{entries.length} itens</span></div>
     <div className="bag-shelf">
      <div className="bag-grid">{Array.from({length:PAGE_SIZE},(_,index)=>{

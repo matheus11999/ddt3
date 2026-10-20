@@ -1,5 +1,5 @@
 import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS,CONSUMABLE_OFFER_BY_ID,isConsumableOffer} from '../shared/shop';
-import {COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
+import {canColorEyes,COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
@@ -82,7 +82,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
   // Content 16: women wearing the Cartógrafo move to the feminine starter outfit.
   const id=slot==='outfit'&&gender==='female'&&(raw.contentVersion??0)<16&&replaced==='outfit-cartographer'?defaults.outfit:replaced;
   if(id&&Object.hasOwn(CATALOG,id)&&slotAccepts(slot,CATALOG[id])&&(inventory.includes(id)||isEmptyItem(id))&&canEquipItem(id,gender)&&!heldInSiblingSlot(equipment,slot,id))equipment[slot]=id;
-  else equipment[slot]=isEmptyItem(defaults[slot])||inventory.includes(defaults[slot])?defaults[slot]:inventory.find(owned=>CATALOG[owned]?.slot===slot&&canEquipItem(owned,gender))??unequip[slot]??defaults[slot];
+  else equipment[slot]=isEmptyItem(defaults[slot])||inventory.includes(defaults[slot])?defaults[slot]:inventory.find(owned=>CATALOG[owned]?.slot===slot&&canEquipItem(owned,gender))??(slot==='weapon'?defaults.weapon:unequip[slot]??defaults[slot]);
   // Every equipped fallback must actually be owned, including sparse historical profiles.
   if(!isEmptyItem(equipment[slot])&&!inventory.includes(equipment[slot]))inventory.push(equipment[slot]);
  }
@@ -261,6 +261,7 @@ export class Store implements ProfileStore {
    for(const change of changes){
     if(seen.has(change.target))throw Error('A mesma peça apareceu duas vezes.');seen.add(change.target);
     let now:string|null;
+    if(change.target==='eyes'&&!canColorEyes(profile.equipment.face))throw Error('Este rosto está de olhos fechados: não há cor de olhos para trocar.');
     if(isBodyColorPart(change.target))now=profile.bodyColors[change.target]??null;
     else{
      const base=CATALOG[copyBase(change.target)];
