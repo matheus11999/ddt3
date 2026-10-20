@@ -109,6 +109,10 @@ export const WALK_CLIMB=45;
 /** How far ahead of the feet the arms reach for a lip to pull up on (the prone body lies forward). */
 export const WALK_REACH=16;
 export const WALK_CLIMB_SPAN=36;
+/** Out of a pit (ground behind rises back up within WALK_PIT_SPAN) the pull-up reaches WALK_CLIMB; on open ground
+ * only a WALK_LEDGE lip above the lowest ground just behind, so a map object taller than that (both gift boxes of Sonho Nevado, 27 and 33 px) stays a wall (user, 20/10/2026). */
+export const WALK_LEDGE=24;
+export const WALK_PIT_SPAN=90;
 /** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
 const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
 /**
@@ -129,11 +133,13 @@ export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1
   if(ny<0){
    // Blocked by a wall, a steep bit or an overhanging lip just ahead: pull up onto its top if it is low enough.
    const lid=y-WALK_CLIMB;let to=-1;
+   const inPit=(cx:number,rim:number)=>{for(let back=WALK_CLIMB_SPAN;back<=WALK_PIT_SPAN;back+=WORLD.cell){const g=ground(t,cx-direction*back,lid);if(g<=rim)return true;}return false;};
    for(let px=0;px<=WALK_REACH;px++){
     const cx=nx+direction*px;if(cx<min||cx>max||solid(t,cx,lid))break;
     const climb=ground(t,cx,lid);if(climb>=y)continue;
     let floor=y;for(let back=1;back<=WALK_CLIMB_SPAN;back+=WORLD.cell){const g=ground(t,cx-direction*back,climb);if(g<=WORLD.height)floor=Math.max(floor,g);}
     if(floor-climb>WALK_CLIMB||bodyBlocked(cx,climb))continue;
+    if(floor-climb>WALK_LEDGE&&!inPit(cx,floor-(floor-climb)/2))continue;
     to=cx;ny=climb;break;
    }
    if(to<0)break;
