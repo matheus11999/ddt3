@@ -18,22 +18,28 @@ export const ROD={
  /** The little fish on the hook, hidden once it has been thrown. */
  hook:[.75,.4,.96,.62] as const
 };
-/** Turn of the painting (radians, facing right): +0.5 holds it almost upright so it rises over the big head, the cast ends pointing forward. */
-const HOLD=.5,BACK=-.2,CAST=1.6;
+/** Turn of the painting (radians, facing right): +0.9 holds it up and a little forward so it rises clear of the big head, leaning back to +0.25 with the power, the cast ends pointing forward. */
+const HOLD=.9,BACK=.25,CAST=1.6;
 const ease=(k:number)=>{const t=Math.min(1,Math.max(0,k));return t*t*(3-2*t);};
-/** Matches combatFrames.ts THROW_STEPS: windup 50 ms, release 110, follow 120, settle 140. */
-const WINDUP=50,RELEASE=110,FOLLOW=120,SETTLE=140;
+/** The body's throw drawings run this many times slower with the rod (matheus, 20/10: the cast was too fast). */
+export const ROD_THROW_SLOW=2.2;
+/** The forward swing (the fish leaves the tip halfway), the pose held after it, and the end of the slowed throw
+ * (combatFrames.ts THROW_STEPS, 420 ms × ROD_THROW_SLOW), when the rod goes back on the back. */
+const SWING=220,HOLD_UNTIL=650,END=420*ROD_THROW_SLOW;
+/** How long the shooter keeps the throw pose with the rod (Scene; 500 ms for the other weapons). */
+export const ROD_THROW_MS=Math.ceil(END+70*ROD_THROW_SLOW);
 
-/** The rod in the hand for this pose and frame, or undefined while it rides on the back. */
-export function rodInHand(pose:AvatarPose,poseTime:number,frame:string):{turn:number;thrown:boolean}|undefined{
+/** The rod in the hand for this pose and frame, or undefined while it rides on the back. Charging, it leans back
+ * with the power, like a cast being loaded. */
+export function rodInHand(pose:AvatarPose,poseTime:number,frame:string,power=0):{turn:number;thrown:boolean}|undefined{
  const t=Math.max(0,poseTime);
  if(pose==='fire'){
-  if(t<WINDUP)return {turn:HOLD+(BACK-HOLD)*ease(t/WINDUP),thrown:false};
-  if(t<WINDUP+RELEASE)return {turn:BACK+(CAST-BACK)*ease((t-WINDUP)/RELEASE),thrown:t>WINDUP+RELEASE*.45};
-  if(t<WINDUP+RELEASE+FOLLOW+SETTLE)return {turn:CAST,thrown:true};
+  if(t<SWING)return {turn:BACK+(CAST-BACK)*ease(t/SWING),thrown:t>SWING*.45};
+  if(t<HOLD_UNTIL)return {turn:CAST,thrown:true};
+  if(t<END)return {turn:CAST+.35*ease((t-HOLD_UNTIL)/(END-HOLD_UNTIL)),thrown:true};
   return undefined;
  }
- if(pose==='charge'||frame==='ready'||frame==='rise')return {turn:HOLD,thrown:false};
+ if(pose==='charge'||frame==='ready'||frame==='rise')return {turn:HOLD+(BACK-HOLD)*ease(power/100),thrown:false};
  return undefined;
 }
 /** The rod tip at the end of the cast, in world pixels from the fighter's feet for an avatar drawn `size` tall. */

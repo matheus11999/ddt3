@@ -10,7 +10,7 @@ import {HEAD_SCALE} from './rig/anchors';
 import type {CombatFrameName,Fist} from './rig/combatFrames';
 import {COMBAT_ATLAS,COMBAT_FIST_SIZE,COMBAT_FRAMES,COMBAT_MANNEQUIN,combatFrameBlend,combatFrameIndex,HEAD_SILHOUETTE_CENTER} from './rig/combatFrames';
 import {drawWeaponEnergy} from './weaponEffects';
-import {ROD,rodInHand,TIDE_ROD} from './rodCast';
+import {ROD,ROD_THROW_SLOW,rodInHand,TIDE_ROD} from './rodCast';
 import atlases from './combatAtlas.json';
 
 /** DDTank-style combat body (docs/combat-frames.md): the outfit's small painted body for the current
@@ -52,7 +52,9 @@ export interface CombatBodyState {pose:AvatarPose;poseTime:number;/** Ms since t
  * when the outfit has no combat atlas (yet), so the caller can fall back to the cut-out rig. */
 export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:AvatarPart,state:CombatBodyState):boolean {
  const atlas=combatAtlas(eq),entry=ATLASES[eq.outfit];if(!atlas||!entry)return false;
- const blend=combatFrameBlend(state.pose,state.poseTime,state.phase,state.walk,state.sinceCharge),name=blend.name,index=combatFrameIndex(name),spec=COMBAT_FRAMES[name],next=COMBAT_FRAMES[blend.next];
+ // The Vara das Marés throw plays slower (rodCast.ts).
+ const rodThrow=state.weapon&&eq.weapon===TIDE_ROD&&state.pose==='fire',bodyTime=rodThrow?state.poseTime/ROD_THROW_SLOW:state.poseTime;
+ const blend=combatFrameBlend(state.pose,bodyTime,state.phase,state.walk,state.sinceCharge),name=blend.name,index=combatFrameIndex(name),spec=COMBAT_FRAMES[name],next=COMBAT_FRAMES[blend.next];
  // Crawling (19/10, matheus: legs must move and the fists must pull, not push): the painted crawl drawings move the
  // legs while the head stays where the rest drawing has it; the fists keep the rest drawing's place and pull the
  // body along, reaching forward in the air and sliding back on the ground, one after the other.
@@ -69,7 +71,7 @@ export function drawCombatBody(c:CanvasRenderingContext2D,eq:Equipment,head:Avat
  // body; lying, both fists sit in front of the chin like DDTank's, the forward one smaller and lower.
  const prone=name==='rest'||name==='hurt'||name.startsWith('crawl');
  // The Vara das Marés leaves the back while charging and casting: it is drawn in the front fist below.
- const rod=state.weapon&&eq.weapon===TIDE_ROD?rodInHand(state.pose,state.poseTime,name):undefined;
+ const rod=state.weapon&&eq.weapon===TIDE_ROD?rodInHand(state.pose,state.poseTime,name,state.power):undefined;
  // Behind the head and body like the back mount; the painted fist then closes over its grip.
  if(rod){const grip=fist(1);drawRod(c,eq,grip[0],grip[1],rod.turn,rod.thrown);}
  if(state.weapon&&!rod)drawBackWeapon(c,eq,spec.back[0]+BACK_WEAPON_GAP[0]+dx,spec.back[1]+BACK_WEAPON_GAP[1]+dy+breath,spec.backAngle,state.time);
