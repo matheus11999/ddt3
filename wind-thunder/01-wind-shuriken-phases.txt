@@ -1,0 +1,14 @@
+MODEL: Nano Banana 2, square 1:1 (2048×2048 or the largest square available).
+ATTACH, in this order: house-style-anchors.png (STYLE ONLY), wind-ddtank-phases.png (DESIGN REFERENCE).
+
+HOUSE STYLE (mandatory): original hand-painted 2D chibi browser-game art in the polished DDTank-like style (2009-2014 Korean/Chinese artillery MMO). Smooth digital painting with soft brush blending and gradients, chunky readable silhouette, bold clean dark-brown contour of even thickness, sculpted volume, vivid saturated colors, soft painted highlights, light from the top left, three-quarter view. Copy the painting quality, outline and lighting of the FIRST attached image (house-style anchors) exactly. FORBIDDEN: pixel art, voxel, 3D render, CGI, flat vector, clipart, anime cel screenshot, photo, sketch. No text, letters, numbers, labels, UI, frame, floor or cast shadow.
+
+WEAPON: "Vento Celeste", a hand-thrown THREE-BLADED SHURIKEN (throwing star) with three curved, hooked blades swirling around a round central hub with a hole or gem. The SECOND attached image shows the four evolution phases of the DDTank weapon it is inspired by (top-left +0, top-right +10, bottom-left +12, bottom-right +15). Keep the same idea, silhouette family and color progression for each phase, but paint an ORIGINAL design in our house style: do not trace or copy those pixels.
+
+Create ONE square image split into an invisible 2×2 grid (no gridlines, no labels). One phase per cell, each object centered in its cell, filling about 70% of it, never touching or crossing into another cell. Same camera angle, scale, outline thickness and light in all four so they read as one weapon family. Each phase has a NEW silhouette and new materials, not just a recolor:
+- top-left (+0 to +9): plain forged steel shuriken, three curved serrated blades in warm silver with rusty brown edges, simple round hub with a hole in the center.
+- top-right (+10 and +11): crimson and orange flame-forged blades with flame-shaped serrations, a red ruby hub ring with gold rim.
+- bottom-left (+12 to +14): red-gold blades shaped like curling petals and leaves, lilac-purple translucent fins between blades, a golden flower hub.
+- bottom-right (+15): radiant golden blades with swirling cloud ornaments and darker bronze tips, a bright sapphire-blue hexagonal core with three blue spokes.
+
+BACKGROUND: the whole background must be ONE flat, uniform pure magenta color #FF00FF (no gradient, no texture, no shadow, no glow spilling onto it). Do not use magenta or pink anywhere on the weapons themselves (the +12 fins are lilac-purple, not pink). Clean, hard, anti-aliased outer contour against the magenta.
