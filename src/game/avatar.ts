@@ -1,5 +1,5 @@
 import type {Equipment} from '../../shared/catalog';
-import {CATALOG,WEAPONS,weaponAssetPath} from '../../shared/catalog';
+import {CATALOG,isEmptyItem,WEAPONS,weaponAssetPath} from '../../shared/catalog';
 import {drawDecoded,scaledCopy,screenScale} from './spriteCache';
 import {drawWeaponEnergy} from './weaponEffects';
 import type {CombatRig,WalkingLeg} from './appearance';
@@ -122,6 +122,7 @@ function drawWalkingLeg(c:CanvasRenderingContext2D,leg:WalkingLeg,frame:WalkingL
 }
 
 function drawCombatWeapon(c:CanvasRenderingContext2D,eq:Equipment,time:number,angle:number,recoil:number,charging:boolean,power:number){
+ if(isEmptyItem(eq.weapon))return;
  const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(!w.complete||!w.naturalWidth)return;
  // The server's projectile starts at x + 27*facing, y - 40. Anchor the painted muzzle there.
  c.save();c.translate(27*160/112-recoil*5,-40*160/112);c.rotate(-(angle-30)*Math.PI/180-recoil*.06);
@@ -328,7 +329,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   if(rig.walking&&walkBlend>.001&&!sheetWalk){c.save();c.globalAlpha*=walkBlend;drawPart(c,rig.walking.torso);c.restore();}
   if(headShift)c.translate(...headShift);
   c.save();const headPivotX=25*AVATAR_UNIT,headPivotY=-615*AVATAR_UNIT;c.translate(headPivotX,headPivotY);c.rotate(m.headTilt+Math.sin(time/1700)*.006+lively);c.scale(HEAD_SCALE,HEAD_SCALE);c.translate(-headPivotX,-headPivotY);drawHeadRearLayers(c,eq,time,pose,rig.modular);drawPart(c,rig.head);if(rig.neckCloth)drawPart(c,rig.neckCloth,0,0,-5);drawHeadLayers(c,eq,time,pose,rig.modular,context.face);c.restore();
-  if(weapon){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
+  if(weapon&&!isEmptyItem(eq.weapon)){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
    c.save();const angle=aiming?-(clamp(context.angle??45,5,90)-35)*Math.PI/180:0;
    // Presentation-only placement never changes the body's facing or combat muzzle.
    c.scale(context.weaponSide??1,1);c.translate(0,clamp(context.weaponVerticalOffset??0,-15,24));

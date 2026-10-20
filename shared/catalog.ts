@@ -132,6 +132,7 @@ export const ITEMS: Item[] = [...WEAPONS,
  {...cosmetic('hat-tide','Bucket da Maré','hat','tide','#00bdd0','uncommon',{asset:'/assets/shop-hats.png'}),description:'Tecido turquesa, faixa laranja e uma concha da praia.'},
  {...cosmetic('hat-ruby','Boina Rubi','hat','ruby','#db1761','rare',{asset:'/assets/shop-hats.png'}),description:'Boina de veludo rubi com uma pena turquesa.'},
  {...cosmetic('hat-tropical','Chapéu Tropical','hat','tropical','#ffc83d','rare',{asset:'/assets/shop-hats.png'}),description:'Palha dourada, faixa esmeralda e uma flor de verão.'},
+ cosmetic('weapon-none','Sem arma','weapon','none','#bfb3a5','common',{visible:false}),
  cosmetic('hat-none','Sem chapéu','hat','none','#bca28c'),
  cosmetic('face-brave','Rosto Aventureiro','face','brave','#b18a68','common',{asset:'/assets/faces/face-brave.png'}),
  cosmetic('face-smile','Sorriso Radiante','face','smile','#d89791','common',{asset:'/assets/faces/face-smile.png'}),
@@ -185,6 +186,13 @@ export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as 
 /** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
 export const STARTER_WEAPON='brick';
 export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-classic',upgrade:0};
+/** Battles always need a weapon: an empty weapon slot fights with the starter Quebra-Tijolos at +0. */
+export function battleEquipment(eq:Equipment):Equipment {
+ if(WEAPONS.some(weapon=>weapon.id===eq.weapon))return eq;
+ const armed:Equipment={...eq,weapon:STARTER_WEAPON,upgrade:0};
+ if(armed.copies){const {weapon:_,...copies}=armed.copies;if(Object.keys(copies).length)armed.copies=copies;else delete armed.copies;}
+ return armed;
+}
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby',outfit:'outfit-explorer'}:{...DEFAULT_EQUIPMENT};
 }
@@ -199,7 +207,7 @@ export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
  'outfit-surfer':'outfit-cartographer','outfit-executive':'outfit-cartographer','outfit-racer':'outfit-cartographer','outfit-dancer':'outfit-cartographer'
 };
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
-export const UNEQUIP:Partial<Record<Slot,string>>={hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
+export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-explorer'}:{...UNEQUIP};}
 /** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
 export const CONTENT_VERSION=17;

@@ -163,6 +163,19 @@ function tintedArt(path:string,color?:string,clothOnly=false,trim=false){
  artCache.set(key,result);if(artCache.size>64)artCache.delete(artCache.keys().next().value!);return result;
 }
 
+/** Painted features the skin tone must never darken: eye whites, catchlights, teeth and the mouth's
+ * pink and red, inside the area where the face is painted over the bald head (src/game/faces.ts). */
+function faceFeatures(head:HTMLCanvasElement){
+ const data=head.getContext('2d',{willReadFrequently:true})!.getImageData(0,0,head.width,head.height).data,width=head.width,scale=width/1254;
+ return (x:number,y:number)=>{
+  const dx=x/scale-704,dy=(y/scale-460)/.95;if(dx*dx+dy*dy>169*169)return false;
+  const i=(y*width+x)*4,r=data[i],g=data[i+1],b=data[i+2];if(r<40)return false;
+  // The head's contour keeps its light rim tinted: only features well inside the painted skin.
+  const d=Math.max(2,Math.round(14*scale));if([[d,0],[-d,0],[0,d],[0,-d]].some(([ox,oy])=>(data[((y+oy)*width+x+ox)*4+3]??0)<200))return false;
+  const gr=g/r,br=b/r;
+  return br>.84&&r>170||gr<.72&&br>gr-.06;
+ };
+}
 /** The universal head with a face, in the character's body and eye colors. */
 export function getFacePortrait(id:string,skin?:string,eyes?:string):HTMLCanvasElement|null {
  const path=CATALOG[id]?.slot==='face'?CATALOG[id].visual?.asset:undefined;if(!path)return null;
@@ -170,7 +183,7 @@ export function getFacePortrait(id:string,skin?:string,eyes?:string):HTMLCanvasE
  const key=`${id}:${skin??''}:${eyes??''}`,cached=faceCache.get(key);if(cached)return cached;
  const head=composeUniversalHead(modular,image);
  // Eyes first: a recolored iris is no longer warm, so the skin pass leaves it alone.
- tintEyes(head,eyes,EYES);tintSkin(head,skin,false);
+ tintEyes(head,eyes,EYES);if(skin)tintSkin(head,skin,false,faceFeatures(head));
  faceCache.set(key,head);if(faceCache.size>48)faceCache.delete(faceCache.keys().next().value!);return head;
 }
 /** Inventory uses the exact registered full-body painting, including gloves and boots. */

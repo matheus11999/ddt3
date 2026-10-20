@@ -107,3 +107,9 @@ test('discarding removes a copy with its data, unequips it and keeps one of each
  // The copy is gone for good after a fresh read.
  assert.deepEqual(normalizeProfile(structuredClone(state.profile)).inventory,p.inventory);
 });
+
+test('a face with both eyes closed refuses an eye color and keeps the ticket',async()=>{
+ const {store,state}=await database();state.profile.colorTickets=2;state.profile.gender='female';state.profile.inventory.push('face-smile');state.profile.equipment.face='face-smile';
+ const before=structuredClone(state.profile);
+ await assert.rejects(store.paint(state.profile.id,[{target:'eyes',color:'#3a78b8'}]),/olhos fechados/);assert.deepEqual(state.profile,before);
+});

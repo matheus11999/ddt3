@@ -17,6 +17,7 @@ export interface MailBox {
  markRead(playerId:string,id:number):Promise<void>;
  claim(playerId:string,ids:number[]|null):Promise<{profile:Profile;result:MailClaimResult}>;
  remove(playerId:string,id:number):Promise<void>;
+ removeRead(playerId:string):Promise<number>;
 }
 
 /** Puts the attachments into the profile: coins, stones and tickets add up; each item arrives as its own copy. */
@@ -90,6 +91,11 @@ export class MailStore implements MailBox {
  async remove(playerId:string,id:number){
   const r=await this.pool.query(`UPDATE player_mail SET deleted_at=now(),read_at=coalesce(read_at,now()) WHERE id=$1 AND player_id=$2 AND deleted_at IS NULL AND (claimed_at IS NOT NULL OR jsonb_array_length(attachments)=0)`,[id,playerId]);
   if(!r.rowCount)throw Error('Receba os anexos antes de apagar a carta.');
+ }
+ /** Remover lidas: every read message with nothing left to receive leaves the inbox. */
+ async removeRead(playerId:string){
+  const r=await this.pool.query(`UPDATE player_mail SET deleted_at=now() WHERE player_id=$1 AND deleted_at IS NULL AND read_at IS NOT NULL AND (claimed_at IS NOT NULL OR jsonb_array_length(attachments)=0)`,[playerId]);
+  return r.rowCount??0;
  }
  async history(playerId:string,limit=50):Promise<AdminMail[]>{
   const rows=await this.pool.query('SELECT * FROM player_mail WHERE player_id=$1 ORDER BY id DESC LIMIT $2',[playerId,limit]);

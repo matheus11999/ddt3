@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import {Check,Eye,Hammer,LoaderCircle,Palette,PersonStanding,RotateCcw,Shirt,Trash2,Undo2,X} from 'lucide-react';
 import {CATALOG,SLOT_NAMES,copyBase,equippedCopy,isCopyKey,isEmptyItem,normalizeVisibility} from '../../shared/catalog';
 import type {Equipment} from '../../shared/catalog';
-import {BODY_COLOR_PARTS,COLOR_PALETTE,COLOR_TICKET,EYE_PALETTE,SKIN_TONES,isBodyColorPart,isColorSlot} from '../../shared/colors';
+import {BODY_COLOR_PARTS,canColorEyes,COLOR_PALETTE,COLOR_TICKET,EYE_PALETTE,SKIN_TONES,isBodyColorPart,isColorSlot} from '../../shared/colors';
 /** How the painted skin looks, for the first tone's swatch. */
 const SKIN_PAINTED='#fccfac';
 import type {BodyColorPart,ColorSlot} from '../../shared/colors';
@@ -26,7 +26,7 @@ export function ColorStudio({target:initial,equipment,onClose,onDone}:{target:Co
  const state=useGame(),p=state.profile!;
  const focusKey=initial.kind==='item'?initial.key:initial.part,focusSlot=initial.kind==='item'?CATALOG[copyBase(initial.key)]?.slot:undefined;
  // The pieces on the character (the one right-clicked replaces the worn one in its slot), then skin and eyes.
- const [parts]=useState(()=>[...PART_SLOTS.map(slot=>slot===focusSlot?focusKey:equippedCopy(equipment,slot)).filter(key=>canRecolor(key)),...BODY_COLOR_PARTS]);
+ const [parts]=useState(()=>[...PART_SLOTS.map(slot=>slot===focusSlot?focusKey:equippedCopy(equipment,slot)).filter(key=>canRecolor(key)),...BODY_COLOR_PARTS.filter(part=>part!=='eyes'||canColorEyes(equipment.face))]);
  const [selected,setSelected]=useState(focusKey),[drafts,setDrafts]=useState<Record<string,string|null>>({}),[pending,setPending]=useState(false);
  const sent=useRef<{result:typeof state.colorResult}|null>(null);
  const current=(key:string)=>(isBodyColorPart(key)?p.bodyColors[key]:p.itemColors[key])??null;

@@ -149,53 +149,64 @@ html.mobile-landscape .expedition-controls{padding-top:6px}
 html.mobile-landscape .expedition-difficulty{height:24px;padding:0 8px;font-size:11px}
 html.mobile-landscape .expedition-stage-pick button{width:24px;height:24px}
 html.mobile-landscape .expedition-cover-top small{display:none}
-
-/* Central de Expedições com paleta própria (jade de explorador), para não parecer o Salão PvP:
-   mesmas formas e materiais de WoodTheme.css/ArenaHall.css, madeira verde-azulada escura,
-   faixas jade, creme mais frio e detalhes dourados. */
+/* Central de Expedições em tema escuro, para não parecer o Salão PvP (pedido do matheus, 20/10):
+   mesmas formas de WoodTheme.css/ArenaHall.css, painéis e áreas internas em azul-ardósia
+   quase preto, texto claro e detalhes dourados. */
 .pvp-hall.expedition-hall{
- --wood-light:#3d8c84;--wood:#28665f;--wood-dark:#163f3b;--wood-deep:#0f2d2a;--wood-bar:#174a45;--wood-bar-deep:#0c2c29;
- --wood-rim:#e3c27a;--wood-cream:#fbf9ef;--wood-cream-mid:#edf0dc;--wood-cream-deep:#dbe3c4;--wood-edge:#8fbfa8;
- --wood-ink:#1f3f3a;--wood-ink-soft:#5b7b70;--wood-gold:#ffd873;
- --jade-light:#7fe0cc;--jade:#2fa494;--jade-deep:#167366;--jade-shadow:#0d4f46;
- box-shadow:inset 0 1px #bfe8d6,inset 0 -3px #06201d99,0 0 0 3px #0b2623,0 0 0 4px #e3c27a55,0 22px 65px #04100fc0;
+ --wood-light:#2a3446;--wood:#1b2331;--wood-dark:#10151e;--wood-deep:#0a0e15;--wood-bar:#151c28;--wood-bar-deep:#0b1018;
+ --wood-rim:#8a7444;--wood-cream:#141b26;--wood-cream-mid:#111722;--wood-cream-deep:#0d121b;--wood-edge:#2c3748;
+ --wood-ink:#ece3cc;--wood-ink-soft:#97a3b6;--wood-gold:#f2cd72;
+ --exp-card:#1c2433;--exp-card-deep:#151c28;--exp-line:#33405a;--exp-accent:#4f8fd6;
+ box-shadow:inset 0 1px #ffffff14,inset 0 -3px #00000099,0 0 0 3px #05080d,0 0 0 4px #8a744455,0 22px 65px #000000c0;
 }
-.arena-hall-portal:has(.expedition-hall){background:#0b2220}
-.pvp-hall.expedition-hall .wood-titlebar{border-color:#e3c27a55 #e3c27a55 #061d1a;box-shadow:inset 0 1px #9fdcc855,inset 0 -2px #04141240,0 2px #e3c27a30}
-.pvp-hall.expedition-hall .wood-title{text-shadow:0 2px #061a17,0 0 12px #ffd87355}
-.pvp-hall.expedition-hall .wood-pane{background:linear-gradient(#2c6f68,#1d524c);box-shadow:inset 0 1px #a6e2cf88,inset 0 0 0 1px #0b2a27,0 2px #061a1788}
-.pvp-hall.expedition-hall .wood-cream{border-color:#fbfdf2;box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 3px 10px #3f8a7433}
-.pvp-hall.expedition-hall .wood-ribbon{border-color:#d9fff2;background:linear-gradient(var(--jade-light),var(--jade) 60%,var(--jade-deep));box-shadow:inset 0 1px #e6fff6,inset 0 -2px var(--jade-shadow);text-shadow:0 1px var(--jade-shadow),0 0 3px var(--jade-shadow)}
-.pvp-hall.expedition-hall .wood-pill{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
-.pvp-hall.expedition-hall .hall-crest{border-color:#fff0bf;background:radial-gradient(circle at 40% 30%,#9ff0dc,#2fa494 55%,#13665b);box-shadow:inset 0 -3px #0d4f46,0 2px #061a17;filter:drop-shadow(0 0 6px #6fe0c866)}
-.pvp-hall.expedition-hall .hall-crest svg{filter:drop-shadow(0 1px #0d4f46)}
-.pvp-hall.expedition-hall .hall-population svg,.pvp-hall.expedition-hall .hall-room-owner svg{color:var(--jade)}
-.pvp-hall.expedition-hall .hall-tab b,.pvp-hall.expedition-hall .hall-side-title b{background:#f4fbf2e6;box-shadow:inset 0 1px 2px #2fa49455}
-.pvp-hall.expedition-hall .hall-room-list,.pvp-hall.expedition-hall .hall-online-list{scrollbar-color:#5fae9a transparent}
-.pvp-hall.expedition-hall .hall-search.is-open{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
-.pvp-hall.expedition-hall .hall-search input::placeholder{color:#86a093}
-.pvp-hall.expedition-hall .hall-search-close{background:#d6e6cf}
-.pvp-hall.expedition-hall .hall-room{border-color:#9fd2bf;background:linear-gradient(#fdfef7,#eef2df);box-shadow:inset 0 1px #fff,inset 0 -3px #cfdcbc,0 3px #1d524c66,0 4px 10px #163f3b33}
-.pvp-hall.expedition-hall .hall-room::before{border-top-color:#d3dfc3;background:linear-gradient(#e7eed6,#dbe5c6)}
-.pvp-hall.expedition-hall .hall-room:not(:disabled):hover{border-color:#e3c27a;box-shadow:inset 0 1px #fff,inset 0 -3px #cfdcbc,0 0 0 3px #e3c27a66,0 6px 14px #163f3b44}
-.pvp-hall.expedition-hall .hall-room.is-full{background:linear-gradient(#f5f6ee,#e3e7d6)}
-.pvp-hall.expedition-hall .hall-room:focus-visible{outline-color:var(--jade-deep)}
-.pvp-hall.expedition-hall .hall-room-number{border-color:#eafff7;background:radial-gradient(circle at 40% 30%,#8fe8d4,#2fa494 55%,#167366);box-shadow:inset 0 -3px var(--jade-shadow),0 2px #163f3b55;text-shadow:0 1px var(--jade-shadow),0 0 3px var(--jade-shadow)}
-.pvp-hall.expedition-hall .hall-room-format{border-color:#e3c27a;background:linear-gradient(#174a45,#0c2c29);box-shadow:inset 0 1px #9fdcc855,0 2px #061a1766}
-.pvp-hall.expedition-hall .expedition-room-choice b{text-shadow:0 1px #04100f}
-.pvp-hall.expedition-hall .hall-room-seats i{border-color:#9fc9b6;background:#fbfdf4;box-shadow:inset 0 1px 2px #2fa49444}
-.pvp-hall.expedition-hall .hall-room-seats i.taken{border-color:#eafff7;background:radial-gradient(circle at 40% 35%,#8fe8d4,#2fa494 60%,#167366);box-shadow:0 1px #163f3b66}
-.pvp-hall.expedition-hall .hall-empty-art{filter:drop-shadow(0 6px 8px #163f3b40)}
-.pvp-hall.expedition-hall .hall-me-stats>div{background:linear-gradient(#174a45,#0f322e);box-shadow:inset 0 1px #9fdcc855}
-.pvp-hall.expedition-hall .hall-me-stats dt{color:#b5ecd9}
-.pvp-hall.expedition-hall .hall-online-row:nth-child(even){background:#dbe8cd66}
-.pvp-hall.expedition-hall .hall-online-row.is-me{background:#9fe0c780;box-shadow:inset 0 0 0 1px #4fb59e}
-.pvp-hall.expedition-hall .hall-online-headrow{background:#d5e4c4!important}
-.pvp-hall.expedition-hall .hall-create{box-shadow:inset 0 2px #fff7d2,inset 0 -4px #b8620a,0 3px #061a17,0 6px 12px #04100f66}
-.pvp-hall.expedition-hall .hall-quick{box-shadow:inset 0 2px #e8ffd9,inset 0 -4px #17702b,0 3px #061a17,0 6px 12px #04100f66}
-.pvp-hall.expedition-hall .wood-chat .chat-tabs>button{border-color:#8fcab6;background:var(--wood-grain),linear-gradient(#174a45,#22625b);box-shadow:inset 0 1px #9fdcc866;color:#bdeedd;text-shadow:0 1px #061a17}
-.pvp-hall.expedition-hall .wood-chat .chat-tabs>button.active{border-color:#fbfdf2;background:linear-gradient(#fbfdf2,#cfeedd);color:var(--jade-shadow);text-shadow:none}
-.pvp-hall.expedition-hall .wood-chat .chat-messages{border-color:#fbfdf2;box-shadow:inset 0 0 0 2px var(--wood-edge),inset 0 3px 8px #3f8a7426;scrollbar-color:#5fae9a transparent}
-.pvp-hall.expedition-hall .wood-chat .chat-messages strong{color:#167366}
-.pvp-hall.expedition-hall .wood-chat .chat-input{background:linear-gradient(#fdfef6,#e3ecd2);box-shadow:inset 0 -2px #b9cfae,0 1px 2px #04100f88}
-.pvp-hall.expedition-hall .wood-chat .chat-input>input::placeholder{color:#86a093}
+.arena-hall-portal:has(.expedition-hall){background:#06090e}
+.pvp-hall.expedition-hall .wood-titlebar{border-color:#8a744455 #8a744455 #05080d;box-shadow:inset 0 1px #ffffff12,inset 0 -2px #00000040,0 2px #8a744430}
+.pvp-hall.expedition-hall .wood-title{text-shadow:0 2px #000,0 0 12px #f2cd7244}
+.pvp-hall.expedition-hall .wood-pane{border-color:#5e5236;background:linear-gradient(#1a2230,#131a25);box-shadow:inset 0 1px #ffffff12,inset 0 0 0 1px #05080d,0 2px #00000088}
+.pvp-hall.expedition-hall .wood-cream{border-color:#2a3446;background:radial-gradient(ellipse at 50% 30%,#1a2333,transparent 65%),linear-gradient(#131a25,var(--wood-cream-deep));box-shadow:inset 0 0 0 1px var(--wood-edge),inset 0 3px 12px #00000066}
+.pvp-hall.expedition-hall .wood-ribbon{border-color:#8a7444;background:linear-gradient(#2c3749,#1d2636 60%,#151c28);box-shadow:inset 0 1px #ffffff1c,inset 0 -2px #0a0e15;color:var(--wood-gold);text-shadow:0 1px #000}
+.pvp-hall.expedition-hall .wood-pill{background:linear-gradient(#222c3c,#171e2b);box-shadow:inset 0 0 0 1px #3a4760,0 1px 2px #00000088}
+.pvp-hall.expedition-hall .hall-crest{border-color:#f2cd72;background:radial-gradient(circle at 40% 30%,#3a4a66,#1d2738 60%,#0f141e);box-shadow:inset 0 -3px #05080d,0 2px #000;color:var(--wood-gold);filter:drop-shadow(0 0 6px #f2cd7244)}
+.pvp-hall.expedition-hall .hall-crest svg{filter:drop-shadow(0 1px #000)}
+.pvp-hall.expedition-hall .hall-population svg,.pvp-hall.expedition-hall .hall-room-owner svg{color:var(--wood-gold)}
+.pvp-hall.expedition-hall .hall-tab b,.pvp-hall.expedition-hall .hall-side-title b{background:#0d121b;box-shadow:inset 0 0 0 1px #3a4760;color:var(--wood-gold)}
+.pvp-hall.expedition-hall .hall-room-list,.pvp-hall.expedition-hall .hall-online-list{scrollbar-color:#3a4760 transparent}
+.pvp-hall.expedition-hall .hall-search.is-open{background:linear-gradient(#222c3c,#171e2b);box-shadow:inset 0 0 0 1px #3a4760,0 1px 2px #00000088}
+.pvp-hall.expedition-hall .hall-search input::placeholder,.pvp-hall.expedition-hall .wood-chat .chat-input>input::placeholder{color:#6f7b8e}
+.pvp-hall.expedition-hall .hall-search-close{background:#2a3446;color:var(--wood-ink)}
+.pvp-hall.expedition-hall .hall-room{border-color:var(--exp-line);background:linear-gradient(var(--exp-card),var(--exp-card-deep));box-shadow:inset 0 1px #ffffff12,inset 0 -3px #0a0e15,0 3px #00000066,0 4px 10px #00000055}
+.pvp-hall.expedition-hall .hall-room::before{border-top-color:#2a3446;background:linear-gradient(#121924,#0e141d)}
+.pvp-hall.expedition-hall .hall-room:not(:disabled):hover{border-color:#c9a65a;box-shadow:inset 0 1px #ffffff12,inset 0 -3px #0a0e15,0 0 0 3px #f2cd7240,0 6px 14px #00000066}
+.pvp-hall.expedition-hall .hall-room.is-full{background:linear-gradient(#181e29,#121821)}
+.pvp-hall.expedition-hall .hall-room:focus-visible{outline-color:var(--wood-gold)}
+.pvp-hall.expedition-hall .hall-room-number{border-color:#f2cd72;background:radial-gradient(circle at 40% 30%,#3c4d6a,#1f2a3c 60%,#111724);box-shadow:inset 0 -3px #05080d,0 2px #00000066;color:var(--wood-gold);text-shadow:0 1px #000}
+.pvp-hall.expedition-hall .hall-room-format{border-color:#8a7444;background:linear-gradient(#0d121b,#080b11);box-shadow:inset 0 1px #ffffff12,0 2px #00000066}
+.pvp-hall.expedition-hall .expedition-room-choice b{text-shadow:0 1px #000}
+.pvp-hall.expedition-hall .hall-room-seats i{border-color:#3a4760;background:#0d121b;box-shadow:inset 0 1px 2px #000}
+.pvp-hall.expedition-hall .hall-room-seats i.taken{border-color:#fff0bf;background:radial-gradient(circle at 40% 35%,#ffe7a0,#e2b04a 60%,#9c7022);box-shadow:0 1px #00000066}
+.pvp-hall.expedition-hall .hall-empty-art{filter:drop-shadow(0 6px 8px #00000080)}
+.pvp-hall.expedition-hall .hall-me-stats>div{background:linear-gradient(#0d121b,#080b11);box-shadow:inset 0 0 0 1px #2c3748}
+.pvp-hall.expedition-hall .hall-me-stats dt{color:#97a3b6}
+.pvp-hall.expedition-hall .hall-online-row:nth-child(even){background:#ffffff08}
+.pvp-hall.expedition-hall .hall-online-row.is-me{background:#f2cd7224;box-shadow:inset 0 0 0 1px #8a7444}
+.pvp-hall.expedition-hall .hall-online-headrow{background:#0d121b!important;color:#7d899c}
+.pvp-hall.expedition-hall .hall-big{border-color:#c9a65a;background:radial-gradient(ellipse at 50% 0%,#3a4a66,transparent 70%),linear-gradient(#253044,#151c28 60%,#0d121b);box-shadow:inset 0 1px #ffffff26,inset 0 -4px #05080d,0 0 0 1px #05080d,0 3px #000,0 6px 12px #00000066;color:var(--wood-gold);text-shadow:0 1px #000,0 0 8px #f2cd7244}
+.pvp-hall.expedition-hall .hall-big-icon{border-color:#f2cd72;background:radial-gradient(circle at 40% 30%,#ffe7a0,#e2b04a 55%,#9c7022);box-shadow:inset 0 -3px #6e4c14,0 0 12px #f2cd7244;color:#2a1d06}
+.pvp-hall.expedition-hall .hall-big-icon svg{filter:drop-shadow(0 1px #fff3c455)}
+.pvp-hall.expedition-hall .hall-quick{border-color:#7fc79a;color:#b8f0c8;text-shadow:0 1px #000,0 0 8px #6fe09a44}
+.pvp-hall.expedition-hall .hall-quick .hall-big-icon{border-color:#b8f0c8;background:radial-gradient(circle at 40% 30%,#c4f5cf,#4fbf72 55%,#24753f);box-shadow:inset 0 -3px #16502a,0 0 12px #6fe09a44;color:#0c2a16}
+.pvp-hall.expedition-hall .hall-big:not(:disabled):hover{filter:brightness(1.18)}
+.pvp-hall.expedition-hall .hall-big:disabled{filter:saturate(.2);opacity:.5}
+.pvp-hall.expedition-hall .wood-chat .chat-tabs>button{border-color:#3a4760;background:linear-gradient(#1a2230,#121924);box-shadow:inset 0 1px #ffffff10;color:#97a3b6;text-shadow:0 1px #000}
+.pvp-hall.expedition-hall .wood-chat .chat-tabs>button.active{border-color:#8a7444;background:linear-gradient(#2c3749,#1d2636);color:var(--wood-gold);text-shadow:0 1px #000}
+.pvp-hall.expedition-hall .wood-chat .chat-messages{border-color:#2a3446;background:linear-gradient(#131a25,var(--wood-cream-deep));box-shadow:inset 0 0 0 1px var(--wood-edge),inset 0 3px 8px #00000066;scrollbar-color:#3a4760 transparent}
+.pvp-hall.expedition-hall .wood-chat .chat-messages strong{color:var(--wood-gold)}
+.pvp-hall.expedition-hall .wood-chat .chat-messages .system-message{color:#72d39a}
+.pvp-hall.expedition-hall .wood-chat .chat-messages .chat-private strong{color:#ff9be0}
+.pvp-hall.expedition-hall .wood-chat .chat-messages .chat-guild strong{color:#8ff09a}
+.pvp-hall.expedition-hall .wood-chat .chat-input{background:linear-gradient(#1a2230,#121924);box-shadow:inset 0 0 0 1px #3a4760,0 1px 2px #00000088}
+/* Ícones pintados do jogo nos botões grandes da central (pergaminho com pena e mapa com lanterna). */
+.pvp-hall.expedition-hall .hall-big .hall-big-art{width:min(78px,100%);border:0;border-radius:0;background:none;box-shadow:none}
+.pvp-hall.expedition-hall .hall-big-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 3px 4px #000a)}
+.pvp-hall.expedition-hall .hall-big:not(:disabled):hover .hall-big-art img{filter:drop-shadow(0 3px 4px #000a) drop-shadow(0 0 8px #f2cd7266)}
+html.mobile-landscape .pvp-hall.expedition-hall .hall-big-art{width:44px}

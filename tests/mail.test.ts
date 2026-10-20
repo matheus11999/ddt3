@@ -53,6 +53,7 @@ function fixture(){
    return {profile:structuredClone(profile),result:{claimed:open.map(m=>m.id),attachments}};
   },
   remove:async(_player,id)=>{const at=letters.findIndex(m=>m.id===id);if(letters[at]&&!letters[at].claimed&&letters[at].attachments.length)throw Error('Receba os anexos antes de apagar a carta.');letters.splice(at,1);},
+  removeRead:async()=>{const keep=letters.filter(m=>!m.read||!m.claimed&&m.attachments.length>0);const removed=letters.length-keep.length;letters.splice(0,letters.length,...keep);return removed;},
  };
  game.mail=box;
  const send=(attachments:MailAttachment[])=>{letters.unshift({id:nextId++,sender:'Equipe Brasa',subject:'Presente',body:'Oi',createdAt:new Date().toISOString(),read:false,claimed:false,attachments});};
@@ -83,6 +84,19 @@ test('"Receber tudo" claims every letter once and updates the live profile',asyn
  assert.equal(last('error')?.message,'Nenhum anexo para receber.');assert.equal(last('profile')?.profile.gold,350);
  await game.command(a.id,{type:'mail-read',id:3});await game.command(a.id,{type:'mail-delete',id:3});
  assert.equal(letters.length,2);assert.equal(last('mail')?.unread,0);
+});
+
+test('"Remover lidas" keeps unread letters and letters with attachments to receive',async()=>{
+ const {game,a,send,connect,last,letters}=fixture();
+ send([]);send([{kind:'coins',amount:10}]);send([]);send([{kind:'coins',amount:20}]);
+ connect();await settle();
+ for(const id of [1,2,4])await game.command(a.id,{type:'mail-read',id});
+ await game.command(a.id,{type:'mail-claim',id:4});
+ await game.command(a.id,{type:'mail-delete-read'});
+ assert.deepEqual(letters.map(m=>m.id).sort(),[2,3],'unread letter 3 and unclaimed letter 2 stay');
+ assert.deepEqual(last('mail')?.mails.map(m=>m.id).sort(),[2,3]);
+ assert.ok(commandSchema.safeParse({type:'mail-delete-read'}).success);
+ assert.equal(commandSchema.safeParse({type:'mail-delete-read',id:1}).success,false);
 });
 
 test('pet food arrives by mail and stacks; unknown food is refused by the panel and skipped on claim',()=>{
