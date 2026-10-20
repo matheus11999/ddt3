@@ -496,3 +496,10 @@ Pedido do matheus: zona de pesca separada da praça, com lagos, Casa de Pesca, p
 - Refeito em 20/10 (pedido do matheus): mapa em terraços com escadas e câmera vertical, cenário só com arte já existente (`npm run build:fishing`), menus e desafio novos (alvo que nada, `zoneAt`). Evidência: `tests/fishing.test.ts` (11 testes), `npm run test:fishing:browser` e `npx tsx scripts/shot-fishing.mjs` (prévias em `test-results/fishing-scenery/`).
 - Cenário pintado pelo Codex (20/10, pedidos do matheus: "gere os novos assets usando codex", "o lago ficou errado", "jardim com lagos, ponte, sombras"): gramado, cinco lagos vistos de cima (Ninfeias com ilha, ponte, píer e barco; Poço Azul; Juncos; Lagoa de Cristal; Fonte Termal), seis peixes novos (20 no total), sombras das peças em código. Evidência: `tests/fishing.test.ts`, `npm run test:fishing:browser` e `npx tsx scripts/shot-fishing.mjs` (prévias em `test-results/fishing-scenery/` e `/mnt/project-files/pescaria/v4/`).
 - Pendente: ícones pintados, `fishing-button.png`, animações de lançar/fisgar/sucesso/escapar, sons, mais varas e iscas.
+
+## Enfurecer e Gelo (20/10/2026)
+
+- Duas ferramentas novas na barra de poderes (teclas 9 e 0), regras do DDTank 4.1 em `docs/consumables.md`: Enfurecer +50 de POW; Gelo troca o disparo por uma bomba de gelo que congela os inimigos por 2 turnos, sem dano nem cratera, e o primeiro ataque só quebra o gelo.
+- Evidências: `tests/consumables.test.ts`; prévias em `test-results/consumables/` (`node scripts/preview-consumables.mjs`).
+- Pendente: dano em área de pet ainda atinge quem está congelado; ícones e bloco de gelo aguardam a opinião do matheus.
+

@@ -31,6 +31,10 @@ const sequential=(id:BoostId):id is 'extra1'|'extra2'=>id==='extra1'||id==='extr
 /** Why `id` cannot join the power-ups already chosen this turn, or undefined when it can. Vigor is checked apart. */
 export function powerUpConflict(chosen:readonly BoostId[],id:BoostId):string|undefined {
  if(id==='trident'&&chosen.includes('trident'))return 'O tridente já foi usado neste turno.';
+ // Gelo replaces the shot with one ice ball that deals no damage: nothing else changes that shot. Enfurecer acts at once and fits anything.
+ if(id==='ice'&&chosen.includes('ice'))return 'O gelo já foi usado neste turno.';
+ if(id==='ice'&&chosen.some(other=>other!=='rage'))return 'O gelo substitui o disparo e não combina com outras ferramentas.';
+ if(id!=='rage'&&chosen.includes('ice'))return 'O gelo substitui o disparo e não combina com outras ferramentas.';
  if(!POWER_UP_RULES.repeatSequential&&sequential(id)&&chosen.some(sequential))return chosen.includes(id)?`O ${id==='extra1'?'+1':'+2'} já foi usado neste turno.`:'+1 e +2 não combinam no mesmo turno.';
  if(!POWER_UP_RULES.tridentWithSequential&&(id==='trident'&&chosen.some(sequential)||sequential(id)&&chosen.includes('trident')))return 'O tridente não combina com +1 ou +2.';
  if(!POWER_UP_RULES.repeatDamageBonuses&&id in DAMAGE_BONUSES&&chosen.includes(id))return 'Este bônus já foi usado neste turno.';

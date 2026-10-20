@@ -37,6 +37,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
+import {CONSUMABLE_ICON_DURATION,drawConsumableIcon,drawFrozenBlock,drawIceImpact,drawIceProjectile,ICE_SHATTER_DURATION,playConsumableSound} from './consumableEffects';
 import {scenePaint} from './scenePaint';
 import {BATTLE_HUD_COVER,EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -74,6 +75,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let drag:{x:number;y:number;cameraX:number;cameraY:number}|null=null;
   let residues:TerrainResidues|null=null;
   const boomerangBursts=new Map<string,{projectile:Projectile;at:number;level:number}>();
+  // Enfurecer and Gelo: the tool icon over the head when used, and the ice on frozen fighters (consumableEffects.ts).
+  const toolIcons=new Map<string,{id:'rage'|'ice';at:number}>(),seenBoosts=new Map<string,number>(),frozenSeen=new Map<string,{since:number;turns:number;thawAt?:number}>();
   // When each pet projectile landed (its own clock or the server's impact, whichever comes first).
   const petLandings=new Map<string,number>();
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
@@ -127,7 +130,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(spot&&me&&Math.hypot(me.x-spot.x,me.y-spot.y)<SPOT_REACH*.5){pendingSpot=null;client.send({type:'fish-cast',spot:spot.id});}
    }
    if(b){
-    if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();}
+    if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();toolIcons.clear();seenBoosts.clear();frozenSeen.clear();}
+    const knownMatch=matchId===b.id;
     if(matchId!==b.id){matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain,b.map);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
     residues!.sync(b.terrainMarks);
@@ -141,7 +145,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(shot){
      const applied=applyDueImpacts(terrain,b.map,shot,elapsed,exploded,b.phase==='finished');
      if(applied.removed){environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
-     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='flight'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,...(p.impact.shape?{shape:p.impact.shape}:{}),...(p.impact.profile?{profile:p.impact.profile}:{}),...(p.impact.destructible===false?{scorch:true}:{}),effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
+     for(const i of applied.indices){const p=shot.projectiles[i];if(p.kind==='ice'&&elapsed-impactTime(p)<700)playConsumableSound('impact');if(p.kind==='flight'||p.kind==='ice'||p.fragment||p.monster)continue;{const dig=impactDig(p.impact);residues!.add({id:`${shot.id}:${i}`,x:dig.x,y:dig.y,radius:dig.radius,...(p.impact.shape?{shape:p.impact.shape}:{}),...(p.impact.profile?{profile:p.impact.profile}:{}),...(p.impact.destructible===false?{scorch:true}:{}),effect:p.effect,level});}if(elapsed-impactTime(p)<700&&!leftArena(p.impact,terrainWidth(terrain!)))playImpactSound(p.effect,level,p.powered,p.impact.destructible!==false);}
     }
     const own=b.players.find(f=>f.id===state.profile?.id),active=b.players.find(f=>f.id===b.turnId&&!f.hidden),focus=active??own;let focusX=focus?.x??W/2,focusY=(focus?.y??H/2)-140;
     // The monsters' shared turn has no fighter of its own: watch the queen while she aims, the nest while ants come out, else the walking monsters.
@@ -226,6 +230,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      }
      if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
+     {const count=f.boosts.length,before=seenBoosts.get(f.id)??(knownMatch?0:count);seenBoosts.set(f.id,count);
+      if(count>before&&!f.hidden){const used=f.boosts.slice(before).filter((id):id is 'rage'|'ice'=>id==='rage'||id==='ice').at(-1);if(used){toolIcons.set(f.id,{id:used,at:t});playConsumableSound('activate');}}
+      const turns=hp>0?f.frozenTurns??0:0,ice=frozenSeen.get(f.id);
+      if(turns>0&&(!ice||ice.thawAt!==undefined))frozenSeen.set(f.id,{since:knownMatch?t:t-1e4,turns});else if(turns>0&&ice)ice.turns=turns;
+      else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
@@ -234,7 +243,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
-     c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
+     c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');
+     {const ice=frozenSeen.get(f.id);if(ice&&!f.hidden)drawFrozenBlock(c,e.x,e.y,ice,t);const icon=toolIcons.get(f.id);if(icon){if(t-icon.at>=CONSUMABLE_ICON_DURATION)toolIcons.delete(f.id);else if(!f.hidden)drawConsumableIcon(c,icon.id,e.x,e.y,t-icon.at);}}
+     if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits,'front');
     }
@@ -251,6 +262,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      shot.projectiles.forEach((p,i)=>{if(!projectileVisible(shot,i,b.phase==='finished'))return;const age=elapsed-p.delay;if(age<0)return;const index=projectileFrame(p,age);
       if(p.monster==='arrow'){if(age<flightTime(p))drawArrow(c,p.points,index);else drawArrowImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}
       if(p.kind==='flight'){if(age<flightTime(p))drawFlightProjectile(c,p,index,t,{quality:quality==='high'?'high':'low'});return;}
+      if(p.kind==='ice'){if(!launched.has(i)){launched.add(i);if(age<180)playConsumableSound('fire');}if(age<flightTime(p))drawIceProjectile(c,p,index);else drawIceImpact(c,p.impact.x,p.impact.y,age-flightTime(p));return;}
       // Held guns and wands: the flash and the first frames of the projectile start at the
       // painted muzzle and ease onto the authoritative path. Drawing only; physics is unchanged.
       const origin=p.points[0],seen=shooter&&!p.fragment?entities.get(shooter.id):undefined,muzzle=seen&&origin?heldMuzzle(shooter!.equipment.weapon,shooter!.facing,112,-(shooter!.aimSlope??0)*shooter!.facing*Math.PI/180):null;

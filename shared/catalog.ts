@@ -276,7 +276,10 @@ export const BOOSTS = [
  {id:'damage40',label:'40%',name:'Dano +40%',cost:80,detail:'Aumenta o dano em 40%',key:'5',delay:340},
  {id:'damage30',label:'30%',name:'Dano +30%',cost:70,detail:'Aumenta o dano em 30%',key:'6',delay:200},
  {id:'damage20',label:'20%',name:'Dano +20%',cost:55,detail:'Aumenta o dano em 20%',key:'7',delay:150},
- {id:'damage10',label:'10%',name:'Dano +10%',cost:50,detail:'Aumenta o dano em 10%',key:'8',delay:70}
+ {id:'damage10',label:'10%',name:'Dano +10%',cost:50,detail:'Aumenta o dano em 10%',key:'8',delay:70},
+ // DDTank 10018 Enfurecer (AddDander 100 of 200) and 10015 Bomba de gelo (Ball1): Vigor and Delay from Property4/5.
+ {id:'rage',label:'+50',name:'Enfurecer',cost:120,detail:'Enche 50% da barra de POW na hora · pode repetir',key:'9',delay:450},
+ {id:'ice',label:'',name:'Gelo',cost:150,detail:'O disparo vira uma bomba de gelo: congela os inimigos atingidos por 2 turnos, sem dano · uma vez',key:'0',delay:700}
 ] as const;
 export type BoostId = typeof BOOSTS[number]['id'];
 export {MAPS} from './maps';
