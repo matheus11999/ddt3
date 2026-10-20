@@ -55,7 +55,7 @@ test('craters do not modify immutable regions',()=>{
 
 test('walking cannot enter tall containers and still climbs both park ramps',()=>{
  const garden=createTerrain('garden'),besideCrate={x:496,y:ground(garden,496)};
- assert.equal(walkPosition(garden,besideCrate,1),null);
+ let at=besideCrate;for(let n=0;n<6;n++)at=walkPosition(garden,at,1)??at;assert.ok(at.x<500&&at.y===besideCrate.y,`stays at the crate foot: ${at.x},${at.y}`);
  const park=createTerrain('park');
  for(const direction of [1,-1] as const){
   const x=direction===1?430:1106;let position={x,y:ground(park,x)};

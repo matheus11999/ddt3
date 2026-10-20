@@ -19,6 +19,7 @@ import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
 import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {drawHitboxDebug,HITBOX_DEBUG} from './hitboxDebug';
+import {drawWalkDebug,WALK_DEBUG} from './walkDebug';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
@@ -261,6 +262,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     for(const impact of state.impacts){const age=Date.now()+state.offset-impact.at;if(age>=0&&age<HIT_FEEDBACK_DURATION)for(const hit of impact.hits)if(!hit.hidden){const stack=hitStackSlot(state.impacts,impact,hit);drawHitFeedback(c,hit,age,{quality:quality==='high'?'high':'low',stack});}}
     for(const effect of state.abilityEffects){const age=Date.now()+state.offset-effect.at;if(age>=0&&age<ABILITY_EFFECT_DURATION)drawAbilityEffect(c,effect,age,{quality:quality==='high'?'high':'low'});}
     if(HITBOX_DEBUG)drawHitboxDebug(c,b,shot??null,elapsed,state.profile?.id);
+    if(WALK_DEBUG)drawWalkDebug(c,b,terrain,state.profile?.id);
     c.restore();environment!.drawFront(c,t,camera);
    }else{
     // Keepers carry no weapon in the plaza; their name tags come from the world layer.

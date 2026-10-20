@@ -11,7 +11,7 @@ import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
 import type {LoadingPlayer,MatchLoading} from '../shared/protocol';
 import type {Battle,Command,Fighter,LobbyPlayer,Profile,RankingEntry,Room,RoomInvitation,RoomInviteResult,Seat,ServerEvent,Shot,ShotHit,TerrainMark} from '../shared/protocol';
-import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,upgradeTerrain,volley,walkPosition,WORLD} from '../shared/physics';
+import {crater,createTerrain,DIRECT_HIT_CRATER,type TerrainDig,weaponRoughness,ground,packTerrain,shatter,terrainMaterial,terrainWidth,trajectory,upgradeTerrain,volley,walkPosition,supportBelow,WALK_COMMAND_MS,WORLD} from '../shared/physics';
 import type {TrajectoryResult} from '../shared/physics';
 import type {ProfileStore} from './store';
 import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps';
@@ -586,10 +586,11 @@ export class Game {
      adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;this.broadcastBattle(m);break;
     }
     case 'walk':{
-     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<65)return;p.lastWalk=Date.now();this.assertPetFree(f,'walk');
+     const {m,f}=this.turn(p);if(Date.now()-p.lastWalk<WALK_COMMAND_MS*.72)return;p.lastWalk=Date.now();this.assertPetFree(f,'walk');
      // The first press toward the other side only turns around, for free.
      if(f.facing!==c.direction){f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;}
-     if(f.stamina<3)throw Error('Vigor insuficiente.');const destination=walkPosition(m.terrain,f,c.direction);if(destination){const fromY=f.y;f.x=destination.x;f.y=destination.y;f.stamina-=3;if(f.y>WORLD.height){f.y=WORLD.height+150;f.hp=0;}this.animateFall(f,fromY,Date.now());}adjustAimToTerrain(f,m.terrain);if(!this.checkWin(m))this.broadcastBattle(m);break;
+     // Vigor pays each DDTank step actually taken (shared/physics.ts walkStep): a refused walk costs nothing.
+     if(f.stamina<1)throw Error('Vigor insuficiente.');const destination=walkPosition(m.terrain,f,c.direction);if(destination){const fromY=f.y;f.x=destination.x;f.y=destination.y;f.stamina=Math.max(0,f.stamina-destination.steps);if(f.y>WORLD.height){f.y=WORLD.height+150;f.hp=0;}this.animateFall(f,fromY,Date.now());}adjustAimToTerrain(f,m.terrain);if(!this.checkWin(m))this.broadcastBattle(m);break;
     }
     case 'face':{
      // Turning in place costs no stamina and works at any time of the match (anyone's turn, a shot in flight, the monsters' turn); it never moves the fighter.
@@ -1165,7 +1166,8 @@ export class Game {
  }
  private settle(m:Match,at?:number){for(const target of m.state.players){
   if(target.boss)continue;
-  const fromY=target.y;target.y=ground(m.terrain,target.x,Math.max(0,target.y-3));if(target.y>WORLD.height){target.y=WORLD.height+150;target.hp=0;}
+  // Same support test as the walk (DDTank Player.StartFalling: x±1), so a fighter a step left standing never sinks here.
+  const fromY=target.y;target.y=supportBelow(m.terrain,target.x,Math.max(0,target.y-3));if(target.y>WORLD.height){target.y=WORLD.height+150;target.hp=0;}
   if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration+TURN_GAP_MS);}
   adjustAimToTerrain(target,m.terrain);
  }}
