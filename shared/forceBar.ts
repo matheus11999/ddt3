@@ -12,6 +12,17 @@ export function forceBarValue(elapsedMs:number):{power:number;falling:boolean} {
  return {power:Math.max(0,2*FORCE_BAR_MAX-steps),falling:steps>FORCE_BAR_MAX};
 }
 
+/** Where the painted fill sits after holding `elapsedMs`, between whole points: the same path as
+ * `forceBarValue`, but continuous so the bar glides every frame instead of jumping 25 times a second.
+ * Only for drawing: the shot always uses the whole `forceBarValue` shown in the readout. */
+export function forceBarFill(elapsedMs:number){
+ const steps=Math.max(0,elapsedMs/FORCE_BAR_STEP_MS);
+ // Rises to 100, rests there for the two updates the whole value stays at 100, then falls.
+ if(steps<FORCE_BAR_MAX-1)return steps+1;
+ if(steps<FORCE_BAR_MAX+1)return FORCE_BAR_MAX;
+ return Math.max(0,2*FORCE_BAR_MAX-steps);
+}
+
 /** A full hold, 1→100→0, after which the client passes the turn by itself. */
 export const FORCE_BAR_CYCLE_MS=2*FORCE_BAR_MAX*FORCE_BAR_STEP_MS;
 /** Longest a charge started before the turn clock ran out keeps the turn open (user request, 20/10/2026):

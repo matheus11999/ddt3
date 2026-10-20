@@ -18,7 +18,7 @@ import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
 import {WALK_COMMAND_MS} from '../../shared/physics';
 import {petSkill} from '../../shared/petSkills';
-import {FORCE_BAR_MAX,forceBarValue} from '../../shared/forceBar';
+import {FORCE_BAR_MAX,forceBarFill,forceBarValue} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
 import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
@@ -30,6 +30,8 @@ import './BattleHudRefinement.css';
 import './BattleConsole.css';
 type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=1,MAX_POWER=FORCE_BAR_MAX;
+// 101 marks that never change: built once so the per-point re-render while charging stays light.
+const POWER_GRADUATIONS=<div className="power-graduations">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>;
 /** Holding the angle (arrow keys or the on-screen arrows): a repeat every 90 ms that moves 1° at first,
  * 2° after half a second and 3° after 1.2 s; a held button waits 350 ms before repeating. */
 const ANGLE_REPEAT_MS=90,ANGLE_HOLD_DELAY_MS=350;
@@ -62,9 +64,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const canAim=canFace&&!(mine&&!!submitted);
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
+ // Enfurecer is pointless on a full bar; Gelo replaces the shot, so neither POW nor homing can ride on it (the server refuses the same).
+ const toolBlocks=(id:BoostId)=>id==='rage'?!!me.powerArmed||(me.powerCharge??0)>=100:id==='ice'?!!me.powerArmed||!!me.homingArmed:false;
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
- const paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
+ const powerTrack=useRef<HTMLDivElement>(null),paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
  const live=useRef({canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind});live.current={canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind};
  const terrainAim=useRef<{battleId:string;slope:number}|null>(null);
  useLayoutEffect(()=>{
@@ -101,6 +105,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // This ref represents the value committed to the visible meter, not a pending
  // RAF/state update. Release never recalculates elapsed time or uses stale state.
  useLayoutEffect(()=>{paintedPower.current=power;},[power]);
+ // Outside a charge (start, release, last shot) the fill snaps to the whole value the shot used.
+ useLayoutEffect(()=>{if(!charging)powerTrack.current?.style.setProperty('--shot-power',`${power}%`);},[power,charging]);
  const cancelCharge=useCallback(()=>{
   chargeStarted.current=null;chargeSource.current=null;chargingRef.current=false;pointer.current=null;setCharging(false);
  },[]);
@@ -125,7 +131,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[cancelCharge]);
  const useBoost=useCallback((id:BoostId)=>{
   const boost=BOOSTS.find(item=>item.id===id)!,fighter=live.current.me;
-  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||fighter.stamina<boost.cost)return;
+  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||(id==='rage'&&(fighter.powerArmed||(fighter.powerCharge??0)>=100))||(id==='ice'&&(fighter.powerArmed||fighter.homingArmed))||fighter.stamina<boost.cost)return;
   client.send({type:'boost',boost:id});
  },[]);
 
@@ -150,6 +156,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    // DDTank bar: rises to 100, falls back, and passes the turn if it is still held at zero.
    const bar=forceBarValue(now-chargeStarted.current);
    if(bar.power<=0){passTurn();return;}
+   // The fill glides every frame; React only re-renders when the whole number changes.
+   powerTrack.current?.style.setProperty('--shot-power',`${forceBarFill(now-chargeStarted.current)}%`);
    setPower(bar.power);setFalling(bar.falling);frame=requestAnimationFrame(paint);
   };
   frame=requestAnimationFrame(paint);return()=>cancelAnimationFrame(frame);
@@ -209,11 +217,11 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
- const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
+ const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':me.boosts.includes('ice')?'O POW não combina com o gelo':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
  // Pet skills the turn player activated this turn, shown in the same row as the turn's powers.
  const turnPetSkills=turn?.pet?turn.pet.skills.filter(slot=>slot.usedTurn===turn.pet!.turns).map(slot=>{const def=petSkill(slot.id);return {id:slot.id,name:def?.name??slot.id,icon:def?.visual?.icon};}):[];
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
- const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed?['homing' as const]:[])];
+ const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed||me.boosts.includes('ice')?['homing' as const]:[])];
 
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''} ${fallen?'fighter-fallen':''}`} data-party-size={instance?b.players.filter(player=>player.team===me.team).length:Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)} data-expedition={instance?'':undefined}>
   <div className="battle-top">
@@ -247,11 +255,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
-     const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(b.turnId===me.id&&!!powerUpConflict(me.boosts,boost.id))||powBlocks(boost.id)||me.stamina<boost.cost;
-    const damage=boost.id.startsWith('damage'),symbol=boost.id==='trident'?'×3':boost.label;
+     const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(b.turnId===me.id&&!!powerUpConflict(me.boosts,boost.id))||powBlocks(boost.id)||toolBlocks(boost.id)||me.stamina<boost.cost;
     return <button type="button" key={boost.id} data-boost={boost.id} data-count={count} aria-label={`${boost.name}, ${boost.cost} vigor${count?`, ${count} ${count===1?'uso':'usos'}`:''}`} aria-pressed={selected} title={`${boost.name}\n${boost.detail}\n${boost.cost} de vigor${count?`\n${count} ${count===1?'uso preparado':'usos preparados'}`:''}`} className={`boost ${selected?'selected':''}`} disabled={disabled} onClick={event=>{useBoost(boost.id);if(event.detail>0)event.currentTarget.blur();}}>
-     <span className="boost-painted-icon" aria-hidden="true" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
-     <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`} aria-hidden="true">{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
+     <BoostArt id={boost.id} index={index}/>
      <kbd>{boost.key}</kbd>{selected&&<span className="boost-ready" aria-hidden="true">×{count}</span>}
     </button>;
    })}
@@ -260,10 +266,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   {/* Powers (and pet skills) of whoever is playing this turn; the server clears them when that fighter's next turn begins, so the row only follows the turn player. */}
   {turn&&b.phase!=='finished'&&(turn.boosts.length>0||turnPetSkills.length>0)&&<div className={`boost-queue ${turn.id===me.id?'boost-queue-mine':turn.team===me.team?'boost-queue-ally':'boost-queue-enemy'}`} role="status" aria-label={`Poderes de ${turn.id===me.id?'você':turn.name}: ${[...turn.boosts.map(id=>BOOSTS.find(item=>item.id===id)?.name),...turnPetSkills.map(skill=>skill.name)].join(', ')}`}>
    {turn.boosts.map((id,order)=>{
-    const index=BOOSTS.findIndex(item=>item.id===id),boost=BOOSTS[index],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
+    const index=BOOSTS.findIndex(item=>item.id===id);
     return <span key={`${turn.id}-${order}`} className="queued-boost" data-boost={id} aria-hidden="true">
-     <span className="boost-painted-icon" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>
-     <span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`}>{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>
+     <BoostArt id={id} index={index}/>
     </span>;
    })}
    {turnPetSkills.map(skill=><span key={`${turn.id}-pet-${skill.id}`} className="queued-boost queued-pet-skill" data-pet-skill={skill.id} aria-hidden="true">
@@ -278,15 +283,15 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
-    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`} style={{'--shot-power':`${power}%`} as CSSProperties}>
+    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} ref={powerTrack} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
      <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
      {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
      {/* The scale and its numbers sit inside the bar, over the fill. */}
      <div className="power-ruler" aria-hidden="true">
-      <div className="power-graduations">{Array.from({length:101},(_,value)=><span key={value} className={value%10===0?'major':value%5===0?'medium':'minor'} style={{left:`${value}%`}}/>)}</div>
+      {POWER_GRADUATIONS}
       <div className="power-ticks">{[10,20,30,40,50,60,70,80,90].map(value=><span key={value} style={{left:`${value}%`}}>{value}</span>)}</div>
      </div>
-     <span className="power-cursor" aria-hidden="true" style={{left:`${power}%`}}/>
+     <span className="power-cursor" aria-hidden="true"/>
     </div>
     <div className="power-hint"><kbd>ESPAÇO</kbd><span>{chargeHint}</span></div>
    </div>
@@ -304,4 +309,16 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <PowerCutIn battle={b} offset={offset}/>
   {b.phase==='finished'&&!worldBoss&&<BattleRewards battle={b} me={me}/>}
  </div>;
+}
+
+/** Painted tool icon plus the number the game draws on it: the shot/damage atlas, or the own paintings of Enfurecer and Gelo (docs/consumables.md). */
+const TOOL_ICONS:Partial<Record<BoostId,string>>={rage:'/assets/consumables/rage-icon.png',ice:'/assets/consumables/ice-icon.png'};
+function BoostArt({id,index}:{id:BoostId;index:number}){
+ const boost=BOOSTS[index],own=TOOL_ICONS[id],damage=id.startsWith('damage'),symbol=id==='trident'?'×3':boost.label;
+ return <>
+  {own?<img className="boost-painted-icon boost-own-icon" src={own} alt="" aria-hidden="true" draggable={false}/>:<span className="boost-painted-icon" aria-hidden="true" style={{backgroundPosition:`${(index%4)*100/3}% ${Math.floor(index/4)*100}%`}}/>}
+  {id==='rage'?<span className="boost-symbol-label boost-damage-label" aria-hidden="true"><i>POW</i><strong>{symbol}</strong></span>
+   :id==='ice'?null
+   :<span className={`boost-symbol-label ${damage?'boost-damage-label':'boost-shot-label'}`} aria-hidden="true">{damage&&<i>POWER</i>}<strong>{damage?<>{symbol.replace('%','')}<small>%</small></>:symbol}</strong></span>}
+ </>;
 }

@@ -1,5 +1,6 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {powerUpConflict} from '../shared/powerUps';
+import {ICE_FROZEN_TURNS,iceTargets,isFrozen,RAGE_CHARGE} from '../shared/ice';
 import {chargeHoldsTurn} from '../shared/forceBar';
 import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
@@ -53,7 +54,7 @@ import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,p
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
 export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;/** Praça Celeste or the Pescaria (undefined = the plaza). */zone?:Zone;/** Casting at a spot of the Pescaria. */fishing?:FishingSession;/** Automatic fishing stays on between casts (AFK). */fishAuto?:boolean;}
-interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
+interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;/** Gelo's ice ball: freezes, never digs or hurts. */ice?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
 /** Index of the pet's after-shot attack in the impact events (never a real projectile). */
 const PET_STRIKE_INDEX=1000;
 /** How long the pet's area attack plays before the turn may move on. */
@@ -1055,10 +1056,12 @@ export class Game {
   const s=m.state,run=m.instance!,now=Date.now(),turnId=randomUUID();
   s.turnId=MONSTER_TURN_ID;s.turnNumber++;s.phase='resolving';
   // The queen acts first (draws, shoots, the camera follows her arrow), then the ants walk and bite.
-  const queen=s.players.find(f=>f.id===s.instance!.boss&&f.hp>0),stage=run.stages[run.stage];let arrowAt:number|undefined,walkAt=now;
+  for(const f of s.players)if(f.monster&&isFrozen(f))f.frozenTurns!--;
+  const frozen=s.players.filter(f=>f.monster&&isFrozen(f));
+  const queen=s.players.find(f=>f.id===s.instance!.boss&&f.hp>0&&!frozen.includes(f)),stage=run.stages[run.stage];let arrowAt:number|undefined,walkAt=now;
   if(queen){const arrow=this.queenShot(m,queen);if(arrow){arrowAt=now+QUEEN_DRAW_MS;run.events.push({at:arrowAt,run:()=>this.queenArrow(m,queen.id,arrow)});walkAt=arrowAt+arrow.result.flightTime+600;}}
-  // Invisible adventurers cannot be chased.
-  const plan=planMonsterTurn(m.terrain,s.players.filter(f=>f.team===1||!(f.invisibleTurns??0)));
+  // Invisible adventurers cannot be chased; frozen monsters lose this turn (one of their 2) and stand still.
+  const plan=planMonsterTurn(m.terrain,s.players.filter(f=>f.team===1?!frozen.includes(f):!(f.invisibleTurns??0)));
   for(const move of plan.moves){const f=s.players.find(x=>x.id===move.id);if(!f)continue;f.x=move.to[0];f.y=move.to[1];f.facing=move.facing;}
   const walking=plan.moves.some(move=>move.from[0]!==move.to[0]);
   let at=walkAt+(walking?MONSTER_MOVE_MS:300)+MONSTER_BITE_WINDUP_MS,end=walkAt+(walking?MONSTER_MOVE_MS:600);
@@ -1116,12 +1119,18 @@ export class Game {
   const combination=powerUpConflict(f.boosts,id);if(combination)throw Error(combination);
   // POW × Tridente follows the weapon's rule (shared/weaponKit.ts).
   const conflict=f.powerArmed?powBoostConflict(f.equipment.weapon,id):undefined;if(conflict)throw Error(conflict);
+  if(id==='ice'&&f.powerArmed)throw Error('O gelo não combina com o POW.');
+  if(id==='ice'&&f.homingArmed)throw Error('O gelo não combina com a mira assistida.');
+  if(id==='rage'&&(f.powerArmed||(f.powerCharge??0)>=POWER_MAX))throw Error('Sua barra de POW já está cheia.');
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
+  // Enfurecer fills the bar at once (shared/ice.ts); using the POW is still its own click.
+  if(id==='rage')f.powerCharge=Math.min(POWER_MAX,(f.powerCharge??0)+RAGE_CHARGE);
  }
  private armPower(f:Fighter){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar Power.');
   if(f.powerArmed)throw Error('Power já está preparado para este tiro.');
   if((f.powerCharge??0)<POWER_MAX)throw Error('Acumule 100 de Power para ativar.');
+  if(f.boosts.includes('ice'))throw Error('O POW não combina com o gelo.');
   const conflict=f.boosts.map(id=>powBoostConflict(f.equipment.weapon,id)).find(Boolean);if(conflict)throw Error(conflict);
   f.powerCharge=0;f.powerArmed=true;
  }
@@ -1132,6 +1141,7 @@ export class Game {
   f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');
   if(ability==='homing'&&f.homingArmed)throw Error('A mira assistida já está preparada.');
+  if(ability==='homing'&&f.boosts.includes('ice'))throw Error('A mira assistida não combina com o gelo.');
   f.abilities[ability]--;f.delay=(f.delay??0)+(ABILITIES.find(entry=>entry.id===ability)?.delay??0);let amount:number|undefined;
   if(ability==='heal'){const healed=clampHp(f.hp+HEAL_AMOUNT,f.maxHp);amount=healed-f.hp;f.hp=healed;}
   if(ability==='homing')f.homingArmed=true;
@@ -1142,6 +1152,7 @@ export class Game {
   // Delay for the seconds used this turn and for the shot itself (DDTank PrepareShoot + ball/weapon Delay).
   f.delay=(f.delay??0)+timeDelay(Date.now()-(m.state.deadline-TURN_SECONDS*1000))+(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)?.shotDelay??0);
   if(f.flightArmed){this.fireFlight(m,f,angle,power);return;}
+  if(f.boosts.includes('ice')){this.fireIce(m,f,angle,power);return;}
   if(f.powerArmed){
    f.powerArmed=false;f.charging=false;
    const at=Date.now()+POWER_CUT_IN_MS;
@@ -1156,6 +1167,14 @@ export class Game {
   f.flightArmed=false;f.charging=false;f.aimAngle=angle;f.chargePower=power;
   const shot:Shot={id,shooterId:f.id,startedAt,duration:result.flightTime+450,hits:[],impacted:[],projectiles:[{kind:'flight',effect:weapon.effect,points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0,...terrainMaterial(m.state.map,result.x,result.y)}}]};
   m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits:[],flight:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:weapon.effect,level:f.equipment.upgrade}}];m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
+  for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
+ }
+ /** Gelo: one ice ball on the plane's flight (DDTank Ball1 = Ball3 physics), no damage, no crater. */
+ private fireIce(m:Match,f:Fighter,angle:number,power:number){
+  const weapon={...weaponStats(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)!,f.equipment.upgrade),projectileRadius:6},result=trajectory(m.terrain,f,angle,power,m.state.wind,weapon,m.state.players.filter(p=>p.id!==f.id&&p.hp>0)),startedAt=Date.now(),id=randomUUID();
+  f.charging=false;f.aimAngle=angle;f.chargePower=power;
+  const shot:Shot={id,shooterId:f.id,startedAt,duration:result.flightTime+900,hits:[],impacted:[],projectiles:[{kind:'ice',effect:weapon.effect,points:result.points,delay:0,flightTime:result.flightTime,impact:{x:result.x,y:result.y,radius:0,...terrainMaterial(m.state.map,result.x,result.y)}}]};
+  m.activeShot=shot;m.pendingImpacts=[{at:startedAt+result.flightTime,projectileIndex:0,hits:[],ice:true,mark:{id:`${id}:0`,x:result.x,y:result.y,radius:0,effect:weapon.effect,level:f.equipment.upgrade}}];m.state.phase='resolving';m.resolveAt=startedAt+shot.duration+TURN_GAP_MS;
   for(const peer of this.matchPeers(m))this.emit(peer,{type:'shot',shot:this.visibleShot(m,shot,peer.profile.id)});this.broadcastBattle(m);
  }
  private resolveFire(m:Match,f:Fighter,angle:number,power:number,powered:boolean,startedAt=Date.now()){
@@ -1230,6 +1249,11 @@ export class Game {
   const shot=m.activeShot;if(!shot||m.state.phase!=='resolving'||shot.impacted.includes(impact.projectileIndex))return;
   const shooter=m.state.players.find(player=>player.id===shot.shooterId)!,hits:ShotHit[]=[];
   if(impact.petStrike){this.petStrike(m,shot,shooter,impact);return;}
+  if(impact.ice){
+   // Freezing again resets the count (IceFronzeEffect.Start); a fighter whose ice the same shot broke stays free.
+   for(const target of iceTargets(m.state.players,shooter.team,impact.mark)){target.frozenTurns=ICE_FROZEN_TURNS;target.charging=false;}
+   shot.impacted.push(impact.projectileIndex);for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:shot.id,projectileIndex:impact.projectileIndex,at:impact.at,hits:[]});this.broadcastBattle(m,true);return;
+  }
   if(impact.flight){
    const landing=shooter.hp>0?flightLanding(m.terrain,{...impact.mark,points:shot.projectiles[impact.projectileIndex]?.points}):null;
    if(landing){
@@ -1244,6 +1268,8 @@ export class Game {
   for(const planned of impact.hits){
    // Hits are only planned on fighters still alive when the projectile lands (killed ones are let through).
    const target=m.state.players.find(player=>player.id===planned.id);if(!target||target.y>WORLD.height)continue;
+   // Frozen: the first projectile that hits only breaks the ice; the next ones, even of the same shot, deal damage (matheus 20/10).
+   if(isFrozen(target)&&(planned.damage>0||planned.shield)){target.frozenTurns=0;continue;}
    if(planned.shield)drainShield(target,planned.shield);if(planned.damage<=0&&!planned.shield)continue;
    // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
    if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
@@ -1295,7 +1321,13 @@ export class Game {
   const s=m.state,withTerrain=s.phase==='resolving';
   const outgoing=s.players.find(p=>p.id===s.turnId);if(outgoing&&(outgoing.invisibleTurns??0)>0&&m.invisibilityActivated?.get(outgoing.id)!==s.turnNumber)outgoing.invisibleTurns!--;
   // The living fighter with the lowest accumulated Delay plays, possibly the same one again (shared/turnDelay.ts).
-  const f=nextByDelay(s.players,s.turnId)??outgoing!;startDelayTurn(s.players,f,this.baseDelay(f));
+  let f=nextByDelay(s.players,s.turnId)??outgoing!;startDelayTurn(s.players,f,this.baseDelay(f));
+  // Gelo: a frozen fighter loses the turn (DDTank PrepareSelfTurn adds another turn of Delay) until the ice thaws on its own.
+  for(let guard=0;isFrozen(f)&&guard<s.players.length*ICE_FROZEN_TURNS;guard++){
+   f.frozenTurns!--;if(!isFrozen(f))break;
+   f.delay=(f.delay??0)+this.baseDelay(f);f=nextByDelay(s.players,f.id)??f;startDelayTurn(s.players,f,this.baseDelay(f));
+  }
+  if(isFrozen(f))f.frozenTurns=0;
   delete m.pendingPower;delete m.activeShot;delete m.pendingImpacts;delete s.powerCutIn;s.players.forEach(f=>{f.charging=false;f.powerArmed=false;f.homingArmed=false;f.flightArmed=false;});f.stamina=f.maxStamina;f.boosts=[];s.turnId=f.id;s.turnNumber++;s.phase='aiming';s.wind=this.wind();s.deadline=Date.now()+TURN_SECONDS*1000;m.botAt=Date.now()+1800;
   this.petTurnStart(m,f);if(this.checkWin(m))return;this.broadcastBattle(m,withTerrain);
  }

@@ -10,6 +10,7 @@ Matemática e regras em `shared/powerUps.ts`; custos, Delay e textos em `BOOSTS`
 | +2 | 110 | 600 | 3 disparos seguidos, 60% do dano cada |
 | Tridente | 110 | 600 | 3 projéteis ao mesmo tempo (−5°, 0°, +5°), 50% do dano cada |
 | +50% / +40% / +30% / +20% / +10% | 85 / 80 / 70 / 55 / 50 | 400 / 340 / 200 / 150 / 70 | soma 0,50 / 0,40 / 0,30 / 0,20 / 0,10 ao bônus |
+| Enfurecer / Gelo | 120 / 150 | 450 / 700 | +50 de POW na hora / disparo vira bomba de gelo que congela 2 turnos (`docs/consumables.md`) |
 
 ```text
 MultiplicadorFinal = MultiplicadorModo × (1 + SomaDosBônus)
