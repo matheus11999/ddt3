@@ -1,9 +1,10 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {DoorOpen} from 'lucide-react';
+import {DoorOpen,ScrollText} from 'lucide-react';
+import {FishingHistory} from './FishingHistory';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
+import {BAIT_BY_ID,FISHING_BAITS,FISHING_RODS,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
 import type {FishingView,PressGrade} from '../../shared/fishing';
 import {FishingIcon} from './FishingIcon';
 import {fishingPick} from '../game/fishingPick';
@@ -18,6 +19,7 @@ type GearMenu='rod'|'bait'|null;
 export function FishingHud({blocked}:{blocked:boolean}){
  const {profile,fishing,offset}=useGame();
  const f=normalizeFishing(profile!.fishing),progress=fishingLevelProgress(f.xp);
+ const [history,setHistory]=useState(false);
  const [gear,setGear]=useState<GearMenu>(null),hoverLake=useHoverLake();
  const phase=fishing?.phase,busy=phase==='waiting'||phase==='bite';
  const picking=usePicking();
@@ -26,7 +28,9 @@ export function FishingHud({blocked}:{blocked:boolean}){
  const reel=()=>{client.send({type:'fish-stop'});audio.play('click');};
  const auto=fishing?.auto??false;
  const [autoPref,setAutoPref]=useState(false);
- const toggleAuto=()=>{const on=!(fishing?auto:autoPref);setAutoPref(on);client.send({type:'fish-auto',on});audio.play('click');};
+ const [autoNote,setAutoNote]=useState<{on:boolean;at:number}|null>(null);
+ useEffect(()=>{if(!autoNote)return;const t=setTimeout(()=>setAutoNote(null),1800);return()=>clearTimeout(t);},[autoNote]);
+ const toggleAuto=()=>{const on=!(fishing?auto:autoPref);setAutoPref(on);setAutoNote({on,at:Date.now()});client.send({type:'fish-auto',on});audio.play('click');};
  const press=useBar(fishing,offset,blocked);
  // Space casts from a spot (the bar's own Space is in useBar).
  useEffect(()=>{
@@ -43,16 +47,22 @@ export function FishingHud({blocked}:{blocked:boolean}){
  const autoOn=fishing?auto:autoPref;
  return <div className="fishing-hud">
   <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/> Sair da Pescaria</button>
+  {/* Trocas de Pontos de Pesca de qualquer lugar da zona (pedido do matheus). */}
+  <button className="fishing-trade" onClick={()=>{client.openFishShop();audio.play('click');}} title="Trocar Pontos de Pesca por itens"><span className="fishing-trade-art"/><span>Trocas</span></button>
+  <button className="fishing-trade fishing-history-button" onClick={()=>{setHistory(true);audio.play('click');}} title="Últimas capturas"><span className="fishing-trade-art"><ScrollText size={30} strokeWidth={2.2}/></span><span>Histórico</span></button>
+  {history&&<FishingHistory onClose={()=>setHistory(false)}/>}
   <section className="fishing-card" aria-label="Pescador" title="Nível de pescador: sobe com a EXP de pesca">
    <b className="fishing-card-level">{progress.level}</b>
    <div className="fishing-card-title"><small>Pescador</small><span className="fishing-points" title="Pontos de Pesca: troque na Casa de Pesca"><FishingIcon id="fishing-points" size={20}/><b>{f.points.toLocaleString('pt-BR')}</b></span></div>
    <div className="fishing-xp" title="EXP de pescador"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div>
   </section>
   <section className="fishing-bar-panel" aria-label="Pescar">
-   <div className="fishing-tray">
+   {autoNote&&<em key={autoNote.at} className={`fishing-auto-note ${autoNote.on?'on':''}`}>{autoNote.on?'Pesca automática ligada':'Pesca automática desligada'}</em>}
+   {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: rende 25% da pesca à mão">AUTOMÁTICO</span>}
+   <div className={`fishing-tray ${autoOn?'auto-on':''}`}>
     <button className={`fishing-slot rod ${gear==='rod'?'open':''}`} onClick={()=>setGear(gear==='rod'?null:'rod')} title={`Vara: ${rod.name}. ${rod.description}`}><FishingIcon id={rod.id} size={56}/><span>Vara</span></button>
     <button className={`fishing-slot bait ${gear==='bait'?'open':''}`} onClick={()=>setGear(gear==='bait'?null:'bait')} title={`Isca: ${bait.name}. ${bait.description}`}><FishingIcon id={bait.id} size={56}/><em>{bait.infinite?'∞':f.baits[bait.id]??0}</em><span>Isca</span></button>
-    <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><b>Auto</b><img src="/assets/fishing/ui/switch-knob.webp" alt="" draggable={false}/></span></button>
+    <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i className="off"/><i className="on"/><b>Auto</b></span></button>
     {gear&&<div className="fishing-gear-menu" role="menu">
      <header>{gear==='rod'?'Suas varas':'Suas iscas'}</header>
      {gear==='rod'?FISHING_RODS.filter(r=>f.rods.includes(r.id)).map(r=><button key={r.id} role="menuitem" className={r.id===f.rod?'selected':''} disabled={phase==='bite'} onClick={()=>pick({rod:r.id})}><span className="fishing-slot-art"><FishingIcon id={r.id} size={36}/></span><span><b>{r.name}</b><small>{r.description}</small></span>{r.id===f.rod&&<i>Em uso</i>}</button>)
@@ -66,7 +76,9 @@ export function FishingHud({blocked}:{blocked:boolean}){
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
    :!fishing&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
   {fishing?.phase==='waiting'&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>{auto?'Pescando no automático':'Esperando o peixe morder'}</p>}
-  {fishing?.phase==='bite'&&fishing.challenge&&<Challenge view={fishing} press={press} offset={offset}/>}
+  {/* No automático o minigame não aparece (pedido do matheus): só o aviso de que está puxando. */}
+  {fishing?.phase==='bite'&&auto&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>Fisgou! Puxando no automático</p>}
+  {fishing?.phase==='bite'&&fishing.challenge&&!auto&&<Challenge view={fishing} press={press} offset={offset}/>}
   {fishing?.phase==='result'&&fishing.result&&<Result view={fishing}/>}
  </div>;
 }
@@ -119,23 +131,22 @@ function Challenge({view,press,offset}:{view:FishingView;press:{press:()=>void;g
   if(zoneEl.current)zoneEl.current.style.left=`${(zoneAt(c,Math.min(hitsRef.current,c.zones.length-1),at)-c.width/2)*100}%`;
   frame=requestAnimationFrame(tick);};frame=requestAnimationFrame(tick);return()=>cancelAnimationFrame(frame);},[c,offset]);
  const lead=now<c.start,left=Math.max(0,c.start+c.limitMs-now),last=grades.at(-1),stars=difficultyOf(c);
+ const U='/assets/fishing/ui/';
  return <div className={`fishing-challenge ${view.auto?'auto':''} ${c.drift?'wild':''}`} role="group" aria-label="Desafio da pesca">
-  <div className="fishing-clock" style={{'--left':`${lead?100:left/c.limitMs*100}%`} as CSSProperties} title={`${(left/1000).toFixed(1)} s`}>
-   <span><FishingIcon id={SHADOW} size={40} unknown/></span>
-  </div>
-  <div className="fishing-challenge-body">
-   <header><strong className="fishing-hooked">{lead?'Fisgou!':view.auto?'Puxando…':c.drift?'Ele está fugindo!':'Aperte no alvo!'}</strong><span className="fishing-stars" aria-label={`Dificuldade ${stars}`}>{Array.from({length:5},(_,i)=><i key={i} className={i<stars?'on':''}>★</i>)}</span></header>
-   <button className="fishing-track" onPointerDown={e=>{e.preventDefault();press.press();}} disabled={view.auto} aria-label="Apertar a barra">
+  <header><strong className="fishing-hooked">{lead?'Fisgou!':c.drift?'Ele está fugindo!':'Aperte no alvo!'}</strong><span className="fishing-stars" aria-label={`Dificuldade ${stars}`}>{Array.from({length:5},(_,i)=><img key={i} src={`${U}${i<stars?'mini-star':'mini-star-empty'}.webp`} alt="" draggable={false}/>)}</span></header>
+  <div className="fishing-mini">
+   <div className="fishing-clock" style={{'--left':`${lead?100:left/c.limitMs*100}%`} as CSSProperties} title={`${(left/1000).toFixed(1)} s`}><img src={`${U}mini-fish.webp`} alt="" draggable={false}/></div>
+   <button className="fishing-track" onPointerDown={e=>{e.preventDefault();press.press();}} aria-label="Apertar a barra">
     <span ref={zoneEl} className="fishing-zone" style={{width:`${c.width*100}%`}}><span className="fishing-perfect" style={{left:`${(c.width-c.perfect)/2/c.width*100}%`,width:`${c.perfect/c.width*100}%`}}/></span>
-    <div ref={marker} className="fishing-marker" style={{opacity:lead?.4:1}}/>
+    <div ref={marker} className="fishing-marker" style={{opacity:lead?.5:1}}><img src={`${U}mini-float.webp`} alt="" draggable={false}/></div>
    </button>
-   <footer>
-    <span className="fishing-hits">{Array.from({length:c.hits},(_,i)=><i key={i} className={i<hits?'done':''}/>)}</span>
-    {!view.auto&&<span className="fishing-misses">{Array.from({length:c.misses},(_,i)=><i key={i} className={i<misses?'lost':''}/>)}</span>}
-    {!view.auto&&<small><kbd>Espaço</kbd> ou clique</small>}
-   </footer>
   </div>
-  {last&&!view.auto&&<em key={grades.length} className={`fishing-grade ${last}`}>{last==='perfect'?'Perfeito!':last==='hit'?'Boa!':'Errou!'}</em>}
+  <footer>
+   <span className="fishing-hits">{Array.from({length:c.hits},(_,i)=><img key={i} className={i<hits?'done':''} src={`${U}${i<hits?'mini-gem':'mini-gem-empty'}.webp`} alt="" draggable={false}/>)}</span>
+   <span className="fishing-misses">{Array.from({length:c.misses},(_,i)=><img key={i} className={i<misses?'lost':''} src={`${U}mini-miss.webp`} alt="" draggable={false}/>)}</span>
+   <small><kbd>Espaço</kbd> ou clique</small>
+  </footer>
+  {last&&<em key={grades.length} className={`fishing-grade ${last}`}>{last==='perfect'?'Perfeito!':last==='hit'?'Boa!':'Errou!'}</em>}
  </div>;
 }
 /** The fish nobody has seen yet: any fish's dark shape. */
@@ -144,13 +155,22 @@ const SHADOW='carpa-lua';
 function Result({view}:{view:FishingView}){
  const r=view.result!,c=r.catch,fish=FISH_BY_ID.get(c?.fish??r.fish??'');
  if(!r.success||!c)return <div className="fishing-result lost"><strong>O peixe escapou!</strong>{fish&&<span>Era um(a) {fish.name}</span>}</div>;
- return <div className="fishing-result caught">
-  <div className="fishing-result-art"><FishingIcon id={c.fish} size={92}/></div>
-  <div className="fishing-result-text">
-   <strong>{fish?.name}</strong>
-   <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b>{fish&&<span className="fishing-stars">{Array.from({length:fish.difficulty},(_,i)=><i key={i} className="on">★</i>)}</span>}</span>
-   <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span></div>
-   {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
+ const rarity=fishRarity(fish??{difficulty:1}),glow=rarity.id==='epico'||rarity.id==='lendario';
+ return <>
+  {rarity.id==='lendario'&&<div className="fishing-legend-flash" aria-hidden/>}
+  <div className={`fishing-result caught rarity-${rarity.id}`} style={{'--rarity':rarity.color} as CSSProperties}>
+   <div className="fishing-result-art">
+    {rarity.id!=='comum'&&<span className="fishing-result-glow"/>}
+    {glow&&<span className="fishing-sparkles">{Array.from({length:7},(_,i)=><i key={i}/>)}</span>}
+    <FishingIcon id={c.fish} size={92}/>
+   </div>
+   <div className="fishing-result-text">
+    <em className="fishing-rarity">{rarity.name}</em>
+    <strong>{fish?.name}</strong>
+    <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b></span>
+    <div className="fishing-rewards"><span><FishingIcon id="fishing-points" size={20}/>+{c.points}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
+   </div>
   </div>
- </div>;
+ </>;
 }

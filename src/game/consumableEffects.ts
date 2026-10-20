@@ -50,16 +50,17 @@ export function drawIceImpact(c:CanvasRenderingContext2D,x:number,y:number,age:n
  */
 export function drawFrozenBlock(c:CanvasRenderingContext2D,x:number,y:number,state:{since:number;turns:number;thawAt?:number},now:number){
  const block=images.get('block');if(!block)return;
- const size=190,top=y-size*.88;
+ // Wide and low like the fighter lying down (matheus 20/10: the 190 px square was too tall), see-through enough to show them inside.
+ const width=180,height=130,top=y-height*.88;
  if(state.thawAt!==undefined){
   const t=(now-state.thawAt)/ICE_SHATTER_DURATION;if(t>=1)return;
-  c.save();c.globalAlpha*=1-t*t;const grow=1+t*.18;c.translate(x,y);c.scale(grow,grow);c.drawImage(block,2*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,-size/2,-size*.88,size,size);c.restore();return;
+  c.save();c.globalAlpha*=1-t*t;const grow=1+t*.18;c.translate(x,y);c.scale(grow,grow);c.drawImage(block,2*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,-width/2,-height*.88,width,height);c.restore();return;
  }
- const form=clamp((now-state.since)/ICE_FORM_DURATION),rise=1-Math.pow(1-form,3),shimmer=.7+Math.sin(now/420)*.04;
+ const form=clamp((now-state.since)/ICE_FORM_DURATION),rise=1-Math.pow(1-form,3),shimmer=.46+Math.sin(now/420)*.04;
  c.save();c.globalAlpha*=shimmer*(.4+.6*form);
  // Grows upward from the feet: clip the painting to the risen height.
- c.beginPath();c.rect(x-size,y-size*rise-4,size*2,size*rise+8);c.clip();
- c.drawImage(block,(state.turns<=1?1:0)*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,x-size/2,top,size,size);c.restore();
+ c.beginPath();c.rect(x-width,y-height*rise-4,width*2,height*rise+8);c.clip();
+ c.drawImage(block,(state.turns<=1?1:0)*BLOCK_SIZE,0,BLOCK_SIZE,BLOCK_SIZE,x-width/2,top,width,height);c.restore();
 }
 /** The tool's icon over the head when it is used (DDTank AutoPropEffect: 60×60 at (-5,-140), fading). */
 export function drawConsumableIcon(c:CanvasRenderingContext2D,id:'rage'|'ice',x:number,y:number,age:number){

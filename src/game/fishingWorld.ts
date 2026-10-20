@@ -99,7 +99,7 @@ export function drawFish(c:CanvasRenderingContext2D,id:string,x:number,y:number,
 function shade(hex:string,k:number){const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(k>0?v+(255-v)*k:v*(1+k));return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;}
 
 export class FishingWorld {
- private sky=new Image();private floor=new Image();private grass=new Image();private water=new Image();private rod=new Image();private splash={bait:new Image(),catch:new Image()};
+ private sky=new Image();private floor=new Image();private grass=new Image();private water=new Image();private rod=new Image();private autoSeal=new Image();private splash={bait:new Image(),catch:new Image()};
  private art=new Map<FishingPropId,HTMLImageElement>();
  private tiles=new Map<number,HTMLCanvasElement>();private tileScale=0;private assets=false;private casts=new Map<FishingPropId,HTMLCanvasElement>();
  private built=-1;private flat:Piece[]=[];private floating:Piece[]=[];private standing:Piece[]=[];
@@ -107,7 +107,7 @@ export class FishingWorld {
   if(this.assets)return;this.assets=true;
   const image=(src:string)=>{const i=new Image();i.decoding='async';i.src=src;return i;};
   this.sky=image('/assets/fishing/sky.webp');this.floor=image('/assets/lobby/floor.webp');this.grass=image('/assets/fishing/grass.webp');this.water=image('/assets/fishing/water.webp');
-  this.rod=image('/assets/fishing/rod-bamboo.webp');this.splash={bait:image('/assets/fishing/splash-bait.webp'),catch:image('/assets/fishing/splash-catch.webp')};
+  this.rod=image('/assets/fishing/rod-bamboo.webp');this.autoSeal=image('/assets/fishing/ui/auto-seal.webp');this.splash={bait:image('/assets/fishing/splash-bait.webp'),catch:image('/assets/fishing/splash-catch.webp')};
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[])this.art.set(id,image(`/assets/fishing/props/${id}.webp`));
  }
  /** Lets go of every painting and baked tile at once (not at the next garbage collection) when the player leaves the Pescaria. */
@@ -373,6 +373,9 @@ export class FishingWorld {
   * `size` their drawn height.
   */
  drawGear(c:CanvasRenderingContext2D,pose:FishingPose,spot:FishingSpot,x:number,y:number,size:number,now:number){
+  // Automatic mode: the painted reel seal floats beside the fisher's head, turning slowly (seen by everyone).
+  if(pose.auto&&imageReady(this.autoSeal)){const s=36,sx=x-spot.facing*size*.34,sy=y-size*.86+Math.sin(now/420)*2.5;
+   c.save();c.translate(sx,sy);c.rotate(Math.sin(now/900)*.18);c.shadowColor='rgba(120,255,150,.7)';c.shadowBlur=8;drawScaled(c,this.autoSeal,-s/2,-s/2,s,s);c.restore();}
   const age=Math.max(0,now-pose.since),f=spot.facing,hx=x+f*size*.16,hy=y-size*.5;
   const frame=this.rodFrame(pose,age,now),fr=ROD_FRAMES[frame],rest=ROD_FRAMES.rest,k=size*ROD_LENGTH/Math.hypot(rest.tip[0]-rest.grip[0],rest.tip[1]-rest.grip[1]);
   const tx=hx+f*k*(fr.tip[0]-fr.grip[0]),ty=hy+k*(fr.tip[1]-fr.grip[1]);

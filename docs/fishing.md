@@ -26,7 +26,7 @@ Servidor autoritativo (`server/game.ts`, `castLine`/`pressBar`/`tickFishing`):
 1. `fish-cast {spot}` → esperando (6 a 13 s, vezes a velocidade da vara e da isca; isca brilhante ×0,8; no automático ×1,2).
 2. Morde: o servidor sorteia o peixe (lago, sorte da vara, isca e nível) e manda a barra (`fishChallenge`, semente). A barra começa 0,7 s depois ("Fisgou!").
 3. **Manual**: uma boia vai e volta numa faixa de água; o jogador aperta Espaço ou clica quando ela está no alvo verde (o miolo dourado vale Perfeito). Peixes difíceis pedem mais acertos, boia mais rápida e alvo menor, e a partir da dificuldade 3 o alvo **nada** de um lado para o outro (`drift`, `zoneAt`); a vara aumenta o verde (`control`). 2 erros ou o tempo acabar = o peixe escapa. O cliente manda o horário do servidor estimado do aperto; o servidor confere com folga de 0,7 s.
-4. **Automático** (`fish-auto`): ninguém aperta; chance fixa por peixe (`autoChance`: 82% no mais fácil, −11% por dificuldade, mínimo 20%, máximo 85%) e só 30% da sorte de peixes raros. Depois do resultado ele lança de novo sozinho, sem fim, enquanto a conexão estiver aberta.
+4. **Automático** (`fish-auto`): o minigame não aparece (só o aviso "Fisgou! Puxando no automático"), ninguém aperta; cada peixe rende **25% dos Pontos e da EXP** de um peixe pescado à mão (`AUTO_EFFICIENCY`, `autoReward`, pedido do matheus em 20/10); chance fixa por peixe (`autoChance`: 82% no mais fácil, −11% por dificuldade, mínimo 20%, máximo 85%) e só 30% da sorte de peixes raros. Depois do resultado ele lança de novo sozinho, sem fim, enquanto a conexão estiver aberta.
 5. Resultado (2,6 s): peixe, peso, Pontos de Pesca, EXP, "Novo na coleção!", "Recorde!" e subida de nível.
 
 Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos no meio da barra (`fish-gear`).
@@ -37,6 +37,13 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - **Isca Simples** (infinita) e **Isca Brilhante** (gasta 1 por lançamento, morde mais rápido, +30% sorte).
 - 20 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Traíra das Taboas, Pacu Esmeralda e Peixe-Junco Dourado (Lago dos Juncos), Carpa Termal, Salamandra do Vapor e Fênix d'Água (Fonte Termal), Carpa-Dragão.
 
+## Raridade e histórico (20/10, pedido do matheus)
+
+- Raridade vem da dificuldade do peixe (`fishRarity`, `FISH_RARITIES`): 1 Comum (cinza), 2 Normal (verde), 3 Raro (azul), 4 Épico (roxo), 5 Lendário (dourado).
+- Resultado da pesca com selo e borda na cor da raridade; Raro ganha brilho, Épico brilho com faixa de luz e faíscas, Lendário tudo isso maior e um clarão dourado nas bordas da tela. Épico e Lendário são anunciados no chat Mundo do canal ("Fulano pescou Koi Celeste (Épico, 3,4 kg)!").
+- Botão Histórico (ao lado de Trocas) abre as últimas 30 capturas (`FishingProfile.history`, `FISHING_HISTORY`), com raridade, kg, pontos, EXP, selo Auto e há quanto tempo. A Sacola pinta cada peixe na cor da raridade.
+- Prévia: `npx tsx scripts/preview-fishing-rarity.mjs` (jogo rodando).
+
 ## Nível de pescador
 
 - EXP = 10 × pontos do peixe. Nível n pede `60 × (n−1)^1,7` de EXP total; máximo 50 (`fishingLevel`, `fishingLevelProgress`).
@@ -46,7 +53,9 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 - Painel do pescador e bandeja (20/10, pedido do matheus: "redesenhe onde fica o nível do pescador, e onde seleciona a vara e a isca"): pintura do Codex em vidro azul com ouro (opção B, `15-ui-pescador-b.png`, recortada por `python3 scripts/build-fishing-ui.py` para `public/assets/fishing/ui/`). Painel com a carpa dourada: nível no hexágono, "Pescador" e Pontos na faixa, EXP na barra fina. Bandeja com vara e isca nos dois círculos (a isca mostra quantas restam; clicar abre a lista em vidro azul) e a chave Auto (o botão dourado é peça separada e desliza; ligada fica verde). Botão redondo de lançar com a vara pintada, aceso no passar do mouse e pulsando enquanto escolhe o lago; o nome (Lançar, Escolha o lago, Recolher) numa plaquinha embaixo. Texto e números são do jogo.
 - Vara de Bambu em quadros pintados (`rod-bamboo.webp`, 12 quadros: preparo, lançamento, espera, fisgada, puxada forte, sucesso, falha; `ROD_FRAMES` em `shared/generated/fishingFx.ts` com punho e ponta de cada quadro, de onde sai a linha). A Vara de Carvalho usa a mesma folha por enquanto. Respingos pintados: isca caindo na água (`splash-bait.webp`) e captura (`splash-catch.webp`), 8 quadros cada.
-- Desafio pequeno sobre a cabeça: relógio redondo com a sombra do peixe, estrelas de dificuldade, faixa de água com o alvo e a boia, acertos em losangos e erros em pontos.
+- **Menu da Pescaria** (20/10, pedido do matheus): sem Mochila, Loja, Leilão, Pets, Missões e Guilda; entra a **Sacola** (cesto pintado, `FishingBag`: peixes pescados por espécie com quantidade e recorde, mais varas e iscas) e, na tela, o botão **Trocas** (baú pintado) que abre as Trocas da Casa de Pesca de qualquer lugar. Ícones `17-botoes.png`.
+- Chave Auto pintada (`18-toggle-auto.png`): desligada cinza com carretilha de ferro, ligada verde com carretilha dourada e brilho pulsando, selo AUTOMÁTICO sobre a bandeja, aviso curto ao trocar e um selo de carretilha girando ao lado da cabeça de quem pesca no automático (visto por todos, `FishingPose.auto`).
+- Desafio pequeno sobre a cabeça (só no manual), pintado (`16-minigame-b.png`): painel com a carpa e a escotilha (sombra do peixe e anel do tempo), canal de água correndo, alvo verde, boia, gemas de acerto/erro e estrelas (`scripts/build-fishing-ui.py` recorta todas as pranchas da interface).
 - Resultado: o peixe (sem círculo atrás, pedido do matheus), nome em Lilita One, peso, estrelas, Pontos e EXP.
 - Casa de Pesca: balcão à esquerda (a Casa de Pesca sobre a aura dourada, nível, Pontos, totais) e abas Trocas (cards com moldura de item, preço, quantidade − / +) e Coleção (por lago, com contagem).
 
@@ -61,7 +70,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 ## Testes
 
-- `tests/fishing.test.ts`: lugares e píeres, caminhada até todos os lugares, notas da barra, automático e sorte, gravação, loja, separação das zonas, fluxo manual, dois erros e três rodadas AFK.
+- `tests/fishing.test.ts`: lugares e píeres, caminhada até todos os lugares, notas da barra, automático e sorte, gravação, raridade, histórico, loja, separação das zonas, fluxo manual, dois erros e três rodadas AFK.
 - `npm run test:fishing:browser` (jogo rodando): um amigo pesca no automático, o jogador entra, sobe a escada até o gramado do Lago das Ninfeias, aperta Lançar, escolhe o lago, pesca à mão até pegar, troca a vara, abre a Casa de Pesca e a Coleção e volta à praça. Prévias em `test-results/fishing/`.
 
 ## Falta
@@ -69,3 +78,4 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Arte pintada (prompts em `docs/fishing-art-prompts.md`): ícones de peixe/vara/isca/pontos, botão `fishing-button.png` e a folha da Vara de Carvalho. 
 - Sons de lançar, morder, acertar e escapar.
 - Mais varas e iscas, eventos de pesca, ranking de pescadores.
+- Ícone pintado do botão Histórico (hoje um desenho provisório).

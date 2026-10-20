@@ -13,6 +13,7 @@ import {WorldBossWindow} from './components/WorldBoss';
 import {MatchLoading} from './components/MatchLoading';
 import {FishingHud} from './components/FishingHud';
 import {FishingShop} from './components/FishingShop';
+import {FishingBag} from './components/FishingBag';
 import {MobileOrientationGate,useMobileOrientation} from './components/MobileOrientation';
 import {createPortal} from 'react-dom';
 import './components/Notifications.css';
@@ -63,6 +64,7 @@ export default function App(){
   {state.profile&&state.auctionOpen&&!state.battle&&<Auction/>}
   {state.profile&&state.petsOpen&&!state.battle&&<Pets/>}
   {state.profile&&state.fishShopOpen&&state.zone==='fishing'&&!state.battle&&<FishingShop/>}
+  {state.profile&&state.fishBagOpen&&state.zone==='fishing'&&!state.battle&&<FishingBag/>}
   {state.profile&&state.hallOpen&&!state.battle&&<HallOfFame/>}
   {state.profile&&state.worldBossOpen&&!state.battle&&!state.room&&<WorldBossWindow/>}
   {state.profile&&state.guildOpen&&!state.battle&&<Guild onForge={()=>{client.closeGuild();setPanel('forge');audio.play('click');}}/>}

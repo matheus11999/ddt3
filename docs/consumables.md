@@ -20,5 +20,5 @@ Pedido do matheus em 20/10/2026, a partir do pacote de referência `output/ddtan
   - `rage-icon.png`, `ice-icon.png` (256 px): botões da barra (o jogo escreve "POW +50" no Enfurecer) e ícone de 60×60 sobre a cabeça ao usar (AutoPropEffect em (−5, −140), some em 1,2 s).
   - `ice-projectile.png` (192 px): bola de gelo girada pela velocidade.
   - `ice-impact.png`: 7 quadros de 256 px, 80 ms cada.
-  - `ice-block.png`: 3 quadros de 320 px (inteiro, rachado no último turno congelado, quebrando); cresce do chão em 320 ms, translúcido sobre o lutador, 190 px para cobrir o corpo inteiro (o matheus achou o de 124 pequeno).
+  - `ice-block.png`: 3 quadros de 320 px (inteiro, rachado no último turno congelado, quebrando); cresce do chão em 320 ms, desenhado com 180 × 130 px e opacidade 0,46 para o lutador aparecer dentro (pedidos do matheus em 20/10: o de 124 px ficou pequeno, o de 190 px alto demais e opaco).
 - Sons do pacote de referência: `ice-fire.mp3` (023, lançamento da bola de gelo), `ice-impact.mp3` (093, impacto e gelo quebrando), em `public/assets/audio/consumables/`. Ao usar Enfurecer ou Gelo toca o som padrão das ferramentas (o 039 da referência saiu: o matheus achou feio).
