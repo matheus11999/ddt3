@@ -1,0 +1,14 @@
+MODEL: Nano Banana 2, aspect ratio 16:9, 1k.
+ATTACH, in this order: marks-approved-style.png (APPROVED STYLE: copy this look exactly), wind-ddtank-marks.png (DDTank wind marks: function and proportion ONLY).
+
+Paint the GROUND MARKS left around the crater hole by the weapon "Vento Celeste (a three-bladed shuriken)" in a 2D DDTank-like artillery game: the scorched, cracked ground right around a hole in destructible terrain (like DDTank's craterBrink). It is NOT an explosion: no fireball, no smoke, no flash, no objects.
+
+Style exactly like the first attached image (marks the user approved): a SOFT DARK GRADIENT hugging the hole's outline, darkest right at the edge and fading smoothly and irregularly to nothing outward, with thin dark cracks running out of the rim and fading, and broken patchy gaps where the ground would show through. Never a solid ring, line, frame or ornament; never weapons, blades, gems or pieces painted around it. The ragged outer limit is never a clean ellipse.
+
+LAYOUT: ONE image, invisible grid of FOUR columns × TWO rows (no gridlines, no labels, no text). One mark per cell, centered in its cell, the whole mark (hole + gradient) about 80% of the cell width, never touching another cell. Every hole in the same row has exactly the same size and shape, centered in its cell.
+- Hole: a smooth OVAL hole, about 1.5 times wider than tall (POW row: slightly bigger and a bit rounder oval), filled with flat pure MAGENTA #FF00FF (the game cuts it out).
+- The mark: many thin, straight, DIRECTIONAL CUTS like blade slashes starting at the hole edge and running outward, a few branching, fading out.
+- Top row = normal shot, bottom row = POW (special shot): wider and darker gradient, longer and more numerous cuts in a swirling fan.
+- Columns left to right are the weapon's four phases: (1) steel grey with rusty brown, (2) dark grey-red with a thin crimson ember line inside some cuts, (3) dark plum with a faint lilac glow in the cuts, (4) deep golden-brown with thin gold and sapphire-blue light inside the cuts. Each phase is clearly different from the previous one, never just the same mark recoloured.
+
+BACKGROUND: one flat uniform pure GREEN #00FF00 everywhere outside the marks (no gradient, no texture, no shadow). Never use green or magenta inside the marks themselves.

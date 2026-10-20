@@ -1,0 +1,14 @@
+MODEL: Nano Banana 2, aspect ratio 16:9, 1k.
+ATTACH, in this order: marks-approved-style.png (APPROVED STYLE: copy this look exactly), thunder-ddtank-marks.png (DDTank thunder marks: function and proportion ONLY).
+
+Paint the GROUND MARKS left around the crater hole by the weapon "Bobina do Trovão (an electric blaster)" in a 2D DDTank-like artillery game: the scorched, cracked ground right around a hole in destructible terrain (like DDTank's craterBrink). It is NOT an explosion: no fireball, no smoke, no flash, no objects.
+
+Style exactly like the first attached image (marks the user approved): a SOFT DARK GRADIENT hugging the hole's outline, darkest right at the edge and fading smoothly and irregularly to nothing outward, with thin dark cracks running out of the rim and fading, and broken patchy gaps where the ground would show through. Never a solid ring, line, frame or ornament; never weapons, blades, gems or pieces painted around it. The ragged outer limit is never a clean ellipse.
+
+LAYOUT: ONE image, invisible grid of FOUR columns × TWO rows (no gridlines, no labels, no text). One mark per cell, centered in its cell, the whole mark (hole + gradient) about 80% of the cell width, never touching another cell. Every hole in the same row has exactly the same size and shape, centered in its cell.
+- Hole: an OVAL hole about 1.2 times wider than tall with a finely serrated edge (POW row: a SMALLER oval, about 1.35 times wider than tall), filled with flat pure MAGENTA #FF00FF (the game cuts it out).
+- The mark: an ELECTRIC BURN: irregular branching cracks like lightning roots starting at the hole edge, splitting and fading out, with scorched dark patches.
+- Top row = normal shot, bottom row = POW (special shot): more compact and denser burn around the smaller hole, short dense branches tinted dark violet.
+- Columns left to right are the weapon's four phases: (1) black-blue matte burn, (2) black-blue with a faint cyan line inside the branches, (3) dark petrol-blue with dim orange specks, (4) deep burn with ice-blue and ruby-red light at the branch tips. Each phase is clearly different from the previous one, never just the same mark recoloured.
+
+BACKGROUND: one flat uniform pure GREEN #00FF00 everywhere outside the marks (no gradient, no texture, no shadow). Never use green or magenta inside the marks themselves.
