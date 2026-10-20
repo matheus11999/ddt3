@@ -13,11 +13,11 @@ import type {TerrainMark} from '../shared/protocol';
 const MASK_HASHES:Record<string,string>={};
 const hash=(bits:Uint8Array)=>createHash('sha256').update(bits).digest('hex').slice(0,16);
 
-const PROFILED=['brick','love-boomerang','wind-shuriken','thunder-coil'];
-test('32 destruction profiles: 4 weapons × 4 phases × normal|POW, 8 shared masks and 32 distinct paintings',()=>{
+const PROFILED=['brick','love-boomerang','wind-shuriken','thunder-coil','tide-rod'];
+test('40 destruction profiles: 5 weapons × 4 phases × normal|POW, 8 shared masks and 40 distinct paintings',()=>{
  const profiles=[...destructionProfiles().values()];
- assert.equal(profiles.length,32);
- assert.equal(new Set(profiles.map(p=>p.mark.src)).size,32,'one painting per profile');
+ assert.equal(profiles.length,40);
+ assert.equal(new Set(profiles.map(p=>p.mark.src)).size,40,'one painting per profile');
  assert.equal(new Set(profiles.map(p=>p.mask)).size,8,'phases share the cut');
  for(const weapon of PROFILED)for(const mode of DESTRUCTION_MODES)for(const stage of DESTRUCTION_STAGES){
   const p=profiles.find(item=>item.weapon===weapon&&item.mode===mode&&item.stage===stage)!;assert.ok(p,`${weapon} ${mode} ${stage}`);
@@ -42,7 +42,8 @@ test('masks are compiled from the shape alone: same bits everywhere, binary, sym
    const bit=mask.bits[j*mask.width+i];
    assert.equal(bit,mask.bits[j*mask.width+mask.width-1-i],'left/right symmetric');assert.equal(bit,mask.bits[(mask.height-1-j)*mask.width+i],'up/down symmetric');
   }
-  MASK_HASHES[profile.mask]??=hash(mask.bits);assert.equal(hash(mask.bits),MASK_HASHES[profile.mask]);
+  // The Vara das Marés shares the boomerang's oval masks at its own POW radius: one hash per shape and radius.
+  const key=`${profile.mask}@${profile.radius}`;MASK_HASHES[key]??=hash(mask.bits);assert.equal(hash(mask.bits),MASK_HASHES[key]);
  }
  // Fixed shapes, measured on the fine grid and 30% wider (CRATER_STRETCH): the brick is a flat 58×30 hexagon, the boomerang a 68×36 oval.
  const brick=craterMask('brick',22),oval=craterMask('oval',26);

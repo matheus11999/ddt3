@@ -300,6 +300,8 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  const sample=clamp(index,0,p.points.length-1),floor=Math.floor(sample),point=p.points[floor],next=p.points[Math.min(p.points.length-1,floor+1)],fraction=sample-floor;
  const tip:readonly[number,number]=[point[0]+(next[0]-point[0])*fraction,point[1]+(next[1]-point[1])*fraction];
  const tier=strength(level),family=FAMILY[p.effect],clock=reduced(options)?0:time,length=Math.min(limits(options).trailSamples,family.trail[tier]),start=Math.max(0,floor-length),previous=p.points[Math.max(0,floor-1)],angle=floor===0?Math.atan2(next[1]-point[1],next[0]-point[0]):Math.atan2(tip[1]-previous[1],tip[0]-previous[0]);
+ // The Vara das Marés fish flies clean: no drawn trail or drops behind it (matheus, 20/10).
+ if(p.effect!=='fish'){
  c.save();c.lineCap='round';c.lineJoin='round';
  const from=p.points[start],gradient=c.createLinearGradient(from[0],from[1],tip[0]+.01,tip[1]+.01);gradient.addColorStop(0,family.dark+'00');gradient.addColorStop(.65,family.mid+'75');gradient.addColorStop(1,family.hot+'c4');
  c.strokeStyle=gradient;c.lineWidth=(p.effect==='electric'?.8:1.2)+tier*.35;c.globalAlpha*=p.effect==='dynamite'?.28:.8;
@@ -307,6 +309,7 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  if(tier>=2&&p.effect!=='dynamite'){c.globalAlpha*=.45;c.lineWidth=.8;trace(c,p.points,start,floor,p.effect,tier,clock,1,tip);trace(c,p.points,start,floor,p.effect,tier,clock,-1,tip);}
  c.restore();
  c.save();c.globalCompositeOperation='screen';trailParticles(c,p,sample,tier,clock,options);c.restore();
+ }
  c.save();c.translate(tip[0],tip[1]);c.rotate(angle);
  const pulse=reduced(options)?0:Math.sin(clock/(p.effect==='electric'?70:140)),size=family.size[tier]*(p.powered?1.16:1)*(1+pulse*(tier?.045:.02));
  const strip=stripFor(p.effect,!!p.powered,tier),animated=!!strip?.strip.loaded;
@@ -505,10 +508,21 @@ function drawBrickImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,
   c.restore();}
  c.restore();
 }
+/** Vara das Marés: the painted splash (normal) or wave (POW) rises from the impact point as a solid painting,
+ * pops with a small overshoot and fades, much bigger than the generic light layer (matheus, 20/10). */
+function drawFishImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,tier:number){
+ const pow=!!p.powered,duration=pow?950:760,t=elapsed;if(t<0||t>=duration)return;
+ const radius=Math.min(130,Math.max(10,p.impact.radius)),size=radius*3.4*(1+tier*.06)*(pow?1.3:1);
+ const pop=t<130?.45+.7*easeOut(t/130):1.15+.1*easeOut((t-130)/(duration-130)),fade=1-clamp((t-duration*.5)/(duration*.5)),width=size*pop;
+ if(t<160)glow(c,p.impact.x,p.impact.y,radius*(.8+t/160*1.4),FAMILY.fish.hot,(1-t/160)*.7);
+ // The painting's base sits on the impact point: the water rises out of the ground.
+ sprite(c,'fish',pow?1:2,tier,p.impact.x,p.impact.y-width*.3,width,0,.5,fade,0,false,pow?'pow':'effects');
+}
 export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,level:number,material='earth',options:WeaponEffectOptions={}){
  if(p.effect==='boomerang'){drawBoomerangImpact(c,p.impact.x,p.impact.y,elapsed,!!p.powered,reduced(options));return;}
  if(p.fragment){drawBrickFragmentImpact(c,p,elapsed,strength(level),material,options);return;}
  if(p.effect==='brick'){drawBrickImpact(c,p,elapsed,strength(level),options);return;}
+ if(p.effect==='fish'){drawFishImpact(c,p,elapsed,strength(level));return;}
  const tier=strength(level),duration=630+tier*20,age=elapsed/duration;if(age<0||age>=1)return;
  const family=FAMILY[p.effect],radius=Math.min(130,Math.max(10,p.impact.radius))*(p.powered?1.18:1),open=1-Math.pow(1-clamp(age*3),3),fade=clamp(age/.045)*Math.pow(1-age,.68),motion=reduced(options)?age*.4:age;
  c.save();c.translate(p.impact.x,p.impact.y);c.globalAlpha*=fade;c.lineCap='round';c.lineJoin='round';

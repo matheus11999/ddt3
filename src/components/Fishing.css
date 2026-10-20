@@ -360,3 +360,122 @@ html.mobile-landscape .fishing-history-button{top:270px}
 .fishing-offer-art.item-card[data-card-variant="preview"]{width:50px;height:50px}
 .fishing-offer-name{font-size:10.5px;min-height:2.3em}
 .fishing-collection ul{grid-template-columns:repeat(auto-fill,minmax(104px,1fr))}
+
+/* Maior peixe da semana (pedido do matheus, 20/10): painel na lateral direita, abre e fecha. */
+.fishing-rank,.fishing-rank-tab{position:absolute;top:76px;right:12px;z-index:3;color:#eaf4ff;font-family:Nunito,sans-serif}
+.fishing-rank{width:252px;padding:0 0 8px;border:2px solid #e9b64f;border-radius:14px;background:radial-gradient(ellipse at 50% 0%,#2a64a8ee,#123460ee 55%,#0b2245f2);box-shadow:inset 0 1px #ffffff2a,0 0 0 2px #0a1734,0 8px 20px #0009;animation:fishing-rank-in .22s ease-out}
+.fishing-rank header{display:flex;align-items:center;gap:8px;padding:8px 6px 7px 11px;border-bottom:1px solid #e9b64f55;color:#ffd77a}
+.fishing-rank header>div{flex:1;min-width:0;display:grid}
+.fishing-rank header b{font:400 15px/1.1 'Lilita One',Nunito,sans-serif;letter-spacing:.3px;color:#ffe2a0;-webkit-text-stroke:.4px #0b1a33}
+.fishing-rank header small{font:800 10px Nunito,sans-serif;color:#9fc0e6}
+.fishing-rank header button{display:grid;place-items:center;width:26px;height:26px;border:1px solid #e9b64f88;border-radius:8px;background:#0a173499;color:#ffe2a0;cursor:pointer;transition:background .15s,transform .15s}
+.fishing-rank header button:hover{background:#1d4f8f;transform:translateX(2px)}
+.fishing-rank ol{display:grid;gap:2px;margin:6px 6px 0;padding:0;list-style:none}
+.fishing-rank li{display:grid;grid-template-columns:22px 1fr 26px auto;align-items:center;gap:6px;height:30px;padding:0 8px 0 4px;border-radius:9px;background:#ffffff0d;font:800 12px Nunito,sans-serif;transition:background .15s}
+.fishing-rank li:hover{background:#ffffff1c}
+.fishing-rank li.me{background:linear-gradient(90deg,#2f9a3a66,#2f9a3a22);box-shadow:inset 0 0 0 1px #8fff9a88}
+.fishing-rank-place{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:#0a1734;font:400 12px 'Lilita One',Nunito,sans-serif;color:#cfe0f5}
+.fishing-rank li.top-1 .fishing-rank-place{background:radial-gradient(circle at 40% 30%,#fff2b0,#e9a422 70%);color:#5a2a05;box-shadow:0 0 8px #ffd36b88}
+.fishing-rank li.top-2 .fishing-rank-place{background:radial-gradient(circle at 40% 30%,#ffffff,#a9b8c8 70%);color:#2a3a4a}
+.fishing-rank li.top-3 .fishing-rank-place{background:radial-gradient(circle at 40% 30%,#ffd3a8,#c77a3a 70%);color:#3a1a05}
+.fishing-rank-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff}
+.fishing-rank-fish{display:grid;place-items:center}
+.fishing-rank li>b{font:400 13px 'Lilita One',Nunito,sans-serif;color:#bff0ff;white-space:nowrap}
+.fishing-rank li.top-1>b{color:#ffe07a}
+.fishing-rank-empty{margin:10px 12px 2px;font:800 12px/1.3 Nunito,sans-serif;color:#9fc0e6;text-align:center}
+.fishing-rank footer{display:flex;align-items:center;gap:5px;margin:7px 8px 0;padding:6px 9px;border-radius:9px;background:#0a1734aa;font:800 11.5px Nunito,sans-serif;color:#cfe0f5}
+.fishing-rank footer b{font:400 13px 'Lilita One',Nunito,sans-serif;color:#bff0ff}
+.fishing-rank-tab{display:flex;align-items:center;gap:6px;height:38px;padding:0 13px 0 10px;border:2px solid #e9b64f;border-radius:12px;background:linear-gradient(#1d4f8f,#0d2a52);box-shadow:0 0 0 2px #0a1734,0 6px 14px #0008;color:#ffe2a0;font:400 14px 'Lilita One',Nunito,sans-serif;cursor:pointer;transition:transform .15s,filter .15s}
+.fishing-rank-tab:hover{transform:translateX(-3px);filter:brightness(1.15)}
+@keyframes fishing-rank-in{from{opacity:0;transform:translateX(18px)}to{opacity:1;transform:none}}
+@media (max-height:560px){.fishing-rank{top:60px;width:220px}.fishing-rank li{height:24px;font-size:11px}.fishing-rank ol li:nth-child(n+6){display:none}}
+
+/* Um peixe da Sacola: cor da raridade, peso e valor (Sacola e Vender). */
+.fish-card{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:1px;width:100%;height:100%;min-height:72px;padding:3px 3px 3px;border:2px solid var(--rarity);border-radius:12px;background:radial-gradient(circle at 50% 38%,color-mix(in srgb,var(--rarity) 38%,#2f7fd0),#123a6e 75%);box-shadow:inset 0 2px 6px #0007,0 1px #ffffff22;color:#fff;font:inherit;transition:transform .12s,box-shadow .12s,filter .12s}
+button.fish-card{cursor:pointer}
+button.fish-card:hover{transform:translateY(-2px);filter:brightness(1.12);box-shadow:inset 0 2px 6px #0007,0 4px 10px #0008}
+button.fish-card:active{transform:scale(.95)}
+.fish-card.rarity-epico,.fish-card.rarity-lendario{box-shadow:inset 0 2px 6px #0007,0 0 9px var(--rarity)}
+.fish-card .fishing-icon{flex:none;margin:auto 0 0;filter:drop-shadow(0 2px 2px #061325)}
+.fish-card-kg{font:400 11px/1 'Lilita One',Nunito,sans-serif;text-align:center;color:#fff;-webkit-text-stroke:.4px #0b1a33;text-shadow:0 1px #0b1a33}
+.fish-card.weight-heavy .fish-card-kg{color:#ffe07a}.fish-card.weight-trophy .fish-card-kg{color:#ffb35a}
+.fish-card-value{align-self:stretch;display:flex;align-items:center;justify-content:center;gap:2px;height:13px;border-radius:6px;background:#0a1734bb;font:900 10px Nunito,sans-serif;color:#bff0ff}
+.fish-card-record{position:absolute;top:-7px;left:-6px;display:grid;place-items:center;width:19px;height:19px;border:1.5px solid #fff2c8;border-radius:50%;background:radial-gradient(circle at 40% 30%,#fff2b0,#e9a422 70%);color:#6b2c05;box-shadow:0 1px 3px #0008}
+.fish-card-check{position:absolute;top:-7px;right:-6px;display:grid;place-items:center;width:20px;height:20px;border:1.5px solid #fff;border-radius:50%;background:#2f9a3a;font:900 12px/1 Nunito,sans-serif;font-style:normal;color:#fff;box-shadow:0 1px 3px #0008;animation:fishing-check .18s ease-out}
+.fish-card.selected{border-color:#8fff9a;box-shadow:inset 0 2px 6px #0007,0 0 0 2px #8fff9a,0 0 12px #8fff9a99;filter:brightness(1.08)}
+@keyframes fishing-check{from{transform:scale(.3);opacity:0}}
+.fishing-bag-slot.fish{border:0;background:none;box-shadow:none}
+.fishing-bag-slot.fish .fish-card{min-height:0}
+.fishing-bag-slots.fish{row-gap:7px;padding-bottom:10px}
+.fishing-bag-sell{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 6px 0;font:800 13px Nunito,sans-serif;color:#d6e6fa}
+.fishing-bag-sell span{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.fishing-bag-sell b{font:400 16px 'Lilita One',Nunito,sans-serif;color:#bff0ff}
+.fishing-bag-sell em{font-style:normal;color:#ffb38a}
+.fishing-bag-sell .wood-button{height:32px;min-height:0;padding:0 14px;font-size:13px}
+
+/* Informação do peixe ao passar o mouse. */
+.fish-tip{width:240px}
+.fish-info{display:grid;gap:6px;padding:10px 12px;border:2px solid var(--rarity);border-radius:13px;background:radial-gradient(ellipse at 50% 0%,#2a64a8,#123460 60%,#0b2245);box-shadow:inset 0 1px #ffffff2a,0 0 0 2px #0a1734,0 10px 22px #000b;color:#eaf4ff}
+.fish-info header{display:flex;align-items:center;gap:9px}
+.fish-info-art{display:grid;place-items:center;width:52px;height:52px;flex:none;border:2px solid var(--rarity);border-radius:50%;background:radial-gradient(circle at 50% 35%,color-mix(in srgb,var(--rarity) 40%,#2f7fd0),#123a6e 72%)}
+.fish-info header b{display:block;font:400 16px/1.1 'Lilita One',Nunito,sans-serif;color:#ffe2a0}
+.fish-info header em{display:inline-block;margin-top:3px;padding:0 7px;border-radius:7px;background:color-mix(in srgb,var(--rarity) 30%,transparent);font:900 10px/16px Nunito,sans-serif;font-style:normal;color:var(--rarity)}
+.fish-info dl{display:grid;gap:4px;margin:0}
+.fish-info dl>div{display:flex;align-items:center;justify-content:space-between;gap:8px;font:800 12px Nunito,sans-serif}
+.fish-info dt{color:#9fc0e6}.fish-info dd{margin:0;display:flex;align-items:center;gap:5px;color:#fff}
+.fish-info dd small,.fishing-weight{padding:0 6px;border-radius:6px;font:900 10px/15px Nunito,sans-serif;font-style:normal}
+.weight-light{background:#ffffff1f;color:#cfe0f5}.weight-medium{background:#5ab4ff33;color:#a8d8ff}.weight-heavy{background:#ffd36b33;color:#ffe07a}.weight-trophy{background:#ff8a3a44;color:#ffc08a}
+.fish-info-scale{gap:6px!important;font:800 9.5px Nunito,sans-serif!important;color:#8fa6c4}
+.fish-info-scale i{flex:1;height:7px;border-radius:4px;background:#ffffff1a;box-shadow:inset 0 1px 2px #0008;overflow:hidden}
+.fish-info-scale i b{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#5ab4ff,#ffe07a 70%,#ff8a3a)}
+.fish-info-value{font:400 15px 'Lilita One',Nunito,sans-serif!important;color:#bff0ff!important}
+.fish-info>small{font:700 10.5px Nunito,sans-serif;color:#8fa6c4}
+
+/* Casa de Pesca: Comprar em grupos de linhas compactas. */
+.fishing-buy-list{display:grid;gap:10px;max-height:min(62vh,560px);overflow:auto;padding:2px 4px 2px 2px}
+.fishing-buy-list h4{margin:0 0 6px;font:700 13px Cinzel,Georgia,serif;letter-spacing:.5px;color:#6b2c05}
+.fishing-buy-list .fishing-offers{grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:6px;max-height:none;overflow:visible}
+.fishing-buy-list .fishing-offer{display:grid;grid-template-columns:44px 1fr auto;grid-template-rows:none;align-items:center;gap:8px;padding:5px 8px 5px 5px;text-align:left;transition:transform .12s,box-shadow .12s}
+.fishing-buy-list .fishing-offer:not(.locked):hover{transform:translateY(-1px);box-shadow:inset 0 0 0 2px #ffffffaa,0 3px 0 #b8733a,0 6px 12px #0004}
+.fishing-buy-list .fishing-offer-art.item-card[data-card-variant="preview"]{width:44px;height:44px}
+.fishing-buy-list .fishing-offer-text{display:grid;gap:2px;min-width:0}
+.fishing-buy-list .fishing-offer-name{display:block;min-height:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 12.5px/1.15 Nunito,sans-serif}
+.fishing-buy-list .fishing-cost{justify-self:start;padding:0 7px 0 2px;font-size:12px}
+.fishing-buy-list .fishing-offer-foot{grid-column:auto;width:auto;min-height:0;padding:0;border:0;justify-content:flex-end}
+.fishing-buy-list .fishing-offer.asking{grid-template-columns:44px 1fr;outline:2px solid #e9b64f}
+.fishing-buy-list .fishing-offer.asking .fishing-offer-foot{grid-column:1/-1;justify-content:center}
+.fishing-buy-list .fishing-need{font:900 11px Nunito,sans-serif;color:#9a5a2a}.fishing-buy-list .fishing-need.ok{color:#1f7f3a}
+.fishing-offer.done{animation:fishing-bought .5s ease-out}
+.fishing-offer-done{position:absolute;right:8px;top:-9px;padding:1px 8px;border-radius:8px;background:#2f9a3a;font:900 11px Nunito,sans-serif;font-style:normal;color:#fff;box-shadow:0 2px 4px #0006;animation:fishing-done 1.4s ease-out forwards;pointer-events:none}
+@keyframes fishing-bought{40%{box-shadow:inset 0 0 0 2px #8fff9a,0 0 16px #8fff9a}}
+@keyframes fishing-done{0%{opacity:0;transform:translateY(6px)}15%{opacity:1;transform:none}75%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+.fishing-shop-tabs>button{font-size:14px;padding:0 16px}
+
+/* Vender: filtros, peixes para marcar e a barra de venda. */
+.fishing-sell{display:grid;gap:8px;min-width:0}
+.fishing-sell-tools{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.fishing-chips{display:flex;gap:4px;flex-wrap:wrap}
+.fishing-chips button{display:flex;align-items:center;gap:5px;height:28px;padding:0 10px;border:1.5px solid var(--wood-edge);border-radius:14px;background:linear-gradient(#fff8e8,var(--wood-cream-mid));font:800 12px Nunito,sans-serif;color:var(--wood-ink);cursor:pointer;transition:background .12s,transform .12s}
+.fishing-chips button:hover{transform:translateY(-1px)}
+.fishing-chips button i{width:9px;height:9px;border-radius:50%;background:var(--rarity);box-shadow:0 0 0 1.5px #0003}
+.fishing-chips button small{padding:0 5px;border-radius:6px;background:#0000001a;font:900 10.5px Nunito,sans-serif}
+.fishing-chips button.on{border-color:#6b2c05;background:linear-gradient(#ffe07a,#e9a422);color:#5a2a05}
+.fishing-sell-tools select{height:28px;padding:0 8px;border:1.5px solid var(--wood-edge);border-radius:9px;background:#fff8e8;font:800 12px Nunito,sans-serif;color:var(--wood-ink)}
+.fishing-sell-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));grid-auto-rows:84px;gap:9px;max-height:min(55vh,465px);overflow:auto;margin:0;padding:10px;border:2px solid #c99a3e;border-radius:14px;background:radial-gradient(ellipse at 50% 0%,#1d4f8f,#0d2a52 70%);box-shadow:inset 0 2px 10px #0009;list-style:none}
+.fishing-sell-bar{display:flex;align-items:center;gap:8px;padding:7px 8px;border:1px solid var(--wood-edge);border-radius:12px;background:linear-gradient(#fff8e8,var(--wood-cream-mid));box-shadow:inset 0 0 0 2px #ffffffaa}
+.fishing-sell-bar .wood-quiet{height:30px;min-height:0;padding:0 10px;font-size:12px}
+.fishing-sell-total{flex:1;display:flex;align-items:center;justify-content:flex-end;gap:5px;font:800 13px Nunito,sans-serif;color:var(--wood-ink)}
+.fishing-sell-total b{font:400 18px 'Lilita One',Nunito,sans-serif;color:#1d4f8f}
+.fishing-sell-total em{font:700 11.5px Nunito,sans-serif;font-style:normal;color:var(--wood-ink-soft);text-align:right}
+.fishing-sell-go{height:34px;min-height:0;padding:0 22px;font-size:15px}
+.fishing-sell.empty{display:grid;justify-items:center;gap:6px;padding:40px 12px;text-align:center}
+.fishing-sell.empty p{margin:0;font:400 18px 'Lilita One',Nunito,sans-serif;color:#6b2c05}
+.fishing-sell.empty small{font:700 12.5px Nunito,sans-serif;color:var(--wood-ink-soft)}
+.fishing-counter-points{position:relative}
+.fishing-counter-points.gain{animation:fishing-gain .6s ease-out}
+.fishing-points-gain{position:absolute;right:10px;top:-6px;font:400 20px 'Lilita One',Nunito,sans-serif;font-style:normal;color:#8fff9a;-webkit-text-stroke:.8px #0b3a12;text-shadow:0 2px #0b3a12;animation:fishing-float 1.6s ease-out forwards;pointer-events:none}
+@keyframes fishing-gain{30%{box-shadow:0 0 0 2px #8fff9a,0 0 18px #8fff9a99}}
+@keyframes fishing-float{0%{opacity:0;transform:translateY(8px) scale(.8)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+.fishing-weight{margin-left:6px}
+.fishing-result-bag{font:800 10.5px Nunito,sans-serif;color:#9fc0e6}
+@media (max-width:900px),(max-height:560px){.fishing-shop{grid-template-columns:1fr}.fishing-counter{display:none}.fishing-sell-grid{max-height:40vh}.fishing-buy-list{max-height:58vh}}

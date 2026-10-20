@@ -35,7 +35,7 @@ POW_SCALE = 1.4
 OUT = ROOT / 'public' / 'assets' / 'weapons' / WEAPON
 
 
-def cells(path, cols, rows):
+def cells(path, cols, rows, body_only=False):
     """Every cell's sprite: magenta keyed out, the biggest painted piece whose centre lies in a grid cell is that
     cell's body, and every loose drop joins the nearest body (none farther than 60 px), so a fin crossing the
     grid line stays whole and a neighbour's splash never leaks in."""
@@ -43,7 +43,14 @@ def cells(path, cols, rows):
     image = Image.fromarray(rgba, 'RGBA')
     h, w = rgba.shape[:2]
     cw, ch = w / cols, h / rows
-    labels, count = ndimage.label(rgba[..., 3] > 20, structure=np.ones((3, 3)))
+    # Pieces are found on their solid paint, so a faint halo never glues a loose drop to the body; every soft
+    # edge pixel then joins the nearest piece (up to 10 px away).
+    alpha = rgba[..., 3]
+    # An opening also cuts the thin necks where a drop just touches a fin.
+    solid = ndimage.binary_opening(alpha > 160, structure=np.ones((3, 3)), iterations=4)
+    labels, count = ndimage.label(solid, structure=np.ones((3, 3)))
+    distance, (iy, ix) = ndimage.distance_transform_edt(labels == 0, return_indices=True)
+    labels = np.where((alpha > 0) & (distance <= 10), labels[iy, ix], 0)
     slices = ndimage.find_objects(labels)
     sizes = ndimage.sum(np.ones_like(labels), labels, range(1, count + 1))
     boxes = [(sl[1].start, sl[0].start, sl[1].stop, sl[0].stop) for sl in slices]
@@ -57,7 +64,7 @@ def cells(path, cols, rows):
         sys.exit(f'{path.name}: achei {len(bodies)} sprites, esperava {cols * rows}')
     members = {key: [n] for key, n in bodies.items()}
     for n, b in enumerate(boxes):
-        if n in bodies.values():
+        if body_only or n in bodies.values():
             continue
         def gap(key):
             o = boxes[bodies[key]]
@@ -76,7 +83,8 @@ def cells(path, cols, rows):
 
 
 def strips(sheet, mode, entry):
-    image, found = cells(sheet, 4, 4)
+    # The fish flies clean, without the painted drops behind it (matheus, 20/10); the shark keeps its spray.
+    image, found = cells(sheet, 4, 4, body_only=mode == 'normal')
     for r, stage in enumerate(STAGES):
         # Frames share one box lined up on the nose (the body's right edge), so the head stays still while the
         # tail swings; the pivot is the body's average centre.
