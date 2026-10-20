@@ -1,14 +1,14 @@
 {
  "draw": {
   "about": "TakeAimAsset geometry (game.swf, extraction-notes.json) in its own units; Brasa draws it at `scale` world px per unit around the shot origin. Dots: x distance from the hand pivot and alpha per dot, as in the original display list. arcCenter: centre of the arc's rim relative to the hand pivot, +x towards the back of the body, fitted on faixa-angular.png. Plate: the Brasa degree readout, not part of the original asset.",
-  "scale": 1.8,
+  "scale": 1.2,
   "arcRimRadius": 53,
   "arcCenter": [
    6,
    -3.5
   ],
   "arcAlpha": 0.7,
-  "dotSize": 3.2,
+  "dotSize": 3.6,
   "dots": [
    {
     "distance": 15,
@@ -52,7 +52,7 @@
    }
   ],
   "plate": {
-   "forward": 110,
+   "forward": 88,
    "up": 12
   }
  },
