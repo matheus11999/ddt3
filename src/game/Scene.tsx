@@ -1,3 +1,4 @@
+import {frameMeter} from './frameMeter';
 import {view} from './viewport';
 import {ROD_THROW_MS,TIDE_ROD} from './rodCast';
 import {useEffect,useRef} from 'react';
@@ -120,7 +121,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // area decodes, rather than an empty sky or a frozen first frame drawing the full paintings.
    if(state.zone!==shownZone){shownZone=state.zone;zoneChangedAt=t;}
    if(!state.battle&&t-Math.max(leftBattleAt,zoneChangedAt)<1500&&!zoneReady(el.width/view.width,el.height/H)){frame=requestAnimationFrame(render);return;}
-   nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);
+   nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);frameMeter.paint();
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/view.width,0,0,el.height/H,0,0);c.clearRect(0,0,view.width,H);const b=state.battle;
    if(!b){
