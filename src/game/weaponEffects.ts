@@ -4,6 +4,7 @@ import {weaponEffectsPath,weaponKit,weaponPowPath} from '../../shared/weaponKit'
 import {MATERIALS} from '../../shared/maps';
 import type {MaterialId} from '../../shared/maps';
 import {drawBoomerangImpact,preloadBoomerangImpacts} from './boomerangImpact';
+import stripData from './projectileStrips.json';
 
 type Effect=Projectile['effect'];
 /** A painted chunk cut from an impact cell: its own image, its center and width as shares of the cell width. */
@@ -21,6 +22,8 @@ export const VFX_LIMITS={high:{trailSamples:18,flightParticles:16,impactParticle
 const TAU=Math.PI*2;
 /** The POW sprite is painted bigger than the normal shot; this keeps it a notch larger on screen too. */
 const POW_SPRITE_SCALE=1.3;
+/** An animated strip frame keeps its painted fringe of sparks around the core, so it is drawn wider than a cropped cell. */
+const STRIP_SCALE=1.7;
 const FAMILY:Record<Effect,{hot:string;mid:string;dark:string;size:readonly number[];trail:readonly number[]}>= {
  fire:{hot:'#fff09a',mid:'#ff7920',dark:'#b72a20',size:[42,48,57,66],trail:[6,12,18,25]},
  electric:{hot:'#c1fdff',mid:'#25caff',dark:'#4154ea',size:[35,40,47,54],trail:[5,11,17,24]},
@@ -141,8 +144,34 @@ function atlasFor(effect:Effect,sheet:Sheet='effects'):Atlas{
  });
  atlases.set(key,atlas);return atlas;
 }
+/** Animated projectile strips (scripts/build-projectile-strips.py): a weapon listed there flies its painted frames
+ * instead of the still projectile cell of effects.png / pow.png, normal and POW. */
+type StripInfo={frames:number;width:number;height:number;pivot:number[];span:number};
+type StripWeapon={fps:number;normal?:Record<string,StripInfo>;pow?:Record<string,StripInfo>};
+type Strip={image:HTMLImageElement;ready:Promise<void>;loaded:boolean};
+const STRIPS=stripData as Record<string,StripWeapon>;
+const STAGES=[0,10,12,15] as const;
+const strips=new Map<string,Strip>();
+function stripFor(effect:Effect,powered:boolean,tier:number){
+ const weapon=WEAPONS.find(item=>item.effect===effect),data=weapon&&STRIPS[weapon.id],mode=powered?'pow':'normal',stage=STAGES[tier],info=data?.[mode]?.[stage];
+ if(!weapon||!data||!info)return undefined;
+ const key=`${weapon.id}:${mode}:${stage}`;let strip=strips.get(key);
+ if(!strip){
+  const image=new Image(),entry:Strip={image,loaded:false,ready:Promise.resolve()};
+  entry.ready=new Promise<void>(resolve=>{image.onload=()=>{entry.loaded=true;resolve();};image.onerror=()=>resolve();image.src=`/assets/weapons/${weapon.id}/projectile/${mode}-${stage}.png`;});
+  strips.set(key,entry);strip=entry;
+ }
+ return {strip,info,fps:data.fps};
+}
+function preloadStrips(effect:Effect){return STAGES.flatMap((_,tier)=>[false,true].map(powered=>typeof Image==='undefined'?Promise.resolve():stripFor(effect,powered,tier)?.strip.ready??Promise.resolve()));}
+/** Draws the current frame with the painted core on (0,0), pointing along +x; false while the strip is missing. */
+function drawStrip(c:CanvasRenderingContext2D,effect:Effect,powered:boolean,tier:number,width:number,time:number,alpha=1){
+ const found=stripFor(effect,powered,tier);if(!found?.strip.loaded)return false;
+ const {info}=found,frame=Math.floor(time/1000*found.fps)%info.frames,height=width*info.height/info.width;
+ c.save();c.globalAlpha*=alpha;c.drawImage(found.strip.image,frame*info.width,0,info.width,info.height,-width*info.pivot[0],-height*info.pivot[1],width,height);c.restore();return true;
+}
 /** Warms all paintings while the player chooses a room or prepares a shot. */
-export function preloadWeaponEffects(effects:readonly Effect[]=[...new Set(WEAPONS.map(weapon=>weapon.effect))]){return Promise.all([...effects.includes('boomerang' as Effect)?[preloadBoomerangImpacts()]:[],...effects.flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready])]);}
+export function preloadWeaponEffects(effects:readonly Effect[]=[...new Set(WEAPONS.map(weapon=>weapon.effect))]){return Promise.all([...effects.includes('boomerang' as Effect)?[preloadBoomerangImpacts()]:[],...effects.flatMap(effect=>[atlasFor(effect).ready,atlasFor(effect,'pow').ready,...preloadStrips(effect)])]);}
 /** Diagnostics for the fixed renderer budget; caches contain no per-shot state. */
 export function weaponEffectCacheStats(){const images=new Set<HTMLCanvasElement>(glowCache.values());for(const atlas of atlases.values())for(const cell of atlas.cells)for(const image of [cell.solid,...cell.energy])images.add(image);let rgbaBytes=0;for(const image of images)rgbaBytes+=image.width*image.height*4;return {families:atlases.size,surfaces:images.size,rgbaBytes};}
 if(typeof Image!=='undefined')void preloadWeaponEffects();
@@ -268,8 +297,9 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
  c.save();c.globalCompositeOperation='screen';trailParticles(c,p,sample,tier,clock,options);c.restore();
  c.save();c.translate(tip[0],tip[1]);c.rotate(angle);
  const pulse=reduced(options)?0:Math.sin(clock/(p.effect==='electric'?70:140)),size=family.size[tier]*(p.powered?1.16:1)*(1+pulse*(tier?.045:.02));
+ const animated=!!stripFor(p.effect,!!p.powered,tier)?.strip.loaded;
  glow(c,0,0,8+tier*3,family.mid,.18+tier*.025);
- if(tier||p.powered){
+ if((tier||p.powered)&&!animated){
   c.save();c.globalCompositeOperation='screen';c.lineWidth=.8;c.strokeStyle=family.hot;c.globalAlpha*=.38;
   if(p.effect==='electric'){
    for(let n=0;n<(tier>=2?2:1);n++){const phase=clock/210+n*Math.PI;c.beginPath();c.ellipse(-4-n*6,0,2.4+Math.cos(phase)*1.2,5+tier*2,phase*.13,phase,phase+Math.PI*1.5);c.stroke();}
@@ -281,16 +311,17 @@ export function drawProjectile(c:CanvasRenderingContext2D,p:Projectile,index:num
   c.restore();
  }
  const solid=p.effect==='dynamite'||p.effect==='crystal'||p.effect==='boomerang'||p.effect==='shuriken',spin=p.effect==='boomerang'?(reduced(options)?0:sample*.3):p.effect==='shuriken'?(reduced(options)?0:sample*.52):p.effect==='dynamite'?(reduced(options)?0:clock/170):pulse*.035;
- c.save();c.rotate(spin);if(!solid)c.scale(1,1+pulse*.09);
+ c.save();c.rotate(spin);if(!solid&&!animated)c.scale(1,1+pulse*.09);
  const anchor=p.effect==='dynamite'||p.effect==='boomerang'||p.effect==='shuriken'?.5:p.effect==='fire'?.76:p.effect==='electric'?.77:.72;
  // POW flies its own painted object (pow.png); the normal projectile only stands in while that art is missing.
- const painted=(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
+ // A painted animation already carries its own flicker, sparks and trail.
+ const painted=(animated&&drawStrip(c,p.effect,!!p.powered,tier,size*STRIP_SCALE*(p.powered?1.1:1),clock))||(p.powered&&sprite(c,p.effect,0,tier,0,0,size*POW_SPRITE_SCALE,0,anchor,.92,0,false,'pow'))||sprite(c,p.effect,0,tier,0,0,size,0,anchor,solid?.86:.82,0,!solid);c.restore();
  if(p.effect==='dynamite'){
   const x=-Math.cos(spin)*size*.35,y=-Math.sin(spin)*size*.35;glow(c,x,y,5+tier*.6,family.hot,.55);
   c.save();c.globalCompositeOperation='screen';c.strokeStyle='#ffeab4';c.lineWidth=.8;const count=Math.min(limits(options).flightParticles,2+tier);
   for(let n=0;n<count;n++){const phase=(clock/270+n/count)%1,a=n*2.39996+spin,r=2+phase*(5+tier*2);c.globalAlpha=(1-phase)*.75;c.beginPath();c.moveTo(x+Math.cos(a)*r,y+Math.sin(a)*r);c.lineTo(x+Math.cos(a)*(r+2),y+Math.sin(a)*(r+2));c.stroke();}c.restore();
  }
- if(p.powered){c.save();c.globalCompositeOperation='screen';c.globalAlpha*=.45;c.strokeStyle=family.hot;c.lineWidth=1;c.beginPath();c.ellipse(-4,0,5,12+tier*2,clock/230,0,Math.PI*1.6);c.stroke();glow(c,0,0,18+tier*3,family.mid,.28);c.restore();}
+ if(p.powered&&!animated){c.save();c.globalCompositeOperation='screen';c.globalAlpha*=.45;c.strokeStyle=family.hot;c.lineWidth=1;c.beginPath();c.ellipse(-4,0,5,12+tier*2,clock/230,0,Math.PI*1.6);c.stroke();glow(c,0,0,18+tier*3,family.mid,.28);c.restore();}
  if(!painted)ellipse(c,0,0,p.effect==='crystal'?7:3,2,family.hot);
  c.restore();
 }
