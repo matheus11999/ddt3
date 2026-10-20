@@ -4,7 +4,7 @@ import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared
 import type {LobbyLayoutOverride} from '../shared/lobby';
 import {LOBBY_STATION_DEFAULTS} from './game/lobbyWorld';
 import type {PublishedMaps} from '../shared/mapAdmin';
-import {applyFishingLayout,defaultFishingLayout} from '../shared/fishingMap';
+import {applyFishingLayout,publishedFishingLayout,defaultFishingLayout} from '../shared/fishingMap';
 import type {FishingLayout} from '../shared/fishingMap';
 
 /** Maps published in the admin panel (GET /api/maps), applied the same way the server applies them. */
@@ -20,7 +20,7 @@ export function applyPublishedMaps(data:PublishedMaps){
  applyLobbyLayout(data.lobby?.lobby??shipped);
  // The Pescaria: only rebuilt when its published revision changes (the world bakes its floor again).
  const fishing=data.fishing?`${data.fishing.id}@${data.fishing.revision}`:'';
- if(fishing!==fishingApplied){fishingApplied=fishing;applyFishingLayout((data.fishing?.fishing as FishingLayout|undefined)??defaultFishingLayout());}
+ if(fishing!==fishingApplied){fishingApplied=fishing;applyFishingLayout(publishedFishingLayout(data.fishing?.fishing as FishingLayout|undefined));}
  applied=next;
 }
 

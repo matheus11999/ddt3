@@ -14,7 +14,7 @@
  * (public/assets/fishing/source/, cut by `npm run build:fishing`) except the balustrades, lamps,
  * cypresses and airship, which come from the plaza, and the quay's floor, the plaza's own.
  */
-import {FISHING_AIRSHIP,FISHING_CASA,FISHING_HEIGHT,FISHING_ITEMS,FISHING_LAKES,FISHING_STAIRS,FISHING_TERRACES,FISHING_WIDTH,FISH_BY_ID,fishingBlocked,fishingLayoutVersion,isWalkway,itemPoint,itemSize,deckOf,pondPlace,stairPlace,terraceAt} from '../../shared/fishing';
+import {FISHING_AIRSHIP,FISHING_HEIGHT,FISHING_ITEMS,FISHING_LAKES,FISHING_STAIRS,FISHING_TERRACES,FISHING_WIDTH,FISH_BY_ID,fishingBlocked,fishingLayoutVersion,isWalkway,itemPoint,itemSize,deckOf,pondPlace,stairPlace,terraceAt} from '../../shared/fishing';
 import type {FishingItem,FishingLake,FishingPose,FishingSpot} from '../../shared/fishing';
 import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
@@ -24,8 +24,7 @@ import {drawScaled,freeAll,freeImage,imageReady,screenScale} from './spriteCache
 import {plaque} from './lobbyWorld';
 
 const VIEW_W=1536,VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
-/** Where the baked ground starts (the top balustrade's lamps reach this high). */
-const GROUND_TOP=560;
+
 /** Width of one baked ground tile (world px). */
 const TILE=768;
 /** How far the sky moves for each px the camera moves, across and up and down. */
@@ -35,6 +34,8 @@ const GRASS=520,GRASS_SQUASH=.72;
 /** World px of one repeat of the moving water, and how strongly it shows over each painted pond. */
 const WATER=300,WATER_SQUASH=.55,WATER_ALPHA=.38;
 const [MIRANTE,JARDIM,CAIS]=FISHING_TERRACES;
+/** Where the baked ground starts (the top balustrade's lamps reach this high). */
+const GROUND_TOP=MIRANTE.y0-140;
 /** The front wall under each terrace: from just behind its edge (the painted grass lip) down to the next terrace or the clouds. */
 const WALLS=[{top:MIRANTE.y1-40,bottom:JARDIM.y0+10},{top:JARDIM.y1-40,bottom:CAIS.y0+10},{top:CAIS.y1-40,bottom:CAIS.y1+150}];
 const CLOUDS_TOP=CAIS.y1+90;
@@ -52,7 +53,6 @@ export interface FishingStation {id:'casa'|'airship';title:string;x:number;y:num
 export const FISHING_STATIONS:FishingStation[]=[];
 function placeStations(){
  FISHING_STATIONS.splice(0,FISHING_STATIONS.length,
-  {id:'casa',title:'Casa de Pesca',x:FISHING_CASA.x,y:FISHING_CASA.y,width:FISHING_PROPS['fishing-house'].w,height:FISHING_PROPS['fishing-house'].h,action:'shop'},
   {id:'airship',title:'Praça Celeste',x:FISHING_AIRSHIP.x,y:FISHING_AIRSHIP.y+60,width:FISHING_PROPS.airship.w,height:FISHING_PROPS.airship.h,action:'plaza'});
 }
 placeStations();
@@ -290,7 +290,6 @@ export class FishingWorld {
  private shadows(c:CanvasRenderingContext2D,camX:number,camY:number,viewW:number,viewH:number){
   const pieces:{id:FishingPropId;x:number;y:number;w:number;h:number;flip?:boolean}[]=[];
   for(const p of this.standing)if(CASTS.has(p.prop)){const {w,h}=itemSize(p);pieces.push({id:p.prop,x:p.x,y:p.y,w,h,flip:p.flip});}
-  const casa=FISHING_STATIONS[0];pieces.push({id:'fishing-house',x:casa.x,y:casa.y-20,w:casa.width,h:casa.height});
   for(const p of pieces){if(p.x+p.w*.5<camX-p.h*CAST_LEAN||p.x-p.w*.5>camX+viewW||p.y<camY-40||p.y-p.h*CAST_SQUASH>camY+viewH+40)continue;
    const cast=this.cast(p.id);
    c.save();c.translate(p.x,p.y);

@@ -27,7 +27,7 @@ async function walkTo(x,y){
  }
 }
 await page.screenshot({path:`${dir}/01-chegada.png`});
-for(const [name,x,y] of [['02-casa-de-pesca',2300,2430],['03-escada-cais',1700,2150],['04-ninfeias',1750,1960],['05-ilha-ponte',2040,1700],['06-poco-azul',3350,1720],['07-juncos',3900,2040],['08-mirante-termal',3300,1110],['09-pagode',2250,1050],['10-lagoa-cristal',1250,1110]]){
+for(const [name,x,y] of [['02-cais',1500,1900],['03-escada-cais',1750,1700],['04-pier',710,1560],['05-ilha-ponte',1720,1330],['06-mirante',1150,760]]){
  await walkTo(x,y);await page.waitForTimeout(1500);await page.screenshot({path:`${dir}/${name}.png`});
 }
 await browser.close();console.log('fishing scenery ok');

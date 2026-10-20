@@ -20,7 +20,7 @@ const walkTo=async(page,x,y)=>{for(let n=0;n<8;n++){const p=page.at();if(Math.hy
  const start=Date.now();let last={...p};while(Date.now()-start<15000){await page.waitForTimeout(500);const q=page.at();if(Math.hypot(q.x-last.x,q.y-last.y)<.5)break;last={...q};}}};
 const camera=(x,y)=>({x:Math.max(0,Math.min(FISHING_WIDTH-1536,x-768)),y:Math.max(0,Math.min(FISHING_HEIGHT-864,y-864*.6))});
 // Everyone arrives at the quay and first climbs to the lawn in front of the Lago das Ninfeias.
-const lake=FISHING_LAKES[0],lawn={x:1700,y:1980},view=camera(lawn.x,lawn.y),onLake=dx=>({x:lake.x+dx-view.x,y:lake.y+20-view.y});
+const lake=FISHING_LAKES[0],lawn={x:lake.x+270,y:lake.y+260},view=camera(lawn.x,lawn.y),onLake=dx=>({x:lake.x+dx-view.x,y:lake.y+20-view.y});
 const climb=page=>walkTo(page,lawn.x,lawn.y);
 /** The free spot a click on the water walks to (as the scene picks it). */
 const spotFor=(dx,taken=[])=>FISHING_SPOTS.filter(s=>s.lake===lake.id&&!taken.includes(s.id)).sort((a,b)=>Math.hypot(a.bobX-lake.x-dx,a.bobY-lake.y-20)-Math.hypot(b.bobX-lake.x-dx,b.bobY-lake.y-20))[0];
@@ -28,10 +28,10 @@ const spotFor=(dx,taken=[])=>FISHING_SPOTS.filter(s=>s.lake===lake.id&&!taken.in
 // A friend fishing in automatic mode, so the first player sees someone else at the lake.
 const friend=await open();
 await friend.locator('.lobby-dock-button.fishing').click();await expect(friend.locator('.fishing-hud')).toBeVisible();await friend.waitForTimeout(1500);
-await friend.locator('.fishing-auto').click();await climb(friend);
-const friendSpot=spotFor(-230);
-await friend.locator('.fishing-main').click();await friend.locator('.world-canvas').click({position:onLake(-230)});
-await expect(friend.locator('.fishing-tip')).toContainText('automático',{timeout:30000});
+await friend.locator('.fishing-auto').click();await climb(friend);if(process.env.DEBUG)await shot(friend,'00-amigo');
+const friendSpot=spotFor(-150);
+await friend.locator('.fishing-main').click();await friend.locator('.world-canvas').click({position:onLake(-150)});
+if(process.env.DEBUG){await friend.waitForTimeout(6000);await shot(friend,'00b-amigo');}await expect(friend.locator('.fishing-tip')).toContainText('automático',{timeout:30000});
 
 const page=await open(),canvas=page.locator('.world-canvas');
 await page.waitForTimeout(1500);await shot(page,'01-praca-botao');
@@ -41,8 +41,8 @@ await page.waitForTimeout(2500);await shot(page,'02-entrada');
 await climb(page);
 // Lançar, then pick the lake: walk to its nearest free spot and cast.
 await page.locator('.fishing-main').click();await expect(page.locator('.fishing-tip.picking')).toBeVisible();
-await canvas.hover({position:onLake(-lake.rx+300)});await page.waitForTimeout(500);await shot(page,'03-escolher-lago');
-await canvas.click({position:onLake(-lake.rx+300)});
+await canvas.hover({position:onLake(120)});await page.waitForTimeout(500);await shot(page,'03-escolher-lago');
+await canvas.click({position:onLake(120)});
 await page.waitForTimeout(300);await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});await page.waitForTimeout(150);await shot(page,'03b-isca-na-agua');
 await expect(page.locator('.fishing-tip')).toContainText('morder',{timeout:30000});
 await page.waitForTimeout(800);await shot(page,'03c-esperando');
@@ -73,14 +73,8 @@ await page.waitForTimeout(600);await shot(page,'07b-sacola');await page.locator(
 // The Auto switch: lit, with the AUTOMÁTICO seal and a short notice; then off again.
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toHaveCount(0);
-// The Casa de Pesca on its island opens from anywhere it shows.
-const clickWorld=async(x,y,from)=>{const cam=camera(from.x,from.y);await canvas.click({position:{x:x-cam.x,y:y-cam.y}});};
-const house=FISHING_STATIONS.find(s=>s.id==='casa');
-// Back to the lawn, where the Casa de Pesca's roof shows over the quay.
-await walkTo(page,lawn.x,lawn.y);
-await page.waitForTimeout(400);await shot(page,'08-casa-de-pesca');
-await clickWorld(house.x,house.y-house.height*.72,page.at());
-await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.locator('.fishing-shop-window .close-button').click();
+// No Casa de Pesca building since 20/10: the map has only the airship to click.
+await expect(FISHING_STATIONS.some(s=>s.id==='casa')).toBe(false);
 // The Trocas button opens the same window from anywhere.
 await page.locator('.fishing-trade:not(.fishing-history-button)').click();await expect(page.locator('.fishing-shop-window')).toBeVisible();await page.waitForTimeout(800);await shot(page,'09-loja');
 await page.getByRole('button',{name:/^Coleção/}).click();await page.waitForTimeout(500);await shot(page,'10-colecao');
