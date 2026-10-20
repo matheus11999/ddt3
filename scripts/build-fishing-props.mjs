@@ -58,6 +58,13 @@ const PROPS=[
  ['tuft-1',`${CODEX}/8-gramado-bordas.png`,7,48],
  ['tuft-2',`${CODEX}/8-gramado-bordas.png`,8,46],
  ['tuft-3',`${CODEX}/8-gramado-bordas.png`,9,44],
+ ['pond-clear',`${CODEX}/26-lagos-limpos.png`,0,300],
+ ['stair-grand',`${CODEX}/24-escadarias.png`,0,260],
+ ['stair-narrow',`${CODEX}/24-escadarias.png`,1,240],
+ ['bridge-arch',`${CODEX}/25-pontes.png`,0,170],
+ ['bridge-arch-v',`${CODEX}/25-pontes.png`,1,260],
+ ['walkway',`${CODEX}/25-pontes.png`,2,120],
+ ['pier-stone',`${CODEX}/25-pontes.png`,3,260],
  ['lily-pad-1',`${CODEX}/12-ninfeias.png`,1,40],
  ['lily-pad-2',`${CODEX}/12-ninfeias.png`,2,34],
  ['lily-pad-3',`${CODEX}/12-ninfeias.png`,3,28],
@@ -74,7 +81,7 @@ const GRIDS=[
 ];
 /** Pieces with see-through paint over the magenta (the hot spring's steam): the magenta is taken back out of it. */
 const UNMIX=new Set();
-const DESPILL=new Set([`${CODEX}/12-ninfeias.png`,`${LOBBY}/06-ceu-vivo.png`,`${CODEX}/2-lagos.png`,`${CODEX}/3-pieres.png`,`${CODEX}/8-gramado-bordas.png`]);
+const DESPILL=new Set([`${CODEX}/12-ninfeias.png`,`${LOBBY}/06-ceu-vivo.png`,`${CODEX}/2-lagos.png`,`${CODEX}/3-pieres.png`,`${CODEX}/8-gramado-bordas.png`,`${CODEX}/24-escadarias.png`,`${CODEX}/25-pontes.png`,`${CODEX}/26-lagos-limpos.png`]);
 const report=process.argv.includes('--report');
 const files=[...new Set([...PROPS.map(p=>p[1]),...GRIDS.map(g=>g.file)])];
 const images=Object.fromEntries(await Promise.all(files.map(async f=>[f,`data:image/png;base64,${(await readFile(f)).toString('base64')}`])));

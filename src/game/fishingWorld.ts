@@ -71,12 +71,13 @@ function fixedPieces():Piece[]{
  const strip=FISHING_PROPS['grass-strip'];
  for(const y of [MIRANTE.y0+40,JARDIM.y0+44])for(let x=-80;x<W+strip.w;x+=strip.w*.9)add('grass-strip',x,y,{layer:'ground',flip:r()<.5});
  const stairs=FISHING_STAIRS.map(stairPlace);
- for(const s of stairs)add('stone-trail',s.bottom.x+(s.flip?-120:120),s.bottom.y+50,{layer:'ground',scale:.8,flip:s.flip});
+ for(const s of stairs)if(!s.front)add('stone-trail',s.bottom.x+(s.flip?-120:120),s.bottom.y+50,{layer:'ground',scale:.8,flip:s.flip});
  // The quay's balustrade over the clouds, open at the airship's gangway.
  const gap={x0:FISHING_AIRSHIP.x-60,x1:FISHING_AIRSHIP.x+60},run=FISHING_PROPS.balustrade.w*.8;
  for(let x=run/2-20;x<W+run;x+=run)if(x+run/2<gap.x0||x-run/2>gap.x1)add('balustrade',x,CAIS.y1+16,{scale:.8});
  for(let x=-20,k=0;x<W+run;x+=run,k++)if(x<gap.x0-20||x>gap.x1+20)add(k%3===2?'lamp-pillar':'urn-pillar',x,CAIS.y1+20,{scale:.8});
- for(const s of stairs){add('urn-pillar',s.top.x+(s.flip?42:-42),s.top.y+4,{scale:.6});add('urn-pillar',s.top.x+(s.flip?-42:42),s.top.y+4,{scale:.6});}
+ // Side stairs get urns at the top; the front ones have their own painted balustrade.
+ for(const s of stairs)if(!s.front){add('urn-pillar',s.top.x+(s.flip?42:-42),s.top.y+4,{scale:.6});add('urn-pillar',s.top.x+(s.flip?-42:42),s.top.y+4,{scale:.6});}
  return list;
 }
 
@@ -215,8 +216,10 @@ export class FishingWorld {
   for(const w of WALLS){const k=(w.bottom-w.top)/size.h,ww=size.w*k*.97;
    const foot=g.createLinearGradient(0,w.bottom-10,0,w.bottom+26);foot.addColorStop(0,'rgba(40,30,15,.35)');foot.addColorStop(1,'rgba(40,30,15,0)');g.fillStyle=foot;g.fillRect(x0,w.bottom-10,x1-x0,36);
    for(let x=Math.floor(x0/ww)*ww-ww*.02;x<x1;x+=ww)g.drawImage(wall,x,w.top,size.w*k,w.bottom-w.top);}
-  const stair=this.art.get('stair')!;
-  for(const s of FISHING_STAIRS.map(stairPlace))if(s.x+s.w>x0&&s.x<x1){g.save();if(s.flip){g.translate(s.x*2+s.w,0);g.scale(-1,1);}g.drawImage(stair,s.x,s.y,s.w,s.h);g.restore();}
+  for(const s of FISHING_STAIRS.map(stairPlace))if(s.x+s.w>x0&&s.x<x1){const stair=this.art.get(s.art)!;
+   // A front stair stands out of the wall: a soft shadow on the terrace below, to its left.
+   if(s.front){g.fillStyle='rgba(30,35,15,.28)';g.beginPath();g.ellipse(s.x+s.w*.42,s.y+s.h-8,s.w*.5,16,0,0,Math.PI*2);g.fill();}
+   g.save();if(s.flip){g.translate(s.x*2+s.w,0);g.scale(-1,1);}g.drawImage(stair,s.x,s.y,s.w,s.h);g.restore();}
   // The cascades over the wall.
   for(const p of this.flat)if(p.prop==='cascade')this.piece(g,p,x0,x1);
  }

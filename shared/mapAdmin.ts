@@ -65,7 +65,7 @@ const unique=(list:{id:string}[])=>new Set(list.map(i=>i.id)).size===list.length
 export const fishingLayoutSchema=z.object({
  lakes:z.array(z.object({id:fishingId,name:text(32),fish:z.enum(Object.keys(FISH_TABLES) as [keyof typeof FISH_TABLES,...(keyof typeof FISH_TABLES)[]]),art:z.enum(Object.keys(POND_ARTS) as [string,...string[]]),
   x:z.number().finite().min(0).max(4608),y:z.number().finite().min(0).max(2620),width:z.number().finite().min(200).max(2400),flip:z.boolean().optional()}).strict()).min(1).max(20).refine(unique,'Dois lagos com o mesmo código.'),
- stairs:z.array(z.object({id:fishingId,upper:z.enum(['mirante','jardim']),x:z.number().finite().min(-200).max(4608),flip:z.boolean().optional()}).strict()).max(20).refine(unique,'Duas escadas com o mesmo código.'),
+ stairs:z.array(z.object({id:fishingId,upper:z.enum(['mirante','jardim']),x:z.number().finite().min(-200).max(4608),flip:z.boolean().optional(),art:z.enum(['side','grand','narrow']).optional()}).strict()).max(20).refine(unique,'Duas escadas com o mesmo código.'),
  items:z.array(z.object({id:fishingId,prop:z.enum(Object.keys(FISHING_PROPS) as [string,...string[]]),x:z.number().finite().min(-400).max(5000),y:z.number().finite().min(0).max(3000),
   scale:z.number().finite().min(.1).max(5).optional(),rotation:z.number().finite().min(-360).max(360).optional(),flip:z.boolean().optional(),layer:z.enum(['ground','water','stand']),
   solid:z.boolean().optional(),walk:z.boolean().optional(),lake:fishingId.optional()}).strict()).max(900).refine(unique,'Duas peças com o mesmo código.'),

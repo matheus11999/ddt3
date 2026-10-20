@@ -32,18 +32,31 @@ export const FISHING_TERRACES:readonly FishingTerrace[]=[
 /** Bounds of every walkable point (the protocol's move limits). */
 export const FISHING_WALK={minX:100,maxX:2204,minY:520,maxY:1960};
 
-/** A painted stair climbing a retaining wall: its picture's size and the walkable line up its steps. */
+/** A painted stair climbing a retaining wall from the side: its picture's size and the walkable line up its steps. */
 export const STAIR_ART={w:588,h:360,bottom:{x:70,y:330},top:{x:520,y:30},half:50,scale:.556};
 /**
- * Stairs from the front edge of `upper` down to the terrace below. `x` is the picture's left edge;
- * `flip` mirrors it (climbing to the left). Walkable along the band from the bottom landing to the top.
+ * Stairs seen from the front (20/10, pedido do matheus: "escadaria com visão reta"): the picture stands
+ * against the wall, its top on the upper lawn's edge and its foot on the terrace below; players walk
+ * straight up the middle. `half` is half the walkable width, in widths of the picture.
  */
-export interface FishingStairs {id:string;upper:'mirante'|'jardim';x:number;flip?:boolean;}
+export const FRONT_STAIRS={grand:{prop:'stair-grand',name:'Escadaria larga',half:.2},narrow:{prop:'stair-narrow',name:'Escada estreita',half:.22}} as const;
+export type StairArt='side'|keyof typeof FRONT_STAIRS;
+/**
+ * Stairs from the front edge of `upper` down to the terrace below. `x` is the picture's left edge;
+ * `flip` mirrors it (a side stair then climbs to the left). `art` picks the painting (side by default).
+ */
+export interface FishingStairs {id:string;upper:'mirante'|'jardim';x:number;flip?:boolean;art?:StairArt;}
 /** Where a stair's picture sits and its walkable band, in world px. */
 export function stairPlace(s:FishingStairs){
- const upper=FISHING_TERRACES.find(t=>t.id===s.upper)!,k=STAIR_ART.scale,w=STAIR_ART.w*k,h=STAIR_ART.h*k,top=upper.y1-30;
+ const i=FISHING_TERRACES.findIndex(t=>t.id===s.upper),upper=FISHING_TERRACES[i],lower=FISHING_TERRACES[i+1];
+ const art=s.art&&s.art!=='side'?FRONT_STAIRS[s.art]:null;
+ if(art){
+  const size=FISHING_PROPS[art.prop],top=upper.y1-46,h=lower.y0+60-top,w=size.w*h/size.h,cx=s.x+w/2;
+  return {x:s.x,y:top,w,h,flip:!!s.flip,art:art.prop as FishingPropId,front:true,bottom:{x:cx,y:lower.y0+40},top:{x:cx,y:upper.y1-12},half:w*art.half};
+ }
+ const k=STAIR_ART.scale,w=STAIR_ART.w*k,h=STAIR_ART.h*k,top=upper.y1-30;
  const px=(x:number)=>s.flip?s.x+w-x*k:s.x+x*k;
- return {x:s.x,y:top,w,h,flip:!!s.flip,bottom:{x:px(STAIR_ART.bottom.x),y:top+STAIR_ART.bottom.y*k},top:{x:px(STAIR_ART.top.x),y:top+STAIR_ART.top.y*k},half:STAIR_ART.half*k};
+ return {x:s.x,y:top,w,h,flip:!!s.flip,art:'stair' as FishingPropId,front:false,bottom:{x:px(STAIR_ART.bottom.x),y:top+STAIR_ART.bottom.y*k},top:{x:px(STAIR_ART.top.x),y:top+STAIR_ART.top.y*k},half:STAIR_ART.half*k};
 }
 
 /**
@@ -52,6 +65,7 @@ export function stairPlace(s:FishingStairs){
  */
 export interface PondArt {name:string;aspect:number;cx:number;cy:number;rx:number;ry:number;}
 export const POND_ARTS:Record<string,PondArt>={
+ 'pond-clear':{name:'Lago limpo',aspect:4.9,cx:.49,cy:.51,rx:.385,ry:.37},
  'pond-lily':{name:'Ninfeias',aspect:1095/263,cx:.51,cy:.54,rx:.41,ry:.32},
  'pond-well':{name:'Poço de pedra',aspect:1114/299,cx:.51,cy:.51,rx:.39,ry:.29},
  'pond-crystal':{name:'Lagoa de cristal',aspect:1190/227,cx:.5,cy:.5,rx:.43,ry:.36},
@@ -101,12 +115,16 @@ const DECKS:Partial<Record<string,Deck>>={
  pier:{shape:'rect',u0:.37,u1:.63,v0:.165,v1:.959},
  'pier-l':{shape:'rect',u0:.3,u1:.7,v0:.15,v1:.95},
  bridge:{shape:'rect',u0:.053,u1:.947,v0:.711,v1:.886},
+ 'bridge-arch':{shape:'rect',u0:.04,u1:.96,v0:.36,v1:.66},
+ 'bridge-arch-v':{shape:'rect',u0:.3,u1:.7,v0:.06,v1:.95},
+ walkway:{shape:'rect',u0:.04,u1:.96,v0:.3,v1:.72},
+ 'pier-stone':{shape:'rect',u0:.3,u1:.7,v0:.14,v1:.95},
  dock:{shape:'rect',u0:.1,u1:.9,v0:.4,v1:.92},
  'grass-patch':{shape:'ellipse',u0:.08,u1:.92,v0:.2,v1:.88},
  'grass-patch-2':{shape:'ellipse',u0:.065,u1:.935,v0:.23,v1:.87},
  'grass-patch-3':{shape:'ellipse',u0:.1,u1:.9,v0:.2,v1:.88},
 };
-const DEFAULT_WALK=new Set(['pier','pier-l','bridge','dock']);
+const DEFAULT_WALK=new Set(['pier','pier-l','bridge','dock','bridge-arch','bridge-arch-v','walkway','pier-stone']);
 export const isWalkway=(item:FishingItem)=>item.walk??DEFAULT_WALK.has(item.prop);
 export const isSolid=(item:FishingItem)=>!isWalkway(item)&&(item.solid??DEFAULT_SOLID.has(item.prop));
 
@@ -198,10 +216,23 @@ function lakeSpots(lake:FishingLake):FishingSpot[]{
  }
  return list;
 }
+/** Floating lily pads and lotus: the float never lands on one (pedido do matheus: o respingo passava por cima). */
+const PAD=/^(lily|lotus)/;
+function clearOfPads(lake:FishingLake,s:FishingSpot):FishingSpot{
+ const pads=FISHING_ITEMS.filter(i=>i.layer==='water'&&PAD.test(i.prop)).map(i=>{const {w,h}=itemSize(i);return {x:i.x,y:i.y-h/2,r:Math.max(w,h)/2+22};});
+ let {bobX,bobY}=s;
+ for(let n=0;n<24&&pads.some(p=>Math.hypot((bobX-p.x),(bobY-p.y)*1.6)<p.r);n++){
+  // Slide the float around the lake's middle, toward the open water.
+  const a=Math.atan2((bobY-lake.y)/lake.ry,(bobX-lake.x)/lake.rx)+(n%2?1:-1)*.05*(n+1),k=Math.max(.25,.6-n*.012);
+  bobX=lake.x+lake.rx*k*Math.cos(a);bobY=lake.y+lake.ry*k*.75*Math.sin(a);
+ }
+ return {...s,bobX:Math.round(bobX),bobY:Math.round(bobY),facing:bobX>s.x?1:-1};
+}
 /** Spots on free floor, at least a body apart. */
 function placeSpots(){
  const list:FishingSpot[]=[];
- for(const lake of FISHING_LAKES)for(const s of lakeSpots(lake)){
+ for(const lake of FISHING_LAKES)for(const raw of lakeSpots(lake)){
+  const s=clearOfPads(lake,raw);
   if(fishingBlocked(s.x,s.y)||!inLake(lake,s.bobX,s.bobY)||onDeck(s.bobX,s.bobY))continue;
   if(list.some(o=>Math.hypot(o.x-s.x,o.y-s.y)<60))continue;
   list.push(s);}
@@ -331,7 +362,7 @@ function random(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Mat
  * and the quay with the airship at the front. Every fish lives in this one lake.
  */
 export function defaultFishingLayout():FishingLayout{
- const lakes:FishingLakeDef[]=[{id:'ninfeias',name:'Lago das Ninfeias',fish:'ninfeias',art:'pond-lily',x:1130,y:1285,width:1700}];
+ const lakes:FishingLakeDef[]=[{id:'ninfeias',name:'Lago das Ninfeias',fish:'ninfeias',art:'pond-clear',x:1130,y:1285,width:1750}];
  const placed=lakes.map(d=>{const lake=lakeOf(d);return {lake,...pondPlace(lake)};});
  const [MIRANTE,JARDIM,CAIS]=FISHING_TERRACES;
  const items:FishingItem[]=[],counts=new Map<string,number>();
@@ -344,22 +375,23 @@ export function defaultFishingLayout():FishingLayout{
   for(let n=0;n<patches;n++){const x=t.x0+80+r()*(t.x1-t.x0-160),y=t.y0+90+r()*(t.y1-t.y0-140);if(!dry(x,y))continue;add((['grass-patch','grass-patch-2','grass-patch-3'] as const)[n%3],x,y,{layer:'ground',flip:r()<.5,scale:.8+r()*.3});}
   for(let n=0;n<tufts;n++){const x=t.x0+40+r()*(t.x1-t.x0-80),y=t.y0+70+r()*(t.y1-t.y0-90);if(!dry(x,y))continue;add((['tuft-1','tuft-2','tuft-3'] as const)[n%3],x,y,{layer:'ground',flip:r()<.5,scale:.7+r()*.4});}
  }
- // The island, ringed by rocks, with the bridge to the east shore and a pier from the front.
+ // The island, ringed by rocks, with the arched bridge to the east shore and the pier from the front:
+ // both with their stone heads on dry ground (pedido do matheus: nada de ponte dentro da água).
  const lily=placed[0].lake,island={x:lily.x+318,y:lily.y-9,rx:127,ry:49};
  add('grass-patch-2',island.x,island.y+68,{layer:'ground',scale:1.32,walk:true});
  for(const [dx,dy,s] of [[-1,.55,.5],[.1,.95,.55],[.95,.45,.48],[-.5,1,.42]] as const)add('pond-rocks',island.x+dx*island.rx,island.y+dy*island.ry,{layer:'ground',scale:s});
- add('bridge',lily.x+610,lily.y+32,{layer:'ground',scale:1.47});
- add('pier',lily.x-420,lily.y+236,{layer:'ground',scale:1.12});
- // Floating: the rowboat on the lilies, lily pads and lotus that bob.
+ add('bridge-arch',lily.x+591,lily.y+62,{layer:'ground',scale:.85});
+ add('pier-stone',lily.x-420,lily.y+190,{layer:'ground',scale:.9});
+ // Floating over the clean water (the pond is painted without them): the rowboat, lily pads and lotus that bob.
  add('rowboat',lily.x-lily.rx*.15,lily.y+FISHING_PROPS.rowboat.h*.45,{layer:'water'});
- for(const [prop,dx,dy] of [['lotus-1',-.55,-.2],['lily-pad-1',-.42,.3],['lily-pad-3',-.25,-.45],['lily-cluster',.05,.42],['lily-pad-2',.18,-.5],['lotus-2',.62,.35],['lily-pad-4',.78,-.1]] as const)add(prop,lily.x+dx*lily.rx,lily.y+dy*lily.ry,{layer:'water'});
+ for(const [prop,dx,dy] of [['lotus-1',-.82,-.15],['lily-pad-1',-.86,.22],['lily-pad-3',-.66,-.5],['lily-cluster',-.33,.62],['lily-pad-2',-.3,-.72],['lily-pad-4',-.05,.72],['lotus-2',.12,-.7],['lily-pad-1',.2,.66],['lily-pad-3',.72,.62],['lily-cluster',.78,-.55]] as const)add(prop,lily.x+dx*lily.rx,lily.y+dy*lily.ry,{layer:'water'});
  add('cherry',island.x+10,island.y-4,{scale:.68});
  // Around the lake: the sign, a basket, a bucket, flowers, reeds and lanterns at the bridge.
  const {block}=placed[0],front=lily.y+block.ry+30;
  add('lake-sign',lily.x-block.rx*.78,front-10,{lake:lily.id});
  add('fish-basket',lily.x+block.rx*.95,lily.y+block.ry*.55+26,{scale:.9});add('bait-bucket',lily.x-block.rx*.97,lily.y+block.ry*.5+24,{scale:.85});
  add('hydrangea',lily.x+block.rx*.62,front+8,{scale:.8});add('reeds',lily.x+block.rx*.98,lily.y-block.ry*.2,{scale:.75,flip:true});add('reeds',lily.x-block.rx*.98,lily.y-block.ry*.1,{scale:.7});
- add('paper-lantern',lily.x+795,lily.y-34,{scale:.7});add('paper-lantern',lily.x+386,lily.y-38,{scale:.6});
+ add('paper-lantern',lily.x+850,lily.y-30,{scale:.7});
  // Trees framing the lawn and the lookout; cypresses at the corners; the lookout's pagoda.
  add('willow',230,1150);add('cherry',2010,1162,{flip:true});add('willow',1960,MIRANTE.y1-30,{flip:true});add('cherry',380,MIRANTE.y1-40);
  add('pagoda',1150,MIRANTE.y1-24);
@@ -370,7 +402,7 @@ export function defaultFishingLayout():FishingLayout{
  add('arch',640,CAIS.y1-60);
  add('paper-lantern',900,CAIS.y1-90,{scale:.85});add('hydrangea',1200,CAIS.y1-30,{scale:.8});add('paper-lantern',1500,CAIS.y1-90,{scale:.85});add('hydrangea',1980,CAIS.y1-30,{scale:.75,flip:true});
  return {lakes,items,
-  stairs:[{id:'escada-mirante',upper:'mirante',x:280},{id:'escada-cais',upper:'jardim',x:1640}],
+  stairs:[{id:'escada-mirante',upper:'mirante',x:600,art:'narrow'},{id:'escada-cais',upper:'jardim',x:1600,art:'grand'}],
   casa:{x:1150,y:CAIS.y1-50},airship:{x:400},spawn:{x:620,y:CAIS.y1-80}};
 }
 applyFishingLayout(defaultFishingLayout());
