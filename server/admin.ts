@@ -9,7 +9,7 @@ import {applyLobbyLayout,LOBBY_OBSTACLES,LOBBY_SPAWN,LOBBY_WALK} from '../shared
 import type {LobbyLayoutOverride} from '../shared/lobby';
 import {FISHING_MAP_ID,LOBBY_MAP_ID,mapCreateSchema,mapSaveSchema,MAP_ID_PATTERN,MAP_KIND_NAMES} from '../shared/mapAdmin';
 import type {AdminMapSummary,EditableLayout,FishingLayoutData,LobbyLayout,PublishedMap,PublishedMaps} from '../shared/mapAdmin';
-import {FISHING_LAKES,FISHING_SPAWN,FISHING_SPOTS,applyFishingLayout,defaultFishingLayout,fishingBlocked,fishingLayout} from '../shared/fishingMap';
+import {FISHING_LAKES,FISHING_SPAWN,FISHING_SPOTS,applyFishingLayout,defaultFishingLayout,publishedFishingLayout,fishingBlocked,fishingLayout} from '../shared/fishingMap';
 import type {FishingLayout} from '../shared/fishingMap';
 import type {ReportStore} from './reports';
 import {REPORT_STATUSES,reportUpdateSchema} from '../shared/reports';
@@ -118,7 +118,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
   for(const old of published.maps)if(!next.maps.some(m=>m.id===old.id))removeMapOverride(old.id);
   for(const m of next.maps)applyMapOverride(m as MapOverride);
   applyLobbyLayout(next.lobby?.lobby??defaultLobby);
-  applyFishingLayout((next.fishing?.fishing as FishingLayout|undefined)??defaultFishingLayout());
+  applyFishingLayout(publishedFishingLayout(next.fishing?.fishing as FishingLayout|undefined));
   published=next;
   await keepPinned();
  };

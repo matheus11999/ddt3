@@ -89,3 +89,11 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Cartão do pescador 30% menor.
 - Trocas compactas: 4 por linha, ícone pequeno, nome e custo; a quantidade só aparece depois de clicar em Trocar.
 - Atualizar a página ou reiniciar o servidor devolve à Pescaria quem estava nela (zona lembrada no navegador, `brasa-zone:<id>`); botão de sair ao lado de Configurações.
+
+## Mapa menor (20/10, pedido do matheus: "travando", um lago só, sem a Casa de Pesca)
+
+- 2304 × 2140 (era 4608 × 2620): mirante estreito atrás, o gramado com o **Lago das Ninfeias** (ilha, ponte, píer, barco) e o cais com o dirigível. Todos os 20 peixes vivem nesse lago (`FISH[].lakes = ['ninfeias']`); a Coleção agrupa por raridade.
+- Sem a construção da Casa de Pesca: a loja abre pelo botão Trocas.
+- Layouts publicados no `/admin` para o mapa antigo (fora dos limites novos) são ignorados até serem publicados de novo (`publishedFishingLayout`).
+- Prévia do mapa inteiro: `npx tsx scripts/preview-fishing-map.mjs <pasta>` (Vite rodando).
+- Falta: o cenário redesenhado em pintura única pelo Codex, com sombras e profundidade.

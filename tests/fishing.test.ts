@@ -23,7 +23,7 @@ test('every fishing spot stands on walkable ground and casts into its own lake',
 });
 
 test('walkers go around the lakes and reach every spot from the gate',()=>{
- const center=FISHING_LAKES[1];assert.ok(fishingBlocked(center.x+5,center.y));
+ const center=FISHING_LAKES[0];assert.ok(fishingBlocked(center.x+5,center.y));
  const free=fishingFree(center.x+5,center.y);assert.ok(!fishingBlocked(free.x,free.y));
  for(const spot of FISHING_SPOTS){
   let p={...FISHING_SPAWN};
@@ -61,9 +61,10 @@ test('hard fish move the target: a press on its old place misses, one on the mov
 
 test('automatic fishing is always less reliable than a good manual player, and luck favors rare fish',()=>{
  for(const fish of FISH)for(const rod of ROD_BY_ID.values())assert.ok(autoChance(fish,rod)<=.85);
- const rare=(rod:string)=>{let n=0;for(let i=0;i<1000;i++)if(pickFish('profundo',ROD_BY_ID.get(rod)!,i/1000).difficulty>=4)n++;return n;};
+ const rare=(rod:string)=>{let n=0;for(let i=0;i<1000;i++)if(pickFish('ninfeias',ROD_BY_ID.get(rod)!,i/1000).difficulty>=4)n++;return n;};
  assert.ok(rare('rod-royal')>rare('rod-bamboo'));
- for(let i=0;i<50;i++)assert.ok(pickFish('cristal',ROD_BY_ID.get('rod-bamboo')!,i/50).lakes.includes('cristal'));
+ // One lake since 20/10: every fish lives in it.
+ assert.equal(new Set(Array.from({length:400},(_,i)=>pickFish('ninfeias',ROD_BY_ID.get('rod-royal')!,i/400).id)).size,FISH.length);
 });
 
 test('a catch adds points, fisher EXP and the collection',()=>{

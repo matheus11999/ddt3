@@ -17,20 +17,20 @@
 import {FISHING_PROPS} from './generated/fishingProps';
 import type {FishingPropId} from './generated/fishingProps';
 
-export const FISHING_WIDTH=4608;
-export const FISHING_HEIGHT=2620;
+export const FISHING_WIDTH=2304;
+export const FISHING_HEIGHT=2140;
 export type Zone='plaza'|'fishing';
 
 interface Rect {x0:number;x1:number;y0:number;y1:number;}
 /** Terraces, top to bottom (y is depth: smaller y is farther back and higher up). */
 export interface FishingTerrace extends Rect {id:string;name:string;}
 export const FISHING_TERRACES:readonly FishingTerrace[]=[
- {id:'mirante',name:'Mirante das Fontes',x0:120,x1:4488,y0:700,y1:1180},
- {id:'jardim',name:'Jardim dos Lagos',x0:110,x1:4498,y0:1320,y1:2080},
- {id:'cais',name:'Cais das Nuvens',x0:150,x1:4458,y0:2220,y1:2440},
+ {id:'mirante',name:'Mirante',x0:110,x1:2194,y0:520,y1:780},
+ {id:'jardim',name:'Jardim do Lago',x0:100,x1:2204,y0:920,y1:1600},
+ {id:'cais',name:'Cais das Nuvens',x0:130,x1:2174,y0:1740,y1:1960},
 ];
 /** Bounds of every walkable point (the protocol's move limits). */
-export const FISHING_WALK={minX:110,maxX:4498,minY:700,maxY:2440};
+export const FISHING_WALK={minX:100,maxX:2204,minY:520,maxY:1960};
 
 /** A painted stair climbing a retaining wall: its picture's size and the walkable line up its steps. */
 export const STAIR_ART={w:588,h:360,bottom:{x:70,y:330},top:{x:520,y:30},half:50,scale:.556};
@@ -208,6 +208,15 @@ function placeSpots(){
  FISHING_SPOTS.splice(0,FISHING_SPOTS.length,...list);
 }
 
+/**
+ * A layout published for this map, or the shipped one: layouts published in the /admin for the old,
+ * twice as wide garden (before 20/10) no longer fit and are ignored until republished.
+ */
+export function publishedFishingLayout(layout:FishingLayout|undefined):FishingLayout{
+ if(!layout)return defaultFishingLayout();
+ const fits=[...layout.lakes,...layout.items,layout.spawn].every(p=>p.x>=0&&p.x<=FISHING_WIDTH&&p.y>=0&&p.y<=FISHING_HEIGHT)&&layout.airship.x<=FISHING_WIDTH;
+ return fits?layout:defaultFishingLayout();
+}
 /** Makes `next` the Pescaria everyone walks and fishes in (server and game). */
 export function applyFishingLayout(next:FishingLayout){
  layout=structuredClone(next);
@@ -218,8 +227,8 @@ export function applyFishingLayout(next:FishingLayout){
  stairs=FISHING_STAIRS.map(stairPlace);
  ponds=FISHING_LAKES.map(lake=>({lake,...pondPlace(lake)}));
  walkways=FISHING_ITEMS.filter(isWalkway).map(item=>({item,deck:deckOf(item)}));
- const house:FishingItem={id:'casa',prop:'fishing-house',x:FISHING_CASA.x,y:FISHING_CASA.y,layer:'stand'};
- FISHING_OBSTACLES.splice(0,FISHING_OBSTACLES.length,...footprints(house),...FISHING_ITEMS.filter(isSolid).flatMap(footprints));
+ // No Casa de Pesca building since 20/10 (pedido do matheus): the shop opens from the Trocas button.
+ FISHING_OBSTACLES.splice(0,FISHING_OBSTACLES.length,...FISHING_ITEMS.filter(isSolid).flatMap(footprints));
  open=null;fields.clear();
  placeSpots();version++;
 }
@@ -316,70 +325,52 @@ export function nearestSpot(x:number,y:number,lake?:string):FishingSpot|undefine
 // ── The Pescaria as shipped ──
 /** Small deterministic generator, so the garden is the same on every machine. */
 function random(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-/** The garden as painted for the first version: five ponds, the island with its bridge and pier, trees, the quay's buildings and the lawn's tufts. */
+/**
+ * The garden since 20/10 (pedido do matheus: menor, um lago só, sem a Casa de Pesca): a narrow lookout
+ * with trees at the back, the lawn with the Lago das Ninfeias (island, bridge, pier, boat) in the middle
+ * and the quay with the airship at the front. Every fish lives in this one lake.
+ */
 export function defaultFishingLayout():FishingLayout{
- const lakes:FishingLakeDef[]=[
-  {id:'ninfeias',name:'Lago das Ninfeias',fish:'ninfeias',art:'pond-lily',x:1750,y:1700,width:1600},
-  {id:'profundo',name:'Poço Azul',fish:'profundo',art:'pond-well',x:3350,y:1560,width:800},
-  {id:'juncos',name:'Lago dos Juncos',fish:'juncos',art:'pond-reeds',x:4000,y:1900,width:760},
-  {id:'cristal',name:'Lagoa de Cristal',fish:'cristal',art:'pond-crystal',x:1250,y:960,width:900},
-  {id:'termal',name:'Fonte Termal',fish:'termal',art:'pond-well',x:3300,y:960,width:820},
- ];
+ const lakes:FishingLakeDef[]=[{id:'ninfeias',name:'Lago das Ninfeias',fish:'ninfeias',art:'pond-lily',x:1130,y:1285,width:1700}];
  const placed=lakes.map(d=>{const lake=lakeOf(d);return {lake,...pondPlace(lake)};});
  const [MIRANTE,JARDIM,CAIS]=FISHING_TERRACES;
  const items:FishingItem[]=[],counts=new Map<string,number>();
  const add=(prop:FishingPropId,x:number,y:number,more:Partial<FishingItem>={})=>{const n=(counts.get(prop)??0)+1;counts.set(prop,n);
   items.push({id:`${prop}-${n}`,prop,x:Math.round(x),y:Math.round(y),layer:'stand',...more,...(more.scale!==undefined?{scale:Math.round(more.scale*1000)/1000}:{})});};
- // The lawn: patches of lighter grass and flowering tufts, kept out of the water.
- const r=random(11),dry=(x:number,y:number)=>!placed.some(p=>((x-p.lake.x)/(p.w*.55))**2+((y-p.lake.y)/(p.h*.62))**2<1);
+ // The lawn: a few patches of lighter grass and tufts, kept out of the water and off the paths.
+ const r=random(11),dry=(x:number,y:number)=>!placed.some(p=>((x-p.lake.x)/(p.w*.56))**2+((y-p.lake.y)/(p.h*.66))**2<1);
  for(const t of [MIRANTE,JARDIM]){
-  for(let n=0;n<16;n++){const x=t.x0+r()*(t.x1-t.x0),y=t.y0+90+r()*(t.y1-t.y0-140);if(!dry(x,y))continue;const flip=r()<.5,scale=.8+r()*.3;add((['grass-patch','grass-patch-2','grass-patch-3'] as const)[n%3],x,y,{layer:'ground',flip,scale});}
-  for(let n=0;n<70;n++){const x=t.x0+r()*(t.x1-t.x0),y=t.y0+70+r()*(t.y1-t.y0-90);if(!dry(x,y))continue;const flip=r()<.5,scale=.7+r()*.4;add((['tuft-1','tuft-2','tuft-3'] as const)[n%3],x,y,{layer:'ground',flip,scale});}
+  const patches=t===JARDIM?7:3,tufts=t===JARDIM?26:10;
+  for(let n=0;n<patches;n++){const x=t.x0+80+r()*(t.x1-t.x0-160),y=t.y0+90+r()*(t.y1-t.y0-140);if(!dry(x,y))continue;add((['grass-patch','grass-patch-2','grass-patch-3'] as const)[n%3],x,y,{layer:'ground',flip:r()<.5,scale:.8+r()*.3});}
+  for(let n=0;n<tufts;n++){const x=t.x0+40+r()*(t.x1-t.x0-80),y=t.y0+70+r()*(t.y1-t.y0-90);if(!dry(x,y))continue;add((['tuft-1','tuft-2','tuft-3'] as const)[n%3],x,y,{layer:'ground',flip:r()<.5,scale:.7+r()*.4});}
  }
- // The island in the Lago das Ninfeias, ringed by rocks, with the bridge to the east shore and a pier from the front.
- const lily=placed[0].lake,island={x:lily.x+300,y:lily.y-8,rx:120,ry:46};
- add('grass-patch-2',island.x,island.y+64,{layer:'ground',scale:1.243,walk:true});
- for(const [dx,dy,s] of [[-1,.55,.55],[.1,.95,.6],[.95,.45,.5],[-.5,1,.45]] as const)add('pond-rocks',island.x+dx*island.rx,island.y+dy*island.ry,{layer:'ground',scale:s});
- add('bridge',2308,1730,{layer:'ground',scale:1.3824});
- add('pier',1354,1923,{layer:'ground',scale:1.0565});
- // The hot spring overflows down the top wall toward the Poço Azul.
- add('cascade',3300,MIRANTE.y1-24+FISHING_PROPS.cascade.h,{layer:'ground'});
- // Floating: the rowboat moored on the lilies, and lily pads and lotus that bob on the water.
+ // The island, ringed by rocks, with the bridge to the east shore and a pier from the front.
+ const lily=placed[0].lake,island={x:lily.x+318,y:lily.y-9,rx:127,ry:49};
+ add('grass-patch-2',island.x,island.y+68,{layer:'ground',scale:1.32,walk:true});
+ for(const [dx,dy,s] of [[-1,.55,.5],[.1,.95,.55],[.95,.45,.48],[-.5,1,.42]] as const)add('pond-rocks',island.x+dx*island.rx,island.y+dy*island.ry,{layer:'ground',scale:s});
+ add('bridge',lily.x+590,lily.y+32,{layer:'ground',scale:1.47});
+ add('pier',lily.x-420,lily.y+236,{layer:'ground',scale:1.12});
+ // Floating: the rowboat on the lilies, lily pads and lotus that bob.
  add('rowboat',lily.x-lily.rx*.15,lily.y+FISHING_PROPS.rowboat.h*.45,{layer:'water'});
  for(const [prop,dx,dy] of [['lotus-1',-.55,-.2],['lily-pad-1',-.42,.3],['lily-pad-3',-.25,-.45],['lily-cluster',.05,.42],['lily-pad-2',.18,-.5],['lotus-2',.62,.35],['lily-pad-4',.78,-.1]] as const)add(prop,lily.x+dx*lily.rx,lily.y+dy*lily.ry,{layer:'water'});
- const reeds=placed[2].lake;
- for(const [prop,dx,dy] of [['lily-pad-2',-.5,.25],['lily-pad-3',.45,-.35],['lotus-2',.3,.4]] as const)add(prop,reeds.x+dx*reeds.rx,reeds.y+dy*reeds.ry,{layer:'water'});
- // Trees and cypresses framing the sides.
- add('willow',500,912);add('cherry',2700,942,{flip:true});add('willow',4150,942,{flip:true});
- add('willow',420,1572);add('cherry',2760,1492,{flip:true});add('cherry',3000,1992);
- add('cherry',island.x+10,island.y-4,{scale:.62});
- for(const [x,y] of [[40,800],[4570,800],[30,1400],[4580,1400],[60,2280],[4560,2280]] as const)add('cypress-pair',x,y,{flip:x>FISHING_WIDTH/2});
- // The lookout on the top terrace.
- add('pagoda',2250,1002);
- // Around each pond: its name on a sign, a basket and a bucket, flowers, rocks and a lantern.
- for(const p of placed){const {lake,block}=p,rr=random(lake.x),front=lake.y+block.ry+30;
-  add('lake-sign',lake.x-block.rx*.78,front-10,{lake:lake.id});
-  add('fish-basket',lake.x+block.rx*.95,lake.y+block.ry*.55+26,{scale:.9});add('bait-bucket',lake.x-block.rx*.97,lake.y+block.ry*.5+24,{scale:.85});
-  add(rr()<.5?'hydrangea':'flower-bed',lake.x+block.rx*.62,front+8,{scale:.8});add('paper-lantern',lake.x-block.rx-50,lake.y-6,{scale:.8});
-  if(lake.id!=='juncos')add('reeds',lake.x+block.rx*.98,lake.y-block.ry*.2,{scale:.75,flip:true});
- }
- // Lanterns at both ends of the bridge.
- add('paper-lantern',2492,1670,{scale:.7});add('paper-lantern',2134,1668,{scale:.6});
- // Flower beds and low hedges along the foot of the walls.
- for(const x of [700,1900,2350,3700,4300])add('flower-bed',x,JARDIM.y0+30,{scale:.85});
- for(const x of [300,1650,3000,4250])add('flower-bed',x,CAIS.y0+24,{scale:.85});
- for(const x of [1050,3000,3650])add('hedge-low',x,MIRANTE.y0+60,{scale:.9});
- // The quay: stall, bait kiosk, a deck with a parasol and the arch to the airship.
- add('stall',1150,2370);add('bait-kiosk',3350,2370);add('deck-umbrella',3900,2390);add('arch',785,2380);
- add('paper-lantern',1500,2350,{scale:.85});add('paper-lantern',2950,2350,{scale:.85});add('hydrangea',1700,2410,{scale:.8});add('hydrangea',3100,2410,{scale:.8});add('fish-basket',1340,2400);add('bait-bucket',3540,2400);
+ add('cherry',island.x+10,island.y-4,{scale:.68});
+ // Around the lake: the sign, a basket, a bucket, flowers, reeds and lanterns at the bridge.
+ const {block}=placed[0],front=lily.y+block.ry+30;
+ add('lake-sign',lily.x-block.rx*.78,front-10,{lake:lily.id});
+ add('fish-basket',lily.x+block.rx*.95,lily.y+block.ry*.55+26,{scale:.9});add('bait-bucket',lily.x-block.rx*.97,lily.y+block.ry*.5+24,{scale:.85});
+ add('hydrangea',lily.x+block.rx*.62,front+8,{scale:.8});add('reeds',lily.x+block.rx*.98,lily.y-block.ry*.2,{scale:.75,flip:true});add('reeds',lily.x-block.rx*.98,lily.y-block.ry*.1,{scale:.7});
+ add('paper-lantern',lily.x+795,lily.y-34,{scale:.7});add('paper-lantern',lily.x+386,lily.y-38,{scale:.6});
+ // Trees framing the lawn and the lookout; cypresses at the corners; the lookout's pagoda.
+ add('willow',230,1150);add('cherry',2010,1162,{flip:true});add('willow',1960,MIRANTE.y1-30,{flip:true});add('cherry',380,MIRANTE.y1-40);
+ add('pagoda',1150,MIRANTE.y1-24);
+ for(const [x,y] of [[40,620],[2270,620],[30,1220],[2280,1220],[2250,1830]] as const)add('cypress-pair',x,y,{flip:x>FISHING_WIDTH/2});
+ for(const x of [700,1600])add('hedge-low',x,MIRANTE.y0+60,{scale:.9});
+ for(const x of [520,1700])add('flower-bed',x,JARDIM.y0+30,{scale:.85});
+ // The quay: the arch to the airship, a stall and a deck with a parasol.
+ add('arch',640,CAIS.y1-60);add('stall',1500,CAIS.y1-70);add('deck-umbrella',1950,CAIS.y1-50);
+ add('paper-lantern',900,CAIS.y1-90,{scale:.85});add('hydrangea',1200,CAIS.y1-30,{scale:.8});add('fish-basket',1680,CAIS.y1-40);
  return {lakes,items,
-  stairs:[
-   {id:'escada-mirante-oeste',upper:'mirante',x:280},
-   {id:'escada-mirante-meio',upper:'mirante',x:2420},
-   {id:'escada-mirante-leste',upper:'mirante',x:4090,flip:true},
-   {id:'escada-cais-oeste',upper:'jardim',x:1480},
-   {id:'escada-cais-leste',upper:'jardim',x:2700},
-  ],
-  casa:{x:2300,y:2390},airship:{x:430},spawn:{x:560,y:2340}};
+  stairs:[{id:'escada-mirante',upper:'mirante',x:280},{id:'escada-cais',upper:'jardim',x:1640}],
+  casa:{x:1150,y:CAIS.y1-50},airship:{x:400},spawn:{x:620,y:CAIS.y1-80}};
 }
 applyFishingLayout(defaultFishingLayout());
