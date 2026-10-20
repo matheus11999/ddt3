@@ -1,0 +1,7 @@
+﻿{
+  "19a-peixes.png (3x3, linha por linha)": ["bota-velha","lambari-dourado","tilapia-rosada","carpa-lua","bagre-barbudo","peixe-vidro","traira-taboa","carpa-termal","(reserva: peixe azul-acinzentado)"],
+  "19b-peixes.png (3x3, linha por linha)": ["baiacu-bolha","tucunare-brasa","truta-aurora","pacu-esmeralda","salamandra-vapor","koi-celeste","enguia-trovao","dourado-real","dourado-do-junco"],
+  "19c-peixes.png (lado a lado)": ["pirarucu-ancestral","carpa-dragao"],
+  "20-varas.png (4 em cima, 3 embaixo)": ["rod-bamboo","rod-oak","rod-coral","rod-crystal","rod-aurora","rod-royal","fragmento-vara-das-mares"],
+  "21-arma-vara-fases.png (2x2)": ["+0","+10","+12","+15"]
+}
