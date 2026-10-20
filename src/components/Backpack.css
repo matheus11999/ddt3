@@ -145,10 +145,10 @@
 .bag-window .bag-stage > .equipment-slots {
   position: static;
   display: grid;
-  grid-template-columns: 64px;
-  grid-auto-rows: 64px;
+  grid-template-columns: 58px;
+  grid-auto-rows: 58px;
   align-content: center;
-  gap: 11px;
+  gap: 8px;
   height: auto;
   margin: 0;
   transform: none;
@@ -333,6 +333,9 @@
   overflow: visible;
 }
 .bag-window .equipment-slots .item-card .item-art { width: 58px !important; height: 58px !important; }
+/* Six slots per side column (two rings, two bracelets, two wristbands): a little smaller than the lower row. */
+.bag-window .bag-stage > .equipment-slots .item-card[data-card][data-card-variant] { width: 58px; height: 58px; }
+.bag-window .bag-stage > .equipment-slots .item-card .item-art { width: 52px !important; height: 52px !important; }
 .bag-window .item-card[data-card][data-card-variant][data-card-empty] {
   border: 2px solid #e0b077;
   background: linear-gradient(#fbecd0, #f1d7aa);
@@ -844,7 +847,7 @@ html.mobile-landscape .bag-window .bag-identity h2 { font-size: 13px; }
 html.mobile-landscape .bag-window .bag-identity .equipment-status { font-size: 8px; }
 html.mobile-landscape .bag-window .bag-records { display: none; }
 html.mobile-landscape .bag-window .bag-stage { flex: none; gap: 4px 6px; padding: 6px; }
-html.mobile-landscape .bag-window .bag-stage > .equipment-slots { grid-template-columns: 44px; grid-template-rows: none; grid-auto-rows: 44px; gap: 13px; }
+html.mobile-landscape .bag-window .bag-stage > .equipment-slots { grid-template-columns: 44px; grid-template-rows: none; grid-auto-rows: 44px; gap: 9px; }
 html.mobile-landscape .bag-window .equipment-slots .item-card[data-card][data-card-variant],
 html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant] { width: 44px; height: 44px; border-radius: 9px; padding: 2px; }
 html.mobile-landscape .bag-window .equipment-slots .item-card .item-art { width: 38px !important; height: 38px !important; }

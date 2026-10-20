@@ -30,7 +30,7 @@ try{
  assert.equal(initial.equipment.outfit,'outfit-cartographer');
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();
  const bag=page.getByRole('dialog',{name:'Mochila'});
- await expect(bag.locator('[data-slot]')).toHaveCount(13);
+ await expect(bag.locator('[data-slot]')).toHaveCount(15);
  await expect(bag.getByRole('button',{name:/Salvar personalização|Restaurar visual|^Remover /})).toHaveCount(0);
  await expect(bag.locator('.bag-customize')).toHaveCount(0);
  for(const stat of ['Dano','Armadura','Ataque','Defesa','Agilidade','Vida','Vigor'])await expect(bag.locator('.stat-grid')).toContainText(stat);

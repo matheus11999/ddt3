@@ -5,10 +5,10 @@ import {COMPOSITION_STATS} from './composition';
 import type {CompositionBonus,Compositions} from './composition';
 import type {ColorSlot} from './colors';
 import {baseDelay,hpPower,MAX_STRENGTHEN,maxHpFor,maxStaminaFor,strengthenedValue,strengthenLevel,weaponMilestoneValue} from './stats';
-export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble'] as const;
+export const SLOTS = ['weapon','face','outfit','hair','hat','glasses','wristband','wristband2','bracelet','bracelet2','costume','ring','ring2','necklace','bubble'] as const;
 export type Slot = typeof SLOTS[number];
 /** Equipment slots that accept the items of another slot family (two rings share one item type). */
-export const SLOT_FAMILY:Partial<Record<Slot,Slot>>={ring2:'ring'};
+export const SLOT_FAMILY:Partial<Record<Slot,Slot>>={ring2:'ring',wristband2:'wristband',bracelet2:'bracelet'};
 export function slotFamily(slot:Slot):Slot {return SLOT_FAMILY[slot]??slot;}
 export function slotAccepts(slot:Slot,item:Item|undefined):boolean {return !!item&&item.slot===slotFamily(slot);}
 /** Every equipment slot an item can occupy, in preference order. */
@@ -183,7 +183,7 @@ export function isEmptyItem(item:Item|string):boolean {const value=typeof item==
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
 /** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
 export const STARTER_WEAPON='brick';
-export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-classic',upgrade:0};
+export const DEFAULT_EQUIPMENT: Equipment = {weapon:STARTER_WEAPON,hat:'hat-cap',face:'face-brave',outfit:'outfit-cartographer',hair:'hair-undercut',glasses:'glasses-none',wristband:'wristband-none',wristband2:'wristband-none',bracelet:'bracelet-none',bracelet2:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-classic',upgrade:0};
 /** Battles always need a weapon: an empty weapon slot fights with the starter Quebra-Tijolos at +0. */
 export function battleEquipment(eq:Equipment):Equipment {
  if(WEAPONS.some(weapon=>weapon.id===eq.weapon))return eq;
@@ -204,8 +204,8 @@ export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
 export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
  'outfit-surfer':'outfit-cartographer','outfit-executive':'outfit-cartographer','outfit-racer':'outfit-cartographer','outfit-dancer':'outfit-cartographer'
 };
-export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',bracelet:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
-export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',bracelet:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
+export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',wristband2:'Pulseira',bracelet:'Bracelete',bracelet2:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
+export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',wristband2:'wristband-none',bracelet:'bracelet-none',bracelet2:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-explorer'}:{...UNEQUIP};}
 /** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
 export const CONTENT_VERSION=17;

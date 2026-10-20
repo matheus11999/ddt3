@@ -94,8 +94,8 @@ test('the old version-six outfit grant now only keeps the Cartógrafo, without r
  assert.deepEqual(saved,migrated);assert.equal(saved.contentVersion,CONTENT_VERSION);
 });
 
-test('retired cosmetic items disappear while current equipment uses the thirteen supported slots',()=>{
- assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','bracelet','costume','ring','ring2','necklace','bubble']);
+test('retired cosmetic items disappear while current equipment uses the fifteen supported slots',()=>{
+ assert.deepEqual([...SLOTS],['weapon','face','outfit','hair','hat','glasses','wristband','wristband2','bracelet','bracelet2','costume','ring','ring2','necklace','bubble']);
  const migrated=normalizeProfile({id:'retired',name:'Teste',contentVersion:4,inventory:['ember','accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'],equipment:{...DEFAULT_EQUIPMENT,...{accessory:'accessory-satchel',eyes:'eyes-ocean'}}});
  for(const id of ['accessory-satchel','wings-feather','eyes-ocean','ring-copper','bracelet-braid'])assert.equal(migrated.inventory.includes(id),false);
  assert.equal(migrated.equipment.face,'face-brave');assert.equal(migrated.equipment.wristband,'wristband-none');
