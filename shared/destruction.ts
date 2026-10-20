@@ -38,9 +38,9 @@ export interface DestructionProfile {
  * (crater ÷ craterBrink: brick 96/122, boomerang 107/152 and 131/198); version 2 (20/10, the user asked for a
  * fading gradient with cracks instead of a solid rim) leaves a wider band so the fade and the cracks have room. */
 const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.62,pow:.58},'love-boomerang':{normal:.58,pow:.55},'wind-shuriken':{normal:.58,pow:.55},'thunder-coil':{normal:.58,pow:.55}};
-/** Phases whose painting is approved (filled in when the art lands). Empty since 20/10: the user rejected the
- * first set (solid rims); the weapons use their legacy terrain.png until the gradient marks are in. */
-const PAINTED=new Set<string>([]);
+/** Phases whose painting is approved. 20/10: the second set (fading gradient with cracks and gaps where the
+ * terrain shows, after the user rejected the solid rims of the first) for every weapon, phase and mode. */
+const PAINTED=new Set<string>(['brick','love-boomerang'].flatMap(weapon=>DESTRUCTION_MODES.flatMap(mode=>DESTRUCTION_STAGES.map(stage=>`${weapon}:${mode}:${stage}`))));
 
 /** The POW hole radius: the weapon's own (Bobina do Trovão digs a smaller one per bolt) or crater × POWER_CRATER_MULTIPLIER. */
 export function powCraterRadius(weapon:{crater:number;pow?:{crater?:number}}){return weapon.pow?.crater??weapon.crater*POWER_CRATER_MULTIPLIER;}
