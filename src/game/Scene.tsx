@@ -228,7 +228,9 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // The body eases into a new ground angle instead of snapping at each crawl step.
      let slope=groundTilt;if(entity){const dt=entity.tiltAt===undefined?1e3:Math.min(250,t-entity.tiltAt);entity.tilt=entity.tilt===undefined||falling?groundTilt:entity.tilt+(groundTilt-entity.tilt)*(1-Math.exp(-dt/110));entity.tiltAt=t;slope=entity.tilt;}
      let pose:AvatarContext['pose']=walking?'walk':b.turnId===f.id&&b.phase==='aiming'?(f.charging?'charge':'aim'):'idle',poseTime=0;
-     if(Math.abs(slope)>.43&&!walking)pose='prone';
+     // On a steep slope the fighter lies flat, but charging still kneels and takes the weapon (20/10, matheus: on a
+     // slope the Vara das Marés was never raised while the power bar charged).
+     if(Math.abs(slope)>.43&&!walking&&pose!=='charge')pose='prone';
      if(falling)pose='fall';
      if(shot&&hold){
       // The Vara das Marés cast plays slower and keeps the throw pose longer (rodCast.ts).
