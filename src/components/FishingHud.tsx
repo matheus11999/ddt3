@@ -10,7 +10,7 @@ import {WEAPON_FRAGMENT_RECIPES} from '../../shared/synthesis';
 import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
 import {ItemCard} from './ItemCard';
-import {ROD_LEVEL,RodInfo} from './FishingRodInfo';
+import {ROD_LEVEL,useRodTip} from './FishingRodInfo';
 import {FishingRanking} from './FishingRanking';
 import {weightClass} from './FishingFish';
 import {fishingPick} from '../game/fishingPick';
@@ -74,7 +74,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
     <button className={`fishing-rod-swap ${gear==='rod'?'open':''}`} onClick={()=>{setGear(gear==='rod'?null:'rod');audio.play('click');}} title="Trocar de vara" aria-label="Trocar de vara"></button>
    </div>
    <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i className="off"/><i className="on"/><b>Auto</b></span></button>
-   {gear==='rod'&&<RodPicker fishing={f} level={progress.level} locked={phase==='bite'} onPick={pick}/>}
+   {gear==='rod'&&<RodPicker fishing={f} level={progress.level} locked={phase==='bite'} onPick={pick} onClose={()=>setGear(null)}/>}
   </section>
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
    :!fishing&&!gear&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
@@ -191,21 +191,25 @@ export const dropLabel=(kind:keyof typeof DROP_NAMES,amount:number)=>amount!==1?
 const percent=(chance:number)=>`${(chance*100).toLocaleString('pt-BR',{maximumFractionDigits:2})}%`;
 
 const shortRod=(name:string)=>name.replace(/^Vara (de |da |do )?/,'');
-/** Troca de vara (pedido do matheus): as seis varas em cards de item, a equipada com brilho, as que faltam em cinza com o nível; um clique troca. */
-function RodPicker({fishing,level,locked,onPick}:{fishing:FishingProfile;level:number;locked:boolean;onPick:(id:string)=>void}){
- const [hover,setHover]=useState(fishing.rod);
- const shown=ROD_BY_ID.get(hover)??ROD_BY_ID.get(fishing.rod)!,owned=fishing.rods.includes(shown.id);
- return <div className="fishing-gear-menu fishing-rod-picker" role="menu" onMouseLeave={()=>setHover(fishing.rod)}>
+/** Troca de vara (pedido do matheus): as seis varas em cards de item, a equipada com brilho, as que faltam em cinza com o nível; um clique troca. As informações da vara só aparecem ao passar o mouse no card. */
+function RodPicker({fishing,level,locked,onPick,onClose}:{fishing:FishingProfile;level:number;locked:boolean;onPick:(id:string)=>void;onClose:()=>void}){
+ const tip=useRodTip(fishing.rods,fishing.rod,level),menu=useRef<HTMLDivElement>(null),close=useRef(onClose);close.current=onClose;
+ // Clicar fora do menu (no mapa, em outro botão) fecha (pedido do matheus); o botão da vara abre e fecha sozinho.
+ useEffect(()=>{
+  const down=(e:PointerEvent)=>{const t=e.target as Element|null;if(t&&!menu.current?.contains(t)&&!t.closest('.fishing-rod-swap'))close.current();};
+  document.addEventListener('pointerdown',down,true);return()=>document.removeEventListener('pointerdown',down,true);
+ },[]);
+ return <div ref={menu} className="fishing-gear-menu fishing-rod-picker" role="menu">
   <header>Trocar vara</header>
   <div className="fishing-rod-grid">{FISHING_RODS.map(r=>{const has=fishing.rods.includes(r.id),using=r.id===fishing.rod,lvl=ROD_LEVEL.get(r.id)??1;
    return <ItemCard key={r.id} role="menuitem" variant="detail" selected={using} className={`fishing-rod-card ${has?'':'locked'}`} aria-label={has?r.name:`${r.name}: nível ${lvl} na Casa de Pesca`}
-    onMouseEnter={()=>setHover(r.id)} onFocus={()=>setHover(r.id)} onClick={()=>{if(has&&!using&&!locked)onPick(r.id);else if(!has){client.openFishShop();audio.play('click');}}}>
+    {...tip.handlers(r)} onClick={()=>{if(using){onClose();audio.play('click');}else if(has&&!locked)onPick(r.id);else if(!has){client.openFishShop();audio.play('click');}}}>
     <FishingIcon id={r.id} size={58}/>
     {using&&<i className="fishing-rod-using">Em uso</i>}
     {!has&&<i className="fishing-rod-lock"><Lock size={10} strokeWidth={3}/>Nv. {lvl}</i>}
     <small>{shortRod(r.name)}</small>
    </ItemCard>;})}</div>
-  <RodInfo rod={shown} owned={owned} using={shown.id===fishing.rod} level={level}/>
+  {tip.node}
   {locked&&<p className="fishing-gear-hint">Espere terminar a puxada para trocar.</p>}
  </div>;
 }
