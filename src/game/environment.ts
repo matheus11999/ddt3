@@ -45,10 +45,9 @@ function cameraBounds(camera:CameraState,depth=1):Bounds {
  return {x:W/2+(camera.x-W/2)*depth-width/2,y:H/2+(camera.y-H/2)*depth-height/2,width,height};
 }
 
-/** World px the battle console covers at the bottom of the view (its top edge on a 1536×864 screen): the camera
- * may look this far below the map, so the map's bottom edge stops right on the console and a fighter standing
- * there still shows, but nothing under the map (floating bridge piers) ever does. */
-export const BATTLE_HUD_COVER=82;
+/** How far below the map the battle camera may look. Zero by the owner's choice (20/10): the view never goes
+ * past the map's bottom edge; a fighter there shows through the translucent console. */
+export const BATTLE_HUD_COVER=0;
 export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;worldWidth:number;}
 export function createCamera(worldWidth=W):CameraState{return {x:W/2,y:H/2,zoom:1,targetZoom:1,targetX:W/2,targetY:H/2,worldWidth};}
 export function zoomCamera(camera:CameraState,delta:number,map:MapDefinition){camera.targetZoom=Math.max(map.camera.minZoom,Math.min(map.camera.maxZoom,camera.targetZoom+delta));}
