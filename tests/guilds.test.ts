@@ -1,3 +1,4 @@
+import {maxHpFor} from '../shared/stats';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {test} from 'node:test';
@@ -37,7 +38,7 @@ test('the guild shop sells the level 1 necklace for gold, and it adds 5% Vida',(
  assert.throws(()=>checkGuildPurchase(p,'necklace-guild-1',1),/insuficiente/);
  assert.ok(!normalizeProfile({id:randomUUID(),name:'Novo'}).inventory.includes('necklace-guild-1'));
  const bare=attributes(DEFAULT_EQUIPMENT,10),worn=attributes({...DEFAULT_EQUIPMENT,necklace:'necklace-guild-1'},10);
- assert.equal(worn.hp,Math.floor(bare.hp*1.05));
+ assert.equal(worn.defense,bare.defense+10);assert.equal(worn.hp,maxHpFor(10,worn.defense,1.05));
 });
 
 test('the Ferreiro da Guilda adds its points to an existing chance, up to 100%',()=>{

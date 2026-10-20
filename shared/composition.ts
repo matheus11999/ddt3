@@ -20,6 +20,8 @@ export const STARTER_COMPOSITION_STONES:Record<string,number> = Object.fromEntri
 export function canCompose(item:Item|undefined):boolean {
  return !!item&&['weapon','hat','outfit','wristband','bracelet','ring'].includes(item.slot)&&item.visual?.variant!=='none';
 }
+/** Weapons never carry Armadura (matheus, 20/10), so the Ametista de Aço never goes on one. */
+export function canComposeStat(item:Item|undefined,stat:CompositionStat):boolean {return canCompose(item)&&!(stat==='armor'&&item!.slot==='weapon');}
 /** Only complete tiers survive persisted-data normalization; arbitrary client points never do. */
 export function normalizeCompositions(value:unknown,items:readonly Item[]):Compositions {
  const result:Compositions={};
@@ -28,7 +30,7 @@ export function normalizeCompositions(value:unknown,items:readonly Item[]):Compo
   if(!canCompose(item)||!Object.hasOwn(value,item.id))continue;
   const raw=(value as Record<string,unknown>)[item.id];if(!raw||typeof raw!=='object')continue;
   const bonus:CompositionBonus={};
-  for(const stat of COMPOSITION_STATS){const amount=(raw as Record<string,unknown>)[stat];if(amount===10||amount===20||amount===30)bonus[stat]=amount;}
+  for(const stat of COMPOSITION_STATS){const amount=(raw as Record<string,unknown>)[stat];if((amount===10||amount===20||amount===30)&&canComposeStat(item,stat))bonus[stat]=amount;}
   if(Object.keys(bonus).length)result[item.id]=bonus;
  }
  return result;

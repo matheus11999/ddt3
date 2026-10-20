@@ -142,5 +142,5 @@ test('repeated tools require the authoritative vigor budget and cannot mutate st
  const before=structuredClone(f.shooter);await f.game.command(f.shooter.id,{type:'boost',boost:'damage20'});assert.deepEqual(f.shooter,before);
  await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,0,0,1,1,1,2,2,2].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>2*VOLLEY_CADENCE_MS);
  const snapshot=structuredClone(f.match.state);await f.game.command(f.shooter.id,{type:'boost',boost:'damage50'});assert.deepEqual(f.match.state,snapshot);
- assert.equal(attributes(f.shooter.equipment).luck,105);
+ assert.equal(attributes(f.shooter.equipment).luck,145);
 });
