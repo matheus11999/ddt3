@@ -1,14 +1,15 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
-import {DoorOpen,ScrollText} from 'lucide-react';
+import {DoorOpen,Lock,ScrollText} from 'lucide-react';
 import {FishingHistory} from './FishingHistory';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {FISHING_DAILY_CAPS,FISHING_RODS,FISHING_WEAPON,fishingDay,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
+import {FISHING_DAILY_CAPS,FISHING_RODS,FISHING_SHOP,FISHING_WEAPON,fishingDay,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
 import type {FishingProfile,FishingRod,FishingView,PressGrade} from '../../shared/fishing';
 import {WEAPON_FRAGMENT_RECIPES} from '../../shared/synthesis';
 import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
+import {ItemCard} from './ItemCard';
 import {fishingPick} from '../game/fishingPick';
 import './Fishing.css';
 
@@ -62,19 +63,20 @@ export function FishingHud({blocked}:{blocked:boolean}){
   <section className="fishing-bar-panel" aria-label="Pescar">
    {autoNote&&<em key={autoNote.at} className={`fishing-auto-note ${autoNote.on?'on':''}`}>{autoNote.on?'Pesca automática ligada':'Pesca automática desligada'}</em>}
    {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: rende 25% da pesca à mão">AUTOMÁTICO</span>}
-   <div className={`fishing-tray ${autoOn?'auto-on':''}`}>
-    <button className={`fishing-slot rod ${gear==='rod'?'open':''}`} onClick={()=>setGear(gear==='rod'?null:'rod')} title={`Vara: ${rod.name}. ${rod.description}`}><FishingIcon id={rod.id} size={56}/><span>Vara</span></button>
-    <button className={`fishing-slot prizes ${gear==='prizes'?'open':''}`} onClick={()=>setGear(gear==='prizes'?null:'prizes')} title={`Prêmios da ${rod.name} e Fragmentos da Vara das Marés`}><FishingIcon id="fragment" size={50}/><em>{fragments}/{FRAGMENTS_NEEDED}</em><span>Prêmios</span></button>
-    <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i className="off"/><i className="on"/><b>Auto</b></span></button>
-    {gear&&<div className="fishing-gear-menu" role="menu">
-     <header>{gear==='rod'?'Suas varas':`Prêmios da ${rod.name}`}</header>
-     {gear==='rod'?FISHING_RODS.filter(r=>f.rods.includes(r.id)).map(r=><button key={r.id} role="menuitem" className={r.id===f.rod?'selected':''} disabled={phase==='bite'} onClick={()=>pick(r.id)}><span className="fishing-slot-art"><FishingIcon id={r.id} size={36}/></span><span><b>{r.name}</b><small>{r.description}</small></span>{r.id===f.rod&&<i>Em uso</i>}</button>)
-      :<RodPrizes rod={rod} fishing={f}/>}
-     <p className="fishing-gear-hint">{gear==='rod'?'Mais varas na Casa de Pesca, liberadas pelo nível de pescador.':`Fragmentos: ${fragments} de ${FRAGMENTS_NEEDED} para a Vara das Marés (Síntese do Ferreiro).`}</p>
-    </div>}
+   <button className={`fishing-orb prizes ${gear==='prizes'?'open':''}`} onClick={()=>setGear(gear==='prizes'?null:'prizes')} title={`Prêmios da ${rod.name} e Fragmentos da Vara das Marés`}><FishingIcon id="fragment" size={40}/><em>{fragments}/{FRAGMENTS_NEEDED}</em><span>Prêmios</span></button>
+   {/* A vara equipada fica dentro do próprio círculo de Lançar (pedido do matheus); o selo de setas troca a vara. */}
+   <div className={`fishing-cast ${autoOn?'auto-on':''}`}>
+    {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span className="fishing-cast-rod"><FishingIcon id={rod.id} size={86}/></span><span className="fishing-cast-label">Recolher</span></button>
+     :<button className={`fishing-main ${picking?'picking':''}`} disabled={phase==='result'&&!fishing?.spot} onClick={cast} title={picking?'Clique num lago (Esc cancela)':`Lançar com a ${rod.name} (Espaço)`}><span className="fishing-cast-rod"><FishingIcon id={rod.id} size={86}/></span><span className="fishing-cast-label">{picking?'Escolha o lago':'Lançar'}<kbd>{picking?'Esc':'Espaço'}</kbd></span></button>}
+    <button className={`fishing-rod-swap ${gear==='rod'?'open':''}`} onClick={()=>{setGear(gear==='rod'?null:'rod');audio.play('click');}} title="Trocar de vara" aria-label="Trocar de vara"></button>
    </div>
-   {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span>Recolher</span></button>
-    :<button className={`fishing-main ${picking?'picking':''}`} disabled={phase==='result'&&!fishing?.spot} onClick={cast} title={picking?'Clique num lago (Esc cancela)':'Lançar (Espaço)'}><span>{picking?'Escolha o lago':'Lançar'}<kbd>{picking?'Esc':'Espaço'}</kbd></span></button>}
+   <button className={`fishing-auto ${autoOn?'on':''}`} onClick={toggleAuto} title="Automático: continua pescando sozinho enquanto o jogo estiver aberto, com menos acerto que o manual."><span className="fishing-switch"><i className="off"/><i className="on"/><b>Auto</b></span></button>
+   {gear==='rod'&&<RodPicker fishing={f} level={progress.level} locked={phase==='bite'} onPick={pick}/>}
+   {gear==='prizes'&&<div className="fishing-gear-menu prizes" role="menu">
+    <header>{`Prêmios da ${rod.name}`}</header>
+    <RodPrizes rod={rod} fishing={f}/>
+    <p className="fishing-gear-hint">{`Fragmentos: ${fragments} de ${FRAGMENTS_NEEDED} para a Vara das Marés (Síntese do Ferreiro).`}</p>
+   </div>}
   </section>
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
    :!fishing&&!gear&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
@@ -194,4 +196,31 @@ function RodPrizes({rod,fishing}:{rod:FishingRod;fishing:FishingProfile}){
  if(!rod.drops?.length)return <p className="fishing-prizes-empty">Esta vara só pesca peixes. Varas melhores trazem Ouro, Cupons e Fragmentos.</p>;
  return <ul className="fishing-prizes">{rod.drops.map(d=>{const kind=d.kind==='fragment'?'fragments':d.kind;
   return <li key={kind}><PrizeArt kind={kind} size={30}/><span><b>{DROP_NAMES[kind]}{d.kind==='gold'?` ${d.min} a ${d.max}`:''}</b><small>{percent(d.chance)} por peixe à mão, {percent(d.chance*.25)} no automático</small></span><em>Hoje {today[kind]}/{FISHING_DAILY_CAPS[kind]}</em></li>;})}</ul>;
+}
+
+/** Fisher level each rod asks for in the Casa de Pesca (the Bamboo is the starter). */
+const ROD_LEVEL=new Map(FISHING_SHOP.flatMap(o=>o.prize.kind==='rod'?[[o.prize.rod,o.level??1] as const]:[]));
+const shortRod=(name:string)=>name.replace(/^Vara (de |da |do )?/,'');
+/** Troca de vara (pedido do matheus): as seis varas em cards de item, a equipada com brilho, as que faltam em cinza com o nível; um clique troca. */
+function RodPicker({fishing,level,locked,onPick}:{fishing:FishingProfile;level:number;locked:boolean;onPick:(id:string)=>void}){
+ const [hover,setHover]=useState(fishing.rod);
+ const shown=ROD_BY_ID.get(hover)??ROD_BY_ID.get(fishing.rod)!,owned=fishing.rods.includes(shown.id),need=ROD_LEVEL.get(shown.id)??1;
+ return <div className="fishing-gear-menu fishing-rod-picker" role="menu" onMouseLeave={()=>setHover(fishing.rod)}>
+  <header>Trocar vara</header>
+  <div className="fishing-rod-grid">{FISHING_RODS.map(r=>{const has=fishing.rods.includes(r.id),using=r.id===fishing.rod,lvl=ROD_LEVEL.get(r.id)??1;
+   return <ItemCard key={r.id} role="menuitem" variant="detail" selected={using} className={`fishing-rod-card ${has?'':'locked'}`} aria-label={has?r.name:`${r.name}: nível ${lvl} na Casa de Pesca`}
+    onMouseEnter={()=>setHover(r.id)} onFocus={()=>setHover(r.id)} onClick={()=>{if(has&&!using&&!locked)onPick(r.id);else if(!has){client.openFishShop();audio.play('click');}}}>
+    <FishingIcon id={r.id} size={58}/>
+    {using&&<i className="fishing-rod-using">Em uso</i>}
+    {!has&&<i className="fishing-rod-lock"><Lock size={10} strokeWidth={3}/>Nv. {lvl}</i>}
+    <small>{shortRod(r.name)}</small>
+   </ItemCard>;})}</div>
+  <footer className="fishing-rod-detail">
+   <b>{shown.name}</b>
+   <p>{shown.description}</p>
+   {shown.drops?.length?<span className="fishing-rod-drops">{shown.drops.map(d=>{const kind=d.kind==='fragment'?'fragments':d.kind;return <em key={kind} className={`fishing-drop ${kind}`}><PrizeArt kind={kind} size={15}/>{DROP_NAMES[kind]}</em>;})}</span>:null}
+   {!owned&&<small className={level>=need?'ready':''}>{level>=need?'Disponível na Casa de Pesca (clique para abrir).':`Pede pescador nível ${need}.`}</small>}
+   {locked&&<small>Espere terminar a puxada para trocar.</small>}
+  </footer>
+ </div>;
 }

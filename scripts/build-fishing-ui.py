@@ -64,3 +64,9 @@ toggle=keyed('public/assets/fishing/source/18-toggle-auto.png')
 for name,box in {'auto-off':(5,515,622,845),'auto-on':(625,515,1277,845),'auto-seal':(1280,470,1660,870)}.items():
     cut(toggle,box,name,.25 if name!='auto-seal' else .3)
 print(json.dumps({k:v for k,v in geometry.items() if k.startswith('auto')}))
+# Botão Lançar com a janela de água vazia (22-hud-lancar.png, linha B): o jogo desenha a vara equipada dentro.
+# Normal, aceso (mouse), lançando (borda verde com bolhas), desabilitado e o selo de setas que troca a vara.
+ring=keyed('public/assets/fishing/source/22-hud-lancar.png')
+for name,box in {'cast-ring':(20,480,385,941),'cast-ring-lit':(385,480,740,941),'cast-ring-active':(740,480,1095,941),'cast-ring-off':(1095,480,1445,941),'rod-swap':(1445,480,1672,941)}.items():
+    cut(ring,box,name,.75 if name!='rod-swap' else .5)
+print(json.dumps({k:v for k,v in geometry.items() if k.startswith(('cast-ring','rod-swap'))}))
