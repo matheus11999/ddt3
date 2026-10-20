@@ -1,6 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {Clock3,Compass,Crown,LoaderCircle,LockKeyhole,Plus,Search,Users,X,Zap} from 'lucide-react';
+import {Clock3,Compass,Crown,LockKeyhole,Search,Users,X} from 'lucide-react';
 import {DIFFICULTY_NAMES,getExpedition} from '../../shared/expeditions';
 import {client,useGame} from '../client';
 import {arenaMatchTime,expeditionRooms} from '../arenaHall';
@@ -42,8 +42,8 @@ export function ExpeditionHall({onClose}:{onClose:()=>void}){
   </section>
   <div className="hall-bottom"><aside className="hall-chat wood-pane wood-chat" aria-label="Conversa"><Chat/></aside>
    <nav className="hall-actions wood-pane" aria-label="Ações da central">
-    <button type="button" className="hall-big hall-create" disabled={!online} onClick={()=>client.send({type:'create-expedition'})}><span className="hall-big-icon"><Plus size={30}/></span><span>Criar sala</span></button>
-    <button type="button" className="hall-big hall-quick" disabled={!online||!quick} title={quick?`Entrar na sala ${quick.number}`:'Nenhuma sala com vaga'} onClick={()=>quick&&client.send({type:'join',roomId:quick.id})}><span className="hall-big-icon">{quick?<Zap size={30}/>:<LoaderCircle size={30}/>}</span><span>Entrar rápido</span></button>
+    <button type="button" className="hall-big hall-create" disabled={!online} onClick={()=>client.send({type:'create-expedition'})}><span className="hall-big-icon hall-big-art"><img src="/assets/ui/arena-quests.png" alt="" draggable={false}/></span><span>Criar sala</span></button>
+    <button type="button" className="hall-big hall-quick" disabled={!online||!quick} title={quick?`Entrar na sala ${quick.number}`:'Nenhuma sala com vaga'} onClick={()=>quick&&client.send({type:'join',roomId:quick.id})}><span className="hall-big-icon hall-big-art"><img src="/assets/ui/expedition-button.png" alt="" draggable={false}/></span><span>Entrar rápido</span></button>
    </nav></div>
   <aside className="hall-side" aria-label="Informações do jogador">
    <section className="hall-me wood-pane" aria-label="Meu personagem">
