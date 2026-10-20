@@ -87,7 +87,9 @@ export interface WeaponKit {
  terrain?:string;
  /** The 8 destruction marks (shared/destruction.ts): what the painted rim around this weapon's hole is made of,
   * per phase and normal|POW. Only weapons with a destruction profile need it. */
- destruction?:{normal:string;pow:string;phases:Record<WeaponPhase,{normal:string;pow:string}>};
+ /** `rim`: a bright painted rim around the hole is the approved look for this weapon (the Vara das Marés water ring,
+  * matheus 20/10), so the validator skips the gradient-and-gaps rule written for the scorched marks. */
+ destruction?:{normal:string;pow:string;rim?:true;phases:Record<WeaponPhase,{normal:string;pow:string}>};
  /** Degrees the painted projectile points above horizontal in the atlas; the renderer rotates it back. */
  projectileTilt?:number;
  /** How the four sounds should feel (English, it feeds the ElevenLabs prompt). */
@@ -154,11 +156,23 @@ export const WEAPON_KITS:Record<string,WeaponKit>={
  'tide-rod':{
   // Pedido do matheus (20/10): a vara de pesca do DDTank (hook1) com desenho próprio; fases pintadas pelo Codex (21-arma-vara-fases).
   id:'tide-rod',
-  concept:'Vara das Marés: vara de pesca curta com um peixe grande montado no cabo e um peixinho preso no anzol. O personagem arremessa o peixinho do anzol. Tiro normal: um peixe que voa de lado e explode em água. POW: um tubarão inteiro, bem maior, de boca aberta, um único projétil (sem Tridente, +1 ou +2 juntos).',
+  concept:'Vara das Marés: vara de pesca curta com um peixe grande montado no cabo e um peixinho preso no anzol. O personagem arremessa o peixinho do anzol. Tiro normal: um peixe que voa de lado e explode em água. POW: um tubarão inteiro, bem maior, de boca aberta; combina com +1, +2 e os bônus de dano, nunca com o Tridente.',
   identity:'vara de madeira e latão curvada em diagonal, carretilha redonda na base, linha preta fina até o anzol com um peixinho pendurado; um peixe gordinho de olho grande abraça a vara. Peixe, enfeites e pedras mudam a cada fase. Contorno marrom grosso, pintura suave com volume, luz de cima à esquerda; sem mão, personagem ou pedestal.',
   palette:'azul-celeste e madeira no início, dourado com coral e estrela-do-mar em +10, carmim com pérolas e algas em +12, ouro real com coroa de coração e rubis em +15; água azul-clara nos efeitos',
-  powTrident:'pow-unico',projectileTilt:0,
+  // 20/10 (matheus): POW usa todos os poderes menos o Tridente.
+  powTrident:'exclusivo',projectileTilt:0,
   terrain:'respingo de água escura e escamas soltas em volta de uma cratera oval com centro transparente; sem pedra ou tijolos',
+  destruction:{
+   normal:'borda de ÁGUA em volta do buraco OVAL: espuma e redemoinhos de água azul brilhante colados à borda, como uma poça que espirrou e congelou no chão, com brilho azul suave que se dissolve para fora em respingos e gotas soltas; falhas transparentes onde o terreno aparece. Referência do matheus (20/10): anel de redemoinhos azuis com espuma branca e brilho que some para fora; nunca moldura sólida',
+   pow:'a mesma borda de água, mais larga e mais agitada junto à oval POW (maior), com ondas curvas em espiral e mais respingos espalhados',
+   rim:true,
+   phases:{
+    0:{normal:'água azul-clara e espuma branca',pow:'água azul-clara agitada com espuma e ondas'},
+    10:{normal:'água azul com fios dourados e escamas douradas pequenas',pow:'ondas azuis com brilho dourado e escamas'},
+    12:{normal:'água rosada e carmim com pérolas pequenas',pow:'ondas rosadas com pérolas e espuma'},
+    15:{normal:'água dourada com brilho azul e corações de rubi pequenos',pow:'ondas douradas com corações de rubi e faíscas'}
+   }
+  },
   sound:{fire:'whip of a fishing rod cast with a reel click',flight:'wet fish flapping through the air',impact:'big wet splash with a fish slap',terrain:'muddy splash cracking wet ground'},
   phases:{
    0:{ammo:'peixinho azul',held:'vara de madeira com carretilha azul e um peixe azul gordinho de olho grande montado nela; peixinho azul no anzol',projectile:'peixinho azul de lado, nadadeiras abertas, sem rastro pintado',muzzle:'gotas de água azul em leque',impact:'respingo de água azul com bolhas',powProjectile:'tubarão azul-acinzentado de boca aberta e dentes brancos, grande, de lado',powImpact:'grande onda de água azul com espuma branca'},
