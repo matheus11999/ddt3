@@ -7,7 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
-import {FISH,FISHING_LAKES,FISHING_PIERS,FISHING_SPOTS,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
+import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,BAIT_BY_ID,autoChance,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,HOOK_LEAD_MS,RESULT_MS} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
 test('every fishing spot stands on walkable ground and casts into its own lake',()=>{
@@ -16,7 +16,7 @@ test('every fishing spot stands on walkable ground and casts into its own lake',
   const lake=FISHING_LAKES.find(l=>l.id===spot.lake)!;
   assert.ok(inLake(lake,spot.bobX,spot.bobY),`a boia de ${spot.id} cai fora do lago`);
   assert.equal(Math.sign(spot.bobX-spot.x),spot.facing,`${spot.id} olha para o lado errado`);
-  assert.ok(!FISHING_PIERS.some(p=>spot.bobX>=p.x0&&spot.bobX<=p.x1&&spot.bobY>=p.y0&&spot.bobY<=p.y1),`a boia de ${spot.id} cai no píer`);
+  assert.ok(!onDeck(spot.bobX,spot.bobY),`a boia de ${spot.id} cai no píer`);
  }
  assert.equal(new Set(FISHING_SPOTS.map(s=>s.id)).size,FISHING_SPOTS.length);
  assert.ok(!fishingBlocked(FISHING_SPAWN.x,FISHING_SPAWN.y));

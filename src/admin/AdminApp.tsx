@@ -5,12 +5,13 @@ import {Dashboard} from './Dashboard';
 import {MapList} from './MapList';
 import {MapEditor} from './MapEditor';
 import {LobbyEditor} from './LobbyEditor';
+import {FishingEditor} from './FishingEditor';
 import {AssetLibrary} from './AssetLibrary';
 import {Reports} from './Reports';
 import {Players} from './Players';
 import {Hall} from './Hall';
 import {Events} from './Events';
-import {LOBBY_MAP_ID} from '../../shared/mapAdmin';
+import {FISHING_MAP_ID,LOBBY_MAP_ID} from '../../shared/mapAdmin';
 
 /** Tiny router over location.pathname: /admin, /admin/mapas, /admin/mapas/<id>, /admin/assets. */
 export function navigate(path:string){history.pushState(null,'',path);window.dispatchEvent(new Event('admin-route'));}
@@ -53,7 +54,7 @@ function Shell({user,onLogout}:{user:string;onLogout:()=>void}){
  const link=useCallback((to:string)=>(e:React.MouseEvent)=>{e.preventDefault();navigate(to);},[]);
  const section=path.startsWith('/admin/mapas')?'maps':path.startsWith('/admin/assets')?'assets':path.startsWith('/admin/denuncias')?'reports':path.startsWith('/admin/jogadores')?'players':path.startsWith('/admin/eventos')?'events':path.startsWith('/admin/hall')?'hall':'home';
  const report=Number(path.match(/^\/admin\/denuncias\/(\d+)$/)?.[1])||undefined;
- if(editing)return editing===LOBBY_MAP_ID?<LobbyEditor key={editing} onBack={()=>navigate('/admin/mapas')}/>:<MapEditor key={editing} id={editing} onBack={()=>navigate('/admin/mapas')}/>;
+ if(editing)return editing===LOBBY_MAP_ID?<LobbyEditor key={editing} onBack={()=>navigate('/admin/mapas')}/>:editing===FISHING_MAP_ID?<FishingEditor key={editing} onBack={()=>navigate('/admin/mapas')}/>:<MapEditor key={editing} id={editing} onBack={()=>navigate('/admin/mapas')}/>;
  return <div className="adm-shell">
   <aside className="adm-side">
    <div className="adm-brand"><span className="adm-brand-mark"><Flame size={22}/></span><div><b>BRASA</b><small>Painel</small></div></div>
