@@ -4,6 +4,23 @@ import type {WeaponEffectOptions} from './weaponEffects';
 export const HIT_FEEDBACK_DURATION=1200;
 /** Vertical gap between numbers stacked on the same fighter by one shot (one number per hit). */
 export const HIT_STACK_GAP=40;
+/** Stack slots per fighter: a long burst (+1/+2 repeated, Tridente) reuses slots freed by numbers that faded instead of climbing the screen. */
+export const HIT_STACK_SLOTS=4;
+
+interface StackImpact {shotId:string;at:number;projectileIndex:number;hits:readonly ShotHit[]}
+/** Slot of `hit` above its fighter: the lowest slot no earlier number of the same shot still holds when it appears
+ * (all slots busy: the one whose number fades first). Fixed for the number's whole life. */
+export function hitStackSlot(impacts:readonly StackImpact[],impact:StackImpact,hit:ShotHit){
+ const order=impacts.filter(other=>other.shotId===impact.shotId).sort((a,b)=>a.at-b.at||a.projectileIndex-b.projectileIndex);
+ const until=Array<number>(HIT_STACK_SLOTS).fill(-Infinity);
+ for(const other of order)for(const h of other.hits){
+  if(h.id!==hit.id||h.hidden||!(h.damage>0))continue;
+  let slot=until.findIndex(end=>end<=other.at);if(slot<0)slot=until.indexOf(Math.min(...until));
+  if(h===hit)return slot;
+  until[slot]=other.at+HIT_FEEDBACK_DURATION;
+ }
+ return 0;
+}
 /** Numbers are drawn at this fraction of the sprite size so they don't cover the fighters. */
 const NUMBER_SCALE=.78;
 // Padded so the longest spikes and their miter joins never touch the sprite edge.
