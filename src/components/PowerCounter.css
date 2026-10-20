@@ -1,12 +1,17 @@
-/* Poder counting to its new value, the change floating up from it (PowerCounter.tsx). */
-.power-counter, .bag-window .combat-power > .power-counter { position: relative; display: inline-flex; align-items: center; line-height: 0; text-shadow: none; }
-.power-volume-text { display: block; overflow: visible; filter: drop-shadow(0 2px 2px #0006); }
-.power-delta { position: absolute; right: -6px; bottom: 78%; z-index: 5; line-height: 0; pointer-events: none; animation: power-delta-rise 1.4s ease-out forwards; }
+/* Poder counting to its new value, the change floating up from it (PowerCounter.tsx).
+   Soft game type: Lilita One, warm fill, thin dark outline; no extrusion (matheus found the 3D too strong). */
+.power-counter { position: relative; display: inline-block; font-family: 'Lilita One', 'Nunito', sans-serif; font-weight: 400; font-variant-numeric: tabular-nums; letter-spacing: .02em; color: #ffd86b; -webkit-text-stroke: 1.5px #3a1a06; paint-order: stroke fill; text-shadow: 0 1px 1px #0005; transition: color .3s; }
+.power-counter[data-change="up"] { color: #8ef07a; }
+.power-counter[data-change="down"] { color: #ff8a78; }
+.power-delta { position: absolute; right: 0; bottom: 92%; z-index: 5; font-size: .72em; line-height: 1; white-space: nowrap; pointer-events: none; animation: power-delta-rise 1.4s ease-out forwards; }
+.power-delta.up { color: #7ee36a; }
+.power-delta.down { color: #ff7462; }
 @keyframes power-delta-rise {
-  0% { opacity: 0; transform: translateY(10px) scale(.6); }
-  14% { opacity: 1; transform: translateY(0) scale(1.15); }
-  28% { transform: translateY(-3px) scale(1); }
+  0% { opacity: 0; transform: translateY(6px); }
+  18% { opacity: 1; transform: translateY(0); }
   75% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(-28px); }
+  100% { opacity: 0; transform: translateY(-18px); }
 }
 @media (prefers-reduced-motion: reduce) { .power-delta { animation-duration: .01s; opacity: 1; } }
+/* Window themes force Nunito on strong and b: the counter keeps its own type. */
+.power-counter, .power-counter *, .bag-window .bag-layout strong.power-counter, .bag-window .bag-layout .power-counter b { font-family: 'Lilita One', 'Nunito', sans-serif; font-weight: 400; }

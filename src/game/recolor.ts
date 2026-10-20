@@ -57,21 +57,38 @@ export function zoneCoverage(canvas:Canvas,id:string):number{
 const SKIN_REFERENCE=[252,207,172] as const;
 /** Painted skin keeps blue a steady function of green (both relative to red): b/r ≈ 1.2·g/r − 0.3, from the
  * light highlights down to the deep shade (measured on character-base.png and the painted outfits). */
-function skinBand(r:number,g:number,b:number){
+function skinBand(r:number,g:number,b:number,strict=false){
  if(r<60||r<g||g<b)return 0;const gr=g/r,br=b/r,off=Math.abs(br-(1.2*gr-.3));
+ if(strict)return ramp(gr,.42,.5)*(1-ramp(gr,.9,.95))*(1-ramp(br,.78,.86))*(1-ramp(off,.045,.075));
  return ramp(gr,.42,.5)*(1-ramp(gr,.97,1))*(1-ramp(off,.08,.14));
+}
+/** Light skin highlights left out by the strict band are skin when skin surrounds them on most sides. */
+function fillHighlights(data:Uint8ClampedArray,width:number,weights:Float32Array,skip?:(x:number,y:number)=>boolean){
+ const height=weights.length/width,radius=Math.max(2,Math.round(width/300)),add:number[]=[];
+ for(let y=radius;y<height-radius;y++)for(let x=radius;x<width-radius;x++){
+  const n=y*width+x,i=n*4;if(weights[n]>=.5||data[i+3]<8||skip?.(x,y))continue;
+  const r=data[i],g=data[i+1],b=data[i+2];if(r<200||r<g||g<b||skinBand(r,g,b)<.5)continue;
+  let skin=0,total=0;
+  for(let dy=-radius;dy<=radius;dy+=radius)for(let dx=-radius;dx<=radius;dx+=radius){if(!dx&&!dy)continue;total++;if(weights[(y+dy)*width+x+dx]>=.5)skin++;}
+  if(skin>=total-1)add.push(n);
+ }
+ for(const n of add)weights[n]=1;
 }
 /** Multiplies skin by target/reference, so light and shade keep their proportions on any tone.
  * Only connected regions holding bright skin highlights change: brown leather, gold trims or an orange
  * lining near the skin line stay as painted because nothing bright and skin-colored touches them. */
-export function tintSkin(canvas:Canvas,hex:string|undefined,_strict?:boolean,skip?:(x:number,y:number)=>boolean){
+/** `strict` (painted outfits): white, cream and pink cloth sit right next to the skin and inside the
+ * loose band, so only skin-saturated pixels count; the skin's own small highlights are then filled
+ * back from the skin around them (`fillHighlights`). */
+export function tintSkin(canvas:Canvas,hex:string|undefined,strict=false,skip?:(x:number,y:number)=>boolean){
  if(!hex)return;const c=canvas.getContext('2d',{willReadFrequently:true})!,pixels=c.getImageData(0,0,canvas.width,canvas.height),data=pixels.data;
  const width=canvas.width,count=data.length/4,weights=new Float32Array(count),seeds=new Uint8Array(count);
  for(let n=0,i=0;n<count;n++,i+=4){
   if(data[i+3]<8||skip?.(n%width,Math.floor(n/width)))continue;
-  const r=data[i],g=data[i+1],b=data[i+2],w=skinBand(r,g,b);if(!w)continue;weights[n]=w;
+  const r=data[i],g=data[i+1],b=data[i+2],w=skinBand(r,g,b,strict);if(!w)continue;weights[n]=w;
   if(r>200&&g/r>.72&&Math.abs(b/r-(1.2*g/r-.3))<.06)seeds[n]=1;
  }
+ if(strict)fillHighlights(data,width,weights,skip);
  // Keep the connected regions (through the band) that hold enough highlight seeds.
  const label=new Int32Array(count).fill(-1),keep:boolean[]=[],stack:number[]=[],minSeeds=Math.max(4,Math.round(count/40000));
  for(let start=0;start<count;start++){
