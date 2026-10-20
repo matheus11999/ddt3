@@ -144,7 +144,7 @@ export class Game {
  // ── Pets in battle (shared/petSkills.ts does the rules; here they meet the match) ──
  private petContext(m:Match):PetEngineContext{
   return {fighters:m.state.players,mode:m.instance?'pve':'pvp',roll:this.petRoll,attackOf:f=>attributes(this.combatEquipment(f as Fighter),f.level).attack,
-   onDamage:(target,amount,source)=>{const t=target as Fighter,s=source as Fighter;if(t.hp<=0)t.powerArmed=false;if(amount>0&&t.team!==s.team){if(s.hp>0)s.powerCharge=chargeFromDamage(s.powerCharge??0,amount,t.maxHp);t.powerCharge=chargeFromDamage(t.powerCharge??0,amount,t.maxHp,true);}}};
+   onDamage:(target,amount,source)=>{const t=target as Fighter,s=source as Fighter;if(t.hp<=0)t.powerArmed=false;if(amount>0){if(t.team!==s.team&&s.hp>0)s.powerCharge=chargeFromDamage(s.powerCharge??0,amount,t.maxHp);t.powerCharge=chargeFromDamage(t.powerCharge??0,amount,t.maxHp,true);}}};
  }
  /** The fighter's equipment with this battle's pet attribute changes, for one calculation. */
  private combatEquipment(f:Fighter){const buffs=petStatBuffs(f);return buffs?{...f.equipment,battleBuffs:buffs}:f.equipment;}
@@ -1133,7 +1133,8 @@ export class Game {
    // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
    if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
    const alive=target.hp>0,absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
-   if(absorbed>0&&target.team!==shooter.team){if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
+   // Any damage taken charges the target's Power (own shot, ally or enemy, matheus 20/10); only enemy damage charges the shooter.
+   if(absorbed>0){if(target.team!==shooter.team&&shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
    hits.push({...planned,x:target.x,y:target.y-85});landed.push({...planned,dealt:absorbed,died:alive&&target.hp<=0});
   }
   this.petHits(m,shooter,shot.id,landed);
