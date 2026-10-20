@@ -28,6 +28,7 @@
     "verify:cosmetics": "node scripts/verify-cosmetics.mjs",
     "build:map": "node scripts/build-map.mjs",
     "build:lobby": "node scripts/build-lobby.mjs",
+    "build:fishing": "node scripts/build-fishing-props.mjs",
     "admin:password": "tsx scripts/admin-password.ts",
     "test:admin:browser": "node scripts/smoke-admin.mjs",
     "verify:weapons": "node scripts/verify-weapons.mjs",

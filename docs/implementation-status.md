@@ -493,4 +493,5 @@ Pedido do matheus: o jogador ficava preso em obstáculos que deveriam deixar pas
 Pedido do matheus: zona de pesca separada da praça, com lagos, Casa de Pesca, pesca manual (barra) e automática (AFK), Pontos de Pesca, loja de trocas e nível de pescador. Detalhes em `docs/fishing.md`; prompts de arte em `docs/fishing-art-prompts.md`.
 
 - Evidência: `tests/fishing.test.ts` (10 testes: lugares, caminhada até todos os lugares, barra, automático, gravação, loja, zonas, fluxo manual, dois erros, três rodadas AFK) e `npm run test:fishing:browser` (dois jogadores, pesca à mão até pegar, Casa de Pesca, Coleção, três lagos e volta à praça; prévias em `test-results/fishing/`).
-- Pendente: arte pintada (cenário, casa, portão, gramado/lagos/píeres, ícones, `fishing-button.png`, animações de lançar/fisgar/sucesso/escapar), sons, mais varas e iscas.
+- Refeito em 20/10 (pedido do matheus): mapa em terraços com escadas e câmera vertical, cenário só com arte já existente (`npm run build:fishing`), menus e desafio novos (alvo que nada, `zoneAt`). Evidência: `tests/fishing.test.ts` (11 testes), `npm run test:fishing:browser` e `npx tsx scripts/shot-fishing.mjs` (prévias em `test-results/fishing-scenery/`).
+- Pendente: ícones pintados, `fishing-button.png`, animações de lançar/fisgar/sucesso/escapar, sons, mais varas e iscas.
