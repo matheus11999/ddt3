@@ -1,5 +1,12 @@
 # Estado da entrega — 16/10/2026
 
+## Vento Celeste e Bobina do Trovão — 20/10/2026
+
+- Duas armas novas reconstruídas do Verdadeiro Vento de Deus 7008 e do Verdadeiro Trovão 7009 do DDTank 4.1 (`docs/wind-thunder.md`): atributos por fase em tabela (`Weapon.phaseStats`), Dano 200 fortalecido uma vez, graus 15–50 e 25–60, projétil de raio 3, área de dano 55/65 (`splash`), POW próprio (`Weapon.pow`: Vento 1 projétil ×1,5; Trovão leque de 3 a ×0,6 com força ×0,9/×1/×1,1, `volley(..., forces)`), POW `exclusivo` (sem Tridente, com +1/+2), quatro máscaras novas em `CRATER_MASKS` (escala 0,486 como o Bumerangue; Trovão serrilhado), loja a 520.
+- Arte: pranchas das 4 fases no Nano Banana 2 pela Higgsfield (Trovão refeito duas vezes até o matheus aprovar), efeitos do Trovão também no Nano Banana 2 (`scripts/build-thunder-effects.py`), efeitos do Vento montados das shurikens (`scripts/build-shuriken-effects.py`), `terrain.png` provisório (`scripts/build-terrain-fallback.py`). Sons no ElevenLabs, com `pow-fire`/`pow-impact`.
+- Verificação: `npm run check`, `npm test` (novo `tests/wind-thunder.test.ts`), `npm run build`, `npm run verify:weapons` (as duas com 34 prontos; faltam só as 8 marcas de destruição de cada, que o Quebra-Tijolos e o Bumerangue já têm), `node scripts/test-destruction-browser.mjs` sem falhas, prancha `node scripts/preview-wind-thunder-effects.mjs`.
+- Falta: as 8 marcas de destruição pintadas de cada arma (fluxo do `verify:weapons`, prompts 12–19); conferir na partida real o Trovão segurado na mão. Limites declarados: `.bomb` ausentes (máscaras reconstruídas das imagens do cliente), Ball.Delay desconhecido (150 provisório), SpecialII/MultiBall/AddWound sem gatilho, curva de splash do Brasa mantida com raio explícito.
+
 ## Hitbox 30×30, mira junto ao personagem e som de grau — 19/10/2026
 
 - Hitbox do jogador vira a caixa do DDTank 4.1 (`Player.cs`, `Rectangle(-15,-20,30,30)`): `fighterHitBounds` em `shared/physics.ts`, origem O 26 px acima dos pés (adaptação do Brasa que mantém o centro em 31 px; escala 1). Contato disco×caixa com cantos redondos, borda inclusiva, raspão normalizado pelo suporte da caixa; monstros/chefões mantêm o círculo; splash mantém o círculo antigo, agora explícito (`SPLASH_BODY`). Detalhes e decisões em `docs/hitbox-aim.md`.

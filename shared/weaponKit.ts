@@ -2,6 +2,7 @@ import {WEAPONS,weaponAssetPath,weaponIconPath} from './catalog';
 import type {BoostId,Weapon} from './catalog';
 import {DESTRUCTION_STAGES,destructionMarkPath,destructionProfileId,destructionProfiles,MARK_ART} from './destruction';
 import type {DestructionMode,DestructionStage} from './destruction';
+import {CRATER_MASKS} from './physics';
 
 /**
  * Weapon kit: everything one weapon needs to feel unique, DDTank style.
@@ -95,6 +96,60 @@ export interface WeaponKit {
 }
 
 export const WEAPON_KITS:Record<string,WeaponKit>={
+ 'wind-shuriken':{
+  // Reconstructed from DDTank 4.1 Verdadeiro Vento de Deus 7008 (docs/wind-thunder.md); held art made with Nano Banana 2 (20/10).
+  id:'wind-shuriken',
+  concept:'Vento Celeste: arma de arremesso de Agilidade, uma shuriken de três lâminas curvas que gira no ar. A arma e o projétil são o mesmo objeto. Tiro normal: uma shuriken. POW: três shurikens agrupadas num só golpe (um único projétil físico, ×1,5), maior e com silhueta própria.',
+  identity:'shuriken de três lâminas curvas e afiadas girando em volta de um cubo central redondo; lâminas e cubo mudam de material a cada fase. Contorno marrom grosso, pintura suave com volume, luz de cima à esquerda; sem mão, personagem ou pedestal.',
+  palette:'aço prateado e ferrugem no início, lâminas de fogo carmim e laranja com rubi em +10, pétalas vermelho-douradas e aletas lilás em +12, ouro de nuvens com núcleo de safira em +15',
+  powTrident:'exclusivo',projectileTilt:0,
+  sounds:['fire','flight','impact','terrain'],powSounds:['fire','impact'],
+  terrain:'pequeno resíduo de cortes finos em leque ao redor de uma cratera oval com centro transparente, poeira clara e lascas metálicas; sem pedra ou tijolos',
+  destruction:{
+   normal:'sombra em DEGRADÊ que nasce escura colada à borda OVAL do buraco e se dissolve para fora, em cinza-azulado escuro, atravessada por muitos CORTES finos e direcionais saindo da borda (como golpes de lâmina), alguns ramificados, que se apagam aos poucos. Função do craterBrink do Vento de Deus do DDTank: chão cortado, nunca uma moldura, nunca lâminas desenhadas',
+   pow:'o mesmo degradê, mais largo e escuro junto à oval POW (maior), com cortes mais longos e mais numerosos em leque giratório',
+   phases:{
+    0:{normal:'degradê cinza-ferrugem fosco, cortes finos escuros',pow:'degradê cinza-ferrugem largo, cortes longos em leque'},
+    10:{normal:'degradê cinza-avermelhado, cortes com um fio de brasa carmim no fundo',pow:'degradê largo, cortes longos com brasa carmim'},
+    12:{normal:'degradê ameixa escuro, cortes com reflexo lilás fraco',pow:'degradê ameixa largo, cortes longos com reflexo lilás'},
+    15:{normal:'degradê marrom-dourado profundo, cortes com fio de luz dourada e azul-safira',pow:'degradê largo e profundo, cortes longos com luz dourada e safira'}
+   }
+  },
+  sound:{fire:'fast spinning blade throw, sharp metallic whoosh',flight:'whirring blade cutting the air',impact:'sharp metal slash impact with a short ring',terrain:'quick crisp cut into dirt and gravel'},
+  phases:{
+   0:{ammo:'a própria shuriken de aço',held:'shuriken de três lâminas curvas serrilhadas de aço prateado com bordas enferrujadas e cubo redondo furado no centro',projectile:'a shuriken de aço girando, sem rastro pintado',muzzle:'redemoinho curto de vento claro',impact:'estouro rosado de vento com faíscas brancas e cortes',powProjectile:'três shurikens de bronze polido agrupadas em triângulo, com aura dourada; um único objeto',powImpact:'explosão de anéis de vento laranja e dourado com faíscas'},
+   10:{ammo:'a própria shuriken de fogo',held:'shuriken de lâminas de fogo carmim e laranja com serrilhas em forma de chama e cubo de rubi com aro dourado',projectile:'a shuriken de fogo girando, sem rastro pintado',muzzle:'redemoinho de vento com faíscas carmim',impact:'estouro de vento carmim com brasas',powProjectile:'três shurikens de fogo agrupadas em triângulo dentro de um anel de brasa; um único objeto',powImpact:'explosão de anéis de fogo carmim e dourado'},
+   12:{ammo:'a própria shuriken de pétalas',held:'shuriken de lâminas vermelho-douradas em forma de pétalas curvas, aletas lilás translúcidas entre as lâminas e cubo de flor dourada',projectile:'a shuriken de pétalas girando, sem rastro pintado',muzzle:'redemoinho de pétalas lilás',impact:'estouro de pétalas lilás e douradas',powProjectile:'três shurikens de pétalas agrupadas com aletas lilás e brilho dourado; um único objeto',powImpact:'explosão de pétalas lilás com anel dourado'},
+   15:{ammo:'a própria shuriken celeste',held:'shuriken de ouro radiante com ornamentos de nuvens, pontas de bronze escuro e núcleo hexagonal de safira com três raios azuis',projectile:'a shuriken celeste girando, sem rastro pintado',muzzle:'redemoinho dourado com faíscas azuis',impact:'estouro de nuvens douradas e faíscas azuis',powProjectile:'três shurikens celestes de ouro agrupadas em volta de uma safira brilhante; um único objeto',powImpact:'grande explosão de nuvens douradas com anel azul-safira'}
+  }
+ },
+ 'thunder-coil':{
+  // Reconstructed from DDTank 4.1 Verdadeiro Trovão 7009 (docs/wind-thunder.md); held art made with Nano Banana 2 (20/10).
+  id:'thunder-coil',
+  concept:'Bobina do Trovão: pistola de raio de Sorte, segurada numa mão, com bobina e dois terminais de onde sai o raio. Tiro normal: uma bola de energia branco-azulada. POW: três raios rosa-violeta em leque, cada um com cratera própria.',
+  identity:'pistola de raio de desenho animado, cabo embaixo, corpo arredondado, bobina enrolada e dois terminais paralelos apontando para a frente; materiais e terminais mudam a cada fase. Contorno marrom grosso, pintura suave com volume, luz de cima à esquerda; sem mão, personagem ou pedestal.',
+  palette:'metal vermelho-ferrugem e cobre no início, vermelho-laranja com molas douradas e cápsula ciano em +10, azul-petróleo blindado com luzes laranja e molas azuis em +12, violeta real com ouro e cristais azul-gelo e rubi em +15',
+  powTrident:'exclusivo',projectileTilt:0,
+  sounds:['fire','flight','impact','terrain'],powSounds:['fire','impact'],
+  terrain:'queimadura elétrica escura com ramificações irregulares ao redor de uma cratera com centro transparente; sem pedra ou tijolos',
+  destruction:{
+   normal:'QUEIMADURA elétrica em degradê, quase preta colada à borda serrilhada do buraco e dissolvendo-se para fora em azul-acinzentado escuro, com ramificações finas e irregulares como raízes de raio saindo da borda e se apagando. Função do craterBrink do Trovão do DDTank: chão queimado e rachado por eletricidade, nunca uma moldura',
+   pow:'a mesma queimadura, menor e mais concentrada junto ao buraco POW (menor), com ramificações curtas e densas em tom violeta escuro',
+   phases:{
+    0:{normal:'queimadura preto-azulada fosca, ramificações finas',pow:'queimadura preto-violeta compacta, ramificações curtas'},
+    10:{normal:'queimadura com fio ciano fraco no fundo das ramificações',pow:'queimadura violeta com fio ciano fraco'},
+    12:{normal:'queimadura azul-petróleo com pontos laranja apagados',pow:'queimadura violeta com fios azul-petróleo'},
+    15:{normal:'queimadura profunda com fios de luz azul-gelo e rubi nas pontas',pow:'queimadura violeta profunda com fios rosa-violeta vivos'}
+   }
+  },
+  sound:{fire:'electric zap blast with a crackling coil charge',flight:'buzzing electric orb hum',impact:'loud electric crackle burst with sparks',terrain:'short sizzling crack of scorched ground'},
+  phases:{
+   0:{ammo:'carga elétrica branco-azulada',held:'pistola de raio de metal vermelho-ferrugem com placa rebitada, medidor redondo de vidro, fio de cobre enrolado no cabo e dois terminais de latão com isoladores de porcelana branca',projectile:'bola de energia branco-azulada com fiapos elétricos, sem objeto sólido',muzzle:'faísca branca curta em leque',impact:'explosão esférica azul-ciano de raios',powProjectile:'raio rosa-violeta alongado com núcleo branco',powImpact:'explosão violeta de raios ramificados'},
+   10:{ammo:'carga elétrica ciano',held:'pistola de raio vermelho-laranja brilhante com reflexos de chama, cápsula ciano de energia na lateral, guarda-mato dourado e dois terminais de mola dourada em espiral terminando em ponta',projectile:'bola de energia ciano mais forte com fiapos elétricos',muzzle:'faísca ciano com anel dourado',impact:'explosão ciano com raios e faíscas douradas',powProjectile:'raio rosa-violeta mais grosso com faíscas douradas',powImpact:'explosão violeta e dourada de raios'},
+   12:{ammo:'carga elétrica azul-petróleo',held:'pistola de raio azul-petróleo blindada com aletas, parafusos, fileira de luzes laranja, gema verde em cima, bobina dourada e dois terminais de mola azul terminando em pontas douradas',projectile:'bola de energia azul intensa com anel elétrico',muzzle:'faísca azul com pontos laranja',impact:'explosão azul elétrica com anel de raios',powProjectile:'raio violeta com anel elétrico azul',powImpact:'explosão violeta-azul com anel de raios'},
+   15:{ammo:'carga elétrica azul-gelo e rubi',held:'pistola de raio violeta real com filigrana dourada e diamante vermelho na lateral; os terminais viram dois grandes cristais facetados, azul-gelo e rubi, presos num colar dourado com gemas verdes',projectile:'bola de energia branca com raios azul-gelo e rubi',muzzle:'faísca dupla azul e rubi',impact:'explosão de raios azul-gelo e rubi',powProjectile:'raio rosa-violeta com cristais de luz',powImpact:'grande explosão violeta com raios azul-gelo e rubi'}
+  }
+ },
  'love-boomerang':{
   id:'love-boomerang',
   concept:'Arma de arremesso romântica e ágil: um bumerangue curvo de lâminas com um coração central, que evolui de madeira e bronze para joia rosa e asas brancas. Tiro único normal; POW lança uma estrela alada de coração, maior e com silhueta própria.',
@@ -220,7 +275,12 @@ function references(kit:WeaponKit,slot:PhaseArtSlot|'terrain'|'atlas'|'pow',stag
 export function destructionTemplatePath(weapon:string,mode:DestructionMode){return `docs/destruction-templates/${weapon}-${mode}.png`;}
 /** The DDTank 4.1 craterBrink studied for this weapon and mode (local reference package on the user's PC, never shipped). */
 const DDTANK_REFERENCE:Record<string,string>={brick:'quebra-tijolos','love-boomerang':'bumerangue-verdadeiro'};
-export function destructionReferencePath(weapon:string,mode:DestructionMode){return `output/weapon-destruction-reference/${DDTANK_REFERENCE[weapon]??weapon}/ddtank/${mode}/craterBrink.png`;}
+/** Weapons studied in their own package (output/true-wind-thunder-reference): the craterBrink of each mode's crater id. */
+const DDTANK_TERRAIN:Record<string,Record<DestructionMode,string>>={
+ 'wind-shuriken':{normal:'output/true-wind-thunder-reference/vento-de-deus/terrain/121/craterBrink.png',pow:'output/true-wind-thunder-reference/vento-de-deus/terrain/131/craterBrink.png'},
+ 'thunder-coil':{normal:'output/true-wind-thunder-reference/trovao/terrain/141/craterBrink.png',pow:'output/true-wind-thunder-reference/trovao/terrain/151/craterBrink.png'}
+};
+export function destructionReferencePath(weapon:string,mode:DestructionMode){return DDTANK_TERRAIN[weapon]?.[mode]??`output/weapon-destruction-reference/${DDTANK_REFERENCE[weapon]??weapon}/ddtank/${mode}/craterBrink.png`;}
 /** Generation order of the marks: after the atlas, terrain and POW pieces (9–11), normal +0…+15 then POW +0…+15. */
 export function destructionOrder(mode:DestructionMode,stage:DestructionStage){return 12+(mode==='pow'?4:0)+DESTRUCTION_STAGES.indexOf(stage);}
 /** References a mark prompt attaches, in this order: template, held and icon of the phase, the DDTank mark of the mode, then the new marks already approved (earlier phase of the mode; for POW, the normal mark of the phase). */
@@ -232,7 +292,7 @@ export function destructionReferences(kit:WeaponKit,mode:DestructionMode,stage:D
 /** Image prompt for one of the 16 destruction marks (docs/weapon-kit.md, "Destruição"). */
 export function destructionPrompt(weapon:Weapon,kit:WeaponKit,mode:DestructionMode,stage:DestructionStage):string {
  const brief=kit.destruction!,phase=WEAPON_PHASES.find(p=>p.stage===stage)!,profile=destructionProfiles().get(destructionProfileId(kit.id,mode,stage))!,refs=destructionReferences(kit,mode,stage);
- const hole=Math.round(MARK_ART.width*profile.mark.holeShare),deep=Math.round(hole*({brick:.66,'brick-pow':.66,oval:.67,'oval-pow':.59} as Record<string,number>)[profile.mask]);
+ const hole=Math.round(MARK_ART.width*profile.mark.holeShare),deep=Math.round(hole*CRATER_MASKS[profile.mask].height);
  return `${STYLE}
 Weapon "${weapon.name}" (${kit.id}), visual phase ${phase.label}, ${mode==='pow'?'POW (special shot)':'normal shot'}.
 Paint the GROUND MARK this shot leaves around its hole in destructible ground (like DDTank's craterBrink): the game cuts the hole with its own fixed mask and keeps only the part of this painting that lands on ground that is left, so it never floats over empty space. It is NOT the explosion: no fireball, no smoke cloud, no flash, no pedestal, no disc inside the hole, no soil or scenery painted in the file (the real ground shows under the mark).

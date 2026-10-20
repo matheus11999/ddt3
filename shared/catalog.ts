@@ -66,13 +66,33 @@ export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:
 export interface ItemAttributes {attack:number;defense:number;agility:number;luck:number;damage:number;armor:number;}
 const cosmetic=(id:string,name:string,slot:Slot,variant:string,color:string,rarity:Rarity='common',visual:Partial<ItemVisual>={}):Item=>({id,name,slot,rarity,color,description:variant==='none'?'Visual natural.':'Personalize sua aventura.',attack:0,defense:0,agility:0,visual:{variant,color,...visual}});
 /** Fixed hole shapes, one per weapon and one for its POW, as in DDTank (shared/physics.ts CRATER_MASKS). */
-export type CraterShape='brick'|'brick-pow'|'oval'|'oval-pow';
-export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang';
+export type CraterShape='brick'|'brick-pow'|'oval'|'oval-pow'|'wind'|'wind-pow'|'thunder'|'thunder-pow';
+export type WeaponEffect='fire'|'electric'|'crystal'|'dynamite'|'brick'|'boomerang'|'shuriken';
 export interface WeaponFragments {count:readonly [number,number,number,number];damage:number;crater:number;blast:number;speed:number;radius:number;gravity:number;}
-export interface Weapon extends Item { damage:number; crater:number; blast:number; /** DDTank ball physics (shared/physics.ts); the common ball when omitted. */ ball?:import('./physics').Ball; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Fixed hole shape of a normal shot (round when omitted) and of the POW (normal shape when omitted). */ craterShape?:CraterShape; powCraterShape?:CraterShape; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; /** Delay added by each shot (DDTank ball Delay + weapon Property8); 0 when omitted. */ shotDelay?:number; }
+/** Ataque/Defesa/Agilidade/Sorte of one evolution phase, read from a table instead of the +10/+12 milestone rule. */
+export type WeaponPhaseStats=Pick<ItemAttributes,'attack'|'defense'|'agility'|'luck'>;
+/** One projectile of a POW fan: angle offset in degrees and launch force multiplier (DDTank: force and damage are separate). */
+export interface WeaponPowShot {angle:number;force:number;}
+/**
+ * A weapon's own POW, replacing the global POW multipliers (shared/power.ts) for that weapon only.
+ * `damage` multiplies each projectile once; `fan` fires several physical projectiles per volley (absent: one);
+ * `crater` is the POW hole radius (absent: crater × POWER_CRATER_MULTIPLIER); `splash` its effective damage radius.
+ */
+export interface WeaponPow {damage:number;fan?:readonly WeaponPowShot[];crater?:number;splash?:number;}
+export interface Weapon extends Item { damage:number; crater:number; blast:number; /** DDTank ball physics (shared/physics.ts); the common ball when omitted. */ ball?:import('./physics').Ball; projectileRadius:number; effect:WeaponEffect; minAngle:number; maxAngle:number; fragments?:WeaponFragments; /** Jagged crater edge, 0 = round; defaults to CRATER_ROUGHNESS (shared/physics.ts). */ craterRoughness?:number; /** Fixed hole shape of a normal shot (round when omitted) and of the POW (normal shape when omitted). */ craterShape?:CraterShape; powCraterShape?:CraterShape; /** Combat presentation only: guns and wands are held and fire from the tip; others are thrown by hand. */ hold?:'hand'; /** Delay added by each shot (DDTank ball Delay + weapon Property8); 0 when omitted. */ shotDelay?:number; /** Attributes per evolution phase (0, 10, 12, 15), used instead of `weaponMilestoneValue` when present. */ phaseStats?:Readonly<Record<0|10|12|15,WeaponPhaseStats>>; /** Effective damage radius of a normal shot, instead of blast × SPLASH_RADIUS_SCALE. */ splash?:number; pow?:WeaponPow; }
 export const WEAPONS: Weapon[] = [
  {id:'brick',name:'Quebra-Tijolos',slot:'weapon',rarity:'rare',color:'#d8432a',description:'A primeira arma de todo artilheiro: um recipiente de tijolos de olaria que cresce com a forja. Cada tijolo arremessado abre só uma cratera pequena.',attack:85,defense:95,agility:85,luck:85,damage:200,crater:22,craterRoughness:0,craterShape:'brick',powCraterShape:'brick-pow',blast:92,projectileRadius:8,effect:'brick',minAngle:20,maxAngle:65,shotDelay:150},
- {id:'love-boomerang',name:'Bumerangue do Amor',slot:'weapon',rarity:'rare',color:'#ef5198',description:'Lâminas curvas com coração de rubi. Alta agilidade e sorte, defesa baixa e um POW alado próprio. Evolui na forja em +10, +12 e +15.',attack:145,defense:25,agility:145,luck:145,damage:230,crater:26,craterRoughness:0,craterShape:'oval',powCraterShape:'oval-pow',blast:82,projectileRadius:5,effect:'boomerang',minAngle:15,maxAngle:65,shotDelay:150}
+ {id:'love-boomerang',name:'Bumerangue do Amor',slot:'weapon',rarity:'rare',color:'#ef5198',description:'Lâminas curvas com coração de rubi. Alta agilidade e sorte, defesa baixa e um POW alado próprio. Evolui na forja em +10, +12 e +15.',attack:145,defense:25,agility:145,luck:145,damage:230,crater:26,craterRoughness:0,craterShape:'oval',powCraterShape:'oval-pow',blast:82,projectileRadius:5,effect:'boomerang',minAngle:15,maxAngle:65,shotDelay:150},
+ // Reconstructed from DDTank 4.1 Verdadeiro Vento de Deus 7008 (docs/wind-thunder.md): per-phase table, Dano 200,
+ // one shuriken per shot; the POW paints three but is one physical projectile at ×1.5.
+ {id:'wind-shuriken',name:'Vento Celeste',slot:'weapon',rarity:'epic',color:'#e0a43a',description:'Shuriken de três lâminas curvas para quem vive da Agilidade. O POW lança três lâminas juntas num só golpe. Evolui na forja em +10, +12 e +15.',attack:60,defense:30,agility:250,luck:40,damage:200,crater:26,craterRoughness:0,craterShape:'wind',powCraterShape:'wind-pow',blast:92,splash:55,projectileRadius:3,effect:'shuriken',minAngle:15,maxAngle:50,shotDelay:150,
+  phaseStats:{0:{attack:60,defense:30,agility:250,luck:40},10:{attack:72,defense:36,agility:300,luck:48},12:{attack:93,defense:46,agility:390,luck:62},15:{attack:111,defense:55,agility:488,luck:77}},
+  pow:{damage:1.5,crater:28.5,splash:65}},
+ // Reconstructed from DDTank 4.1 Verdadeiro Trovão 7009: high Sorte, a held blaster; the POW fires three bolts at ×0.6,
+ // fanned −5°/0°/+5° with force ×0.9/×1/×1.1, each with its own smaller crater.
+ {id:'thunder-coil',name:'Bobina do Trovão',slot:'weapon',rarity:'epic',color:'#4fb6ff',description:'Disparador elétrico de bobina para quem confia na Sorte. O POW solta três raios em leque, cada um com a sua cratera. Evolui na forja em +10, +12 e +15.',attack:30,defense:40,agility:60,luck:250,damage:200,crater:25,craterRoughness:0,craterShape:'thunder',powCraterShape:'thunder-pow',blast:92,splash:55,projectileRadius:3,effect:'electric',minAngle:25,maxAngle:60,hold:'hand',shotDelay:150,
+  phaseStats:{0:{attack:30,defense:40,agility:60,luck:250},10:{attack:36,defense:48,agility:72,luck:300},12:{attack:46,defense:62,agility:93,luck:390},15:{attack:55,defense:77,agility:111,luck:488}},
+  pow:{damage:.6,crater:22.5,splash:65,fan:[{angle:-5,force:.9},{angle:0,force:1},{angle:5,force:1.1}]}}
 ];
 export const ITEMS: Item[] = [...WEAPONS,
  {id:'hat-cap',name:'Boné do Explorador',slot:'hat',rarity:'common',color:'#e09c55',description:'O começo de uma grande jornada.',attack:0,defense:8,agility:8,armor:5},
@@ -213,6 +233,8 @@ export function upgradeProgress(level:number):number {return Math.max(0,Math.min
 /** Forge: Dano × 1.10^level; Ataque, Defesa, Agilidade and Sorte only gain at the +10 and +12 milestones (shared/stats.ts). */
 export function weaponStats(weapon:Weapon,level:number):Weapon {
  const upgrade=strengthenLevel(level);
+ // Weapons with their own phase table take its values as they are: the milestone rule never applies on top.
+ if(weapon.phaseStats)return {...weapon,damage:strengthenedValue(weapon.damage,upgrade),...weapon.phaseStats[weaponVisualStage(upgrade)]};
  return {...weapon,damage:strengthenedValue(weapon.damage,upgrade),attack:weaponMilestoneValue(weapon.attack,upgrade),defense:weaponMilestoneValue(weapon.defense,upgrade),agility:weaponMilestoneValue(weapon.agility,upgrade),...(weapon.luck===undefined?{}:{luck:weaponMilestoneValue(weapon.luck,upgrade)})};
 }
 /** Item tooltips and character totals use the same authoritative numbers: original values, then forge, then composition. */

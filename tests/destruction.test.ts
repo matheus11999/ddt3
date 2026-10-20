@@ -13,17 +13,18 @@ import type {TerrainMark} from '../shared/protocol';
 const MASK_HASHES:Record<string,string>={};
 const hash=(bits:Uint8Array)=>createHash('sha256').update(bits).digest('hex').slice(0,16);
 
-test('16 destruction profiles: 2 weapons × 4 phases × normal|POW, 4 shared masks and 16 distinct paintings',()=>{
+const PROFILED=['brick','love-boomerang','wind-shuriken','thunder-coil'];
+test('32 destruction profiles: 4 weapons × 4 phases × normal|POW, 8 shared masks and 32 distinct paintings',()=>{
  const profiles=[...destructionProfiles().values()];
- assert.equal(profiles.length,16);
- assert.equal(new Set(profiles.map(p=>p.mark.src)).size,16,'one painting per profile');
- assert.equal(new Set(profiles.map(p=>p.mask)).size,4,'phases share the cut');
- for(const weapon of ['brick','love-boomerang'])for(const mode of DESTRUCTION_MODES)for(const stage of DESTRUCTION_STAGES){
+ assert.equal(profiles.length,32);
+ assert.equal(new Set(profiles.map(p=>p.mark.src)).size,32,'one painting per profile');
+ assert.equal(new Set(profiles.map(p=>p.mask)).size,8,'phases share the cut');
+ for(const weapon of PROFILED)for(const mode of DESTRUCTION_MODES)for(const stage of DESTRUCTION_STAGES){
   const p=profiles.find(item=>item.weapon===weapon&&item.mode===mode&&item.stage===stage)!;assert.ok(p,`${weapon} ${mode} ${stage}`);
   assert.equal(p.id,`${weapon}:${mode}:${stage}@${p.version}`);assert.equal(p.mark.src,`/assets/weapons/${weapon}/destruction/${mode}/mark-${stage}.png`);
   const w=WEAPONS.find(item=>item.id===weapon)!;
   assert.equal(p.mask,mode==='pow'?w.powCraterShape:w.craterShape);
-  assert.equal(p.radius,w.crater*(mode==='pow'?POWER_CRATER_MULTIPLIER:1),'POW multiplier applied once, by the profile radius only');
+  assert.equal(p.radius,mode==='pow'?w.pow?.crater??w.crater*POWER_CRATER_MULTIPLIER:w.crater,'POW multiplier applied once, by the profile radius only');
   assert.ok(p.mark.world>p.radius*2,'the painting frames the hole with a rim');
  }
  // The phase follows weaponVisualStage: +0–9, +10–11, +12–14, +15.

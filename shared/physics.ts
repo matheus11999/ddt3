@@ -164,7 +164,19 @@ export const CRATER_MASKS:Record<CraterShape,{height:number;inside:(x:number,y:n
  'brick-pow':{height:.66,inside:(x,y)=>Math.abs(y)<=.66&&Math.abs(x)<=1-.32*Math.abs(y)/.66&&Math.abs(x)+Math.abs(y)<=1.42},
  oval:{height:.67,inside:(x,y)=>x*x+(y/.67)**2<=1},
  'oval-pow':{height:.59,inside:(x,y)=>x*x+(y/.59)**2<=1},
+ // Vento Celeste and Bobina do Trovão (docs/wind-thunder.md): DDTank 4.1 crater 121/131/141/151 measured at alpha 128
+ // (107×72, 117×83, 103×84 and 92×68 px), centred on the bitmap like the originals. The Trovão holes have the
+ // serrated edge of their PNGs; the teeth only shrink the edge, matching the measured areas (97.7% and 95.6% of the ellipse).
+ wind:{height:.67,inside:(x,y)=>x*x+(y/.67)**2<=1},
+ 'wind-pow':{height:.71,inside:(x,y)=>x*x+(y/.71)**2<=1},
+ thunder:{height:.82,inside:(x,y)=>serrated(x,y,.82,.023)},
+ 'thunder-pow':{height:.74,inside:(x,y)=>serrated(x,y,.74,.044)},
 };
+/** An ellipse `height` deep whose edge carries 26 triangular teeth cutting up to `depth` of the radius inward. */
+function serrated(x:number,y:number,height:number,depth:number){
+ const r=Math.hypot(x,y/height);if(r>1)return false;if(r<=1-depth)return true;
+ const tooth=Math.abs(((Math.atan2(y/height,x)/(Math.PI*2)*26)%1+1)%1*2-1);return r<=1-depth*tooth;
+}
 /** A fixed hole mask compiled to world pixels: `bits[j*width+i]` is 1 where pixel (i,j) is cut.
  * Pixel (i,j) lands on world pixel (anchorX-pivotX+i, anchorY-pivotY+j), with the anchor at the impact point
  * rounded to the nearest pixel corner (`craterAnchor`). Built from the analytic shape alone (no images), so the
@@ -335,16 +347,17 @@ export function leftArena(impact:{x:number;y:number},width:number=WORLD.width){r
 
 /** Simultaneous shots share a clock. The callback applies authoritative impact changes
  * before the remaining shots are checked again against the changed terrain/players. */
-export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance,passOverlapping=true,motion:BallMotion=ballMotion(weapon.ball)):TrajectoryResult[] {
+/** `forces` scales each projectile's launch force (a POW fan: DDTank Trovão ×0.9/×1/×1.1); 1 when omitted. */
+export function volley(terrain:Uint8Array,origin:ProjectileOrigin,angles:readonly number[],power:number,wind:number,weapon:Weapon,targets:ProjectileTarget[]=[],onImpact?:(result:TrajectoryResult,index:number)=>void,launchDelays:readonly number[]=[],guidance?:ProjectileGuidance,passOverlapping=true,motion:BallMotion=ballMotion(weapon.ball),forces:readonly number[]=[]):TrajectoryResult[] {
  const force=power*motion.launch,dt=f32(PHYSICS_STEP_MS/1000),sampleMs=1000/60,eps=1e-7;
- const shots=angles.map((angle,index)=>({angle,launchAt:Math.max(0,launchDelays[index]??0),x:0,y:0,vx:0,vy:0,stepX:0,stepY:0,nextStep:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined,ignored:new Set<string>()})),results:TrajectoryResult[]=new Array(angles.length);
+ const shots=angles.map((angle,index)=>({angle,force:forces[index]??1,launchAt:Math.max(0,launchDelays[index]??0),x:0,y:0,vx:0,vy:0,stepX:0,stepY:0,nextStep:0,points:[] as number[][],launched:false,done:false,nextSample:0,lockId:undefined as string|undefined,ignored:new Set<string>()})),results:TrajectoryResult[]=new Array(angles.length);
  const finish=(index:number,contact:Contact,at:number)=>{const shot=shots[index];shot.done=true;shot.points.push([contact.centerX??contact.x,contact.centerY??contact.y]);const result={points:shot.points,x:contact.x,y:contact.y,hitId:contact.hitId,hitQuality:contact.hitQuality,flightTime:at-shot.launchAt};results[index]=result;onImpact?.(result,index);};
  let time=0;
  while(shots.some(shot=>!shot.done)){
   for(const shot of shots)if(!shot.launched&&shot.launchAt<=time+eps){
    // DDTank Living.cs: the launch velocity is the force split by the angle and truncated toward zero.
    const rad=shot.angle*Math.PI/180;shot.x=shot.stepX=origin.x+origin.facing*SHOT_ORIGIN.forward;shot.y=shot.stepY=origin.y-SHOT_ORIGIN.up;
-   shot.vx=f32(Math.trunc(force*Math.cos(rad))*origin.facing);shot.vy=f32(-Math.trunc(force*Math.sin(rad)));
+   const launch=force*shot.force;shot.vx=f32(Math.trunc(launch*Math.cos(rad))*origin.facing);shot.vy=f32(-Math.trunc(launch*Math.sin(rad)));
    shot.points.push([shot.x,shot.y]);shot.launched=true;shot.nextStep=time;shot.nextSample=time+sampleMs;
    if(passOverlapping)for(const target of targets)if(Math.abs(target.x-origin.x)<FIGHTER_OVERLAP&&insideTarget(shot,target,weapon.projectileRadius))shot.ignored.add(target.id);}
   // Each shot runs its own fixed 0.04 s clock (semi-implicit Euler, DDTank EulerVector.cs):
