@@ -12,7 +12,6 @@ import {CompositionIcon} from './CompositionIcon';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
 import {ItemCard,ItemCardFrame} from './ItemCard';
-import type {ItemRarity} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {Modal} from './Modal';
 import {playerMenuProps} from './PlayerActions';
@@ -27,7 +26,6 @@ import './Auction.css';
    Vender: os meus anúncios (até 3) e o formulário do anúncio, que escolhe o item numa janela da mochila. */
 const money=(value:number)=>value.toLocaleString('pt-BR');
 export function CurrencyIcon({currency,size=20}:{currency:AuctionCurrency;size?:number}){return currency==='gold'?<RewardIcon size={size}/>:<CouponIcon size={size}/>;}
-export const goodsRarity=(goods:AuctionGoods):ItemRarity=>goods.kind==='item'?(CATALOG[goods.item]?.rarity??'common'):'common';
 /** Where the hover card reads a listed copy from: its own key, so forge level, compositions and color show. */
 const tipKey=(listing:{id:number;goods:AuctionGoods})=>listing.goods.kind==='item'?`${listing.goods.item}~L${listing.id}`:listing.goods.kind==='stone'?`stone-${listing.goods.level}`:'';
 
@@ -38,7 +36,7 @@ export function GoodsArt({goods,size=46}:{goods:AuctionGoods;size?:number}){
 }
 export function GoodsCard({goods,size=50,...props}:{goods:AuctionGoods;size?:number}&React.HTMLAttributes<HTMLDivElement>){
  const amount=goodsAmount(goods);
- return <ItemCardFrame rarity={goodsRarity(goods)} variant="slot" className="auction-goods-card" style={{width:size,height:size}} {...props}>
+ return <ItemCardFrame variant="slot" className="auction-goods-card" style={{width:size,height:size}} {...props}>
   <GoodsArt goods={goods} size={Math.round(size*.86)}/>
   {goods.kind==='item'&&!!goods.upgrade&&<UpgradeTag level={goods.upgrade} size={28} className="bag-upgrade-tag"/>}
   {amount>1&&<b className="auction-goods-count">{money(amount)}</b>}
@@ -202,7 +200,7 @@ function SellTab({feedback,setFeedback,sent,locked,now,showTip,hideTip}:{feedbac
   {picking&&<div className="auction-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget)setPicking(false);}}>
    <section className="auction-confirm auction-picker" role="dialog" aria-modal="true" aria-label="Selecionar item">
     <header><strong>Selecionar item</strong><button type="button" className="wood-close" aria-label="Fechar" onClick={()=>setPicking(false)}><X size={18}/></button></header>
-    {sellables.length?<div className="auction-bag-grid">{sellables.map(s=><ItemCard key={s.key} rarity={goodsRarity(s.goods)} selected={selected===s.key} className="auction-bag-cell" aria-label={goodsName(s.goods)} aria-pressed={selected===s.key} title={goodsName(s.goods)} onClick={()=>{setSelected(s.key);setAmount(1);setPicking(false);audio.play('click');}}>
+    {sellables.length?<div className="auction-bag-grid">{sellables.map(s=><ItemCard key={s.key} selected={selected===s.key} className="auction-bag-cell" aria-label={goodsName(s.goods)} aria-pressed={selected===s.key} title={goodsName(s.goods)} onClick={()=>{setSelected(s.key);setAmount(1);setPicking(false);audio.play('click');}}>
      <GoodsArt goods={s.goods} size={48}/>{s.goods.kind==='item'&&!!s.goods.upgrade&&<UpgradeTag level={s.goods.upgrade} size={26} className="bag-upgrade-tag"/>}{s.owned>1&&<b className="auction-goods-count">{money(s.owned)}</b>}
     </ItemCard>)}</div>:<p className="auction-empty">Nada para vender. Itens equipados não vão para o leilão.</p>}
    </section>

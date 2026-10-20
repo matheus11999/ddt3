@@ -143,7 +143,7 @@ export function DiscardConfirm({itemKey,onCancel,onConfirm,pending}:{itemKey:str
   <section className="color-studio discard-confirm" role="alertdialog" aria-modal="true" aria-label="Excluir item">
    <header><strong>Excluir item</strong><button className="wood-close" aria-label="Fechar" disabled={pending} onClick={onCancel}><X size={18}/></button></header>
    <div className="discard-body">
-    <ItemCardFrame rarity={item.rarity} variant="detail"><ItemIcon id={item.id} size={76}/></ItemCardFrame>
+    <ItemCardFrame variant="detail"><ItemIcon id={item.id} size={76}/></ItemCardFrame>
     <b>{item.name}</b>
     <p>O item some da mochila para sempre{item.slot==='weapon'?', com o fortalecimento e a composição':''}. Não dá para desfazer.</p>
    </div>

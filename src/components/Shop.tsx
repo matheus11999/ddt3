@@ -13,7 +13,7 @@ import {audio} from '../game/audio';
 import {Avatar} from './Avatar';
 import {InventoryTooltip} from './Inventory';
 import type {Tip} from './Inventory';
-import {ItemCard,ItemCardFrame,itemTier,rarityLabel} from './ItemCard';
+import {ItemCard,ItemCardFrame} from './ItemCard';
 import {ItemIcon} from './ItemIcon';
 import {LevelBadge} from './LevelBadge';
 import {Modal} from './Modal';
@@ -27,7 +27,6 @@ import './Shop.css';
    direto no card, com confirmação, sem carrinho. */
 const CATEGORIES=[{id:'all',label:'Destaques',Icon:ShoppingBag},{id:'weapon',label:'Armas',Icon:Swords},{id:'outfit',label:'Roupas',Icon:Shirt},{id:'costume',label:'Fantasias',Icon:Sparkles},{id:'face',label:'Rostos',Icon:Smile},{id:'style',label:'Complementos',Icon:Glasses}] as const;
 const PAGE_SIZE=10;
-const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 type Category=typeof CATEGORIES[number]['id'];
 const money=(value:number)=>value.toLocaleString('pt-BR');
 const searchable=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLocaleLowerCase('pt-BR');
@@ -112,12 +111,12 @@ export function Shop({onClose}:{onClose:()=>void}){
     <div className="shop-shelf">
      <div className="shop-grid">
       {visible.map(id=>{if(id===COLOR_TICKET.id){const price=priceOf(id),short=price>p.gold;return <article key={id} className="shop-offer consumable" data-shop-item={id}>
-       <ItemCard rarity="rare" aria-label={COLOR_TICKET.name} aria-describedby={tipped(id)} {...tipEvents(id)}><TicketIcon size={64}/></ItemCard>
+       <ItemCard aria-label={COLOR_TICKET.name} aria-describedby={tipped(id)} {...tipEvents(id)}><TicketIcon size={64}/></ItemCard>
        <div className="shop-offer-info"><h2>{COLOR_TICKET.name}</h2><small>Consumível · você tem {p.colorTickets}</small></div>
        <div className="shop-offer-buy"><span className={`shop-price ${short?'short':''}`}><RewardIcon size={20}/>{money(price)}</span><div className="shop-offer-actions"><button className="shop-buy" disabled={locked||short} aria-label={`Comprar ${COLOR_TICKET.name}`} title={short?'Moedas Brasa insuficientes':'Comprar'} onClick={()=>ask(id)}><ShoppingBag size={17}/></button></div></div>
       </article>;}
        const {price}=SHOP_OFFER_BY_ID[id],item=CATALOG[id],short=price>p.gold;return <article key={id} className={`shop-offer ${trying===id?'trying':''}`} data-shop-item={id} onClick={event=>{if(!(event.target as HTMLElement).closest('button'))experiment(id);}}>
-       <ItemCard rarity={item.rarity} selected={trying===id} aria-label={`Experimentar ${item.name}`} aria-pressed={trying===id} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
+       <ItemCard selected={trying===id} aria-label={`Experimentar ${item.name}`} aria-pressed={trying===id} aria-describedby={tipped(id)} {...tipEvents(id)}><ItemIcon id={id} upgrade={0} size={64}/></ItemCard>
        <div className="shop-offer-info">
         <h2>{item.name}</h2>
         <small>{SLOT_NAMES[item.slot]}{item.slot==='weapon'?' · +0':''}</small>
@@ -139,10 +138,10 @@ export function Shop({onClose}:{onClose:()=>void}){
     </div>
    </section>
    {pickTicket&&(()=>{const price=priceOf(COLOR_TICKET.id),total=price*quantity;return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
-    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier="normal">
+    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra">
      <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" disabled={pending} onClick={()=>setConfirming(null)}><X size={18}/></button></header>
      <div className="shop-confirm-body">
-      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame rarity="rare" variant="detail"><TicketIcon size={84}/></ItemCardFrame></div>
+      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame variant="detail"><TicketIcon size={84}/></ItemCardFrame></div>
       <b className="shop-confirm-name">{COLOR_TICKET.name}</b>
       <span className="shop-confirm-kind">Cada troca de cor gasta 1 ticket</span>
       <div className="shop-quantity" role="group" aria-label="Quantidade"><button className="wood-quiet" aria-label="Menos" disabled={pending||quantity<=1} onClick={()=>setQuantity(q=>Math.max(1,q-1))}><Minus size={16}/></button><output aria-live="polite">{quantity}</output><button className="wood-quiet" aria-label="Mais" disabled={pending||quantity>=maxQuantity} onClick={()=>setQuantity(q=>Math.min(maxQuantity,q+1))}><Plus size={16}/></button></div>
@@ -155,13 +154,13 @@ export function Shop({onClose}:{onClose:()=>void}){
      <footer><button className="wood-quiet" disabled={pending} onClick={()=>setConfirming(null)}>Cancelar</button><button ref={confirmButton} className="wood-button" disabled={locked&&!pending||total>p.gold} aria-busy={pending} onClick={buy}>{pending?<LoaderCircle size={18} className="button-spinner"/>:<ShoppingBag size={18}/>}{pending?'Comprando…':'Confirmar'}</button></footer>
     </section>
    </div>;})()}
-   {pick&&(()=>{const price=SHOP_OFFER_BY_ID[pick.id].price,tier=itemTier(pick.rarity);return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
-    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra" data-tier={tier}>
+   {pick&&(()=>{const price=SHOP_OFFER_BY_ID[pick.id].price;return <div className="shop-confirm-layer" onPointerDown={e=>{if(e.target===e.currentTarget&&!pending)setConfirming(null);}}>
+    <section className="shop-confirm" role="alertdialog" aria-modal="true" aria-label="Confirmar compra">
      <header><strong>Confirmar compra</strong><button className="wood-close" aria-label="Fechar confirmação" disabled={pending} onClick={()=>setConfirming(null)}><X size={18}/></button></header>
      <div className="shop-confirm-body">
-      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame rarity={pick.rarity} variant="detail"><ItemIcon id={pick.id} upgrade={0} size={84}/></ItemCardFrame></div>
+      <div className="shop-confirm-showcase"><i aria-hidden="true"/><ItemCardFrame variant="detail"><ItemIcon id={pick.id} upgrade={0} size={84}/></ItemCardFrame></div>
       <b className="shop-confirm-name">{pick.name}</b>
-      <span className="shop-confirm-kind">{SLOT_NAMES[pick.slot]}{pick.slot==='weapon'?' · +0':''}<em>{rarityLabel(pick.rarity)}<i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<u>{'★'.repeat(4-TIER_STARS[tier])}</u></i></em></span>
+      <span className="shop-confirm-kind">{SLOT_NAMES[pick.slot]}{pick.slot==='weapon'?' · +0':''}</span>
       <dl className="shop-confirm-cost">
        <div><dt>Preço</dt><dd><RewardIcon size={22}/>{money(price)}</dd></div>
        <div><dt>Seu saldo</dt><dd><RewardIcon size={22}/>{money(p.gold)}</dd></div>

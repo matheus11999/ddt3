@@ -172,7 +172,7 @@
 .mail-window .mail-attachment-grid { display: flex; flex-wrap: wrap; gap: 8px; }
 .mail-window .mail-attachment { display: grid; justify-items: center; gap: 3px; width: 76px; }
 .mail-window .mail-attachment small { display: -webkit-box; overflow: hidden; font-size: 10.5px; font-weight: 800; line-height: 1.15; text-align: center; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.mail-window .mail-attachment-card.item-card[data-rarity][data-card-variant] { position: relative; display: grid; place-items: center; width: 64px; height: 64px; padding: 3px; border-radius: 11px; }
+.mail-window .mail-attachment-card.item-card[data-card][data-card-variant] { position: relative; display: grid; place-items: center; width: 64px; height: 64px; padding: 3px; border-radius: 11px; }
 .mail-window .mail-attachment-card .item-art { width: 84% !important; height: 84% !important; object-fit: contain; }
 .mail-window .mail-attachment-count {
   position: absolute;
@@ -228,7 +228,7 @@
   .mail-window .mail-inbox-actions svg { width: 14px; height: 14px; }
   .mail-window .mail-inbox-actions .mail-claim-all b { min-width: 20px; height: 20px; padding: 0 4px; font-size: 11px; line-height: 16px; }
   .mail-window .mail-attachment { width: 62px; }
-  .mail-window .mail-attachment-card.item-card[data-rarity][data-card-variant] { width: 52px; height: 52px; }
+  .mail-window .mail-attachment-card.item-card[data-card][data-card-variant] { width: 52px; height: 52px; }
 }
 /* A força da arma anexada fica sempre visível (na mochila ela só aparece no hover). */
 .mail-window .item-card .bag-upgrade-tag { left: -8px; bottom: -8px; opacity: 1; transform: none; }

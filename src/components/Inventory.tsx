@@ -5,7 +5,7 @@ import type {PointerEvent as ReactPointerEvent} from 'react';
 import {Check,ChevronLeft,ChevronRight,CircleDot,Crosshair,Flame,Footprints,Clover,Gem,Glasses,GraduationCap,Hammer,Heart,LayoutGrid,Medal,MessageCircle,Palette,PersonStanding,Scissors,Search,Settings,Shield,ShieldCheck,Shirt,Smile,Sparkles,Swords,Watch,X,Zap} from 'lucide-react';
 import type {LucideIcon} from 'lucide-react';
 import {PowerCounter} from './PowerCounter';
-import {ARMOR_SLOTS,canStrengthen,isArmorSlot,slotUpgrade,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,CLASSED_SLOTS,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
+import {ARMOR_SLOTS,canStrengthen,isArmorSlot,slotUpgrade,attributes,itemAttributes,CATALOG,ITEMS,SLOTS,SLOT_NAMES,STONES,WEAPONS,weaponStats,canEquipItem,itemGender,unequipForGender,isEmptyItem,slotAccepts,slotFamily,slotsForItem,targetSlotForItem,SLOT_FAMILY,copyBase,equippedCompositions,equippedCopy,isCopyKey} from '../../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../../shared/catalog';
 import {COLOR_TICKET,equippedColors} from '../../shared/colors';
 import {canCompose} from '../../shared/composition';
@@ -21,7 +21,7 @@ import {Modal} from './Modal';
 import {LevelBadge} from './LevelBadge';
 import {PowerIcon} from './PowerIcon';
 import {ItemGenderBadge} from './ItemGenderBadge';
-import {ItemCard,ItemCardFrame,itemTier,rarityLabel,stoneRarity} from './ItemCard';
+import {ItemCard,ItemCardFrame} from './ItemCard';
 import {UpgradeTag} from './UpgradeTag';
 import './Inventory.css';
 import './Backpack.css';
@@ -120,7 +120,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
 
  const renderSlot=(slot:Slot)=>{
   const id=equipment[slot],copy=equippedCopy(equipment,slot),it=CATALOG[id],empty=!it||isEmptyItem(it),Placeholder=SLOT_ICONS[slot];
-  return <ItemCard key={slot} rarity={it?.rarity} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===copy?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
+  return <ItemCard key={slot} selected={activeSlot===slot&&category===slotFamily(slot)} empty={empty} aria-label={`${SLOT_NAMES[slot]}: ${empty?'Vazio':it.name}`} data-slot={slot} aria-describedby={!empty&&tooltip?.id===copy?'item-tooltip':undefined} className={`bag-slot equipment-slot ${dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'drop-ready':''}`} onClick={()=>filterBySlot(slot)} onDoubleClick={()=>removeFromSlot(slot)}
    draggable={!empty&&canRemove(slot)} onDragStart={e=>{e.dataTransfer.setData(SLOT_DRAG,slot);e.dataTransfer.effectAllowed='move';setTooltip(null);}}
    {...(empty?{onContextMenu:(event:React.MouseEvent)=>event.preventDefault()}:{...tooltipEvents(copy),onContextMenu:(event:React.MouseEvent<HTMLElement>)=>openMenu(event,copy,slot)})}
    onDragOver={e=>{if(!locked){e.preventDefault();e.dataTransfer.dropEffect=dragging&&slotAccepts(slot,CATALOG[copyBase(dragging)])?'copy':'none';}}}
@@ -172,7 +172,7 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
      <div className="bag-grid">{Array.from({length:PAGE_SIZE},(_,index)=>{
       const id=visible[index];if(!id)return <ItemCardFrame variant="slot" empty className="bag-cell empty" key={`empty-${index}`}/>;
       const it=id===COLOR_TICKET.id?undefined:CATALOG[copyBase(id)],st=STONES.find(s=>`stone-${s.level}`===id),level=p.upgrades[id]??0,equipped=!!it&&slotsForItem(it).some(slot=>equippedCopy(equipment,slot)===id),genderLocked=!!it&&!canEquipItem(it,p.gender);
-      return <ItemCard key={id} rarity={it?.rarity??stoneRarity(st?.level??1)} selected={id===selected} aria-label={it?.name??st?.name??(id===COLOR_TICKET.id?COLOR_TICKET.name:undefined)} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
+      return <ItemCard key={id} selected={id===selected} aria-label={it?.name??st?.name??(id===COLOR_TICKET.id?COLOR_TICKET.name:undefined)} aria-pressed={equipped} aria-disabled={genderLocked||locked||undefined} data-gender-locked={genderLocked||undefined} aria-describedby={tooltip?.id===id?'item-tooltip':undefined} className={`bag-cell ${id===selected?'selected':''} ${genderLocked?'gender-locked':''}`} draggable={!!it&&!locked&&!genderLocked}
        onDragStart={e=>{if(genderLocked){e.preventDefault();return;}e.dataTransfer.setData(ITEM_DRAG,id);e.dataTransfer.effectAllowed='copy';setDragging(id);setTooltip(null);}} onDragEnd={()=>setDragging(null)}
        onClick={()=>equipItem(id)} {...tooltipEvents(id)}>
        {previewFlash?.id===id&&<i key={previewFlash.key} className="item-preview-pulse" aria-hidden="true"/>}{it?<ItemIcon id={it.id} upgrade={level} size={60} color={p.itemColors[id]} skin={preview.skin} eyes={preview.eyes}/>:id===COLOR_TICKET.id?<TicketIcon size={55}/>:<img src={`/assets/${id}.png`} className="item-art" alt={st?.name} width={55} height={55}/>}
@@ -196,9 +196,8 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
 }
 
 const TIP_STATS=[['attack','Ataque',Swords],['defense','Defesa',Shield],['damage','Dano',Flame],['armor','Armadura',ShieldCheck],['agility','Agilidade',Zap],['luck','Sorte',Clover]] as const;
-const TIER_STARS={common:1,normal:2,epic:3,legendary:4} as const;
 export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,action,hideGender=false,colors={},tickets}:{tip:Tip;gender:CharacterGender;equipment:Equipment;upgrades:Record<string,number>;compositions:Compositions;action?:string;hideGender?:boolean;colors?:Record<string,string>;tickets?:number}){
- const {id,anchor}=tip,ticket=id===COLOR_TICKET.id,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null,rarity=item?.rarity??stoneRarity(stone?.level??1),tier=itemTier(rarity);
+ const {id,anchor}=tip,ticket=id===COLOR_TICKET.id,base=copyBase(id),level=upgrades[id]??0,item=CATALOG[base],stone=STONES.find(s=>`stone-${s.level}`===id),weapon=WEAPONS.find(w=>w.id===base),stats=weapon?weaponStats(weapon,level):null;
  const equipped=!!item&&slotsForItem(item).some(slot=>equippedCopy(equipment,slot)===id);
  const ref=useRef<HTMLElement>(null),[position,setPosition]=useState<{x:number;y:number}|null>(null);
  // The composition bonus is shown beside each attribute ("Ataque 100 +30"), not folded into it.
@@ -213,11 +212,11 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
   if(x<edge){x=(innerWidth-bounds.width)/2;y=box.bottom+12;if(y+bounds.height>innerHeight-edge)y=box.top-bounds.height-12;}
   setPosition({x:Math.max(edge,Math.min(innerWidth-bounds.width-edge,x)),y:Math.max(edge,Math.min(innerHeight-bounds.height-edge,y))});
  },[id,anchor,equipped,level]);
- const compatible=!item||canEquipItem(item,gender),classed=!!item&&CLASSED_SLOTS.includes(item.slot);
+ const compatible=!item||canEquipItem(item,gender);
  const delta=(value:number)=>compatible&&!equipped&&value!==0?<span className={`bag-tip-delta ${value>0?'up':'down'}`}>{value>0?'▲':'▼'}{Math.abs(value)}</span>:null;
- return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" data-rarity={tier==='normal'?'rare':tier} data-tier={tier} style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
+ return <aside ref={ref} id="item-tooltip" role="tooltip" className="inventory-tooltip bag-tooltip" style={{left:position?.x??0,top:position?.y??0,visibility:position?'visible':'hidden'}}>
   <header className="bag-tip-head">
-   <ItemCardFrame rarity={rarity} variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level} color={colors[id]} skin={equipment.skin} eyes={equipment.eyes}/>:ticket?<TicketIcon size={50}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
+   <ItemCardFrame variant="detail">{item?<ItemIcon id={base} size={56} upgrade={level} color={colors[id]} skin={equipment.skin} eyes={equipment.eyes}/>:ticket?<TicketIcon size={50}/>:<img width={50} src={`/assets/${id}.png`} alt=""/>}</ItemCardFrame>
    <div className="bag-tip-title">
     <strong>{item?.name??stone?.name??(ticket?COLOR_TICKET.name:'')}</strong>
     <small>{item?SLOT_NAMES[item.slot]:ticket?'Consumível':'Pedra de fortalecimento'}{stone&&` · Nível ${stone.level}`}</small>
@@ -225,7 +224,6 @@ export function InventoryTooltip({tip,gender,equipment,upgrades,compositions,act
    </div>
    {canStrengthen(item)&&<UpgradeTag level={level} size={84} className="bag-tip-upgrade"/>}
   </header>
-  {classed&&<div className="bag-tip-class"><span>Classe</span><b>{rarityLabel(rarity)}</b><i aria-hidden="true">{'★'.repeat(TIER_STARS[tier])}<em>{'★'.repeat(4-TIER_STARS[tier])}</em></i></div>}
   {item?<>
    <p className="bag-tip-desc">{item.description}</p>
    {!!item.hpPercent&&<dl className="bag-tip-stats bag-tip-percent"><div><dt><Heart size={13} aria-hidden="true"/>Vida</dt><dd>+{item.hpPercent}%</dd></div></dl>}

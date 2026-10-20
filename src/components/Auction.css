@@ -97,7 +97,7 @@
 .auction-window .auction-feedback { min-width: 0; overflow: hidden; color: #fff3c4; font-size: 13px; font-weight: 900; text-overflow: ellipsis; white-space: nowrap; text-shadow: 0 1px #3b1806; }
 
 /* Cards de item */
-.auction-window .auction-goods-card.item-card[data-rarity][data-card-variant] { position: relative; display: grid; flex: none; place-items: center; padding: 2px; border-radius: 10px; }
+.auction-window .auction-goods-card.item-card[data-card][data-card-variant] { position: relative; display: grid; flex: none; place-items: center; padding: 2px; border-radius: 10px; }
 .auction-window .auction-goods-card .item-art { width: 88% !important; height: 88% !important; object-fit: contain; }
 .auction-window .auction-goods-count { position: absolute; right: 3px; bottom: 0; z-index: 4; font-size: 12px; font-weight: 900; color: #fff; text-shadow: 0 0 3px #4a210a, 0 1px 0 #4a210a, 1px 0 0 #4a210a, -1px 0 0 #4a210a, 0 -1px 0 #4a210a; }
 .auction-window .item-card .bag-upgrade-tag { left: -8px; bottom: -8px; opacity: 1; transform: none; }
@@ -107,7 +107,7 @@
 .auction-window .auction-sell h3 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 6px; font-size: 15px; font-weight: 900; color: #7a3a0a; }
 .auction-window .auction-sell h3 small { margin-left: auto; font-size: 13px; color: var(--wood-ink-soft); }
 .auction-window .auction-bag-grid { display: grid; grid-template-columns: repeat(auto-fill, 62px); align-content: start; gap: 8px; min-height: 0; padding: 4px 4px 10px; overflow: auto; scrollbar-width: thin; }
-.auction-window .auction-bag-cell.item-card[data-rarity][data-card-variant] { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 2px; border-radius: 11px; }
+.auction-window .auction-bag-cell.item-card[data-card][data-card-variant] { position: relative; display: grid; place-items: center; width: 62px; height: 62px; padding: 2px; border-radius: 11px; }
 .auction-window .auction-bag-cell .item-art { width: 86% !important; height: 86% !important; }
 .auction-window .auction-form { display: grid; align-content: start; gap: 9px; padding: 10px 12px; overflow: auto; }
 .auction-window .auction-form-item { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 72px; padding: 4px 8px; border: 1px dashed #d98f45; border-radius: 12px; background: #fffaf0; }
