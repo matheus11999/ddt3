@@ -515,8 +515,9 @@ function drawFishImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,t
  const radius=Math.min(130,Math.max(10,p.impact.radius)),size=radius*3.4*(1+tier*.06)*(pow?1.3:1);
  const pop=t<130?.45+.7*easeOut(t/130):1.15+.1*easeOut((t-130)/(duration-130)),fade=1-clamp((t-duration*.5)/(duration*.5)),width=size*pop;
  if(t<160)glow(c,p.impact.x,p.impact.y,radius*(.8+t/160*1.4),FAMILY.fish.hot,(1-t/160)*.7);
- // The painting's base sits on the impact point: the water rises out of the ground.
- sprite(c,'fish',pow?1:2,tier,p.impact.x,p.impact.y-width*.3,width,0,.5,fade,0,false,pow?'pow':'effects');
+ // Centred on the impact point like every weapon, only a little up so the splash's base reaches the hit (20/10:
+ // lifted by 30% of its width it floated over the target's head).
+ sprite(c,'fish',pow?1:2,tier,p.impact.x,p.impact.y-width*.08,width,0,.5,fade,0,false,pow?'pow':'effects');
 }
 export function drawImpact(c:CanvasRenderingContext2D,p:Projectile,elapsed:number,level:number,material='earth',options:WeaponEffectOptions={}){
  if(p.effect==='boomerang'){drawBoomerangImpact(c,p.impact.x,p.impact.y,elapsed,!!p.powered,reduced(options));return;}
