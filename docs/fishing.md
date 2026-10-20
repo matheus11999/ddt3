@@ -7,14 +7,14 @@ Pedido do matheus: uma zona separada da Praça Celeste, mais larga, com lagos, C
 - `Zone = 'plaza' | 'fishing'` (`shared/fishing.ts`). O jogador entra pelo botão **Pescaria** do menu da praça e sai pelo botão **Sair da Pescaria** (topo) ou pelo dirigível "Praça Celeste" no cais.
 - Comando `zone` → o servidor troca `Peer.zone`, põe o jogador em `FISHING_SPAWN` (ou em `LOBBY_SPAWN` na volta) e manda `zone` com os jogadores da nova zona. Cada canal tem uma lista de andarilhos por zona; chat Mundo/Guilda/Privado continua igual.
 - Na Pescaria o menu mostra mochila, loja, leilão, missões, correio, guilda, pets etc., **sem** Arena PvP, Expedições e Ferreiro. O servidor recusa `create`, `create-expedition`, `join`, `spectate`, `world-boss-enter` e aceitar convite de sala fora da praça (`PLAZA_ONLY_COMMANDS`).
-- Mapa (`shared/fishingMap.ts`, refeito em 20/10 a pedido do matheus: "quero algo que tenha caminhos vertical também"): jardim suspenso em **terraços**, 4608 × 1728 px (3 telas de largura, 2 de altura), câmera segue o jogador nos dois eixos e W/S ou ↑/↓ andam na vertical.
-  - **Mirante** (y 648–852, o de cima, com a balaustrada sobre o céu): **Lagoa de Cristal** (x 3560) com píer; a água escorre por um canal e cai em cascata no Poço Azul.
-  - **Jardim** (y 990–1330): **Lago das Ninfeias** (x 1180) com a **Casa de Pesca** (gazebo) numa ilha, ligada por ponte; **Poço Azul** (x 3560) com dois píeres.
-  - **Cais** (y 1440–1610, o de baixo, sobre as nuvens): chegada (`FISHING_SPAWN`) e o dirigível de volta à praça.
-  - Escadas: duas entre Mirante e Jardim (x 1880–2000 e 4230–4350) e duas entre Jardim e Cais (x 690–810 e 2560–2680).
-- Lugares de pesca (`FISHING_SPOTS`): margens de cada lago (só onde a boia cai na água e o lugar é chão livre), dois lados na ponta de cada píer e no meio da ponte. Clicar na água leva ao lugar livre mais perto e já lança. Um lugar por jogador por canal.
-- Caminhada: grade de 8 px (lagos, troncos de árvore, casa e cascata bloqueiam), campo de distância por destino (Dial, custo 5 reto / 7 diagonal, cache de 48) e o servidor anda por `fishingStep` até o ponto mais longe em linha reta no caminho; sobe e desce as escadas sozinho.
-- **Cenário** (sem arte nova, pedido do matheus): `npm run build:fishing` recorta peças que o jogo já tem (árvores, ciprestes, flores, colunas, lampiões, balaústres e sebes das pranchas da praça; gazebo e dirigível das ilhas e do céu da praça; cogumelos, pedras, flores, tronco e toco do Formigueiro) para `public/assets/fishing/props/` (2x) e `shared/generated/fishingProps.ts`. O fundo é o parallax da praça (céu, ilhas, cidade, árvores) mais baixo, com parallax nos dois eixos. Piso (mesmo desenho do `floor.webp`), muros de pedra, escadas, lagos, píeres e ponte são desenhados em código e guardados em blocos de 768 px; água e cascata se mexem ao vivo (`src/game/fishingWorld.ts`). Prévia: `npx tsx scripts/shot-fishing.mjs` (jogo rodando).
+- Mapa (`shared/fishingMap.ts`, terceira versão em 20/10; pedidos do matheus: "quero algo que tenha caminhos vertical também", "o objetivo é ser tipo um jardim com lagos, ponte etc.. com sombras etc.. para parecer um jogo mesmo"): jardim suspenso em **terraços** de gramado, 4608 × 2620 px (3 telas de largura, 3 de altura), câmera segue o jogador nos dois eixos e W/S ou ↑/↓ andam na vertical.
+  - **Mirante** (y 700–1180, o de cima, com a balaustrada sobre o céu): **Lagoa de Cristal** (x 1250) e **Fonte Termal** (x 3300, com vapor), pagode no meio; a fonte cai em cascata pelo muro.
+  - **Jardim** (y 1320–2080): **Lago das Ninfeias** (x 1750, o maior) com barco, píer e uma **ilha** com cerejeira ligada à margem por **ponte**; **Poço Azul** (x 3350) sob a cascata; **Lago dos Juncos** (x 4000).
+  - **Cais** (y 2220–2440, o de baixo, de pedra, sobre as nuvens): chegada (`FISHING_SPAWN`), a **Casa de Pesca** (x 2300), barraca, quiosque de iscas, deque com guarda-sol, arco e o dirigível de volta à praça.
+  - Escadas: três entre Mirante e Jardim (x 280, 2420 e 4090) e duas entre Jardim e Cais (x 1480 e 2700).
+- Lugares de pesca (`FISHING_SPOTS`, 33): seis em volta de cada lago, sete no das Ninfeias, mais um na ilha e um na ponta do píer. Clicar na água leva ao lugar livre mais perto e já lança; clicar na ilha, na ponte ou no píer só anda. Um lugar por jogador por canal.
+- Caminhada: grade de 8 px (água e pedras da borda, troncos de árvore, casas e o pagode bloqueiam; ilha, ponte e píer são chão), campo de distância por destino (Dial, custo 5 reto / 7 diagonal, cache de 48) e o servidor anda por `fishingStep` até o ponto mais longe em linha reta no caminho; sobe e desce as escadas sozinho. O telhado da Casa de Pesca passa por cima do gramado de trás: clique no gramado anda, não abre a loja.
+- **Cenário** (arte do Codex, gpt-6-astra médio, pranchas em `public/assets/fishing/source/`; prompts em `docs/fishing-art-prompts.md`): céu, lagos vistos de cima rebaixados no gramado, píer, ponte, deque, barco, atracadouro, escadas, muros, cascata, arco, Casa de Pesca, barraca, pagode, quiosque, árvores, enfeites, a textura do gramado (`grass.webp`, repete sem emenda) e peças de grama (faixas, manchas, trilha de pedras, tufos, sebe). Balaústres, lampiões, ciprestes e dirigível vêm da praça; o piso do cais é o da praça. `npm run build:fishing` recorta tudo para `public/assets/fishing/props/` e escreve `shared/generated/fishingProps.ts`. Gramado, lagos, ilha, ponte, píer, muros e escadas ficam guardados em blocos de 768 px; água, vapor, cascata e barco se mexem ao vivo; árvores, casas e enfeites têm sombra pintada em código a partir do próprio contorno, inclinada para a esquerda como na praça (`src/game/fishingWorld.ts`). A imagem-alvo do cenário está em `/mnt/project-files/pescaria/codex/9-cena-conceito.png`. Prévia: `npx tsx scripts/shot-fishing.mjs` (jogo rodando).
 
 ## Pesca
 
@@ -32,7 +32,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 - **Vara de Bambu** (inicial, dada a todos) e **Vara de Carvalho** (Casa de Pesca, Nv. 5: +18% de verde, marcador 10% mais lento, +12% sorte, +6% no automático).
 - **Isca Simples** (infinita) e **Isca Brilhante** (gasta 1 por lançamento, morde mais rápido, +30% sorte).
-- 14 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Carpa-Dragão.
+- 20 peixes (`FISH`), dificuldade 1 a 5, com lagos, peso em kg e pontos: Bota Velha (todos os lagos), Lambari Dourado, Tilápia Rosada, Carpa da Lua, Baiacu Bolha, Koi Celeste, Bagre Barbudo, Tucunaré Brasa, Enguia do Trovão, Pirarucu Ancestral, Peixe-Vidro, Truta Aurora, Dourado Real, Traíra das Taboas, Pacu Esmeralda e Peixe-Junco Dourado (Lago dos Juncos), Carpa Termal, Salamandra do Vapor e Fênix d'Água (Fonte Termal), Carpa-Dragão.
 
 ## Nível de pescador
 
@@ -45,7 +45,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Console de pesca (madeira escura com friso dourado): vara e isca em molduras de item (a isca mostra quantas restam), chave Auto e o botão Lançar/Recolher.
 - Desafio pequeno sobre a cabeça: relógio redondo com a sombra do peixe, estrelas de dificuldade, faixa de água com o alvo e a boia, acertos em losangos e erros em pontos.
 - Resultado: o peixe sobre a aura dourada do jogo, nome em Lilita One, peso, estrelas, Pontos e EXP.
-- Casa de Pesca: balcão à esquerda (gazebo sobre a aura dourada, nível, Pontos, totais) e abas Trocas (cards com moldura de item, preço, quantidade − / +) e Coleção (por lago, com contagem).
+- Casa de Pesca: balcão à esquerda (a Casa de Pesca sobre a aura dourada, nível, Pontos, totais) e abas Trocas (cards com moldura de item, preço, quantidade − / +) e Coleção (por lago, com contagem).
 
 ## Pontos de Pesca e Casa de Pesca
 
@@ -59,7 +59,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 ## Testes
 
 - `tests/fishing.test.ts`: lugares e píeres, caminhada até todos os lugares, notas da barra, automático e sorte, gravação, loja, separação das zonas, fluxo manual, dois erros e três rodadas AFK.
-- `npm run test:fishing:browser` (jogo rodando): um amigo pesca no automático, o jogador entra, sobe a escada até o Lago das Ninfeias, pesca à mão até pegar, troca a vara, abre a Casa de Pesca e a Coleção e volta à praça. Prévias em `test-results/fishing/`.
+- `npm run test:fishing:browser` (jogo rodando): um amigo pesca no automático, o jogador entra, sobe a escada até o gramado do Lago das Ninfeias, pesca à mão até pegar, troca a vara, abre a Casa de Pesca e a Coleção e volta à praça. Prévias em `test-results/fishing/`.
 
 ## Falta
 

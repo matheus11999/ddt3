@@ -1,90 +1,111 @@
 /**
  * Pescaria: the fishing zone next to Praça Celeste (docs/fishing.md), a terraced garden on a sky
- * island three screens wide and two tall; the camera follows the player both ways.
+ * island three screens wide and three tall; the camera follows the player both ways.
  *
- * Depth, back to front: the plaza's own painted sky, sea, far islands and tree line (lowered behind
- * the top terrace, with parallax both ways); the stone terraces, their retaining walls, stairs,
- * lakes, piers and the bridge (baked once into tiles); then, sorted with the walkers by their feet,
- * the painted trees, pillars, hedges, bushes, the gazebo of the Casa de Pesca and the airship back
- * to the plaza; clouds drift under the island at the very front.
+ * Depth, back to front: the painted sky (parallax both ways); baked once into tiles, the lawns of the
+ * two upper terraces and the quay's stone, the retaining walls, the stairs, the waterfall and the ponds
+ * sunk into the grass with the island, the bridge and the pier; then the moving water, the boat and
+ * the shadows; then, sorted with the walkers by their feet, trees, buildings, lanterns, the Casa de
+ * Pesca and the airship back to the plaza; clouds drift under the island at the very front.
  *
- * Every painting comes from art the game already has (`npm run build:fishing` cuts it); the
- * stone, water, wood and the waterfall are drawn in code to match it.
+ * Everything was painted by Codex for the Pescaria (public/assets/fishing/source/, cut by
+ * `npm run build:fishing`) except the balustrades, lamps, cypresses and airship, which come from the
+ * plaza, and the quay's floor, the plaza's own.
  */
-import {FISHING_AIRSHIP,FISHING_SPOTS,FISHING_HEIGHT,FISHING_LAKES,FISHING_PIERS,FISHING_STAIRS,FISHING_TERRACES,FISHING_WIDTH,FISH_BY_ID,inLake} from '../../shared/fishing';
-import type {FishingLake,FishingPier,FishingPose,FishingSpot} from '../../shared/fishing';
-import {LOBBY_FLOATERS,LOBBY_PARALLAX} from '../../shared/generated/lobbyParallax';
-import type {LobbyFloater,LobbyParallaxLayer} from '../../shared/generated/lobbyParallax';
+import {FISHING_AIRSHIP,FISHING_HEIGHT,FISHING_ISLAND,FISHING_LAKES,FISHING_PIERS,FISHING_SPOTS,FISHING_STAIRS,FISHING_TERRACES,FISHING_WIDTH,FISH_BY_ID,POND_ART,fishingBlocked,pondPlace,stairPlace,terraceAt} from '../../shared/fishing';
+import type {FishingLake,FishingPose,FishingSpot} from '../../shared/fishing';
 import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
-import {drawScaled,imageReady,scaledCopy,screenScale} from './spriteCache';
+import {drawScaled,imageReady,screenScale} from './spriteCache';
 import {plaque} from './lobbyWorld';
 
 const VIEW_W=1536,VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
-/** The plaza's backdrop sits this much lower here, so its tree line meets the top terrace's balustrade. */
-const SKY_DROP=100;
-const BACKDROP=new Set(['sky','far','mid','trees']);
 /** Where the baked ground starts (the top balustrade's lamps reach this high). */
-const GROUND_TOP=470;
+const GROUND_TOP=560;
 /** Width of one baked ground tile (world px). */
 const TILE=768;
+/** How far the sky moves for each px the camera moves, across and up and down. */
+const SKY_X=.12,SKY_Y=.2;
+/** World px of one repeat of the lawn texture (it is seen from above at an angle: a little squashed). */
+const GRASS=520,GRASS_SQUASH=.72;
 const [MIRANTE,JARDIM,CAIS]=FISHING_TERRACES;
-/** The front wall under each terrace: from its edge down to the next terrace (the last one, down into the clouds). */
-const WALLS=[{top:MIRANTE.y1,bottom:JARDIM.y0},{top:JARDIM.y1,bottom:CAIS.y0},{top:CAIS.y1,bottom:CAIS.y1+92}];
-const CLOUDS_TOP=CAIS.y1+70;
-/** The Lagoa de Cristal spills through a channel in the top terrace's front and falls into the Poço Azul. */
-const CRISTAL=FISHING_LAKES.find(l=>l.id==='cristal')!,PROFUNDO=FISHING_LAKES.find(l=>l.id==='profundo')!;
-const FALL={x0:CRISTAL.x-34,x1:CRISTAL.x+34,lip:CRISTAL.y+CRISTAL.ry-6,edge:MIRANTE.y1,base:PROFUNDO.y-PROFUNDO.ry+14};
-/** Gaps in the hedges and balustrades: the stairs, the waterfall's channel and the airship's gangway. */
-const GANGWAY={x0:FISHING_AIRSHIP.x-46,x1:FISHING_AIRSHIP.x+46};
+/** The front wall under each terrace: from just behind its edge (the painted grass lip) down to the next terrace or the clouds. */
+const WALLS=[{top:MIRANTE.y1-40,bottom:JARDIM.y0+10},{top:JARDIM.y1-40,bottom:CAIS.y0+10},{top:CAIS.y1-40,bottom:CAIS.y1+150}];
+const CLOUDS_TOP=CAIS.y1+90;
+/** The hot spring overflows down the top wall toward the Poço Azul. */
+const CASCADE={x:3300,y:MIRANTE.y1-24};
+/** Gap in the quay's balustrade for the airship's gangway. */
+const GANGWAY={x0:FISHING_AIRSHIP.x-60,x1:FISHING_AIRSHIP.x+60};
+const PONDS=FISHING_LAKES.map(lake=>({lake,...pondPlace(lake)}));
+const STAIRS=FISHING_STAIRS.map(stairPlace);
+const [BRIDGE,PIER]=FISHING_PIERS;
+/** Pieces that cast a leaning shadow of their own outline (the light comes from the right); squashed onto the floor and leaning left, like the plaza's. */
+const CASTS=new Set<string>(['willow','cherry','cypress-pair','pagoda','stall','bait-kiosk','deck-umbrella','arch','paper-lantern','hydrangea','urn-pillar','lamp-pillar','fishing-house','lake-sign','reeds','fish-basket','bait-bucket']);
+const CAST_SQUASH=.24,CAST_LEAN=.6,CAST_PAD=.08;
 
 export type FishingAction='shop'|'plaza';
 export interface FishingStation {id:'casa'|'airship';title:string;x:number;y:number;width:number;height:number;action:FishingAction;}
-/** Things to click: the gazebo of the Casa de Pesca on its island, and the airship back to the plaza (feet at the bottom centre). */
+/** Things to click: the Casa de Pesca on the quay, and the airship back to the plaza (feet at the bottom centre). */
 export const FISHING_STATIONS:FishingStation[]=[
- {id:'casa',title:'Casa de Pesca',x:1180,y:1176,width:FISHING_PROPS.gazebo.w,height:FISHING_PROPS.gazebo.h,action:'shop'},
- {id:'airship',title:'Praça Celeste',x:FISHING_AIRSHIP.x,y:FISHING_AIRSHIP.y+70,width:FISHING_PROPS.airship.w,height:FISHING_PROPS.airship.h,action:'plaza'},
+ {id:'casa',title:'Casa de Pesca',x:2300,y:2390,width:FISHING_PROPS['fishing-house'].w,height:FISHING_PROPS['fishing-house'].h,action:'shop'},
+ {id:'airship',title:'Praça Celeste',x:FISHING_AIRSHIP.x,y:FISHING_AIRSHIP.y+60,width:FISHING_PROPS.airship.w,height:FISHING_PROPS.airship.h,action:'plaza'},
 ];
-/** What a click means: a station, or the water of a lake (walk to its nearest free spot). */
+/** What a click means: a station, or a pond (walk to its nearest free spot). */
 export type FishingHit={kind:'station';station:FishingStation}|{kind:'lake';lake:FishingLake};
 
 /** Small deterministic generator, so the garden never shimmers between reloads. */
 function random(seed:number){return()=>{seed|=0;seed=seed+0x6d2b79f5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-const LAKE_COLORS:Record<string,{deep:string;mid:string;edge:string;foam:string}>={
- ninfeias:{deep:'#13615f',mid:'#2b9c8c',edge:'#8fe0c4',foam:'#e6fff4'},
- profundo:{deep:'#0b2766',mid:'#1d58a8',edge:'#66b8e8',foam:'#e8f6ff'},
- cristal:{deep:'#1478a8',mid:'#3fc2e6',edge:'#c8f7ff',foam:'#ffffff'},
-};
-/** Stone colors from the plaza's painted floor (cream and grey slabs), light to dark. */
-const STONE=[['#f3e8cf','#d9c7a3','#a8916c'],['#e4e0d6','#c4bfb3','#8f897d'],['#efe2c4','#d3bf95','#9c8460']];
-const MORTAR='rgba(92,72,48,.55)';
 
-/** Painted pieces placed in the world, sorted with the walkers by `y` (their base). */
-interface Prop {id:FishingPropId;x:number;y:number;flip?:boolean;scale?:number;sway?:boolean;}
+/** A painted piece placed in the world by its base (bottom centre). */
+interface Prop {id:FishingPropId;x:number;y:number;flip?:boolean;scale?:number;}
+/** Flat pieces baked into the ground: grass borders and patches, stepping stones and tufts. */
+function lawn():Prop[]{
+ const list:Prop[]=[],r=random(11);
+ // A thick grass border along the foot of every wall and along the back of the top terrace.
+ const strip=FISHING_PROPS['grass-strip'];
+ for(const y of [MIRANTE.y0+40,JARDIM.y0+44])for(let x=-80;x<W+strip.w;x+=strip.w*.9)list.push({id:'grass-strip',x,y,flip:r()<.5});
+ // Stepping stones from each stair's landing into the garden.
+ for(const s of STAIRS)list.push({id:'stone-trail',x:s.bottom.x+(s.flip?-120:120),y:s.bottom.y+50,scale:.8,flip:s.flip});
+ // Patches of lighter grass and flowering tufts scattered on the lawns, kept out of the water.
+ const dry=(x:number,y:number)=>!PONDS.some(p=>((x-p.lake.x)/(p.w*.55))**2+((y-p.lake.y)/(p.h*.62))**2<1);
+ for(const t of [MIRANTE,JARDIM]){
+  for(let n=0;n<16;n++){const x=t.x0+r()*(t.x1-t.x0),y=t.y0+90+r()*(t.y1-t.y0-140);if(!dry(x,y))continue;list.push({id:(['grass-patch','grass-patch-2','grass-patch-3'] as const)[n%3],x,y,flip:r()<.5,scale:.8+r()*.3});}
+  for(let n=0;n<70;n++){const x=t.x0+r()*(t.x1-t.x0),y=t.y0+70+r()*(t.y1-t.y0-90);if(!dry(x,y))continue;list.push({id:(['tuft-1','tuft-2','tuft-3'] as const)[n%3],x,y,flip:r()<.5,scale:.7+r()*.4});}
+ }
+ return list;
+}
+/** Standing pieces, sorted with the walkers by their base. */
 function props():Prop[]{
  const list:Prop[]=[];
- // Hedges along the front edges of the two upper terraces, open at the stairs and the waterfall.
- const gaps=[...FISHING_STAIRS.map(s=>({x0:s.x0-6,x1:s.x1+6})),{x0:FALL.x0-10,x1:FALL.x1+10}];
- const hedge=FISHING_PROPS.hedge.w*.5;
- for(const edge of [MIRANTE.y1+8,JARDIM.y1+8])for(let x=-hedge/2;x<W+hedge;x+=hedge*.92)if(!gaps.some(g=>x+hedge/2>g.x0&&x-hedge/2<g.x1))list.push({id:'hedge',x,y:edge,scale:.5});
- // Lamp posts along the same edges, and urns at the top of every stair.
- for(const [edge,xs] of [[MIRANTE.y1+10,[380,1240,2620,3160,4010]],[JARDIM.y1+10,[300,1460,2160,3080,4150]]] as const)for(const x of xs)list.push({id:'lamp-pillar',x,y:edge,scale:.8});
- for(const s of FISHING_STAIRS){const top=FISHING_TERRACES.find(t=>Math.abs(t.y1-s.y0-32)<40)?.y1??s.y0;list.push({id:'urn-pillar',x:s.x0-14,y:top+12,scale:.72},{id:'urn-pillar',x:s.x1+14,y:top+12,scale:.72});}
- // Trees (their trunks are obstacles in shared/fishingMap.ts), cypresses framing the sides.
- list.push({id:'oak',x:520,y:712},{id:'blossom',x:1460,y:702},{id:'oak',x:4020,y:712,flip:true},{id:'oak',x:2330,y:1042,flip:true},{id:'cypress',x:4380,y:1070,scale:.95},{id:'oak',x:1700,y:1482},{id:'blossom',x:3300,y:1487,flip:true});
- for(const [x,y] of [[40,664],[4570,664],[30,1000],[4580,1000],[60,1450],[4560,1450]] as const)list.push({id:'cypress-pair',x,y,flip:x>W/2});
- list.push({id:'cypress',x:860,y:654,scale:.8},{id:'cypress',x:2240,y:654,scale:.85},{id:'cypress-pair',x:2780,y:654,scale:.8},{id:'cypress',x:4280,y:654,scale:.8});
- // Flower beds against the walls of the lower terraces.
- for(const x of [420,1560,2240,2880,4060])list.push({id:'flower-bush',x,y:JARDIM.y0+4,scale:.8});
- for(const x of [300,1150,2150,3050,3880,4280])list.push({id:'flower-bush',x,y:CAIS.y0+4,scale:.75});
- // Lakeside life: rocks, mushrooms, bluebells and clover around the rims; logs and a stump on the quay.
- for(const lake of FISHING_LAKES){const r=random(lake.x);
-  for(const [a,id] of [[200,'mossy-rocks'],[340,'bluebell'],[160,'clover'],[20,'mushrooms']] as const){const rad=a*Math.PI/180,x=lake.x+Math.cos(rad)*(lake.rx+30),y=lake.y-Math.sin(rad)*(lake.ry+18);if(r()<.95)list.push({id,x,y:y+4,scale:.8});}}
- list.push({id:'log',x:2400,y:1560,scale:.8},{id:'stump',x:4100,y:1500,scale:.8},{id:'mushrooms',x:4140,y:1508,scale:.7},{id:'bluebell',x:1000,y:1500,scale:.8},{id:'mossy-rocks',x:3600,y:1590,scale:.8},{id:'stump',x:880,y:744,scale:.7},{id:'bluebell',x:2520,y:700,scale:.7});
+ // Trees (their trunks are obstacles in shared/fishingMap.ts) and cypresses framing the sides.
+ list.push({id:'willow',x:500,y:912},{id:'cherry',x:2700,y:942,flip:true},{id:'willow',x:4150,y:942,flip:true},
+  {id:'willow',x:420,y:1572},{id:'cherry',x:2760,y:1492,flip:true},{id:'cherry',x:3000,y:1992},
+  {id:'cherry',x:FISHING_ISLAND.x+10,y:FISHING_ISLAND.y-4,scale:.62});
+ for(const [x,y] of [[40,800],[4570,800],[30,1400],[4580,1400],[60,2280],[4560,2280]] as const)list.push({id:'cypress-pair',x,y,flip:x>W/2});
+ // The lookout on the top terrace.
+ list.push({id:'pagoda',x:2250,y:1002});
+ // Around each pond: its name on a sign, a basket and a bucket, flowers, rocks and a lantern.
+ for(const p of PONDS){const {lake,block}=p,r=random(lake.x),front=lake.y+block.ry+30;
+  list.push({id:'lake-sign',x:lake.x-block.rx*.78,y:front-10});
+  list.push({id:'fish-basket',x:lake.x+block.rx*.95,y:lake.y+block.ry*.55+26,scale:.9},{id:'bait-bucket',x:lake.x-block.rx*.97,y:lake.y+block.ry*.5+24,scale:.85});
+  list.push({id:r()<.5?'hydrangea':'flower-bed',x:lake.x+block.rx*.62,y:front+8,scale:.8},{id:'paper-lantern',x:lake.x-block.rx-50,y:lake.y-6,scale:.8});
+  if(lake.id!=='juncos')list.push({id:'reeds',x:lake.x+block.rx*.98,y:lake.y-block.ry*.2,scale:.75,flip:true});
+ }
+ // Lanterns at both ends of the bridge.
+ list.push({id:'paper-lantern',x:BRIDGE.x1+16,y:BRIDGE.y0-4,scale:.7},{id:'paper-lantern',x:BRIDGE.x0-6,y:BRIDGE.y0-6,scale:.6});
+ // Flower beds and low hedges along the foot of the walls.
+ for(const x of [700,1900,2350,3700,4300])list.push({id:'flower-bed',x,y:JARDIM.y0+30,scale:.85});
+ for(const x of [300,1650,3000,4250])list.push({id:'flower-bed',x,y:CAIS.y0+24,scale:.85});
+ for(const x of [1050,3000,3650])list.push({id:'hedge-low',x,y:MIRANTE.y0+60,scale:.9});
+ // The quay: stall, Casa de Pesca (a station), bait kiosk, a deck with a parasol and the arch to the airship.
+ list.push({id:'stall',x:1150,y:2370},{id:'bait-kiosk',x:3350,y:2370},{id:'deck-umbrella',x:3900,y:2390},{id:'arch',x:785,y:2380});
+ list.push({id:'paper-lantern',x:1500,y:2350,scale:.85},{id:'paper-lantern',x:2950,y:2350,scale:.85},{id:'hydrangea',x:1700,y:2410,scale:.8},{id:'hydrangea',x:3100,y:2410,scale:.8},{id:'fish-basket',x:1340,y:2400},{id:'bait-bucket',x:3540,y:2400});
  // The quay's balustrade over the clouds, open at the airship's gangway.
  const run=FISHING_PROPS.balustrade.w*.8;
  for(let x=run/2-20;x<W+run;x+=run)if(x+run/2<GANGWAY.x0||x-run/2>GANGWAY.x1)list.push({id:'balustrade',x,y:CAIS.y1+16,scale:.8});
  for(let x=-20,n=0;x<W+run;x+=run,n++)if(x<GANGWAY.x0-20||x>GANGWAY.x1+20)list.push({id:n%3===2?'lamp-pillar':'urn-pillar',x,y:CAIS.y1+20,scale:.8});
+ // Urns at the top of every stair.
+ for(const s of STAIRS)list.push({id:'urn-pillar',x:s.top.x+(s.flip?42:-42),y:s.top.y+4,scale:.6},{id:'urn-pillar',x:s.top.x+(s.flip?-42:42),y:s.top.y+4,scale:.6});
  return list;
 }
 
@@ -105,68 +126,47 @@ export function drawFish(c:CanvasRenderingContext2D,id:string,x:number,y:number,
 
 /** Lighter (k>0) or darker (k<0) version of a #rrggbb color. */
 function shade(hex:string,k:number){const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(k>0?v+(255-v)*k:v*(1+k));return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;}
-function roundRect(c:CanvasRenderingContext2D,x:number,y:number,w:number,h:number,r:number){c.beginPath();c.roundRect(x,y,w,h,r);}
-
-/** Every stone of the walls, stairs and lake rims, laid out once for the whole island (tiles draw the ones they cover). */
-interface Block {x:number;y:number;w:number;h:number;tone:number;moss:number;crack:boolean;}
-interface Vine {x:number;y:number;len:number;sway:number;flower:string;}
-function masonry(){
- const r=random(77),blocks:Block[]=[],vines:Vine[]=[];
- for(const wall of WALLS){
-  const coping=14,rows=Math.max(1,Math.round((wall.bottom-wall.top-coping)/30)),rh=(wall.bottom-wall.top-coping)/rows;
-  for(let row=0;row<rows;row++){let x=-40+(row%2)*45-r()*30;
-   while(x<W+40){const w=58+r()*72;blocks.push({x,y:wall.top+coping+row*rh,w,h:rh,tone:Math.floor(r()*3),moss:row===0?r():r()*.25,crack:r()<.08});x+=w;}}
-  for(let x=20;x<W;x+=40+r()*120)if(r()<.55)vines.push({x,y:wall.top+10,len:24+r()*(wall.bottom-wall.top)*.7,sway:r()*Math.PI*2,flower:['#fff6f0','#ffc2d6','#fff1a8'][Math.floor(r()*3)]});
- }
- return {blocks,vines};
-}
 
 export class FishingWorld {
- private depth:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;image:HTMLImageElement}[]=[];
- private floor=new Image();private art=new Map<FishingPropId,HTMLImageElement>();
+ private sky=new Image();private floor=new Image();private grass=new Image();private art=new Map<FishingPropId,HTMLImageElement>();
  private tiles=new Map<number,HTMLCanvasElement>();private tileScale=0;private assets=false;
- private placed=props();private stones=masonry();
+ private placed=props();private flat=lawn();private casts=new Map<FishingPropId,HTMLCanvasElement>();
  load(){
   if(this.assets)return;this.assets=true;
-  const entries=[...LOBBY_PARALLAX.filter(l=>BACKDROP.has(l.id)).map(layer=>({factor:layer.factor,layer,file:layer.file})),...LOBBY_FLOATERS.filter(f=>f.id!=='airship').map(floater=>({factor:floater.factor,floater,file:floater.file}))];
-  this.depth=entries.sort((a,b)=>a.factor-b.factor).map(({file,...entry})=>{const image=new Image();image.decoding='async';image.src=file;return {...entry,image};});
+  this.sky=new Image();this.sky.decoding='async';this.sky.src='/assets/fishing/sky.webp';
   this.floor=new Image();this.floor.src='/assets/lobby/floor.webp';
+  this.grass=new Image();this.grass.src='/assets/fishing/grass.webp';
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[]){const image=new Image();image.decoding='async';image.src=`/assets/fishing/props/${id}.webp`;this.art.set(id,image);}
  }
- release(){if(!this.assets)return;this.assets=false;this.depth=[];this.art.clear();this.tiles.clear();this.floor=new Image();}
+ release(){if(!this.assets)return;this.assets=false;this.art.clear();this.tiles.clear();this.casts.clear();this.sky=new Image();this.floor=new Image();this.grass=new Image();}
  get isLoaded(){return this.assets;}
  /** True once everything on screen can be painted without a gap. */
- ready(_scale:number){return this.depth.length>0&&this.depth.every(d=>imageReady(d.image))&&imageReady(this.floor)&&[...this.art.values()].every(imageReady);}
+ ready(_scale:number){return this.assets&&imageReady(this.sky)&&imageReady(this.floor)&&imageReady(this.grass)&&[...this.art.values()].every(imageReady);}
  /** Camera that keeps the player a little below the middle (they are tall), never past the island's edges. */
  static camera(focusX:number,focusY:number){return {x:Math.max(0,Math.min(W-VIEW_W,focusX-VIEW_W/2)),y:Math.max(0,Math.min(H-VIEW_H,focusY-VIEW_H*.6))};}
- private drawDepth(c:CanvasRenderingContext2D,t:number,camX:number,camY:number){
-  const scale=screenScale(c),x0=camX,x1=camX+VIEW_W;
-  for(const {factor,layer,floater,image} of this.depth){
-   // Each layer moves `factor` px per camera px, across and up and down.
-   const left=camX*(1-factor),top=camY*(1-factor)+SKY_DROP;
-   if(layer){
-    const art=scaledCopy(image,layer.width*scale)??image,k=art.width/layer.width,from=Math.max(0,x0-left),to=Math.min(layer.width,x1-left);
-    // The sky stretches up to the top of the world.
-    const y=layer.id==='sky'?top-SKY_DROP:top+layer.y,h=layer.id==='sky'?layer.height+SKY_DROP:layer.height;
-    if(to>from)c.drawImage(art,from*k,0,(to-from)*k,art.height,left+from,y,to-from,h);continue;}
-   const f=floater!,phase=t/f.period*Math.PI*2+f.x*.01,x=left+f.x+Math.sin(phase*.5)*f.drift-f.w/2,y=top+f.y+Math.sin(phase)*f.bob-f.h/2;
-   if(x<x1&&x+f.w>x0)c.drawImage(image,x,y,f.w,f.h);
-  }
+ /** The sky fills the view and slides a little as the camera moves. */
+ private drawSky(c:CanvasRenderingContext2D,camX:number,camY:number){
+  const iw=this.sky.naturalWidth,ih=this.sky.naturalHeight,k=Math.max((VIEW_W+(W-VIEW_W)*SKY_X)/iw,(VIEW_H+(H-VIEW_H)*SKY_Y)/ih);
+  drawScaled(c,this.sky,camX-camX*SKY_X,camY-camY*SKY_Y,iw*k,ih*k);
  }
  /** Back of the scene, in world coordinates (the caller has translated by the camera). */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number,camY:number){
   if(!this.ready(1)){c.fillStyle='#9ed4e8';c.fillRect(camX,camY,VIEW_W,VIEW_H);return;}
   c.save();c.imageSmoothingQuality='low';
-  if(camY<MIRANTE.y0)this.drawDepth(c,t,camX,camY);
+  this.drawSky(c,camX,camY);
   const scale=Math.min(1.5,Math.max(1,Math.ceil(screenScale(c)*4)/4));
   if(scale!==this.tileScale){this.tiles.clear();this.tileScale=scale;}
   for(let n=Math.floor(camX/TILE);n*TILE<camX+VIEW_W;n++){const tile=this.tile(n);if(!tile)continue;
    const y0=Math.max(GROUND_TOP,camY),y1=Math.min(H,camY+VIEW_H);if(y1>y0)c.drawImage(tile,0,(y0-GROUND_TOP)*scale,tile.width,(y1-y0)*scale,n*TILE,y0,TILE,y1-y0);}
-  for(const lake of FISHING_LAKES)if(lake.x+lake.rx>camX&&lake.x-lake.rx<camX+VIEW_W&&lake.y+lake.ry>camY&&lake.y-lake.ry<camY+VIEW_H)this.water(c,lake,t);
-  if(FALL.x1>camX&&FALL.x0<camX+VIEW_W&&FALL.base>camY&&FALL.lip<camY+VIEW_H)this.waterfall(c,t);
+  this.cascade(c,t,camX,camY);
+  for(const p of PONDS)if(p.x+p.w>camX&&p.x<camX+VIEW_W&&p.y+p.h>camY&&p.y<camY+VIEW_H)this.water(c,p.lake,t);
+  // The rowboat moored on the lilies, bobbing.
+  const lily=FISHING_LAKES[0],boat=FISHING_PROPS.rowboat,bob=Math.sin(t/1100)*2;
+  if(lily.x-lily.rx<camX+VIEW_W&&lily.y>camY-200&&lily.y<camY+VIEW_H+200)drawScaled(c,this.art.get('rowboat')!,lily.x-lily.rx*.15-boat.w/2,lily.y-boat.h*.55+bob,boat.w,boat.h);
+  this.shadows(c,camX,camY);
   c.restore();
  }
- /** One baked column of the ground: floor, walls, stairs, lake rims and beds, piers and the top balustrade. */
+ /** One baked column of the ground: lawns, quay, walls, stairs, ponds and the top balustrade (the clouds below stay clear). */
  private tile(n:number){
   const cached=this.tiles.get(n);if(cached)return cached;
   if(n<0||n*TILE>=W)return null;
@@ -177,162 +177,131 @@ export class FishingWorld {
   this.tiles.set(n,canvas);return canvas;
  }
  private paintGround(g:CanvasRenderingContext2D,x0:number,x1:number){
-  // The sea of clouds under the island.
-  const sky=g.createLinearGradient(0,CAIS.y1,0,H);sky.addColorStop(0,'#bfe6f6');sky.addColorStop(1,'#f4fbff');g.fillStyle=sky;g.fillRect(x0,CAIS.y1,x1-x0,H-CAIS.y1);
-  // Top balustrade behind the first terrace.
   this.balustradeRow(g,x0,x1,MIRANTE.y0+8);
-  // Terrace floors: the plaza's stone slabs, seen at an angle, with a shadow under the wall behind and a lit front lip.
-  const pattern=g.createPattern(this.floor,'repeat')!,tex=this.floor.naturalWidth;
+  // Lawns on the two upper terraces, the plaza's stone on the quay; a shadow under the wall behind each.
+  const grass=g.createPattern(this.grass,'repeat')!,stone=g.createPattern(this.floor,'repeat')!,gw=this.grass.naturalWidth,tex=this.floor.naturalWidth;
   for(const t of FISHING_TERRACES){
-   const top=t===MIRANTE?MIRANTE.y0-4:t.y0-10,bottom=t.y1+2;
-   pattern.setTransform(new DOMMatrix([520/tex,0,0,520*.56/tex,0,top]));g.fillStyle=pattern;g.fillRect(x0,top,x1-x0,bottom-top);
-   const warm=g.createLinearGradient(0,top,0,bottom);warm.addColorStop(0,'rgba(255,240,210,.18)');warm.addColorStop(1,'rgba(120,90,60,.12)');g.fillStyle=warm;g.fillRect(x0,top,x1-x0,bottom-top);
-   const back=g.createLinearGradient(0,top,0,top+46);back.addColorStop(0,'rgba(50,36,20,.42)');back.addColorStop(1,'rgba(50,36,20,0)');g.fillStyle=back;g.fillRect(x0,top,x1-x0,46);
+   const top=t===MIRANTE?MIRANTE.y0-4:t.y0-10,bottom=t.y1;
+   if(t===CAIS){stone.setTransform(new DOMMatrix([520/tex,0,0,520*.56/tex,0,top]));g.fillStyle=stone;}
+   else{grass.setTransform(new DOMMatrix([GRASS/gw,0,0,GRASS*GRASS_SQUASH/gw,0,top]));g.fillStyle=grass;}
+   g.fillRect(x0,top,x1-x0,bottom-top);
+   const warm=g.createLinearGradient(0,top,0,bottom);warm.addColorStop(0,'rgba(255,240,200,.12)');warm.addColorStop(1,'rgba(60,70,30,.14)');g.fillStyle=warm;g.fillRect(x0,top,x1-x0,bottom-top);
+   const back=g.createLinearGradient(0,top,0,top+60);back.addColorStop(0,'rgba(30,40,15,.45)');back.addColorStop(1,'rgba(30,40,15,0)');g.fillStyle=back;g.fillRect(x0,top,x1-x0,60);
   }
-  this.paintWalls(g,x0,x1);
-  for(const s of FISHING_STAIRS)if(s.x1+30>x0&&s.x0-30<x1)this.paintStairs(g,s);
-  for(const lake of FISHING_LAKES)if(lake.x+lake.rx+60>x0&&lake.x-lake.rx-60<x1)this.paintLake(g,lake);
-  // The waterfall's channel through the top terrace's front.
-  if(FALL.x1+30>x0&&FALL.x0-30<x1){const cx0=FALL.x0-14,cx1=FALL.x1+14;
-   g.fillStyle='#8f7a5a';g.fillRect(cx0,FALL.lip-8,cx1-cx0,FALL.edge-FALL.lip+10);
-   g.fillStyle='#d9c7a3';g.fillRect(cx0,FALL.lip-8,10,FALL.edge-FALL.lip+12);g.fillRect(cx1-10,FALL.lip-8,10,FALL.edge-FALL.lip+12);}
-  for(const p of FISHING_PIERS)if(p.x1+40>x0&&p.x0-40<x1)this.paintDeck(g,p);
+  // Grass borders, patches, stepping stones and tufts.
+  for(const p of this.flat)this.piece(g,p,x0,x1);
+  // The ponds, sunk into the lawn, then the island, the pier and the bridge over the lilies.
+  for(const p of PONDS)if(p.x+p.w>x0&&p.x<x1){
+   g.drawImage(this.art.get(POND_ART[p.lake.id].art as FishingPropId)!,p.x,p.y,p.w,p.h);}
+  const i=FISHING_ISLAND;
+  if(i.x+i.rx*2>x0&&i.x-i.rx*2<x1){
+   const patch=FISHING_PROPS['grass-patch-2'],k=i.rx*2.3/patch.w;
+   g.fillStyle='rgba(20,40,50,.35)';g.beginPath();g.ellipse(i.x+6,i.y+14,i.rx*1.12,i.ry*1.1,0,0,Math.PI*2);g.fill();
+   g.drawImage(this.art.get('grass-patch-2')!,i.x-patch.w*k/2,i.y-patch.h*k*.55,patch.w*k,patch.h*k);
+   const rocks=FISHING_PROPS['pond-rocks'];
+   for(const [dx,dy,s] of [[-1,.55,.55],[.1,.95,.6],[.95,.45,.5],[-.5,1,.45]] as const)g.drawImage(this.art.get('pond-rocks')!,i.x+dx*i.rx-rocks.w*s/2,i.y+dy*i.ry-rocks.h*s,rocks.w*s,rocks.h*s);
+  }
+  // The pier out from the front shore (seen from the shore: its far end up, toward the water).
+  const pier=FISHING_PROPS.pier,pk=(PIER.y1-PIER.y0+50)/pier.h;
+  if(PIER.x1+pier.w>x0&&PIER.x0-pier.w<x1)g.drawImage(this.art.get('pier')!,(PIER.x0+PIER.x1)/2-pier.w*pk/2,PIER.y0-40,pier.w*pk,pier.h*pk);
+  // The bridge from the island to the east shore: its deck at the walkable band.
+  const bridge=FISHING_PROPS.bridge,bk=(BRIDGE.x1-BRIDGE.x0+40)/bridge.w;
+  if(BRIDGE.x1+20>x0&&BRIDGE.x0-20<x1)g.drawImage(this.art.get('bridge')!,BRIDGE.x0-20,BRIDGE.y1+22-bridge.h*bk,bridge.w*bk,bridge.h*bk);
+  // The painted retaining wall, side by side along every terrace front (its grass lip over the edge).
+  const wall=this.art.get('wall')!,size=FISHING_PROPS.wall;
+  for(const w of WALLS){const k=(w.bottom-w.top)/size.h,ww=size.w*k*.97;
+   const foot=g.createLinearGradient(0,w.bottom-10,0,w.bottom+26);foot.addColorStop(0,'rgba(40,30,15,.35)');foot.addColorStop(1,'rgba(40,30,15,0)');g.fillStyle=foot;g.fillRect(x0,w.bottom-10,x1-x0,36);
+   for(let x=Math.floor(x0/ww)*ww-ww*.02;x<x1;x+=ww)g.drawImage(wall,x,w.top,size.w*k,w.bottom-w.top);}
+  const stair=this.art.get('stair')!;
+  for(const s of STAIRS)if(s.x+s.w>x0&&s.x<x1){g.save();if(s.flip){g.translate(s.x*2+s.w,0);g.scale(-1,1);}g.drawImage(stair,s.x,s.y,s.w,s.h);g.restore();}
+  const fall=FISHING_PROPS.cascade;if(CASCADE.x+fall.w/2>x0&&CASCADE.x-fall.w/2<x1)g.drawImage(this.art.get('cascade')!,CASCADE.x-fall.w/2,CASCADE.y,fall.w,fall.h);
+ }
+ /** One painted piece by its base, if it reaches the column. */
+ private piece(g:CanvasRenderingContext2D,p:Prop,x0:number,x1:number){
+  const size=FISHING_PROPS[p.id],k=p.scale??1,w=size.w*k,h=size.h*k;if(p.x+w/2<x0||p.x-w/2>x1)return;
+  g.save();if(p.flip){g.translate(p.x*2,0);g.scale(-1,1);}g.drawImage(this.art.get(p.id)!,p.x-w/2,p.y-h,w,h);g.restore();
  }
  /** A row of the painted balustrade with its posts, bottom at `y`. */
  private balustradeRow(g:CanvasRenderingContext2D,x0:number,x1:number,y:number){
-  const run=this.art.get('balustrade')!,urn=this.art.get('urn-pillar')!,lamp=this.art.get('lamp-pillar')!,hedge=this.art.get('hedge')!;
-  const hs=FISHING_PROPS.hedge,hw=hs.w*.6;for(let x=Math.floor((x0-hw)/hw)*hw;x<x1+hw;x+=hw*.9)g.drawImage(hedge,x,y-44-hs.h*.6,hw,hs.h*.6);
+  const run=this.art.get('balustrade')!,urn=this.art.get('urn-pillar')!,lamp=this.art.get('lamp-pillar')!;
   const b=FISHING_PROPS.balustrade,w=b.w*.9,h=b.h*.9;
   for(let x=Math.floor((x0-w)/w)*w;x<x1+w;x+=w)g.drawImage(run,x,y-h,w,h);
   for(let x=Math.floor((x0-w)/w)*w,n=Math.floor((x0-w)/w);x<x1+w*2;x+=w,n++){const lampPost=((n%4)+4)%4===1,a=lampPost?FISHING_PROPS['lamp-pillar']:FISHING_PROPS['urn-pillar'],k=.86;
    g.drawImage(lampPost?lamp:urn,x-a.w*k/2,y+2-a.h*k,a.w*k,a.h*k);}
  }
- /** Retaining walls of cream and grey blocks, a lit coping on top, moss and vines with flowers. */
- private paintWalls(g:CanvasRenderingContext2D,x0:number,x1:number){
-  for(const wall of WALLS){
-   const shadow=g.createLinearGradient(0,wall.top,0,wall.bottom);shadow.addColorStop(0,'#cdbb98');shadow.addColorStop(1,'#8c7656');g.fillStyle=shadow;g.fillRect(x0,wall.top,x1-x0,wall.bottom-wall.top);
-  }
-  for(const b of this.stones.blocks){if(b.x+b.w<x0-4||b.x>x1+4)continue;const [light,mid,dark]=STONE[b.tone];
-   const f=g.createLinearGradient(0,b.y,0,b.y+b.h);f.addColorStop(0,light);f.addColorStop(.55,mid);f.addColorStop(1,dark);
-   g.fillStyle=f;roundRect(g,b.x+1.5,b.y+1.5,b.w-3,b.h-3,5);g.fill();g.strokeStyle=MORTAR;g.lineWidth=2;g.stroke();
-   g.strokeStyle='rgba(255,255,255,.35)';g.lineWidth=1.5;g.beginPath();g.moveTo(b.x+6,b.y+4);g.lineTo(b.x+b.w-8,b.y+4);g.stroke();
-   if(b.crack){g.strokeStyle='rgba(80,60,40,.5)';g.lineWidth=1.2;g.beginPath();g.moveTo(b.x+b.w*.4,b.y+3);g.lineTo(b.x+b.w*.48,b.y+b.h*.5);g.lineTo(b.x+b.w*.42,b.y+b.h-3);g.stroke();}
-   if(b.moss>.55){g.fillStyle='rgba(98,150,52,.8)';for(let i=0;i<5;i++){g.beginPath();g.ellipse(b.x+b.w*(.15+i*.18),b.y+3+(i%2)*3,7+b.moss*6,4,0,0,Math.PI*2);g.fill();}}
-  }
-  for(const wall of WALLS){
-   // Coping: a lit lip of the terrace above, and the shade it throws on the blocks.
-   const lip=g.createLinearGradient(0,wall.top,0,wall.top+14);lip.addColorStop(0,'#fff6de');lip.addColorStop(.5,'#e6d4ae');lip.addColorStop(1,'#a88f66');g.fillStyle=lip;g.fillRect(x0,wall.top,x1-x0,14);
-   g.strokeStyle='rgba(92,72,48,.6)';g.lineWidth=2;g.beginPath();g.moveTo(x0,wall.top+14);g.lineTo(x1,wall.top+14);g.stroke();
-   const under=g.createLinearGradient(0,wall.top+14,0,wall.top+40);under.addColorStop(0,'rgba(60,40,20,.35)');under.addColorStop(1,'rgba(60,40,20,0)');g.fillStyle=under;g.fillRect(x0,wall.top+14,x1-x0,26);
-   const foot=g.createLinearGradient(0,wall.bottom-30,0,wall.bottom);foot.addColorStop(0,'rgba(40,30,15,0)');foot.addColorStop(1,'rgba(40,30,15,.35)');g.fillStyle=foot;g.fillRect(x0,wall.bottom-30,x1-x0,30);
-  }
-  for(const v of this.stones.vines){if(v.x<x0-30||v.x>x1+30)continue;
-   g.strokeStyle='#3f7a2a';g.lineWidth=2.4;g.beginPath();g.moveTo(v.x,v.y);g.bezierCurveTo(v.x+Math.sin(v.sway)*14,v.y+v.len*.35,v.x-Math.sin(v.sway)*12,v.y+v.len*.7,v.x+Math.sin(v.sway)*6,v.y+v.len);g.stroke();
-   for(let k=0;k<1;k+=.12){const lx=v.x+Math.sin(v.sway+k*5)*10,ly=v.y+v.len*k;g.fillStyle=k%.24<.12?'#5fa83a':'#78c045';g.beginPath();g.ellipse(lx+4,ly,6,3.4,.6,0,Math.PI*2);g.fill();g.beginPath();g.ellipse(lx-4,ly+4,6,3.4,-.6,0,Math.PI*2);g.fill();}
-   for(let k=.2;k<1;k+=.3){const fx=v.x+Math.sin(v.sway+k*5)*10,fy=v.y+v.len*k+2;g.fillStyle=v.flower;for(let p=0;p<5;p++){g.beginPath();g.arc(fx+Math.cos(p*1.26)*3,fy+Math.sin(p*1.26)*3,2.3,0,Math.PI*2);g.fill();}g.fillStyle='#f3b43a';g.beginPath();g.arc(fx,fy,1.6,0,Math.PI*2);g.fill();}
-  }
+ /** Falling water over the painted cascade: streaks running down and spray at its foot. */
+ private cascade(c:CanvasRenderingContext2D,t:number,camX:number,camY:number){
+  const size=FISHING_PROPS.cascade,x=CASCADE.x-size.w*.12,top=CASCADE.y+size.h*.2,bottom=CASCADE.y+size.h*.9;
+  if(x+60<camX||x-60>camX+VIEW_W||bottom<camY||top>camY+VIEW_H)return;
+  c.save();c.lineCap='round';
+  for(let i=0;i<9;i++){const sx=x-size.w*.12+i*size.w*.03,len=18+(i*7)%16,yy=top+((t*.25+i*53)%(bottom-top));c.strokeStyle=`rgba(255,255,255,${.35+(i%3)*.12})`;c.lineWidth=1.6;c.beginPath();c.moveTo(sx,yy);c.lineTo(sx,Math.min(bottom,yy+len));c.stroke();}
+  for(let i=0;i<8;i++){const k=(t/800+i/8)%1,a=i/8*Math.PI*2;c.fillStyle=`rgba(255,255,255,${.7*(1-k)})`;c.beginPath();c.arc(x+Math.cos(a)*(14+k*16),bottom+4-k*12,2+k*3,0,Math.PI*2);c.fill();}
+  c.restore();
  }
- /** Stone stairs cut into the wall, with side walls. */
- private paintStairs(g:CanvasRenderingContext2D,s:typeof FISHING_STAIRS[number]){
-  const top=FISHING_TERRACES.find(t=>Math.abs(t.y1-s.y0-32)<40)!.y1,bottom=FISHING_TERRACES.find(t=>t.y0>top)!.y0,steps=Math.round((bottom-top)/15),h=(bottom-top)/steps;
-  g.save();
-  for(let i=0;i<steps;i++){const y=top+i*h;
-   const riser=g.createLinearGradient(0,y,0,y+h);riser.addColorStop(0,'#efe2c4');riser.addColorStop(.35,'#e2d1ad');riser.addColorStop(.36,'#b39c76');riser.addColorStop(1,'#8f7a5a');
-   g.fillStyle=riser;g.fillRect(s.x0,y,s.x1-s.x0,h+1);g.strokeStyle='rgba(92,72,48,.45)';g.lineWidth=1.2;g.beginPath();g.moveTo(s.x0,y+h*.36);g.lineTo(s.x1,y+h*.36);g.stroke();}
-  for(const [x,w] of [[s.x0-16,16],[s.x1,16]] as const){const side=g.createLinearGradient(x,0,x+w,0);side.addColorStop(0,'#cdb995');side.addColorStop(.5,'#f2e6c9');side.addColorStop(1,'#b09a72');g.fillStyle=side;g.fillRect(x,top-6,w,bottom-top+6);g.strokeStyle=MORTAR;g.lineWidth=2;g.strokeRect(x,top-6,w,bottom-top+6);}
-  const shade=g.createLinearGradient(s.x0,0,s.x1,0);shade.addColorStop(0,'rgba(60,40,20,.18)');shade.addColorStop(.2,'rgba(60,40,20,0)');shade.addColorStop(.8,'rgba(60,40,20,0)');shade.addColorStop(1,'rgba(60,40,20,.22)');g.fillStyle=shade;g.fillRect(s.x0,top,s.x1-s.x0,bottom-top);
-  g.restore();
- }
- /** Lake bed: water deepening to the middle inside a rim of rounded stones and grass; lilies on the Ninfeias. */
- private paintLake(g:CanvasRenderingContext2D,lake:FishingLake){
-  const {x,y,rx,ry}=lake,col=LAKE_COLORS[lake.id],r=random(lake.x+7);
-  // Grass verge, then the stones.
-  g.fillStyle='#6fae45';g.beginPath();g.ellipse(x,y+4,rx+30,ry+20,0,0,Math.PI*2);g.fill();
-  g.fillStyle='#8cc95a';g.beginPath();g.ellipse(x,y+2,rx+24,ry+15,0,0,Math.PI*2);g.fill();
-  const water=g.createRadialGradient(x,y+ry*.2,ry*.2,x,y,rx);water.addColorStop(0,col.deep);water.addColorStop(.7,col.mid);water.addColorStop(1,col.edge);
-  g.save();g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.fillStyle=water;g.fill();g.clip();
-  g.setTransform(g.getTransform().scale(1,ry/rx));const sy=y*rx/ry;
-  const deep=g.createRadialGradient(x,sy,0,x,sy,rx);deep.addColorStop(0,'rgba(0,10,40,.25)');deep.addColorStop(.6,'rgba(0,10,40,.05)');deep.addColorStop(1,'rgba(255,255,255,.12)');g.fillStyle=deep;g.fillRect(x-rx,sy-rx,rx*2,rx*2);
-  g.restore();
-  // Shade of the back rim on the water.
-  g.save();g.beginPath();g.ellipse(x,y,rx,ry,0,0,Math.PI*2);g.clip();const lip=g.createLinearGradient(0,y-ry,0,y-ry+26);lip.addColorStop(0,'rgba(10,30,30,.45)');lip.addColorStop(1,'rgba(10,30,30,0)');g.fillStyle=lip;g.fillRect(x-rx,y-ry,rx*2,26);g.restore();
-  if(lake.id==='ninfeias')for(let i=0;i<26;i++){const lx=x+(r()-.5)*rx*1.8,ly=y+(r()-.5)*ry*1.7,s=10+r()*10;if(!inLake({...lake,rx:rx-24,ry:ry-14},lx,ly)||Math.abs(lx-1180)<170&&ly<y+30)continue;
-   g.fillStyle='#3d9a3a';g.strokeStyle='#245d22';g.lineWidth=1.5;g.beginPath();g.ellipse(lx,ly,s,s*.45,0,.25,Math.PI*2-.25);g.lineTo(lx,ly);g.closePath();g.fill();g.stroke();
-   g.strokeStyle='rgba(180,240,140,.6)';g.beginPath();g.ellipse(lx,ly,s*.6,s*.25,0,Math.PI*1.1,Math.PI*1.7);g.stroke();
-   if(r()<.4){g.fillStyle='#ffc6dc';for(let p=0;p<6;p++){g.beginPath();g.ellipse(lx+Math.cos(p)*4,ly-3+Math.sin(p)*1.6,4,2.2,p,0,Math.PI*2);g.fill();}g.fillStyle='#ffe46a';g.beginPath();g.arc(lx,ly-3,2,0,Math.PI*2);g.fill();}}
-  // Rim of rounded stones all around.
-  const count=Math.round((rx+ry)*.16);
-  for(let i=0;i<count;i++){const a=i/count*Math.PI*2+r()*.04,sx=x+Math.cos(a)*(rx+6),sy2=y+Math.sin(a)*(ry+4),w=16+r()*12,h=9+r()*5,[light,mid,dark]=STONE[Math.floor(r()*3)];
-   const f=g.createLinearGradient(0,sy2-h/2,0,sy2+h/2);f.addColorStop(0,light);f.addColorStop(.6,mid);f.addColorStop(1,dark);g.fillStyle=f;g.strokeStyle=MORTAR;g.lineWidth=1.6;g.beginPath();g.ellipse(sx,sy2,w/2,h/2,Math.cos(a)*.3,0,Math.PI*2);g.fill();g.stroke();}
- }
- /** Wooden pier or bridge: planks across, beams on the sides, posts and rope at the corners over the water. */
- private paintDeck(g:CanvasRenderingContext2D,p:FishingPier){
-  const lake=FISHING_LAKES.find(l=>l.id===p.lake)!,r=random(p.x0);
-  const tipTop=inLake(lake,(p.x0+p.x1)/2,p.y0+4);
-  // Stilts under the deck where it stands in the water.
-  g.fillStyle='rgba(20,40,50,.35)';g.fillRect(p.x0+2,p.y0+6,p.x1-p.x0-4,p.y1-p.y0);
-  for(let y=p.y0;y<p.y1;y+=10){const tone=r();g.fillStyle=tone<.33?'#b9824a':tone<.66?'#a8733f':'#c58f55';g.fillRect(p.x0,y,p.x1-p.x0,9.5);
-   g.fillStyle='rgba(255,230,180,.35)';g.fillRect(p.x0,y,p.x1-p.x0,2);g.fillStyle='#4a2c14';g.fillRect(p.x0,y+9,p.x1-p.x0,1.5);
-   g.fillStyle='#3a2410';g.beginPath();g.arc(p.x0+6,y+5,1.3,0,Math.PI*2);g.arc(p.x1-6,y+5,1.3,0,Math.PI*2);g.fill();}
-  for(const x of [p.x0-4,p.x1-4]){g.fillStyle='#7a4a24';g.fillRect(x,p.y0,8,p.y1-p.y0);g.strokeStyle='#3a2410';g.lineWidth=1.5;g.strokeRect(x,p.y0,8,p.y1-p.y0);}
-  const end=tipTop?p.y0:p.y1;g.fillStyle='#6a3e1c';g.fillRect(p.x0-4,end-(tipTop?0:8),p.x1-p.x0+8,8);
-  const posts=p.kind==='bridge'?Array.from({length:Math.floor((p.y1-p.y0)/34)+1},(_,i)=>p.y0+6+i*34):[end+(tipTop?6:-2)];
-  for(const py of posts)for(const x of [p.x0-2,p.x1+2]){const pg=g.createLinearGradient(x-5,0,x+5,0);pg.addColorStop(0,'#5a3418');pg.addColorStop(.5,'#a8733f');pg.addColorStop(1,'#5a3418');g.fillStyle=pg;g.strokeStyle='#2e1a0a';g.lineWidth=1.5;roundRect(g,x-5,py-26,10,30,3);g.fill();g.stroke();g.fillStyle='#c99a5a';g.beginPath();g.ellipse(x,py-26,5,2.4,0,0,Math.PI*2);g.fill();}
-  if(p.kind==='bridge')for(const x of [p.x0-2,p.x1+2]){g.strokeStyle='#e8d6a8';g.lineWidth=2.2;g.beginPath();for(let i=0;i<posts.length-1;i++){const a=posts[i]-22,b=posts[i+1]-22;g.moveTo(x,a);g.quadraticCurveTo(x+(x<p.x0+10?-3:3),(a+b)/2+7,x,b);}g.stroke();}
-  else for(const x of [p.x0-2,p.x1+2]){g.strokeStyle='#e8d6a8';g.lineWidth=2;g.beginPath();g.moveTo(x,posts[0]-18);g.lineTo(x+(x<p.x0+10?-6:6),posts[0]-6);g.stroke();}
- }
- /** Moving light on the water: the sky's sheen, rings and sparkles. */
+ /** Moving light on a pond's surface: rings and sparkles (the picture already has its color and depth). */
  private water(c:CanvasRenderingContext2D,lake:FishingLake,t:number){
-  const {x,y,rx,ry}=lake,col=LAKE_COLORS[lake.id];
-  c.save();c.beginPath();c.ellipse(x,y,rx-2,ry-2,0,0,Math.PI*2);c.clip();
-  c.globalCompositeOperation='screen';
-  for(let i=0;i<4;i++){const k=((t/9000+i/4)%1),sx=x-rx+k*rx*2,band=c.createLinearGradient(sx-90,0,sx+90,0);band.addColorStop(0,'rgba(255,255,255,0)');band.addColorStop(.5,`rgba(220,245,255,${.1+.06*Math.sin(t/1300+i)})`);band.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=band;c.fillRect(sx-90,y-ry,180,ry*2);}
-  c.globalCompositeOperation='source-over';
-  const r=random(lake.x+3);
-  for(let i=0;i<9;i++){const px=x+(r()-.5)*rx*1.5,py=y+(r()-.5)*ry*1.3,k=((t/2600)+r())%1;c.strokeStyle=`rgba(255,255,255,${.4*(1-k)})`;c.lineWidth=1.2;c.beginPath();c.ellipse(px,py,6+k*22,2+k*6,0,0,Math.PI*2);c.stroke();}
-  for(let i=0;i<16;i++){const px=x+(r()-.5)*rx*1.7,py=y+(r()-.5)*ry*1.5,a=Math.max(0,Math.sin(t/(380+i*37)+i*2));if(a<.6)continue;c.fillStyle=`rgba(255,255,240,${(a-.6)*2})`;c.beginPath();c.moveTo(px-5,py);c.lineTo(px,py-1.2);c.lineTo(px+5,py);c.lineTo(px,py+1.2);c.closePath();c.fill();}
-  c.strokeStyle=col.foam;c.globalAlpha=.35+.15*Math.sin(t/700);c.lineWidth=2;c.beginPath();c.ellipse(x,y+1,rx-5,ry-4,0,Math.PI*.05,Math.PI*.95);c.stroke();c.globalAlpha=1;
+  const {x,y,rx,ry}=lake,r=random(lake.x+3);
+  c.save();c.beginPath();c.ellipse(x,y,rx*.92,ry*.85,0,0,Math.PI*2);c.clip();
+  for(let i=0;i<7;i++){const px=x+(r()-.5)*rx*1.4,py=y+(r()-.5)*ry*1.1,k=((t/2600)+r())%1;c.strokeStyle=`rgba(255,255,255,${.35*(1-k)})`;c.lineWidth=1.2;c.beginPath();c.ellipse(px,py,5+k*20,1.6+k*5,0,0,Math.PI*2);c.stroke();}
+  for(let i=0;i<14;i++){const px=x+(r()-.5)*rx*1.6,py=y+(r()-.5)*ry*1.4,a=Math.max(0,Math.sin(t/(380+i*37)+i*2));if(a<.6)continue;c.fillStyle=`rgba(255,255,240,${(a-.6)*2})`;c.beginPath();c.moveTo(px-5,py);c.lineTo(px,py-1.2);c.lineTo(px+5,py);c.lineTo(px,py+1.2);c.closePath();c.fill();}
+  if(lake.id==='termal')for(let i=0;i<6;i++){const k=(t/3200+i/6)%1,sx=x+(i-2.5)*rx*.28+Math.sin(t/900+i)*10,sy=y-k*90,s=18+k*30;const g=c.createRadialGradient(sx,sy,0,sx,sy,s);g.addColorStop(0,`rgba(255,255,255,${.22*(1-k)})`);g.addColorStop(1,'rgba(255,255,255,0)');c.restore();c.save();c.fillStyle=g;c.fillRect(sx-s,sy-s,s*2,s*2);}
   c.restore();
  }
- /** The Lagoa de Cristal's water running down the channel and falling into the Poço Azul, with foam and mist. */
- private waterfall(c:CanvasRenderingContext2D,t:number){
-  const {x0,x1,lip,edge,base}=FALL,w=x1-x0;
-  c.save();
-  const run=c.createLinearGradient(0,lip,0,edge);run.addColorStop(0,'#5fd0f0');run.addColorStop(1,'#9fe6fb');c.fillStyle=run;c.fillRect(x0,lip,w,edge-lip+2);
-  const sheet=c.createLinearGradient(0,edge,0,base);sheet.addColorStop(0,'rgba(190,240,255,.95)');sheet.addColorStop(.5,'rgba(120,205,240,.9)');sheet.addColorStop(1,'rgba(230,250,255,.95)');
-  c.fillStyle=sheet;c.beginPath();c.moveTo(x0-2,edge);c.quadraticCurveTo(x0-4,edge+10,x0-8,base);c.lineTo(x1+8,base);c.quadraticCurveTo(x1+4,edge+10,x1+2,edge);c.closePath();c.fill();
-  c.save();c.clip();c.lineCap='round';
-  for(let i=0;i<22;i++){const sx=x0-6+(i*13.7)%(w+12),len=26+(i*17)%30,speed=.32+(i%5)*.05,yy=edge+((t*speed+i*61)%(base-edge+len))-len;c.strokeStyle=i%3?'rgba(255,255,255,.55)':'rgba(70,160,210,.45)';c.lineWidth=i%3?2:3;c.beginPath();c.moveTo(sx,yy);c.lineTo(sx,yy+len);c.stroke();}
-  c.restore();
-  // The lip where it pours over, and the foam and mist at the bottom.
-  c.fillStyle='rgba(255,255,255,.85)';c.beginPath();c.ellipse((x0+x1)/2,edge+2,w/2+3,5,0,0,Math.PI*2);c.fill();
-  for(let i=0;i<14;i++){const a=i/14*Math.PI*2+t/900,k=(t/700+i/14)%1,fx=(x0+x1)/2+Math.cos(a)*(w*.5+k*18),fy=base+2+Math.sin(a)*6-k*10;c.fillStyle=`rgba(255,255,255,${.85*(1-k)})`;c.beginPath();c.arc(fx,fy,4+k*5,0,Math.PI*2);c.fill();}
-  const mist=c.createRadialGradient((x0+x1)/2,base,4,(x0+x1)/2,base,90);mist.addColorStop(0,'rgba(255,255,255,.7)');mist.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=mist;c.fillRect((x0+x1)/2-90,base-90,180,180);
-  c.restore();
- }
- /** Spots free to fish glow softly on the ground; the lake under the pointer glows more. */
  drawSpots(c:CanvasRenderingContext2D,t:number,taken:Set<string>,hoverLake:string|null){
   for(const spot of FISHING_SPOTS){if(taken.has(spot.id))continue;const on=hoverLake===spot.lake,a=(on?.75:.3)+Math.sin(t/500+spot.x)*.1;
    c.save();c.strokeStyle=`rgba(255,236,150,${a})`;c.lineWidth=on?3:2;c.beginPath();c.ellipse(spot.x,spot.y+4,22,7,0,0,Math.PI*2);c.stroke();
    c.fillStyle=`rgba(255,236,150,${a*.25})`;c.fill();c.restore();}
  }
- /** Painted pieces, stations included, sorted with the walkers by their base. */
+ /** Shadows on the floor under every standing piece: a soft dark spot where it touches, and its outline cast to the left. */
+ private shadows(c:CanvasRenderingContext2D,camX:number,camY:number){
+  const pieces:{id:FishingPropId;x:number;y:number;w:number;h:number;flip?:boolean}[]=[];
+  for(const p of this.placed)if(CASTS.has(p.id)){const size=FISHING_PROPS[p.id],k=p.scale??1;pieces.push({id:p.id,x:p.x,y:p.y,w:size.w*k,h:size.h*k,flip:p.flip});}
+  const casa=FISHING_STATIONS[0];pieces.push({id:'fishing-house',x:casa.x,y:casa.y-20,w:casa.width,h:casa.height});
+  for(const p of pieces){if(p.x+p.w*.5<camX-p.h*CAST_LEAN||p.x-p.w*.5>camX+VIEW_W||p.y<camY-40||p.y-p.h*CAST_SQUASH>camY+VIEW_H+40)continue;
+   const cast=this.cast(p.id);
+   c.save();c.translate(p.x,p.y);
+   // Contact shadow first, darkest right under the base.
+   c.save();c.scale(1,.2);const g=c.createRadialGradient(0,0,0,0,0,p.w*.42);g.addColorStop(0,'rgba(40,52,20,.42)');g.addColorStop(.6,'rgba(40,52,20,.2)');g.addColorStop(1,'rgba(40,52,20,0)');c.fillStyle=g;c.beginPath();c.arc(0,0,p.w*.42,0,Math.PI*2);c.fill();c.restore();
+   if(cast){c.transform(1,0,CAST_LEAN,CAST_SQUASH,0,0);if(p.flip)c.scale(-1,1);c.globalAlpha=.34;c.drawImage(cast,-p.w/2-CAST_PAD*p.w,-p.h-CAST_PAD*p.h,p.w*(1+2*CAST_PAD),p.h*(1+2*CAST_PAD));}
+   c.restore();}
+ }
+ /** The piece's outline as a blurred dark shape, built once its art has loaded. */
+ private cast(id:FishingPropId){
+  const done=this.casts.get(id);if(done)return done;
+  const image=this.art.get(id);if(!image?.complete||!image.naturalWidth)return null;
+  const k=.25,w=Math.max(8,Math.round(image.naturalWidth*k)),h=Math.max(8,Math.round(image.naturalHeight*k)),pw=Math.round(w*CAST_PAD),ph=Math.round(h*CAST_PAD);
+  const shape=document.createElement('canvas');shape.width=w+2*pw;shape.height=h+2*ph;const s=shape.getContext('2d')!;
+  s.drawImage(image,pw,ph,w,h);s.globalCompositeOperation='source-in';s.fillStyle='#24300f';s.fillRect(0,0,shape.width,shape.height);
+  const blurred=document.createElement('canvas');blurred.width=shape.width;blurred.height=shape.height;const b=blurred.getContext('2d')!;
+  b.filter='blur(4px)';b.drawImage(shape,0,0);
+  this.casts.set(id,blurred);return blurred;
+ }
+ /** Standing pieces and stations, sorted with the walkers by their base. */
  sprites(t:number,hover:string|null,camX:number,camY:number){
   const list:{y:number;draw:(c:CanvasRenderingContext2D)=>void}[]=[];
+  const seen=(x0:number,x1:number,y0:number,y1:number)=>x1>camX-20&&x0<camX+VIEW_W+20&&y1>camY-10&&y0<camY+VIEW_H+10;
   for(const p of this.placed){const size=FISHING_PROPS[p.id],k=p.scale??1,w=size.w*k,h=size.h*k;
-   if(p.x+w/2<camX-20||p.x-w/2>camX+VIEW_W+20||p.y<camY-10||p.y-h>camY+VIEW_H)continue;
-   list.push({y:p.y,draw:c=>{const image=this.art.get(p.id);if(!image)return;c.save();if(p.flip){c.translate(p.x*2,0);c.scale(-1,1);}drawScaled(c,image,p.x-w/2,p.y-h,w,h);c.restore();}});}
-  for(const s of FISHING_STATIONS)list.push({y:s.id==='casa'?s.y-60:s.y,draw:c=>this.station(c,s,t,hover===s.id)});
+   if(!seen(p.x-w/2,p.x+w/2,p.y-h,p.y))continue;
+   list.push({y:p.y,draw:c=>{const image=this.art.get(p.id);if(!image)return;c.save();if(p.flip){c.translate(p.x*2,0);c.scale(-1,1);}drawScaled(c,image,p.x-w/2,p.y-h,w,h);c.restore();
+    if(p.id==='lake-sign'){const pond=PONDS.find(q=>Math.abs(q.lake.x-q.block.rx*.78-p.x)<1);if(pond)this.signText(c,pond.lake.name,p.x,p.y-h*.66,w*.8);}}});}
+  for(const s of FISHING_STATIONS)list.push({y:s.id==='casa'?s.y-20:s.y,draw:c=>this.station(c,s,t,hover===s.id)});
   return list;
  }
+ /** The pond's name written on its painted sign. */
+ private signText(c:CanvasRenderingContext2D,text:string,x:number,y:number,width:number){
+  c.save();const words=text.split(' '),lines=words.length>2?[words.slice(0,Math.ceil(words.length/2)).join(' '),words.slice(Math.ceil(words.length/2)).join(' ')]:[text];
+  c.font='900 10px Nunito, sans-serif';c.textAlign='center';c.textBaseline='middle';c.fillStyle='#4a2a10';
+  const size=Math.min(11,Math.min(...lines.map(l=>width/c.measureText(l).width*10)));c.font=`900 ${size}px Nunito, sans-serif`;
+  lines.forEach((line,i)=>c.fillText(line,x,y+(i-(lines.length-1)/2)*size*1.05));c.restore();
+ }
  private station(c:CanvasRenderingContext2D,s:FishingStation,t:number,hover:boolean){
-  const image=this.art.get(s.id==='casa'?'gazebo':'airship');if(!image)return;
+  const image=this.art.get(s.id==='casa'?'fishing-house':'airship');if(!image)return;
   const bob=s.id==='airship'?Math.sin(t/900)*5:0;
   c.save();
   if(s.id==='airship'){
-   // The gangway from the quay to the airship's deck.
+   // The mooring dock out over the clouds, and the gangway up to the airship's deck.
+   const dock=FISHING_PROPS.dock;drawScaled(c,this.art.get('dock')!,s.x+30-dock.w/2,CAIS.y1+110-dock.h,dock.w,dock.h);
    c.fillStyle='#8a5629';c.strokeStyle='#3a2410';c.lineWidth=2;c.beginPath();c.moveTo(s.x-26,CAIS.y1-2);c.lineTo(s.x+26,CAIS.y1-2);c.lineTo(s.x+22,s.y-s.height*.32+bob);c.lineTo(s.x-22,s.y-s.height*.32+bob);c.closePath();c.fill();c.stroke();
-   for(let k=.15;k<1;k+=.18){const yy=CAIS.y1-2+(s.y-s.height*.32+bob-CAIS.y1+2)*k;c.strokeStyle='rgba(58,36,16,.6)';c.beginPath();c.moveTo(s.x-24,yy);c.lineTo(s.x+24,yy);c.stroke();}
   }
   if(hover)c.filter='brightness(1.1) drop-shadow(0 0 10px #fff2a0)';
   drawScaled(c,image,s.x-s.width/2,s.y-s.height+bob,s.width,s.height);
@@ -341,18 +310,23 @@ export class FishingWorld {
  drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null,camX:number,camY:number){
   // Clouds drifting under the island, in front of everything.
   if(camY+VIEW_H>CLOUDS_TOP){const r=random(5);
-   for(let i=0;i<46;i++){const base=r()*W,speed=4+r()*6,x=((base+t/1000*speed)%(W+300))-150,y=CLOUDS_TOP+18+r()*40,s=50+r()*70;if(x+s<camX||x-s>camX+VIEW_W)continue;
+   for(let i=0;i<46;i++){const base=r()*W,speed=4+r()*6,x=((base+t/1000*speed)%(W+300))-150,y=CLOUDS_TOP+18+r()*60,s=60+r()*80;if(x+s<camX||x-s>camX+VIEW_W)continue;
     const g=c.createRadialGradient(x,y,s*.1,x,y,s);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.6,'rgba(250,253,255,.7)');g.addColorStop(1,'rgba(240,250,255,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y,s,s*.45,0,0,Math.PI*2);c.fill();}}
-  for(const s of FISHING_STATIONS){const top=s.y-s.height-(s.id==='casa'?-10:16);if(top>camY-40&&top<camY+VIEW_H)plaque(c,s.title,s.x,top,true,hover===s.id);}
+  for(const s of FISHING_STATIONS){const top=s.y-s.height-16;if(top>camY-40&&top<camY+VIEW_H)plaque(c,s.title,s.x,top,true,hover===s.id);}
  }
  drawOverlay(c:CanvasRenderingContext2D,t:number){
   for(let i=0;i<18;i++){const x=(i*137+t*.012)%VIEW_W,y=140+(i*71)%460+Math.sin(t/1300+i)*15;c.fillStyle=`rgba(255,255,230,${.22+Math.sin(t/800+i)*.16})`;c.beginPath();c.arc(x,y,1.4+i%2,0,Math.PI*2);c.fill();}
  }
  hit(x:number,y:number):FishingHit|null{
-  for(const station of FISHING_STATIONS){const half=station.width*.36,top=station.y-station.height*(station.id==='casa'?.95:.9),bottom=station.id==='casa'?station.y-60:station.y;if(x>=station.x-half&&x<=station.x+half&&y>=top&&y<=bottom)return {kind:'station',station};}
-  const lake=FISHING_LAKES.find(l=>((x-l.x)/(l.rx+10))**2+((y-l.y)/(l.ry+8))**2<1);
-  return lake?{kind:'lake',lake}:null;
+  // A tall building pokes over the terrace above it: clicks on that terrace's floor still walk.
+  const floor=terraceAt(x,y);
+  for(const station of FISHING_STATIONS){if(floor&&floor.y1<station.y-150)continue;const half=station.width*.4,top=station.y-station.height*.92,bottom=station.y-20;if(x>=station.x-half&&x<=station.x+half&&y>=top&&y<=bottom)return {kind:'station',station};}
+  // The island, the bridge and the pier are floor: a click there walks.
+  if(!fishingBlocked(x,y))return null;
+  const pond=PONDS.find(p=>((x-p.lake.x)/(p.lake.rx+20))**2+((y-p.lake.y)/(p.lake.ry+16))**2<1||((x-p.lake.x)/p.block.rx)**2+((y-p.lake.y)/p.block.ry)**2<1);
+  return pond?{kind:'lake',lake:pond.lake}:null;
  }
+
 
  /**
   * The rod, line and float of someone fishing, and the fish on a catch (stand-ins for the

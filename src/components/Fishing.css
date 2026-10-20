@@ -120,7 +120,7 @@
 .fishing-counter{display:grid;align-content:start;justify-items:center;gap:9px;padding:10px 12px 14px;border:2px solid var(--wood-rim);border-radius:14px;background:var(--wood-grain),linear-gradient(#7a3a14,#55250b);box-shadow:inset 0 1px #ffc98c66,0 3px 8px #0006;color:#fff3d6}
 .fishing-counter-art{position:relative;display:grid;place-items:end center;width:196px;height:196px}
 .fishing-counter-art .sigil{position:absolute;inset:6px;width:calc(100% - 12px);height:calc(100% - 12px);object-fit:contain;opacity:.9}
-.fishing-counter-art .house{position:relative;height:186px;filter:drop-shadow(0 6px 6px #0008)}
+.fishing-counter-art .house{position:relative;width:100%;height:auto;max-height:186px;object-fit:contain;margin-bottom:24px;filter:drop-shadow(0 6px 6px #0008)}
 .fishing-counter-level{display:grid;justify-items:center;gap:2px;width:100%}
 .fishing-counter-level small{font:800 10px Nunito,sans-serif;letter-spacing:1.6px;text-transform:uppercase;color:#f3c58a}
 .fishing-counter-level b{font:400 22px/1.05 'Lilita One',Nunito,sans-serif;color:var(--wood-gold);-webkit-text-stroke:.8px #3a1505;text-shadow:0 2px #3a1505}
