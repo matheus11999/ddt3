@@ -114,7 +114,7 @@ export class FishingWorld {
  release(){
   if(!this.assets)return;this.assets=false;
   freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);
-  for(const k of ['sky','floor','grass','water','rod'] as const){freeImage(this[k]);this[k]=new Image();}
+  for(const k of ['sky','floor','grass','water','rod','autoSeal'] as const){freeImage(this[k]);this[k]=new Image();}
   freeImage(this.splash.bait);freeImage(this.splash.catch);this.splash={bait:new Image(),catch:new Image()};
  }
  get isLoaded(){return this.assets;}
