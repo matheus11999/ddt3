@@ -14,7 +14,7 @@ import {POWER_CRATER_MULTIPLIER} from './power';
  * into the impact and the terrain mark, so changing equipment later never changes an old mark.
  * A painting change bumps DESTRUCTION_VERSION (old ids stay valid while their files exist).
  */
-export const DESTRUCTION_VERSION=1;
+export const DESTRUCTION_VERSION=2;
 export type DestructionMode='normal'|'pow';
 export type DestructionStage=0|10|12|15;
 export const DESTRUCTION_STAGES:readonly DestructionStage[]=[0,10,12,15];
@@ -34,12 +34,13 @@ export interface DestructionProfile {
  painted:boolean;
 }
 
-/** How much of the mark's width the hole takes, per weapon and mode. Taken from the DDTank 4.1 references
- * (alpha extent of crater ÷ craterBrink width: brick 96/122, boomerang 107/152 and 131/198); the brick POW
- * keeps a wider rim than DDTank's 116/142, since its hole is only 5% bigger and the POW mark must read as its own. */
-const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.79,pow:.74},'love-boomerang':{normal:.70,pow:.66}};
-/** Phases whose painting is approved (filled in when the art lands). */
-const PAINTED=new Set<string>(['brick','love-boomerang'].flatMap(weapon=>DESTRUCTION_MODES.flatMap(mode=>DESTRUCTION_STAGES.map(stage=>`${weapon}:${mode}:${stage}`))));
+/** How much of the mark's width the hole takes, per weapon and mode. Version 1 took DDTank 4.1's proportions
+ * (crater ÷ craterBrink: brick 96/122, boomerang 107/152 and 131/198); version 2 (20/10, the user asked for a
+ * fading gradient with cracks instead of a solid rim) leaves a wider band so the fade and the cracks have room. */
+const FRAMING:Record<string,Record<DestructionMode,number>>={brick:{normal:.62,pow:.58},'love-boomerang':{normal:.58,pow:.55}};
+/** Phases whose painting is approved (filled in when the art lands). Empty since 20/10: the user rejected the
+ * first set (solid rims); the weapons use their legacy terrain.png until the gradient marks are in. */
+const PAINTED=new Set<string>([]);
 
 export function destructionMarkPath(weapon:string,mode:DestructionMode,stage:DestructionStage){return `/assets/weapons/${weapon}/destruction/${mode}/mark-${stage}.png`;}
 export function destructionProfileId(weapon:string,mode:DestructionMode,stage:DestructionStage,version=DESTRUCTION_VERSION){return `${weapon}:${mode}:${stage}@${version}`;}
