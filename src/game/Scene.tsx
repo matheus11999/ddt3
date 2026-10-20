@@ -17,6 +17,7 @@ import {drawHitFeedback,HIT_FEEDBACK_DURATION} from './hitFeedback';
 import {flightTime,impactTime,projectileFrame,projectileVisible} from './shotPlayback';
 import {drawFighterPlates,type FighterPlate} from './fighterIndicators';
 import {drawAimIndicator} from './aimIndicator';
+import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {drawHitboxDebug,HITBOX_DEBUG} from './hitboxDebug';
 import {drawPowerArmed} from './powerArmedEffect';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
@@ -205,16 +206,16 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
-     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt;
+     const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
-     if(aiming)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,'back');
+     if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,limits,'back');
      // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
      const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
-     if(aiming)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,'front');
+     if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits,'front');
     }
     // Plates go on top of every fighter, stacked when neighbours stand close together.
     drawFighterPlates(c,plates,t);
