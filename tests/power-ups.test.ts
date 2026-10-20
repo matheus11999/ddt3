@@ -53,7 +53,7 @@ test('combination matrix: +1/+2 repeat while Vigor lasts, only the trident is on
  assert.match(powerUpConflict(['trident'],'trident')!,/tridente já/);assert.equal(powerUpConflict(['extra2'],'trident'),undefined);
  assert.equal(powerUpConflict(['damage50','damage50'],'damage50'),undefined);
  assert.equal(powerUpCost(['extra1','damage50','damage20'],COSTS),250);
- assert.deepEqual(BOOSTS.map(boost=>[boost.id,boost.cost]),[['extra1',110],['extra2',110],['trident',110],['damage50',85],['damage40',80],['damage30',70],['damage20',55],['damage10',50]]);
+ assert.deepEqual(BOOSTS.map(boost=>[boost.id,boost.cost]),[['extra1',110],['extra2',110],['trident',110],['damage50',85],['damage40',80],['damage30',70],['damage20',55],['damage10',50],['rage',120],['ice',150]]);
 });
 
 test('repeated +1/+2 add their extra shots and multiply their penalties',()=>{
@@ -105,8 +105,8 @@ test('server: a projectile impact processed twice never deals damage twice',asyn
 });
 
 test('power-up Delay follows DDTank 4.1 and the Tridente spreads −5°, 0°, +5°',()=>{
- assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.delay])),{extra1:500,extra2:600,trident:600,damage50:400,damage40:340,damage30:200,damage20:150,damage10:70});
- assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.cost])),{extra1:110,extra2:110,trident:110,damage50:85,damage40:80,damage30:70,damage20:55,damage10:50},'Vigor costs unchanged');
+ assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.delay])),{extra1:500,extra2:600,trident:600,damage50:400,damage40:340,damage30:200,damage20:150,damage10:70,rage:450,ice:700});
+ assert.deepEqual(Object.fromEntries(BOOSTS.map(b=>[b.id,b.cost])),{extra1:110,extra2:110,trident:110,damage50:85,damage40:80,damage30:70,damage20:55,damage10:50,rage:120,ice:150},'Vigor costs unchanged');
  assert.deepEqual(powerUpShot(['trident']).spread,[-5,0,5]);assert.deepEqual(powerUpShot(['extra2','trident']).spread,[-5,0,5]);
 });
 
