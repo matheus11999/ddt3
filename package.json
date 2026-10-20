@@ -18,6 +18,7 @@
     "test:maps:browser": "node scripts/smoke-maps.mjs",
     "test:outfits": "node scripts/verify-outfits.mjs",
     "test:battle:browser": "node scripts/smoke-battle-controls.mjs",
+    "test:walk:browser": "node scripts/smoke-walk.mjs",
     "test:rooms:integration": "tsx tests/rooms.integration.ts",
     "test:rooms:browser": "node scripts/smoke-rooms.mjs",
     "test:economy:integration": "tsx tests/economy.integration.ts",

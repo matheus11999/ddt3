@@ -95,60 +95,84 @@ export function ground(t:Uint8Array,x:number,start=0){
  for(let cy=Math.max(0,Math.floor(start/WORLD.cell));cy<WORLD.rows;cy++)if(t[cy*cols+cx]===1)return cy*WORLD.cell;
  return WORLD.height+80;
 }
-/** One walk command moves this far, one pixel at a time, so every bump and dip on the way is felt. */
-export const WALK_STEP=8;
-/** Highest lip the feet can step onto in one pixel (about a knee): taller walls stop the walk. */
-export const WALK_STEP_UP=15;
-/** Over this horizontal span the ground may rise at most WALK_MAX_RISE (about 60°): a single Quebra-Tijolos crater is the steepest hole that can still be walked out of; deeper or stacked pits trap. */
-export const WALK_SLOPE_SPAN=12;
-export const WALK_MAX_RISE=21;
-/** A wall or lip up to about the prone body's height can be climbed in one pull (user, 19/10/2026: the
- * box a couple of direct hits dig, or its undercut rim, must not trap). Measured from the lowest ground
- * within WALK_CLIMB_SPAN behind, so a long steep ramp, two stacked craters or a pit three body hits deep still stops the walk. */
-export const WALK_CLIMB=45;
-/** How far ahead of the feet the arms reach for a lip to pull up on (the prone body lies forward). */
-export const WALK_REACH=16;
-export const WALK_CLIMB_SPAN=36;
-/** Out of a pit (ground behind rises back up within WALK_PIT_SPAN) the pull-up reaches WALK_CLIMB; on open ground
- * only a WALK_LEDGE lip above the lowest ground just behind, so a map object taller than that (both gift boxes of Sonho Nevado, 27 and 33 px) stays a wall (user, 20/10/2026). */
-export const WALK_LEDGE=24;
-export const WALK_PIT_SPAN=90;
-/** Torso and head (from the waist up) must stay clear just ahead, so low ceilings and overhangs stop the walk; the legs only need the ground rules above. */
-const WALK_BODY_TOP=51,WALK_BODY_WAIST=21,WALK_BODY_FRONT=7;
+/** DDTank walk (GameLiving `_speedX=3`/`_speedY=7`, Map.findNextWalkPoint; docs/ddtank-crater-walking-research.md):
+ * each step moves WALK_STEP_X px and lands on the first support found looking down from WALK_STEP_Y+1 px
+ * above the feet; a support more than WALK_STEP_Y px above or below the feet rejects the step. The limit is
+ * local to one step: a deep crater with a sloped rim is walked out of support by support, a sheer 8 px wall stops. */
+export const WALK_STEP_X=3;
+export const WALK_STEP_Y=7;
+/** Steps per walk command; the HUD sends one every WALK_COMMAND_MS, so the crawl keeps the old ~89 px/s (8 px per 90 ms). */
+export const WALK_STEPS_PER_COMMAND=3;
+export const WALK_STEP=WALK_STEP_X*WALK_STEPS_PER_COMMAND;
+export const WALK_COMMAND_MS=101;
+/** Brasa addition (DDTank has no head test): the lying body needs this much free space above the new
+ * support, so a low ceiling or a tunnel narrower than the body stops the walk. Prone, not standing:
+ * a lamp arm or a sign hanging higher than this is walked under. */
+export const WALK_HEADROOM=40;
+/** Feet never come closer than this to the map's side edges (DDTank canMoveDirection: 15 px + speed). */
+export const WALK_MARGIN=30;
+/** DDTank support test (Map.findYLineNotEmptyPointDown, Living.canStand): solid one pixel left or right of x. */
+export function supported(t:Uint8Array,x:number,y:number){return solid(t,x-1,y)||solid(t,x+1,y);}
+/** First support row at or below `start` in the column of `x` (x±1 test), or past the bottom: the void. */
+export function supportBelow(t:Uint8Array,x:number,start:number){
+ for(let y=Math.max(0,Math.floor(start));y<WORLD.height;y++)if(supported(t,x,y))return y;
+ return WORLD.height+80;
+}
+export type WalkReject='edge'|'wall'|'ceiling'|'drop'|'void';
+/** Everything one step looked at (the server decides with it; `?walk=1` draws it). */
+export interface WalkProbe {
+ from:{x:number;y:number};direction:1|-1;nextX:number;searchY:number;
+ /** First support below searchY in nextX (null: none before the bottom of the map). */
+ support:number|null;
+ /** Feet height gained by the step (negative going down). */
+ rise:number|null;
+ /** Accepted step. */
+ to?:{x:number;y:number};
+ /** Rejected for a drop or the void: where the fall lands (y past WORLD.height is the void). */
+ fall?:{x:number;y:number};
+ reject?:WalkReject;
+ /** Ceiling row that blocked the body. */
+ ceiling?:number;
+}
+/** Height a step of `stepX` px may rise or drop: 7 px for the DDTank 3 px step, the same 7/3 slope
+ * (rounded down) for the shorter steps a walk command uses to line up with an edge (`walkPosition`). */
+export function walkStepRise(stepX:number){return Math.floor(WALK_STEP_Y*stepX/WALK_STEP_X);}
+/** One DDTank walk step from `from` toward `direction`, on the current (authoritative) terrain. */
+export function walkStep(t:Uint8Array,from:{x:number;y:number},direction:1|-1,stepX=WALK_STEP_X):WalkProbe {
+ const stepY=walkStepRise(stepX),x=Math.round(from.x),y=Math.round(from.y),nextX=x+direction*stepX,searchY=y-stepY-1;
+ const probe:WalkProbe={from:{x,y},direction,nextX,searchY,support:null,rise:null};
+ if(nextX<WALK_MARGIN||nextX>terrainWidth(t)-WALK_MARGIN){probe.reject='edge';return probe;}
+ const support=supportBelow(t,nextX,searchY);
+ if(support>=WORLD.height){probe.reject='void';probe.fall={x:nextX,y:support};return probe;}
+ probe.support=support;probe.rise=y-support;
+ // Found right at the search start: the ground there is a sheer rise of more than a step.
+ if(probe.rise>stepY){probe.reject='wall';return probe;}
+ if(-probe.rise>stepY){probe.reject='drop';probe.fall={x:nextX,y:support};return probe;}
+ for(let row=support-WALK_HEADROOM;row<searchY;row++)if(solid(t,nextX,row)){probe.reject='ceiling';probe.ceiling=row;return probe;}
+ probe.to={x:nextX,y:support};return probe;
+}
 /**
- * Walks up to WALK_STEP pixels along the ground. Going down follows the ground
- * (a drop taller than a step ends the walk and the fighter falls); going up is
- * limited by a knee-high lip and a maximum slope, so a steep crater traps its
- * occupant instead of letting them hop out. Returns null when no pixel was walked.
+ * One walk command: WALK_STEP px of DDTank steps (3 px, 7 px up or down at most). When a 3 px step meets
+ * a wall, a 2 or 1 px step with the same 7/3 slope limit is tried first: where the 3 px grid falls must not
+ * decide whether a crater rim with a small lip can be left (a sheer wall still stops every step size).
+ * A wall, a low ceiling or the map edge ends the command where the last step landed; a drop taller than a
+ * step or no ground ahead ends it with the fall (y below the map is the void). `steps` is the vigor to pay:
+ * one per 3 px walked (rounded up); null when not a single step was possible (nothing to pay).
  */
-export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1|-1):{x:number;y:number}|null {
- const min=30,max=terrainWidth(t)-30;let x=Math.max(min,Math.min(max,origin.x)),y=origin.y,moved=false;
- const bodyBlocked=(nx:number,ny:number)=>{for(let px=0;px<=WALK_BODY_FRONT;px+=WORLD.cell)for(let py=ny-WALK_BODY_TOP;py<ny-WALK_BODY_WAIST;py+=WORLD.cell)if(solid(t,nx+direction*px,py))return true;return false;};
- for(let n=0;n<WALK_STEP;n++){
-  const nx=x+direction;if(nx<min||nx>max)break;
-  const top=y-WALK_STEP_UP;let ny=solid(t,nx,top)?-1:ground(t,nx,top);
-  // Sustained slope: compare with the ground a span behind the new foot.
-  if(ny>=0&&ny<y){const behind=ground(t,nx-direction*WALK_SLOPE_SPAN,ny);if(behind<=WORLD.height&&behind-ny>WALK_MAX_RISE)ny=-1;}
-  if(ny>=0&&bodyBlocked(nx,ny))ny=-1;
-  if(ny<0){
-   // Blocked by a wall, a steep bit or an overhanging lip just ahead: pull up onto its top if it is low enough.
-   const lid=y-WALK_CLIMB;let to=-1;
-   const inPit=(cx:number,rim:number)=>{for(let back=WALK_CLIMB_SPAN;back<=WALK_PIT_SPAN;back+=WORLD.cell){const g=ground(t,cx-direction*back,lid);if(g<=rim)return true;}return false;};
-   for(let px=0;px<=WALK_REACH;px++){
-    const cx=nx+direction*px;if(cx<min||cx>max||solid(t,cx,lid))break;
-    const climb=ground(t,cx,lid);if(climb>=y)continue;
-    let floor=y;for(let back=1;back<=WALK_CLIMB_SPAN;back+=WORLD.cell){const g=ground(t,cx-direction*back,climb);if(g<=WORLD.height)floor=Math.max(floor,g);}
-    if(floor-climb>WALK_CLIMB||bodyBlocked(cx,climb))continue;
-    if(floor-climb>WALK_LEDGE&&!inPit(cx,floor-(floor-climb)/2))continue;
-    to=cx;ny=climb;break;
-   }
-   if(to<0)break;
-   n+=Math.abs(to-nx);x=to;y=ny;moved=true;continue;
-  }
-  const drop=ny-y;x=nx;y=ny;moved=true;
-  if(drop>WALK_STEP_UP)break; // stepped off a ledge: the fall takes over
+export function walkPosition(t:Uint8Array,origin:{x:number;y:number},direction:1|-1):{x:number;y:number;steps:number;fell:boolean}|null {
+ let at={x:Math.round(origin.x),y:Math.round(origin.y)},walked=0;
+ const pay=(px:number)=>Math.ceil(px/WALK_STEP_X);
+ while(walked<WALK_STEP){
+  const stepX=Math.min(WALK_STEP_X,WALK_STEP-walked),probe=walkStep(t,at,direction,stepX);
+  if(probe.to){at=probe.to;walked+=stepX;continue;}
+  if(probe.fall)return {...probe.fall,steps:pay(walked+stepX),fell:true};
+  if(probe.reject!=='wall')break;
+  let shorter:WalkProbe|undefined;
+  for(let sub=stepX-1;sub>=1&&!shorter?.to;sub--)shorter=walkStep(t,at,direction,sub);
+  if(!shorter?.to)break;
+  at=shorter.to;walked+=shorter.to.x*direction-probe.from.x*direction;
  }
- return moved?{x,y}:null;
+ return walked?{...at,steps:pay(walked),fell:false}:null;
 }
 export interface TerrainDig {x:number;y:number;radius:number;stretch?:number}
 /** A projectile that strikes a body digs the weapon's mask at this share of its size, under the target's feet (`dig`). */
@@ -192,7 +216,7 @@ const compiledMasks=new Map<string,CraterMask>();
 /** Sampling rule: the centre of each pixel, (i+.5-pivot)/radius in shape units, is tested once; inside cuts the
  * whole pixel (binary, no alpha). The box is ceil(radius) to each side and ceil(radius×height) up and down. */
 /** Every shaped hole is dug this much wider than its weapon's crater radius (20/10, matheus: the holes were too narrow
- * for every weapon). The depth stays, so two or three nested Quebra-Tijolos holes can still be climbed out of (WALK_CLIMB).
+ * for every weapon). The depth stays.
  * Painted marks are authored unstretched and drawn with the same stretch, so they keep hugging the hole.
  * Changing it changes every hole in the game. */
 export const CRATER_STRETCH={x:1.3,y:1} as const;

@@ -1,6 +1,6 @@
 import {petVisual} from '../../shared/pets';
 import type {PetSnapshot} from '../../shared/pets';
-import {WALK_CLIMB,WORLD} from '../../shared/physics';
+import {WORLD} from '../../shared/physics';
 /**
  * Where a pet's art enters the renderer: beside its owner, in the plaza and in battle (docs/pets.md "Arte").
  * It draws only what the species registers (shared/pets.ts PetVisual): with no species, or no sprite yet, nothing.
@@ -41,17 +41,19 @@ export type PetFloor=(x:number,start:number)=>number;
 /** A battle pet sits on the terrain like its owner (20/10, matheus): it rests on the ground under itself, tilts with
  * the slope and falls into a hole with gravity. Its spot is beside the owner; a wall or a drop off the map there puts
  * it on the owner's other side, and with no floor on either side it stays level with the owner. */
+/** How far above the owner's feet the pet looks for its own floor. */
+const PET_REACH=45;
 const PET_GRAVITY=2200,PET_FOOT=10;
 const grounds=new Map<string,{x:number;y:number;vy:number;tilt:number;at:number}>();
 function petGround(key:string,floor:PetFloor,x:number,mirror:number,y:number,time:number){
- const spot=(px:number)=>{const g=floor(px,y-WALK_CLIMB);return g<=y-WALK_CLIMB+1||g>=WORLD.height?undefined:g;};
+ const spot=(px:number)=>{const g=floor(px,y-PET_REACH);return g<=y-PET_REACH+1||g>=WORLD.height?undefined:g;};
  let px=x,target=spot(x);if(target===undefined){const other=spot(mirror);if(other!==undefined){px=mirror;target=other;}}
  target??=y;
  let state=grounds.get(key);const dt=state?Math.min(.1,Math.max(0,(time-state.at)/1000)):0;
  if(!state||Math.abs(state.x-px)>60||time-state.at>500){state={x:px,y:target,vy:0,tilt:0,at:time};grounds.set(key,state);if(grounds.size>32)grounds.delete(grounds.keys().next().value!);}
  if(target>state.y){state.vy+=PET_GRAVITY*dt;state.y=Math.min(target,state.y+state.vy*dt);}
  else{state.vy=0;state.y+=(target-state.y)*(1-Math.exp(-dt*1000/60));}
- const landed=state.y>=target-1,left=floor(px-PET_FOOT,target-WALK_CLIMB),right=floor(px+PET_FOOT,target-WALK_CLIMB);
+ const landed=state.y>=target-1,left=floor(px-PET_FOOT,target-PET_REACH),right=floor(px+PET_FOOT,target-PET_REACH);
  const slope=landed&&left<WORLD.height&&right<WORLD.height?Math.max(-.5,Math.min(.5,Math.atan2(right-left,PET_FOOT*2))):0;
  state.tilt+=(slope-state.tilt)*(1-Math.exp(-dt*1000/110));state.x=px;state.at=time;
  return {x:px,y:state.y,tilt:state.tilt};

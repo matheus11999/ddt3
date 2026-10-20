@@ -6,7 +6,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {WEAPONS} from '../shared/catalog';
 import {adjustAimToTerrain,clampAimAngle,terrainAimOffset,weaponAimLimits} from '../shared/aim';
-import {crater,createTerrain,ground,trajectory,WORLD} from '../shared/physics';
+import {crater,createTerrain,ground,supportBelow,trajectory,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent,Shot} from '../shared/protocol';
 import {recoveredImpacts} from '../src/game/shotPlayback';
 import {HIDDEN_POSITION} from '../shared/abilities';
@@ -24,7 +24,7 @@ test('a real authoritative crater changes supported aim only at contact and clam
  const m=game.matches.get(roomId)!,actor=m.state.players.find(f=>f.id===m.state.turnId)!,other=m.state.players.find(f=>f.id!==actor.id)!,weapon=WEAPONS[0];m.state.wind=0;actor.hp=actor.maxHp=5000;other.hp=other.maxHp=5000;other.x=1400;other.y=ground(m.terrain,other.x);
  let input:{x:number;y:number;angle:number;power:number;before:number;after:number;expectedY:number}|undefined;
  for(let x=250;x<1100&&!input;x+=12){const y=ground(m.terrain,x);if(y>=WORLD.height)continue;const before=terrainAimOffset(m.terrain,{x,y,facing:1});
-  for(let power=5;power<=25;power+=2){const angle=clampAimAngle(weapon,before,20),path=trajectory(m.terrain,{x,y,facing:1},angle,power,0,weapon,[other]),copy=m.terrain.slice();crater(copy,path.x,path.y,weapon.crater,'garden');const expectedY=ground(copy,x,y-3),after=terrainAimOffset(copy,{x,y:expectedY,facing:1});if(expectedY<WORLD.height&&Math.abs(after-before)>=5){input={x,y,angle,power,before,after,expectedY};break;}}
+  for(let power=5;power<=25;power+=2){const angle=clampAimAngle(weapon,before,20),path=trajectory(m.terrain,{x,y,facing:1},angle,power,0,weapon,[other]),copy=m.terrain.slice();crater(copy,path.x,path.y,weapon.crater,'garden');const expectedY=supportBelow(copy,x,y-3),after=terrainAimOffset(copy,{x,y:expectedY,facing:1});if(expectedY<WORLD.height&&Math.abs(after-before)>=5){input={x,y,angle,power,before,after,expectedY};break;}}
  }
  assert.ok(input,'the map has an asymmetric crater rim which tilts its supported player');Object.assign(actor,{x:input.x,y:input.y,facing:1,aimAngle:input.angle,aimSlope:input.before});
  const beforeTerrain=m.terrain.slice();await game.command(actor.id,{type:'fire',angle:input.angle,power:input.power});const contact=m.pendingImpacts![0].at;

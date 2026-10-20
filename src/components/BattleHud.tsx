@@ -16,6 +16,7 @@ import type {CSSProperties,MouseEvent as ReactMouseEvent,PointerEvent as ReactPo
 import {Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
+import {WALK_COMMAND_MS} from '../../shared/physics';
 import {petSkill} from '../../shared/petSkills';
 import {FORCE_BAR_MAX,forceBarValue} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
@@ -201,7 +202,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    if(!live.current.canAct||turnSubmitted.current)return;
    if(keys.has('a')||keys.has('arrowleft'))client.send({type:'walk',direction:-1});
    if(keys.has('d')||keys.has('arrowright'))client.send({type:'walk',direction:1});
-  },90);
+  },WALK_COMMAND_MS);
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);window.addEventListener('focusin',focus);document.addEventListener('visibilitychange',visibility);
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
  },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,stepAngle]);
