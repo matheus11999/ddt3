@@ -82,7 +82,7 @@
 .fishing-grade{position:absolute;top:-6px;right:14px;font:400 22px 'Lilita One',Nunito,sans-serif;font-style:normal;-webkit-text-stroke:1.2px #3a1606;text-shadow:0 2px #3a1606;animation:fishing-pop .4s ease-out}
 .fishing-grade.perfect{color:#ffd23a}.fishing-grade.hit{color:#8fff9a}.fishing-grade.miss{color:#ff6a5a}
 
-/* Resultado: o peixe sobre a aura dourada do jogo, nome em destaque e as recompensas. */
+/* Resultado: o peixe pintado (sem círculo atrás, pedido do matheus), nome em destaque e as recompensas. */
 .fishing-result{position:absolute;left:50%;top:190px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:8px 22px 10px 10px;border:1px solid #f0bf60;border-radius:60px 18px 18px 60px;background:linear-gradient(90deg,#112c50f4,#0f2747ee);box-shadow:inset 0 0 0 3px #0a1734,inset 0 0 0 4px #e3aa4344,0 10px 26px #000a;color:#eaf4ff;animation:fishing-rise .35s ease-out;pointer-events:none}
 .fishing-result-art{position:relative;display:grid;place-items:center;width:104px;height:104px;flex:none}
 .fishing-result-art>img{position:absolute;inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px);object-fit:contain}
@@ -203,22 +203,14 @@ html.mobile-landscape .fishing-trade{top:210px;transform:scale(.85);transform-or
 .fishing-result.caught{--rarity:#c9d3de;border:2px solid var(--rarity)}
 .fishing-rarity{justify-self:start;padding:1px 10px 2px;border-radius:9px;background:var(--rarity);font:400 12.5px/1.2 'Lilita One',Nunito,sans-serif;font-style:normal;letter-spacing:1px;text-transform:uppercase;color:#fff;-webkit-text-stroke:.5px #0006;text-shadow:0 1px #0007;box-shadow:0 2px 4px #0006}
 .fishing-result.rarity-comum .fishing-rarity{color:#2a3440;-webkit-text-stroke:0;text-shadow:none}
-.fishing-result-glow{position:absolute;inset:-6px;border-radius:50%;background:radial-gradient(circle,color-mix(in srgb,var(--rarity) 70%,transparent),transparent 68%);animation:fishing-glow 1.6s ease-in-out infinite}
-@keyframes fishing-glow{50%{transform:scale(1.12);opacity:.75}}
-.fishing-result.rarity-normal .fishing-result-glow{opacity:.45;animation:none}
 .fishing-result.rarity-raro{box-shadow:inset 0 0 0 3px #0a1734,0 0 18px color-mix(in srgb,var(--rarity) 60%,transparent),0 10px 26px #000a}
-.fishing-result.rarity-epico,.fishing-result.rarity-lendario{overflow:hidden;box-shadow:inset 0 0 0 3px #0a1734,0 0 26px var(--rarity),0 10px 26px #000a}
-.fishing-result.rarity-epico:after,.fishing-result.rarity-lendario:after{content:'';position:absolute;top:0;bottom:0;left:-40%;width:30%;background:linear-gradient(100deg,transparent,#ffffff44,transparent);transform:skewX(-18deg);animation:fishing-shine 1.6s ease-in-out .2s infinite}
-@keyframes fishing-shine{to{left:120%}}
+.fishing-result.rarity-epico,.fishing-result.rarity-lendario{box-shadow:inset 0 0 0 3px #0a1734,0 0 26px var(--rarity),0 10px 26px #000a}
+.fishing-result.rarity-epico:after,.fishing-result.rarity-lendario:after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(100deg,transparent 42%,#ffffff40 50%,transparent 58%) no-repeat;background-size:300% 100%;animation:fishing-shine 1.6s ease-in-out .2s infinite}
+@keyframes fishing-shine{from{background-position:100% 0}to{background-position:0 0}}
 .fishing-result.rarity-epico strong{color:#e6c8ff;-webkit-text-stroke-color:#3a0d5a;text-shadow:0 3px #3a0d5a,0 0 12px #c07aff}
 .fishing-result.rarity-lendario{animation:fishing-legend .6s cubic-bezier(.2,1.6,.4,1)}
 .fishing-result.rarity-lendario strong{font-size:30px;color:#fff1a8;text-shadow:0 3px #5a1a00,0 0 16px #ffc93a}
 @keyframes fishing-legend{0%{transform:translateX(-50%) scale(.5);opacity:0}60%{transform:translateX(-50%) scale(1.12)}100%{transform:translateX(-50%) scale(1)}}
-.fishing-sparkles{position:absolute;inset:-14px;pointer-events:none}
-.fishing-sparkles i{position:absolute;width:12px;height:12px;background:var(--rarity);clip-path:polygon(50% 0,62% 38%,100% 50%,62% 62%,50% 100%,38% 62%,0 50%,38% 38%);filter:drop-shadow(0 0 4px var(--rarity));animation:fishing-twinkle 1.3s ease-in-out infinite}
-.fishing-sparkles i:nth-child(1){left:6%;top:12%}.fishing-sparkles i:nth-child(2){left:78%;top:4%;animation-delay:.25s}.fishing-sparkles i:nth-child(3){left:90%;top:58%;animation-delay:.5s}
-.fishing-sparkles i:nth-child(4){left:14%;top:78%;animation-delay:.7s}.fishing-sparkles i:nth-child(5){left:48%;top:-4%;animation-delay:.9s;width:9px;height:9px}.fishing-sparkles i:nth-child(6){left:56%;top:92%;animation-delay:.4s;width:9px;height:9px}.fishing-sparkles i:nth-child(7){left:-4%;top:46%;animation-delay:1.1s;width:9px;height:9px}
-@keyframes fishing-twinkle{0%,100%{transform:scale(.2) rotate(0);opacity:0}50%{transform:scale(1) rotate(45deg);opacity:1}}
 .fishing-rewards .auto{padding:0 7px;border-radius:7px;background:#ffffff1f;font:800 11px/20px Nunito,sans-serif;color:#a8ffb2}
 /* Lendário: um clarão dourado nas bordas da tela, uma vez. */
 .fishing-legend-flash{position:fixed;inset:0;pointer-events:none;box-shadow:inset 0 0 160px 40px #ffc93a;opacity:0;animation:fishing-flash 1.4s ease-out}
@@ -479,3 +471,26 @@ button.fish-card:active{transform:scale(.95)}
 .fishing-weight{margin-left:6px}
 .fishing-result-bag{font:800 10.5px Nunito,sans-serif;color:#9fc0e6}
 @media (max-width:900px),(max-height:560px){.fishing-shop{grid-template-columns:1fr}.fishing-counter{display:none}.fishing-sell-grid{max-height:40vh}.fishing-buy-list{max-height:58vh}}
+
+/* Comemoração da captura por raridade (FishingCatchFx.tsx): estrelas pintadas, letreiro 3D, ícones voando até o contador. */
+.fishing-fx{position:fixed;inset:0;z-index:40;pointer-events:none}
+.fishing-stars-fx{position:absolute;left:50%;top:50%;width:0;height:0}
+.fishing-stars-fx img{position:absolute;left:-14px;top:-14px;width:28px;height:28px;transform:translate(var(--x),var(--y)) scale(var(--s));filter:drop-shadow(0 0 5px #fff6b0);opacity:0;animation:fishing-star-twinkle 1.4s ease-in-out infinite}
+.fishing-stars-fx.burst img{animation:fishing-star-burst 1.1s cubic-bezier(.2,.9,.3,1) both,fishing-star-twinkle 1.4s ease-in-out 1.1s infinite}
+@keyframes fishing-star-twinkle{0%,100%{opacity:0;transform:translate(var(--x),var(--y)) scale(calc(var(--s)*.3)) rotate(0)}50%{opacity:1;transform:translate(var(--x),var(--y)) scale(var(--s)) rotate(40deg)}}
+@keyframes fishing-star-burst{0%{opacity:0;transform:translate(0,0) scale(.2)}25%{opacity:1}100%{opacity:1;transform:translate(var(--x),var(--y)) scale(var(--s)) rotate(90deg)}}
+.fishing-rarity-banner{position:absolute;left:50%;top:66px;width:290px;margin-left:-145px;filter:drop-shadow(0 6px 0 #000a);animation:fishing-banner-in .6s cubic-bezier(.3,1.5,.5,1) both}
+.fishing-fx.rarity-lendario .fishing-rarity-banner{top:60px;width:320px;margin-left:-160px}
+@keyframes fishing-banner-in{0%{transform:translateY(-30px) scale(.3);opacity:0}100%{transform:none;opacity:1}}
+.fishing-prize-pop{position:absolute;left:50%;top:56%;display:grid;justify-items:center;transform:translate(-50%,-50%);opacity:0;animation:fishing-prize-pop 1.9s cubic-bezier(.3,1.4,.5,1) both}
+.fishing-prize-pop-art{filter:drop-shadow(0 6px 6px #0009) drop-shadow(0 0 14px #fff2a0)}
+.fishing-prize-pop.fragments .fishing-prize-pop-art{filter:drop-shadow(0 6px 6px #0009) drop-shadow(0 0 14px #7fd6ff)}
+.fishing-prize-pop b{margin-top:-6px;font:400 34px/1 'Lilita One',Nunito,sans-serif;color:#ffe9a8;-webkit-text-stroke:1.5px #5a1a00;text-shadow:0 3px #5a1a00}
+.fishing-prize-pop.coupons b{color:#ffd6f0;-webkit-text-stroke-color:#5a0a3a;text-shadow:0 3px #5a0a3a}
+.fishing-prize-pop.fragments b{color:#d8f4ff;-webkit-text-stroke-color:#0b2a52;text-shadow:0 3px #0b2a52}
+.fishing-prize-pop .fishing-stars-fx{position:absolute;left:50%;top:60px}
+@keyframes fishing-prize-pop{0%{opacity:0;transform:translate(-50%,-50%) scale(.3)}18%{opacity:1;transform:translate(-50%,-50%) scale(1.1)}28%{transform:translate(-50%,-50%) scale(1)}85%{opacity:1;transform:translate(-50%,-50%) scale(1)}100%{opacity:0;transform:translate(-50%,-60%) scale(.6)}}
+.fishing-fly{position:fixed;left:0;top:0;display:grid;place-items:center;filter:drop-shadow(0 3px 3px #0008);will-change:transform;opacity:0}
+.fishing-fly>*{width:100%!important;height:100%!important}
+.fishing-gain-pulse{animation:fishing-gain-pulse .45s ease-out}
+@keyframes fishing-gain-pulse{40%{transform:scale(1.18);filter:brightness(1.35) drop-shadow(0 0 8px #fff2a0)}}

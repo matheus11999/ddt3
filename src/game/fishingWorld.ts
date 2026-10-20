@@ -433,7 +433,10 @@ export class FishingWorld {
   }
   else if(pose.success&&pose.fish){
    // The water bursts, the catch flies out to the rod tip, then dangles there.
-   this.drawSplash(c,'catch',spot.bobX,spot.bobY,150,age,80);
+   // Quanto mais raro, maior o respingo pintado; Épico e Lendário estouram a água duas vezes.
+   const tier=Math.max(1,Math.min(5,FISH_BY_ID.get(pose.fish)?.difficulty??1));
+   this.drawSplash(c,'catch',spot.bobX,spot.bobY,150+28*(tier-1),age,80);
+   if(tier>=4)this.drawSplash(c,'catch',spot.bobX+f*14,spot.bobY,120+40*(tier-4),age-260,85);
    const k2=Math.min(1,age/600),ease=1-(1-k2)**2,len=pose.fish==='pirarucu-ancestral'||pose.fish==='carpa-dragao'?54:40;
    const fx=spot.bobX+(tx-spot.bobX)*ease,fy=spot.bobY+(ty+len*.7-spot.bobY)*ease-Math.sin(k2*Math.PI)*90;
    line(fx,fy-len*.35,0);

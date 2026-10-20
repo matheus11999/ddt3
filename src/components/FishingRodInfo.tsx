@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import type {CSSProperties,MouseEvent,ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {FISHING_RODS,FISHING_SHOP} from '../../shared/fishing';
+import {FISHING_RODS,FISHING_SHOP,ROD_MARK_TOP} from '../../shared/fishing';
 import type {FishingRod} from '../../shared/fishing';
 import {FishingIcon} from './FishingIcon';
 import {PrizeArt} from './FishingHud';
@@ -10,14 +10,14 @@ import {PrizeArt} from './FishingHud';
 export const ROD_LEVEL=new Map(FISHING_SHOP.flatMap(o=>o.prize.kind==='rod'?[[o.prize.rod,o.level??1] as const]:[]));
 const best=(f:(r:FishingRod)=>number)=>Math.max(...FISHING_RODS.map(f))||1;
 const dropOf=(rod:FishingRod,kind:'gold'|'coupons'|'fragment')=>rod.drops?.find(d=>d.kind===kind);
-/** How much of each a rod gives, from 0 (never) to 5 marks against the best rod: no numbers (pedido do matheus). */
+/** How much of each a rod gives, from 0 (never) to 5 marks (prizes against ROD_MARK_TOP, the rest against the best rod): no numbers (pedido do matheus). */
 export function rodMarks(rod:FishingRod){
  const scale=(v:number,top:number)=>v<=0?0:Math.max(1,Math.min(5,Math.round(v/top*5)));
  const gold=(r:FishingRod)=>{const d=dropOf(r,'gold');return d&&d.kind==='gold'?d.chance*(d.min+d.max)/2:0;};
  const chance=(r:FishingRod,kind:'coupons'|'fragment')=>dropOf(r,kind)?.chance??0;
  return {
   rare:1+scale(rod.luck,best(r=>r.luck))*.8,control:1+scale(rod.control,best(r=>r.control))*.8,auto:1+scale(rod.auto,best(r=>r.auto))*.8,
-  gold:scale(gold(rod),best(gold)),coupons:scale(chance(rod,'coupons'),best(r=>chance(r,'coupons'))),fragments:scale(chance(rod,'fragment'),best(r=>chance(r,'fragment'))),
+  gold:scale(gold(rod),ROD_MARK_TOP.gold),coupons:scale(chance(rod,'coupons'),ROD_MARK_TOP.coupons),fragments:scale(chance(rod,'fragment'),ROD_MARK_TOP.fragments),
  };
 }
 function Marks({value}:{value:number}){

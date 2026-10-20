@@ -4,7 +4,7 @@ import {DoorOpen,Lock,ScrollText} from 'lucide-react';
 import {FishingHistory} from './FishingHistory';
 import {client,useGame} from '../client';
 import {audio} from '../game/audio';
-import {FISHING_DAILY_CAPS,FISHING_RODS,FISHING_SHOP,FISHING_WEAPON,fishingDay,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
+import {BAR_SPEED,FISHING_DAILY_CAPS,FISHING_RODS,FISHING_SHOP,FISHING_WEAPON,fishingDay,FISH_BY_ID,ROD_BY_ID,fishRarity,fishingLevelProgress,gradePress,markerAt,normalizeFishing,zoneAt} from '../../shared/fishing';
 import type {FishingProfile,FishingRod,FishingView,PressGrade} from '../../shared/fishing';
 import {WEAPON_FRAGMENT_RECIPES} from '../../shared/synthesis';
 import {FishingIcon} from './FishingIcon';
@@ -14,6 +14,7 @@ import {ROD_LEVEL,RodInfo} from './FishingRodInfo';
 import {FishingRanking} from './FishingRanking';
 import {weightClass} from './FishingFish';
 import {fishingPick} from '../game/fishingPick';
+import {CatchFx,STARS,Stars,resultShowMs} from './FishingCatchFx';
 import './Fishing.css';
 
 type GearMenu='rod'|null;
@@ -38,7 +39,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
  const [autoNote,setAutoNote]=useState<{on:boolean;at:number}|null>(null);
  useEffect(()=>{if(!autoNote)return;const t=setTimeout(()=>setAutoNote(null),1800);return()=>clearTimeout(t);},[autoNote]);
  const toggleAuto=()=>{const on=!(fishing?auto:autoPref);setAutoPref(on);setAutoNote({on,at:Date.now()});client.send({type:'fish-auto',on});audio.play('click');};
- const press=useBar(fishing,offset,blocked);
+ const press=useBar(fishing,offset,blocked),shown=useShownResult(fishing);
  // Space casts from a spot (the bar's own Space is in useBar).
  useEffect(()=>{
   const key=(e:KeyboardEvent)=>{
@@ -66,7 +67,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
   </section>
   <section className="fishing-bar-panel" aria-label="Pescar">
    {autoNote&&<em key={autoNote.at} className={`fishing-auto-note ${autoNote.on?'on':''}`}>{autoNote.on?'Pesca automática ligada':'Pesca automática desligada'}</em>}
-   {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: rende 25% da pesca à mão">AUTOMÁTICO</span>}
+   {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: o peixe demora mais e rende cerca de 25% de quem pesca à mão">AUTOMÁTICO</span>}
    {/* A vara equipada fica dentro do próprio círculo de Lançar (pedido do matheus); o selo de setas troca a vara. */}
    <div className={`fishing-cast ${autoOn?'auto-on':''}`}>
     {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span className="fishing-cast-rod"><FishingIcon id={rod.id} size={86}/></span><span className="fishing-cast-label">Recolher</span></button>
@@ -82,10 +83,20 @@ export function FishingHud({blocked}:{blocked:boolean}){
   {/* No automático o minigame não aparece (pedido do matheus): só o aviso de que está puxando. */}
   {fishing?.phase==='bite'&&auto&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>Fisgou! Puxando no automático</p>}
   {fishing?.phase==='bite'&&fishing.challenge&&!auto&&<Challenge view={fishing} press={press} offset={offset}/>}
-  {fishing?.phase==='result'&&fishing.result&&<Result view={fishing}/>}
+  {/* O resultado fica na tela pelo tempo da raridade, mesmo com a linha já de volta na água. */}
+  {shown&&<Result key={shown.since} view={shown}/>}
+  {shown?.result?.success&&shown.result.catch&&<CatchFx key={`fx-${shown.since}`} view={shown}/>}
  </div>;
 }
 
+/** The last result, kept on screen for its rarity's time (the server already cast the line again). */
+function useShownResult(fishing:FishingView|null){
+ const [shown,setShown]=useState<FishingView|null>(null);
+ const fresh=fishing?.phase==='result'&&fishing.result?fishing:null;
+ useEffect(()=>{if(fresh)setShown(fresh);},[fresh?.since]);
+ useEffect(()=>{if(!shown)return;const t=setTimeout(()=>setShown(null),resultShowMs(shown));return()=>clearTimeout(t);},[shown]);
+ return shown;
+}
 /** Whether the player is choosing a lake after pressing Lançar. */
 function usePicking(){
  const [on,setOn]=useState(fishingPick.get());
@@ -118,7 +129,7 @@ function useBar(view:FishingView|null,offset:number,blocked:boolean){
 }
 
 /** Difficulty 1–5 of the fish on the line, read back from the bar's speed (fishChallenge). */
-const difficultyOf=(c:{speed:number})=>Math.max(1,Math.min(5,Math.round((c.speed-.8)/.22)+1));
+const difficultyOf=(c:{speed:number})=>Math.max(1,Math.min(5,Math.round((c.speed-BAR_SPEED[0])/BAR_SPEED[1])+1));
 /**
  * The timing bar, small and close to the player: a medallion with the fish's shadow ringed by the
  * time left and its difficulty, a strip of water where the target swims (zoneAt) and a float that
@@ -158,20 +169,18 @@ const SHADOW='carpa-lua';
 function Result({view}:{view:FishingView}){
  const r=view.result!,c=r.catch,fish=FISH_BY_ID.get(c?.fish??r.fish??'');
  if(!r.success||!c)return <div className="fishing-result lost"><strong>O peixe escapou!</strong>{fish&&<span>Era um(a) {fish.name}</span>}</div>;
- const rarity=fishRarity(fish??{difficulty:1}),glow=rarity.id==='epico'||rarity.id==='lendario';
+ const rarity=fishRarity(fish??{difficulty:1});
  return <>
-  {rarity.id==='lendario'&&<div className="fishing-legend-flash" aria-hidden/>}
   <div className={`fishing-result caught rarity-${rarity.id}`} style={{'--rarity':rarity.color} as CSSProperties}>
    <div className="fishing-result-art">
-    {rarity.id!=='comum'&&<span className="fishing-result-glow"/>}
-    {glow&&<span className="fishing-sparkles">{Array.from({length:7},(_,i)=><i key={i}/>)}</span>}
+    {STARS[rarity.id]>0&&<Stars count={STARS[rarity.id]} burst={rarity.id==='epico'||rarity.id==='lendario'}/>}
     <FishingIcon id={c.fish} size={92}/>
    </div>
    <div className="fishing-result-text">
     <em className="fishing-rarity">{rarity.name}</em>
     <strong>{fish?.name}</strong>
     <span className="fishing-result-meta"><b>{c.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg</b>{fish&&(()=>{const w=weightClass(fish,c.kg);return <i className={`fishing-weight weight-${w.id}`}>{w.name}</i>;})()}</span>
-    <div className="fishing-rewards"><span title={c.sold?'Sacola cheia: vendido na hora':'Vale isso na Casa de Pesca'}><FishingIcon id="fishing-points" size={20}/>{c.sold?`+${c.points}`:`Vale ${c.points}`}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Auto 25%</span>}</div>
+    <div className="fishing-rewards"><span title={c.sold?'Sacola cheia: vendido na hora':'Vale isso na Casa de Pesca'}><FishingIcon id="fishing-points" size={20}/>{c.sold?`+${c.points}`:`Vale ${c.points}`}</span><span className="xp">+{c.xp} EXP</span>{view.auto&&<span className="auto">Automático</span>}</div>
     <small className="fishing-result-bag">{c.sold?'Sacola cheia: vendido na hora':'Guardado na Sacola'}</small>
     {c.drops?.length?<div className="fishing-drops">{c.drops.map(d=><span key={d.kind} className={`fishing-drop ${d.kind}`}><PrizeArt kind={d.kind} size={22}/>+{d.amount} {dropLabel(d.kind,d.amount)}</span>)}</div>:null}
     {(c.first||c.record||c.levelUp)&&<div className="fishing-tags">{c.first&&<em className="new">Novo na coleção!</em>}{c.record&&<em className="record">Recorde!</em>}{c.levelUp&&<em className="level">Pescador Nv. {c.levelUp}!</em>}</div>}
