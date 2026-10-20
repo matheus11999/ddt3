@@ -6,7 +6,7 @@ import {destructionProfile,destructionProfileById} from '../../shared/destructio
 import type {DestructionProfile} from '../../shared/destruction';
 import {weaponTerrainPath} from '../../shared/weaponKit';
 import {keepVisibleMarks,terrainMarkBox} from '../../shared/terrainMarks';
-import {freeAll,freeSurface,imageReady} from './spriteCache';
+import {freeAll,freeSurface,imageReady,visibleArea} from './spriteCache';
 
 /** Same mark, same shape on every client and after a reload. */
 function seeded(seed:number){let state=Math.floor(Math.abs(seed))%2147483646+1;return ()=>(state=state*16807%2147483647)/2147483647;}
@@ -61,6 +61,8 @@ export class TerrainResidues {
  private marks:TerrainMark[]=[];private ids=new Set<string>();
  /** marks[0..drawn) are in the layer; the next one waits for its painting. */
  private drawn=0;
+ /** The box (canvas px) that holds paint; null while the layer is empty. */
+ private area:{x0:number;y0:number;x1:number;y1:number}|null=null;
  private canvas=document.createElement('canvas');
  private scratch=document.createElement('canvas');
  private terrain:Uint8Array;private cols:number;
@@ -105,7 +107,7 @@ export class TerrainResidues {
  }
  /** Number of marks in the history (tests, perf probe). */
  get size(){return this.marks.length;}
- private rebuild(){this.drawn=0;this.canvas.getContext('2d')!.clearRect(0,0,this.canvas.width,this.canvas.height);}
+ private rebuild(){this.drawn=0;this.area=null;this.canvas.getContext('2d')!.clearRect(0,0,this.canvas.width,this.canvas.height);}
  private patch(w:number,h:number){if(this.scratch.width<w)this.scratch.width=w;if(this.scratch.height<h)this.scratch.height=h;this.scratch.getContext('2d')!.clearRect(0,0,w,h);return this.scratch;}
  /** Paints marks in order until one waits for its painting. */
  private flush(){
@@ -138,9 +140,16 @@ export class TerrainResidues {
   const patch=this.patch(w,h);patch.getContext('2d')!.putImageData(keep,0,0);
   b.setTransform(1,0,0,1,0,0);b.globalAlpha=1;b.globalCompositeOperation='destination-in';b.imageSmoothingEnabled=false;b.drawImage(patch,0,0,w,h,0,0,w*k,h*k);
   this.canvas.getContext('2d')!.drawImage(buffer,left*k,top*k);freeSurface(buffer);
+  const a=this.area;this.area={x0:Math.min(a?.x0??Infinity,left*k),y0:Math.min(a?.y0??Infinity,top*k),x1:Math.max(a?.x1??-Infinity,right*k),y1:Math.max(a?.y1??-Infinity,bottom*k)};
   return 'done';
  }
- draw(c:CanvasRenderingContext2D){this.flush();c.drawImage(this.canvas,0,0);}
+ /** Only the painted part that is on screen: the layer is as wide as the map and mostly empty, so drawing it whole each frame cost as much as the terrain. */
+ draw(c:CanvasRenderingContext2D){
+  this.flush();const area=this.area;if(!area)return;
+  const [vx0,vy0,vx1,vy1]=visibleArea(c),x=Math.max(area.x0,Math.floor(vx0)-2),y=Math.max(area.y0,Math.floor(vy0)-2),right=Math.min(area.x1,Math.ceil(vx1)+2),bottom=Math.min(area.y1,Math.ceil(vy1)+2);
+  if(right<=x||bottom<=y)return;
+  const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='low';c.drawImage(this.canvas,x,y,right-x,bottom-y,x,y,right-x,bottom-y);c.imageSmoothingQuality=quality;
+ }
  /** Gives the marks' canvases back at once when the battle ends. */
  dispose(){freeSurface(this.canvas);freeSurface(this.scratch);}
 }

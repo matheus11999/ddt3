@@ -41,6 +41,23 @@ Pedido do matheus ("desempenho baixo na pescaria, esse cenário terá vários pl
 - **Cabelo, chapéu e óculos** eram desenhados a partir do recorte inteiro (centenas de px) reduzido a poucas dezenas a cada quadro, para cada cabeça na tela. Agora `drawPinned` (`src/game/rig/draw.ts`) usa a cópia no tamanho da tela (`scaledCopy`), e o chapéu sem cor também usa o recorte em cache. JS por quadro com 20 jogadores: 15,6 ms → 2,2 ms (50 jogadores: 3,1 ms). Vale também para a praça e as prévias.
 - **Rede**: o servidor mandava a lista inteira de jogadores (com roupas) para todos a cada 100 ms, o que cresce com o quadrado dos jogadores. Agora o passo de andar manda só `lobby-moves` (posição e pose de pesca de quem mudou); a lista completa (`lobby`) só sai quando alguém entra, sai ou troca de roupa. Com 20 jogadores: 168 KB/s → 13 KB/s por jogador; com 50, 35 KB/s. Canal continua com até 60 jogadores.
 
+## Caminho completo: praça → Pescaria → Arena → volta (20/10)
+Pedido do matheus ("o FPS ainda dropa muito"). Medido com `npx tsx scripts/perf-flow.mjs` contra a versão de produção (`npm run build && npx vite preview --port 5178`, `BASE=http://127.0.0.1:5178`), 12 bots andando na praça e na Pescaria. Para achar o culpado vale embrulhar `drawImage`/`fill` com `getImageData(0,0,1,1)` antes e depois (o perfil do Chrome joga o custo do desenho na próxima chamada nativa, `save`/`restore`).
+
+| Etapa (JS por quadro) | antes | depois |
+|---|---|---|
+| Praça parada | 17,8 ms | 1,2–1,4 ms |
+| Praça andando | 17,8 ms | 1,8–2,5 ms |
+| Volta da Pescaria (maior travada) | 1,1–1,5 s | sem travada longa |
+| Batalha parada (CPU) | 40 %, 58 travadas | 8 %, nenhuma |
+
+- **Fundo da praça**: céu, ilhas, cidade, árvores, balaustrada e piso cobriam a tela várias vezes por quadro, reduzidos a partir de cópias até 25 % maiores. Agora cada camada tem uma cópia **exatamente** do tamanho da tela, desenhada em pixel inteiro (cópia simples, sem filtro; `drawStrip`), e com a câmera parada as camadas entre os balões viram uma cópia da tela inteira (`still`).
+- **Cópias fora da linha principal**: `createImageBitmap` de um `<img>` copia a pintura decodificada na linha principal (100+ ms por camada). `resizedBitmap` (`spriteCache.ts`) lê o arquivo de novo como blob (do cache do navegador) e decodifica e reduz em segundo plano. Ao entrar numa área, o quadro anterior fica na tela até as cópias ficarem prontas (até 1,5 s, `zoneReady` no `Scene.tsx`).
+- **Placas e títulos** com sombra borrada são desenhados uma vez num canvas pequeno (`stamp` em `lobbyWorld.ts`); sombras das estações e nuvens da Pescaria são um disco pintado uma vez e esticado.
+- **Batalha**: os punhos usavam `ctx.filter='brightness()'` (mais caro que o corpo todo); agora a cor já sai escurecida. Terreno, fundo e marcas de destruição desenham só a parte visível, com suavização leve e o fundo em pixel inteiro.
+- **Suavização**: o canvas principal usa `imageSmoothingQuality='medium'` (era `high`, que é bicúbico mesmo em desenho 1:1). Pinturas grandes desenhadas pequenas continuam passando por `drawScaled`/`scaledCopy`; as partes do boneco (`drawPart`) também.
+- Pescaria: céu numa cópia do tamanho da tela e a água animada só na parte do lago que aparece. As três passadas de textura da água (`soft-light`/`screen`) seguem sendo o maior custo da Pescaria em máquina sem GPU.
+
 ## Tentado e descartado
 - Cortar as pinturas largas em blocos de 4096 px (para GPUs com limite de textura): ficou mais lento; o Chrome já divide sozinho.
 - Cópia reduzida das armas na batalha: não ganhou nada e piorou a medição; ficou só a decodificação antecipada.

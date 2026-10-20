@@ -20,8 +20,8 @@ import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
 import {ROD_FRAMES,SPLASHES} from '../../shared/generated/fishingFx';
 import type {RodFrame} from '../../shared/generated/fishingFx';
-import {drawScaled,freeAll,freeImage,imageReady,screenScale} from './spriteCache';
-import {plaque} from './lobbyWorld';
+import {drawScaled,freeAll,freeImage,imageReady,resizedBitmap,screenScale,visibleArea} from './spriteCache';
+import {plaque,releaseStamps} from './lobbyWorld';
 
 const VIEW_W=1536,VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
 
@@ -106,6 +106,13 @@ export function drawFish(c:CanvasRenderingContext2D,id:string,x:number,y:number,
 }
 
 /** Lighter (k>0) or darker (k<0) version of a #rrggbb color. */
+/** One cloud puff painted once and stretched: 46 gradient fills every frame cost more than the rest of the scene. */
+let puff:HTMLCanvasElement|null=null;
+function cloudPuff(){
+ if(puff)return puff;puff=document.createElement('canvas');puff.width=256;puff.height=116;const g=puff.getContext('2d')!;g.scale(1,.45);
+ const fill=g.createRadialGradient(128,128,12.8,128,128,128);fill.addColorStop(0,'rgba(255,255,255,.95)');fill.addColorStop(.6,'rgba(250,253,255,.7)');fill.addColorStop(1,'rgba(240,250,255,0)');
+ g.fillStyle=fill;g.beginPath();g.ellipse(128,128,128,128,0,0,Math.PI*2);g.fill();return puff;
+}
 function shade(hex:string,k:number){const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(k>0?v+(255-v)*k:v*(1+k));return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;}
 
 export class FishingWorld {
@@ -121,9 +128,10 @@ export class FishingWorld {
   for(const id of Object.keys(FISHING_PROPS) as FishingPropId[])this.art.set(id,image(`/assets/fishing/props/${id}.webp`));
  }
  /** Lets go of every painting and baked tile at once (not at the next garbage collection) when the player leaves the Pescaria. */
- release(){paintedFish.clear();
+ private skyCopy:ImageBitmap|null=null;private skyPending=false;
+ release(){paintedFish.clear();this.skyCopy?.close();this.skyCopy=null;
   if(!this.assets)return;this.assets=false;
-  freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);
+  freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);releaseStamps();
   for(const k of ['sky','floor','grass','water','rod','autoSeal'] as const){freeImage(this[k]);this[k]=new Image();}
   freeImage(this.splash.bait);freeImage(this.splash.catch);this.splash={bait:new Image(),catch:new Image()};
  }
@@ -142,7 +150,17 @@ export class FishingWorld {
  /** The sky fills the view and slides a little as the camera moves. */
  private drawSky(c:CanvasRenderingContext2D,camX:number,camY:number){
   const iw=this.sky.naturalWidth,ih=this.sky.naturalHeight,k=Math.max((VIEW_W+(W-VIEW_W)*SKY_X)/iw,(VIEW_H+(H-VIEW_H)*SKY_Y)/ih);
-  drawScaled(c,this.sky,camX-camX*SKY_X,camY-camY*SKY_Y,iw*k,ih*k);
+  // Stretched past the screen: only the part on screen is drawn (the whole painting enlarged was the costliest draw here).
+  const x=camX-camX*SKY_X,y=camY-camY*SKY_Y,[vx0,vy0,vx1,vy1]=visibleArea(c),x0=Math.max(x,vx0-2),y0=Math.max(y,vy0-2),x1=Math.min(x+iw*k,vx1+2),y1=Math.min(y+ih*k,vy1+2);
+  if(x1<=x0||y1<=y0||!imageReady(this.sky))return;
+  // At screen size on whole screen pixels it is a plain copy, not an enlargement every frame.
+  const m=c.getTransform(),w=Math.round(iw*k*m.a),h=Math.round(ih*k*m.d);
+  if(!m.b&&!m.c&&this.skyCopy?.width===w&&this.skyCopy.height===h){
+   const s=w/(iw*k),sx=Math.round((x0-x)*s),sy=Math.round((y0-y)*s),sw=Math.min(w-sx,Math.round((x1-x0)*s)),sh=Math.min(h-sy,Math.round((y1-y0)*s));
+   c.save();c.setTransform(1,0,0,1,0,0);c.drawImage(this.skyCopy,sx,sy,sw,sh,Math.round(m.a*x0+m.e),Math.round(m.d*y0+m.f),sw,sh);c.restore();return;
+  }
+  if(!this.skyPending&&w>0&&h>0){const sky=this.sky;this.skyPending=true;resizedBitmap(sky,w,h).then(bitmap=>{this.skyPending=false;if(this.sky!==sky){bitmap.close();return;}this.skyCopy?.close();this.skyCopy=bitmap;},()=>{this.skyPending=false;});}
+  c.drawImage(this.sky,(x0-x)/k,(y0-y)/k,(x1-x0)/k,(y1-y0)/k,x0,y0,x1-x0,y1-y0);
  }
  /** Back of the scene, in world coordinates (the caller has translated by the camera). */
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number,camY:number){
@@ -266,14 +284,16 @@ export class FishingWorld {
    corners.forEach(([u,v],i)=>{const q=itemPoint(item,u,v);if(i)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y);});c.closePath();}
   c.clip('evenodd');
   const pattern=tw?c.createPattern(this.water,'repeat'):null;
-  if(pattern){
+  // The texture passes cover only the part of the lake on screen.
+  const [vx0,vy0,vx1,vy1]=visibleArea(c),fx=Math.max(x-rx,vx0),fy=Math.max(y-ry,vy0),fw=Math.min(x+rx,vx1)-fx,fh=Math.min(y+ry,vy1)-fy;
+  if(pattern&&fw>0&&fh>0){
    const k=WATER/tw,drift=(speed:number,dir:number)=>((t*speed*dir)%WATER+WATER)%WATER;
    c.globalCompositeOperation='soft-light';
    for(const [speed,dir,alpha,sk] of [[.012,1,WATER_ALPHA,1],[.008,-1,WATER_ALPHA*.8,1.35]] as const){
     pattern.setTransform(new DOMMatrix([k*sk,0,0,k*sk*WATER_SQUASH,x+drift(speed,dir),y+drift(speed*.4,dir)*WATER_SQUASH]));
-    c.globalAlpha=alpha;c.fillStyle=pattern;c.fillRect(x-rx,y-ry,rx*2,ry*2);}
+    c.globalAlpha=alpha;c.fillStyle=pattern;c.fillRect(fx,fy,fw,fh);}
    // A little of the texture's light on top, so the surface glitters.
-   c.globalCompositeOperation='screen';c.globalAlpha=.12;pattern.setTransform(new DOMMatrix([k,0,0,k*WATER_SQUASH,x-drift(.01,1),y]));c.fillStyle=pattern;c.fillRect(x-rx,y-ry,rx*2,ry*2);
+   c.globalCompositeOperation='screen';c.globalAlpha=.12;pattern.setTransform(new DOMMatrix([k,0,0,k*WATER_SQUASH,x-drift(.01,1),y]));c.fillStyle=pattern;c.fillRect(fx,fy,fw,fh);
    c.globalCompositeOperation='source-over';c.globalAlpha=1;
   }
   for(let i=0;i<7;i++){const px=x+(r()-.5)*rx*1.4,py=y+(r()-.5)*ry*1.1,k=((t/2600)+r())%1;c.strokeStyle=`rgba(255,255,255,${.4*(1-k)})`;c.lineWidth=1.3;c.beginPath();c.ellipse(px,py,5+k*22,1.6+k*5.5,0,0,Math.PI*2);c.stroke();}
@@ -348,7 +368,7 @@ export class FishingWorld {
   // Clouds drifting under the island, in front of everything.
   if(camY+viewH>CLOUDS_TOP){const r=random(5);
    for(let i=0;i<46;i++){const base=r()*W,speed=4+r()*6,x=((base+t/1000*speed)%(W+300))-150,y=CLOUDS_TOP+18+r()*60,s=60+r()*80;if(x+s<camX||x-s>camX+viewW)continue;
-    const g=c.createRadialGradient(x,y,s*.1,x,y,s);g.addColorStop(0,'rgba(255,255,255,.95)');g.addColorStop(.6,'rgba(250,253,255,.7)');g.addColorStop(1,'rgba(240,250,255,0)');c.fillStyle=g;c.beginPath();c.ellipse(x,y,s,s*.45,0,0,Math.PI*2);c.fill();}}
+    c.drawImage(cloudPuff(),x-s,y-s*.45,s*2,s*.9);}}
   for(const s of FISHING_STATIONS){const top=s.y-s.height-16;if(top>camY-40&&top<camY+viewH)plaque(c,s.title,s.x,top,true,hover===s.id);}
  }
  drawOverlay(c:CanvasRenderingContext2D,t:number){

@@ -12,7 +12,7 @@ import {LOBBY_WIDTH,LOBBY_WALK,onLobbyLayout} from '../../shared/lobby';
 import {LOBBY_PARALLAX,LOBBY_FLOATERS} from '../../shared/generated/lobbyParallax';
 import type {LobbyParallaxLayer,LobbyFloater} from '../../shared/generated/lobbyParallax';
 import type {LobbyStationSpot} from '../../shared/lobby';
-import {drawScaled,freeAll,freeImage,freeSurface,imageReady,scaledCopy,screenScale} from './spriteCache';
+import {drawScaled,freeAll,freeImage,freeSurface,imageReady,resizedBitmap,scaledCopy,screenScale} from './spriteCache';
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
 
@@ -84,11 +84,13 @@ const FLOOR_TOP=548,FLOOR_TILE=620,FLOOR_NEAR=.6,FLOOR_FAR=.28;
 /** Cast shadows lie on the floor squashed to this height and lean left by CAST_LEAN per unit of height. */
 const CAST_SQUASH=.22,CAST_LEAN=.55,CAST_PAD=.06;
 /** Soft oval shadow on the plaza floor, darkest under the middle. */
+/** Soft shadow discs painted once per darkness and stretched: a gradient fill per shadow per frame added up. */
+const shadowDiscs=new Map<number,HTMLCanvasElement>();
 function groundShadow(c:CanvasRenderingContext2D,x:number,y:number,rx:number,ry:number,dark=1){
- c.save();c.translate(x,y);c.scale(1,ry/rx);
- const a=(k:number)=>`rgba(55,36,18,${Math.min(1,k*dark)})`;
- const g=c.createRadialGradient(0,0,0,0,0,rx);g.addColorStop(0,a(.55));g.addColorStop(.6,a(.34));g.addColorStop(1,a(0));
- c.fillStyle=g;c.beginPath();c.arc(0,0,rx,0,Math.PI*2);c.fill();c.restore();
+ const key=Math.round(dark*100);let disc=shadowDiscs.get(key);
+ if(!disc){disc=document.createElement('canvas');disc.width=disc.height=128;const g=disc.getContext('2d')!,a=(k:number)=>`rgba(55,36,18,${Math.min(1,k*dark)})`;
+  const fill=g.createRadialGradient(64,64,0,64,64,64);fill.addColorStop(0,a(.55));fill.addColorStop(.6,a(.34));fill.addColorStop(1,a(0));g.fillStyle=fill;g.fillRect(0,0,128,128);shadowDiscs.set(key,disc);}
+ c.drawImage(disc,x-rx,y-ry,rx*2,ry*2);
 }
 
 export interface LobbySprite {y:number;draw:(c:CanvasRenderingContext2D)=>void;}
@@ -176,6 +178,7 @@ export class LobbyWorld {
  private art=new Map<string,HTMLImageElement>();private layers=new Map<string,HTMLImageElement>();private casts=new Map<string,HTMLCanvasElement>();
  private floor=new Image();private floorCanvas:HTMLCanvasElement|null=null;
  private depth:{factor:number;layer?:LobbyParallaxLayer;floater?:LobbyFloater;image:HTMLImageElement}[]=[];
+ private stills=new Map<number,{key:string;canvas:HTMLCanvasElement|null;ready:boolean}>();
  private assets=false;private loadedAt=0;
  /** Podium ranks with a player standing on them: their ring and halo are left out, so nothing glows behind the figure. */
  occupied=new Set<number>();
@@ -204,13 +207,18 @@ export class LobbyWorld {
   if(!this.assets)return;this.assets=false;
   // Freed now, not at the next garbage collection: a battle or the Pescaria needs the room.
   for(const {image} of this.depth)freeImage(image);
-  freeAll(this.art);freeAll(this.layers);freeAll(this.casts);freeImage(this.floor);freeSurface(this.floorCanvas);
+  freeAll(this.art);freeAll(this.layers);freeAll(this.casts);freeImage(this.floor);freeSurface(this.floorCanvas);releaseStamps();this.releaseStills();
   this.depth=[];this.floorCanvas=null;this.floor=new Image();
  }
  get isLoaded(){return this.assets;}
  /** True once the backdrop, the floor and every station (at `scale` screen pixels per unit) can be painted without a gap; starts what is missing. */
- ready(scale:number){
+ ready(scale:number,scaleY=scale){
   if(!this.deep()||!imageReady(this.floor))return false;
+  // The screen-size copies of the backdrop too: drawing the full paintings for the first frames froze the return.
+  let copies=true;
+  for(const {layer,image} of this.depth)if(layer&&!this.exactCopy(image,Math.round(layer.width*scale),Math.round(layer.height*scaleY)))copies=false;
+  const band=this.floorBand();if(!band||!this.exactCopy(band,Math.round(LOBBY_WIDTH*scale),Math.round((LOBBY_H-FLOOR_TOP)*scaleY)))copies=false;
+  if(!copies)return false;
   for(const station of LOBBY_STATIONS){
    const parts=this.loaded(station);if(parts.length<station.layers.length)return false;
    for(const {image} of parts)if(!scaledCopy(image,station.height*image.naturalWidth/image.naturalHeight*scale))return false;
@@ -228,16 +236,65 @@ export class LobbyWorld {
   * The depth layers as seen with the camera at `cam`, clipped to world columns x0..x1:
   * a layer with factor f is drawn from world x cam·(1-f), so it slides f px per camera px.
   */
- private drawDepth(c:CanvasRenderingContext2D,t:number,cam:number,x0:number,x1:number){
-  const scale=screenScale(c);
+ private drawDepth(c:CanvasRenderingContext2D,t:number,cam:number,x0:number,x1:number,floor=false){
+  // Runs of still layers (and the floor after the last one) go through a screen copy; the floaters between them move.
+  let run:LobbyParallaxLayer[]=[],id=0;
+  const flush=(last:boolean)=>{const layers=run,withFloor=last&&floor;run=[];if(!layers.length&&!withFloor)return;
+   this.still(c,id++,g=>{for(const layer of layers)this.drawLayer(g,layer,cam,x0,x1);if(withFloor)this.drawFloor(g,x0,x1-x0);});};
   for(const {factor,layer,floater,image} of this.depth){
-   const left=cam*(1-factor);
-   // Layers are painted at 2 px per unit; below that the copy at screen size is drawn instead of filtering the full painting every frame.
-   if(layer){const art=scaledCopy(image,layer.width*scale)??image,k=art.width/layer.width,from=Math.max(0,x0-left),to=Math.min(layer.width,x1-left);if(to>from)c.drawImage(art,from*k,0,(to-from)*k,art.height,left+from,layer.y,to-from,layer.height);continue;}
-   const f=floater!,phase=t/f.period*Math.PI*2+f.x*.01,x=left+f.x+Math.sin(phase*.5)*f.drift-f.w/2,y=f.y+Math.sin(phase)*f.bob-f.h/2;
-   if(x<x1&&x+f.w>x0)c.drawImage(image,x,y,f.w,f.h);
+   if(layer){run.push(layer);continue;}
+   flush(false);
+   const f=floater!,phase=t/f.period*Math.PI*2+f.x*.01,x=cam*(1-factor)+f.x+Math.sin(phase*.5)*f.drift-f.w/2,y=f.y+Math.sin(phase)*f.bob-f.h/2;
+   if(x<x1&&x+f.w>x0&&imageReady(image))c.drawImage(image,x,y,f.w,f.h);
   }
+  flush(true);
  }
+ private drawLayer(c:CanvasRenderingContext2D,layer:LobbyParallaxLayer,cam:number,x0:number,x1:number){
+  const image=this.depth.find(entry=>entry.layer===layer)!.image;
+  if(imageReady(image))this.drawStrip(c,image,cam*(1-layer.factor),layer.y,layer.width,layer.height,x0,x1);
+ }
+ /**
+  * A painting `width`×`height` world px placed at (left, top), drawn between world columns x0..x1. While
+  * walking it is drawn again every frame: a copy exactly at screen size laid on whole screen pixels is a
+  * plain copy for the browser, not a filter pass over a screen-wide painting several times a frame.
+  */
+ private drawStrip(c:CanvasRenderingContext2D,source:HTMLImageElement|HTMLCanvasElement,left:number,top:number,width:number,height:number,x0:number,x1:number){
+  const from=Math.max(0,x0-left),to=Math.min(width,x1-left);if(to<=from)return;
+  const m=c.getTransform(),exact=!m.b&&!m.c&&m.a>0&&m.d>0?this.exactCopy(source,Math.round(width*m.a),Math.round(height*m.d)):null;
+  if(exact){
+   const k=exact.width/width,sx=Math.round(from*k),sw=Math.min(exact.width-sx,Math.round((to-from)*k));
+   c.save();c.setTransform(1,0,0,1,0,0);c.drawImage(exact,sx,0,sw,exact.height,Math.round(m.a*(left+from)+m.e),Math.round(m.d*top+m.f),sw,exact.height);c.restore();return;
+  }
+  // Until that copy is made (a few frames): the painting itself, or the nearest copy when the view is rotated.
+  const art=exact===null&&this.exacts.has(source)?source:scaledCopy(source,width*screenScale(c))??source,k=(art instanceof HTMLImageElement?art.naturalWidth:art.width)/width;
+  c.drawImage(art,from*k,0,(to-from)*k,art.height,left+from,top,to-from,height);
+ }
+ private exacts=new Map<HTMLImageElement|HTMLCanvasElement,{width:number;height:number;copy:ImageBitmap|null}>();
+ /** `source` resized to exactly width×height (made off the main thread; null until ready). */
+ private exactCopy(source:HTMLImageElement|HTMLCanvasElement,width:number,height:number):ImageBitmap|null{
+  if(width<1||height<1||typeof createImageBitmap==='undefined')return null;
+  const known=this.exacts.get(source);if(known&&known.width===width&&known.height===height)return known.copy;
+  known?.copy?.close();const entry={width,height,copy:null as ImageBitmap|null};this.exacts.set(source,entry);
+  resizedBitmap(source,width,height).then(bitmap=>{if(this.exacts.get(source)===entry)entry.copy=bitmap;else bitmap.close();},()=>{});
+  return null;
+ }
+ /**
+  * Draws `paint` through a copy the size of the screen while the view holds still: the sky, hills and
+  * balustrade cover the screen several times over and were most of a plaza frame. The first frame at a
+  * new view (walking, resizing) draws directly; the copy is made only once the view stops.
+  */
+ private still(c:CanvasRenderingContext2D,id:number,paint:(g:CanvasRenderingContext2D)=>void){
+  const m=c.getTransform(),key=`${m.a},${m.b},${m.c},${m.d},${m.e},${m.f},${c.canvas.width}x${c.canvas.height},${this.depth.every(({image})=>image.complete)},${!!this.floorCanvas}`;
+  const known=this.stills.get(id);
+  if(!known||known.key!==key){this.stills.set(id,{key,canvas:known?.canvas??null,ready:false});paint(c);return;}
+  if(!known.ready){
+   const canvas=known.canvas??document.createElement('canvas');canvas.width=c.canvas.width;canvas.height=c.canvas.height;
+   const g=canvas.getContext('2d')!;g.setTransform(m);g.imageSmoothingEnabled=true;g.imageSmoothingQuality='low';paint(g);
+   known.canvas=canvas;known.ready=true;
+  }
+  c.save();c.setTransform(1,0,0,1,0,0);c.globalAlpha=1;c.drawImage(known.canvas!,0,0);c.restore();
+ }
+ private releaseStills(){for(const {copy} of this.exacts.values())copy?.close();this.exacts.clear();for(const {canvas} of this.stills.values())if(canvas){canvas.width=0;canvas.height=0;}this.stills.clear();}
  /**
   * The whole plaza at once (admin editor): each spot shows the layers as a player
   * standing there sees them, so the slower layers are squeezed toward the middle.
@@ -254,8 +311,7 @@ export class LobbyWorld {
   this.drawFloor(c,0,LOBBY_WIDTH);
  }
  private drawFloor(c:CanvasRenderingContext2D,x0:number,w:number){
-  const band=this.floorBand(),floor=band&&(scaledCopy(band,LOBBY_WIDTH*screenScale(c))??band);
-  if(floor){const d=floor.width/LOBBY_WIDTH;c.drawImage(floor,x0*d,0,w*d,floor.height,x0,FLOOR_TOP,w,LOBBY_H-FLOOR_TOP);}
+  const band=this.floorBand();if(band)this.drawStrip(c,band,0,FLOOR_TOP,LOBBY_WIDTH,LOBBY_H-FLOOR_TOP,x0,x0+w);
  }
  /**
   * The plaza floor across the whole width, built once from the tileable
@@ -288,7 +344,7 @@ export class LobbyWorld {
  drawBack(c:CanvasRenderingContext2D,t:number,camX:number){
   if(!this.deep()){c.fillStyle='#9ed4e8';c.fillRect(camX,0,LOBBY_W,LOBBY_H);return;}
   // The copies are already at screen size, so plain bilinear filtering is enough (and far cheaper than 'high').
-  c.save();c.imageSmoothingQuality='low';this.drawDepth(c,t,camX,camX,camX+LOBBY_W);this.drawFloor(c,camX,LOBBY_W);c.restore();
+  c.save();c.imageSmoothingQuality='low';this.drawDepth(c,t,camX,camX,camX+LOBBY_W,true);c.restore();
  }
  /** Stations that share the avatars' depth order. */
  sprites(t:number,hover:string|null):LobbySprite[]{
@@ -391,10 +447,28 @@ function goldText(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:
  const g=c.createLinearGradient(0,y-size*.5,0,y+size*.5);g.addColorStop(0,'#fffbe6');g.addColorStop(.45,'#ffe28a');g.addColorStop(.55,'#f5b93a');g.addColorStop(1,'#fff0b0');
  c.fillStyle=g;c.fillText(text,x,y);c.restore();
 }
-export function title(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:number){goldText(c,text,x,y,size,'#4a2408');}
+/** Lettering and plates drawn into a small canvas once and stamped every frame: their blurred shadows were
+ * the plaza's costliest fills. Only after the fonts load, so a stamp never keeps the fallback font. */
+const stamps=new Map<string,HTMLCanvasElement>();
+export function releaseStamps(){for(const canvas of stamps.values()){canvas.width=0;canvas.height=0;}stamps.clear();}
+function stamp(c:CanvasRenderingContext2D,key:string,x:number,y:number,box:[number,number,number,number],draw:(g:CanvasRenderingContext2D)=>void){
+ if(document.fonts?.status!=='loaded'){c.save();c.translate(x,y);draw(c);c.restore();return;}
+ const k=Math.max(1,Math.ceil(screenScale(c)*4)/4),id=`${key}@${k}`,[left,top,width,height]=box;let canvas=stamps.get(id);
+ if(!canvas){if(stamps.size>64)releaseStamps();canvas=document.createElement('canvas');canvas.width=Math.ceil(width*k);canvas.height=Math.ceil(height*k);
+  const g=canvas.getContext('2d')!;g.scale(k,k);g.translate(-left,-top);draw(g);stamps.set(id,canvas);}
+ const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='low';c.drawImage(canvas,x+left,y+top,width,height);c.imageSmoothingQuality=quality;
+}
+export function title(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:number){
+ c.save();c.font=`900 ${size}px ${FONT}`;const w=c.measureText(text).width;c.restore();
+ stamp(c,`title|${text}|${size}`,x,y,[-w/2-size,-size*1.2,w+size*2,size*2.6],g=>goldText(g,text,0,0,size,'#4a2408'));
+}
 /** Name plate over a station: deep blue enamel in a gold frame, with gem studs at the ends. */
 export function plaque(c:CanvasRenderingContext2D,text:string,x:number,y:number,big:boolean,hover:boolean){
- c.save();c.translate(x,y);const s=(big?1.1:.94)*(hover?1.06:1);c.scale(s,s);
+ const s=(big?1.1:.94)*(hover?1.06:1);c.save();c.font=`900 18px ${FONT}`;const w=Math.max(96,c.measureText(text).width+46)*s;c.restore();
+ stamp(c,`plaque|${text}|${big}|${hover}`,x,y,[-w/2-24,-36,w+48,74],g=>plaqueAt(g,text,s,hover));
+}
+function plaqueAt(c:CanvasRenderingContext2D,text:string,s:number,hover:boolean){
+ c.save();c.scale(s,s);
  const size=18;c.font=`900 ${size}px ${FONT}`;const w=Math.max(96,c.measureText(text).width+46),h=32,r=9;
  c.shadowColor='rgba(15,20,40,.45)';c.shadowBlur=10;c.shadowOffsetY=4;
  const rim=c.createLinearGradient(0,-h/2-3,0,h/2+3);rim.addColorStop(0,'#fff3b8');rim.addColorStop(.5,'#e0a02c');rim.addColorStop(1,'#8a5414');

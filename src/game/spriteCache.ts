@@ -38,6 +38,17 @@ function shrink(source:Source,width:number,height:number){
  return out;
 }
 /**
+ * `source` resized to width×height off the main thread. From an <img>, createImageBitmap copies the decoded
+ * painting on the main thread first (100+ ms for a lobby layer, a visible hitch on entering an area), so
+ * the file is read again as a blob (from the browser cache) and decoded and resized in the background.
+ */
+export function resizedBitmap(source:Source,width:number,height:number):Promise<ImageBitmap>{
+ const options:ImageBitmapOptions={resizeWidth:width,resizeHeight:height,resizeQuality:'high'};
+ if(source instanceof HTMLImageElement&&source.currentSrc&&!source.currentSrc.startsWith('data:'))
+  return fetch(source.currentSrc).then(r=>r.ok?r.blob():Promise.reject(new Error(String(r.status)))).then(blob=>createImageBitmap(blob,options)).catch(()=>createImageBitmap(source,options));
+ return createImageBitmap(source,options);
+}
+/**
  * The copy of `source` at least `pixels` wide (in steps of 25%), or the source itself when it is not
  * much bigger than that. While the copy is being resized off the main thread, another size already
  * made stands in; null when there is none yet.
@@ -53,7 +64,7 @@ export function scaledCopy(source:Source,pixels:number):Drawable|null{
   if(typeof createImageBitmap==='undefined'){const out=shrink(source,width,height);sizes.set(bucket,out);return out;}
   sizes.set(bucket,'pending');
   // A copy that arrives after its painting was let go (`forgetCopies`) is closed at once.
-  createImageBitmap(source,{resizeWidth:width,resizeHeight:height,resizeQuality:'high'}).then(bitmap=>{if(copies.get(source)===done)done.set(bucket,bitmap);else bitmap.close();},()=>{if(copies.get(source)===done)done.set(bucket,shrink(source,width,height));});
+  resizedBitmap(source,width,height).then(bitmap=>{if(copies.get(source)===done)done.set(bucket,bitmap);else bitmap.close();},()=>{if(copies.get(source)===done)done.set(bucket,shrink(source,width,height));});
  }
  let nearest:Drawable|null=null,gap=Infinity;
  for(const [other,ready] of sizes)if(ready!=='pending'&&Math.abs(other-bucket)<gap){nearest=ready;gap=Math.abs(other-bucket);}
@@ -61,6 +72,11 @@ export function scaledCopy(source:Source,pixels:number):Drawable|null{
 }
 /** Screen pixels per canvas unit along x under the current transform (squashes such as breathing only touch y). */
 export function screenScale(c:CanvasRenderingContext2D){const m=c.getTransform();return Math.hypot(m.a,m.b);}
+/** The part of the canvas's own coordinates (under the current transform) that lands on screen, as [x0,y0,x1,y1]. */
+export function visibleArea(c:CanvasRenderingContext2D):[number,number,number,number]{
+ const m=c.getTransform().inverse(),{width,height}=c.canvas,xs=[m.e,m.a*width+m.e,m.c*height+m.e,m.a*width+m.c*height+m.e],ys=[m.f,m.b*width+m.f,m.d*height+m.f,m.b*width+m.d*height+m.f];
+ return [Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)];
+}
 /** drawImage(image,x,y,width,height) once the file is decoded off the main thread; false (nothing drawn) until then. */
 export function drawDecoded(c:CanvasRenderingContext2D,image:HTMLImageElement,x:number,y:number,width:number,height:number):boolean{
  if(!imageReady(image))return false;
@@ -73,8 +89,13 @@ export function drawDecoded(c:CanvasRenderingContext2D,image:HTMLImageElement,x:
  */
 export function drawScaled(c:CanvasRenderingContext2D,image:HTMLImageElement,x:number,y:number,width:number,height:number):boolean{
  if(!imageReady(image))return false;
- const art=scaledCopy(image,Math.abs(width)*screenScale(c));if(!art)return false;
+ // While the copy is being made the decoded file stands in for a few frames.
+ const art=scaledCopy(image,Math.abs(width)*screenScale(c))??image;
+ // The copy is at most 25% bigger than its place on screen (already filtered with the best quality when made):
+ // plain bilinear is enough. 'high' made every station of the plaza cost ~0.8 ms per frame (docs/performance.md).
+ const quality=c.imageSmoothingQuality;c.imageSmoothingQuality='low';
  c.drawImage(art,x,y,width,height);
+ c.imageSmoothingQuality=quality;
  return true;
 }
 
