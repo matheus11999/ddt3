@@ -1,6 +1,6 @@
 /* Phone battle controls (docs/mobile.md): sizes are real screen pixels, so every rule undoes the game scale. */
 .artillery-hud .touch-controls{display:contents}
-html.mobile-landscape .artillery-hud .touch-walk{position:absolute;z-index:6;left:calc((12px + env(safe-area-inset-left)) / var(--game-scale));bottom:calc((100px + env(safe-area-inset-bottom)) / var(--game-scale));display:flex;gap:8px;transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom left}
+html.mobile-landscape .artillery-hud .touch-walk{position:absolute;z-index:6;left:calc((12px + env(safe-area-inset-left)) / var(--touch-scale));bottom:calc((100px + env(safe-area-inset-bottom)) / var(--touch-scale));display:flex;gap:8px;transform:scale(calc(1 / var(--touch-scale)));transform-origin:bottom left}
 .artillery-hud .touch-walk>button{display:grid;place-items:center;width:58px;height:58px;min-width:0;padding:0;border:2px solid #d99b39;border-radius:16px;background:linear-gradient(#233f54e0,#132b40ee);box-shadow:inset 0 1px #e3d6ad55,0 3px #061729,0 4px 8px #0006;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 .artillery-hud .touch-walk>button .angle-arrow{width:32px;height:28px;overflow:visible;filter:drop-shadow(0 2px 0 #0a0d18)}
 .artillery-hud .touch-walk>button:first-child .angle-arrow{transform:rotate(-90deg)}
@@ -10,25 +10,28 @@ html.mobile-landscape .artillery-hud .touch-walk{position:absolute;z-index:6;lef
 /* The fire dial replaces the angle dial on phones: same gold bezel, a ring that fills with the force. */
 .artillery-hud .angle-control>.touch-fire{position:absolute;left:0;bottom:-5px;width:100px;height:100px;min-width:0;padding:0;border:0;border-radius:50%;background:none;box-shadow:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .08s,filter .12s}
 .touch-fire-dial{width:100%;height:100%;overflow:visible;filter:drop-shadow(0 3px 4px #000c)}
-.touch-fire-track{fill:none;stroke:#04101f;stroke-width:7;opacity:.75}
-.touch-fire-charge{fill:none;stroke-width:7;stroke-linecap:round;filter:drop-shadow(0 0 3px #ff8a2acc);transition:stroke-dasharray .05s linear}
-.touch-fire-dial text{text-anchor:middle;paint-order:stroke;stroke:#06162b;stroke-linejoin:round}
-.touch-fire-angle{font:400 14px 'Lilita One',sans-serif;fill:#ffd84a;stroke-width:3px}
-.touch-fire-main{font:400 21px 'Lilita One',sans-serif;fill:#fff;stroke-width:4px;letter-spacing:.5px}
-.touch-fire-main.is-power{font-size:34px}
-.touch-fire-hint{font:900 9px Nunito,sans-serif;fill:#a9d4f5;stroke-width:2.5px;letter-spacing:1.5px}
-.artillery-hud .touch-fire.charging{transform:scale(1.05)}
-.artillery-hud .touch-fire.charging .touch-fire-hint{fill:#ffe27a}
-.artillery-hud .touch-fire:active:not(:disabled){transform:scale(.97)}
+.touch-fire-shadow{fill:#0a0d18}
+.touch-fire-well{fill:#2a0703;stroke:#3b200a;stroke-width:1.5}
+.touch-fire-charge{fill:none;stroke-width:8;stroke-linecap:round;filter:drop-shadow(0 0 3px #ffb02ecc)}
+.touch-fire-side{fill:#4a0803}
+.touch-fire-top{stroke:#ff8a5a66;stroke-width:1.2;transition:transform .07s}
+.touch-fire-shine{fill:#ffffff3a}
+.touch-fire-dial text{text-anchor:middle;paint-order:stroke;stroke:#4a0803;stroke-linejoin:round}
+.touch-fire-main{font:400 21px 'Lilita One',sans-serif;fill:#fff;stroke-width:4.5px;letter-spacing:.5px}
+.touch-fire-main.is-power{font-size:32px}
+.touch-fire-cap{transition:transform .07s}
+/* Pressed: the red cap sinks into its well. */
+.artillery-hud .touch-fire.charging .touch-fire-cap,.artillery-hud .touch-fire:active:not(:disabled) .touch-fire-cap{transform:translateY(4px)}
 .artillery-hud .touch-fire:disabled .touch-fire-dial{filter:saturate(.35) brightness(.75) drop-shadow(0 3px 4px #000c)}
 html.mobile-landscape .artillery-hud .angle-control{width:136px}
 html.mobile-landscape .artillery-hud .angle-buttons{left:100px;gap:4px}
 html.mobile-landscape .artillery-hud .power-controls{left:218px}
 .artillery-hud.fighter-fallen .touch-controls>*,.artillery-hud.battle-finished .touch-controls>*{display:none}
 /* Abilities sit right of the walk arrows; the eight tools fill two rows under the minimap, away from the middle of the field. */
-html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc((152px + env(safe-area-inset-left)) / var(--game-scale))}
-html.mobile-landscape .artillery-hud .boost-bar{top:calc((86px + env(safe-area-inset-top)) / var(--game-scale));bottom:auto;right:calc((12px + env(safe-area-inset-right)) / var(--game-scale));display:grid;grid-template-columns:repeat(4,39px);gap:5px;padding:6px;transform-origin:top right}
-@media(max-width:760px){html.mobile-landscape .artillery-hud .boost-bar{grid-template-columns:repeat(4,36px);gap:4px;padding:5px}html.mobile-landscape .artillery-hud .boost{width:36px;height:36px;min-width:36px}}
+html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc((152px + env(safe-area-inset-left)) / var(--touch-scale))}
+html.mobile-landscape .artillery-hud .boost-bar{top:calc((78px + env(safe-area-inset-top)) / var(--touch-scale));bottom:auto;right:calc((12px + env(safe-area-inset-right)) / var(--touch-scale));display:flex;flex-direction:column;gap:4px;padding:0;transform-origin:top right}
+html.mobile-landscape .artillery-hud .boost{width:34px;height:34px;min-width:34px}
+@media(max-height:460px){html.mobile-landscape .artillery-hud .boost-bar{gap:3px}html.mobile-landscape .artillery-hud .boost{width:31px;height:31px;min-width:31px}}
 /* Small buttons grow to a finger-sized target. */
 html.mobile-landscape .artillery-hud .angle-buttons>button{width:32px;height:30px}
 html.mobile-landscape .artillery-hud .angle-arrow{width:28px;height:24px}

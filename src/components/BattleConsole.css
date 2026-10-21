@@ -197,7 +197,7 @@ html.mobile-landscape .artillery-hud .battle-center-status .skip-button>kbd{disp
 
 /* Ability tray sits right above the console, next to the dial. */
 .artillery-hud .battle-ability-tray{left:150px;bottom:92px}
-html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(--game-scale));bottom:calc((70px + env(safe-area-inset-bottom)) / var(--game-scale))}
+html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc(110px / var(--touch-scale));bottom:calc((70px + env(safe-area-inset-bottom)) / var(--touch-scale))}
 
 /* Top bar: turn player's portrait (left), roster, wind/timer/PASS, minimap (right). */
 .artillery-hud .battle-top{display:block;top:8px;left:10px;right:10px;height:176px;grid-template-columns:none}

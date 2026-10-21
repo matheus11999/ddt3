@@ -6,4 +6,4 @@
 .battle-pet-skill small{position:absolute;right:2px;bottom:1px;font-size:10px;color:#1f4f8f}
 .battle-pet-wait{position:absolute;inset:0;display:grid;place-items:center;border-radius:8px;background:#000a;color:#fff;font-size:18px}
 /* Phones: above the ability tray, right of the walk arrows (BattleTouch.css). */
-html.mobile-landscape .battle-pet-tray{left:calc((152px + env(safe-area-inset-left)) / var(--game-scale));bottom:calc((160px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(.85 / var(--game-scale)));transform-origin:bottom left}
+html.mobile-landscape .battle-pet-tray{left:calc((152px + env(safe-area-inset-left)) / var(--touch-scale));bottom:calc((160px + env(safe-area-inset-bottom)) / var(--touch-scale));transform:scale(calc(.85 / var(--touch-scale)));transform-origin:bottom left}

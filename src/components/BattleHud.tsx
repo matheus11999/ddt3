@@ -13,7 +13,6 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {WorldBossBanner,WorldBossBar} from './WorldBoss';
 import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties,MouseEvent as ReactMouseEvent,PointerEvent as ReactPointerEvent} from 'react';
-import {Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {normalizeAbilityLoadout,TOOL_ABILITIES} from '../../shared/abilities';
 import {powerUpConflict} from '../../shared/powerUps';
@@ -297,7 +296,6 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
   <PetSkillBar fighter={me} canAct={canAct} mode={instance?'pve':'pvp'}/>
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
-   <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
      if(isToolAbility(boost.id))return null;
      const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(b.turnId===me.id&&!!powerUpConflict(me.boosts,boost.id))||powBlocks(boost.id)||toolBlocks(boost.id)||me.stamina<boost.cost;
@@ -323,7 +321,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
-    {touch?<button type="button" className={`touch-fire ${charging?'charging':''}`} disabled={!canAct&&!charging} aria-label="Disparar: segure para carregar a força e solte" data-charging={charging} {...chargeByPointer}><TouchFireDial angle={angle} power={power} charging={charging} ready={canAct}/></button>
+    {touch?<button type="button" className={`touch-fire ${charging?'charging':''}`} disabled={!canAct&&!charging} aria-label="Disparar: segure para carregar a força e solte" data-charging={charging} {...chargeByPointer}><TouchFireDial power={power} charging={charging}/></button>
      :<AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>}
     <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" {...holdAngle(1)}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" {...holdAngle(-1)}><AngleArrow up={false}/></button></div>
    </div>

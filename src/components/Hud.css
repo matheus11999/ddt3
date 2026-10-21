@@ -35,7 +35,7 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-quest-list>button>span{display:grid;place-items:center;flex:none;width:26px;height:26px;border-radius:50%;background:linear-gradient(#ffe07a,#e48d12);color:#6b2c05;font-weight:900}
 .lobby-quest-list>button>span.done{background:linear-gradient(#8fe08a,#2f9a4a);color:#fff}
 .lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
-html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(calc(.82 / var(--game-scale)));transform-origin:bottom right;height:auto}
+html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(calc(.82 / var(--touch-scale)));transform-origin:bottom right;height:auto}
 
 /* Lobby chat floats over the plaza like the classic lobby: outlined message text over a faint dark glass,
    glass tabs that only show while writing and a translucent input line (never fully see-through). */
@@ -68,9 +68,9 @@ html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(cal
 
 .top-right .currency .currency-fishing .fishing-icon { margin: -4px 0; filter: drop-shadow(0 1px 1px #0008); }
 /* Phones: the menu never leaves the screen (docs/mobile.md). */
-@media(max-width:760px){html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{gap:5px;padding:0 10px 7px;transform:scale(calc(.72 / var(--game-scale)))}}
+@media(max-width:760px){html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{gap:5px;padding:0 10px 7px;transform:scale(calc(.72 / var(--touch-scale)))}}
 /* Phones keep the plaza chat small above the menu on the left: always open with the last lines, no collapse arrow. */
-html.mobile-landscape .game-frame>.chat-shell.lobby-chat{left:calc((10px + env(safe-area-inset-left)) / var(--game-scale));bottom:calc((84px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(.62 / var(--game-scale)));transform-origin:bottom left}
+html.mobile-landscape .game-frame>.chat-shell.lobby-chat{left:calc((10px + env(safe-area-inset-left)) / var(--touch-scale));bottom:calc((84px + env(safe-area-inset-bottom)) / var(--touch-scale));transform:scale(calc(.62 / var(--touch-scale)));transform-origin:bottom left}
 html.mobile-landscape .game-frame>.chat-shell.lobby-chat .chat-collapse{display:none}
 html.mobile-landscape .game-frame>.chat-shell.lobby-chat,html.mobile-landscape .game-frame>.chat-shell.lobby-chat.collapsed{height:140px;grid-template-rows:20px minmax(0,1fr) 30px}
 html.mobile-landscape .lobby-chat.collapsed .chat-messages{display:block}
@@ -84,4 +84,4 @@ html.mobile-landscape .game-frame .top-right .round-button svg{width:24px;height
 .lobby-event-button:hover:not(:disabled) img{transform:scale(1.06)}
 .lobby-event-button:disabled{filter:saturate(.4) brightness(.8)}
 .fishing-zone-button>.world-boss-button-time{background:linear-gradient(#1d4f8f,#0d2a52)}
-html.mobile-landscape .game-frame>.lobby-event-buttons{top:calc((52px + env(safe-area-inset-top)) / var(--game-scale));right:calc((10px + env(safe-area-inset-right)) / var(--game-scale));transform:scale(calc(.62 / var(--game-scale)));transform-origin:top right}
+html.mobile-landscape .game-frame>.lobby-event-buttons{top:calc((52px + env(safe-area-inset-top)) / var(--touch-scale));right:calc((10px + env(safe-area-inset-right)) / var(--touch-scale));transform:scale(calc(.62 / var(--touch-scale)));transform-origin:top right}
