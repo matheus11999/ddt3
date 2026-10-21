@@ -17,16 +17,17 @@ Toda a tela do jogo é desenhada em 864 de altura e encolhida para caber (`--gam
 `BattleHud.tsx` mostra `touch-controls` só em aparelho de toque (`useMobileOrientation().mobile`); estilo em `BattleTouch.css`.
 
 - **Setas de andar** (esquerda, 58 px): segurar anda como a seta do teclado (o mesmo comando `walk` a cada `WALK_COMMAND_MS`); soltar para na hora. Fora da vez só vira o boneco.
-- **Botão FOGO** (direita, 80 px, acima do POW): segurar carrega a régua de força do DDTank, soltar dispara. Mostra a força enquanto carrega ("SOLTE"). A régua do console continua aceitando o toque também; os dois usam a mesma carga (`chargeByPointer`).
-- **Poderes** em duas fileiras de 5 sob o minimapa, longe do meio do campo; habilidades e voo ao lado das setas; habilidades do pet logo acima delas.
+- **Botão FORÇA** (21/10, matheus achou o primeiro botão feio e mal colocado): no celular ocupa o lugar do mostrador de ângulo (`TouchFireDial` em `CombatGauges.tsx`), com a mesma moldura dourada e rebites; mostra o ângulo em cima, "FORÇA" no meio e um anel laranja que enche com a força enquanto segura; soltar dispara. As setas de ângulo ficam ao lado. A régua do console continua aceitando o toque; os dois usam a mesma carga (`chargeByPointer`).
+- **Poderes** em duas fileiras de 4 sob o minimapa (Enfurecer e Gelo viraram itens do preparo, `docs/consumables.md`); habilidades e voo ao lado das setas; habilidades do pet logo acima delas.
 - Setas de ângulo, PASS e Sair maiores.
 
 ## Praça e Pescaria no celular
 
 - O menu da praça encolhe em telas até 760 px para os 13 ícones caberem (antes o da Arena saía da tela no iPhone SE).
 - Botões redondos do topo (som, tela cheia, ajustes) com 36 px.
-- O chat da praça volta no celular, menor, acima do menu e **fechado** por padrão (abre pela setinha).
-- Pescaria: Lançar/Auto maiores; SAIR e o ranking "Maior peixe da semana" descem para baixo da linha de moedas; Trocas e Histórico em tamanho real.
+- O chat da praça e da Pescaria fica no celular, pequeno, acima do menu, sempre aberto com as últimas linhas (sem a setinha).
+- Pescaria: cartão do pescador logo abaixo do perfil, Trocas e Histórico embaixo dele; SAIR e o ranking "Maior peixe da semana" menores, abaixo da linha de moedas; Lançar/Auto num tamanho médio.
+- Menu da praça (21/10, computador e celular): sem Hall da Fama (abre clicando no pódio "Ranking PvP do dia") e sem Ajustes (a engrenagem do topo); a Pescaria saiu do menu e virou um botão pintado à direita, igual ao do Chefão Mundial (`.lobby-event-buttons` em `Hud.tsx`).
 
 ## Prévia de todas as telas
 

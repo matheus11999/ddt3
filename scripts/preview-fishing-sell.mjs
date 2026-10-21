@@ -8,7 +8,7 @@ const base=process.env.BASE??'http://127.0.0.1:5177',dir=process.argv[2]??'test-
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium'});
 const page=await (await browser.newContext({viewport:{width:1536,height:864}})).newPage();
 await enterGame(page,base);
-await page.locator('.lobby-dock-button.fishing').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
+await page.locator('.fishing-zone-button').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
 await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').map(e=>e.name).find(n=>/\/src\/client\.ts/.test(n));window.__c=(await import(url)).client;});
 const catches=[['lambari-dourado',.12],['lambari-dourado',.37],['lambari-dourado',.18],['tilapia-rosada',.55],['tilapia-rosada',1.41],['carpa-lua',1.3],['carpa-lua',3.6],
  ['bagre-barbudo',2.4],['bagre-barbudo',6.9],['peixe-vidro',.31],['traira-taboa',.8],['carpa-termal',1.1],['baiacu-bolha',.7],['tucunare-brasa',4.8],['truta-aurora',1.6],

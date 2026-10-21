@@ -2,6 +2,10 @@
 
 Pedido do matheus em 20/10/2026, a partir do pacote de referência `output/ddtank-consumables-reference` (pasta local, fora do repositório). Regras em `shared/ice.ts`, custos em `BOOSTS` (`shared/catalog.ts`), validação no servidor (`Game.boost`, `Game.fireIce`, `Game.applyImpact`, `Game.nextTurn`). Testes em `tests/consumables.test.ts`; prévia com `node scripts/preview-consumables.mjs` (precisa do jogo rodando, `BASE_URL`).
 
+## Itens do preparo (21/10, pedido do matheus)
+
+Enfurecer e Gelo saíram da barra de poderes: agora são **itens escolhidos na sala**, em "Minhas ferramentas", junto de Cura, Mira assistida e Invisibilidade (3 espaços, 5 opções; `ABILITY_IDS`/`ABILITIES` em `shared/abilities.ts`). Cada um tem **1 uso por partida** (`uses`, número provisório), não gasta Vigor e mantém o Delay (450 e 700). Na batalha ficam na bandeja de habilidades; as teclas 9 e 0 ainda usam. O servidor arma o mesmo efeito de antes pelo comando `ability` (`Game.useAbility` → `Game.boost(f,id,true)`) e recusa o comando `boost` para eles. As regras de combinação abaixo continuam iguais; só a coluna de Vigor deixou de valer.
+
 ## Regras (iguais ao DDTank 4.1)
 
 | Ferramenta | Tecla | Vigor | Delay | Efeito | Fonte |

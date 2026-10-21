@@ -20,7 +20,7 @@ await fps('praca');
 const camera=(x,y)=>({x:Math.max(0,Math.min(FISHING_WIDTH-1536,x-768)),y:Math.max(0,Math.min(FISHING_HEIGHT-864,y-864*.6))});
 const walkTo=async(x,y)=>{for(let n=0;n<8;n++){const p=at;if(Math.hypot(p.x-x,p.y-y)<10)return;const cam=camera(p.x,p.y);const w=fishingFree(cam.x+Math.max(440,Math.min(1480,x-cam.x)),cam.y+Math.max(250,Math.min(640,y-cam.y)));
  await page.locator('.world-canvas').click({position:{x:w.x-cam.x,y:w.y-cam.y}});const start=Date.now();let last={...at};while(Date.now()-start<15000){await page.waitForTimeout(500);if(Math.hypot(at.x-last.x,at.y-last.y)<.5)break;last={...at};}}};
-if(fish){await page.locator('.lobby-dock-button.fishing').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
+if(fish){await page.locator('.fishing-zone-button').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
  const lake=FISHING_LAKES[0],lawn={x:1700,y:1980},view=camera(lawn.x,lawn.y);await walkTo(lawn.x,lawn.y);
  await page.locator('.fishing-auto').click();await page.locator('.fishing-main').click();await page.locator('.world-canvas').click({position:{x:lake.x-230-view.x,y:lake.y+20-view.y}});
  await page.waitForTimeout(15000);await fps('pescaria');await page.screenshot({path:`${dir}/1-pesca.png`});

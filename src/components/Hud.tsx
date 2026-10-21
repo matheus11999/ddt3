@@ -3,7 +3,7 @@ import {PowerCounter} from './PowerCounter';
 import {useEffect,useRef,useState} from 'react';
 import {FishingIcon} from './FishingIcon';
 import {normalizeFishing} from '../../shared/fishing';
-import {Send,MapPin,Volume2,VolumeX,Settings,Expand,ChevronDown,Check,X,PawPrint,Fish,LogOut} from 'lucide-react';
+import {Send,MapPin,Volume2,VolumeX,Settings,Expand,ChevronDown,Check,X,PawPrint,LogOut} from 'lucide-react';
 import type {ReactNode} from 'react';
 import type {ChatChannel} from '../../shared/protocol';
 import {PowerIcon} from './PowerIcon';
@@ -18,7 +18,7 @@ type LobbyMenu='quests'|'guild';
 const PLAZA_ONLY_BUTTONS=new Set(['bag','shop','auction','pets','quests','guild']);
 const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',guild:'Guilda'};
 export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onExpeditions:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
- const {profile,channel,room,mailUnread,auctionMine,zone}=useGame();const fishingZone=zone==='fishing';const p=profile!;const stats=attributes(p.equipment,p.level),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(()=>!document.documentElement.classList.contains('mobile-landscape'));useEffect(()=>{const open=()=>setChatOpen(true);window.addEventListener('brasa-chat-focus',open);return()=>window.removeEventListener('brasa-chat-focus',open);},[]);
+ const {profile,channel,room,mailUnread,auctionMine,zone}=useGame();const fishingZone=zone==='fishing';const p=profile!;const stats=attributes(p.equipment,p.level),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);useEffect(()=>{const open=()=>setChatOpen(true);window.addEventListener('brasa-chat-focus',open);return()=>window.removeEventListener('brasa-chat-focus',open);},[]);
  const pendingQuests=Number(!p.equippedOnce)+Number(!p.matches);const [menu,setMenu]=useState<LobbyMenu|null>(null);const dock=useRef<HTMLElement>(null);
  useEffect(()=>{
   if(!menu)return;
@@ -32,9 +32,7 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
  const all:{id:string;label:string;art?:string;icon?:ReactNode;count?:number;action:()=>void;disabled?:boolean;pressed?:boolean}[]=[
   // The halls (and the smith's stall) are on the plaza: from the Pescaria the player walks back first.
   ...(fishingZone?[]:[{id:'arena',label:'Arena',art:'arena-button.png',action:onArena},
-  {id:'expeditions',label:'Expedições',art:'expedition-button.png',action:onExpeditions},
-  // Drawn fish until the painted fishing-button.png exists (docs/fishing-art-prompts.md).
-  {id:'fishing',label:'Pescaria',icon:<Fish className="lobby-dock-icon" size={30} strokeWidth={2.4}/>,action:()=>{setMenu(null);client.goTo('fishing');audio.play('click');},disabled:!!room}]),
+  {id:'expeditions',label:'Expedições',art:'expedition-button.png',action:onExpeditions}]),
   // Pescaria: the Sacola with what was fished takes the place of the backpack.
   ...(fishingZone?[{id:'fish-bag',label:'Sacola',art:'/assets/fishing/ui/bag-button.webp',action:()=>{setMenu(null);client.openFishBag();audio.play('click');}}]:[]),
   {id:'bag',label:'Mochila',art:'backpack-button.png',action:onInventory},
@@ -46,13 +44,12 @@ export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings
   {id:'quests',label:'Missões',art:'arena-quests.png',count:pendingQuests,action:()=>toggle('quests'),pressed:menu==='quests'},
   {id:'mail',label:'Correio',art:'arena-mail.png',count:mailUnread,action:()=>{setMenu(null);client.openMail();audio.play('click');}},
   {id:'guild',label:'Guilda',art:'arena-guild.png',action:()=>{setMenu(null);client.openGuild();audio.play('click');}},
-  {id:'hall',label:'Hall da Fama',art:'hall-button.png',action:()=>{setMenu(null);client.openHall();audio.play('click');}},
-  {id:'settings',label:'Ajustes',art:'settings-button.png',action:onSettings},
  ];
  // Pescaria (pedido do matheus): sem Mochila, Loja, Leilão, Pets, Missões e Guilda.
  const buttons=fishingZone?all.filter(b=>!PLAZA_ONLY_BUTTONS.has(b.id)):all;
  return <><div className="top-vignette"/><button className="player-hud" onClick={onInventory} title="Abrir mochila"><div className="portrait"><div className="portrait-crop"><Avatar equipment={p.equipment} size={87} portrait animated={false} weapon={false}/></div><div className="profile-level-badge"><LevelBadge level={p.level} size={40}/></div></div><div className="profile-lines"><div className="profile-name"><strong>{p.name}</strong><small>AVENTUREIRO</small></div><div className="resource-bar health"><i/><span><b>HP</b>{stats.hp} / {stats.hp}</span></div><div className="resource-bar stamina"><i/><span><b>VIGOR</b>{stats.stamina} / {stats.stamina}</span></div><div className="profile-power" title="Poder do jogador"><PowerIcon size={24}/> <PowerCounter value={stats.power}/></div></div></button>
-  <WorldBossButton/>
+  {/* Event-style buttons on the right (matheus, 21/10/2026): the Pescaria left the menu and sits with the World Boss. Hall da Fama opens from the podium; Ajustes is the gear up top. */}
+  <div className="lobby-event-buttons"><WorldBossButton/>{!fishingZone&&<button type="button" className="lobby-event-button fishing-zone-button" aria-label="Pescaria" title="Pescaria" disabled={!!room} onClick={()=>{setMenu(null);client.goTo('fishing');audio.play('click');}}><img src="/assets/fishing/icons/koi-celeste.png" alt="" draggable={false}/><span className="world-boss-button-time">Pescaria</span></button>}</div>
   <div className="channel-chip"><MapPin size={13}/> {fishingZone?'Pescaria':'Praça Celeste'} <i/> Canal {String(channel).padStart(2,'0')}</div>
   <div className="top-right"><div className="currency"><span title="Ouro (Moedas Brasa)" className="currency-gold"><RewardIcon size={20}/><b>{p.gold.toLocaleString('pt-BR')}</b></span><span className="currency-divider"/><span className="currency-coupons" title="Cupons"><CouponIcon size={24}/><b>{p.coupons.toLocaleString('pt-BR')}</b></span>{fishingZone&&<><span className="currency-divider"/><span className="currency-fishing" title="Pontos de Pesca: troque nas Trocas da Pescaria"><FishingIcon id="fishing-points" size={24}/><b>{normalizeFishing(p.fishing).points.toLocaleString('pt-BR')}</b></span></>}</div><button className="round-button" aria-label={sound?'Desativar som':'Ativar som'} onClick={()=>{audio.setEnabled(!sound);setSound(!sound);}}>{sound?<Volume2 size={19}/>:<VolumeX size={19}/>}</button><button className="round-button" aria-label="Tela cheia" onClick={()=>{if(document.fullscreenElement)void document.exitFullscreen();else void document.documentElement.requestFullscreen().catch(()=>{});}}><Expand size={18}/></button><button className="round-button" aria-label="Configurações" onClick={onSettings}><Settings size={19}/></button>{zone==='fishing'&&<button className="round-button fishing-quit" aria-label="Sair da Pescaria" title="Sair da Pescaria (volta à Praça Celeste)" onClick={()=>{client.goTo('plaza');audio.play('click');}}><LogOut size={18}/></button>}</div>
   <div className={`chat-shell lobby-chat wood-pane wood-chat ${chatOpen?'':'collapsed'}`}><button className="chat-collapse" aria-label={chatOpen?'Minimizar chat':'Abrir chat'} onClick={()=>setChatOpen(!chatOpen)}><ChevronDown size={15}/></button><Chat overlay/></div>

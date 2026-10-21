@@ -23,7 +23,7 @@ test('legacy loadouts gain defaults but empty, reordered and partially valid sav
  assert.deepEqual(normalizeAbilityLoadout(undefined),DEFAULT_ABILITY_LOADOUT);assert.deepEqual(normalizeAbilityLoadout(null),DEFAULT_ABILITY_LOADOUT);
  for(const slots of [[null,null,null],['invisibility',null,'heal'],[null,'homing',null]] as AbilityLoadout[]){assert.deepEqual(normalizeAbilityLoadout(slots),slots);const profile=normalizeProfile({id:'owner',name:'Kit',abilityLoadout:slots,gold:719});assert.deepEqual(profile.abilityLoadout,slots);assert.deepEqual(normalizeProfile(profile).abilityLoadout,slots);assert.equal(profile.gold,719);}
  assert.deepEqual(normalizeAbilityLoadout(['heal','heal','constructor']),['heal',null,null]);assert.deepEqual(normalizeAbilityLoadout([]),[null,null,null]);assert.deepEqual(normalizeAbilityLoadout(['invisibility']),['invisibility',null,null]);
- assert.deepEqual(initialAbilities([null,'homing',null]),{heal:0,homing:1,invisibility:0});const a=normalizeAbilityLoadout(undefined);a[0]=null;assert.deepEqual(normalizeAbilityLoadout(undefined),DEFAULT_ABILITY_LOADOUT);
+ assert.deepEqual(initialAbilities([null,'homing',null]),{heal:0,homing:1,invisibility:0,rage:0,ice:0});const a=normalizeAbilityLoadout(undefined);a[0]=null;assert.deepEqual(normalizeAbilityLoadout(undefined),DEFAULT_ABILITY_LOADOUT);
 });
 
 test('loadout commands require exactly three unique known abilities or null and reject spoofed ownership/resources',()=>{
@@ -90,7 +90,7 @@ test('reconnecting and changing rooms during persistence updates the current sea
   assert.equal(f.game.rooms.has(originalRoom.id),false);assert.deepEqual(f.peer.profile.abilityLoadout,[null,'homing',null]);
   assert.deepEqual(currentRoom.players.find(player=>player.id===id)!.abilityLoadout,[null,'homing',null]);assert.ok(currentRoom.players.every(player=>!player.ready));
   await f.game.command(currentRoom.hostId,{type:'practice-start'});const fighter=[...f.game.matches.values()][0].state.players.find(player=>player.id===id)!;
-  assert.deepEqual(fighter.abilityLoadout,[null,'homing',null]);assert.deepEqual(fighter.abilities,{heal:0,homing:1,invisibility:0});
+  assert.deepEqual(fighter.abilityLoadout,[null,'homing',null]);assert.deepEqual(fighter.abilities,{heal:0,homing:1,invisibility:0,rage:0,ice:0});
  }
 });
 

@@ -28,7 +28,7 @@ const page=await browser.newPage({viewport:{width:Number(process.env.VW??1536),h
 await page.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);window.__frames=[];window.requestAnimationFrame=cb=>raf(t=>{const a=performance.now();cb(t);window.__frames.push(performance.now()-a);});});
 let bytes=0,messages=0;const kinds={};page.on('websocket',ws=>ws.on('framereceived',({payload})=>{bytes+=payload.length;messages++;try{const k=JSON.parse(String(payload)).type;kinds[k]=(kinds[k]??0)+1;}catch{}}));
 const cdp=await page.context().newCDPSession(page);await cdp.send('Profiler.enable');
-await enterGame(page,base);await page.locator('.lobby-dock-button.fishing').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(8000);
+await enterGame(page,base);await page.locator('.fishing-zone-button').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(8000);
 if(process.env.MOVING)await page.keyboard.down('ArrowRight');
 await page.evaluate(()=>{window.__frames=[];});bytes=messages=0;for(const k in kinds)delete kinds[k];
 const ms=8000;await cdp.send('Profiler.start');await page.waitForTimeout(ms);const {profile}=await cdp.send('Profiler.stop');

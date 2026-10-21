@@ -27,7 +27,7 @@ const spotFor=(dx,taken=[])=>FISHING_SPOTS.filter(s=>s.lake===lake.id&&!taken.in
 
 // A friend fishing in automatic mode, so the first player sees someone else at the lake.
 const friend=await open();
-await friend.locator('.lobby-dock-button.fishing').click();await expect(friend.locator('.fishing-hud')).toBeVisible();await friend.waitForTimeout(1500);
+await friend.locator('.fishing-zone-button').click();await expect(friend.locator('.fishing-hud')).toBeVisible();await friend.waitForTimeout(1500);
 await friend.locator('.fishing-auto').click();await climb(friend);if(process.env.DEBUG)await shot(friend,'00-amigo');
 const friendSpot=spotFor(-150);
 await friend.locator('.fishing-main').click();await friend.locator('.world-canvas').click({position:onLake(-150)});
@@ -35,7 +35,7 @@ if(process.env.DEBUG){await friend.waitForTimeout(6000);await shot(friend,'00b-a
 
 const page=await open(),canvas=page.locator('.world-canvas');
 await page.waitForTimeout(1500);await shot(page,'01-praca-botao');
-await page.locator('.lobby-dock-button.fishing').click();
+await page.locator('.fishing-zone-button').click();
 await expect(page.locator('.fishing-hud')).toBeVisible();await expect(page.locator('.lobby-dock-button.arena')).toHaveCount(0);
 await page.waitForTimeout(2500);await shot(page,'02-entrada');
 await climb(page);

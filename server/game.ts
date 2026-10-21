@@ -26,7 +26,7 @@ import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnD
 import {clampHp,criticalBonusMultiplier,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,SPLASH_RADIUS_SCALE,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
-import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
+import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout,TOOL_ABILITIES} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
 import {flightLanding} from '../shared/physics';
 import {adjustAimToTerrain,aimSource,clampAimAngle,weaponAimLimits} from '../shared/aim';
@@ -745,7 +745,7 @@ export class Game {
     case 'ability':{const {m,f}=this.turn(p);this.assertPetFree(f,'ability');this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
     case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
     case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
-    case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
+    case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');if((TOOL_ABILITIES as readonly string[]).includes(c.boost))throw Error('Enfurecer e Gelo agora são itens: prepare-os na sala.');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
      const {m,f}=this.turn(p,true);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
      // Past the deadline only the held bar moves: the charge can neither start nor be dropped there.
@@ -1165,7 +1165,8 @@ export class Game {
  /** Base Delay a fighter adds when their turn starts, from their match equipment. */
  private baseDelay(f:Fighter){return attributes(this.combatEquipment(f),f.level).delay;}
  private wind(){return Math.round((Math.random()*2-1)*35)/10;}
- private boost(f:Fighter,id:BoostId){
+ /** A bar tool; `item` arms Enfurecer or Gelo from the room items, which spend a use instead of Vigor. */
+ private boost(f:Fighter,id:BoostId,item=false){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar ferramentas.');
   const b=BOOSTS.find(b=>b.id===id)!;
   const combination=powerUpConflict(f.boosts,id);if(combination)throw Error(combination);
@@ -1174,7 +1175,9 @@ export class Game {
   if(id==='ice'&&f.powerArmed)throw Error('O gelo não combina com o POW.');
   if(id==='ice'&&f.homingArmed)throw Error('O gelo não combina com a mira assistida.');
   if(id==='rage'&&(f.powerArmed||(f.powerCharge??0)>=POWER_MAX))throw Error('Sua barra de POW já está cheia.');
-  if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
+  if(id==='ice'&&f.boosts.includes('ice'))throw Error('O gelo já está preparado.');
+  if(!item){if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;}
+  f.boosts.push(id);
   // Enfurecer fills the bar at once (shared/ice.ts); using the POW is still its own click.
   if(id==='rage')addPower(f,RAGE_CHARGE);
  }
@@ -1190,10 +1193,11 @@ export class Game {
   // Heal and invisibility act at once and combine with flight; homing guides a shot, which flight replaces.
   if(f.flightArmed&&ability==='homing')throw Error('Cancele o voo antes de usar a mira assistida.');
   if(!normalizeAbilityLoadout(f.abilityLoadout).includes(ability))throw Error('Esta habilidade não está equipada.');
-  f.abilities??=initialAbilities(f.abilityLoadout);if(f.abilities[ability]<=0)throw Error('Esta habilidade já foi usada nesta partida.');
+  f.abilities??=initialAbilities(f.abilityLoadout);if((f.abilities[ability]??0)<=0)throw Error('Esta habilidade já foi usada nesta partida.');
   if(ability==='heal'&&f.hp>=f.maxHp)throw Error('Sua vida já está completa.');
   if(ability==='homing'&&f.homingArmed)throw Error('A mira assistida já está preparada.');
   if(ability==='homing'&&f.boosts.includes('ice'))throw Error('A mira assistida não combina com o gelo.');
+  if(ability==='rage'||ability==='ice')this.boost(f,ability,true);
   f.abilities[ability]--;f.delay=(f.delay??0)+(ABILITIES.find(entry=>entry.id===ability)?.delay??0);let amount:number|undefined;
   if(ability==='heal'){const healed=clampHp(f.hp+HEAL_AMOUNT,f.maxHp);amount=healed-f.hp;f.hp=healed;}
   if(ability==='homing')f.homingArmed=true;

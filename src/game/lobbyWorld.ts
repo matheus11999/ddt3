@@ -17,7 +17,7 @@ import {drawScaled,freeAll,freeImage,freeSurface,imageReady,resizedBitmap,scaled
 export {LOBBY_WIDTH,LOBBY_WALK};
 export const LOBBY_W=1536,LOBBY_H=864;
 
-export type LobbyAction='arena'|'practice'|'shop'|'storage'|'forge';
+export type LobbyAction='arena'|'practice'|'shop'|'storage'|'forge'|'hall';
 type Theme={glow:string;core:string;metal:[string,string,string];rune:string};
 type Portal={x:number;y:number;scale:number;theme:Theme;wings?:boolean};
 
@@ -57,8 +57,9 @@ export const LOBBY_STATIONS:Station[]=[
  {id:'storage',title:'Guarda-volumes',dir:'npc-armazem',x:1220,y:628,height:240,action:'storage',shadows:[[.31,.99,.21,.03],[.73,.99,.12,.025]],fallback:{kind:'keeper',hat:'hat-cap',facing:1},layers:[
   {name:'burro',motion:'breathe',period:3400},{name:'npc',motion:'breathe'}]},
  // All podium canvases share one scale, so they share one height; `stand` is the centre of each top.
+ // The daily PvP podium opens the Hall da Fama (its menu button left the dock on 21/10/2026).
  ...([[2,2040,616,[.5,.66],SILVER],[1,2304,608,[.5,.49],GOLD],[3,2568,620,[.5,.75],BRONZE]] as const).map(([rank,x,y,stand,theme]):Station=>({
-  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:PODIUM_HEIGHT,rank,noCast:true,shadows:[[.5,.97,.5,.07,1.5],[.34,.95,.44,.07,1.1]],stand:[stand[0],stand[1]],glow:{x,y:y-PODIUM_HEIGHT*(1-stand[1])+40,scale:.8,theme},
+  id:`podium-${rank}`,title:`${rank}º lugar`,dir:`podio-${rank}`,x,y,height:PODIUM_HEIGHT,rank,noCast:true,action:'hall',shadows:[[.5,.97,.5,.07,1.5],[.34,.95,.44,.07,1.1]],stand:[stand[0],stand[1]],glow:{x,y:y-PODIUM_HEIGHT*(1-stand[1])+40,scale:.8,theme},
   fallback:{kind:'podium',portal:{x,y,scale:1,theme}},layers:[{name:'base',motion:'still'},{name:'brilho',motion:'pulse'}]})),
  {id:'arena',title:'Arena PvP',dir:'portal-arena',x:2980,y:618,height:360,action:'arena',noCast:true,shadows:[[.5,.97,.52,.075,1.5],[.34,.95,.48,.075,1.1]],glow:{x:2980,y:600,scale:1.1,theme:BLUE},fallback:{kind:'gate',portal:{x:2980,y:600,scale:1.1,theme:BLUE,wings:true}},layers:[
   {name:'base',motion:'still'},{name:'asas',motion:'sway',pivot:[.5,.45],period:1700,amount:.03},{name:'calice',motion:'bob',period:2400,amount:8}]},

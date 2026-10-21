@@ -8,7 +8,7 @@ const base=process.env.BASE??'http://127.0.0.1:5177',dir=process.argv[2]??'test-
 const browser=await chromium.launch(process.env.CHROMIUM?{executablePath:process.env.CHROMIUM}:{});
 const page=await (await browser.newContext({viewport:{width:Number(process.env.WIDTH??1536),height:Number(process.env.HEIGHT??864)}})).newPage();
 await enterGame(page,base);
-await page.locator('.lobby-dock-button.fishing').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
+await page.locator('.fishing-zone-button').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
 await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').map(e=>e.name).find(n=>/\/src\/client\.ts/.test(n));window.__c=(await import(url)).client;});
 const catches=[['lambari-dourado',.37],['tilapia-rosada',1.41],['carpa-lua',3.6],['bagre-barbudo',6.9],['peixe-vidro',.31],['tucunare-brasa',4.8],['koi-celeste',5.4],['dourado-real',11.2],['pirarucu-ancestral',41.5]];
 const now=Date.now(),bag=catches.map(([fish,kg],i)=>({id:`p${i}`,fish,kg,value:catchPoints(FISH_BY_ID.get(fish),kg,.6),at:now-i*7*60000}));

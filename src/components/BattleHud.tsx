@@ -5,7 +5,7 @@ import {BattleText} from './BattleText';
 import {BattleRewards} from './BattleRewards';
 import {AbilitySlots} from './AbilitySlots';
 import {PetSkillBar} from './PetSkillBar';
-import {AngleArrow,AngleGauge,PowerOrb,WindGauge} from './CombatGauges';
+import {AngleArrow,AngleGauge,PowerOrb,TouchFireDial,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
 import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
@@ -15,6 +15,7 @@ import {useCallback,useEffect,useLayoutEffect,useRef,useState} from 'react';
 import type {CSSProperties,MouseEvent as ReactMouseEvent,PointerEvent as ReactPointerEvent} from 'react';
 import {Zap} from 'lucide-react';
 import {BOOSTS,WEAPONS} from '../../shared/catalog';
+import {normalizeAbilityLoadout,TOOL_ABILITIES} from '../../shared/abilities';
 import {powerUpConflict} from '../../shared/powerUps';
 import {WALK_COMMAND_MS} from '../../shared/physics';
 import {petSkill} from '../../shared/petSkills';
@@ -39,6 +40,8 @@ const POWER_GRADUATIONS=<div className="power-graduations">{Array.from({length:1
  * 2° after half a second and 3° after 1.2 s; a held button waits 350 ms before repeating. */
 const ANGLE_REPEAT_MS=90,ANGLE_HOLD_DELAY_MS=350;
 const angleHoldSteps=(held:number)=>held<500?1:held<1200?2:3;
+// Enfurecer and Gelo left the tool bar: they are room items now (keys 9 and 0 still use them).
+const isToolAbility=(id:string)=>(TOOL_ABILITIES as readonly string[]).includes(id);
 const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,button,a,[contenteditable="true"],[role="dialog"],[role="menu"]');
 // A HUD button that kept focus after a click (PASS, a boost, an ability) must not swallow walking, turning or aiming.
 const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
@@ -161,6 +164,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||(id==='rage'&&(fighter.powerArmed||powerFull(fighter.powerCharge)))||(id==='ice'&&(fighter.powerArmed||fighter.homingArmed))||fighter.stamina<boost.cost)return;
   client.send({type:'boost',boost:id});
  },[]);
+ // Keys 9 and 0: Enfurecer and Gelo from the room items, when they are prepared and still have a use.
+ const useAbilityItem=useCallback((id:AbilityId)=>{
+  const fighter=live.current.me;
+  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||!normalizeAbilityLoadout(fighter.abilityLoadout).includes(id)||!(fighter.abilities?.[id]))return;
+  client.send({type:'ability',ability:id});
+ },[]);
 
  useLayoutEffect(()=>{
   cancelCharge();turnSubmitted.current=false;setSubmitted(null);
@@ -215,7 +224,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    if(event.repeat)return;
    keys.add(key);
    if(key===' ')beginCharge('keyboard');
-   const boost=BOOSTS.find(item=>item.key===key);if(boost)useBoost(boost.id);
+   const boost=BOOSTS.find(item=>item.key===key);if(boost)isToolAbility(boost.id)?useAbilityItem(boost.id as AbilityId):useBoost(boost.id);
    if(key==='p')passTurn();
    if(key==='b'&&powerKeyReady.current)client.send({type:'power'});
   };
@@ -246,7 +255,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   },WALK_COMMAND_MS);
   window.addEventListener('keydown',down);window.addEventListener('keyup',up);window.addEventListener('blur',blur);window.addEventListener('focusin',focus);document.addEventListener('visibilitychange',visibility);
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
- },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,stepAngle]);
+ },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,useAbilityItem,stepAngle]);
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':touch?'SEGURE O BOTÃO DE DISPARO':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
@@ -255,7 +264,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // Pet skills the turn player activated this turn, shown in the same row as the turn's powers.
  const turnPetSkills=turn?.pet?turn.pet.skills.filter(slot=>slot.usedTurn===turn.pet!.turns).map(slot=>{const def=petSkill(slot.id);return {id:slot.id,name:def?.name??slot.id,icon:def?.visual?.icon};}):[];
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];
- const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed||me.boosts.includes('ice')?['homing' as const]:[])];
+ const unavailableAbilities:AbilityId[]=[...(me.hp>=me.maxHp?['heal' as const]:[]),...(me.homingArmed||me.flightArmed||me.boosts.includes('ice')?['homing' as const]:[]),
+  ...(me.flightArmed||toolBlocks('rage')?['rage' as const]:[]),...(me.flightArmed||toolBlocks('ice')||me.boosts.includes('ice')||(b.turnId===me.id&&!!powerUpConflict(me.boosts,'ice'))?['ice' as const]:[])];
 
  return <div className={`artillery-hud ${b.phase==='finished'?'battle-finished':''} ${charging?'is-charging':''} ${fallen?'fighter-fallen':''}`} data-party-size={instance?b.players.filter(player=>player.team===me.team).length:Math.max(b.players.filter(player=>player.team===me.team).length,opponents.length)} data-expedition={instance?'':undefined}>
   <div className="battle-top">
@@ -289,6 +299,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   <aside className="boost-bar" aria-label="Ferramentas de batalha">
    <div className="boost-caption"><Zap size={15}/> PODERES</div>
    {BOOSTS.map((boost,index)=>{
+     if(isToolAbility(boost.id))return null;
      const count=b.turnId===me.id?me.boosts.filter(id=>id===boost.id).length:0,selected=count>0,disabled=!canAct||me.flightArmed||(b.turnId===me.id&&!!powerUpConflict(me.boosts,boost.id))||powBlocks(boost.id)||toolBlocks(boost.id)||me.stamina<boost.cost;
     return <button type="button" key={boost.id} data-boost={boost.id} data-count={count} aria-label={`${boost.name}, ${boost.cost} vigor${count?`, ${count} ${count===1?'uso':'usos'}`:''}`} aria-pressed={selected} title={`${boost.name}\n${boost.detail}\n${boost.cost} de vigor${count?`\n${count} ${count===1?'uso preparado':'usos preparados'}`:''}`} className={`boost ${selected?'selected':''}`} disabled={disabled} onClick={event=>{useBoost(boost.id);if(event.detail>0)event.currentTarget.blur();}}>
      <BoostArt id={boost.id} index={index}/>
@@ -312,7 +323,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
   <div className="battle-console" aria-label="Controles de batalha">
    <div className="angle-control">
-    <AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>
+    {touch?<button type="button" className={`touch-fire ${charging?'charging':''}`} disabled={!canAct&&!charging} aria-label="Disparar: segure para carregar a força e solte" data-charging={charging} {...chargeByPointer}><TouchFireDial angle={angle} power={power} charging={charging} ready={canAct}/></button>
+     :<AngleGauge angle={angle} minAngle={minAngle} maxAngle={maxAngle} facing={me.facing} slope={aimSlope}/>}
     <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" {...holdAngle(1)}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" {...holdAngle(-1)}><AngleArrow up={false}/></button></div>
    </div>
    <div className="power-controls">
@@ -338,15 +350,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} blocked={powerOrbBlock} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
-  {/* Phones: big walk arrows on the left and a hold-to-charge fire button on the right (docs/mobile.md). */}
+  {/* Phones: big walk arrows on the left; the hold-to-charge fire button sits in the angle dial's place (docs/mobile.md). */}
   {touch&&<div className="touch-controls">
    <div className="touch-walk" role="group" aria-label="Andar">
     <button type="button" disabled={!canFace} aria-label="Andar para a esquerda" {...holdWalk(-1)}><AngleArrow up/></button>
     <button type="button" disabled={!canFace} aria-label="Andar para a direita" {...holdWalk(1)}><AngleArrow up/></button>
    </div>
-   <button type="button" className={`touch-fire ${charging?'charging':''}`} disabled={!canAct&&!charging} aria-label="Disparar: segure para carregar a força e solte" data-charging={charging} {...chargeByPointer}>
-    <strong>{charging?power:submitted==='shot'?'···':'FOGO'}</strong><small>{charging?'SOLTE':canAct?'SEGURE':'AGUARDE'}</small>
-   </button>
   </div>}
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{worldBoss?'O dano que você já causou continua no ranking.':b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
   <BattleChat/>
