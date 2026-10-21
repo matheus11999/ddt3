@@ -80,7 +80,7 @@ const hexColor=z.string().regex(/^#[0-9a-fA-F]{6}$/).transform(value=>value.toLo
 export const MAX_SHOP_QUANTITY=20;
 const finite=(lo:number,hi:number)=>z.number().finite().min(lo).max(hi);
 const name=z.string().trim().min(2).max(24).regex(/^[\p{L}\p{N} _!.-]+$/u);
-export const sessionRequestSchema=z.object({gender:z.enum(CHARACTER_GENDERS).optional()}).strict();
+export const sessionRequestSchema=z.object({gender:z.enum(CHARACTER_GENDERS).optional(),name:z.string().max(32).optional()}).strict();
 const abilitySlot=z.enum(ABILITY_IDS).nullable();
 export const abilityLoadoutSchema=z.tuple([abilitySlot,abilitySlot,abilitySlot]).refine(slots=>new Set(slots.filter(slot=>slot!==null)).size===slots.filter(slot=>slot!==null).length,'Não repita habilidades nos espaços.');
 export const equipmentVisibilitySchema=z.object({hat:z.boolean().optional(),glasses:z.boolean().optional(),costume:z.boolean().optional()}).strict();

@@ -43,3 +43,9 @@ Pedido do matheus em 20/10/2026: site do jogo com o novo nome **Bomb Masters**, 
 ## O que ainda é Brasa Arena
 
 O nome e a logo **dentro do jogo** (título da aba, telas de carregamento, textos) continuam Brasa Arena; trocar é uma decisão separada.
+
+## Criação de personagem e landing curta (21/10, pedido do matheus)
+
+- Conta logada sem personagem no servidor sempre passa pela criação (o convidado do navegador não é mais adotado). A tela (`src/components/CharacterCreation.tsx`, fundo `public/assets/ui/creation-bg.webp` do Codex) pede gênero e **nome**: regras em `shared/characterName.ts` (3 a 16 letras, números ou _, sem nomes de staff nem palavrões) e nome livre no servidor (`GET /api/character-name`, conferido de novo no `POST /api/session` com trava no banco).
+- Personagem novo começa só com o **Vento Celeste** (`wind-shuriken`) e rosto, cabelo e roupa básicos do gênero (`newCharacterEquipment`); sem chapéu, óculos ou fantasias. Personagens antigos não mudam. Clientes de teste sem conta e sem nome continuam criando o convidado antigo.
+- Landing: só o hero (com "Beta aberta", hero `hero-3` do Codex com degradê) e a galeria "Telas do jogo" (`#prints`, Ver o jogo). Login e cadastro em abas, com validação dos campos e força da senha.

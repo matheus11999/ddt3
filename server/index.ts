@@ -21,6 +21,7 @@ import {PlayerDirectory} from './adminPlayers';
 import {LiveState,PostgresLive,RedisLive} from './liveState';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
 import {ACCOUNT_COOKIE,AccountStore,FIRST_SERVER} from './accounts';
+import {characterNameError} from '../shared/characterName';
 const app=Fastify({logger:true,bodyLimit:4096,trustProxy:process.env.BEHIND_PROXY==='true'?(_address:string,hop:number)=>hop===0:false});
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8097,http://127.0.0.1:8097,http://localhost:5177,http://127.0.0.1:5177').split(','));
 const redis=new Redis(process.env.REDIS_URL??'redis://localhost:6397',{maxRetriesPerRequest:2});redis.on('error',e=>app.log.error({err:e},'Redis unavailable'));
@@ -34,21 +35,26 @@ const gameCookie=()=>({path:'/',httpOnly:true,sameSite:'strict' as const,secure:
 const SERVER_ID=process.env.SERVER_ID??FIRST_SERVER;
 /**
  * The game session for this browser. A Bomb Masters account signed in on the site (docs/site.md) decides the player:
- * its character on this server, or the guest already here when no account owns it; another account's player is never used.
+ * its character on this server, or the creation screen when it has none; another account's player is never used.
  */
 async function accountSession(req:FastifyRequest,reply:FastifyReply){
  let profile=await store.session(req.cookies.brasa_session);
  const account=await accounts.account(req.cookies[ACCOUNT_COOKIE]);
  if(!account)return {profile,account};
+ // A signed-in account always plays its own character here; with none yet it goes through character creation
+ // (the guest already in this browser is never taken over, pedido do matheus 21/10).
  const playerId=await accounts.characterOn(account,SERVER_ID);
  if(playerId){
   if(profile?.id!==playerId){profile=await store.getProfile(playerId);if(profile)reply.setCookie('brasa_session',await store.createSession(profile.id),gameCookie());}
- }else if(profile){
-  if(await accounts.linkPlayer(account,profile.id,SERVER_ID))profile=await store.getProfile(profile.id);
-  else profile=null;
- }
+ }else profile=null;
  return {profile,account};
 }
+// Creation screen: is this name valid and free on this server?
+app.get('/api/character-name',{config:{rateLimit:{max:60,timeWindow:'1 minute'}}},async(req,reply)=>{
+ const name=String((req.query as {name?:unknown}).name??'').trim().slice(0,32);reply.header('Cache-Control','no-store');
+ const invalid=characterNameError(name);if(invalid)return {ok:false,error:invalid};
+ return await store.nameTaken(name)?{ok:false,error:'Esse nome já está em uso neste servidor.'}:{ok:true};
+});
 app.get('/api/session',async(req,reply)=>{const {profile}=await accountSession(req,reply);reply.header('Cache-Control','no-store');return {profile};});
 app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},async(req,reply)=>{
  const parsed=sessionRequestSchema.safeParse(req.body??{});if(!parsed.success)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
@@ -56,7 +62,9 @@ app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},as
  if(profile&&parsed.data.gender&&parsed.data.gender!==profile.gender)return reply.code(409).send({error:'O gênero do personagem é definido na criação e não pode ser alterado.'});
  if(!profile){
   if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
-  const created=await store.createGuest(parsed.data.gender,account?.username);profile=created.profile;reply.setCookie('brasa_session',created.token,gameCookie());
+  // The creation screen always sends a name; only bare API clients without an account (tests, load scripts) skip it.
+  if(parsed.data.name===undefined&&account)return reply.code(400).send({error:'Escolha o nome do seu personagem.'});
+  let created;try{created=await store.createGuest(parsed.data.gender,parsed.data.name);}catch(e){return reply.code(409).send({error:(e as Error).message});}profile=created.profile;reply.setCookie('brasa_session',created.token,gameCookie());
   if(account)await accounts.linkPlayer(account,profile.id,SERVER_ID);
  }
  reply.header('Cache-Control','no-store');return {profile};

@@ -17,11 +17,11 @@ await shot(page,'home-hero',false);
 await shot(page,'home-desktop');
 // Cadastro pelo cartão do topo: "Ainda não tem conta? Cadastrar agora".
 await page.getByRole('button',{name:'Cadastrar agora'}).click();
-await page.getByPlaceholder('Seu nome no jogo').fill(user);
+await page.getByLabel('Usuário',{exact:true}).fill(user);
 await page.getByPlaceholder('voce@email.com').fill(`${user.toLowerCase()}@teste.com`);
-await page.getByPlaceholder('••••••••').fill('senha-de-teste');
+await page.getByLabel('Senha',{exact:true}).fill('senha-de-teste');await page.getByLabel('Repita a senha').fill('senha-de-teste');
 await shot(page,'register-card',false);
-await page.getByPlaceholder('••••••••').press('Enter');
+await page.getByLabel('Repita a senha').press('Enter');
 await page.waitForURL('**/jogador');
 await shot(page,'player-desktop');
 // Fórum: criar tópico, responder e curtir.
@@ -37,11 +37,10 @@ await page.locator('.post-topic .like').click();
 await shot(page,'topic-desktop');
 await page.goto(`${base}/forum`,{waitUntil:'networkidle'});
 await shot(page,'forum-desktop');
-// Jogar abre o jogo já com a conta.
-const play=await page.goto(`${base}/jogador`,{waitUntil:'networkidle'}).then(()=>page.locator('.play-btn').first().getAttribute('href'));
-const game=await desktop.newPage();
-const session=await game.goto(new URL('/api/session',play).toString()).then(r=>r.json()).catch(e=>({error:e.message}));
-console.log('Jogar →',play,'sessão do jogo:',JSON.stringify(session).slice(0,120));
+// Jogar abre a escolha de servidor; cada servidor leva ao jogo com a conta.
+await page.goto(`${base}/jogador`,{waitUntil:'networkidle'});await page.locator('.player-play .play-btn').click();await page.waitForTimeout(400);
+await shot(page,'servers',false);
+console.log('servidores:',(await page.locator('.server-modal .server-row').allInnerTexts()).map(t=>t.replace(/\s+/g,' ')).join(' | '));
 
 const mobile=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true,reducedMotion:'reduce'});
 const m=await mobile.newPage();
