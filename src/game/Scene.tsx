@@ -40,7 +40,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
-import {CONSUMABLE_ICON_DURATION,drawConsumableIcon,drawFrozenBlock,drawIceImpact,drawIceProjectile,ICE_SHATTER_DURATION,playConsumableSound,releaseConsumables} from './consumableEffects';
+import {drawFrozenBlock,drawIceImpact,drawIceProjectile,drawItemUse,ICE_SHATTER_DURATION,ITEM_USE_DURATION,playConsumableSound,releaseConsumables,releaseItemUse,type ItemUse} from './consumableEffects';
 import {releaseCombatBodies} from './combatBody';
 import {releaseWalkBodies} from './walkBody';
 import {scenePaint} from './scenePaint';
@@ -83,7 +83,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let residues:TerrainResidues|null=null;
   const boomerangBursts=new Map<string,{projectile:Projectile;at:number;level:number}>();
   // Enfurecer and Gelo: the tool icon over the head when used, and the ice on frozen fighters (consumableEffects.ts).
-  const toolIcons=new Map<string,{id:'rage'|'ice';at:number}>(),seenBoosts=new Map<string,number>(),frozenSeen=new Map<string,{since:number;turns:number;thawAt?:number}>();
+  const toolIcons=new Map<string,{id:ItemUse;at:number}>(),seenBoosts=new Map<string,number>(),seenAbilities=new Map<string,Record<string,number>>(),frozenSeen=new Map<string,{since:number;turns:number;thawAt?:number}>();
   // When each pet projectile landed (its own clock or the server's impact, whichever comes first).
   const petLandings=new Map<string,number>();
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
@@ -103,7 +103,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   };
   let wasFishing=false;
   /** Battle-only paintings and canvases go as soon as the battle ends, not when the garbage collector runs; an expedition's or the dragon's stay while their room is open (the next stage uses them). */
-  const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
+  const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releaseItemUse();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
   const zoneReady=(scale:number,scaleY=scale)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale,scaleY);
   /** Spots someone else is fishing from. */
   const takenSpots=()=>new Set(state.players.filter(p=>p.fishing&&p.id!==state.profile?.id).map(p=>p.fishing!.spot));
@@ -142,7 +142,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(spot&&me&&Math.hypot(me.x-spot.x,me.y-spot.y)<SPOT_REACH*.5){pendingSpot=null;client.send({type:'fish-cast',spot:spot.id});}
    }
    if(b){
-    if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();toolIcons.clear();seenBoosts.clear();frozenSeen.clear();}
+    if(matchId!==b.id){boomerangBursts.clear();petLandings.clear();toolIcons.clear();seenBoosts.clear();seenAbilities.clear();frozenSeen.clear();}
     const knownMatch=matchId===b.id;
     if(matchId!==b.id){environment?.dispose();residues?.dispose();matchId=b.id;terrainSource=b.terrain??'';terrain=b.terrain?unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0))):createTerrain(b.map);environment=new EnvironmentRenderer(b.map,terrain);residues=new TerrainResidues(terrain,b.map);camera=createCamera(getMap(b.map).dimensions.width);shotId='';entities.clear();exploded.clear();hurtAt.clear();startEnvironmentAudio(b.map);publishTerrain(terrain);}
     else if(b.terrain!==undefined&&b.terrain!==terrainSource){terrainSource=b.terrain;terrain=unpackTerrain(Uint8Array.from(atob(b.terrain),x=>x.charCodeAt(0)));environment!.setTerrain(terrain);residues!.setTerrain(terrain);publishTerrain(terrain);}
@@ -203,7 +203,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // The latest hit on each fighter, timed at the projectile's arrival: it drives the pain face and,
     // when critical, a short burn. Each new projectile restarts or ends it; kept past the shot's impact list.
     for(const impact of state.impacts)for(const hit of impact.hits)if(!hit.hidden&&hit.damage>0){const last=hurtAt.get(hit.id);if(!last||impact.at>last.at||(impact.at===last.at&&hit.critical))hurtAt.set(hit.id,{at:impact.at,critical:hit.critical});}
-    const myTeam=b.players.find(player=>player.id===state.profile?.id)?.team,plates:FighterPlate[]=[];
+    const myTeam=b.players.find(player=>player.id===state.profile?.id)?.team,plates:FighterPlate[]=[],itemIcons:{id:ItemUse;x:number;y:number;age:number}[]=[];
     for(const f of b.players){
      if(f.fall?.void&&serverNow>=f.fall.startedAt+f.fall.duration)continue;
      if(f.hidden){entities.delete(f.id);continue;}
@@ -246,7 +246,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      if(lift>0){pose='hit';poseTime=120;}
      if(hp===0)pose='defeat';else if(b.phase==='finished')pose=b.winner===f.team?'victory':'defeat';if(falling)pose='fall';
      {const count=f.boosts.length,before=seenBoosts.get(f.id)??(knownMatch?0:count);seenBoosts.set(f.id,count);
-      if(count>before&&!f.hidden){const used=f.boosts.slice(before).filter((id):id is 'rage'|'ice'=>id==='rage'||id==='ice').at(-1);if(used)toolIcons.set(f.id,{id:used,at:t});}
+      if(count>before&&!f.hidden)toolIcons.set(f.id,{id:f.boosts[count-1],at:t});
+      // Battle items from the room (Cura, Mira, Invisibilidade): a use spends one charge. Enfurecer and Gelo also arm their boost above.
+      const charges:Record<string,number>=f.abilities??{},spent=seenAbilities.get(f.id);seenAbilities.set(f.id,{...charges});
+      if(spent&&knownMatch&&!f.hidden){const used=(['heal','homing','invisibility'] as const).find(id=>(charges[id]??0)<(spent[id]??0));if(used)toolIcons.set(f.id,{id:used,at:t});}
       const turns=hp>0?f.frozenTurns??0:0,ice=frozenSeen.get(f.id);
       if(turns>0&&(!ice||ice.thawAt!==undefined))frozenSeen.set(f.id,{since:knownMatch?t:t-1e4,turns});else if(turns>0&&ice)ice.turns=turns;
       else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
@@ -259,13 +262,14 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');
-     {const ice=frozenSeen.get(f.id);if(ice&&!f.hidden)drawFrozenBlock(c,e.x,e.y,ice,t);const icon=toolIcons.get(f.id);if(icon){if(t-icon.at>=CONSUMABLE_ICON_DURATION)toolIcons.delete(f.id);else if(!f.hidden)drawConsumableIcon(c,icon.id,e.x,e.y,t-icon.at);}}
+     {const ice=frozenSeen.get(f.id);if(ice&&!f.hidden)drawFrozenBlock(c,e.x,e.y,ice,t);const icon=toolIcons.get(f.id);if(icon){if(t-icon.at>=ITEM_USE_DURATION)toolIcons.delete(f.id);else if(!f.hidden){drawItemUse(c,icon.id,e.x,e.y,t-icon.at,'body');itemIcons.push({id:icon.id,x:e.x,y:e.y,age:t-icon.at});}}}
      if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
      if(limits)drawAimIndicator(c,e.x,e.y,f.facing,angleRef.current,slope,e.aimChangedAt===undefined?-1:t-e.aimChangedAt,limits,'front');
     }
     // Plates go on top of every fighter, stacked when neighbours stand close together.
     drawFighterPlates(c,plates,t);
+    for(const icon of itemIcons)drawItemUse(c,icon.id,icon.x,icon.y,icon.age,'icon');
     if(dragon&&pose)drawDragonFront(c,b,dragon,pose,serverNow,t,x=>ground(terrain,x,0),quality==='high'?'high':'low');
     // Speech bubbles (a boss taunting at a stage's opening), above the speaker's head.
     for(const line of b.instance?.speech??[]){if(serverNow<line.from||serverNow>line.to)continue;const speaker=b.players.find(f=>f.id===line.id);if(!speaker||speaker.hp<=0)continue;

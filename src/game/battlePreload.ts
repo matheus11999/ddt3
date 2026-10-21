@@ -10,7 +10,7 @@ import {drawAvatar} from './avatar';
 import {preloadWeaponEffects} from './weaponEffects';
 import {aimImages} from './aimIndicator';
 import {preloadTerrainMarks} from './terrainResidues';
-import {preloadConsumables} from './consumableEffects';
+import {preloadConsumables,preloadItemUse} from './consumableEffects';
 
 /**
  * What the loading screen waits for (docs/loading-screen.md): only what this battle draws. The map's
@@ -48,7 +48,7 @@ export async function preloadBattle(loading:MatchLoading,progress:(percent:numbe
   // The ground marks of each fighter's weapon at its level (normal and POW): they are composed in impact order, so a late file would hold the later marks back.
   [1,()=>preloadTerrainMarks(loading.players.map(player=>({weapon:player.equipment.weapon,upgrade:player.equipment.upgrade})))],
   [1,()=>settle(tombstoneImage()!)],
-  [1,()=>Promise.all(preloadConsumables().map(settle))],
+  [1,()=>Promise.all([...preloadConsumables(),...preloadItemUse()].map(settle))],
   [1,()=>Promise.all(aimImages().map(settle))],
   ...loading.kind==='expedition'?[[2,()=>Promise.all(preloadMonsters().map(settle))] as [number,()=>Promise<unknown>]]:[],
  ];
