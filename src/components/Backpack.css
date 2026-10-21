@@ -884,8 +884,8 @@ html.mobile-landscape .bag-window .bag-tabs button { min-height: 0; flex: 1; gap
 html.mobile-landscape .bag-window .bag-tabs button svg { width: 15px; height: 15px; }
 html.mobile-landscape .bag-window .bag-tabs button span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 html.mobile-landscape .bag-window .bag-tabs button { position: relative; justify-content: center; }
-html.mobile-landscape .bag-window .inventory-pagination { min-height: 24px; padding-right: 40px; font-size: 9px; }
-html.mobile-landscape .bag-window .inventory-pagination button { width: 28px; height: 22px; min-height: 22px; }
+html.mobile-landscape .bag-window .inventory-pagination { min-height: 30px; padding-right: 40px; font-size: 9px; }
+html.mobile-landscape .bag-window .inventory-pagination button { width: 38px; height: 30px; min-height: 30px; }
 html.mobile-landscape .bag-window .bag-footer { padding: 4px 6px; }
 html.mobile-landscape .bag-window .bag-wallet > span { min-width: 0; height: 26px; padding-right: 8px; }
 html.mobile-landscape .bag-window .bag-wallet b { font-size: 11px; }

@@ -29,6 +29,8 @@ import {audio} from '../game/audio';
 import './BattleHud.css';
 import './BattleHudRefinement.css';
 import './BattleConsole.css';
+import './BattleTouch.css';
+import {useMobileOrientation} from './MobileOrientation';
 type ChargeSource='keyboard'|'pointer';
 const MIN_POWER=1,MAX_POWER=FORCE_BAR_MAX;
 // 101 marks that never change: built once so the per-point re-render while charging stays light.
@@ -42,7 +44,7 @@ const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!ta
 const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
 
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
- const {battle,profile,offset,status}=useGame();
+ const {battle,profile,offset,status}=useGame();const touch=useMobileOrientation().mobile;
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
  const opponents=b.players.filter(player=>player.team!==me.team),instance=b.instance,worldBoss=b.worldBoss,monsterTurn=b.turnId===MONSTER_TURN_ID||b.turnId===DRAGON_TURN_ID;
  const introUntil=instance?.introUntil??worldBoss?.introUntil;
@@ -105,6 +107,20 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   onClick:(event:ReactMouseEvent<HTMLButtonElement>)=>{if(event.detail===0)stepAngle(dir);else event.currentTarget.blur();}
  });
 
+ // Touch walking (phones): holding an arrow sends the same walk command as the held keyboard arrow; off turn it only turns around.
+ const walkHeld=useRef<{dir:1|-1;pointer:number}|null>(null);
+ const stopWalk=useCallback(()=>{walkHeld.current=null;},[]);
+ const holdWalk=(dir:1|-1)=>({
+  onPointerDown:(event:ReactPointerEvent<HTMLButtonElement>)=>{if(event.button!==0)return;event.preventDefault();
+   if(!live.current.canAct){if(live.current.canFace&&live.current.me.facing!==dir)client.send({type:'face',direction:dir});return;}
+   event.currentTarget.setPointerCapture(event.pointerId);walkHeld.current={dir,pointer:event.pointerId};if(!turnSubmitted.current)client.send({type:'walk',direction:dir});},
+  onPointerUp:stopWalk,onPointerCancel:stopWalk,onLostPointerCapture:stopWalk,onContextMenu:(event:ReactMouseEvent)=>event.preventDefault()
+ });
+ useEffect(()=>{
+  const timer=setInterval(()=>{const held=walkHeld.current;if(!held)return;if(!live.current.canAct||turnSubmitted.current){walkHeld.current=null;return;}client.send({type:'walk',direction:held.dir});},WALK_COMMAND_MS);
+  const clear=()=>{walkHeld.current=null;};window.addEventListener('blur',clear);
+  return()=>{clearInterval(timer);window.removeEventListener('blur',clear);};
+ },[]);
  // This ref represents the value committed to the visible meter, not a pending
  // RAF/state update. Release never recalculates elapsed time or uses stale state.
  useLayoutEffect(()=>{paintedPower.current=power;},[power]);
@@ -128,6 +144,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   turnSubmitted.current=true;setSubmitted('shot');setPower(value);setLastPower(value);setLastWind(live.current.wind);
   client.send({type:'fire',angle:live.current.angle,power:value});
  },[cancelCharge]);
+ // The big fire button and the ruler share one pointer charge: press to start, release to fire.
+ const chargeByPointer={
+  onPointerDown:(event:ReactPointerEvent<HTMLElement>)=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}},
+  onPointerUp:(event:ReactPointerEvent<HTMLElement>)=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');},
+  onPointerCancel:()=>cancelCharge(),
+  onLostPointerCapture:()=>{if(chargeSource.current==='pointer')cancelCharge();},
+  onContextMenu:(event:ReactMouseEvent)=>event.preventDefault()
+ };
  const passTurn=useCallback(()=>{
   if(!live.current.canAct||turnSubmitted.current)return;
   cancelCharge();turnSubmitted.current=true;setSubmitted('pass');client.send({type:'pass'});
@@ -224,7 +248,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   return()=>{clearInterval(timer);window.removeEventListener('keydown',down);window.removeEventListener('keyup',up);window.removeEventListener('blur',blur);window.removeEventListener('focusin',focus);document.removeEventListener('visibilitychange',visibility);};
  },[beginCharge,cancelCharge,releaseCharge,passTurn,useBoost,stepAngle]);
 
- const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
+ const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':touch?'SEGURE O BOTÃO DE DISPARO':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
  const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':!powerFull(me.powerCharge)?'Ataque, passe ou receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':me.boosts.includes('ice')?'O POW não combina com o gelo':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
  powerKeyReady.current=!powerOrbBlock;
@@ -293,7 +317,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    </div>
    <div className="power-controls">
     <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
-    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} onPointerDown={event=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}}} onPointerUp={event=>{if(pointer.current!==event.pointerId)return;event.preventDefault();releaseCharge('pointer');}} onPointerCancel={cancelCharge} onLostPointerCapture={()=>{if(chargeSource.current==='pointer')cancelCharge();}} onContextMenu={event=>event.preventDefault()} ref={powerTrack} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
+    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} {...chargeByPointer} ref={powerTrack} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
      <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
      {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
      {/* The scale and its numbers sit inside the bar, over the fill. */}
@@ -314,6 +338,16 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    <PowerOrb charge={me.powerCharge??0} armed={!!me.powerArmed} blocked={powerOrbBlock} onActivate={()=>client.send({type:'power'})}/>
   </div>
 
+  {/* Phones: big walk arrows on the left and a hold-to-charge fire button on the right (docs/mobile.md). */}
+  {touch&&<div className="touch-controls">
+   <div className="touch-walk" role="group" aria-label="Andar">
+    <button type="button" disabled={!canFace} aria-label="Andar para a esquerda" {...holdWalk(-1)}><AngleArrow up/></button>
+    <button type="button" disabled={!canFace} aria-label="Andar para a direita" {...holdWalk(1)}><AngleArrow up/></button>
+   </div>
+   <button type="button" className={`touch-fire ${charging?'charging':''}`} disabled={!canAct&&!charging} aria-label="Disparar: segure para carregar a força e solte" data-charging={charging} {...chargeByPointer}>
+    <strong>{charging?power:submitted==='shot'?'···':'FOGO'}</strong><small>{charging?'SOLTE':canAct?'SEGURE':'AGUARDE'}</small>
+   </button>
+  </div>}
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{worldBoss?'O dano que você já causou continua no ranking.':b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
   <BattleChat/>
   <PowerCutIn battle={b} offset={offset}/>

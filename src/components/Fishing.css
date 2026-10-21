@@ -516,3 +516,9 @@ button.fish-card:active{transform:scale(.95)}
 .fishing-summary-foot span{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:10px;background:#fff6df;border:1px solid #d7a860}
 .fishing-summary-foot .xp{color:#1f7a2a}
 .fishing-summary-ok{display:block;margin:14px auto 0;min-width:120px}
+/* Phones (docs/mobile.md): real-pixel sizes for the Pescaria buttons; SAIR and the ranking go under the coins row. */
+html.mobile-landscape .fishing-bar-panel{transform:scale(calc(.6 / var(--game-scale)));transform-origin:bottom left}
+html.mobile-landscape .fishing-exit{top:calc(46px / var(--game-scale));transform:scale(calc(.8 / var(--game-scale)));transform-origin:top center}
+html.mobile-landscape :is(.fishing-rank,.fishing-rank-tab){top:calc(48px / var(--game-scale));transform:scale(calc(.62 / var(--game-scale)));transform-origin:top right}
+html.mobile-landscape .fishing-trade{top:calc(100px / var(--game-scale));transform:scale(calc(.55 / var(--game-scale)))}
+html.mobile-landscape .fishing-history-button{top:calc(145px / var(--game-scale))}
