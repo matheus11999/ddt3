@@ -1,4 +1,4 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useLayoutEffect,useRef,useState} from 'react';
 import {Home,Images,LogOut,Menu,MessagesSquare,Settings,Users,X} from 'lucide-react';
 import type {Me} from './api';
 import {Avatar} from './Avatar';
@@ -9,13 +9,20 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
  const [scrolled,setScrolled]=useState(false);
  useEffect(()=>{const on=()=>setScrolled(scrollY>24);on();addEventListener('scroll',on,{passive:true});return ()=>removeEventListener('scroll',on);},[]);
  useEffect(()=>setOpen(false),[route]);
+ // Liquid glass: the selected tab is a glass lens that slides to the active link.
+ const nav=useRef<HTMLElement>(null);const [lens,setLens]=useState<{x:number;w:number}|null>(null);
+ useLayoutEffect(()=>{
+  const place=()=>{const active=nav.current?.querySelector<HTMLElement>('a.active');setLens(active?{x:active.offsetLeft,w:active.offsetWidth}:null);};
+  place();addEventListener('resize',place);return ()=>removeEventListener('resize',place);
+ },[route,me?.account]);
  // Signed in, the bar is the player's own: no way back to the landing page.
  const signedIn=!!me?.account;
  const links=signedIn?[['/jogador','Início',Home],['/personagens','Personagens',Users],['/forum','Fórum',MessagesSquare],['/configuracoes','Configurações',Settings]] as const:[['/#prints','Telas do jogo',Images],['/forum','Comunidade',MessagesSquare]] as const;
  return <header className={`topbar${scrolled||route!=='/'?' solid':''}${open?' open':''}`}>
   <div className="topbar-inner">
    <Link to={signedIn?'/jogador':'/'} className="brand" aria-label="Bomb Masters, página inicial"><img src="/art/logo.webp" alt="Bomb Masters" width="132" height="78"/></Link>
-   <nav className="nav" aria-label="Principal">
+   <nav className="nav" aria-label="Principal" ref={nav}>
+    {lens&&<span className="nav-lens" aria-hidden="true" style={{transform:`translateX(${lens.x}px)`,width:lens.w}}/>}
     {links.map(([to,label,Icon])=>to.startsWith('/#')?<a key={to} href={to} onClick={()=>setOpen(false)}><Icon size={17}/><span>{label}</span></a>:<Link key={to} to={to} className={route===to||route.startsWith(to+'/')?'active':''}><Icon size={17}/><span>{label}</span></Link>)}
    </nav>
    <div className="topbar-actions">
