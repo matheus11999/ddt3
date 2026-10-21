@@ -7,6 +7,8 @@ Quatro abas, um canal cada (`ChatChannel` em `shared/protocol.ts`); o servidor (
 - **Guilda**: membros online da mesma guilda (`memberships`); a aba fica desligada para quem não tem guilda e o servidor recusa.
 - **Privado**: um jogador, aberto por "Enviar mensagem" no menu do jogador ou clicando no nome de uma mensagem privada.
 
+Na praça e na Pescaria o chat flutua sobre o cenário (`Chat overlay` em `Hud.tsx`): as linhas ficam sobre um vidro escuro bem leve, o campo de escrever é um vidro escuro translúcido (sem madeira) e **as abas só aparecem enquanto o jogador escreve**: Enter (ou um toque no campo, no celular) abre a linha com as abas; Enter envia e fecha, Esc fecha (pedido do matheus em 21/10). Nunca 100% transparente.
+
 Mensagens privadas aparecem em todas as abas (nome rosa), para não passarem despercebidas; quem recebe uma sem ter escolhido ninguém já fica pronto para responder a quem mandou. Aba com mensagem nova não lida ganha um ponto vermelho (Mundo, Sala, Guilda). Tudo entra no histórico de denúncias (`ReportChatLine`, com o nome da guilda).
 
 Teste no navegador: `npm run test:chat:browser` (jogo rodando e Postgres para dar o ouro da guilda).
