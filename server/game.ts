@@ -24,7 +24,7 @@ import {destructionProfile,powCraterRadius} from '../shared/destruction';
 import {keepVisibleMarks} from '../shared/terrainMarks';
 import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
 import {clampHp,criticalBonusMultiplier,PASS_DELAY} from '../shared/stats';
-import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,SPLASH_RADIUS_SCALE,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
+import {criticalFromRoll,damageAtImpact,impactExposure,PVP_TURN_LIMIT,shotModifiers,SPLASH_RADIUS_SCALE,TURN_GAP_MS,turnLimitWinner,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout,TOOL_ABILITIES} from '../shared/abilities';
 import type {AbilityEffect,AbilityId} from '../shared/abilities';
@@ -1407,10 +1407,10 @@ export class Game {
   if(m.instance)return this.checkInstanceEnd(m);
   if(m.worldBoss)return this.checkWorldBossEnd(m);
   const teams=new Set(m.state.players.filter(p=>p.hp>0).map(p=>p.team));
-  const exhausted=m.state.turnNumber>=80;
+  const exhausted=m.state.turnNumber>=PVP_TURN_LIMIT;
   if(teams.size>1&&!exhausted)return false;
   delete m.pendingPower;delete m.pendingImpacts;delete m.state.powerCutIn;m.state.players.forEach(f=>{f.powerArmed=false;f.flightArmed=false;f.homingArmed=false;});
-  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:null;m.finishedAt=Date.now();
+  m.state.phase='finished';m.state.winner=teams.size===1?[...teams][0]:teams.size>1?turnLimitWinner(m.state.players):null;m.finishedAt=Date.now();
   m.rewardDeck=Array.from({length:REWARD_CARD_COUNT},()=>({...CARD_PRIZES[randomInt(CARD_PRIZES.length)]}));
   const opensAt=Math.max(Date.now(),...m.state.players.map(player=>player.fall?player.fall.startedAt+player.fall.duration:0))+REWARD_RESULT_MS;m.state.rewards={opensAt,deadline:opensAt+REWARD_PICK_MS,phase:'picking',saved:false,cards:Array.from({length:REWARD_CARD_COUNT},(_,index)=>({index}))};
   // Bot choices occupy real slots too; prizes stay exclusively on the server until reveal.
