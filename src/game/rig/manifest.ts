@@ -51,7 +51,7 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hair-swordsman':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-swordsman.png',[266,146,894,661],[338,62,584,432])},
  'hair-idol':{rig:RIG_VERSION,slot:'hair',fit:'hair-twin',worn:region('/assets/hair-idol.png',[33,170,1202,995],[374.1,93,594.9,492.3])},
  'hair-basic-male':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-basic-male.png',[324,199,733,501],[352.6,127.2,586.4,400.8])},
- 'hair-basic-female':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-basic-female.png',[312,154,745,629],[347.3,118.9,633.2,534.6])},
+ 'hair-basic-female':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-basic-female.png',[312,154,745,629],[401.8,151.5,519.2,438.4])},
  'hair-surf':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-surf.png',[196,80,999,1034],[322,92,600,621])},
  'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],shrink([288,25.8,674,533],.9,[760,250])),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
  'hat-cap':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([35,130,522,332],[[126,442],[485,330]])},
