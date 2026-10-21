@@ -37,28 +37,30 @@ html.mobile-landscape .game-frame>.channel-chip{display:none}
 .lobby-dock .lobby-quest-list strong{display:block;font-size:13px;color:var(--wood-ink)}.lobby-dock .lobby-quest-list small{display:block;font-size:11px;color:var(--wood-ink-soft)}
 html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(calc(.82 / var(--game-scale)));transform-origin:bottom right;height:auto}
 
-/* Lobby chat floats over the plaza like the classic lobby: no panel, outlined
-   message text, slim wood tabs and a dark wood input strip. */
+/* Lobby chat floats over the plaza like the classic lobby: outlined message text over a faint dark glass,
+   glass tabs that only show while writing and a translucent input line (never fully see-through). */
 .game-frame>.chat-shell.lobby-chat{bottom:10px;left:14px;width:400px;height:200px;overflow:visible;border:0;border-radius:0;z-index:6;grid-template-rows:20px minmax(0,1fr) 30px;gap:4px;padding:0;background:none;box-shadow:none}
 .game-frame>.chat-shell.lobby-chat.collapsed{height:56px;grid-template-rows:20px 30px}
 .lobby-chat.collapsed .chat-messages{display:none}
-.lobby-chat.wood-chat .chat-tabs{align-items:flex-end;gap:3px;padding:0 0 0 2px}
-.lobby-chat.wood-chat .chat-tabs>button{height:20px;min-width:52px;padding:0 10px;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:inset 0 1px #ffc98c44,0 1px 2px #0006;color:#f3c58a;font:800 11px/1 Nunito,sans-serif;text-shadow:0 1px #2c1004}
-.lobby-chat.wood-chat .chat-tabs>button:hover:not(:disabled){color:#ffe2b0}
-.lobby-chat.wood-chat .chat-tabs>button.active{background:linear-gradient(#ffe07a,#e9a422);border-color:#fff2c8;color:#6b2c05;text-shadow:none}
+.lobby-chat.wood-chat .chat-tabs{align-items:flex-end;gap:3px;padding:0 0 0 2px;transition:opacity .14s,visibility .14s}
+/* The tabs only show while writing (Enter or a tap on the line); the space stays so the lines do not jump. */
+.lobby-chat.wood-chat .chat-tabs.chat-tabs-hidden{visibility:hidden;opacity:0;pointer-events:none}
+.lobby-chat.wood-chat .chat-tabs>button{height:20px;min-width:52px;padding:0 10px;border:1px solid #ffffff38;border-radius:7px;background:#0c1424a6;box-shadow:0 1px 2px #0005;color:#e8eefb;font:800 11px/1 Nunito,sans-serif;text-shadow:0 1px 1px #000c}
+.lobby-chat.wood-chat .chat-tabs>button:hover:not(:disabled){color:#ffe2b0;background:#16203ab8}
+.lobby-chat.wood-chat .chat-tabs>button.active{background:#e9a422cc;border-color:#ffe7a6cc;color:#3a1802;text-shadow:none}
 .lobby-chat.wood-chat .chat-tabs>button:disabled{opacity:.6}
-.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;left:244px;right:auto;top:0;width:20px;height:20px;padding:0;border:1px solid #e9b64f;border-radius:7px;background:linear-gradient(#7a3c14e6,#4e2309e6);box-shadow:0 1px 2px #0006;color:#ffd36b}
+.game-frame>.chat-shell.lobby-chat .chat-collapse{display:grid;place-items:center;left:244px;right:auto;top:0;width:20px;height:20px;padding:0;border:1px solid #ffffff38;border-radius:7px;background:#0c1424a6;box-shadow:0 1px 2px #0006;color:#e8eefb}
 .game-frame>.chat-shell.lobby-chat .chat-collapse svg{width:12px;height:12px}
 .game-frame>.chat-shell.lobby-chat .chat-collapse:hover{filter:brightness(1.1)}
-.lobby-chat.wood-chat .chat-messages{padding:2px 4px;border:0;border-radius:0;background:none;box-shadow:none;scrollbar-color:#e9b64f66 transparent;font:800 13px/1.4 Nunito,sans-serif;color:#fff;text-shadow:1px 1px 0 #2c1004,-1px 1px 0 #2c1004,1px -1px 0 #2c1004,-1px -1px 0 #2c1004,0 1px 3px #000a}
+.lobby-chat.wood-chat .chat-messages{padding:3px 6px;border:0;border-radius:8px;background:linear-gradient(90deg,#0a102047,#0a102024);box-shadow:none;scrollbar-color:#e9b64f66 transparent;font:800 13px/1.4 Nunito,sans-serif;color:#fff;text-shadow:1px 1px 0 #2c1004,-1px 1px 0 #2c1004,1px -1px 0 #2c1004,-1px -1px 0 #2c1004,0 1px 3px #000a}
 .lobby-chat.wood-chat .chat-messages p{color:#fff}
 .lobby-chat.wood-chat .chat-messages strong{color:#ffd36b}
 .lobby-chat.wood-chat .chat-messages .system-message{color:#9ff07a}
-.lobby-chat.wood-chat .chat-input{height:30px;padding:0 3px 0 12px;border:2px solid #e9b64f;border-radius:9px;background:linear-gradient(#5a2a0cee,#3a1605ee);box-shadow:inset 0 1px #ffc98a33,0 0 0 2px #2c1004,0 3px 8px #0006}
-.lobby-chat.wood-chat .chat-input:focus-within{border-color:#ffe07a;box-shadow:inset 0 1px #ffc98a33,0 0 0 2px #2c1004,0 0 10px #ffd36b88}
-.lobby-chat.wood-chat .chat-input>input{color:#fff3d6;font-size:12px}
-.lobby-chat.wood-chat .chat-input>input::placeholder{color:#d8a970;font-style:italic}
-.lobby-chat.wood-chat .chat-input>button{width:24px;height:24px;border-radius:7px}
+.lobby-chat.wood-chat .chat-input{height:30px;padding:0 3px 0 12px;border:1px solid #ffffff33;border-radius:9px;background:#0a10208c;box-shadow:0 2px 6px #0004}
+.lobby-chat.wood-chat .chat-input:focus-within{border-color:#ffe07acc;background:#0a1020b3;box-shadow:0 0 0 1px #ffe07a44,0 2px 8px #0005}
+.lobby-chat.wood-chat .chat-input>input{color:#fff;font-size:12px;text-shadow:0 1px 1px #000a}
+.lobby-chat.wood-chat .chat-input>input::placeholder{color:#ffffff8c;font-style:italic}
+.lobby-chat.wood-chat .chat-input>button{width:24px;height:24px;border-radius:7px;border-color:#ffe7a6aa;background:#e9a422cc;box-shadow:none;color:#3a1802}
 .lobby-chat.wood-chat .chat-input>button svg{width:13px;height:13px}
 /* Carteira do topo: ouro e cupons (a moeda cash, ícone pintado coupon.png). */
 .top-right .currency :is(.currency-gold, .currency-coupons, .currency-fishing) { display: inline-flex; align-items: center; gap: 7px; }

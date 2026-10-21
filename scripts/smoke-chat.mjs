@@ -20,7 +20,9 @@ async function player(label,gender,gold){
  return {page,profile};
 }
 const chatOf=(page,scope='.lobby-chat')=>page.locator(scope);
-const tab=(page,name,scope)=>chatOf(page,scope).getByRole('button',{name,exact:true});
+const tab=(page,name,scope)=>chatOf(page,scope).getByRole('button',{name,exact:true,includeHidden:true});
+// The plaza chat only shows its tabs while writing: focus the line first, as Enter does.
+const pick=async(page,name,scope)=>{if(!scope)await chatOf(page).getByRole('textbox',{name:'Mensagem de chat'}).focus();await tab(page,name,scope).click();};
 const lines=(page,scope)=>chatOf(page,scope).locator('.chat-messages');
 const say=async(page,text,scope)=>{await chatOf(page,scope).getByRole('textbox',{name:'Mensagem de chat'}).fill(text);await chatOf(page,scope).getByRole('textbox',{name:'Mensagem de chat'}).press('Enter');};
 const openGuild=async page=>{await page.locator('.lobby-dock-button.guild').click();const w=page.locator('.guild-window:not(.guild-sub-window)');await w.waitFor();return w;};
@@ -44,7 +46,7 @@ globalThis.dbg=[owner,member,stranger];
  await expect(lines(stranger.page)).toContainText(`De ${owner.profile.name}: oi, só pra você`);
  await expect(lines(member.page)).not.toContainText('só pra você');
  await stranger.page.screenshot({path:`${output}/1-privado-recebido.png`});
- await tab(stranger.page,'Privado').click();
+ await pick(stranger.page,'Privado');
  await expect(chatOf(stranger.page).getByRole('textbox',{name:'Mensagem de chat'})).toBeEnabled();
  await expect(chatOf(stranger.page).locator('.chat-target')).toContainText(owner.profile.name);
  await say(stranger.page,'oi! recebi');
@@ -59,15 +61,15 @@ globalThis.dbg=[owner,member,stranger];
  await manage.locator('.guild-applications li').getByRole('button',{name:'Aceitar'}).click();await mw.locator('.guild-crest-name',{hasText:name}).waitFor();
  await manage.locator('.close-button').click();await closeGuild(owner.page);await closeGuild(member.page);
  await expect(tab(owner.page,'Guilda')).toBeEnabled();await expect(tab(member.page,'Guilda')).toBeEnabled();await expect(tab(stranger.page,'Guilda')).toBeDisabled();
- await tab(owner.page,'Guilda').click();await say(owner.page,'reunião da guilda às 20h');
+ await pick(owner.page,'Guilda');await say(owner.page,'reunião da guilda às 20h');
  // The member is on Mundo: the Guilda tab lights up until it is opened.
  await expect(tab(member.page,'Guilda')).toHaveAttribute('data-unread','true');
  await member.page.screenshot({path:`${output}/3-guilda-aviso.png`});
- await tab(member.page,'Guilda').click();await expect(lines(member.page)).toContainText('reunião da guilda às 20h');
+ await pick(member.page,'Guilda');await expect(lines(member.page)).toContainText('reunião da guilda às 20h');
  await expect(tab(member.page,'Guilda')).not.toHaveAttribute('data-unread','true');
  await say(member.page,'estarei lá');await expect(lines(owner.page)).toContainText('estarei lá');
  await owner.page.screenshot({path:`${output}/4-guilda.png`});
- await tab(stranger.page,'Mundo').click();await expect(lines(stranger.page)).not.toContainText('reunião da guilda');
+ await pick(stranger.page,'Mundo');await expect(lines(stranger.page)).not.toContainText('reunião da guilda');
 
  // Sala: only the room reads it; the square does not.
  await createArenaRoom(owner.page);const room='.party-room .party-chat';await expect(tab(owner.page,'Sala',room)).toHaveClass(/active/);
@@ -76,7 +78,7 @@ globalThis.dbg=[owner,member,stranger];
  // Whispers and the guild still work from inside the room.
  await say(member.page,'te vejo na sala');await expect(tab(owner.page,'Guilda',room)).toHaveAttribute('data-unread','true');
  await owner.page.screenshot({path:`${output}/5-sala.png`});
- await tab(owner.page,'Guilda',room).click();await expect(lines(owner.page,room)).toContainText('te vejo na sala');
+ await pick(owner.page,'Guilda',room);await expect(lines(owner.page,room)).toContainText('te vejo na sala');
  assert.deepEqual(errors,[]);
  console.log('chat smoke ok:',output);
 }catch(e){for(const [i,p] of (globalThis.dbg??[]).entries()){console.log(i,await p.page.locator('.lobby-chat').innerText().catch(()=>'-'));await p.page.screenshot({path:`${output}/fail-${i}.png`});}throw e;}finally{await browser.close();await db.end();}
