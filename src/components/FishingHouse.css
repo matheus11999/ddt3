@@ -8,11 +8,11 @@
 /* Lado esquerdo: vitrine e o balcão do pescador. */
 .fishing-house .fishing-counter{display:grid;align-content:start;gap:10px}
 .fishing-showcase{display:grid;justify-items:center;gap:6px;text-align:center}
-.fishing-showcase-art{position:relative;width:236px;height:350px;background:url(/assets/fishing/house/showcase.webp) center/contain no-repeat;filter:drop-shadow(0 6px 10px #0009)}
-.fishing-showcase-weapon{position:absolute;left:50%;top:58px;width:144px;height:144px;object-fit:contain;transform:translateX(-50%) rotate(-12deg);filter:drop-shadow(0 0 12px #5fd4ffaa) drop-shadow(0 6px 6px #0009);animation:fishing-showcase-bob 3.2s ease-in-out infinite}
-.fishing-showcase:not(.ready) .fishing-showcase-weapon{filter:drop-shadow(0 0 8px #5fd4ff66) drop-shadow(0 6px 6px #0009) saturate(.85)}
-.fishing-showcase.ready .fishing-showcase-weapon{filter:drop-shadow(0 0 18px #ffe08acc) drop-shadow(0 6px 6px #0009)}
-.fishing-showcase-info{position:absolute;left:46px;right:46px;top:204px;display:grid;justify-items:center;gap:5px}
+.fishing-showcase-art{position:relative;width:236px;height:300px}
+.fishing-showcase-art::before{content:"";position:absolute;left:50%;top:22px;width:190px;height:190px;margin-left:-95px;border-radius:50%;background:radial-gradient(circle,#5fd4ff66,#2f8fe022 55%,transparent 70%);animation:fishing-showcase-glow 3.4s ease-in-out infinite}
+.fishing-showcase.ready .fishing-showcase-art::before{background:radial-gradient(circle,#ffe08a77,#f2c35b22 55%,transparent 70%)}
+.fishing-showcase-weapon{position:absolute;left:50%;top:10px;width:210px;height:210px;margin-left:-105px;object-fit:contain;rotate:-12deg;filter:drop-shadow(0 8px 8px #0009);animation:fishing-showcase-breathe 3.4s ease-in-out infinite}
+.fishing-showcase-info{position:absolute;left:12px;right:12px;top:232px;display:grid;justify-items:center;gap:6px}
 .fishing-showcase-info>b{font:400 19px/1.05 'Lilita One',Nunito,sans-serif;color:var(--fh-gold-hi);-webkit-text-stroke:.7px #3a1a02;text-shadow:0 2px #1a0d02,0 0 10px #000a}
 .fishing-fragments{display:flex;align-items:center;gap:2px;width:100%}
 .fishing-fragments .fishing-icon{flex:none;margin-right:-8px;z-index:1;filter:drop-shadow(0 1px 2px #000)}
@@ -27,9 +27,12 @@
 .fishing-redeem:disabled{filter:grayscale(.85) brightness(.75) drop-shadow(0 3px 4px #0008);color:#d6dde8;cursor:not-allowed}
 .fishing-showcase.ready .fishing-redeem:not(:disabled){animation:fishing-redeem-glow 1.8s ease-in-out infinite}
 .fishing-redeem-cost{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:-3px;font:800 11.5px Nunito,sans-serif;color:var(--fh-soft)}
-.fishing-showcase-done{position:absolute;left:50%;top:150px;transform:translateX(-50%);font:400 24px 'Lilita One',Nunito,sans-serif;font-style:normal;white-space:nowrap;color:#8fff9a;-webkit-text-stroke:1px #0b3a12;text-shadow:0 2px #0b3a12;animation:fishing-float 2.2s ease-out both}
-.fishing-showcase.done .fishing-showcase-art{animation:fishing-gain .8s ease-out}
-@keyframes fishing-showcase-bob{0%,100%{translate:0 0}50%{translate:0 -7px}}
+.fishing-showcase-done{position:absolute;left:50%;top:110px;transform:translateX(-50%);font:400 24px 'Lilita One',Nunito,sans-serif;font-style:normal;white-space:nowrap;color:#8fff9a;-webkit-text-stroke:1px #0b3a12;text-shadow:0 2px #0b3a12;animation:fishing-float 2.2s ease-out both}
+.fishing-showcase.done .fishing-showcase-weapon{animation:fishing-showcase-breathe 3.4s ease-in-out infinite,fishing-showcase-flash .8s ease-out}
+/* Respiração (pedido do matheus, 21/10): a arma cresce e solta devagar, com o brilho de trás acompanhando. */
+@keyframes fishing-showcase-breathe{0%,100%{scale:1;translate:0 0}50%{scale:1.07;translate:0 -4px}}
+@keyframes fishing-showcase-glow{0%,100%{opacity:.55;scale:.9}50%{opacity:1;scale:1.08}}
+@keyframes fishing-showcase-flash{30%{filter:drop-shadow(0 0 22px #8fff9a) drop-shadow(0 8px 8px #0009)}}
 @keyframes fishing-redeem-glow{50%{filter:drop-shadow(0 0 10px #ffe08a) brightness(1.1)}}
 
 .fishing-counter-card{display:grid;gap:7px;padding:10px 11px 11px;border:1.5px solid #f2c35b99;border-radius:14px;background:linear-gradient(#123a6ee6,#0a2148f2);box-shadow:inset 0 1px #ffffff2a,inset 0 0 18px #5fd4ff1f,0 4px 10px #0007}
@@ -127,4 +130,4 @@
 .fishing-entry .fishing-stars i{color:#ffffff30}.fishing-entry .fishing-stars i.on{color:#ffc93a;text-shadow:0 1px #7a3a05}
 
 /* Celular (paisagem): a vitrine encolhe e fica sozinha na coluna, para o Resgatar continuar à mão. */
-@media (max-width:900px),(max-height:560px){.fishing-house .fishing-shop{grid-template-columns:150px 1fr;gap:8px}.fishing-house .fishing-counter{align-content:start;overflow:auto}.fishing-counter-card,.fishing-showcase>p{display:none}.fishing-showcase-art{zoom:.6}.fishing-redeem{zoom:.7}.fishing-shop-body{height:min(70vh,520px)}}
+@media (max-width:900px),(max-height:560px){.fishing-house .fishing-shop{grid-template-columns:150px 1fr;gap:8px}.fishing-house .fishing-counter{align-content:start;overflow:auto}.fishing-counter-card,.fishing-showcase>p{display:none}.fishing-showcase-art{zoom:.6}.fishing-showcase-info>b{font-size:17px}.fishing-redeem{zoom:.7}.fishing-shop-body{height:min(70vh,520px)}}
