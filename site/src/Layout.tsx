@@ -55,6 +55,7 @@ export function Footer({me}:{me:Me|null}){
    <div className="footer-brand">
     <img src="/art/logo.webp" alt="Bomb Masters" width="150" height="89" loading="lazy"/>
     <p>A mesma essência, só que melhor. Artilharia por turnos no navegador, sem pay to win.</p>
+    <a className="discord-btn footer-discord" href={DISCORD_URL} target="_blank" rel="noopener noreferrer"><DiscordIcon/><span>Entrar no Discord</span></a>
     <ul className="footer-platforms"><li><Monitor size={15}/> PC</li><li><Smartphone size={15}/> Celular</li><li className="footer-beta-chip">Beta aberta</li></ul>
    </div>
    <nav className="footer-col" aria-label="O jogo">
@@ -66,7 +67,6 @@ export function Footer({me}:{me:Me|null}){
    <nav className="footer-col" aria-label="Comunidade">
     <h3>Comunidade</h3>
     <Link to="/forum">Fórum</Link>
-    <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer">Discord</a>
     <Link to="/forum?categoria=sugestoes">Sugestões</Link>
     <Link to="/forum?categoria=duvidas">Dúvidas</Link>
     <Link to="/forum?categoria=bugs">Bugs do beta</Link>
@@ -81,7 +81,7 @@ export function Footer({me}:{me:Me|null}){
   </div>
   <div className="footer-bottom">
    <span>© {year} Bomb Masters. Todos os direitos reservados.</span>
-   <span>Em beta: tudo pode mudar. Viu algo pra melhorar? <Link to="/forum?categoria=sugestoes">Conta pra gente</Link>.</span>
+   <span className="footer-love">Feito com <span role="img" aria-label="amor">❤️</span></span>
   </div>
  </footer>;
 }
