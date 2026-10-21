@@ -20,7 +20,7 @@ import {WorldBossService} from './worldBoss';
 import {PlayerDirectory} from './adminPlayers';
 import {LiveState,PostgresLive,RedisLive} from './liveState';
 import {commandSchema,sessionRequestSchema} from '../shared/protocol';
-import {ACCOUNT_COOKIE,AccountStore} from './accounts';
+import {ACCOUNT_COOKIE,AccountStore,FIRST_SERVER} from './accounts';
 const app=Fastify({logger:true,bodyLimit:4096,trustProxy:process.env.BEHIND_PROXY==='true'?(_address:string,hop:number)=>hop===0:false});
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8097,http://127.0.0.1:8097,http://localhost:5177,http://127.0.0.1:5177').split(','));
 const redis=new Redis(process.env.REDIS_URL??'redis://localhost:6397',{maxRetriesPerRequest:2});redis.on('error',e=>app.log.error({err:e},'Redis unavailable'));
@@ -30,18 +30,21 @@ app.addHook('onRequest',async(req,reply)=>{if(req.method!=='GET'&&(!req.headers.
 app.get('/api/health',async()=>{await store.pool.query('SELECT 1');await redis.ping();return {ok:true,version:'0.1.0',online:connections.size,rooms:game.rooms.size};});
 const accounts=new AccountStore(store.pool);await accounts.init();
 const gameCookie=()=>({path:'/',httpOnly:true,sameSite:'strict' as const,secure:process.env.COOKIE_SECURE==='true',maxAge:2592000,...(process.env.COOKIE_DOMAIN?{domain:process.env.COOKIE_DOMAIN}:{})});
+/** This game server's id among the Bomb Masters servers (docs/site.md); one character per account here. */
+const SERVER_ID=process.env.SERVER_ID??FIRST_SERVER;
 /**
  * The game session for this browser. A Bomb Masters account signed in on the site (docs/site.md) decides the player:
- * its own player, or the guest already here when neither has an account yet; another account's player is never used.
+ * its character on this server, or the guest already here when no account owns it; another account's player is never used.
  */
 async function accountSession(req:FastifyRequest,reply:FastifyReply){
  let profile=await store.session(req.cookies.brasa_session);
  const account=await accounts.account(req.cookies[ACCOUNT_COOKIE]);
  if(!account)return {profile,account};
- if(account.playerId){
-  if(profile?.id!==account.playerId){profile=await store.getProfile(account.playerId);if(profile)reply.setCookie('brasa_session',await store.createSession(profile.id),gameCookie());}
+ const playerId=await accounts.characterOn(account,SERVER_ID);
+ if(playerId){
+  if(profile?.id!==playerId){profile=await store.getProfile(playerId);if(profile)reply.setCookie('brasa_session',await store.createSession(profile.id),gameCookie());}
  }else if(profile){
-  if(!(await store.pool.query('SELECT 1 FROM accounts WHERE player_id=$1',[profile.id])).rows.length&&await accounts.linkPlayer(account,profile.id))profile=await store.getProfile(profile.id);
+  if(await accounts.linkPlayer(account,profile.id,SERVER_ID))profile=await store.getProfile(profile.id);
   else profile=null;
  }
  return {profile,account};
@@ -54,7 +57,7 @@ app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},as
  if(!profile){
   if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
   const created=await store.createGuest(parsed.data.gender,account?.username);profile=created.profile;reply.setCookie('brasa_session',created.token,gameCookie());
-  if(account)await accounts.linkPlayer(account,profile.id);
+  if(account)await accounts.linkPlayer(account,profile.id,SERVER_ID);
  }
  reply.header('Cache-Control','no-store');return {profile};
 });

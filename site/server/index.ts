@@ -8,7 +8,7 @@ import {stat} from 'node:fs/promises';
 import {extname,join,normalize,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {z} from 'zod';
-import {ACCOUNT_COOKIE,AccountError,AccountStore,cookieOptions,type Account} from '../../server/accounts';
+import {ACCOUNT_COOKIE,AccountError,AccountStore,cookieOptions} from '../../server/accounts';
 import {ForumStore} from './forum';
 
 /**
@@ -16,7 +16,6 @@ import {ForumStore} from './forum';
  * Runs in its own container next to the game and uses the game's Postgres.
  */
 const PORT=Number(process.env.PORT??4120);
-const GAME_URL=process.env.GAME_URL??'http://localhost:8097';
 const origins=new Set((process.env.ALLOWED_ORIGINS??'http://localhost:8098,http://127.0.0.1:8098,http://localhost:5178,http://127.0.0.1:5178').split(','));
 const DIST=resolve(fileURLToPath(new URL('../dist',import.meta.url)));
 
@@ -40,11 +39,6 @@ app.setErrorHandler((error,_req,reply)=>{
 
 async function viewer(req:FastifyRequest){return accounts.account(req.cookies[ACCOUNT_COOKIE]);}
 async function required(req:FastifyRequest){const account=await viewer(req);if(!account)throw new AccountError('Entre na sua conta para continuar.',401);return account;}
-async function player(account:Account){
- if(!account.playerId)return null;
- const r=await pool.query("SELECT name,profile->>'gender' AS gender,(profile->>'level')::int AS level,(profile->>'wins')::int AS wins,(profile->>'matches')::int AS matches FROM players WHERE id=$1",[account.playerId]);
- return r.rows[0]??null;
-}
 const signedIn=(reply:FastifyReply,token:string)=>reply.setCookie(ACCOUNT_COOKIE,token,cookieOptions());
 const authLimit={config:{rateLimit:{max:12,timeWindow:'1 minute'}}};
 const writeLimit={config:{rateLimit:{max:30,timeWindow:'1 minute'}}};
@@ -52,7 +46,7 @@ const writeLimit={config:{rateLimit:{max:30,timeWindow:'1 minute'}}};
 app.get('/api/site/health',async()=>{await pool.query('SELECT 1');return {ok:true};});
 app.get('/api/site/me',async(req,reply)=>{
  reply.header('Cache-Control','no-store');const account=await viewer(req);
- return {account:account&&{username:account.username,email:account.email,createdAt:account.createdAt},player:account&&await player(account),gameUrl:GAME_URL};
+ return {account:account&&{username:account.username,email:account.email,createdAt:account.createdAt,avatar:account.avatar},servers:account?await accounts.characters(account):[]};
 });
 app.get('/api/site/stats',async(_req,reply)=>{reply.header('Cache-Control','public, max-age=60');return forum.counts();});
 app.post('/api/site/register',authLimit,async(req,reply)=>{
@@ -62,6 +56,14 @@ app.post('/api/site/register',authLimit,async(req,reply)=>{
 app.post('/api/site/login',authLimit,async(req,reply)=>{
  const body=z.object({login:z.string().min(1).max(254),password:z.string().min(1).max(256)}).parse(req.body);
  signedIn(reply,await accounts.login(body.login,body.password));return {ok:true};
+});
+app.post('/api/site/avatar',writeLimit,async req=>{
+ const account=await required(req);const body=z.object({avatar:z.string().max(16)}).parse(req.body);
+ await accounts.setAvatar(account,body.avatar);return {ok:true};
+});
+app.post('/api/site/password',authLimit,async req=>{
+ const account=await required(req);const body=z.object({current:z.string().min(1).max(256),next:z.string().max(256)}).parse(req.body);
+ await accounts.changePassword(account,body.current,body.next,req.cookies[ACCOUNT_COOKIE]!);return {ok:true};
 });
 app.post('/api/site/logout',async(req,reply)=>{
  await accounts.logout(req.cookies[ACCOUNT_COOKIE]);const {maxAge:_,...options}=cookieOptions();

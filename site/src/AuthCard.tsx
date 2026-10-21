@@ -21,7 +21,7 @@ export function AuthCard({initial='login',onSignedIn}:{initial?:'login'|'registe
  };
  const register=mode==='register';
  return <section className="auth-card" aria-labelledby="auth-title">
-  <p className="eyebrow">{register?'Junte-se ao beta':'Sua aventura continua'}</p>
+  <p className="eyebrow">{register?'Entre no beta':'Bem-vindo de volta'}</p>
   <h2 id="auth-title" className="title-3d auth-title">{register?'Criar conta':'Entrar'}</h2>
   <form onSubmit={submit} noValidate>
    {register
@@ -47,7 +47,7 @@ export function AuthCard({initial='login',onSignedIn}:{initial?:'login'|'registe
     ?<>Já tem conta? <button type="button" onClick={()=>swap('login')}>Entrar</button></>
     :<>Ainda não tem conta? <button type="button" onClick={()=>swap('register')}>Cadastrar agora</button></>}
   </div>
-  {register&&<p className="auth-note">A mesma conta vale para o site e para o jogo.</p>}
+  {register&&<p className="auth-note">Uma conta só, pro site e pro jogo.</p>}
  </section>;
 }
 
