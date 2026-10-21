@@ -15,8 +15,8 @@ export class ForumStore {
  CREATE INDEX IF NOT EXISTS forum_replies_topic ON forum_replies(topic_id,created_at);
  CREATE TABLE IF NOT EXISTS forum_likes(account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,kind char(1) NOT NULL,target_id bigint NOT NULL,PRIMARY KEY(account_id,kind,target_id));
  `);}
- /** Author name and the level of the account's player (null before the first Jogar). */
- private readonly author=`a.username AS author,(SELECT (p.profile->>'level')::int FROM players p WHERE p.id=a.player_id) AS author_level`;
+ /** Author name, avatar and the highest level among the account's characters (null before the first Jogar). */
+ private readonly author=`a.username AS author,a.avatar AS author_avatar,(SELECT max((p.profile->>'level')::int) FROM account_characters c JOIN players p ON p.id=c.player_id WHERE c.account_id=a.id) AS author_level`;
  async topics(category:string|undefined,page:number,viewer:string|null){
   const cat=FORUM_CATEGORIES.some(c=>c.id===category)?category:null;
   const where=`t.deleted=false${cat?' AND t.category=$3':''}`;
@@ -36,7 +36,7 @@ export class ForumStore {
   if(!t.rows[0])throw new AccountError('Tópico não encontrado.',404);
   const replies=await this.pool.query(`SELECT r.id,r.body,r.like_count,r.created_at,${this.author},r.account_id=$2::uuid AS mine,EXISTS(SELECT 1 FROM forum_likes l WHERE l.kind='r' AND l.target_id=r.id AND l.account_id=$2::uuid) AS liked
    FROM forum_replies r JOIN accounts a ON a.id=r.account_id WHERE r.topic_id=$1 AND r.deleted=false ORDER BY r.created_at LIMIT 500`,[id,viewer]);
-  return {topic:{...topicRow(t.rows[0]),body:t.rows[0].body as string,mine:!!t.rows[0].mine},replies:replies.rows.map(r=>({id:Number(r.id),body:r.body,likes:r.like_count,createdAt:new Date(r.created_at).toISOString(),author:r.author,authorLevel:r.author_level,mine:!!r.mine,liked:!!r.liked}))};
+  return {topic:{...topicRow(t.rows[0]),body:t.rows[0].body as string,mine:!!t.rows[0].mine},replies:replies.rows.map(r=>({id:Number(r.id),body:r.body,likes:r.like_count,createdAt:new Date(r.created_at).toISOString(),author:r.author,authorAvatar:r.author_avatar,authorLevel:r.author_level,mine:!!r.mine,liked:!!r.liked}))};
  }
  async createTopic(accountId:string,category:string,title:string,body:string){
   title=clean(title);body=clean(body);
@@ -86,4 +86,4 @@ export class ForumStore {
 
 /** Trims, drops control characters (keeps line breaks) and collapses runs of blank lines. */
 function clean(text:string){return String(text??'').replace(/\r\n?/g,'\n').replace(/[\u0000-\u0009\u000b-\u001f\u007f]/g,'').replace(/\n{3,}/g,'\n\n').trim();}
-function topicRow(r:any){return {id:Number(r.id),category:r.category as ForumCategory,title:r.title as string,excerpt:(r.excerpt??'') as string,pinned:!!r.pinned,replies:r.reply_count as number,likes:r.like_count as number,createdAt:new Date(r.created_at).toISOString(),lastActivityAt:new Date(r.last_activity_at).toISOString(),author:r.author as string,authorLevel:r.author_level as number|null,liked:!!r.liked};}
+function topicRow(r:any){return {id:Number(r.id),category:r.category as ForumCategory,title:r.title as string,excerpt:(r.excerpt??'') as string,pinned:!!r.pinned,replies:r.reply_count as number,likes:r.like_count as number,createdAt:new Date(r.created_at).toISOString(),lastActivityAt:new Date(r.last_activity_at).toISOString(),author:r.author as string,authorAvatar:r.author_avatar as string,authorLevel:r.author_level as number|null,liked:!!r.liked};}

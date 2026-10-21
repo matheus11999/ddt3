@@ -22,6 +22,9 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       # Site and game share the account cookie: set the parent domain in production (e.g. .bombmasters.com.br).
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
+      # Bomb Masters server this game runs (one character per account per server, docs/site.md).
+      SERVER_ID: ${SERVER_ID:-s1}
+      GAME_URL: ${GAME_URL:-http://localhost:8097}
       MAX_CONNECTIONS: 1000
       BEHIND_PROXY: 'true'
       # Admin panel (/admin): set both in .env; the hash comes from `npm run admin:password`.
