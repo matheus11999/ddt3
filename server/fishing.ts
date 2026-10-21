@@ -1,15 +1,15 @@
 import type {Profile} from '../shared/protocol';
 import {MAX_COLOR_TICKETS} from '../shared/colors';
 import {PET_FOODS} from '../shared/pets';
-import {FISHING_DAILY_CAPS,FISHING_OFFER_BY_ID,FISH_BAG_MAX,FISH_BY_ID,MAX_FISH_SELL,ROD_BY_ID,FISHING_HISTORY,fishingDay,fishingLevel,fishingWeek,normalizeFishing} from '../shared/fishing';
-import type {FishingCatch,FishingDrop} from '../shared/fishing';
+import {FISHING_DAILY_CAPS,FISHING_OFFER_BY_ID,FISH_BAG_MAX,FISH_BY_ID,MAX_FISH_SELL,ROD_BY_ID,FISHING_AUTO_RUNS,FISHING_HISTORY,fishingDay,fishingLevel,fishingWeek,normalizeFishing} from '../shared/fishing';
+import type {AutoFishingSummary,FishingCatch,FishingDrop,FishingProfile} from '../shared/fishing';
 
 /**
  * Pescaria rules that change a profile (docs/fishing.md). Pure functions over a profile: the
  * Store runs them inside its row lock, tests run them directly. The session itself (cast, bite,
  * bar, automatic mode) lives in server/game.ts.
  */
-export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** Caught in automatic mode (shown in the history). */auto?:boolean;/** When (the history's clock and the daily caps' day; tests pass their own). */at?:number;/** The rod's prize rolled with this catch (rollRodDrops, at most one); it replaces the fish unless the daily cap is full. */drops?:FishingDrop[];}
+export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** Caught in automatic mode (shown in the history). */auto?:boolean;/** When (the history's clock and the daily caps' day; tests pass their own). */at?:number;/** The rod's prize rolled with this catch (rollRodDrops, at most one); it replaces the fish unless the daily cap is full. */drops?:FishingDrop[];/** The automatic session this cast belongs to (its start): the cast is added to that session's entry in `autoRuns`. */run?:number;}
 /** `weekRecord`: the catch is the player's new heaviest fish of the week (the ranking needs updating). */
 export interface FishSettleOutcome {profile:Profile;catch?:FishingCatch;/** The rod's prize came up instead of the fish (one reward per cast). */prize?:FishingDrop;/** Fisher EXP the cast gave (the fish's, also when a prize came up instead). */xp?:number;levelUp?:number;weekRecord?:{week:string;fish:string;kg:number};}
 export interface FishBuyOutcome {profile:Profile;spent:number;}
@@ -22,6 +22,20 @@ export interface FishSellOutcome {profile:Profile;sold:number;points:number;}
  */
 export function settleFishing(profile:Profile,settle:FishSettle):FishSettleOutcome{
  const f=profile.fishing=normalizeFishing(profile.fishing);
+ const outcome=settleCast(profile,f,settle);
+ if(settle.auto&&settle.run!==undefined)tallyAutoRun(f,settle.run,settle.at??Date.now(),outcome);
+ return outcome;
+}
+/** Adds one automatic cast to its session in the profile (the history's "Pescaria automática" line and its Ver window). */
+function tallyAutoRun(f:FishingProfile,since:number,at:number,o:FishSettleOutcome){
+ let run=f.autoRuns.find(r=>r.since===since);
+ if(!run){run={since,until:at,casts:0,missed:0,fish:{},points:0,xp:0,gold:0,coupons:0,fragments:0} satisfies AutoFishingSummary;f.autoRuns=[run,...f.autoRuns].slice(0,FISHING_AUTO_RUNS);}
+ run.casts++;run.until=Math.max(run.until,at);
+ if(o.prize){run[o.prize.kind]+=o.prize.amount;run.xp+=o.xp??0;}
+ else if(o.catch){const c=o.catch;run.fish[c.fish]=(run.fish[c.fish]??0)+1;run.points+=c.points;run.xp+=c.xp;if(!run.best||c.kg>run.best.kg)run.best={fish:c.fish,kg:c.kg};}
+ else run.missed++;
+}
+function settleCast(profile:Profile,f:FishingProfile,settle:FishSettle):FishSettleOutcome{
  if(!settle.fish)return {profile};
  const fish=FISH_BY_ID.get(settle.fish.id);if(!fish)throw Error('Peixe desconhecido.');
  const at=settle.at??Date.now(),day=fishingDay(at);

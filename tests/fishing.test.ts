@@ -142,6 +142,24 @@ test('switching automatic off sends the run summary: time, fish by kind and priz
  const s=last(f.events.get(f.a.id)!,'fish-auto-summary')!.summary;
  assert.equal(s.casts,2);assert.equal(Object.values(s.fish).reduce((a,b)=>a+b,0)+s.missed+(s.gold||s.coupons||s.fragments?1:0)>=2,true);
  assert.ok(s.until>=s.since);assert.equal(peer.fishAutoRun,undefined);
+ // The session is also saved in the profile, for its line in the history.
+ const saved=normalizeFishing(peer.profile.fishing).autoRuns[0];
+ assert.equal(saved.since,s.since);assert.equal(saved.casts,2);assert.deepEqual(saved.fish,s.fish);
+});
+
+test('automatic casts add up in their session of the profile, newest session first',()=>{
+ const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
+ settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},auto:true,run:100,at:1000});
+ settleFishing(p,{fish:{id:'lambari-dourado',kg:.5,points:3,xp:20},auto:true,run:100,at:2000});
+ settleFishing(p,{auto:true,run:100,at:3000});
+ settleFishing(p,{fish:{id:'carpa-lua',kg:2,points:1,xp:5},drops:[{kind:'coupons',amount:1}],auto:true,run:100,at:4000});
+ settleFishing(p,{fish:{id:'carpa-lua',kg:2,points:1,xp:5},auto:true,run:5000,at:6000});
+ settleFishing(p,{fish:{id:'carpa-lua',kg:2,points:1,xp:5},at:7000});
+ const [newest,first]=normalizeFishing(p.fishing).autoRuns;
+ assert.deepEqual(first,{since:100,until:4000,casts:4,missed:1,fish:{'lambari-dourado':2},points:5,xp:45,gold:0,coupons:1,fragments:0,best:{fish:'lambari-dourado',kg:.5}});
+ assert.equal(newest.since,5000);assert.equal(newest.casts,1);
+ for(let i=0;i<20;i++)settleFishing(p,{auto:true,run:10_000+i,at:10_000+i});
+ assert.equal(p.fishing.autoRuns.length,10);assert.equal(p.fishing.autoRuns[0].since,10_019);
 });
 
 test('the fisher level gates every rod in the Casa de Pesca and never helps the rod prizes',()=>{
