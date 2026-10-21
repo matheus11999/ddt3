@@ -1,7 +1,0 @@
-You MUST call the built-in image_gen tool now to create a NEW image (do not reuse or copy any existing file). After image_gen returns, copy exactly the file it just produced (the newest file inside the generated_images folder of THIS session) to D:\APPS\ddt-pow-aura\test-results\codex-pow-aura\petals.png. Do nothing else, no code.
-
-Art for a 2D hand-painted chibi artillery web game (vivid, volumetric, painterly, not vector, no hard outlines). Original art. It shows that a small character lying on the ground has its special power ready. Beautiful and fairly discreet, semi-transparent glow, never thick or heavy. The character is NOT drawn.
-
-Paint a gentle SWIRL OF GLOWING PETALS: small pink and gold sakura petals made of light and a few tiny sparkles, spiralling upward around an empty centre (where the character is) on a soft curved breeze trail, airy and elegant, lots of black between them. About 300 px wide and 380 px tall. The 6 frames: petals travel along the spiral upward.
-
-Layout: landscape image 1536x1024, 3 columns x 2 rows = 6 equal cells of 512x512, PURE FLAT BLACK background (#000000), no gradient, no grid lines, no text. Each cell: the effect centred horizontally, its lowest part 60 px above the cell bottom (it starts from the ground line where the character lies, nothing below that line), same size and position in every cell. The 6 cells are consecutive frames of one smooth loop, frame 6 loops back to frame 1. Read order left to right, top row then bottom row.

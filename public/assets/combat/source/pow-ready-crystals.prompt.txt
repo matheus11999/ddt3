@@ -1,7 +1,0 @@
-You MUST call the built-in image_gen tool now to create a NEW image (do not reuse or copy any existing file). After image_gen returns, copy exactly the file it just produced (the newest file inside the generated_images folder of THIS session) to D:\APPS\ddt-pow-aura\test-results\codex-pow-aura\crystals.png. Do nothing else, no code.
-
-Art for a 2D hand-painted chibi artillery web game (vivid, volumetric, painterly, not vector, no hard outlines). Original art. It shows that a small character lying on the ground has its special power ready. Beautiful and fairly discreet, semi-transparent glow, never thick or heavy. The character is NOT drawn.
-
-Paint floating MAGIC CRYSTALS: five small glowing faceted crystal shards (pale cyan, violet and gold, glassy with bright inner light) floating in a loose ring around an empty centre (where the character is), each with a soft glow and tiny sparkles, plus a faint shimmering ring of light connecting them. About 320 px wide and 240 px tall. The 6 frames: the crystals bob up and down and turn slightly, catching light.
-
-Layout: landscape image 1536x1024, 3 columns x 2 rows = 6 equal cells of 512x512, PURE FLAT BLACK background (#000000), no gradient, no grid lines, no text. Each cell: the effect centred horizontally, its lowest part 60 px above the cell bottom (it starts from the ground line where the character lies, nothing below that line), same size and position in every cell. The 6 cells are consecutive frames of one smooth loop, frame 6 loops back to frame 1. Read order left to right, top row then bottom row.

@@ -1,7 +1,0 @@
-You MUST call the built-in image_gen tool now to create a NEW image (do not reuse or copy any existing file). After image_gen returns, copy exactly the file it just produced (the newest file inside the generated_images folder of THIS session) to D:\APPS\ddt-pow-aura\test-results\codex-pow-aura\crown.png. Do nothing else, no code.
-
-Art for a 2D hand-painted chibi artillery web game (vivid, volumetric, painterly, not vector, no hard outlines). Original art. It shows that a small character lying on the ground has its special power ready. Elegant and fairly discreet, semi-transparent glow, never thick or heavy. The character is NOT drawn.
-
-Paint a small floating CROWN OF LIGHT: a thin golden halo ring seen slightly from above (flat ellipse), with small pointed crown-like rays of light rising from it and tiny twinkling star glints, hovering above where the head would be. Pale gold and cream white.
-
-Layout: landscape image 1536x1024, 3 columns x 2 rows = 6 equal cells of 512x512, PURE FLAT BLACK background (#000000), no gradient, no grid lines, no text. Each cell: the crown centred in its cell, about 300 px wide and 170 px tall, same size and position in every cell. The 6 cells are consecutive frames of a slow loop: the crown turns a little and the glints twinkle, frame 6 loops back to frame 1. Read order left to right, top row then bottom row.
