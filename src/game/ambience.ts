@@ -96,7 +96,7 @@ function makeAccents(context: AudioContext, theme: Ambience) {
 }
 
 /** A bounded graph of two looping sources; the audio thread needs no JS scheduler. */
-export function createEnvironmentTrack(context: AudioContext, theme: Ambience): {stop(): void} {
+export function createEnvironmentTrack(context: AudioContext, theme: Ambience, destination: AudioNode = context.destination): {stop(): void} {
  let cache = buffers.get(context);
  if (!cache) {cache = new Map(); buffers.set(context, cache);}
  let sounds = cache.get(theme);
@@ -104,7 +104,7 @@ export function createEnvironmentTrack(context: AudioContext, theme: Ambience): 
  const output = context.createGain();
  output.gain.setValueAtTime(0, context.currentTime);
  output.gain.linearRampToValueAtTime(.25, context.currentTime + .8);
- output.connect(context.destination);
+ output.connect(destination);
  const sources = sounds.map(buffer => {
   const source = context.createBufferSource();
   source.buffer = buffer;

@@ -25,12 +25,20 @@ const BUILT_IN_SAMPLES=[...new Set([...IMPACT_LAYERS.map(layer=>layer.url),...Ob
 function readPreference(key: string) {
  try {return localStorage.getItem(key) !== 'off';} catch {return true;}
 }
+/** Overall game volume (Ajustes → Som), 0 to 1; 40% until the player moves the slider (matheus, 21/10/2026). */
+export const DEFAULT_VOLUME=.4;
+function readVolume(){
+ try{const raw=localStorage.getItem('brasa-volume');const value=raw===null?NaN:Number(raw);return Number.isFinite(value)?Math.min(1,Math.max(0,value)):DEFAULT_VOLUME;}catch{return DEFAULT_VOLUME;}
+}
 function savePreference(key: string, enabled: boolean) {
  try {localStorage.setItem(key, enabled ? 'on' : 'off');} catch {/* Private storage must not prevent playing. */}
 }
 class AudioEngine {
  enabled=readPreference('brasa-sound');
+ volume=readVolume();
  private context:AudioContext|null=null;
+ /** Every sound goes through this node, so the volume slider scales all of them at once. */
+ private master:GainNode|null=null;
  private noise:AudioBuffer|null=null;
  private environmentEnabled=readPreference('brasa-environment-sound');
  private map:MapId|null=null;
@@ -75,6 +83,11 @@ class AudioEngine {
   if(value)this.play('click');
   this.syncEnvironment();
  }
+ setVolume(value:number){
+  this.volume=Math.min(1,Math.max(0,value));
+  try{localStorage.setItem('brasa-volume',String(this.volume));}catch{/* Private storage must not prevent playing. */}
+  if(this.master&&this.context)this.master.gain.setTargetAtTime(this.volume,this.context.currentTime,.02);
+ }
  getEnvironmentEnabled(){return this.environmentEnabled;}
  setEnvironmentEnabled(value:boolean){
   this.environmentEnabled=value;savePreference('brasa-environment-sound',value);
@@ -110,12 +123,15 @@ class AudioEngine {
  private getContext(){
   if(!this.context||this.context.state==='closed'){
    this.context=new AudioContext();
+   this.master=this.context.createGain();this.master.gain.value=this.volume;this.master.connect(this.context.destination);
    this.context.addEventListener('statechange',this.onContextState);
    this.samples.clear();this.decoding.clear();
    for(const url of this.requested)this.decode(this.context,url);
   }
   return this.context;
  }
+ /** Where every voice connects: the master volume of the current context. */
+ private out(c:AudioContext){return this.context===c&&this.master?this.master:c.destination;}
  private decode(context:AudioContext,url:string){
   if(this.decoding.has(url))return;this.decoding.add(url);
   // decodeAudioData detaches its input, so each context decodes its own copy of the fetched bytes.
@@ -125,11 +141,11 @@ class AudioEngine {
  private playImpactLayers(c:AudioContext,t:number,gain:number){
   if(!IMPACT_LAYERS.every(layer=>this.samples.get(layer.url)))return false;
   const rate=.95+Math.random()*.1;
-  for(const layer of IMPACT_LAYERS){const source=c.createBufferSource(),g=c.createGain();source.buffer=this.samples.get(layer.url)!;source.playbackRate.value=rate;g.gain.value=layer.volume*gain;source.connect(g);g.connect(c.destination);source.start(t);}
+  for(const layer of IMPACT_LAYERS){const source=c.createBufferSource(),g=c.createGain();source.buffer=this.samples.get(layer.url)!;source.playbackRate.value=rate;g.gain.value=layer.volume*gain;source.connect(g);g.connect(this.out(c));source.start(t);}
   return true;
  }
  private playSample(c:AudioContext,buffer:AudioBuffer,volume:number,rate=1){
-  const source=c.createBufferSource(),g=c.createGain();source.buffer=buffer;source.playbackRate.value=rate;g.gain.value=volume;source.connect(g);g.connect(c.destination);source.start();
+  const source=c.createBufferSource(),g=c.createGain();source.buffer=buffer;source.playbackRate.value=rate;g.gain.value=volume;source.connect(g);g.connect(this.out(c));source.start();
   return source;
  }
  /** Plays one random recorded variation of a cue; false until its files are decoded. */
@@ -149,8 +165,8 @@ class AudioEngine {
   try{
    const c=this.getContext();this.resume(c);
    if(this.playCue(c,id))return;
-   if(id==='angleChange'){const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(2600,t);o.frequency.exponentialRampToValueAtTime(1100,t+.05);g.gain.setValueAtTime(.03,t);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.07);return;}
-   const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(id==='pow'?330:880,t);o.frequency.exponentialRampToValueAtTime(id==='pow'?990:1320,t+.25);g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(c.destination);o.start(t);o.stop(t+.32);
+   if(id==='angleChange'){const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(2600,t);o.frequency.exponentialRampToValueAtTime(1100,t+.05);g.gain.setValueAtTime(.03,t);g.gain.exponentialRampToValueAtTime(.001,t+.06);o.connect(g);g.connect(this.out(c));o.start(t);o.stop(t+.07);return;}
+   const t=c.currentTime,o=c.createOscillator(),g=c.createGain();o.type='triangle';o.frequency.setValueAtTime(id==='pow'?330:880,t);o.frequency.exponentialRampToValueAtTime(id==='pow'?990:1320,t+.25);g.gain.setValueAtTime(.04,t);g.gain.exponentialRampToValueAtTime(.001,t+.3);o.connect(g);g.connect(this.out(c));o.start(t);o.stop(t+.32);
   }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
  private resume(context:AudioContext){
@@ -178,7 +194,7 @@ class AudioEngine {
    this.stopTrack();return;
   }
   if(!this.track){
-   try{this.track=createEnvironmentTrack(this.context,getMap(this.map).audio.ambience);}catch{/* Unsupported audio must not interrupt a match. */}
+   try{this.track=createEnvironmentTrack(this.context,getMap(this.map).audio.ambience,this.out(this.context));}catch{/* Unsupported audio must not interrupt a match. */}
   }
  }
  private onGesture=(event:Event)=>{
@@ -198,7 +214,7 @@ class AudioEngine {
   if(!this.enabled||this.isHidden())return;
   try{
    const c=this.getContext();this.resume(c);this.syncEnvironment();const t=c.currentTime,richness=level>=12?1:level>=10?.7:level>=9?.45:.2;
-   const tone=(frequency:number,end:number,duration:number,volume:number,wave:OscillatorType='sine',delay=0)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type=wave;o.frequency.setValueAtTime(frequency,t+delay);o.frequency.exponentialRampToValueAtTime(Math.max(15,end),t+delay+duration);g.gain.setValueAtTime(volume,t+delay);g.gain.exponentialRampToValueAtTime(.001,t+delay+duration);o.start(t+delay);o.stop(t+delay+duration+.02);};
+   const tone=(frequency:number,end:number,duration:number,volume:number,wave:OscillatorType='sine',delay=0)=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(this.out(c));o.type=wave;o.frequency.setValueAtTime(frequency,t+delay);o.frequency.exponentialRampToValueAtTime(Math.max(15,end),t+delay+duration);g.gain.setValueAtTime(volume,t+delay);g.gain.exponentialRampToValueAtTime(.001,t+delay+duration);o.start(t+delay);o.stop(t+delay+duration+.02);};
    if(type==='click'){if(!this.playCue(c,'click'))tone(480,260,.1,.035);return;}if(type==='turn'){if(!this.playCue(c,'turn')){tone(660,630,.18,.04);tone(880,830,.26,.035,'sine',.1);}return;}
    const impact=type==='impact';
    // Recorded layers replace every synthesized tone; the oscillators only play until the files are decoded,
@@ -214,7 +230,7 @@ class AudioEngine {
    else {tone(impact?100:210,impact?26:65,.28+richness*.1,impact?.1:.045,'triangle');}
    if(effect!=='crystal'){
     if(!this.noise){this.noise=c.createBuffer(1,c.sampleRate*.6,c.sampleRate);const data=this.noise.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=Math.random()*2-1;}
-    const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();source.buffer=this.noise;filter.type=effect==='electric'?'bandpass':'lowpass';filter.frequency.setValueAtTime(effect==='electric'?2100:impact?900:1500,t);source.connect(filter);filter.connect(gain);gain.connect(c.destination);gain.gain.setValueAtTime((impact?.11:.05)*(1+richness*.3),t);gain.gain.exponentialRampToValueAtTime(.001,t+.22+richness*.13);source.start(t);source.stop(t+.4);
+    const source=c.createBufferSource(),filter=c.createBiquadFilter(),gain=c.createGain();source.buffer=this.noise;filter.type=effect==='electric'?'bandpass':'lowpass';filter.frequency.setValueAtTime(effect==='electric'?2100:impact?900:1500,t);source.connect(filter);filter.connect(gain);gain.connect(this.out(c));gain.gain.setValueAtTime((impact?.11:.05)*(1+richness*.3),t);gain.gain.exponentialRampToValueAtTime(.001,t+.22+richness*.13);source.start(t);source.stop(t+.4);
    }
   }catch{/* Audio remains optional in muted or suspended browsers. */}
  }
