@@ -34,7 +34,7 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
      <img className="hero-logo" src="/art/logo.webp" alt="Bomb Masters" width="900" height="534"/>
      <h1 className="hero-title">A mesma essência, <span>só que melhor.</span></h1>
      <p className="hero-text">Artilharia por turnos no navegador: mira, força, vento e muita bomba. Sem pay to win, no PC e no celular.</p>
-     <p className="hero-perk"><Gem size={17}/> Quem jogar a beta ganha cosméticos exclusivos.</p>
+     <p className="hero-perk"><Gem size={17}/> Participe do beta e ganhe itens exclusivos.</p>
      <div className="hero-cta">
       <button className="btn btn-gold btn-lg" onClick={joinBeta}>Quero jogar</button>
       <a className="btn btn-ghost btn-lg" href="#prints">Ver o jogo</a>
