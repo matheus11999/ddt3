@@ -1,18 +1,20 @@
-import {useEffect,useMemo,useState} from 'react';
+import {useEffect,useMemo,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
 import {Lock} from 'lucide-react';
 import {client,useGame} from '../client';
 import type {FishShopTab} from '../client';
 import {audio} from '../game/audio';
-import {FISH,FISH_BAG_MAX,FISH_BY_ID,FISH_RARITIES,FISHING_SHOP,ROD_BY_ID,fishRarity,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
+import {FISH,FISHING_WEAPON,FISH_BAG_MAX,FISH_BY_ID,FISH_RARITIES,FISHING_SHOP,ROD_BY_ID,fishRarity,MAX_FISHING_BUY,fishingLevelProgress,normalizeFishing} from '../../shared/fishing';
 import type {BagFish,FishRarity,FishingOffer} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
 import {RewardIcon} from './RewardIcon';
-import {ItemCardFrame} from './ItemCard';
 import {useRodTip} from './FishingRodInfo';
 import {BagFishCard,kg,useFishTip} from './FishingFish';
+import {CATALOG,weaponIconPath} from '../../shared/catalog';
+import {WEAPON_FRAGMENT_RECIPES,fragmentId} from '../../shared/synthesis';
 import './Fishing.css';
+import './FishingHouse.css';
 
 /** Prizes the game already has art for use it (coins, stones, tickets, pet food); rods use the fishing icons. */
 function PrizeIcon({offer,size}:{offer:FishingOffer;size:number}){
@@ -43,20 +45,21 @@ export function FishingShop(){
  const [gain,setGain]=useState<{points:number;at:number}|null>(null);
  useEffect(()=>{if(!fishSold)return;setGain({points:fishSold.points,at:fishSold.at});audio.cue('boost');const t=setTimeout(()=>setGain(null),1600);return()=>clearTimeout(t);},[fishSold?.at]);
  const go=(next:FishShopTab)=>{client.setFishShopTab(next);audio.play('click');};
- return <Modal title="Casa de Pesca" onClose={close} className="bag-window fishing-shop-window" viewport>
+ return <Modal title="Casa de Pesca" onClose={close} className="fishing-shop-window fishing-house" viewport>
   <div className="fishing-shop">
    <aside className="fishing-counter">
-    <div className="fishing-counter-art"><img className="sigil" src="/assets/ui/aura-gold-sigil.png" alt="" draggable={false}/><img className="house" src="/assets/fishing/icons/fishing-points-stack.png" alt="" draggable={false}/></div>
-    <div className="fishing-counter-level"><small>Pescador</small><b>Nível {level}</b>
-     <div className="fishing-xp"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div></div>
-    <div className={`fishing-counter-points ${gain?'gain':''}`}><FishingIcon id="fishing-points" size={34}/><div><b>{points(f.points)}</b><small>Pontos de Pesca</small></div>
-     {gain&&<em key={gain.at} className="fishing-points-gain">+{points(gain.points)}</em>}</div>
-    <dl className="fishing-counter-stats">
-     <div><dt>Na Sacola</dt><dd>{f.bag.length} / {FISH_BAG_MAX}</dd></div>
-     <div><dt>Peixes pescados</dt><dd>{points(f.total)}</dd></div>
-     <div><dt>Coleção</dt><dd>{known} / {FISH.length}</dd></div>
-    </dl>
-    <p>Venda seus peixes para ganhar Pontos de Pesca: raros e pesados valem mais.</p>
+    <TideRodShowcase/>
+    <div className="fishing-counter-card">
+     <div className="fishing-counter-level"><small>Pescador</small><b>Nível {level}</b></div>
+     <div className="fishing-xp"><i style={{width:`${progress.percent}%`}}/><span>{progress.required?`${progress.current} / ${progress.required}`:'MÁXIMO'}</span></div>
+     <div className={`fishing-counter-points ${gain?'gain':''}`}><FishingIcon id="fishing-points" size={30}/><div><b>{points(f.points)}</b><small>Pontos de Pesca</small></div>
+      {gain&&<em key={gain.at} className="fishing-points-gain">+{points(gain.points)}</em>}</div>
+     <dl className="fishing-counter-stats">
+      <div><dt>Na Sacola</dt><dd>{f.bag.length} / {FISH_BAG_MAX}</dd></div>
+      <div><dt>Peixes pescados</dt><dd>{points(f.total)}</dd></div>
+      <div><dt>Coleção</dt><dd>{known} / {FISH.length}</dd></div>
+     </dl>
+    </div>
    </aside>
    <div className="fishing-shop-main">
     <nav className="fishing-shop-tabs">
@@ -64,10 +67,42 @@ export function FishingShop(){
      <button className={tab==='sell'?'active':''} onClick={()=>go('sell')}>Vender {f.bag.length>0&&<small>{f.bag.length}</small>}</button>
      <button className={tab==='collection'?'active':''} onClick={()=>go('collection')}>Coleção <small>{known}/{FISH.length}</small></button>
     </nav>
-    {tab==='buy'?<Buy level={level}/>:tab==='sell'?<Sell/>:<Collection/>}
+    <div className="fishing-shop-body">{tab==='buy'?<Buy level={level}/>:tab==='sell'?<Sell/>:<Collection/>}</div>
    </div>
   </div>
  </Modal>;
+}
+
+/**
+ * The fished weapon in its painted showcase (pedido do matheus, 21/10): fragments against the recipe (0/50)
+ * and Resgatar, which is the Ferreiro's Síntese of the same recipe (same gold cost, checked by the server).
+ */
+function TideRodShowcase(){
+ const {profile,synthesisResult,error}=useGame(),p=profile!;
+ const recipe=WEAPON_FRAGMENT_RECIPES.find(r=>r.weapon===FISHING_WEAPON)!,weapon=CATALOG[FISHING_WEAPON];
+ const have=p.fragments?.[FISHING_WEAPON]??0,ready=have>=recipe.count,rich=p.gold>=recipe.cost;
+ const [pending,setPending]=useState(false),[done,setDone]=useState(false),sent=useRef(synthesisResult);
+ useEffect(()=>{if(!pending||synthesisResult===sent.current)return;setPending(false);if(synthesisResult?.target===FISHING_WEAPON){setDone(true);audio.cue('boost');}},[synthesisResult,pending]);
+ useEffect(()=>{if(pending&&error)setPending(false);},[error,pending]);
+ useEffect(()=>{if(!done)return;const t=setTimeout(()=>setDone(false),2200);return()=>clearTimeout(t);},[done]);
+ const redeem=()=>{if(!ready||!rich||pending)return;sent.current=synthesisResult;setPending(true);client.send({type:'synthesize',stone:fragmentId(FISHING_WEAPON),count:1});audio.play('click');};
+ const why=!ready?`Faltam ${recipe.count-have} fragmentos`:!rich?`Precisa de ${points(recipe.cost)} de ouro`:undefined;
+ return <section className={`fishing-showcase ${ready?'ready':''} ${done?'done':''}`} aria-label={weapon.name}>
+  <div className="fishing-showcase-art">
+   <img className="fishing-showcase-weapon" src={weaponIconPath(FISHING_WEAPON)} alt="" draggable={false}/>
+   <div className="fishing-showcase-info">
+    <b>{weapon.name}</b>
+    <div className="fishing-fragments" role="progressbar" aria-valuemin={0} aria-valuemax={recipe.count} aria-valuenow={Math.min(have,recipe.count)} aria-label="Fragmentos">
+     <FishingIcon id="fragment" size={26}/>
+     <div className="fishing-fragments-bar"><i style={{width:`${Math.min(100,have/recipe.count*100)}%`}}/><span>{points(have)}/{recipe.count}</span></div>
+    </div>
+   </div>
+   {done&&<em className="fishing-showcase-done">Na mochila!</em>}
+  </div>
+  <p>Colete {recipe.count} fragmentos para sintetizar uma arma exclusiva.</p>
+  <button className="fishing-redeem" disabled={!ready||!rich||pending} title={why} onClick={redeem}>{pending?'Resgatando…':'Resgatar'}</button>
+  <small className="fishing-redeem-cost">{why??<><RewardIcon kind="coins" size={14}/>{points(recipe.cost)} de ouro</>}</small>
+ </section>;
 }
 
 function Buy({level}:{level:number}){
@@ -84,15 +119,15 @@ function Buy({level}:{level:number}){
    const n=single?1:amount(offer.id),cost=offer.cost*n,poor=f.points<cost;
    const rod=offer.prize.kind==='rod'?ROD_BY_ID.get(offer.prize.rod):undefined;
    return <li key={offer.id} className={`fishing-offer ${locked?'locked':''} ${owned?'owned':''} ${asking===offer.id?'asking':''} ${done===offer.id?'done':''}`} title={rod?undefined:offer.description} {...(rod?rodTip.handlers(rod):{})}>
-    <ItemCardFrame variant="preview" className="fishing-offer-art"><PrizeIcon offer={offer} size={34}/>{locked&&<span className="fishing-lock"><Lock size={9}/>{offer.level}</span>}</ItemCardFrame>
+    <span className="fishing-house-card fishing-offer-art"><PrizeIcon offer={offer} size={34}/>{locked&&<span className="fishing-lock"><Lock size={9}/>{offer.level}</span>}</span>
     <div className="fishing-offer-text"><b className="fishing-offer-name">{offer.name}</b>
      <span className="fishing-cost"><FishingIcon id="fishing-points" size={14}/>{points(cost)}</span></div>
     <div className="fishing-offer-foot">
      {locked?<span className="fishing-need">Nv. {offer.level}</span>:owned?<span className="fishing-need ok">Já tem</span>:
       asking===offer.id?<span className="fishing-buy">
        {!single&&<span className="fishing-stepper"><button onClick={()=>setAmount(offer.id,n-1)} disabled={n<=1} aria-label="Menos">−</button><input type="number" min={1} max={MAX_FISHING_BUY} value={n} aria-label="Quantidade" onChange={e=>setAmount(offer.id,Number(e.target.value))}/><button onClick={()=>setAmount(offer.id,n+1)} disabled={n>=MAX_FISHING_BUY} aria-label="Mais">+</button></span>}
-       <button className="wood-button" disabled={poor} title={poor?'Pontos de Pesca insuficientes':undefined} onClick={()=>{client.send({type:'fish-buy',offer:offer.id,quantity:n});audio.play('click');}}>OK</button><button className="wood-quiet" onClick={()=>setAsking(null)} aria-label="Cancelar">×</button></span>
-      :<button className="wood-button" disabled={f.points<offer.cost} title={f.points<offer.cost?'Pontos de Pesca insuficientes':undefined} onClick={()=>{setAsking(offer.id);audio.play('click');}}>Comprar</button>}
+       <button className="fishing-house-button" disabled={poor} title={poor?'Pontos de Pesca insuficientes':undefined} onClick={()=>{client.send({type:'fish-buy',offer:offer.id,quantity:n});audio.play('click');}}>OK</button><button className="fishing-house-quiet" onClick={()=>setAsking(null)} aria-label="Cancelar">×</button></span>
+      :<button className="fishing-house-button" disabled={f.points<offer.cost} title={f.points<offer.cost?'Pontos de Pesca insuficientes':undefined} onClick={()=>{setAsking(offer.id);audio.play('click');}}>Comprar</button>}
     </div>
     {done===offer.id&&<em className="fishing-offer-done">Comprado!</em>}
    </li>;})}</ul></section>)}
@@ -134,10 +169,10 @@ function Sell(){
   </div>
   <ul className="fishing-sell-grid">{shown.map(b=><li key={b.id}><BagFishCard item={b} record={records.has(b.id)} selected={picked.has(b.id)} onClick={()=>toggle(b.id)} onHover={tip.handlers(b,records.has(b.id))}/></li>)}</ul>
   <footer className="fishing-sell-bar">
-   <button className="wood-quiet" onClick={selectAll} disabled={!all.length}>{allPicked?'Desmarcar todos':'Selecionar todos'}</button>
-   {picked.size>0&&<button className="wood-quiet" onClick={()=>setPicked(new Set())}>Limpar</button>}
+   <button className="fishing-house-quiet" onClick={selectAll} disabled={!all.length}>{allPicked?'Desmarcar todos':'Selecionar todos'}</button>
+   {picked.size>0&&<button className="fishing-house-quiet" onClick={()=>setPicked(new Set())}>Limpar</button>}
    <span className="fishing-sell-total">{chosen.length?<>{chosen.length} {chosen.length===1?'peixe':'peixes'} · <FishingIcon id="fishing-points" size={16}/><b>{points(total)}</b></>:<em>Clique nos peixes para vender. A coroa marca o recorde de cada espécie.</em>}</span>
-   <button className="wood-button fishing-sell-go" disabled={!chosen.length||pending} onClick={sell}>{pending?'Vendendo…':'Vender'}</button>
+   <button className="fishing-house-button fishing-sell-go" disabled={!chosen.length||pending} onClick={sell}>{pending?'Vendendo…':'Vender'}</button>
   </footer>
   {tip.node}
  </div>;
@@ -146,10 +181,10 @@ function Sell(){
 function Collection(){
  const {profile}=useGame(),f=normalizeFishing(profile!.fishing);
  return <div className="fishing-collection">{FISH_RARITIES.map(rarity=>{const {id,name}=rarity,list=FISH.filter(fish=>fishRarity(fish).id===id),got=list.filter(fish=>f.caught[fish.id]).length;if(!list.length)return null;
-  return <section key={id}><h3 className="wood-ribbon">{name}<small>{got}/{list.length}</small></h3><ul>{list.map(fish=>{
+  return <section key={id}><h3>{name}<small>{got}/{list.length}</small></h3><ul>{list.map(fish=>{
    const count=f.caught[fish.id]??0;
    return <li key={fish.id} className={`fishing-entry ${count?'':'unknown'}`} title={count?`${fish.name}: ${count} pescado(s)`:'Ainda não pescado'}>
-    <ItemCardFrame variant="preview" empty={!count}><FishingIcon id={fish.id} size={54} unknown={!count}/>{count>0&&<span className="fishing-count">×{count}</span>}</ItemCardFrame>
+    <span className="fishing-house-card"><FishingIcon id={fish.id} size={54} unknown={!count}/>{count>0&&<span className="fishing-count">×{count}</span>}</span>
     <b>{count?fish.name:'???'}</b>
     <span className="fishing-stars" aria-label={`Dificuldade ${fish.difficulty}`}>{Array.from({length:5},(_,i)=><i key={i} className={i<fish.difficulty?'on':''}>★</i>)}</span>
     <small>{count?`Recorde ${kg(f.best[fish.id]??0)} kg`:`${kg(fish.minKg)} a ${kg(fish.maxKg)} kg`}</small>

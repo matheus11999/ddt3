@@ -7,6 +7,7 @@ import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import {buyFishingOffer,chooseFishingGear,sellFish,settleFishing} from '../server/fishing';
 import type {FishSettle} from '../server/fishing';
+import {WEAPON_FRAGMENT_RECIPES,fragmentId,synthesize} from '../shared/synthesis';
 import {FISH,FISHING_LAKES,FISHING_SPOTS,onDeck,FISHING_SPAWN,ROD_BY_ID,FISH_BY_ID,FISHING_DAILY_CAPS,FISHING_WEAPON,rollRodDrops,fishingDay,autoChance,autoReward,fishChallenge,zoneAt,fishingBlocked,fishingFree,fishingLevel,fishingStep,gradePress,inLake,markerAt,pickFish,fishingXpFor,fishRarity,normalizeFishing,fishWeight,catchPoints,catchXp,weightShare,fishingWeek,FISH_BAG_MAX,effectiveRod,FISHING_SHOP,FISHING_RODS,FISHING_HISTORY,HOOK_LEAD_MS,RESULT_MS,FISHING_IGNORED_STOP,autoHourlyShare,biteWaitMs,ROD_MARK_TOP} from '../shared/fishing';
 import type {FishChallenge,FishingView} from '../shared/fishing';
 
@@ -173,6 +174,7 @@ class FishStore implements ProfileStore {
  async fishSettle(id:string,settle:FishSettle){const outcome=settleFishing(this.profiles.get(id)!,settle);return {...outcome,profile:structuredClone(outcome.profile)};}
  async fishGear(id:string,rod:string){return structuredClone(chooseFishingGear(this.profiles.get(id)!,rod));}
  async fishBuy(id:string,offer:string,quantity:number){const outcome=buyFishingOffer(this.profiles.get(id)!,offer,quantity);return {...outcome,profile:structuredClone(outcome.profile)};}
+ async synthesize(id:string,stone:string,count:number){const profile=this.profiles.get(id)!,result=synthesize(profile,stone,count);return {profile:structuredClone(profile),result};}
 }
 function fixture(){
  const store=new FishStore(),game=new Game(store),events=new Map<string,ServerEvent[]>();
@@ -182,6 +184,16 @@ function fixture(){
 }
 const last=<T extends ServerEvent['type']>(events:ServerEvent[],type:T)=>events.filter((e):e is Extract<ServerEvent,{type:T}>=>e.type===type).at(-1);
 const flush=()=>new Promise(resolve=>setImmediate(resolve));
+
+test('Resgatar na Casa de Pesca: 50 fragmentos viram a Vara das Marés na Pescaria, sem ir ao ferreiro',async()=>{
+ const f=fixture(),p=f.store.profiles.get(f.a.id)!,recipe=WEAPON_FRAGMENT_RECIPES.find(r=>r.weapon===FISHING_WEAPON)!;
+ p.fragments={[FISHING_WEAPON]:recipe.count+3};p.gold=recipe.cost;f.game.peers.get(f.a.id)!.profile=structuredClone(p);
+ await f.game.command(f.a.id,{type:'zone',zone:'fishing'});
+ await f.game.command(f.a.id,{type:'synthesize',stone:'fortify-1',count:1});assert.match(last(f.events.get(f.a.id)!,'error')!.message,/ferreiro/);
+ await f.game.command(f.a.id,{type:'synthesize',stone:fragmentId(FISHING_WEAPON),count:1});
+ const after=last(f.events.get(f.a.id)!,'profile')!.profile;
+ assert.ok(after.inventory.includes(FISHING_WEAPON));assert.equal(after.fragments[FISHING_WEAPON],3);assert.equal(after.gold,0);
+});
 
 test('the Pescaria is its own zone: walkers only see each other there and rooms wait for the plaza',async()=>{
  const f=fixture();
