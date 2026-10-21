@@ -54,7 +54,11 @@
     "test:auction:integration": "tsx tests/auction.integration.ts",
     "test:guilds:integration": "tsx tests/guilds.integration.ts",
     "test:pets:integration": "tsx tests/pets.integration.ts",
-    "test:hall:integration": "tsx tests/hall.integration.ts"
+    "test:hall:integration": "tsx tests/hall.integration.ts",
+    "dev:site": "vite --config site/vite.config.ts --host 127.0.0.1",
+    "start:site": "tsx site/server/index.ts",
+    "build:site": "vite build --config site/vite.config.ts",
+    "test:site:browser": "node scripts/preview-site.mjs"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

@@ -7,9 +7,10 @@ import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RET
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
-import {AUTO_BASE_MS,FISHING_IGNORED_STOP,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingWeek,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish,FISH_RANKING_SIZE} from '../shared/fishing';
+import {AUTO_BASE_MS,FISHING_WEAPON,FISHING_IGNORED_STOP,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingWeek,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish,FISH_RANKING_SIZE} from '../shared/fishing';
 import type {FishRanking} from '../shared/fishing';
 import type {AutoFishingSummary,Fish,FishChallenge,FishingPhase,FishingPose,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
+import {fragmentId} from '../shared/synthesis';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
@@ -166,7 +167,8 @@ export class Game {
   if(f&&(f.settling||f.phase==='waiting'||f.phase==='bite'))return;
   for(const other of this.peers.values())if(other!==p&&other.connected&&other.fishing?.spot.id===spot.id&&other.channel===p.channel)throw Error('Alguém já está pescando aí.');
   const fishing=normalizeFishing(p.profile.fishing),rod=ROD_BY_ID.get(fishing.rod)!,now=Date.now();
-  p.x=p.targetX=spot.x;p.y=p.targetY=spot.y;
+  // Fishes from where the player stands (no jump onto the spot); walking stops there.
+  p.targetX=p.x;p.targetY=p.y;
   p.fishing={spot,phase:'waiting',since:now,biteAt:now+biteWaitMs(rod,!!p.fishAuto,this.fishRoll()),rod:rod.id,start:0,press:0,misses:0,grades:[],resolveAt:0};
   this.emitFishing(p);this.sendLobby(p.channel);
  }
@@ -653,7 +655,9 @@ export class Game {
     case 'synthesize':{
      if(p.roomId)throw Error('Volte ao ferreiro da praça para sintetizar pedras.');
      const guild=this.memberships.get(id);
-     if(!guild?.smith&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
+     // The Casa de Pesca redeems the fished weapon (Resgatar) with the same recipe, cost and rules as the Ferreiro.
+     const fishingWeapon=p.zone==='fishing'&&c.stone===fragmentId(FISHING_WEAPON);
+     if(!fishingWeapon&&!guild?.smith&&Math.hypot(p.x-SMITH_POSITION.x,p.y-SMITH_POSITION.y)>180)throw Error('Aproxime-se do ferreiro.');
      if(!this.store.synthesize)throw Error('Indisponível no momento.');
      const outcome=await this.store.synthesize(id,c.stone,c.count);p.profile=outcome.profile;
      this.emit(p,{type:'profile',profile:p.profile});this.emit(p,{type:'synthesis-result',result:outcome.result});return;

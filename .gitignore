@@ -10,3 +10,5 @@ playwright-report/
 *.key
 dump.rdb
 /tmp/
+site/art-source/*.png
+site/art-source/*.log

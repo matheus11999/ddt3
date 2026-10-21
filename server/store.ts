@@ -167,14 +167,16 @@ export class Store implements ProfileStore {
  `);}
  hash(token:string){return createHash('sha256').update(token).digest('hex');}
  async session(token:string|undefined):Promise<Profile|null>{if(!token||!/^[0-9a-f]{64}$/.test(token))return null;const r=await this.pool.query('SELECT p.profile,p.name FROM sessions s JOIN players p ON p.id=s.player_id WHERE token_hash=$1 AND expires_at>now()',[this.hash(token)]);return r.rows[0]?normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}):null;}
- async createGuest(gender:CharacterGender='male'){
+ async createGuest(gender:CharacterGender='male',name?:string){
   if(!CHARACTER_GENDERS.includes(gender))throw Error('Escolha um personagem masculino ou feminino.');
   const id=randomUUID(),token=randomBytes(32).toString('hex');
   const equipment=starterEquipment(gender);
-  const profile=normalizeProfile({id,name:`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set([...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES])].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
+  const profile=normalizeProfile({id,name:name??`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set([...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES])].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
   const conn=await this.pool.connect();try{await conn.query('BEGIN');await conn.query('INSERT INTO players(id,name,profile) VALUES($1,$2,$3)',[id,profile.name,profile]);await conn.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),id]);await conn.query('COMMIT');}catch(e){await conn.query('ROLLBACK');throw e;}finally{conn.release();}
   return {token,profile};
  }
+ /** A new 30-day session for an existing player (an account opening the game from the site). */
+ async createSession(playerId:string){const token=randomBytes(32).toString('hex');await this.pool.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),playerId]);return token;}
  async getProfile(id:string){const r=await this.pool.query('SELECT profile,name FROM players WHERE id=$1',[id]);return r.rows[0]?normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}):null;}
  async saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>{
   const parsed=abilityLoadoutSchema.safeParse(slots);if(!parsed.success)throw Error('Escolha até três habilidades diferentes.');

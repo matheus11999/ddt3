@@ -18,7 +18,7 @@ type LobbyMenu='quests'|'guild';
 const PLAZA_ONLY_BUTTONS=new Set(['bag','shop','auction','pets','quests','guild']);
 const LOBBY_MENU_NAMES:Record<LobbyMenu,string>={quests:'Missões',guild:'Guilda'};
 export function Hud({onArena,onExpeditions,onInventory,onForge,onShop,onSettings}:{onArena:()=>void;onExpeditions:()=>void;onInventory:()=>void;onForge:()=>void;onShop:()=>void;onSettings:()=>void}){
- const {profile,channel,room,mailUnread,auctionMine,zone}=useGame();const fishingZone=zone==='fishing';const p=profile!;const stats=attributes(p.equipment,p.level),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(true);useEffect(()=>{const open=()=>setChatOpen(true);window.addEventListener('brasa-chat-focus',open);return()=>window.removeEventListener('brasa-chat-focus',open);},[]);
+ const {profile,channel,room,mailUnread,auctionMine,zone}=useGame();const fishingZone=zone==='fishing';const p=profile!;const stats=attributes(p.equipment,p.level),progress=levelProgress(p.level,p.xp);const [sound,setSound]=useState(audio.enabled);const [chatOpen,setChatOpen]=useState(()=>!document.documentElement.classList.contains('mobile-landscape'));useEffect(()=>{const open=()=>setChatOpen(true);window.addEventListener('brasa-chat-focus',open);return()=>window.removeEventListener('brasa-chat-focus',open);},[]);
  const pendingQuests=Number(!p.equippedOnce)+Number(!p.matches);const [menu,setMenu]=useState<LobbyMenu|null>(null);const dock=useRef<HTMLElement>(null);
  useEffect(()=>{
   if(!menu)return;
