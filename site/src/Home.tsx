@@ -6,6 +6,7 @@ import {AuthCard} from './AuthCard';
 /** Real screenshots (simulated data on a test server, docs/site.md), shown under "Ver o jogo". */
 const SHOTS=[
  {src:'/shots/battle.webp',title:'Batalha PvP',text:'Ângulo, força e vento. O terreno se desfaz a cada explosão.'},
+ {src:'/shots/plaza.webp',title:'Praça Celeste',text:'Encontre os amigos na praça e veja quem lidera o dia.'},
  {src:'/shots/gvg.webp',title:'Guerra de Guildas',text:'Sua guilda contra outra, valendo Riqueza.'},
  {src:'/shots/instance.webp',title:'Instâncias',text:'Até quatro amigos contra a Rainha Formiga.'},
  {src:'/shots/boss.webp',title:'Chefão Mundial',text:'O servidor inteiro contra o Dragão Ancestral.'},
