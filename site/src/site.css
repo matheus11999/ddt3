@@ -74,10 +74,10 @@ main{min-height:70vh}
 
 /* Hero */
 .hero{position:relative;min-height:100svh;display:flex;align-items:center;overflow:hidden;isolation:isolate;padding:110px 0 80px}
-.hero-art{position:absolute;inset:0;z-index:-2}
+.hero-art{position:absolute;inset:0;z-index:-2;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%)}
 .hero-art img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;animation:heroIn 1.4s ease-out both}
-.hero::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(18,10,31,.95) 0%,rgba(40,16,70,.72) 30%,rgba(90,30,120,.18) 55%,rgba(18,10,31,.2) 80%,rgba(18,10,31,.55) 100%),linear-gradient(180deg,rgba(18,10,31,.6) 0%,transparent 20%,transparent 72%,#120a1f 100%)}
-.hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 40% 50% at 18% 60%,rgba(170,80,255,.28),transparent 70%),radial-gradient(ellipse 35% 45% at 70% 70%,rgba(255,140,40,.22),transparent 70%);mix-blend-mode:screen}
+.hero::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,10,31,.6) 0%,transparent 20%,transparent 62%,var(--bg) 100%),linear-gradient(100deg,rgba(18,10,31,.95) 0%,rgba(40,16,70,.72) 30%,rgba(90,30,120,.18) 55%,rgba(18,10,31,.2) 80%,rgba(18,10,31,.55) 100%)}
+.hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 92%);mask-image:linear-gradient(180deg,#000 55%,transparent 92%);background:radial-gradient(ellipse 40% 50% at 18% 60%,rgba(170,80,255,.28),transparent 70%),radial-gradient(ellipse 35% 45% at 70% 70%,rgba(255,140,40,.22),transparent 70%);mix-blend-mode:screen}
 .beta-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;font-weight:900;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,#8b3dff,#ff4fa3 55%,#ffb347);box-shadow:0 0 0 1px rgba(255,255,255,.25) inset,0 8px 24px rgba(200,70,255,.4)}
 .hero-perk{display:flex;align-items:center;gap:8px;margin:-12px 0 24px;font-weight:800;color:var(--gold)}
 @keyframes heroIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
@@ -138,7 +138,8 @@ main{min-height:70vh}
 .section-head h2{font-size:clamp(2rem,4.2vw,3.1rem);margin-bottom:12px}
 .section-head p:not(.eyebrow){color:#cfc3e6;font-size:1.06rem;margin:0}
 /* Telas do jogo */
-.prints{position:relative;padding:90px 20px 100px;background:radial-gradient(ellipse at 50% 0,rgba(140,70,200,.25),transparent 60%),linear-gradient(180deg,#120a1f,#190d2c 50%,#120a1f)}
+/* Starts on the exact page color the hero ends on, so there is no seam between them. */
+.prints{position:relative;padding:90px 20px 100px;background:radial-gradient(ellipse 60% 45% at 50% 40%,rgba(140,70,200,.18),transparent 70%),linear-gradient(180deg,var(--bg) 0%,#190d2c 55%,var(--bg) 100%)}
 .carousel{max-width:1180px;margin:auto}
 .carousel-stage{position:relative;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#0b0616;box-shadow:0 0 0 2px rgba(255,210,94,.55),0 0 0 8px rgba(30,16,52,.9),0 0 0 9px rgba(255,210,94,.2),0 30px 70px rgba(0,0,0,.6)}
 .carousel-slide{position:absolute;inset:0;padding:0;border:0;cursor:zoom-in;opacity:0;transform:scale(1.03);transition:opacity .7s ease,transform 1.2s ease;pointer-events:none}
@@ -247,10 +248,11 @@ a.server-row:hover{border-color:var(--gold);background:rgba(255,210,94,.08);tran
 .topic-list.compact .topic-row{padding:12px 16px}
 
 /* Header das páginas internas: mesmo tamanho em todas, cada uma com sua pintura (PageHeader.tsx) */
-.page-header{position:relative;height:clamp(240px,30vh,290px);padding:86px 20px 22px;display:flex;align-items:flex-end;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line)}
-.page-header-art{position:absolute;inset:0;z-index:-2}
+.page-header{position:relative;height:clamp(240px,30vh,290px);padding:86px 20px 22px;display:flex;align-items:flex-end;overflow:hidden;isolation:isolate}
+/* The painting melts into the page: a long soft mask at the bottom, no hard edge or border line. */
+.page-header-art{position:absolute;inset:0;z-index:-2;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 45%,rgba(0,0,0,.6) 72%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 45%,rgba(0,0,0,.6) 72%,transparent 100%)}
 .page-header-art img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;animation:heroIn 1.2s ease-out both}
-.page-header::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(14,7,28,.88) 0%,rgba(14,7,28,.55) 40%,rgba(14,7,28,.12) 75%),linear-gradient(180deg,rgba(14,7,28,.55) 0%,transparent 35%,transparent 60%,var(--bg) 100%)}
+.page-header::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(18,10,31,.88) 0%,rgba(18,10,31,.55) 40%,rgba(18,10,31,.12) 75%),linear-gradient(180deg,rgba(18,10,31,.55) 0%,transparent 35%)}
 .page-header-inner{width:100%;max-width:1180px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .page-header-copy{min-width:0;max-width:640px}
 .page-header h1{font-size:clamp(2.2rem,4.6vw,3.2rem);margin-bottom:8px;overflow-wrap:anywhere}
@@ -299,7 +301,7 @@ main>.forum-body.narrow{padding-top:110px}
 
 /* Página do jogador */
 .auth-page{position:relative;min-height:100svh;display:grid;place-items:center;padding:130px 20px 60px;isolation:isolate}
-.auth-page-art{position:absolute;inset:0;z-index:-1}
+.auth-page-art{position:absolute;inset:0;z-index:-1;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 100%);mask-image:linear-gradient(180deg,#000 55%,transparent 100%)}
 .auth-page-art img{width:100%;height:100%;object-fit:cover;opacity:.8}
 .auth-page::after{content:'';position:absolute;inset:0;z-index:-1;background:radial-gradient(ellipse at center,rgba(14,7,28,.35),var(--bg) 85%)}
 .auth-page .auth-card{width:min(420px,100%)}
