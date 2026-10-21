@@ -43,7 +43,7 @@ export function FishingShop(){
  const known=Object.keys(f.caught).length;
  // The points counter rolls up after a sale, with the amount floating over it.
  const [gain,setGain]=useState<{points:number;at:number}|null>(null);
- useEffect(()=>{if(!fishSold)return;setGain({points:fishSold.points,at:fishSold.at});audio.cue('boost');const t=setTimeout(()=>setGain(null),1600);return()=>clearTimeout(t);},[fishSold?.at]);
+ useEffect(()=>{if(!fishSold)return;setGain({points:fishSold.points,at:fishSold.at});audio.cue('boost','general');const t=setTimeout(()=>setGain(null),1600);return()=>clearTimeout(t);},[fishSold?.at]);
  const go=(next:FishShopTab)=>{client.setFishShopTab(next);audio.play('click');};
  return <Modal title="Casa de Pesca" onClose={close} className="fishing-shop-window fishing-house" viewport>
   <div className="fishing-shop">
@@ -82,7 +82,7 @@ function TideRodShowcase(){
  const recipe=WEAPON_FRAGMENT_RECIPES.find(r=>r.weapon===FISHING_WEAPON)!,weapon=CATALOG[FISHING_WEAPON];
  const have=p.fragments?.[FISHING_WEAPON]??0,ready=have>=recipe.count,rich=p.gold>=recipe.cost;
  const [pending,setPending]=useState(false),[done,setDone]=useState(false),sent=useRef(synthesisResult);
- useEffect(()=>{if(!pending||synthesisResult===sent.current)return;setPending(false);if(synthesisResult?.target===FISHING_WEAPON){setDone(true);audio.cue('boost');}},[synthesisResult,pending]);
+ useEffect(()=>{if(!pending||synthesisResult===sent.current)return;setPending(false);if(synthesisResult?.target===FISHING_WEAPON){setDone(true);audio.cue('boost','general');}},[synthesisResult,pending]);
  useEffect(()=>{if(pending&&error)setPending(false);},[error,pending]);
  useEffect(()=>{if(!done)return;const t=setTimeout(()=>setDone(false),2200);return()=>clearTimeout(t);},[done]);
  const redeem=()=>{if(!ready||!rich||pending)return;sent.current=synthesisResult;setPending(true);client.send({type:'synthesize',stone:fragmentId(FISHING_WEAPON),count:1});audio.play('click');};
@@ -109,7 +109,7 @@ function Buy({level}:{level:number}){
  const {profile,fishBuy}=useGame(),f=normalizeFishing(profile!.fishing);
  const [amounts,setAmounts]=useState<Record<string,number>>({}),[asking,setAsking]=useState<string|null>(null);
  const [done,setDone]=useState<string|null>(null);
- useEffect(()=>{if(!fishBuy)return;setAsking(null);setDone(fishBuy.offer);audio.cue('boost');const t=setTimeout(()=>setDone(null),1400);return()=>clearTimeout(t);},[fishBuy?.at]);
+ useEffect(()=>{if(!fishBuy)return;setAsking(null);setDone(fishBuy.offer);audio.cue('boost','general');const t=setTimeout(()=>setDone(null),1400);return()=>clearTimeout(t);},[fishBuy?.at]);
  const amount=(id:string)=>amounts[id]??1;
  const setAmount=(id:string,n:number)=>setAmounts(a=>({...a,[id]:Math.max(1,Math.min(MAX_FISHING_BUY,Math.floor(n)||1))}));
  const rodTip=useRodTip(f.rods,f.rod,level);

@@ -20,8 +20,9 @@ async function openClient(label){
  observe(client,page,label);
  await enterGame(page,base);await expect(page.locator('.bottom-dock')).toBeVisible();
  client.profile=(await waitEvent(client,'welcome')).profile;
- await page.getByRole('button',{name:'Configurações',exact:true}).click();const settings=page.getByRole('dialog',{name:'Ajustes'}),name=`TEST-SALA-${label}-${client.profile.id.slice(0,5)}`;
- await settings.getByLabel('Nome do aventureiro').fill(name);const mark=client.events.length;await settings.getByRole('button',{name:'Salvar nome',exact:true}).click();client.profile=(await waitEvent(client,'profile',event=>event.profile.name===name,mark)).profile;await settings.getByRole('button',{name:'Fechar',exact:true}).click();
+ // Ajustes has only Gráfico and Som (no name field since 21/10/2026).
+ await page.getByRole('button',{name:'Configurações',exact:true}).click();const settings=page.getByRole('dialog',{name:'Ajustes'});
+ await expect(settings.getByRole('tab')).toHaveText(['Gráfico','Som']);await expect(settings.getByRole('textbox')).toHaveCount(0);await settings.getByRole('button',{name:'Fechar',exact:true}).click();
  return client;
 }
 async function createRoom(client){

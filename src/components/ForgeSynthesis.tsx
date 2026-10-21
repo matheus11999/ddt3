@@ -46,7 +46,7 @@ export function ForgeSynthesis({tabs}:{tabs:ReactNode}){
   if(!pending)return;
   const outcome=state.synthesisResult;
   if(outcome&&outcome!==submitted.current&&outcome.stone===selected){
-   const timer=window.setTimeout(()=>{if(!pendingRef.current)return;pendingRef.current=false;setPending(false);setCount(1);setResult({target:outcome.target,count:outcome.count,cost:outcome.cost,key:Date.now()});audio.play('turn');},Math.max(0,SYNTHESIS_ANIMATION_MS-(performance.now()-startedAt.current)));
+   const timer=window.setTimeout(()=>{if(!pendingRef.current)return;pendingRef.current=false;setPending(false);setCount(1);setResult({target:outcome.target,count:outcome.count,cost:outcome.cost,key:Date.now()});audio.play('turn',undefined,0,false,'general');},Math.max(0,SYNTHESIS_ANIMATION_MS-(performance.now()-startedAt.current)));
    return()=>window.clearTimeout(timer);
   }
   if(state.error||state.status!=='online'){pendingRef.current=false;setPending(false);setError(state.error??'Conexão interrompida.');}
