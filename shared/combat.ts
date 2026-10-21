@@ -61,3 +61,14 @@ export function monsterDamage(attack:number,defender:Equipment,scale=1,monsterLe
  const raw=mitigated(attack,0,0,monsterLevel,attributes(defender))*scale;
  return Number.isFinite(raw)?Math.max(1,Math.round(raw)):0;
 }
+
+/** PvP turn cap: 20 turns per fighter, never under 80 (a 4×4 used to end in a draw after 10 turns each). */
+export function pvpTurnLimit(fighters:number){return Math.max(80,20*fighters);}
+/** At the turn cap the side with more life left wins (share of its total life); only an exact tie is a draw. */
+export function turnLimitWinner<T extends number>(players:readonly {team:T;hp:number;maxHp:number}[]):T|null{
+ const share=new Map<T,{hp:number;max:number}>();
+ for(const p of players){const t=share.get(p.team)??{hp:0,max:0};t.hp+=Math.max(0,p.hp);t.max+=Math.max(0,p.maxHp);share.set(p.team,t);}
+ let best:T|null=null,bestShare=-1,tie=false;
+ for(const [team,t] of share){const value=t.max>0?t.hp/t.max:0;if(value>bestShare+1e-9){best=team;bestShare=value;tie=false;}else if(Math.abs(value-bestShare)<=1e-9)tie=true;}
+ return tie||bestShare<=0?null:best;
+}
