@@ -228,7 +228,7 @@ export function effectiveRod(rod:FishingRod,level:number):FishingRod{const b=lev
 
 // ── Profile ──
 /** What a profile keeps about fishing (persisted inside the profile JSON). */
-export interface FishingProfile {rod:string;rods:string[];/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];/** Rod prizes fished today (Brasília), against FISHING_DAILY_CAPS. */daily:{day:string;gold:number;coupons:number;fragments:number};/** The heaviest fish of this week (fishingWeek), for the ranking. */week?:{key:string;fish:string;kg:number};/** Fish kept in the Sacola, one by one, until sold at the Casa de Pesca (newest first). */bag:BagFish[];}
+export interface FishingProfile {rod:string;rods:string[];/** Pontos de Pesca, spent at the fishing shop. */points:number;/** Catches per fish (the collection). */caught:Record<string,number>;/** Heaviest catch per fish, kg. */best:Record<string,number>;total:number;/** Fisher EXP; the level comes from it (fishingLevel). */xp:number;/** The last catches, newest first (FISHING_HISTORY at most). */history:FishingHistoryEntry[];/** Rod prizes fished today (Brasília), against FISHING_DAILY_CAPS. */daily:{day:string;gold:number;coupons:number;fragments:number};/** The heaviest fish of this week (fishingWeek), for the ranking. */week?:{key:string;fish:string;kg:number};/** Fish kept in the Sacola, one by one, until sold at the Casa de Pesca (newest first). */bag:BagFish[];/** The last automatic sessions, newest first (FISHING_AUTO_RUNS at most): the history shows each one as a single line. */autoRuns:AutoFishingSummary[];}
 /**
  * One fish in the Sacola (pedido do matheus, 20/10): each catch is its own fish with its weight; two of the
  * same kind with different weights are two fish worth different amounts. `value` is fixed at the catch
@@ -242,6 +242,8 @@ export const MAX_FISH_SELL=FISH_BAG_MAX;
 /** One catch in the history window. */
 export interface FishingHistoryEntry {fish:string;kg:number;points:number;xp:number;at:number;auto?:boolean;drops?:FishingDrop[];}
 export const FISHING_HISTORY=30;
+/** Automatic sessions kept for the history (pedido do matheus, 21/10: "Pescaria automática · há x min" with Ver). */
+export const FISHING_AUTO_RUNS=10;
 /** Pontos de Pesca given back per leftover Isca Brilhante (60 points bought 10). */
 const BAIT_REFUND=6;
 const int=(v:unknown,max=1e9)=>typeof v==='number'&&Number.isFinite(v)?Math.max(0,Math.min(max,Math.floor(v))):0;
@@ -263,7 +265,10 @@ export function normalizeFishing(raw:unknown):FishingProfile{
  const seen=new Set<string>();
  const bag=(Array.isArray(r.bag)?r.bag:[]).filter((b):b is BagFish=>!!b&&typeof b==='object'&&typeof b.id==='string'&&/^[a-z0-9-]{1,40}$/.test(b.id)&&FISH_BY_ID.has(b.fish)&&typeof b.kg==='number'&&b.kg>0&&!seen.has(b.id)&&!!seen.add(b.id))
   .slice(0,FISH_BAG_MAX).map(b=>({id:b.id,fish:b.fish,kg:Math.round(b.kg*100)/100,value:Math.max(1,int(b.value)),at:typeof b.at==='number'?b.at:0,...(b.auto?{auto:true}:{})}));
- return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,rods,points:int(r.points)+refund,caught,best,total:int(r.total),xp:int(r.xp),history,daily,...(week?{week}:{}),bag};
+ const autoRuns=(Array.isArray(r.autoRuns)?r.autoRuns:[]).filter((a):a is AutoFishingSummary=>!!a&&typeof a==='object'&&typeof a.since==='number'&&typeof a.until==='number').slice(0,FISHING_AUTO_RUNS)
+  .map(a=>{const best=a.best&&FISH_BY_ID.has(a.best.fish)&&typeof a.best.kg==='number'?{fish:a.best.fish,kg:Math.round(a.best.kg*100)/100}:undefined;
+   return {since:a.since,until:Math.max(a.since,a.until),casts:int(a.casts),missed:int(a.missed),fish:Object.fromEntries(Object.entries(a.fish??{}).filter(([id,n])=>FISH_BY_ID.has(id)&&int(n)>0).map(([id,n])=>[id,int(n)])),points:int(a.points),xp:int(a.xp),gold:int(a.gold),coupons:int(a.coupons),fragments:int(a.fragments),...(best?{best}:{})};});
+ return {rod:typeof r.rod==='string'&&rods.includes(r.rod)?r.rod:STARTER_ROD,rods,points:int(r.points)+refund,caught,best,total:int(r.total),xp:int(r.xp),history,daily,...(week?{week}:{}),bag,autoRuns};
 }
 
 // ── Fishing shop (Casa de Pesca): Pontos de Pesca for rewards ──

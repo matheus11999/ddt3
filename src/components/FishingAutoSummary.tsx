@@ -1,6 +1,7 @@
 import type {CSSProperties} from 'react';
 import {client,useGame} from '../client';
 import {FISH_BY_ID,fishRarity} from '../../shared/fishing';
+import type {AutoFishingSummary as Summary} from '../../shared/fishing';
 import {Modal} from './Modal';
 import {FishingIcon} from './FishingIcon';
 import {prizeArt} from './FishingCatchFx';
@@ -18,11 +19,16 @@ export function fishingDuration(ms:number){
  */
 export function FishingAutoSummary(){
  const {fishAutoSummary:s}=useGame();if(!s)return null;
- const close=()=>{client.closeFishAutoSummary();audio.play('click');};
- const fish=Object.entries(s.fish).map(([id,n])=>({fish:FISH_BY_ID.get(id),id,n})).filter(f=>f.fish).sort((a,b)=>b.fish!.difficulty-a.fish!.difficulty||b.n-a.n);
+ return <AutoRunSummary summary={s} onClose={()=>{client.closeFishAutoSummary();audio.play('click');}}/>;
+}
+/** The fish of a session by kind, rarest first. */
+export function runFish(s:Summary){return Object.entries(s.fish).map(([id,n])=>({fish:FISH_BY_ID.get(id),id,n})).filter(f=>f.fish).sort((a,b)=>b.fish!.difficulty-a.fish!.difficulty||b.n-a.n);}
+/** One automatic session's window: also opened again from the history (Ver). */
+export function AutoRunSummary({summary:s,onClose:close,subtitle='Resumo da pescaria'}:{summary:Summary;onClose:()=>void;subtitle?:string}){
+ const fish=runFish(s);
  const caught=fish.reduce((a,f)=>a+f.n,0),prizes=(['coupons','fragments','gold'] as const).filter(k=>s[k]>0);
  const best=s.best&&FISH_BY_ID.get(s.best.fish);
- return <Modal title="Pesca automática" subtitle="Resumo da pescaria" onClose={close} className="fishing-auto-summary">
+ return <Modal title="Pesca automática" subtitle={subtitle} onClose={close} className="fishing-auto-summary">
   <div className="fishing-summary-head">
    <div><small>Tempo pescando</small><b>{fishingDuration(s.until-s.since)}</b></div>
    <div><small>Lançamentos</small><b>{s.casts}</b></div>
