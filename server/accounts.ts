@@ -103,13 +103,12 @@ export class AccountStore {
  }
  /** True when some account already owns this player (on any server). */
  async owned(playerId:string){return (await this.pool.query('SELECT 1 FROM account_characters WHERE player_id=$1 UNION SELECT 1 FROM accounts WHERE player_id=$1',[playerId])).rows.length>0;}
- /** Links a player that no account owns yet as the account's character on this server; it takes the username as its name. */
+ /** Links a player that no account owns yet as the account's character on this server (it keeps the name chosen at creation). */
  async linkPlayer(account:Account,playerId:string,serverId:string){
   if(await this.owned(playerId))return false;
   await this.pool.query('INSERT INTO game_servers(id,name,url,sort) VALUES($1,$1,$2,99) ON CONFLICT (id) DO NOTHING',[serverId,process.env.GAME_URL??'http://localhost:8097']);
   const r=await this.pool.query('INSERT INTO account_characters(account_id,server_id,player_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[account.id,serverId,playerId]);
   if(!r.rowCount)return false;
-  await this.pool.query("UPDATE players SET name=$2::text,profile=jsonb_set(profile,'{name}',to_jsonb($2::text)) WHERE id=$1",[playerId,account.username]);
   return true;
  }
 }

@@ -58,7 +58,7 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const characters=servers.filter(s=>s.character).length;
  return <div className="player-page">
   <section className="player-hero">
-   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-2.webp" alt=""/></div>
+   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-3.webp" alt=""/></div>
    <div className="player-hero-inner">
     <div>
      <p className="eyebrow">Olá de novo</p>

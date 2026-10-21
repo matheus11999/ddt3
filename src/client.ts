@@ -129,11 +129,13 @@ class Client {
  snapshot=()=>this.state;
  update(patch:Partial<State>){this.state={...this.state,...patch};this.listeners.forEach(f=>f());}
  async start(){if(this.started)return;this.started=true;void syncPublishedMaps();this.update({status:'connecting',error:null});try{const r=await fetch('/api/session',{signal:AbortSignal.timeout(12000)});if(!r.ok)throw Error('Não foi possível entrar. Tente novamente.');const {profile}=await r.json();if(!profile){this.update({needsCharacter:true});return;}this.update({profile,needsCharacter:false});this.connect();}catch(e){this.update({status:'offline',error:e instanceof DOMException&&e.name==='TimeoutError'?'O servidor demorou a responder. Toque em tentar novamente.':(e as Error).message});this.started=false;}}
- async createCharacter(gender:CharacterGender){
+ /** Creation screen: is this name valid and free on this server? */
+ async checkCharacterName(name:string):Promise<{ok:boolean;error?:string}>{const r=await fetch(`/api/character-name?name=${encodeURIComponent(name)}`,{signal:AbortSignal.timeout(8000)});return r.ok?r.json():{ok:false,error:"Não deu para conferir o nome agora."};}
+ async createCharacter(gender:CharacterGender,name:string){
   if(this.state.profile||this.state.creatingCharacter||!this.state.needsCharacter)return;
   this.update({creatingCharacter:true,error:null});
   try{
-   const response=await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gender}),signal:AbortSignal.timeout(12000)});
+   const response=await fetch('/api/session',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({gender,name}),signal:AbortSignal.timeout(12000)});
    const result=await response.json();if(!response.ok||!result.profile)throw Error(result.error??'Não foi possível criar seu personagem.');
    this.update({profile:result.profile,needsCharacter:false,creatingCharacter:false});this.connect();
   }catch(error){this.update({creatingCharacter:false,error:error instanceof DOMException&&error.name==='TimeoutError'?'O servidor demorou a responder. Tente novamente.':(error as Error).message});}
