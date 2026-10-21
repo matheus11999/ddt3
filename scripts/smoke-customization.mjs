@@ -18,7 +18,7 @@ async function create(gender){
  const creation=page.locator('.character-creation');await expect(creation).toBeVisible();
  await creation.getByRole('button',{name:gender==='female'?'Personagem feminino':'Personagem masculino',exact:true}).click();
  await settle(page);await page.screenshot({path:`${output}/creation-${gender}.png`});
- await creation.getByRole('button',{name:'Criar personagem',exact:true}).click();
+ await creation.getByLabel('Nome do personagem').fill(`Teste${Math.random().toString(36).slice(2,9)}`);await expect(creation.getByRole('button',{name:'Entrar no jogo',exact:true})).toBeEnabled({timeout:10000});await creation.getByRole('button',{name:'Entrar no jogo',exact:true}).click();
  await expect(page.locator('.bottom-dock')).toBeVisible({timeout:15000});
  const profile=async()=>{const response=await context.request.get(base+'/api/session');assert.equal(response.status(),200);return (await response.json()).profile;};
  assert.equal((await profile()).gender,gender);

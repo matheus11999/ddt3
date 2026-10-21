@@ -10,8 +10,8 @@ export async function enterGame(page,base,gender='male'){
   await creation.getByRole('button',{name:gender==='female'?'Personagem feminino':'Personagem masculino',exact:true}).click();
   // Every new character needs a free name (docs/site.md); tests use a random one.
   await creation.getByLabel('Nome do personagem').fill(`Teste${Math.random().toString(36).slice(2,9)}`);
-  await expect(creation.getByRole('button',{name:'Criar personagem',exact:true})).toBeEnabled({timeout:10000});
-  await creation.getByRole('button',{name:'Criar personagem',exact:true}).click();
+  await expect(creation.getByRole('button',{name:'Entrar no jogo',exact:true})).toBeEnabled({timeout:10000});
+  await creation.getByRole('button',{name:'Entrar no jogo',exact:true}).click();
  }
  await expect(page.locator('.bottom-dock')).toBeVisible({timeout:15000});
 }
