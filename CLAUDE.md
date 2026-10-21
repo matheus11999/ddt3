@@ -46,6 +46,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
   - Nível na sala PvP como número com brilho na cor da faixa + estrelas (`LevelNumber`); escudo VIP pintado (`VipBadge`, `vip-badges.webp`).
   - Números de dano empilhados por acerto; crítico com estrela vermelha simples desenhada em código atrás; intervalo de 1070 ms entre tiros de rajada (`VOLLEY_CADENCE_MS`; era 380, depois 570; matheus pediu +0,5 s em 20/10).
   - Aura do POW: pequena, quente e discreta.
+  - POW pronto (barra cheia, ainda não usado): aura de energia dourada pintada pelo Codex em volta da silhueta do boneco deitado, tremulando e cortada nos pés (`src/game/powReadyAura.ts`, `scripts/build-pow-aura.py`, prévia `node scripts/preview-pow-aura.mjs`; 21/10). Rejeitados antes: anel de fogo, oval de picos grosso com borda interna marcada, efeito abaixo do jogador, manto, orbes, asas, coroa, fênix e outros que não eram aura.
   - Pausa de 1,2 s (`TURN_GAP_MS` em `shared/combat.ts`) depois do último impacto, número de dano ou queda antes do próximo turno, em todos os combates (inclusive o turno dos monstros); a câmera fica parada no último impacto (18/10).
   - NPCs do lobby como figura inteira que só respira; sombras desenhadas em código a partir do contorno.
 - **Rejeitado**

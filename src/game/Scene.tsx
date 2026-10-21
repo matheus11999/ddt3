@@ -256,8 +256,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       if(turns>0&&(!ice||ice.thawAt!==undefined))frozenSeen.set(f.id,{since:knownMatch?t:t-1e4,turns});else if(turns>0&&ice)ice.turns=turns;
       else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;
-     // POW ready (bar full, not used yet): the painted fire oval pulses behind the fighter until it is spent.
-     const powReady=!f.powerArmed&&powerFull(f.powerCharge)&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(!powReady)powReadySince.delete(f.id);else{if(!powReadySince.has(f.id))powReadySince.set(f.id,knownMatch?t:t-1e4);drawPowReadyAura(c,entity?.x??f.x,entity?.y??y,t,powReadySince.get(f.id)!);}
+     // POW ready (bar full, not used yet): the painted golden aura flickers around the fighter until it is spent (powReadyAura.ts).
+     const powReady=!f.powerArmed&&powerFull(f.powerCharge)&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(!powReady)powReadySince.delete(f.id);else{if(!powReadySince.has(f.id))powReadySince.set(f.id,knownMatch?t:t-1e4);drawPowReadyAura(c,entity?.x??f.x,entity?.y??y,t,powReadySince.get(f.id)!,f.facing);}
      if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
