@@ -13,6 +13,6 @@ g = Image.fromarray(green).resize((round(1254 * K), round(1254 * K)), Image.NEAR
 sheet = Image.new('RGB', (CELL * 3, CELL * 2), (255, 0, 255))
 for i in range(6):
     x, y = (i % 3) * CELL, (i // 3) * CELL
-    sheet.paste(g, (x + round(CELL / 2 - 583 * K), y + round(TOP - 182 * K)), g)  # neck centred in the cell
+    sheet.paste(g, (x + round(CELL / 2 - 635 * K), y + round(TOP - 182 * K)), g)  # neck centred in the cell
 sheet.save('docs/templates/front-walk.png')
-print('neck at y', round(TOP + (627 - 182) * K), 'soles at y', round(TOP + (627 - 182) * K * (1 + 1 / 0.9)))
+print('neck at y', round(TOP + (642 - 182) * K), 'soles at y', round(TOP + (642 - 182) * K * (1 + 1 / 0.9)))

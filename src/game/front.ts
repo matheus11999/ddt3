@@ -12,7 +12,7 @@ import fits from './rig/frontFit.json';
  * (scripts/front-kit-prompts.mjs, scripts/build-front-sheets.py, `npm run verify:front`); a look shows in front view
  * only when every visible piece has front art, otherwise the side view is drawn as before.
  *
- * Front head template (1254 px): crown (634,182), neck stub bottom (583,627). Distances below are avatar units
+ * Front head template (1254 px): crown (634,182), neck stub bottom (635,642). Distances below are avatar units
  * (the side view's 160-unit figure): the body is BODY_UNITS from collar to soles and the head HEAD_UNITS from crown to
  * the neck stub.
  */
@@ -20,7 +20,7 @@ interface StandEntry {path:string;collar:[number,number];soles:number;}
 interface SheetEntry {path:string;cell:number;frames:{neck:[number,number];headHeight:number;soles:number}[];}
 const STAND=atlas.stand as unknown as Record<string,StandEntry>,WALK=atlas.walk as unknown as Record<string,SheetEntry>,IDLE=atlas.idle as unknown as Record<string,SheetEntry>;
 const FITS=fits as unknown as Record<string,[number,number,number]>;
-const SIZE=1254,CROWN=[634,182] as const,NECK=[583,627] as const,HEAD_PX=NECK[1]-CROWN[1];
+const SIZE=1254,CROWN=[634,182] as const,NECK=[635,642] as const,HEAD_PX=NECK[1]-CROWN[1];
 const BODY_UNITS=80,HEAD_UNITS=72;
 /** Long hair is drawn once behind the head (the part falling on the back) and again in front. */
 const LONG_HAIR=new Set(['hair-basic-female']);

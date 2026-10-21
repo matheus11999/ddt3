@@ -12,8 +12,8 @@ Usage: py scripts/verify-front.py [--fit[=ids]] [--strict]   (--strict: exit 1 w
 
 Front head template (public/assets/front/face-basic-*.png, 1254 px), a 3/4 front view like the DDTank bag portrait
 (matheus, 21/10: not straight, the near ear shows): crown (634,182), skull x 425-842 (417 px, the same skull width as
-the side head), near brow top y=357, eyes at (620,463) and (775,482), mouth (675,537), near ear top (452,440), far ear
-top (820,466), neck stub down to (583,627).
+the side head), near brow top y=390, eyes at (620,478) and (775,493), mouth (690,557), near ear top (456,440), far ear
+top (832,470), neck stub down to (635,642).
 """
 import json
 import os
@@ -32,12 +32,12 @@ HATS = ['hat-starter']
 OUTFITS = {'outfit-basic-male': 'male', 'outfit-basic-female': 'female'}
 
 CROWN = (634, 182)
-NECK = (583, 627)
+NECK = (635, 642)
 SKULL_WIDTH = 417
 HEAD_TO_BODY = 0.9      # drawn head height (crown to neck stub) / body height (collar to soles)
-LIMITS = {'hair-long': {'width': 1.45, 'keepout': 200, 'skull_top': 0.95, 'ears': 0.6},
-          'hair': {'width': 1.4, 'keepout': 200, 'skull_top': 0.95, 'ears': 0.6},
-          'hat': {'width': 1.45, 'keepout': 0, 'skull_top': 0.9, 'band': (330, 382)}}
+LIMITS = {'hair-long': {'width': 1.45, 'keepout': 200, 'skull_top': 0.995, 'ears': 0.6},
+          'hair': {'width': 1.4, 'keepout': 200, 'skull_top': 0.995, 'ears': 0.6},
+          'hat': {'width': 1.45, 'keepout': 0, 'skull_top': 0.995, 'band': (330, 395)}}
 
 Q = 4
 N = 1254 // Q
@@ -48,11 +48,11 @@ def ellipse(cx, cy, rx, ry):
     return ((xx - cx) / rx) ** 2 + ((yy - cy) / ry) ** 2 <= 1
 
 
-EYES = ellipse(620, 463, 64, 60) | ellipse(775, 482, 50, 58)
-MOUTH = ellipse(675, 537, 46, 20)
+EYES = ellipse(620, 478, 64, 52) | ellipse(775, 493, 50, 52)
+MOUTH = ellipse(690, 557, 46, 18)
 SKULL = ellipse(634, 392, 209, 210)
-SKULL_TOP = SKULL & (yy < 335)
-EARS = ellipse(452, 446, 16, 12) | ellipse(822, 470, 12, 10)
+SKULL_TOP = SKULL & (yy < 360)
+EARS = ellipse(456, 448, 16, 12) | ellipse(832, 476, 12, 10)
 
 
 def load(name):
@@ -227,7 +227,7 @@ def write_template():
     t.alpha_composite(Image.fromarray(g).resize((1254, 1254), Image.NEAREST))
     d = ImageDraw.Draw(t)
     for x in range(380, 890, 24):
-        d.line([(x, 380), (x + 12, 380)], fill=(40, 120, 255, 255), width=4)
+        d.line([(x, 390), (x + 12, 390)], fill=(40, 120, 255, 255), width=4)
     d.ellipse([CROWN[0] - 8, CROWN[1] - 8, CROWN[0] + 8, CROWN[1] + 8], fill=(40, 120, 255, 255))
     out = Image.new('RGBA', t.size, (255, 255, 255, 255))
     out.alpha_composite(t)

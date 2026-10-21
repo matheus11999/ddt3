@@ -1,0 +1,88 @@
+import type {Equipment} from '../../../shared/catalog';
+import {CATALOG} from '../../../shared/catalog';
+import {asset} from '../appearance';
+import {tintSkin} from '../recolor';
+import {drawCell,freeAll} from '../spriteCache';
+import index from './rigIndex.json';
+import {cellRect,gameFrame,GAME,SHOW,showFrame,VIRTUAL,virtualFrame} from './composer';
+import type {RigContext} from './composer';
+
+/**
+ * Rig v2 in the game (docs/rig-v2.md): which painted sheets a look uses in each context, composed once per look and
+ * cut per frame. A look uses rig v2 only when every visible piece has rig art for that context; otherwise the old
+ * renderer draws it (until the old cosmetics are removed).
+ *
+ * Sheets live in public/assets/rig/<sex>/<context>/<item>.png (hair: <item>-A and <item>-B, B under a hat), listed in
+ * rigIndex.json by scripts/rig/publish.py. Sizes in avatar units (the 160-unit figure): GAME_UNIT etc. below.
+ */
+type Sex='m'|'f';
+const INDEX=index as unknown as Record<Sex,Partial<Record<'game'|'show'|'virtual'|'virtualhead',string[]>>>;
+/** Avatar units per sheet pixel in each context, so the three figures are about as tall as the old one. */
+export const RIG_UNITS={game:1,show:.26,virtual:.56};
+/** Where the feet are in a cell (sheet pixels): the drawing origin. */
+const FEET={game:GAME.origin as number[],show:[250,610],virtual:[128,335]};
+
+const sexOf=(eq:Equipment):Sex=>CATALOG[eq.outfit]?.gender==='female'||CATALOG[eq.face]?.gender==='female'?'f':'m';
+const has=(sex:Sex,context:keyof (typeof INDEX)['m'],id:string)=>INDEX[sex]?.[context]?.includes(id)??false;
+function visibleHat(eq:Equipment){return eq.visibility?.hat===false?'hat-none':eq.hat;}
+function visibleGlasses(eq:Equipment){return eq.visibility?.glasses===false?'glasses-none':eq.glasses;}
+/** Hair variant: B is painted to sit under a hat (DDTank's Property1), A without one. */
+const hairKey=(eq:Equipment)=>`${eq.hair}-${visibleHat(eq)==='hat-none'?'A':'B'}`;
+
+/** The layers of a context in DDTank's painting order, or null when some visible piece has no rig art there. */
+function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null {
+ const sex=sexOf(eq),hat=visibleHat(eq),glasses=visibleGlasses(eq);
+ if(eq.costume!=='costume-none'&&eq.visibility?.costume!==false)return null;
+ const list=[eq.face,hairKey(eq),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
+ return list.every(id=>has(sex,context,id))?list:null;
+}
+export function hasRig(eq:Equipment,context:RigContext):boolean {
+ if(context==='virtual')return !!pieces(eq,'virtualhead')&&has(sexOf(eq),'virtual',eq.outfit);
+ return !!pieces(eq,context);
+}
+
+const ready=(image:HTMLImageElement)=>image.complete&&image.naturalWidth>0;
+const sheet=(sex:Sex,context:string,id:string)=>asset(`/assets/rig/${sex}/${context}/${id}.png`);
+const composed=new Map<string,HTMLCanvasElement>();
+/** Stacks the sheets of a list of pieces into one canvas (body color applied to faces and outfits), cached per look. */
+function stack(sex:Sex,context:string,ids:string[],skin:string|undefined):HTMLCanvasElement|null {
+ const key=[sex,context,skin??'',...ids].join('|'),known=composed.get(key);if(known)return known;
+ const images=ids.map(id=>sheet(sex,context,id));if(!images.every(ready))return null;
+ const out=document.createElement('canvas');out.width=images[0].naturalWidth;out.height=images[0].naturalHeight;const c=out.getContext('2d')!;
+ ids.forEach((id,i)=>{const image=images[i];if(skin&&(id.startsWith('face-')||id.startsWith('outfit-'))){const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);tintSkin(t,skin,true);c.drawImage(t,0,0);}else c.drawImage(image,0,0);});
+ composed.set(key,out);if(composed.size>48){const oldest=composed.keys().next().value!;composed.delete(oldest);}
+ return out;
+}
+
+/** Combat cell at the character origin (feet), facing right, in avatar units. False while the art loads. */
+export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
+ const ids=pieces(eq,'game');if(!ids)return false;const sex=sexOf(eq);
+ // Weapon and face follow the lower sequence, every other piece the upper one (GameCharacter's faceDown/faceUp).
+ const lower=stack(sex,'game',ids.slice(0,1),eq.skin),upper=stack(sex,'game',ids.slice(1),eq.skin);if(!lower||!upper)return false;
+ const f=gameFrame(action,tick),[w,h]=GAME.cell,k=RIG_UNITS.game,[ox,oy]=FEET.game;
+ for(const [layer,frame] of [[lower,f.lower],[upper,f.upper]] as const){const r=cellRect(frame,GAME.columns,GAME.rows,GAME.cell);drawCell(c,layer,r.x,r.y,w,h,-ox*k,-oy*k,w*k,h*k);}
+ return true;
+}
+/** Bag/shop/room figure with its feet at (0,0), facing right, in avatar units. False while the art loads. */
+export function drawRigShow(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
+ const ids=pieces(eq,'show');if(!ids)return false;const sex=sexOf(eq);
+ const face=stack(sex,'show',ids.slice(0,1),eq.skin),rest=stack(sex,'show',ids.slice(1),eq.skin);if(!face||!rest)return false;
+ const [w,h]=SHOW.cell,k=RIG_UNITS.show,[ox,oy]=FEET.show,cell=showFrame(action,tick);
+ // The figure is painted facing left (DDTank's bag); mirror it so 'facing right' means right like everywhere else.
+ c.save();c.scale(-1,1);
+ drawCell(c,face,Math.min(cell,Math.floor(face.width/w)-1)*w,0,w,h,-ox*k,-oy*k,w*k,h*k);
+ drawCell(c,rest,0,0,w,h,-ox*k,-oy*k,w*k,h*k);c.restore();
+ return true;
+}
+/** Plaza/Pescaria figure with its feet at (0,0), in avatar units. `back` walks away from the viewer. */
+export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
+ const ids=pieces(eq,'virtualhead');if(!ids||!has(sexOf(eq),'virtual',eq.outfit))return false;const sex=sexOf(eq);
+ const head=stack(sex,'virtualhead',ids,eq.skin),body=stack(sex,'virtual',[eq.outfit],eq.skin);if(!head||!body)return false;
+ const frame=virtualFrame(action,tick),[w,h]=VIRTUAL.cell,k=RIG_UNITS.virtual,[ox,oy]=FEET.virtual,back=frame>=8,blink=frame===7;
+ const col=blink?0:back?frame-8:frame,row=back?1:0,headCell=back?2:blink?1:0,dy=(VIRTUAL.headOffsets[col]??0)*k;
+ const paintBody=()=>drawCell(c,body,col*w,row*h,w,h,-ox*k,-oy*k,w*k,h*k),paintHead=()=>drawCell(c,head,headCell*w,0,w,h,-ox*k,-oy*k+dy,w*k,h*k);
+ if(back){paintBody();paintHead();}else{paintHead();paintBody();}
+ return true;
+}
+/** Rig sheets are for the area on screen: let go when it changes (spriteCache rules, docs/performance.md). */
+export function releaseRigArt(){freeAll(composed);}

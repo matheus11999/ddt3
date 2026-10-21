@@ -12,6 +12,8 @@ import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 import {rodTip,TIDE_ROD} from './rodCast';
 import {drawFrontAvatar,drawFrontHead,FRONT_HEAD_UNITS,hasFrontView} from './front';
+import {drawRigGame,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
+import type {RigContext} from './character/composer';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
 export interface AvatarContext {/** 'side' keeps the battle view outside battle (battle HUD, loading screen, cut-ins); otherwise menus and the world use the front view when the look has front art (src/game/front.ts). */view?:'side'|'front';/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
@@ -262,6 +264,9 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(foregroundWeapon)paintWeapon();c.restore();};
   paint(m.facing);c.restore();return;
  }
+ // Rig v2 (docs/rig-v2.md): looks painted for the DDTank-style composers draw from their sheets in every context.
+ {const rigContext:RigContext=context.combat||context.view==='side'?'game':context.world?'virtual':'show';
+  if(hasRig(eq,rigContext)){drawRig(c,eq,rigContext,x,y,height,time,walking,facing,motion,context,auraTime);return;}}
  // Outside battle the character faces the viewer in 3/4 like the DDTank bag portrait (pedido do matheus, 21/10).
  if(!context.combat&&context.view!=='side'&&!SIDE_POSES.has(context.pose??'idle')&&hasFrontView(eq)){drawFront(c,eq,x,y,height,time,walking,facing,weapon,motion,context,auraTime);return;}
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat&&!hasCombatFrames(eq.outfit))return;
@@ -353,6 +358,22 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  body(m.facing);c.restore();
 }
 
+/** DDTank actions for our poses (combat). Ticks run at DDTank's 25 Hz. */
+const GAME_ACTION:Record<AvatarPose,string>={idle:'STAND',walk:'WALK',aim:'SHOWTHROWS',charge:'SHOWTHROWS',fire:'THROWS',hit:'SHAKE',fall:'SHAKE',prone:'STAND',victory:'STAND',defeat:'CRY'};
+const TICK_MS=40;
+/** Rig v2 figure: the composed sheets of the context, mirrored for facing; nothing else is drawn on top. */
+function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:number,y:number,height:number,time:number,walking:boolean,facing:number,motion:AvatarMotion|undefined,ctx:AvatarContext,auraTime:number){
+ const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||ctx.pose==='walk');}
+ const {pose,poseTime}=animate(m,time,walking,facing,ctx),moving=walking?m.walk>.02:m.walk>.6;
+ c.save();c.translate(x,y);c.scale(height/160,height/160);
+ if(!ctx.combat){if(ctx.groundedShadow)drawGroundedShadow(c,30);else ellipse(c,0,-1,30,7,'#162c3c35');if(ctx.showAura)drawAura(c,eq.upgrade??0,auraTime);}
+ c.save();turnPop(c,m.turn);c.scale(m.facing,1);
+ const clock=Math.floor(time/TICK_MS),since=Math.floor(Math.max(0,poseTime)/TICK_MS);
+ if(context==='game'){const action=GAME_ACTION[pose]??'STAND';drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
+ else if(context==='virtual')drawRigVirtual(c,eq,moving?'naturalWalkFront':'naturalStandFront',clock);
+ else drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock);
+ c.restore();c.restore();
+}
 /** Poses that only exist in the side view (aiming, throwing, lying down). */
 const SIDE_POSES=new Set<AvatarPose>(['aim','charge','fire','hit','fall','prone']);
 /** The front view: the painted posed figure in previews, the idle and walk sheets in the world (src/game/front.ts). */

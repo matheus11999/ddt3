@@ -1,0 +1,44 @@
+# Rig v2: montagem do personagem como no DDTank (plano, 21/10/2026)
+
+Pedido do matheus: refazer o sistema de rig do zero, aprendendo com o estudo do cliente DDTank 4.1
+(`D:/APPS/ddt/output/ddtank-character-system/`, `GUIA.txt`, `PROMPT.txt`, `engine.js`, `manifest.json`, fontes AS3 em
+`sources/`). Os PNGs do DDTank são só referência: toda a arte nova é nossa, pintada pelo Codex.
+
+## O que o DDTank faz (e o nosso rig atual não)
+
+| | DDTank | Brasa/Bomb Masters hoje |
+| --- | --- | --- |
+| Contextos | Três montadores com folhas próprias: GAME (combate), SHOW (mochila, loja, salas), VIRTUAL (cenas sociais, frente e costas) | Uma pintura em pé + folhas de andar/parado + 12 poses de combate, com cabeça universal colada por cima |
+| Peças | Cada peça (rosto, cabelo, roupa, chapéu, óculos, efeito) é pintada **em cada quadro**, no mesmo espaço de coordenadas da célula, com margens transparentes | Cabelo, chapéu e óculos são uma imagem só, encaixada por pino (mover/girar/escalar) sobre a cabeça; não acompanham a pose |
+| Encaixe | Nenhum: as camadas são empilhadas célula com célula | Pinos, validador de zonas, recortes de orelha, cabelo "coberto" |
+| Animação | Sequências de índices por ação (com repetições, `repeat`, `stopAtEnd`, `replaceSame`) | Trocas por distância andada e poses avulsas |
+| Cabelo sob chapéu | Variante pintada A/B escolhida pelo chapéu (`Property1`) | Cabelo cortado por código |
+| Cor | Máscaras por peça; tintura = ColorTransform + realce HARDLIGHT; pele comum na máscara 2 de rosto e roupa | Recolor por faixa de matiz |
+
+## Contratos propostos (grade única, 2× o DDTank)
+
+Toda a arte nova numa grade só, o dobro da do DDTank (escala inteira; nada de auto-encaixe por bounding box):
+
+| Contexto | Uso no jogo | Célula | Folha por peça | Ordem de pintura |
+| --- | --- | --- | --- | --- |
+| GAME | Batalha | 228 × 190, origem do boneco em (124,166) | 13 × 3 = 2964 × 570 (39 células) | arma → rosto → cabelo → roupa → efeito → chapéu → óculos |
+| SHOW | Mochila, loja, salas, informações, pódio | 500 × 684 | rosto 4 células (piscar); demais 1 célula | rosto → cabelo → roupa → efeito → chapéu → óculos |
+| VIRTUAL | Praça e Pescaria | cabeça 240 × 350 (3: frente, olhos fechados, costas); corpo 240 × 350, 7 × 2 (frente/costas) | cabeça 720 × 350; corpo 1680 × 700 | frente: cabeça → corpo; costas: corpo → cabeça |
+
+- Ações do combate com as sequências verificadas do `manifest.combat.actions` (STAND, WALK, SHOWGUN, SHOT, SHOWTHROWS, THROWS, HANDCLIP, HIT, CRY…), mesmo número de células e índices. A física e a hitbox continuam como estão.
+- Mochila: `NORMAL_STANDBY` (piscar) e opção de quadro 0 fixo.
+- Praça/Pescaria: `naturalStandFront`, `naturalWalkFront`, `naturalStandBack`, `naturalWalkBack`, com os deslocamentos de cabeça `[0,0,-1,2,0,-1,2]`. **Extensão nossa, deliberada:** o DDTank não mostra chapéu e óculos na igreja; como o jogo quer a personalização na praça, chapéu e óculos ganham também folha VIRTUAL (cabeça).
+
+## Como a arte é feita
+
+- Para cada contexto, um **molde** (boneco cinza por quadro, cabeça como silhueta) na grade acima; o Codex pinta cada peça sobre o molde, sempre o molde inteiro, e o montador corta as células sem mexer em posição nem escala.
+- Validador novo: mesma peça em todos os quadros e contextos numa prancha (aprovação), alinhamento com o molde por quadro, margem transparente preservada, cor igual entre contextos.
+- Orçamento por peça (máscaras base/cor; o cabelo tem A e B): rosto 9 PNG, cabelo 10, roupa 6, chapéu 4 (+2 VIRTUAL), óculos 4 (+2 VIRTUAL), efeito 6, corpo social 6 por roupa.
+
+## Etapas
+
+1. Moldes dos três contextos e o montador isolado (prancha com o boneco cinza em todas as ações).
+2. Piloto: kit inicial masculino (rosto, cabelo A/B, roupa, boné) nos três contextos; prancha para aprovação.
+3. Kit feminino.
+4. Ligar no jogo: batalha (GAME), mochila/loja/salas (SHOW), praça/Pescaria (VIRTUAL). Substitui o rig atual e a vista de frente provisória (`src/game/front.ts`).
+5. Apagar os cosméticos antigos e migrar quem os tinha para o kit inicial.

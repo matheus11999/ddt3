@@ -5,7 +5,7 @@ Pedido do matheus: fora da batalha (mochila, salas, loja, informações, lobby, 
 ## Como funciona
 
 - `src/game/front.ts` desenha a vista de frente. Um visual só aparece de frente quando **todas** as peças visíveis têm arte de frente (`hasFrontView`); senão o jogo desenha a vista de lado como antes. Hoje isso vale para o kit inicial: rosto, cabelo e roupa básicos (slot vazio) e o Boné Inicial.
-- Cabeça universal de frente: `public/assets/front/face-basic-*.png` (molde de 1254 px; topo do crânio em (634,182), crânio com 417 px de largura, a mesma da cabeça de lado; ponta do pescoço em (583,627)). Os rostos também trazem a cabeça.
+- Cabeça universal de frente: `public/assets/front/face-basic-*.png` (molde de 1254 px; topo do crânio em (634,182), crânio com 417 px de largura, a mesma da cabeça de lado; ponta do pescoço em (635,642)). Os rostos também trazem a cabeça.
 - Cabelos e chapéus: `public/assets/front/<id>.png`, encaixe em `src/game/rig/frontFit.json` (`[escala em volta do topo do crânio, dx, dy]`). Cabelo comprido é desenhado atrás e na frente da cabeça; com chapéu, nada do cabelo aparece acima da borda de baixo do chapéu.
 - Roupas: a pintura com pose das prévias (`stand`) e as folhas do lobby (`idle`, `walk`, 3×2 quadros de 512 px), todas em `src/game/frontAtlas.json`. As mãos têm dedos; só o combate usa o punho redondo.
 - Medidas em unidades do boneco: corpo de 80 da gola aos pés, cabeça de 72 do topo ao pescoço.
