@@ -70,5 +70,21 @@
       521,
       505
     ]
+  },
+  "face-basic-male": {
+    "sourceRect": [
+      380,
+      222,
+      521,
+      505
+    ]
+  },
+  "face-basic-female": {
+    "sourceRect": [
+      380,
+      222,
+      521,
+      505
+    ]
   }
 }

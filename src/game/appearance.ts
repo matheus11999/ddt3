@@ -37,7 +37,9 @@ export const PAINTED_OUTFITS:Readonly<Record<string,{source:readonly[number,numb
  'outfit-surf':{source:[395,8,551,1193],destination:[452,500,352,762],portrait:[395,8,551,1193],hue:.5},
  'outfit-explorer':{source:[408,1,538,1082],destination:[436,490,385,775],portrait:[408,1,538,1082],hue:.6},
  'outfit-hiphop':{source:[366,11,602,1164],destination:[474,518,373,722],portrait:[366,11,602,1164],hue:.76},
- 'outfit-swordsman':{source:[180,1,948,1133],destination:[334,538,588,702],portrait:[180,1,948,1133],hue:.52}
+ 'outfit-swordsman':{source:[180,1,948,1133],destination:[334,538,588,702],portrait:[180,1,948,1133],hue:.52},
+ 'outfit-basic-male':{source:[346,7,665,1184],destination:[454,481,426,758],portrait:[346,7,665,1184],hue:.08},
+ 'outfit-basic-female':{source:[390,55,552,1106],destination:[473,578,382,772],portrait:[390,55,552,1106],hue:.98}
 };
 export const paintedOutfitReady=(id:string)=>{const path=CATALOG[id]?.visual?.asset;if(!PAINTED_OUTFITS[id]||!path)return false;const image=asset(path);return image.complete&&image.naturalWidth>0;};
 type Point=readonly[number,number];

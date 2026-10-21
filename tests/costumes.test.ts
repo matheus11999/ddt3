@@ -21,7 +21,7 @@ test('migration grants two costumes exactly once, removes internal empty sentine
  const raw={id:randomUUID(),name:'Costume legacy',gender:'male' as const,contentVersion:11,equipment:DEFAULT_EQUIPMENT,inventory:['ember','hat-cap','face-brave','outfit-cartographer','hair-undercut','glasses-none','wristband-none','bracelet-none','costume-none','hat-none','hair-none','face-smile'],gold:777,upgrades:{ember:10},stones:{'1':0,'5':7},compositionStones:{'attack-1':0},compositions:{ember:{attack:10}}};
  const p=normalizeProfile(raw);assert.equal(p.contentVersion,CONTENT_VERSION);assert.equal(p.equipment.costume,'costume-none');
  for(const id of STARTER_COSTUMES)assert.equal(p.inventory.filter(item=>item===id).length,1);
- assert.ok(p.inventory.every(id=>!isEmptyItem(id)));assert.ok(raw.inventory.filter(id=>!isEmptyItem(id)).every(id=>p.inventory.includes(id)));
+ assert.ok(p.inventory.every(id=>!isEmptyItem(id)));assert.ok(raw.inventory.filter(id=>id!=='hair-none'&&!isEmptyItem(id)).every(id=>p.inventory.includes(id)));
  assert.equal(p.gold,777);assert.equal(p.stones['1'],0);assert.equal(p.stones['5'],7);assert.equal(p.compositionStones['attack-1'],0);assert.equal(p.upgrades.ember,10);assert.equal(p.compositions.ember.attack,10);assert.deepEqual(normalizeProfile(p),p);
  const removed=normalizeProfile({...p,inventory:p.inventory.filter(id=>id!==STARTER_COSTUMES[0])});assert.equal(removed.inventory.includes(STARTER_COSTUMES[0]),false,'current-version migration cannot replenish absent costumes');
 });

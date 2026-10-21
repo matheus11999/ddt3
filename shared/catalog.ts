@@ -60,7 +60,7 @@ export function normalizeVisibility(value:unknown):Record<typeof VISIBILITY_SLOT
 }
 export interface ItemVisual {variant:string;visible?:boolean;pose?:'adventurer'|'confident'|'regal'|'surfer'|'executive'|'racer'|'dancer'|'cartographer';asset?:string;color?:string;secondary?:string;hideHair?:boolean;offset?:[number,number];scale?:number;rotation?:number;}
 export type Rarity = 'common'|'uncommon'|'rare'|'epic'|'legendary';
-export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; luck?:number; damage?:number; armor?:number; /** Extra Vida in percent (guild necklaces); several add up. */ hpPercent?:number; visual?:ItemVisual; gender?:ItemGender; }
+export interface Item { id:string; name:string; slot:Slot; rarity:Rarity; color:string; description:string; attack:number; defense:number; agility:number; luck?:number; damage?:number; armor?:number; /** Extra Vida in percent (guild necklaces); several add up. */ hpPercent?:number; visual?:ItemVisual; gender?:ItemGender; /** Default look of an empty slot: not an item (no attributes, never in the bag or the shop). */ basic?:true; }
 export interface ItemAttributes {attack:number;defense:number;agility:number;luck:number;damage:number;armor:number;}
 /** Weapons, wristbands, bracelets and rings carry their own numbers; every other accessory and cosmetic gives 10 of each (matheus, 20/10). */
 export const ACCESSORY_STATS={attack:10,defense:10,agility:10,luck:10} as const;
@@ -145,7 +145,6 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('face-serene','Rosto Sereno','face','serene','#8fb9bd','uncommon',{asset:'/assets/faces/face-serene.png'}),
  cosmetic('face-fierce','Rosto Determinado','face','fierce','#cc8a72','epic',{asset:'/assets/faces/face-fierce.png'}),
  cosmetic('hair-wavy','Cabelo Ondulado','hair','wavy','#c79352','rare',{asset:'/assets/hair-wavy.png'}),
- cosmetic('hair-none','Sem cabelo','hair','none','#bca28c'),
  cosmetic('glasses-none','Sem óculos','glasses','none','#a9b3bc'),
  cosmetic('wristband-none','Sem pulseira','wristband','none','#bfb3a5','common',{visible:false}),
  {...cosmetic('wristband-braid','Pulseira Trançada','wristband','braid','#b38c62','common',{visible:false}),attack:3,defense:6,agility:6,luck:5},
@@ -169,6 +168,12 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('costume-thunder-chick','Pintinho do Trovão','costume','thunder-chick','#ffcc27','epic',{asset:'/assets/costumes/costume-thunder-chick.png'}),
  cosmetic('costume-arcane-fox','Raposa Arcana','costume','arcane-fox','#9f59ff','epic',{asset:'/assets/costumes/costume-arcane-fox.png'})
 ];
+/** What the character wears when the hair, face or outfit slot is empty (pedido de 21/10): simple painted art per gender. */
+const basicLook=(slot:'hair'|'face'|'outfit',gender:CharacterGender,color:string,asset:string):Item=>({id:`${slot}-basic-${gender}`,name:slot==='outfit'?'Roupa Básica':slot==='hair'?'Cabelo Básico':'Rosto Básico',slot,rarity:'common',color,description:'Visual de quando o slot está vazio.',attack:0,defense:0,agility:0,luck:0,gender,basic:true,visual:{variant:`basic-${gender}`,asset}});
+ITEMS.push(
+ basicLook('outfit','male','#c9a36b','/assets/outfits/basic-male-atlas.png'),basicLook('outfit','female','#f2a7bf','/assets/outfits/basic-female-atlas.png'),
+ basicLook('hair','male','#7a4a2a','/assets/hair-basic-male.png'),basicLook('hair','female','#7a4a2a','/assets/hair-basic-female.png'),
+ basicLook('face','male','#c99a78','/assets/faces/face-basic-male.png'),basicLook('face','female','#e0a49a','/assets/faces/face-basic-female.png'));
 const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
  'face-brave':'male','face-taunt':'male','face-fierce':'male','face-captain':'male',
  'face-smile':'female','face-serene':'female','face-wink':'female',
@@ -186,7 +191,7 @@ export function canEquipItem(item:Item|string,gender:CharacterGender):boolean {
  const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;
  return !!value&&CHARACTER_GENDERS.includes(gender)&&(itemGender(value)==='unisex'||itemGender(value)===gender);
 }
-export function isEmptyItem(item:Item|string):boolean {const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;return !!value&&value.id.endsWith('-none')&&value.visual?.variant==='none';}
+export function isEmptyItem(item:Item|string):boolean {const value=typeof item==='string'?(Object.hasOwn(CATALOG,item)?CATALOG[item]:undefined):item;return !!value&&(value.basic===true||value.id.endsWith('-none')&&value.visual?.variant==='none');}
 export const STARTER_COSTUMES=['costume-thunder-chick','costume-arcane-fox'] as const;
 /** Every new character starts with the Quebra-Tijolos (docs/weapon-kit.md). */
 export const STARTER_WEAPON='brick';
@@ -221,8 +226,8 @@ export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
  'outfit-surfer':'outfit-cartographer','outfit-executive':'outfit-cartographer','outfit-racer':'outfit-cartographer','outfit-dancer':'outfit-cartographer'
 };
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',wristband2:'Pulseira',bracelet:'Bracelete',bracelet2:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
-export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-none',glasses:'glasses-none',face:'face-brave',outfit:'outfit-cartographer',wristband:'wristband-none',wristband2:'wristband-none',bracelet:'bracelet-none',bracelet2:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
-export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,face:'face-smile',outfit:'outfit-explorer'}:{...UNEQUIP};}
+export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-basic-male',glasses:'glasses-none',face:'face-basic-male',outfit:'outfit-basic-male',wristband:'wristband-none',wristband2:'wristband-none',bracelet:'bracelet-none',bracelet2:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
+export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,hair:'hair-basic-female',face:'face-basic-female',outfit:'outfit-basic-female'}:{...UNEQUIP};}
 /** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
 export const CONTENT_VERSION=17;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
