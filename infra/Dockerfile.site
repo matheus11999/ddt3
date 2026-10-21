@@ -13,6 +13,7 @@ COPY server/accounts.ts server/adminAuth.ts ./server/
 COPY site/server ./site/server
 COPY site/src/forumRules.ts ./site/src/forumRules.ts
 COPY --from=build /app/site/dist ./site/dist
+RUN mkdir -p /data/uploads && chown node:node /data/uploads
 USER node
 EXPOSE 4120
 CMD ["node","--import","tsx","site/server/index.ts"]

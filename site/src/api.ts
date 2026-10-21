@@ -1,4 +1,4 @@
-import type {ForumCategory} from './forumRules';
+import type {ForumCategory,ForumMedia} from './forumRules';
 
 export type AvatarId='explorer'|'goggles'|'knight'|'champion'|'dragon'|'verdalia';
 export const AVATARS:{id:AvatarId;name:string}[]=[{id:'explorer',name:'Explorador'},{id:'goggles',name:'Aviadora'},{id:'knight',name:'Cavaleira'},{id:'champion',name:'Campeão'},{id:'dragon',name:'Dragão Ancestral'},{id:'verdalia',name:'Verdália'}];
@@ -8,10 +8,10 @@ export interface Me {
  account:{username:string;email:string;createdAt:string;avatar:AvatarId}|null;
  servers:ServerCharacter[];
 }
-export interface TopicSummary {id:number;category:ForumCategory;title:string;excerpt:string;pinned:boolean;replies:number;likes:number;createdAt:string;lastActivityAt:string;author:string;authorAvatar:AvatarId;authorLevel:number|null;liked:boolean;}
+export interface TopicSummary {id:number;category:ForumCategory;title:string;excerpt:string;pinned:boolean;replies:number;likes:number;createdAt:string;lastActivityAt:string;author:string;authorAvatar:AvatarId;authorLevel:number|null;liked:boolean;mediaCount:number;}
 export interface TopicPage {topics:TopicSummary[];total:number;page:number;pageSize:number;}
-export interface Reply {id:number;body:string;likes:number;createdAt:string;author:string;authorAvatar:AvatarId;authorLevel:number|null;mine:boolean;liked:boolean;}
-export interface TopicDetail {topic:TopicSummary&{body:string;mine:boolean};replies:Reply[];}
+export interface Reply {id:number;body:string;media:ForumMedia[];likes:number;createdAt:string;author:string;authorAvatar:AvatarId;authorLevel:number|null;mine:boolean;liked:boolean;}
+export interface TopicDetail {topic:TopicSummary&{body:string;media:ForumMedia[];mine:boolean};replies:Reply[];}
 
 export class ApiError extends Error {constructor(message:string,readonly status:number){super(message);}}
 
@@ -32,8 +32,15 @@ export const api={
  password:(current:string,next:string)=>call('/password',{method:'POST',body:{current,next}}),
  topics:(category:string|null,page=1)=>call<TopicPage>(`/forum?page=${page}${category?`&category=${encodeURIComponent(category)}`:''}`),
  topic:(id:number)=>call<TopicDetail>(`/forum/${id}`),
- createTopic:(category:string,title:string,body:string)=>call<{id:number}>('/forum',{method:'POST',body:{category,title,body}}),
- reply:(topicId:number,body:string)=>call<{id:number}>(`/forum/${topicId}/replies`,{method:'POST',body:{body}}),
+ createTopic:(category:string,title:string,body:string,media:string[])=>call<{id:number}>('/forum',{method:'POST',body:{category,title,body,media}}),
+ reply:(topicId:number,body:string,media:string[])=>call<{id:number}>(`/forum/${topicId}/replies`,{method:'POST',body:{body,media}}),
+ /** Sends one file as the raw request body; the server checks what it really is. */
+ upload:async(file:File):Promise<ForumMedia>=>{
+  const response=await fetch('/api/site/forum/media',{method:'POST',credentials:'same-origin',headers:{'Content-Type':file.type},body:file});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw new ApiError((data as {error?:string}).error??(response.status===413?'Arquivo grande demais.':'Não deu para enviar o arquivo.'),response.status);
+  return data as ForumMedia;
+ },
  like:(kind:'topics'|'replies',id:number)=>call<{liked:boolean;likes:number}>(`/forum/${kind}/${id}/like`,{method:'POST',body:{}}),
  remove:(kind:'topics'|'replies',id:number)=>call(`/forum/${kind}/${id}`,{method:'DELETE'}),
 };

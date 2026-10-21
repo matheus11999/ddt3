@@ -25,10 +25,14 @@ await page.getByLabel('Repita a senha').press('Enter');
 await page.waitForURL('**/jogador');
 await shot(page,'player-desktop');
 await page.goto(`${base}/personagens`,{waitUntil:'networkidle'});await shot(page,'characters');
+await page.goto(`${base}/configuracoes`,{waitUntil:'networkidle'});await shot(page,'settings-page');
 // Fórum: criar tópico, responder e curtir.
 await page.goto(`${base}/forum?novo`,{waitUntil:'networkidle'});
 await page.getByPlaceholder('Sobre o que você quer falar?').fill('Sugestão: mais mapas de neve');
 await page.getByPlaceholder(/Conte os detalhes/).fill('O Sonho Nevado ficou lindo. Queria um mapa de gelo com cavernas e obstáculos no céu!');
+await page.locator('.topic-modal input[type=file]').setInputFiles(['site/public/shots/battle.webp','site/public/shots/gvg.webp']);
+await page.locator('.media-chip-busy').first().waitFor({state:'detached',timeout:15000}).catch(()=>{});
+await shot(page,'new-topic-modal',false);
 await page.getByRole('button',{name:'Publicar'}).click();
 await page.waitForURL(/\/forum\/\d+$/);
 await page.getByPlaceholder('Escreva sua resposta').fill('Apoio! E um evento de inverno com fantasia exclusiva.');
@@ -39,7 +43,7 @@ await shot(page,'topic-desktop');
 await page.goto(`${base}/forum`,{waitUntil:'networkidle'});
 await shot(page,'forum-desktop');
 // Jogar abre a escolha de servidor; cada servidor leva ao jogo com a conta.
-await page.goto(`${base}/jogador`,{waitUntil:'networkidle'});await page.locator('.player-play .play-btn').click();await page.waitForTimeout(400);
+await page.goto(`${base}/jogador`,{waitUntil:'networkidle'});await page.locator('.page-header-actions .play-btn').click();await page.waitForTimeout(400);
 await shot(page,'servers',false);
 console.log('servidores:',(await page.locator('.server-modal .server-row').allInnerTexts()).map(t=>t.replace(/\s+/g,' ')).join(' | '));
 

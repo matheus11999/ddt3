@@ -58,6 +58,9 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       # 'true' only when a reverse proxy sits in front of the site (real visitor address for the login limit).
       BEHIND_PROXY: ${SITE_BEHIND_PROXY:-false}
+      # Forum images and videos (site/server/media.ts) live in their own volume.
+      UPLOAD_DIR: /data/uploads
+    volumes: ["site-uploads:/data/uploads"]
     depends_on:
       server: {condition: service_healthy}
     healthcheck:
@@ -94,3 +97,4 @@ services:
     restart: unless-stopped
 volumes:
   brasa-data:
+  site-uploads:
