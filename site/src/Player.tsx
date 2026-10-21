@@ -22,7 +22,7 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const since=new Date(account.createdAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
  return <div className="player-page">
   <section className="player-hero">
-   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero.webp" alt=""/></div>
+   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-2.webp" alt=""/></div>
    <div className="player-hero-inner">
     <div className="player-id">
      <div className="player-crest">
