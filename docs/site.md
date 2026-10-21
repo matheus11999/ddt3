@@ -64,3 +64,10 @@ O nome e a logo **dentro do jogo** (título da aba, telas de carregamento, texto
 - Anexos (`site/server/media.ts`): PNG, JPG, GIF, WEBP (até 5 MB) e MP4, WEBM (até 30 MB), 40 por conta por dia; o tipo é decidido pelos bytes do arquivo (SVG, HTML e o resto são recusados), o JPEG perde o EXIF/GPS, o nome é aleatório, o arquivo fica no volume `site-uploads` (`UPLOAD_DIR`) e só aparece quando o próprio autor o anexa (uma vez). `/media/<id>.<ext>` serve com o tipo certo, `nosniff` e CSP `sandbox`.
 - Login do site: 5 senhas erradas bloqueiam aquele usuário por 15 min, 20 por endereço (mesma regra do `/admin`); a troca de senha tem o mesmo limite. Testes: `tests/site-media.test.ts`.
 - Revisado em 21/10: rotas do `/admin` exigem sessão (só `/api/maps` é público, por ser lido pelo jogo), login do admin com scrypt, bloqueio e auditoria; nada no site ou no jogo usa `innerHTML`.
+
+## Um endereço só: site em /, jogo em /game (21/10, pedido do matheus)
+
+- O container `web` (porta 8097) é a porta de entrada: `/game` abre o jogo, `/admin` o painel, `/assets`, `/fonts`, `/api` e `/ws` são do jogo, `/api/site` e todo o resto vão para o container `site` (`infra/nginx.conf`; no desenvolvimento o Vite faz o mesmo, `SITE_PATHS` em `vite.config.ts`). O site não publica mais a porta 8098. Em produção: `bombmasters.com` é o site e `bombmasters.com/game` o jogo.
+- Para não colidir com o jogo, os arquivos gerados do site ficam em `/s/` e as fontes em `/site-fonts/`.
+- `GAME_URL` (padrão `/game`) é o endereço do Servidor 1 no Jogar; o `s1` em `game_servers` acompanha essa variável ao iniciar.
+- **O jogo só abre com conta do site**: sem conta, `/api/session` responde `signIn` e o jogo manda para `/jogador?entrar`; não há mais convidado nem criação de conta pelo jogo (só a criação do personagem, com a conta). O WebSocket exige a conta dona do personagem neste servidor. `ALLOW_GUESTS=true` traz o convidado de volta só para testes de integração e scripts de carga locais.
