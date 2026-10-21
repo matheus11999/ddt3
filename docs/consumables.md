@@ -34,5 +34,6 @@ Todo item ou poder usado na batalha (+1, +2, Tridente, bônus de dano, Enfurecer
 - 0–420 ms: clarão quente pequeno no corpo; 100–760 ms: 7 pontos dourados se espalham; 140–520 ms: um brilho sobe do corpo até o lugar do ícone.
 - A partir de 460 ms: o ícone do item (o mesmo da barra, com o número desenhado pelo jogo; Cura, Mira e Invisibilidade usam `public/assets/abilities/`) aparece com um halo dourado de raios suaves (pintado uma vez num canvas), respira e no fim o halo abre e some.
 - O ícone fica 192 px acima dos pés e é desenhado depois do nome, da vida e da seta da vez, para nunca ficar coberto.
-- Sem gesto (o corpo não tem pose pintada para isso) e sem som próprio: continua o som padrão das ferramentas.
+- Gesto do boneco (a parte "somente o boneco" da referência, poses 13→14→15→14 por 2,08 s): sem pose pintada para isso, o corpo afunda em três passos pequenos a cada 83 ms com o rosto de esforço (`itemGesture`); não roda andando, levando dano ou disparando.
+- Sem som próprio: continua o som padrão das ferramentas.
 - Prévia: `node scripts/preview-item-use.mjs` (quadros e vídeo `item-use.webm` em `test-results/item-use/`).

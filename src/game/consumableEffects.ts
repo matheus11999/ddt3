@@ -156,3 +156,10 @@ export function drawItemUse(c:CanvasRenderingContext2D,id:ItemUse,x:number,y:num
  const size=44*pop*(1+end*.08);
  c.save();c.globalAlpha*=fadeIn*(1-end);c.drawImage(card,cx-size/2,iconY-size/2,size,size);c.restore();
 }
+/**
+ * The fighter's own gesture while the effect plays (the reference's prone "handclip": poses 13→14→15→14, two frames of
+ * 24 fps each, for 50 frames). There is no painted pose for it, so the body presses down in three small steps with the
+ * effort face. Returns the step (0 to 2), or -1 once the gesture is over.
+ */
+export const ITEM_GESTURE_MS=2080;
+export function itemGesture(age:number){return age<0||age>=ITEM_GESTURE_MS?-1:[0,1,2,1][Math.floor(age/83)%4];}

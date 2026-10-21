@@ -40,7 +40,7 @@ import {DRAGON_TURN_ID} from '../../shared/worldBoss';
 import {blinking,hashSeed,hitFace} from './faceExpressions';
 import {publishTerrain,sceneView} from './sceneView';
 import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './abilityEffects';
-import {drawFrozenBlock,drawIceImpact,drawIceProjectile,drawItemUse,ICE_SHATTER_DURATION,ITEM_USE_DURATION,playConsumableSound,releaseConsumables,releaseItemUse,type ItemUse} from './consumableEffects';
+import {drawFrozenBlock,drawIceImpact,drawIceProjectile,drawItemUse,ICE_SHATTER_DURATION,itemGesture,ITEM_USE_DURATION,playConsumableSound,releaseConsumables,releaseItemUse,type ItemUse} from './consumableEffects';
 import {releaseCombatBodies} from './combatBody';
 import {releaseWalkBodies} from './walkBody';
 import {scenePaint} from './scenePaint';
@@ -258,8 +258,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,limits,'back');
      // Pain face right after a hit; otherwise `avatar` makes the fighter blink now and then.
-     const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
+     const hurt=hurtAt.get(f.id),scorchAge=hurt?serverNow-hurt.at:-1,scorch=hp>0&&hurt?.critical?scorchAmount(scorchAge):0,face0=hp<=0?undefined:(hurt?hitFace(serverNow-hurt.at,hurt.critical):undefined);
+     // Using an item: the body presses down in small steps with the effort face (consumableEffects.ts itemGesture).
+     const used=toolIcons.get(f.id),gesture=used&&hp>0&&!falling&&pose!=='hit'&&pose!=='fire'&&pose!=='walk'?itemGesture(t-used.at):-1,face=face0??(gesture>=0?'hurt':undefined);
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
+     if(gesture>0){const gx=entity?.x??f.x,gy=entity?.y??y;c.translate(gx,gy);c.scale(1+gesture*.012,1-gesture*.025);c.translate(-gx,-gy);}
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
      c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');
      {const ice=frozenSeen.get(f.id);if(ice&&!f.hidden)drawFrozenBlock(c,e.x,e.y,ice,t);const icon=toolIcons.get(f.id);if(icon){if(t-icon.at>=ITEM_USE_DURATION)toolIcons.delete(f.id);else if(!f.hidden){drawItemUse(c,icon.id,e.x,e.y,t-icon.at,'body');itemIcons.push({id:icon.id,x:e.x,y:e.y,age:t-icon.at});}}}
