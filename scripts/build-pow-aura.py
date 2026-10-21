@@ -16,7 +16,8 @@ OUT = ROOT / 'public/assets/combat'
 COLS, ROWS = 3, 2
 # name: (strip cell size, how each frame is aligned)
 SHEETS = {'aura': (256, 'ring'), 'mantle': (256, 'base'), 'orb': (128, 'orb'), 'crown': (128, 'ring'), 'wings': (256, 'base'),
-          'whirl': (256, 'base'), 'sparks': (256, 'base'), 'lightning': (256, 'base')}
+          'whirl': (256, 'base'), 'sparks': (256, 'base'), 'lightning': (256, 'base'), 'phoenix': (256, 'base'), 'dragon': (256, 'base'),
+          'spirit': (256, 'base'), 'petals': (256, 'base'), 'crystals': (256, 'base'), 'stars': (128, 'ring')}
 # `base` looks rise from the ground line: the lowest light of the whole sheet lands BASE px above the cell bottom.
 BASE = 60
 ORB_CORE = (320 / 512, .5)
@@ -36,6 +37,10 @@ def centre(cell: Image.Image, mode: str) -> tuple[int, int]:
     if mode == 'orb':
         ys, xs = np.nonzero(alpha > 250)
         return int(round(xs.mean() + cell.width * (.5 - ORB_CORE[0]))), int(round(ys.mean() + cell.height * (.5 - ORB_CORE[1])))
+    if mode == 'base':
+        # Each frame centred sideways on its own light (the painter drifts); the height stays one shift for the sheet.
+        xs = np.nonzero(alpha > 40)[1]
+        return int(round(xs.mean())), cell.height // 2
     return cell.width // 2, cell.height // 2
 
 for name, (size, mode) in SHEETS.items():

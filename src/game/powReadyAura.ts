@@ -7,17 +7,23 @@ import {freeImage} from './spriteCache';
  *  - aura: a thin oval of soft golden light strands around the fighter;
  *  - mantle: golden spirit wisps rising from behind the body;
  *  - orbs: two small light spirits with comet tails circling the fighter, passing behind and in front of it;
- *  - wings, whirl, sparks, lightning: light wings, ribbons spiralling up, rising sparks, golden arcs (rising from the feet);
- *  - crown: a small halo of light rays floating over the head.
+ *  - wings, whirl, sparks, lightning, phoenix, dragon, spirit, petals, crystals: light wings, ribbons spiralling up,
+ *    rising sparks, golden arcs, a flame phoenix, a light dragon, blue spirit fire, glowing petals, floating crystals
+ *    (rising from the feet);
+ *  - crown, stars: a small halo of light rays or three stars orbiting over the head.
  * Nothing ever shows under the fighter (matheus): every look is cut at the feet.
  */
-export type PowReadyStyle='aura'|'orbs'|keyof typeof RISING|'crown';
+export type PowReadyStyle='aura'|'orbs'|keyof typeof RISING|keyof typeof OVERHEAD;
 export const POW_READY_STYLE:PowReadyStyle='mantle';
 const FRAMES=6;
 /** Looks painted rising from the ground line: drawn size around a 112 px fighter, light, frame time and how far above the feet they start (the wings grow from the back). */
-const RISING={mantle:{draw:170,alpha:.72,frameMs:110,lift:0},wings:{draw:170,alpha:.7,frameMs:140,lift:22},whirl:{draw:190,alpha:.8,frameMs:100,lift:0},sparks:{draw:200,alpha:1,frameMs:120,lift:0},lightning:{draw:150,alpha:.8,frameMs:90,lift:0}} as const;
+const RISING={mantle:{draw:170,alpha:.72,frameMs:110,lift:0},wings:{draw:170,alpha:.7,frameMs:140,lift:22},whirl:{draw:190,alpha:.8,frameMs:100,lift:0},sparks:{draw:200,alpha:1,frameMs:120,lift:0},lightning:{draw:150,alpha:.8,frameMs:90,lift:0},
+ phoenix:{draw:180,alpha:.75,frameMs:130,lift:0},dragon:{draw:180,alpha:.8,frameMs:130,lift:0},spirit:{draw:160,alpha:.72,frameMs:110,lift:0},petals:{draw:180,alpha:.9,frameMs:120,lift:0},crystals:{draw:160,alpha:.9,frameMs:150,lift:0}} as const;
+/** Looks floating over the head: drawn size and height of their centre above the feet. */
+const OVERHEAD={crown:{draw:88,height:74,frameMs:150},stars:{draw:104,height:76,frameMs:120}} as const;
 const strip=(name:string,size=256)=>({src:`/assets/combat/pow-ready-${name}.png`,size});
-const ART={aura:strip('aura'),orb:strip('orb',128),crown:strip('crown',128),mantle:strip('mantle'),wings:strip('wings'),whirl:strip('whirl'),sparks:strip('sparks'),lightning:strip('lightning')} as const;
+const ART={aura:strip('aura'),orb:strip('orb',128),crown:strip('crown',128),mantle:strip('mantle'),wings:strip('wings'),whirl:strip('whirl'),sparks:strip('sparks'),lightning:strip('lightning'),
+ phoenix:strip('phoenix'),dragon:strip('dragon'),spirit:strip('spirit'),petals:strip('petals'),crystals:strip('crystals'),stars:strip('stars',128)} as const;
 type Art=keyof typeof ART;
 const images=new Map<Art,HTMLImageElement>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -48,10 +54,10 @@ export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,ti
  if(style==='aura'){
   const {grow,beat,frame}=timing(time,since,120),scale=(.86+.14*grow)*(1+beat*.045),w=180*scale,h=150*scale;
   c.globalAlpha*=grow*(.8+beat*.15);c.drawImage(art,frame*size,0,size,size,x-w/2,y-40-h/2,w,h);
- }else if(style==='crown'){
+ }else if(style==='crown'||style==='stars'){
   // Floats over the head with a slow bob.
-  const {t,grow,beat,frame}=timing(time,since,150),s=88*(.85+.15*grow);
-  c.globalAlpha*=grow*(.8+beat*.12);c.drawImage(art,frame*size,0,size,size,x-s/2,y-74-s/2+Math.sin(t/520)*2.5,s,s);
+  const look=OVERHEAD[style],{t,grow,beat,frame}=timing(time,since,look.frameMs),s=look.draw*(.85+.15*grow);
+  c.globalAlpha*=grow*(.8+beat*.12);c.drawImage(art,frame*size,0,size,size,x-s/2,y-look.height-s/2+Math.sin(t/520)*2.5,s,s);
  }else{
   // The painted base sits 60 px above the bottom of a 512 px cell: it lands just under the body so the light rises from it.
   const look=RISING[style],{grow,beat,frame}=timing(time,since,look.frameMs),s=look.draw*(.9+.1*grow)*(1+beat*.03),base=s*(1-60/512);

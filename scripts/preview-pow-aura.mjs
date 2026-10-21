@@ -6,16 +6,16 @@ import {chromium} from '@playwright/test';
 import {createServer} from 'vite';
 import {mkdir} from 'node:fs/promises';
 
-const out=process.env.OUT??'test-results/pow-aura';await mkdir(out,{recursive:true});
+const out=process.env.OUT??'test-results/pow-aura',DEFAULT_STYLES='aura,mantle,orbs,wings,whirl,sparks,lightning,crown,phoenix,dragon,spirit,petals,crystals,stars';await mkdir(out,{recursive:true});
 const server=await createServer({logLevel:'error',server:{port:5291,strictPort:false,host:'127.0.0.1'}});await server.listen();
 const base=server.resolvedUrls.local[0].replace(/\/$/,'');
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:process.platform==='win32'?{channel:'msedge'}:{})});
-const page=await browser.newPage({viewport:{width:1200,height:1400},deviceScaleFactor:2}),errors=[];page.on('pageerror',error=>errors.push(error.message));
+const page=await browser.newPage({viewport:{width:1200,height:2800},deviceScaleFactor:2}),errors=[];page.on('pageerror',error=>errors.push(error.message));
 await page.goto(`${base}/admin.html`);
-await page.evaluate(styles=>{window.STYLES=styles;},process.env.STYLES??'mantle,orbs,wings,whirl,sparks,lightning,crown');
+await page.evaluate(styles=>{window.STYLES=styles;},process.env.STYLES??DEFAULT_STYLES);
 await page.evaluate(async()=>{
  document.body.innerHTML='';document.body.style.margin='0';
- const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=1400;document.body.append(canvas);
+ const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=2800;document.body.append(canvas);
  const c=canvas.getContext('2d'),aura=await import('/src/game/powReadyAura.ts'),{drawAvatar,createAvatarMotion}=await import('/src/game/avatar.ts'),{DEFAULT_EQUIPMENT}=await import('/shared/catalog.ts');
  const styles=(window.STYLES).split(','),ROW=200;
  await Promise.all(styles.flatMap(style=>aura.preloadPowReadyAura(style)).map(image=>image.decode()));
@@ -35,6 +35,7 @@ await page.evaluate(async()=>{
  };
  for(let i=0;i<25;i++){paint();await new Promise(resolve=>setTimeout(resolve,200));}
 });
-await page.screenshot({path:`${out}/sheet.png`});
+const rows=(process.env.STYLES??DEFAULT_STYLES).split(',').length;
+await page.screenshot({path:`${out}/sheet.png`,clip:{x:0,y:0,width:1200,height:rows*200}});
 await browser.close();await server.close();
 if(errors.length){console.error(errors.join('\n'));process.exitCode=1;}else console.log(`${out}/sheet.png`);
