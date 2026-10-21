@@ -1,6 +1,6 @@
 /**
  * Regressões da auditoria de segurança de 21/10/2026 (A01, A02, A04, A05, A07) contra Postgres e Redis reais.
- * Sobe o servidor do jogo e o do site em portas próprias; precisa de Postgres em DATABASE_URL e Redis em REDIS_URL.
+ * Sobe o servidor do jogo e o do site em portas próprias (com ALLOW_GUESTS para conferir que o convidado de teste não é afetado); precisa de Postgres em DATABASE_URL e Redis em REDIS_URL.
  *   npm run test:security:integration
  */
 import assert from 'node:assert/strict';
@@ -175,7 +175,7 @@ async function a05(){
 
 try{
  // The schema the servers create on start: the game first, then the site.
- const env={REDIS_URL:process.env.REDIS_URL??'redis://localhost:6397',ALLOWED_ORIGINS:`${GAME},${SITE}`,SESSION_RECHECK_MS:'500',UPLOAD_TIMEOUT_MS:'2500',UPLOAD_BUDGET_BYTES:String(64*1048576),UPLOAD_DIR:await mkdtemp(join(tmpdir(),'uploads-'))};
+ const env={ALLOW_GUESTS:'true',REDIS_URL:process.env.REDIS_URL??'redis://localhost:6397',ALLOWED_ORIGINS:`${GAME},${SITE}`,SESSION_RECHECK_MS:'500',UPLOAD_TIMEOUT_MS:'2500',UPLOAD_BUDGET_BYTES:String(64*1048576),UPLOAD_DIR:await mkdtemp(join(tmpdir(),'uploads-'))};
  await boot('server/index.ts',GAME_PORT,env);await boot('site/server/index.ts',SITE_PORT,env);
  await a01();await a02();await a04();await a05();
  console.log('Auditoria: todas as regressões passaram.');
