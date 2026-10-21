@@ -6,7 +6,7 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
-import {CHARGE_HOLD_MS,FORCE_BAR_STEP_MS,FORCE_EARLY_MS,FORCE_LATE_MS,forceMatchesHold} from '../shared/forceBar';
+import {CHARGE_HOLD_MS,FORCE_BAR_STEP_MS,FORCE_EARLY_MS,FORCE_LATE_MS,forceMatchesHold,releaseForce} from '../shared/forceBar';
 import {POWER_MAX} from '../shared/power';
 
 /** A03 (auditoria 21/10/2026): the force of a shot is timed by the server, never taken from the client. */
@@ -36,17 +36,25 @@ async function duel(){
  return {game,match,shooter,shots,lastError,charge,fire,fighter:match.state.players.find(f=>f.id===shooter)!};
 }
 /** The bar's hold that first shows `power` on the way up. */
-const rise=(power:number)=>(power-1)*FORCE_BAR_STEP_MS;
+const rise=(power:number)=>Math.round((power-1)*FORCE_BAR_STEP_MS);
 
 test('the bar values the server accepts follow the rising and falling holds within the network tolerance',()=>{
  assert.equal(forceMatchesHold(100,5),false);
  assert.equal(forceMatchesHold(100,rise(100)),true);
  assert.equal(forceMatchesHold(100,rise(100)-FORCE_EARLY_MS),true);assert.equal(forceMatchesHold(100,rise(100)-FORCE_EARLY_MS-1),false);
- assert.equal(forceMatchesHold(60,rise(60)+FORCE_LATE_MS+FORCE_BAR_STEP_MS-1),true);
+ assert.equal(forceMatchesHold(60,rise(60)+FORCE_LATE_MS),true);assert.equal(forceMatchesHold(60,rise(60)+FORCE_LATE_MS+1),false);
  // 60 shows again on the way down, at 140 updates.
  assert.equal(forceMatchesHold(60,140*FORCE_BAR_STEP_MS+10),true);
- for(const bad of [0,101,50.5,Number.NaN])assert.equal(forceMatchesHold(bad,rise(50)),false,String(bad));
+ // A release between two whole values (the painted fill) is held to its own moment.
+ assert.equal(forceMatchesHold(57.25,rise(57.25)),true);assert.equal(forceMatchesHold(57.25,rise(57.25)-FORCE_EARLY_MS-1),false);
+ for(const bad of [0,101,50.555,Number.NaN])assert.equal(forceMatchesHold(bad,rise(50)),false,String(bad));
  assert.equal(forceMatchesHold(50,-1),false);
+});
+
+test('the release sends exactly the painted fill, never the whole number behind it',()=>{
+ assert.equal(releaseForce(rise(57)+30),57.75);assert.equal(releaseForce(0),1);assert.equal(releaseForce(rise(100)+40),100);
+ assert.equal(releaseForce(150*FORCE_BAR_STEP_MS+20),49.5);assert.equal(releaseForce(9000),1);
+ for(const at of [123,2001,3977,4100,6543])assert.equal(forceMatchesHold(releaseForce(at),at),true,String(at));
 });
 
 test('a shot without a charge, or with force 100 a few milliseconds after it, is refused and the turn goes on',async t=>{
@@ -87,4 +95,13 @@ test('a charge started before the clock ran out still fires in overtime, and POW
  await f.fire(90);assert.equal(f.shots()+(f.match.pendingPower?1:0),1);
  const g=await duel();g.fighter.powerCharge=POWER_MAX;await g.game.command(g.shooter,{type:'power'});
  await g.charge();now+=rise(55);await g.fire(55);assert.equal(g.match.pendingPower?.power,55);
+});
+
+test('the hold is timed when the commands arrive, not when a busy queue gets to them, and a fill release passes',async t=>{
+ let now=Date.now();t.mock.method(Date,'now',()=>now);
+ const f=await duel(),start=now;
+ await f.game.command(f.shooter,{type:'aim',angle:45,power:1,charging:true},start);
+ // Both commands reach the game 900 ms late (a slow command ahead in the queue): the measured hold is the real one.
+ now=start+rise(72.4)+900;await f.game.command(f.shooter,{type:'fire',angle:45,power:72.4},start+rise(72.4));
+ assert.equal(f.shots(),1);assert.equal(f.fighter.chargePower,72.4);
 });

@@ -35,18 +35,24 @@ export function chargeHoldsTurn(deadline:number,chargingSince:number|undefined,n
 }
 
 /** How far the server's clock may disagree with the client's bar (A03, auditoria 21/10/2026). The charge start and the
- * release travel the same socket, so only the difference of their delays matters: the release may count up to
- * FORCE_EARLY_MS less hold than the bar showed (the start came in late) or up to FORCE_LATE_MS more (the release came
- * in late). Anything beyond is a shot the bar never showed. */
-export const FORCE_EARLY_MS=400;
+ * release travel the same socket and are timed when they arrive, so only the difference of their delays matters: the
+ * release may count up to FORCE_EARLY_MS less hold than the bar showed (the start came in late) or up to FORCE_LATE_MS
+ * more (the release came in late). Anything beyond is a shot the bar never showed. */
+export const FORCE_EARLY_MS=600;
 export const FORCE_LATE_MS=2000;
 
-/** Whether `power` is a whole value the bar shows at some moment within the tolerance around `heldMs`, the hold
- * measured by the server between the charge start and the release. */
+/** The force a release sends: exactly where the painted fill stands (forceBarFill), to the hundredth, so the shot is
+ * the bar the player saw (pedido do matheus, 21/10/2026: no snap back to the whole number). */
+export const releaseForce=(elapsedMs:number)=>Math.max(1,Math.round(forceBarFill(elapsedMs)*100)/100);
+
+/** Whether a release of `power` (forceBarFill, to the hundredth) is one the bar shows at some moment within the
+ * tolerance around `heldMs`, the hold measured by the server between the charge start and the release. */
 export function forceMatchesHold(power:number,heldMs:number,early=FORCE_EARLY_MS,late=FORCE_LATE_MS){
- if(!Number.isInteger(power)||power<1||power>FORCE_BAR_MAX||!Number.isFinite(heldMs)||heldMs<0)return false;
- // The holds that show `power`: once rising and, below the top, once falling (100 stays two updates).
- const windows:[number,number][]=power===FORCE_BAR_MAX?[[(FORCE_BAR_MAX-1)*FORCE_BAR_STEP_MS,(FORCE_BAR_MAX+1)*FORCE_BAR_STEP_MS]]:
-  [[(power-1)*FORCE_BAR_STEP_MS,power*FORCE_BAR_STEP_MS],[(2*FORCE_BAR_MAX-power)*FORCE_BAR_STEP_MS,(2*FORCE_BAR_MAX-power+1)*FORCE_BAR_STEP_MS]];
- return windows.some(([from,to])=>heldMs>=from-early&&heldMs<to+late);
+ if(!Number.isFinite(power)||power<1||power>FORCE_BAR_MAX||Math.abs(power*100-Math.round(power*100))>1e-6||!Number.isFinite(heldMs)||heldMs<0)return false;
+ // The holds whose fill is `power`: once rising and once falling, and the top rests two updates at 100.
+ const step=FORCE_BAR_STEP_MS,holds:[number,number][]=[[(power-1)*step,(power-1)*step],[(2*FORCE_BAR_MAX-power)*step,(2*FORCE_BAR_MAX-power)*step]];
+ if(power>=FORCE_BAR_MAX-.01)holds.push([(FORCE_BAR_MAX-1)*step,(FORCE_BAR_MAX+1)*step]);
+ // A fill at 1 is also the moment the falling bar is about to pass the turn (its last hundredth).
+ const slack=step/100;
+ return holds.some(([from,to])=>heldMs>=from-slack-early&&heldMs<=to+slack+late);
 }
