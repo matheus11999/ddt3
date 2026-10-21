@@ -331,14 +331,6 @@ export class FishingWorld {
   }
   c.drawImage(e.canvas,x,y,w,h);
  }
- /** While the player chooses where to fish: every pond glows softly, the one under the pointer brighter. */
- drawPick(c:CanvasRenderingContext2D,t:number,hoverLake:string|null){
-  for(const lake of FISHING_LAKES){const on=lake.id===hoverLake,pulse=.5+Math.sin(t/260)*.5;
-   c.save();c.beginPath();c.ellipse(lake.x,lake.y,lake.rx*.98,lake.ry*.95,0,0,Math.PI*2);
-   c.fillStyle=`rgba(255,240,170,${on?.16:.05+pulse*.04})`;c.fill();
-   c.shadowColor='rgba(255,226,120,.9)';c.shadowBlur=on?22:12;c.lineWidth=on?4:2.5;c.strokeStyle=`rgba(255,236,160,${on?.95:.45+pulse*.3})`;c.setLineDash(on?[]:[14,10]);c.lineDashOffset=-t/40;c.stroke();
-   c.restore();}
- }
  /** Shadows on the floor under every standing piece: a soft dark spot where it touches, and its outline cast to the left. */
  private shadows(c:CanvasRenderingContext2D,camX:number,camY:number,viewW:number,viewH:number){
   const pieces:{id:FishingPropId;x:number;y:number;w:number;h:number;flip?:boolean}[]=[];
