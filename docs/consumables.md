@@ -21,8 +21,18 @@ Enfurecer e Gelo saíram da barra de poderes: agora são **itens escolhidos na s
 ## Arte e sons
 
 - Arte original pintada pelo Codex (`codex exec`) sobre magenta, no estilo da barra de poderes e dos efeitos de arma do jogo; nenhum pixel do DDTank. Fontes em `public/assets/consumables/source/` (`icons.png`, `iceshot.png`, `frozen.png`), recorte com `py scripts/build-consumables-art.py` (cada quadro mantém a célula inteira, sem tremor):
-  - `rage-icon.png`, `ice-icon.png` (256 px): botões da barra (o jogo escreve "POW +50" no Enfurecer) e ícone de 60×60 sobre a cabeça ao usar (AutoPropEffect em (−5, −140), some em 1,2 s).
+  - `rage-icon.png`, `ice-icon.png` (256 px): botões da barra (o jogo escreve "POW +50" no Enfurecer) e ícone sobre a cabeça ao usar (ver "Efeito ao usar").
   - `ice-projectile.png` (192 px): bola de gelo girada pela velocidade.
   - `ice-impact.png`: 7 quadros de 256 px, 80 ms cada.
   - `ice-block.png`: 3 quadros de 320 px (inteiro, rachado no último turno congelado, quebrando); cresce do chão em 320 ms, desenhado com 180 × 130 px e opacidade 0,46 para o lutador aparecer dentro (pedidos do matheus em 20/10: o de 124 px ficou pequeno, o de 190 px alto demais e opaco).
 - Sons do pacote de referência: `ice-fire.mp3` (023, lançamento da bola de gelo), `ice-impact.mp3` (093, impacto e gelo quebrando), em `public/assets/audio/consumables/`. Ao usar Enfurecer ou Gelo toca o som padrão das ferramentas (o 039 da referência saiu: o matheus achou feio).
+
+## Efeito ao usar (21/10)
+
+Todo item ou poder usado na batalha (+1, +2, Tridente, bônus de dano, Enfurecer, Gelo, Cura, Mira e Invisibilidade) toca o mesmo efeito no lutador, recriado a partir do estudo do `ghostPcikPropAsset` + `AutoPropEffect` do DDTank (nenhuma arte copiada), em `drawItemUse` de `src/game/consumableEffects.ts`, 2,2 s no total:
+
+- 0–420 ms: clarão quente pequeno no corpo; 100–760 ms: 7 pontos dourados se espalham; 140–520 ms: um brilho sobe do corpo até o lugar do ícone.
+- A partir de 460 ms: o ícone do item (o mesmo da barra, com o número desenhado pelo jogo; Cura, Mira e Invisibilidade usam `public/assets/abilities/`) aparece com um halo dourado de raios suaves (pintado uma vez num canvas), respira e no fim o halo abre e some.
+- O ícone fica 192 px acima dos pés e é desenhado depois do nome, da vida e da seta da vez, para nunca ficar coberto.
+- Sem gesto (o corpo não tem pose pintada para isso) e sem som próprio: continua o som padrão das ferramentas.
+- Prévia: `node scripts/preview-item-use.mjs` (quadros e vídeo `item-use.webm` em `test-results/item-use/`).
