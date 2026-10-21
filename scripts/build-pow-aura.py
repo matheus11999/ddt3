@@ -1,8 +1,9 @@
-"""Cuts the Codex sheet of the POW ready aura (src/game/powReadyAura.ts) into the game strip.
+"""Cuts the Codex sheets of the POW ready effects (src/game/powReadyAura.ts) into game strips.
 
-Source: public/assets/combat/source/pow-ready-aura.png, a 3x2 grid of flicker frames of fire painted on flat black.
-Fire is light: black becomes transparent by brightness and the colour is un-premultiplied, so the painting keeps its
-glow on any background. Every cell keeps its whole canvas (never trimmed per frame) so the loop does not shake.
+Sources: public/assets/combat/source/pow-ready-<name>.png, a 3x2 grid of looping frames painted on flat black.
+Light is drawn on black: black becomes transparent by brightness and the colour is un-premultiplied, so the painting
+keeps its glow on any background. Every cell keeps its whole canvas so the loop does not shake; `ring` recentres each
+frame on its bright ring and `orb` puts the white-hot core at the same spot (the painter drifts a little per cell).
 Run: py scripts/build-pow-aura.py
 """
 from pathlib import Path
@@ -10,9 +11,12 @@ import numpy as np
 from PIL import Image
 
 ROOT = Path(__file__).resolve().parent.parent
-SRC = ROOT / 'public/assets/combat/source/pow-ready-aura.png'
-OUT = ROOT / 'public/assets/combat/pow-ready-aura.png'
-COLS, ROWS, SIZE = 3, 2, 256
+SRC = ROOT / 'public/assets/combat/source'
+OUT = ROOT / 'public/assets/combat'
+COLS, ROWS = 3, 2
+# name: (strip cell size, how each frame is aligned)
+SHEETS = {'aura': (256, 'ring'), 'mantle': (256, 'none'), 'orb': (128, 'orb')}
+ORB_CORE = (320 / 512, .5)
 
 def unblack(img: Image.Image) -> Image.Image:
     a = np.asarray(img.convert('RGB')).astype(np.float32) / 255.0
@@ -21,19 +25,30 @@ def unblack(img: Image.Image) -> Image.Image:
     rgb = np.where(alpha[..., None] > 0, np.clip(a / np.maximum(alpha[..., None], 1e-3), 0, 1), 0)
     return Image.fromarray((np.dstack([rgb, alpha[..., None]]) * 255).round().astype(np.uint8), 'RGBA')
 
-sheet = Image.open(SRC)
-cw, ch = sheet.width // COLS, sheet.height // ROWS
-strip = Image.new('RGBA', (SIZE * COLS * ROWS, SIZE))
-for i in range(COLS * ROWS):
-    col, row = i % COLS, i // COLS
-    cell = unblack(sheet.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch)))
-    # The painter drifts the oval a little from cell to cell: centre every frame on its own bright ring.
-    alpha = np.asarray(cell)[..., 3] > 128
-    ys, xs = np.nonzero(alpha)
-    cx, cy = int(round(xs.mean())), int(round(ys.mean()))
-    side = min(cw, ch)
-    cell = cell.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2)).resize((SIZE, SIZE), Image.LANCZOS)
-    strip.paste(cell, (i * SIZE, 0))
-OUT.parent.mkdir(parents=True, exist_ok=True)
-strip.save(OUT, optimize=True)
-print(f'{OUT.relative_to(ROOT)}: {COLS * ROWS} frames of {SIZE}px')
+def centre(cell: Image.Image, mode: str) -> tuple[int, int]:
+    alpha = np.asarray(cell)[..., 3]
+    if mode == 'ring':
+        ys, xs = np.nonzero(alpha > 128)
+        return int(round(xs.mean())), int(round(ys.mean()))
+    if mode == 'orb':
+        ys, xs = np.nonzero(alpha > 250)
+        return int(round(xs.mean() + cell.width * (.5 - ORB_CORE[0]))), int(round(ys.mean() + cell.height * (.5 - ORB_CORE[1])))
+    return cell.width // 2, cell.height // 2
+
+for name, (size, mode) in SHEETS.items():
+    source = SRC / f'pow-ready-{name}.png'
+    if not source.exists():
+        continue
+    sheet = Image.open(source)
+    cw, ch = sheet.width // COLS, sheet.height // ROWS
+    strip = Image.new('RGBA', (size * COLS * ROWS, size))
+    for i in range(COLS * ROWS):
+        col, row = i % COLS, i // COLS
+        cell = unblack(sheet.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch)))
+        cx, cy = centre(cell, mode)
+        side = min(cw, ch)
+        cell = cell.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2)).resize((size, size), Image.LANCZOS)
+        strip.paste(cell, (i * size, 0))
+    out = OUT / f'pow-ready-{name}.png'
+    strip.save(out, optimize=True)
+    print(f'{out.relative_to(ROOT)}: {COLS * ROWS} frames of {size}px')
