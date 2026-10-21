@@ -26,7 +26,7 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const joinBeta=()=>{const card=document.getElementById('entrar');card?.scrollIntoView({behavior:'smooth',block:'center'});card?.querySelector<HTMLButtonElement>('[data-tab="register"]')?.click();};
  return <>
   <section className="hero">
-   <div className="hero-art" aria-hidden="true"><img src="/art/hero-3.webp" alt="" fetchPriority="high"/></div>
+   <div className="hero-art" aria-hidden="true"><img src="/art/hero-4.webp" alt="" fetchPriority="high"/></div>
    <div className="hero-glow" aria-hidden="true"/>
    <div className="hero-inner">
     <div className="hero-copy">
@@ -49,14 +49,9 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <header className="section-head">
     <p className="eyebrow">Por dentro do jogo</p>
     <h2 className="title-3d">Telas do jogo</h2>
-    <p>Prints de verdade, sem montagem. Clica para ver grande.</p>
+    <p>Prints de verdade, sem montagem. Clica na tela para ver grande.</p>
    </header>
-   <div className="print-grid">
-    {SHOTS.map((shot,i)=><button key={shot.src} className={`print${i===0?' wide':''}`} onClick={()=>setZoom(i)} aria-label={`Ampliar: ${shot.title}`}>
-     <img src={shot.src} alt={`Tela do jogo: ${shot.title}`} loading="lazy" width="1536" height="864"/>
-     <span className="print-caption"><b>{shot.title}</b><small>{shot.text}</small></span>
-    </button>)}
-   </div>
+   <ShotCarousel onZoom={setZoom}/>
   </section>
 
   {zoom!==null&&<div className="lightbox" role="dialog" aria-modal="true" aria-label={SHOTS[zoom].title} onClick={()=>setZoom(null)}>
@@ -69,4 +64,26 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <button className="icon-btn lightbox-close" aria-label="Fechar"><X size={22}/></button>
   </div>}
  </>;
+}
+
+/** Telas do jogo: one big slide that advances by itself (pauses on hover), arrows, and the thumbnails below. */
+function ShotCarousel({onZoom}:{onZoom:(index:number)=>void}){
+ const [index,setIndex]=useState(0),[paused,setPaused]=useState(false);
+ const go=(next:number)=>setIndex((next+SHOTS.length)%SHOTS.length);
+ useEffect(()=>{if(paused)return;const timer=window.setTimeout(()=>go(index+1),5000);return ()=>clearTimeout(timer);},[index,paused]);
+ const shot=SHOTS[index];
+ return <div className="carousel" onMouseEnter={()=>setPaused(true)} onMouseLeave={()=>setPaused(false)}>
+  <div className="carousel-stage">
+   {SHOTS.map((s,i)=><button key={s.src} className={`carousel-slide${i===index?' on':''}`} onClick={()=>onZoom(i)} aria-hidden={i!==index} tabIndex={i===index?0:-1} aria-label={`Ampliar: ${s.title}`}>
+    <img src={s.src} alt={`Tela do jogo: ${s.title}`} loading={i===0?'eager':'lazy'} width="1536" height="864"/>
+   </button>)}
+   <div className="carousel-caption" key={index}><b>{shot.title}</b><span>{shot.text}</span></div>
+   <button className="carousel-arrow prev" aria-label="Tela anterior" onClick={()=>go(index-1)}><ChevronLeft size={28}/></button>
+   <button className="carousel-arrow next" aria-label="Próxima tela" onClick={()=>go(index+1)}><ChevronRight size={28}/></button>
+   {!paused&&<span className="carousel-progress" key={`p${index}`} aria-hidden="true"/>}
+  </div>
+  <div className="carousel-thumbs" role="tablist" aria-label="Telas">
+   {SHOTS.map((s,i)=><button key={s.src} role="tab" aria-selected={i===index} className={`carousel-thumb${i===index?' on':''}`} onClick={()=>go(i)} aria-label={s.title}><img src={s.src} alt="" loading="lazy"/><span>{s.title}</span></button>)}
+  </div>
+ </div>;
 }

@@ -11,7 +11,7 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
  useEffect(()=>setOpen(false),[route]);
  // Signed in, the bar is the player's own: no way back to the landing page.
  const signedIn=!!me?.account;
- const links=signedIn?[['/jogador','Início'],['/forum','Fórum'],['/configuracoes','Configurações']] as const:[['/#prints','Telas do jogo'],['/forum','Comunidade']] as const;
+ const links=signedIn?[['/jogador','Início'],['/personagens','Personagens'],['/forum','Fórum'],['/configuracoes','Configurações']] as const:[['/#prints','Telas do jogo'],['/forum','Comunidade']] as const;
  return <header className={`topbar${scrolled||route!=='/'?' solid':''}${open?' open':''}`}>
   <div className="topbar-inner">
    <Link to={signedIn?'/jogador':'/'} className="brand" aria-label="Bomb Masters, página inicial"><img src="/art/logo.webp" alt="Bomb Masters" width="132" height="78"/></Link>

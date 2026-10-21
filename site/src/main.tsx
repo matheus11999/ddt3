@@ -4,7 +4,7 @@ import {createRoot} from 'react-dom/client';
 import {api,type Me} from './api';
 import {Footer,Topbar} from './Layout';
 import {Home} from './Home';
-import {PlayerPage,SettingsPage} from './Player';
+import {CharactersPage,PlayerPage,SettingsPage} from './Player';
 import {ForumPage,TopicPage} from './Forum';
 import './site.css';
 
@@ -23,6 +23,7 @@ function App(){
  if(route==='/jogador')page=<PlayerPage me={me} onSignedIn={signedIn}/>;
  else if(topic)page=<TopicPage id={Number(topic[1])} me={me}/>;
  else if(route==='/forum')page=<ForumPage me={me} query={new URLSearchParams(query)}/>;
+ else if(route==='/personagens')page=<CharactersPage me={me} onSignedIn={signedIn}/>;
  else if(route==='/configuracoes')page=<SettingsPage me={me} onChanged={refresh}/>;
  else page=<Home me={me} onSignedIn={signedIn}/>;
  return <>

@@ -49,3 +49,10 @@ O nome e a logo **dentro do jogo** (título da aba, telas de carregamento, texto
 - Conta logada sem personagem no servidor sempre passa pela criação (o convidado do navegador não é mais adotado). A tela (`src/components/CharacterCreation.tsx`, fundo `public/assets/ui/creation-bg.webp` do Codex) pede gênero e **nome**: regras em `shared/characterName.ts` (3 a 16 letras, números ou _, sem nomes de staff nem palavrões) e nome livre no servidor (`GET /api/character-name`, conferido de novo no `POST /api/session` com trava no banco).
 - Personagem novo começa só com o **Vento Celeste** (`wind-shuriken`) e rosto, cabelo e roupa básicos do gênero (`newCharacterEquipment`); sem chapéu, óculos ou fantasias. Personagens antigos não mudam. Clientes de teste sem conta e sem nome continuam criando o convidado antigo.
 - Landing: só o hero (com "Beta aberta", hero `hero-3` do Codex com degradê) e a galeria "Telas do jogo" (`#prints`, Ver o jogo). Login e cadastro em abas, com validação dos campos e força da senha.
+
+## Rodada de 21/10 (madrugada)
+
+- Criação de personagem: cena pintada da Praça Celeste em tela cheia (`public/assets/ui/creation-scene.webp`, Codex) com dois pedestais; o escolhido fica no da frente, o outro no de trás (`--front-*`/`--back-*` em `CharacterCreation.css` marcam o topo dos pedestais), e a janela de madeira do jogo com ♂/♀, nome e Entrar no jogo.
+- Site: hero `hero-4` (mapa Sonho Nevado, Codex com GPT-6 Astra médio: `CODEX_MODEL=gpt-6-astra CODEX_EFFORT=medium node site/art-source/run.mjs <id>`), Telas do jogo em carrossel (troca sozinho a cada 5 s, pausa com o mouse em cima, miniaturas embaixo).
+- Página do jogador: só o JOGAR, o card da recompensa da beta (baú `beta-reward.webp`) e a comunidade. Personagens por servidor ficaram em `/personagens` (Personagens no topo).
+- Campos preenchidos pelo navegador mantêm o fundo escuro (`:-webkit-autofill`).
