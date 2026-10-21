@@ -86,9 +86,7 @@ export function CharactersPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void})
  if(!me)return <div className="page-loading" aria-busy="true"/>;
  if(!me.account)return <SignInPage onSignedIn={onSignedIn}/>;
  return <div className="characters-page">
-  <PageHeader art="characters" eyebrow="Sua conta" title="Meus personagens" text="Cada servidor tem o seu personagem. Onde você ainda não joga, ele nasce no primeiro acesso.">
-   <PlayButton me={me}/>
-  </PageHeader>
+  <PageHeader art="characters" eyebrow="Sua conta" title="Meus personagens" text="Cada servidor tem o seu personagem. Onde você ainda não joga, ele nasce no primeiro acesso."/>
   <div className="forum-body narrow"><ul className="server-list cards">{me.servers.map(s=><ServerRow key={s.server.id} item={s}/>)}</ul></div>
  </div>;
 }
