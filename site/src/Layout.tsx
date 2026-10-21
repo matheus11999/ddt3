@@ -29,8 +29,8 @@ export function Footer(){
  return <footer className="footer">
   <div className="footer-inner">
    <img src="/art/logo.webp" alt="" width="120" height="71" loading="lazy"/>
-   <p>Bomb Masters está em <b>beta</b>. Tudo pode mudar, e a sua opinião muda o jogo: conte no <Link to="/forum?categoria=sugestoes">fórum de sugestões</Link>.</p>
-   <p className="footer-small">© {new Date().getFullYear()} Bomb Masters. Para PC e celular, direto no navegador.</p>
+   <p>Bomb Masters está em <b>beta</b>. Viu algo pra melhorar? Conta no <Link to="/forum?categoria=sugestoes">fórum de sugestões</Link>.</p>
+   <p className="footer-small">© {new Date().getFullYear()} Bomb Masters. PC e celular, direto no navegador.</p>
   </div>
  </footer>;
 }
