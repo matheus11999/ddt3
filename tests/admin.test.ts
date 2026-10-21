@@ -1,7 +1,7 @@
 import {readFileSync} from 'node:fs';
 import assert from 'node:assert/strict';
 import {test} from 'node:test';
-import {checkCredentials,hashPassword,LoginThrottle,verifyPassword} from '../server/adminAuth';
+import {checkCredentials,credentialVersion,hashPassword,LoginThrottle,sameSecret,verifyPassword} from '../server/adminAuth';
 import {mapBlockers} from '../server/admin';
 import {applyMapOverride,baseMapId,getMap,MAP_DEFINITIONS,MAPS,pinMap,pvpRotation,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
 import type {MapId,MapRegion} from '../shared/maps';
@@ -102,4 +102,19 @@ test('a map can borrow a sheet from another map folder by a relative path',()=>{
  assert.equal(sourceUrl(own,file),'/assets/maps/garden/source/objetos.png');
  assert.equal(sourceUrl(own,'pecas.png'),'/assets/maps/snow/source/pecas.png');
  assert.equal(sourceUrl(`${own}/`,'./pecas.png'),'/assets/maps/snow/source/pecas.png');
+});
+
+test('a username of any Unicode length is a plain failed login, never an exception (A07)',async()=>{
+ const account={username:'auditadmin',passwordHash:await hashPassword('uma-senha-longa')};
+ for(const name of ['éuditadmin','auditadmi','😀uditadmin','auditadmiń','a'.repeat(64)])assert.equal(await checkCredentials(account,name,'uma-senha-longa'),false,name);
+ assert.equal(await checkCredentials(account,'auditadmin','uma-senha-longa'),true);
+ assert.equal(sameSecret('é','e'),false);assert.equal(sameSecret('é','é'),true);
+});
+
+test('admin sessions are tied to the credentials in force (A02)',()=>{
+ const a={username:'matheus',passwordHash:'scrypt:a:b'};
+ assert.equal(credentialVersion(a),credentialVersion({...a}));
+ assert.notEqual(credentialVersion(a),credentialVersion({...a,passwordHash:'scrypt:a:c'}));
+ assert.notEqual(credentialVersion(a),credentialVersion({...a,username:'outro'}));
+ assert.match(credentialVersion(a),/^[0-9a-f]{64}$/);
 });

@@ -39,8 +39,21 @@ export function adminAccount(env:NodeJS.ProcessEnv=process.env):AdminAccount|nul
  return username&&passwordHash?{username,passwordHash}:null;
 }
 
+/** Equal strings, compared in constant time over fixed-size digests: any Unicode length is just a mismatch (A07). */
+export function sameSecret(a:string,b:string){
+ return timingSafeEqual(createHash('sha256').update(a,'utf8').digest(),createHash('sha256').update(b,'utf8').digest());
+}
+
+/**
+ * The version of the admin credentials in force: a session is valid only under the version it was opened with, so
+ * changing ADMIN_USERNAME or ADMIN_PASSWORD_HASH (or removing them) ends every admin session, even after a restart (A02).
+ */
+export function credentialVersion(account:AdminAccount){
+ return createHash('sha256').update(`${account.username}\0${account.passwordHash}`,'utf8').digest('hex');
+}
+
 export async function checkCredentials(account:AdminAccount|null,username:string,password:string):Promise<boolean>{
- const nameMatches=!!account&&username.length===account.username.length&&timingSafeEqual(Buffer.from(username),Buffer.from(account.username));
+ const nameMatches=!!account&&sameSecret(username,account.username);
  const passwordMatches=await verifyPassword(password,nameMatches?account!.passwordHash:DECOY);
  return nameMatches&&passwordMatches;
 }

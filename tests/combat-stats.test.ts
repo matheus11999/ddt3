@@ -9,6 +9,7 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
+import {chargedFire} from './fixtures/charge';
 
 test('starter totals and impact damage follow the published balance without counting upgrades twice',()=>{
 // Painted starter cap: 5 armor. Retired pilot cap is no longer equipped.
@@ -70,7 +71,7 @@ for(const boosts of [['damage50'],['extra1','trident']] as BoostId[][])test(`ser
  let command:{angle:number;power:number}|undefined;
  for(let angle=25;angle<=75&&!command;angle+=2)for(let power=30;power<=100;power++)if(trajectory(match.terrain,shooter,angle,power,0,weapon,[target]).hitId===target.id){command={angle,power};break;}
  assert.ok(command,'a legal shot must reach the test target');
- for(const boost of boosts)await game.command(attacker.id,{type:'boost',boost});await game.command(attacker.id,{type:'fire',...command});
+ for(const boost of boosts)await game.command(attacker.id,{type:'boost',boost});await chargedFire(game,attacker.id,{...command});
  const shot=events.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,boosts.includes('extra1')?6:1);
  assert.equal(shot.hits.length,0);assert.equal(target.hp,hp);game.tick(match.resolveAt+1);

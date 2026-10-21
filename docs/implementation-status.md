@@ -1,5 +1,9 @@
 # Estado da entrega — 16/10/2026
 
+## Auditoria de segurança — 21/10/2026
+
+A01–A07 e D01 corrigidos, ver `docs/security.md`. `npm test` 532/532; `npm run test:security:integration` passa. `tests/integration.ts`, `rooms.integration` e `abilities.integration` já falhavam na `main` antes desta mudança (mesmos erros).
+
 ## Vento Celeste e Bobina do Trovão — 20/10/2026
 
 - Duas armas novas reconstruídas do Verdadeiro Vento de Deus 7008 e do Verdadeiro Trovão 7009 do DDTank 4.1 (`docs/wind-thunder.md`): atributos por fase em tabela (`Weapon.phaseStats`), Dano 200 fortalecido uma vez, graus 15–50 e 25–60, projétil de raio 3, área de dano 55/65 (`splash`), POW próprio (`Weapon.pow`: Vento 1 projétil ×1,5; Trovão leque de 3 a ×0,6 com força ×0,9/×1/×1,1, `volley(..., forces)`), POW `exclusivo` (sem Tridente, com +1/+2), quatro máscaras novas em `CRATER_MASKS` (escala 0,486 como o Bumerangue; Trovão serrilhado), loja a 520.

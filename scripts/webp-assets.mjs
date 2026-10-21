@@ -6,12 +6,14 @@ import sharp from 'sharp';
 import {readdir,stat,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 const root=join(process.argv[2]??'dist','assets');
+// Our own pinturas only, but still with a ceiling (D01, auditoria 21/10): the largest painting is far below 100 MP.
+const MAX_PIXELS=100_000_000;
 async function* pngs(dir){for(const e of await readdir(dir,{withFileTypes:true})){const p=join(dir,e.name);
  if(e.isDirectory()){if(e.name!=='source')yield* pngs(p);}else if(e.name.endsWith('.png'))yield p;}}
 const files=[];for await(const p of pngs(root))files.push(p);
 let before=0,after=0,kept=0,next=0;const start=Date.now();
 async function worker(){while(next<files.length){const p=files[next++];const size=(await stat(p)).size;before+=size;
- const webp=await sharp(p,{limitInputPixels:false}).webp({lossless:true,effort:4}).toBuffer();
+ const webp=await sharp(p,{limitInputPixels:MAX_PIXELS}).webp({lossless:true,effort:4}).toBuffer();
  if(webp.length<=size*.9){await writeFile(p+'.webp',webp);after+=webp.length;kept++;}else after+=size;}}
 await Promise.all(Array.from({length:4},worker));
 console.log(`[webp] ${kept}/${files.length} PNGs com cópia WebP sem perda: ${(before/1e6).toFixed(1)} MB -> ${(after/1e6).toFixed(1)} MB em ${((Date.now()-start)/1000).toFixed(0)} s`);

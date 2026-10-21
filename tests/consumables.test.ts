@@ -10,6 +10,7 @@ import type {Profile,ServerEvent,Shot} from '../shared/protocol';
 import {WORLD} from '../shared/physics';
 import {initialAbilities} from '../shared/abilities';
 import type {AbilityLoadout} from '../shared/abilities';
+import {chargedFire} from './fixtures/charge';
 
 async function battle(){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),store={getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore;
@@ -45,7 +46,7 @@ test('Gelo replaces the shot: no other tool, no POW, no homing; Enfurecer still 
 
 test('ice ball: one projectile, no crater, no damage; enemies it touches freeze, allies do not',async()=>{
  const f=await battle();f.shooter.stamina=1000;const terrain=Uint8Array.from(f.match.terrain);
- await f.game.command(f.shooter.id,{type:'ability',ability:'ice'});await f.game.command(f.shooter.id,{type:'fire',angle:60,power:40});
+ await f.game.command(f.shooter.id,{type:'ability',ability:'ice'});await chargedFire(f.game,f.shooter.id,{angle:60,power:40});
  const shot=f.match.activeShot!;assert.equal(shot.projectiles.length,1);assert.equal(shot.projectiles[0].kind,'ice');
  const impact=f.match.pendingImpacts![0];Object.assign(f.target,{x:impact.mark.x,y:impact.mark.y+30});
  f.applyImpact(impact);

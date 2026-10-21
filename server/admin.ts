@@ -1,6 +1,6 @@
 import type {FastifyInstance,FastifyReply,FastifyRequest} from 'fastify';
 import {z} from 'zod';
-import {adminAccount,checkCredentials,LoginThrottle} from './adminAuth';
+import {adminAccount,checkCredentials,credentialVersion,LoginThrottle} from './adminAuth';
 import {AdminStore,ADMIN_SESSION_HOURS} from './adminStore';
 import type {StoredMap,StoredRevision} from './adminStore';
 import {applyMapOverride,contains,getMap,INSTANCE_MAP_IDS,MAP_IDS,WORLD_BOSS_MAP_IDS,pinMap,pinnedMap,registerPinnedMap,releasePinnedMaps,removeMapOverride} from '../shared/maps';
@@ -134,7 +134,15 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
  });
 
  // ── Session ──
- const user=async(req:FastifyRequest)=>store.session(req.cookies[COOKIE]);
+ // Every request checks the session against the credentials in force now: a new password, a new username or a
+ // panel switched off ends the sessions opened before (A02), and those rows are dropped once the change is seen.
+ let lastCredential:string|null|undefined;
+ const currentCredential=async()=>{
+  const account=adminAccount(),credential=account?credentialVersion(account):null;
+  if(credential!==lastCredential){await store.endStaleSessions(credential);lastCredential=credential;}
+  return {account,credential};
+ };
+ const user=async(req:FastifyRequest)=>{const {account,credential}=await currentCredential();const name=await store.session(req.cookies[COOKIE],credential);return name&&account&&name===account.username?name:null;};
  const guard=async(req:FastifyRequest,reply:FastifyReply)=>{
   reply.header('Cache-Control','no-store');
   const name=await user(req);if(!name){reply.code(401).send({error:'Entre no painel novamente.'});return null;}
@@ -155,7 +163,7 @@ export async function registerAdmin(app:FastifyInstance,ctx:AdminContext){
    return reply.code(401).send({error:'Usuário ou senha incorretos.'});
   }
   for(const key of keys)throttle.succeed(key);
-  const token=await store.createSession(account.username,ip);await store.audit(account.username,ip,'login');
+  const token=await store.createSession(account.username,ip,credentialVersion(account));await store.audit(account.username,ip,'login');
   reply.setCookie(COOKIE,token,{...cookieOptions,maxAge:ADMIN_SESSION_HOURS*3600});
   return {username:account.username};
  });

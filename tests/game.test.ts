@@ -10,6 +10,7 @@ import type {ForgeOutcome,ProfileStore} from '../server/store';
 import {withShrapnel} from './fixtures/weapons';
 import {fighterHitBounds} from '../shared/physics';
 import {CHARGE_HOLD_MS} from '../shared/forceBar';
+import {chargedFire} from './fixtures/charge';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -78,11 +79,11 @@ test('power-ups follow the combination matrix, the Vigor budget and keep the tri
 
 test('+2 and trident produce nine authoritative projectiles and lock further input while resolving',async()=>{
  const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
- await f.game.command(player.id,{type:'boost',boost:'extra2'});await f.game.command(player.id,{type:'boost',boost:'trident'});await f.game.command(player.id,{type:'fire',angle:45,power:35});
+ await f.game.command(player.id,{type:'boost',boost:'extra2'});await f.game.command(player.id,{type:'boost',boost:'trident'});await chargedFire(f.game,player.id,{angle:45,power:35});
  const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,9);assert.equal(f.match.state.phase,'resolving');
  assert.equal(shot.projectiles[0].delay,0);assert.ok(shot.projectiles[3].delay>0);assert.ok(shot.projectiles[6].delay>shot.projectiles[3].delay);
- await f.game.command(player.id,{type:'fire',angle:45,power:35});assert.equal(f.events.get(player.id)!.filter(e=>e.type==='shot').length,1);
+ await chargedFire(f.game,player.id,{angle:45,power:35});assert.equal(f.events.get(player.id)!.filter(e=>e.type==='shot').length,1);
  assert.equal(errors(f.events.get(player.id)!).at(-1)!.message,'Aguarde o próximo turno.');
 });
 
@@ -165,7 +166,7 @@ test('late and foreign reward picks are rejected; failed saves retry without unl
  f.game.tick(Date.now()+60001);assert.equal(f.game.rooms.get(f.roomId)!.status,'waiting');assert.equal(f.game.matches.size,0);assert.equal(f.store.finishCalls.length,1);
 });
 test('terrain marks are not exposed before impact and survive later snapshots',async()=>{
- const f=await battleFixture();await f.game.command(f.match.state.turnId,{type:'fire',angle:45,power:30});
+ const f=await battleFixture();await chargedFire(f.game,f.match.state.turnId,{angle:45,power:30});
  const immediate=f.events.get(f.a.id)!.filter((e):e is Extract<ServerEvent,{type:'battle'}>=>e.type==='battle').at(-1)!.battle!;
  assert.equal(immediate.terrainMarks?.length??0,0);assert.ok(f.match.pendingImpacts!.length);
  f.game.tick(Math.max(...f.match.pendingImpacts!.map(impact=>impact.at))+1);assert.ok(f.match.state.terrainMarks!.length);
@@ -178,7 +179,7 @@ test('a shrapnel shot sends authoritative shards after the main impact without m
  await withShrapnel(async()=>{
   const f=await battleFixture(),player=f.match.state.players.find(p=>p.id===f.match.state.turnId)!;
   player.equipment={...player.equipment,weapon:'shrapnel',upgrade:10};
-  await f.game.command(player.id,{type:'fire',angle:45,power:30});
+  await chargedFire(f.game,player.id,{angle:45,power:30});
   const shot=f.events.get(player.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
   const main=shot.projectiles.filter(p=>!p.fragment),shards=shot.projectiles.filter(p=>p.fragment);
   assert.equal(main.length,1);assert.equal(shards.length,3);
@@ -231,7 +232,7 @@ test('a direct hit digs the weapon mask at 75% in the ground under the target fe
   const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
   shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};
   f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;
-  await f.game.command(shooter.id,{type:'fire',angle:45,power});
+  await chargedFire(f.game,shooter.id,{angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')?.shot;
   const direct=shot?.projectiles.find(p=>onBody(p.impact,target));if(!direct)continue;found=true;
   const dig=(direct.impact as {dig?:{x:number;y:number;radius:number}}).dig!;
@@ -256,7 +257,7 @@ test('turning in place is free, works on the opponent turn and never moves anyon
 
 test('turning in place also works while a shot is in flight and the turn survives the impact, but not after the match ends',async()=>{
  const f=await battleFixture(),s=f.match.state,shooter=s.players.find(p=>p.id===s.turnId)!,idle=s.players.find(p=>p.id!==s.turnId)!;
- await f.game.command(shooter.id,{type:'fire',angle:45,power:40});assert.equal(s.phase,'resolving');
+ await chargedFire(f.game,shooter.id,{angle:45,power:40});assert.equal(s.phase,'resolving');
  for(const fighter of [idle,shooter]){
   const direction=(fighter.facing===1?-1:1) as 1|-1,spot={x:fighter.x,y:fighter.y};
   await f.game.command(fighter.id,{type:'face',direction});
@@ -280,7 +281,7 @@ test('a kill on the first projectile of a +2 lets the rest fly through the body,
  for(let power=20;power<=100;power+=2){
   const f=await battleFixture(),shooter=f.match.state.players.find(p=>p.id===f.match.state.turnId)!,target=f.match.state.players.find(p=>p.id!==shooter.id)!;
   shooter.equipment={...shooter.equipment,weapon:'brick',upgrade:0};f.match.state.wind=0;target.x=shooter.x+shooter.facing*260;target.y=shooter.y;target.hp=1;
-  await f.game.command(shooter.id,{type:'boost',boost:'extra2'});await f.game.command(shooter.id,{type:'fire',angle:45,power});
+  await f.game.command(shooter.id,{type:'boost',boost:'extra2'});await chargedFire(f.game,shooter.id,{angle:45,power});
   const shot=f.events.get(shooter.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
   if(!onBody(shot.projectiles[0].impact,target)||shot.projectiles.length<3)continue;
   assert.ok(shot.projectiles.slice(1).every(p=>!onBody(p.impact,target)),'the projectiles after the kill do not stop on the body');
@@ -310,7 +311,7 @@ test('a charge started before the turn clock runs out holds the turn until the s
  f.game.peers.get(shooter.id)!.lastAim=0;f.match.chargingSince=Date.now()-1000;s.deadline=Date.now()-500;
  await f.game.command(shooter.id,{type:'aim',angle:45,power:60,charging:false});
  assert.equal(s.players.find(p=>p.id===shooter.id)!.charging,true,'the charge cannot be dropped in overtime');
- await f.game.command(shooter.id,{type:'fire',angle:45,power:60});
+ await chargedFire(f.game,shooter.id,{angle:45,power:60});
  assert.deepEqual(errors(f.events.get(shooter.id)!).map(e=>e.message),[]);assert.equal(s.phase,'resolving');
 });
 

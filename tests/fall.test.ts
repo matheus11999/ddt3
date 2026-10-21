@@ -10,6 +10,7 @@ import {trajectory,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent} from '../shared/protocol';
 import {TURN_GAP_MS} from '../shared/combat';
 import {REWARD_RESULT_MS} from '../shared/rewards';
+import {chargedFire} from './fixtures/charge';
 
 /** Sets one 3px block (the old terrain cell these cases were written for). */
 function fill(t:Uint8Array,x0:number,x1:number,y0:number,y1:number,value:number){for(let y=y0;y<=y1;y++)t.fill(value,y*WORLD.cols+x0,y*WORLD.cols+x1+1);}
@@ -34,7 +35,7 @@ test('fall samples share a deterministic gravity clock and a continuing fall pre
 });
 
 test('crater fall begins only at impact, survives reconnect and delays the next turn until landing',async()=>{
- const f=await fixture(),before=f.match.terrain.slice();await f.game.command(f.actor.id,{type:'fire',...f.aim});const impact=f.match.pendingImpacts![0],originalResolve=f.match.resolveAt;
+ const f=await fixture(),before=f.match.terrain.slice();await chargedFire(f.game,f.actor.id,{...f.aim});const impact=f.match.pendingImpacts![0],originalResolve=f.match.resolveAt;
  assert.equal(f.target.fall,undefined);assert.equal(f.target.y,570);assert.deepEqual(f.match.terrain,before);f.game.tick(impact.at-.001);assert.equal(f.target.fall,undefined);
  f.game.tick(impact.at);const fall=f.target.fall!;assert.ok(fall);assert.equal(fall.fromY,570);assert.equal(fall.toY,780);assert.equal(fall.startedAt,impact.at);assert.equal(fall.void,false);assert.equal(f.target.y,780);assert.ok(f.target.hp>0);assert.notDeepEqual(f.match.terrain,before);
  assert.ok(f.match.resolveAt>originalResolve);assert.equal(f.match.resolveAt,fall.startedAt+fall.duration+TURN_GAP_MS);f.game.tick(originalResolve+.001);assert.equal(f.match.state.phase,'resolving');
@@ -44,7 +45,7 @@ test('crater fall begins only at impact, survives reconnect and delays the next 
 });
 
 test('a second authoritative crater continues the current fall without a jump and postpones the result until exiting the map',async()=>{
- const f=await fixture();await f.game.command(f.actor.id,{type:'fire',...f.aim});const first=f.match.pendingImpacts![0];f.game.tick(first.at);const previous=structuredClone(f.target.fall!),at=first.at+80;
+ const f=await fixture();await chargedFire(f.game,f.actor.id,{...f.aim});const first=f.match.pendingImpacts![0];f.game.tick(first.at);const previous=structuredClone(f.target.fall!),at=first.at+80;
  const shot=f.match.activeShot!,firstProjectile=shot.projectiles[0],mark={...first.mark,id:`${shot.id}:1`,x:f.target.x,y:780};
  shot.projectiles.push({...firstProjectile,delay:firstProjectile.delay+80,impact:{...firstProjectile.impact,x:mark.x,y:mark.y}});
  f.match.pendingImpacts!.push({at,projectileIndex:1,hits:[],mark});f.game.tick(at-.001);assert.deepEqual(f.target.fall,previous);f.game.tick(at);
@@ -55,7 +56,7 @@ test('a second authoritative crater continues the current fall without a jump an
 });
 
 test('void falls are authoritative at contact, remain visible on own reconnect and never expose concealed coordinates',async()=>{
- const f=await fixture(false);f.target.invisibleTurns=3;await f.game.command(f.actor.id,{type:'fire',...f.aim});const at=f.match.pendingImpacts![0].at;
+ const f=await fixture(false);f.target.invisibleTurns=3;await chargedFire(f.game,f.actor.id,{...f.aim});const at=f.match.pendingImpacts![0].at;
  assert.equal(f.target.hp,5000);assert.equal(f.match.state.rewards,undefined);f.game.tick(at);assert.equal(f.target.hp,0);assert.equal(f.target.fall!.void,true);
  for(const [index,player] of f.players.entries()){
   const events:ServerEvent[]=[];f.game.disconnect(player.id);f.game.connect(player,event=>events.push(structuredClone(event)));const welcome=events.find((event):event is Extract<ServerEvent,{type:'welcome'}>=>event.type==='welcome')!;
@@ -86,7 +87,7 @@ test('walking falls reject turn actions until landing, then an uphill step clear
 test('settling clears an expired fall on unchanged support and preserves a still-active fall there',async()=>{
  for(const active of [false,true]){
   const f=await fixture();f.actor.fall=createFall(450,570,Date.now()-1000);
-  await f.game.command(f.actor.id,{type:'fire',...f.aim});
+  await chargedFire(f.game,f.actor.id,{...f.aim});
   // An already flying projectile can meet unchanged support while another player
   // is falling. Start that fall after launch but before the queued impact.
   if(active)f.actor.fall=createFall(450,570,f.match.pendingImpacts![0].at-40);
@@ -96,7 +97,7 @@ test('settling clears an expired fall on unchanged support and preserves a still
 });
 
 test('every shot holds the turn for the pause after its last impact before the next turn opens',async()=>{
- const f=await fixture();await f.game.command(f.actor.id,{type:'fire',...f.aim});const shot=f.match.activeShot!,end=shot.startedAt+shot.duration;
+ const f=await fixture();await chargedFire(f.game,f.actor.id,{...f.aim});const shot=f.match.activeShot!,end=shot.startedAt+shot.duration;
  assert.ok(f.match.resolveAt>=end+TURN_GAP_MS);f.game.tick(end+TURN_GAP_MS-1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.turnId,f.actor.id);
  f.game.tick(f.match.resolveAt+.001);assert.notEqual(f.match.state.turnId,f.actor.id);
 });

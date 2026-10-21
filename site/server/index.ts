@@ -89,8 +89,28 @@ const id=z.coerce.number().int().positive().max(2**52);
 const mediaIds=z.array(z.string().regex(/^[a-f0-9]{24}$/)).max(FORUM_MEDIA.perPost).default([]);
 // Uploads: the raw file is the request body; the server decides its type from the bytes (site/server/media.ts).
 app.addContentTypeParser(UPLOAD_TYPES,{parseAs:'buffer',bodyLimit:FORUM_MEDIA.maxBytes.video},(_req,body,done)=>done(null,body));
-app.post('/api/site/forum/media',{bodyLimit:FORUM_MEDIA.maxBytes.video,config:{rateLimit:{max:20,timeWindow:'10 minutes'}}},async(req,reply)=>{
- const account=await required(req);
+/**
+ * Upload budget (A04, auditoria 21/10): the account is checked in onRequest, before a single byte of the file is read;
+ * the size must be declared up front, one account sends one file at a time, all uploads together hold at most
+ * UPLOAD_BUDGET in memory, and a body that has not arrived in UPLOAD_MS is cut.
+ */
+const UPLOAD_BUDGET=Number(process.env.UPLOAD_BUDGET_BYTES??96*1048576),UPLOAD_MS=Number(process.env.UPLOAD_TIMEOUT_MS??120_000);
+let uploadBytes=0;const uploading=new Set<string>();
+const uploadAccount=new WeakMap<FastifyRequest,{id:string}>();
+app.post('/api/site/forum/media',{bodyLimit:FORUM_MEDIA.maxBytes.video,config:{rateLimit:{max:20,timeWindow:'10 minutes'}},
+ onRequest:async(req,reply)=>{
+  const account=await viewer(req);if(!account)return reply.code(401).send({error:'Entre na sua conta para continuar.'});
+  const length=Number(req.headers['content-length']);
+  if(!req.headers['content-length']||!Number.isSafeInteger(length)||length<1)return reply.code(411).send({error:'Envie uma imagem ou um vídeo.'});
+  if(length>FORUM_MEDIA.maxBytes.video)return reply.code(413).send({error:`O vídeo pode ter até ${FORUM_MEDIA.maxBytes.video/1048576} MB.`});
+  if(uploading.has(account.id))return reply.code(429).send({error:'Espere o envio anterior terminar.'});
+  if(uploadBytes+length>UPLOAD_BUDGET)return reply.code(503).send({error:'Muitos envios agora. Tente de novo em instantes.'});
+  uploading.add(account.id);uploadBytes+=length;uploadAccount.set(req,account);
+  let released=false;const timer=setTimeout(()=>req.raw.destroy(),UPLOAD_MS);
+  const release=()=>{if(released)return;released=true;clearTimeout(timer);uploading.delete(account.id);uploadBytes-=length;};
+  reply.raw.once('close',release);reply.raw.once('finish',release);
+ }},async(req,reply)=>{
+ const account=uploadAccount.get(req)??await required(req);
  if(!Buffer.isBuffer(req.body)||!req.body.length)return reply.code(415).send({error:'Envie uma imagem ou um vídeo.'});
  return forum.media.save(account.id,req.body);
 });

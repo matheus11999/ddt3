@@ -11,6 +11,7 @@ import {WEAPONS,weaponStats} from '../shared/catalog';
 import {trajectory,WORLD} from '../shared/physics';
 import {HIDDEN_POSITION} from '../shared/abilities';
 import {createFall} from '../shared/fall';
+import {chargedFire} from './fixtures/charge';
 
 type EventOf<T extends ServerEvent['type']>=Extract<ServerEvent,{type:T}>;
 function fixture(){
@@ -62,7 +63,7 @@ test('spectators receive live shots, impacts and full hydration, cannot act, and
  const f=await combat();assert.equal(f.last(2,'battle').battle?.players.length,2);assert.ok(!f.match.state.players.some(player=>player.id===f.players[2].id));
  const before=structuredClone(f.match.state);
  for(const command of [{type:'fire',angle:45,power:50},{type:'aim',angle:45,power:50,charging:true},{type:'walk',direction:1},{type:'pass'},{type:'power'},{type:'ability',ability:'heal'},{type:'flight',active:true},{type:'boost',boost:'extra1'},{type:'reward-pick',card:0},{type:'rematch'}] as Command[]){await f.send(2,command);assert.match(f.last(2,'error').message,/assistindo/);assert.deepEqual(f.match.state,before);}
- await f.game.command(f.actor.id,{type:'fire',...f.aim});const shot=f.last(2,'shot').shot;assert.ok(shot.projectiles.length);assert.equal(shot.hidden,undefined);
+ await chargedFire(f.game,f.actor.id,{...f.aim});const shot=f.last(2,'shot').shot;assert.ok(shot.projectiles.length);assert.equal(shot.hidden,undefined);
  await f.send(3,{type:'spectate',roomId:f.room().id});const hydration=f.last(3,'battle').battle!;assert.equal(hydration.activeShot!.id,shot.id);assert.ok(hydration.terrain);assert.deepEqual(hydration.activeShot!.projectiles,shot.projectiles);
  const fighters=structuredClone(f.match.state.players),turn=f.match.state.turnId,phase=f.match.state.phase;await f.send(2,{type:'leave'});assert.equal(f.last(2,'battle').battle,null);assert.deepEqual(f.match.state.players,fighters);assert.equal(f.match.state.turnId,turn);assert.equal(f.match.state.phase,phase);
  const departed=f.received(2,'impact').length;f.game.tick(f.match.pendingImpacts![0].at);assert.equal(f.received(2,'impact').length,departed);assert.ok(f.last(3,'impact').hits.some(hit=>hit.id===f.target.id&&hit.critical));assert.equal(f.last(3,'battle').battle!.players[1].hp,f.target.hp);
@@ -73,7 +74,7 @@ test('observer snapshots, effects, shots and critical impacts conceal invisible 
  f.actor.fall=createFall(500,600,Date.now()-1000);await f.game.command(f.actor.id,{type:'aim',angle:50,power:70,charging:true});
  const hidden=f.last(2,'battle').battle!.players;for(const fighter of hidden){assert.equal(fighter.hidden,true);assert.equal(fighter.x,HIDDEN_POSITION);assert.equal(fighter.y,HIDDEN_POSITION);assert.equal(fighter.aimAngle,undefined);assert.equal(fighter.aimSlope,undefined);assert.equal(fighter.chargePower,undefined);assert.equal(fighter.charging,undefined);assert.equal(fighter.fall,undefined);assert.ok(fighter.name);assert.ok(fighter.hp>0);}
  for(const effect of f.received(2,'ability-effect')){assert.equal(effect.hidden,true);assert.equal(effect.x,HIDDEN_POSITION);assert.equal(effect.y,HIDDEN_POSITION);}
- await f.game.command(f.actor.id,{type:'fire',...f.aim});const shot=f.last(2,'shot').shot;assert.equal(shot.hidden,true);assert.deepEqual(shot.projectiles,[]);
+ await chargedFire(f.game,f.actor.id,{...f.aim});const shot=f.last(2,'shot').shot;assert.equal(shot.hidden,true);assert.deepEqual(shot.projectiles,[]);
  f.game.disconnect(f.players[2].id);f.connect(2);const resumed=f.last(2,'welcome').battle!;assert.equal(resumed.activeShot!.hidden,true);assert.deepEqual(resumed.activeShot!.projectiles,[]);assert.ok(resumed.players.every(player=>player.hidden&&player.x===HIDDEN_POSITION));
  await f.send(3,{type:'spectate',roomId:f.room().id});assert.ok(f.last(3,'battle').battle!.players.every(player=>player.x===HIDDEN_POSITION));
  f.game.tick(f.match.pendingImpacts![0].at);const hit=f.last(2,'impact').hits.find(hit=>hit.id===f.target.id)!;assert.ok(hit.damage>0);assert.equal(hit.critical,true);assert.equal(hit.hidden,true);assert.equal(hit.x,HIDDEN_POSITION);assert.equal(hit.y,HIDDEN_POSITION);
@@ -82,7 +83,7 @@ test('observer snapshots, effects, shots and critical impacts conceal invisible 
 });
 
 test('flight shots and landing effects are delivered to observers and filtered when the flying player is invisible',async()=>{
- for(const invisible of [false,true]){const f=await combat();if(invisible)await f.game.command(f.actor.id,{type:'ability',ability:'invisibility'});await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
+ for(const invisible of [false,true]){const f=await combat();if(invisible)await f.game.command(f.actor.id,{type:'ability',ability:'invisibility'});await f.game.command(f.actor.id,{type:'flight',active:true});await chargedFire(f.game,f.actor.id,{angle:45,power:25});
   const shot=f.last(2,'shot').shot;if(invisible){assert.equal(shot.hidden,true);assert.deepEqual(shot.projectiles,[]);}else assert.equal(shot.projectiles[0].kind,'flight');
   f.game.tick(f.match.pendingImpacts![0].at);const effect=f.received(2,'ability-effect').find(effect=>effect.ability==='flight')!;assert.ok(effect);assert.equal(effect.hidden,invisible?true:undefined);assert.equal(effect.x,invisible?HIDDEN_POSITION:f.actor.x);assert.equal(f.last(2,'impact').hits.length,0);
  }
