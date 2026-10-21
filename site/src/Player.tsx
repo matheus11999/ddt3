@@ -26,7 +26,6 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <div className="player-hero-inner">
     <div className="player-id">
      <div className="player-crest">
-      <img className="crest-aura" src="/art/aura-gold.webp" alt="" aria-hidden="true"/>
       <img className="crest-hero" src={player?.gender==='female'?'/art/hero-girl.webp':'/art/hero-boy.webp'} alt=""/>
       {player&&<span className="crest-level">{player.level}</span>}
      </div>
@@ -59,7 +58,7 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <section className="panel panel-beta">
     <h2 className="panel-title"><Gem size={20}/> Recompensa do beta</h2>
     <p>Você está no beta. Ao final dele, os membros recebem <b>itens cosméticos exclusivos</b> direto no Correio do jogo.</p>
-    <div className="beta-reward-art" aria-hidden="true"><img src="/art/aura-gold.webp" alt=""/><img src="/art/heroes-beta.webp" alt=""/></div>
+    <div className="beta-reward-art" aria-hidden="true"><img src="/art/heroes-beta.webp" alt=""/></div>
    </section>
 
    <section className="panel">
