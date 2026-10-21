@@ -70,5 +70,32 @@
    "D:/APPS/ddt/public/assets/ui/hall-stage.webp"
   ],
   "prompt": "Use your image generation tool at 1536x1024. Create ONE background for the game's character creation screen. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, giant expressive heads, saturated pigments, glossy tactile materials, crisp outlines. Maximum detail and sharpness. No text, letters, numbers, logos, watermarks or UI anywhere. Never flat vector, never 3D render, never photorealistic. Scene: a magical dressing hall on a floating sky island at dusk: a round golden stage in the CENTER (empty, two chibi characters will stand on it later, keep the middle clear), soft spotlights from above, tall arched windows showing a gradient sky from violet to warm gold with floating islands and waterfalls, hanging lanterns, ribbons, wardrobes with colorful clothes, hats and goggles on shelves at the far left and right edges, mirrors, sparkles. Strong smooth gradient lighting, warm center and darker vignette edges so UI panels stay readable. No characters. Copy the final PNG to D:/APPS/ddt-site/site/art-source/creation-bg.png"
+ },
+ {
+  "id": "creation-scene",
+  "refs": [
+   "D:/APPS/ddt-site/public/assets/lobby/parallax/far.webp",
+   "D:/APPS/ddt-site/public/assets/lobby/parallax/mid.webp",
+   "D:/APPS/ddt-site/public/assets/lobby/podio-1/inteiro.png",
+   "D:/APPS/ddt-site/public/assets/ui/pvp-room-banner-v2.webp"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 (landscape). Create ONE full-screen background for the character creation screen of my game. Match the attached OWN game art exactly (they are the game's sky plaza \"Praça Celeste\" parallax layers, its podium and its PvP banner): same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, warm golden light. Scene: the sky plaza at golden sunset seen from a balcony, floating islands, airships and colorful balloons in a gradient sky (warm gold and peach near the horizon, violet and deep blue above). On the LEFT third, a big ornate round summoning pedestal made of carved white stone and gold, with glowing turquoise magic runes in a circle on its top and soft light rising from it (EMPTY: a character will be drawn standing on it later; its top surface centered at about x=30 percent, y=78 percent of the image). On the RIGHT side behind, a smaller second pedestal, dimmer, top at about x=72 percent, y=58 percent (also empty). Golden banners with the plaza's crest (no letters), flower pots, lanterns and a carved stone balustrade framing the bottom. Sparkles and light rays. Keep the center-right area around x=60-90 percent, y=62-95 percent calmer and darker (a UI panel goes there). No characters, no text, letters, numbers, logos or UI. Never flat vector, 3D render or photo. Copy the final PNG to D:/APPS/ddt-site/site/art-source/creation-scene.png"
+ },
+ {
+  "id": "hero-d",
+  "refs": [
+   "D:/APPS/ddt-site/public/assets/maps/snow-preview.png",
+   "D:/APPS/ddt-site/site/public/shots/battle.webp",
+   "D:/APPS/ddt-site/site/art-source/heroes-beta.png"
+  ],
+  "prompt": "Use your image generation tool at the LARGEST landscape size available (at least 1536x1024, prefer 2048 wide). Create ONE brand-new website hero key art for my game Bomb Masters, completely different from earlier heroes (no dragon, no sunset leap). Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, giant expressive heads, small bodies, saturated pigments, glossy tactile materials, crisp clean outlines, rich lighting. Maximum resolution, maximum detail and sharpness, no blur, no noise. No text, letters, numbers, logos, watermarks or UI anywhere. Never flat vector, never 3D render, never photorealistic. Scene from my game's own snow map \"Sonho Nevado\" (first two references: snowy floating stone islands, ice crystals, snow-covered stone bridge, castle with towers, snowman, gift boxes, lanterns): a turn-based artillery duel at twilight. In the CENTER on a snowy island the explorer boy from the third reference (green cap, orange scarf) kneels aiming a brass bomb launcher, with a glowing dotted golden aim arc rising from it; a cartoon bomb with a sparkling fuse flies along the arc toward the far RIGHT island, where a rival chibi girl with a big pink bow is ducking behind ice crystals as the snow bursts. A big round crater with flying snow and rock chunks blown out of the right island edge. Gentle snowfall, aurora ribbons in teal and violet, warm lantern glow, cool blue-violet palette with hot orange and gold accents. Website layout: LEFT 40 percent calmer (night sky, distant castle and islands) for logo and text; the bottom fades into very dark violet #120a1f. Copy the final PNG to D:/APPS/ddt-site/site/art-source/hero-d.png"
+ },
+ {
+  "id": "beta-reward",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/heroes-beta.png",
+   "D:/APPS/ddt-site/public/assets/ui/coupon.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024. Create ONE reward illustration on a flat solid pure magenta #FF00FF background (no shadow on the background) so it can be cut out. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, giant expressive heads, small bodies, saturated pigments, glossy tactile materials, crisp clean outlines, rich lighting. Maximum resolution, maximum detail and sharpness, no blur, no noise. No text, letters, numbers, logos, watermarks or UI anywhere. Never flat vector, never 3D render, never photorealistic. Subject: an ornate open treasure chest of purple lacquered wood with gold trim and a big glowing star emblem on the lid, overflowing with exclusive cosmetic items for chibi characters: a golden crown hat with gems, star-shaped sunglasses, a sparkling cape, a winged hair ribbon, a glowing pet egg, scattered gold coins and gems; golden light and sparkles burst out of the chest. Centered, whole object inside the frame with margin. Copy the final PNG to D:/APPS/ddt-site/site/art-source/beta-reward.png"
  }
 ]

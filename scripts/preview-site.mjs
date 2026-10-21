@@ -24,6 +24,7 @@ await shot(page,'register-card',false);
 await page.getByLabel('Repita a senha').press('Enter');
 await page.waitForURL('**/jogador');
 await shot(page,'player-desktop');
+await page.goto(`${base}/personagens`,{waitUntil:'networkidle'});await shot(page,'characters');
 // Fórum: criar tópico, responder e curtir.
 await page.goto(`${base}/forum?novo`,{waitUntil:'networkidle'});
 await page.getByPlaceholder('Sobre o que você quer falar?').fill('Sugestão: mais mapas de neve');

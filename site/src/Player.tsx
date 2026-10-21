@@ -1,6 +1,6 @@
 import {useEffect,useState} from 'react';
 import {createPortal} from 'react-dom';
-import {CalendarDays,Check,ChevronRight,Gem,KeyRound,Lock,MessageSquarePlus,Monitor,Server,Smartphone,Swords,X} from 'lucide-react';
+import {CalendarDays,Check,ChevronRight,Gem,Lock,MessageSquarePlus,Swords,X} from 'lucide-react';
 import {api,AVATARS,type AvatarId,type Me,type ServerCharacter,type TopicSummary} from './api';
 import {AuthCard} from './AuthCard';
 import {TopicRow} from './Forum';
@@ -49,53 +49,35 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const [topics,setTopics]=useState<TopicSummary[]|null>(null);
  useEffect(()=>{if(me?.account)api.topics(null).then(p=>setTopics(p.topics.slice(0,5)),()=>setTopics([]));},[me?.account]);
  if(!me)return <div className="page-loading" aria-busy="true"/>;
- if(!me.account)return <section className="auth-page">
-  <div className="auth-page-art" aria-hidden="true"><img src="/art/battle.webp" alt=""/></div>
-  <AuthCard initial={location.search.includes('cadastro')?'register':'login'} onSignedIn={onSignedIn}/>
- </section>;
- const {account,servers}=me;
+ if(!me.account)return <SignInPage onSignedIn={onSignedIn}/>;
+ const {account}=me;
  const since=new Date(account.createdAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
- const characters=servers.filter(s=>s.character).length;
  return <div className="player-page">
   <section className="player-hero">
-   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-3.webp" alt=""/></div>
+   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-4.webp" alt=""/></div>
    <div className="player-hero-inner">
     <div>
      <p className="eyebrow">Olá de novo</p>
      <h1 className="title-3d player-name">{account.username}</h1>
      <p className="player-meta"><span className="beta-chip">Membro do beta</span><span><CalendarDays size={16}/> Desde {since}</span></p>
     </div>
-    <div className="player-play">
-     <PlayButton me={me} big/>
-     <p>{characters?'Escolha o servidor e entre direto no seu personagem.':'Escolha um servidor para criar seu primeiro personagem.'}</p>
-    </div>
+    <div className="player-play"><PlayButton me={me} big/></div>
    </div>
   </section>
 
   <div className="player-grid">
-   <section className="panel panel-wide">
-    <h2 className="panel-title"><Server size={20}/> Seus personagens</h2>
-    <ul className="server-list cards">{servers.map(s=><ServerRow key={s.server.id} item={s}/>)}</ul>
-   </section>
-
-   <section className="panel panel-beta">
-    <h2 className="panel-title"><Gem size={20}/> Recompensa do beta</h2>
-    <p>Você está no beta. No fim dele, os cosméticos exclusivos chegam no Correio do jogo.</p>
-    <div className="beta-reward-art" aria-hidden="true"><img src="/art/heroes-beta.webp" alt=""/></div>
-   </section>
-
-   <section className="panel">
-    <h2 className="panel-title"><Monitor size={20}/> Onde jogar</h2>
-    <ul className="where-list">
-     <li><Monitor size={20}/><div><b>PC</b><span>Teclado e mouse, em qualquer navegador atual.</span></div></li>
-     <li><Smartphone size={20}/><div><b>Celular</b><span>Na horizontal, com toque.</span></div></li>
-    </ul>
-   </section>
-
-   <section className="panel">
-    <h2 className="panel-title"><KeyRound size={20}/> Sua conta</h2>
-    <p className="muted">Troque o avatar ou a senha quando quiser.</p>
-    <Link to="/configuracoes" className="btn btn-ghost btn-sm">Configurações</Link>
+   <section className="beta-reward-card">
+    <img className="beta-reward-chest" src="/art/beta-reward.webp" alt="" aria-hidden="true"/>
+    <div className="beta-reward-copy">
+     <span className="beta-badge"><Gem size={15}/> Recompensa da beta</span>
+     <h2 className="title-3d">Cosméticos exclusivos te esperando</h2>
+     <p>Por jogar a beta você garante itens que <b>nunca mais voltam</b>. Eles chegam no <b>Correio do jogo</b> quando a beta terminar, em todos os seus personagens.</p>
+     <ul className="beta-reward-list">
+      <li><Check size={16}/> Visual exclusivo de quem chegou primeiro</li>
+      <li><Check size={16}/> Entregue no Correio, sem fazer nada</li>
+      <li><Check size={16}/> Para quem jogar durante a beta</li>
+     </ul>
+    </div>
    </section>
 
    <section className="panel panel-wide forum-panel">
@@ -110,6 +92,24 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
     </div>
    </section>
   </div>
+ </div>;
+}
+
+function SignInPage({onSignedIn}:{onSignedIn:()=>void}){
+ return <section className="auth-page">
+  <div className="auth-page-art" aria-hidden="true"><img src="/art/battle.webp" alt=""/></div>
+  <AuthCard initial={location.search.includes('cadastro')?'register':'login'} onSignedIn={onSignedIn}/>
+ </section>;
+}
+
+/** Meus personagens: one card per game server with the account's character there. */
+export function CharactersPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
+ if(!me)return <div className="page-loading" aria-busy="true"/>;
+ if(!me.account)return <SignInPage onSignedIn={onSignedIn}/>;
+ return <div className="forum-body narrow characters-page">
+  <h1 className="title-3d settings-title">Meus personagens</h1>
+  <p className="muted">Cada servidor tem o seu personagem. Onde você ainda não joga, ele nasce no primeiro acesso.</p>
+  <ul className="server-list cards">{me.servers.map(s=><ServerRow key={s.server.id} item={s}/>)}</ul>
  </div>;
 }
 
