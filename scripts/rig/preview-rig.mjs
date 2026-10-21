@@ -28,10 +28,10 @@ try{
    [0,2,3].forEach((cell,i)=>{note(['aberto','fechado','meio'][i],30+i*130,y0+60);if(R.hasRig(eq,'show')){c.save();c.translate(80+i*130,y0+250);c.scale(170/160,170/160);let t=0;while(K.showFrame('NORMAL_STANDBY',t)!==cell&&t<200)t++;R.drawRigShow(c,eq,'NORMAL_STANDBY',t);c.restore();}
    });
    title('PRAÇA (VIRTUAL)',430,y0+28);
-   for(let f=0;f<7;f++){note(f?`andar ${f}`:'parado',440+f*90,y0+60);c.save();c.translate(480+f*90,y0+250);V.drawAvatar(c,eq,0,0,150,f*40*3,f>0,1,false,undefined,{world:true,animated:false,movementDistance:0});c.restore();}
+   for(let f=0;f<14;f++){const back=f>=7,k=f%7;note(k?`${back?'costas':'frente'} ${k}`:back?'costas':'parado',440+f*82,y0+60);c.save();c.translate(475+f*82,y0+250);R.drawRigVirtual(c,eq,back?(k?'naturalWalkBack':'naturalStandBack'):(k?'naturalWalkFront':'naturalStandFront'),k?(k-1)*3:0);c.restore();}
    title('COMBATE (GAME)',20,y0+300);
    const actions=[['STAND',0],['WALK',0],['WALK',2],['WALK',4],['SHOWTHROWS',4],['THROWS',0],['THROWS',2],['THROWS',4],['SHAKE',0],['SHAKE',4],['HANDCLIP',2],['CRY',0]];
-   actions.forEach(([a,t],i)=>{note(`${a} ${t}`,24+i*130,y0+330);if(R.hasRig(eq,'game')){c.save();c.translate(80+i*130,y0+470);c.scale(1.1,1.1);R.drawRigGame(c,eq,a,t);c.restore();}});
+   actions.forEach(([a,t],i)=>{note(`${a} ${t}`,24+i*130,y0+330);if(R.hasRig(eq,'game')){c.save();c.beginPath();c.rect(18+i*130,y0+335,126,160);c.clip();c.translate(70+i*130,y0+470);c.scale(.9,.9);R.drawRigGame(c,eq,a,t);c.restore();}});
   });
   return sheet.toDataURL('image/png');
  },sex);

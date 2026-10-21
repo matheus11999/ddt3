@@ -16,7 +16,7 @@ import {drawRigGame,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
 import type {RigContext} from './character/composer';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
-export interface AvatarContext {/** 'side' keeps the battle view outside battle (battle HUD, loading screen, cut-ins); otherwise menus and the world use the front view when the look has front art (src/game/front.ts). */view?:'side'|'front';/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
+export interface AvatarContext {/** Plaza: seen from the back while walking or standing after walking up (rig v2 VIRTUAL). */back?:boolean;/** 'side' keeps the battle view outside battle (battle HUD, loading screen, cut-ins); otherwise menus and the world use the front view when the look has front art (src/game/front.ts). */view?:'side'|'front';/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
 export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;chargedAt:number;}
 export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0,chargedAt:-1e9};}
 const sigils=new Map<number,HTMLCanvasElement>();
@@ -370,7 +370,7 @@ function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:nu
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
  const clock=Math.floor(time/TICK_MS),since=Math.floor(Math.max(0,poseTime)/TICK_MS);
  if(context==='game'){const action=GAME_ACTION[pose]??'STAND';drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
- else if(context==='virtual')drawRigVirtual(c,eq,moving?'naturalWalkFront':'naturalStandFront',clock);
+ else if(context==='virtual')drawRigVirtual(c,eq,ctx.back?(moving?'naturalWalkBack':'naturalStandBack'):(moving?'naturalWalkFront':'naturalStandFront'),clock);
  else drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock);
  c.restore();c.restore();
 }

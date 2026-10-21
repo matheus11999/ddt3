@@ -8,7 +8,7 @@ is fitted by bounding box: what the painter moved, moves.
   py scripts/rig/plates.py make <context> <sex> [--base=<sheet.png>] [--ref]   writes test-results/rig/plates/<context>-<sex>-<n>.png
       (--ref: the same plates from the DDTank default character, the POSE reference attached to the prompts)
       (the mold; with --base the lower pieces already painted are drawn into the mold instead of the green head)
-  py scripts/rig/plates.py assemble <context> <sex> <out.png> <plate-1.png> [<plate-2.png> ...] [--region=head|body]
+  py scripts/rig/plates.py assemble <context> <sex> <out.png> <plate-1.png> [<plate-2.png> ...] [--region=head|body|aroundhead]
       keys out magenta (and green) and writes the full sheet in the grid of the context; --region keeps only the
       piece's part of the mold (the head for faces, hair and hats, the body for outfits), dropping the untouched mold.
   py scripts/rig/plates.py lift <base-sheet.png> <painted-sheet.png> <out.png> [--noskin]
@@ -121,12 +121,16 @@ def key(img):
 
 def region_mask(context, sex, region):
     """Where a piece may be: the mold's head (green) or body (gray), grown a little; None keeps everything."""
-    if region not in ('head', 'body'):
+    if region not in ('head', 'body', 'aroundhead'):
         return None
     m = np.asarray(Image.open(f'docs/templates/rig/{context}-{sex}.png').convert('RGB')).astype(int)
     r, g, b = m[..., 0], m[..., 1], m[..., 2]
-    sel = (g > 200) & (r < 60) if region == 'head' else (abs(r - g) < 12) & (abs(g - b) < 12) & (r < 200)
-    return Image.fromarray((sel * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))
+    sel = (g > 200) & (r < 60) if region != 'body' else (abs(r - g) < 12) & (abs(g - b) < 12) & (r < 200)
+    grow = 9 if region != 'aroundhead' else 81  # hats and hair go past the skull, never down the body
+    m = Image.fromarray((sel * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(grow))
+    if region == 'aroundhead':  # long hair falls to the shoulders: let it go down a little more below the head
+        m = Image.fromarray(np.maximum(np.asarray(m), np.roll(np.asarray(m), 40, axis=0)))
+    return m
 
 
 def assemble(context, sex, out, plate_files, region=None):
@@ -146,6 +150,10 @@ def assemble(context, sex, out, plate_files, region=None):
     allowed = region_mask(context, sex, region)
     if allowed is not None:
         a = np.minimum(np.asarray(sheet.split()[3]), np.asarray(allowed))
+        # the untouched mold (flat gray body, its dark outline, the ground shadow) is never part of a piece
+        px = np.asarray(sheet.convert('RGB')).astype(int)
+        flat = (np.ptp(px, axis=2) < 10) & (((px[..., 0] > 135) & (px[..., 0] < 165)) | ((px[..., 0] > 55) & (px[..., 0] < 85)))
+        a = np.where(flat, 0, a).astype(np.uint8)
         sheet.putalpha(Image.fromarray(a))
     os.makedirs(os.path.dirname(out), exist_ok=True)
     sheet.save(out)

@@ -23,5 +23,19 @@
    "hair-basic-male-B",
    "hat-starter"
   ]
+ },
+ "f": {
+  "game": [
+   "hat-starter"
+  ],
+  "show": [
+   "face-basic-female",
+   "hair-basic-female-A",
+   "hat-starter",
+   "outfit-basic-female"
+  ],
+  "virtualhead": [
+   "hat-starter"
+  ]
  }
 }
