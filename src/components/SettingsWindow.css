@@ -1,9 +1,10 @@
-/* Ajustes tabs (Geral | Som) and the overall volume slider. */
+/* Ajustes tabs (Gráfico | Som) and the Som geral / Som de batalha sliders. */
+.setting-row.muted{opacity:.55}
 .settings-tabs{display:flex;gap:6px;padding:12px 25px 0;border-bottom:1px solid #6e819c55}
 .settings-tabs>button{min-width:92px;height:32px;padding:0 16px;border:1px solid #6e91b4;border-bottom:0;border-radius:10px 10px 0 0;background:#0c2445;color:#a9c2dc;font-weight:800;font-size:13px}
 .settings-tabs>button.on{background:linear-gradient(#2f6aa0,#174172);border-color:#9ac4ea;color:#fff4cf}
 .settings-window label.volume-row{display:flex;gap:14px;margin:0;font-size:inherit}
-.volume-row>span{flex:none}
+.volume-row>span{flex:none;min-width:150px}
 .volume-row>b{flex:none;min-width:44px;text-align:right;color:#ffe9a8;font-weight:800}
 .volume-row.muted{opacity:.55}
 .volume-row input[type=range]{flex:1;min-width:0;height:22px;margin:0;padding:0;border:0;background:none;appearance:none;-webkit-appearance:none;cursor:pointer;touch-action:none}
