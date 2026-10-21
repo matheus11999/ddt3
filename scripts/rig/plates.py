@@ -11,7 +11,7 @@ is fitted by bounding box: what the painter moved, moves.
   py scripts/rig/plates.py assemble <context> <sex> <out.png> <plate-1.png> [<plate-2.png> ...] [--region=head|body|aroundhead]
       keys out magenta (and green) and writes the full sheet in the grid of the context; --region keeps only the
       piece's part of the mold (the head for faces, hair and hats, the body for outfits), dropping the untouched mold.
-  py scripts/rig/plates.py lift <base-sheet.png> <painted-sheet.png> <out.png> [--noskin]
+  py scripts/rig/plates.py lift <base-sheet.png> <painted-sheet.png> <out.png> [--noskin] [--solid]
       the piece painted ON a base (hair over a face): every pixel that changed or lies outside the base.
 Contexts: game (13x3 of 228x190, 33 used cells), show (500x684), showface (4 x 500x684), virtual (7x2 of 240x350),
 virtualhead (3 x 240x350).
@@ -160,7 +160,7 @@ def assemble(context, sex, out, plate_files, region=None):
     print(out)
 
 
-def lift(base, painted, out, noskin=False):
+def lift(base, painted, out, noskin=False, solid=False):
     b = np.asarray(Image.open(base).convert('RGBA')).astype(int)
     p = np.asarray(Image.open(painted).convert('RGBA')).astype(int)
     diff = np.abs(p[..., :3] - b[..., :3]).sum(axis=2)
@@ -177,6 +177,11 @@ def lift(base, painted, out, noskin=False):
     ImageDraw.floodfill(outside, (0, 0), 128)
     holes = np.asarray(outside) == 255
     m = Image.fromarray(np.maximum(np.asarray(m), holes.astype(np.uint8) * 255))
+    if solid:  # a hat is one solid piece: parts that look like the skin under them (a tan brim) are holes to close
+        m = m.filter(ImageFilter.MaxFilter(31)).filter(ImageFilter.MinFilter(31))
+        outside = m.point(lambda v: 0 if v > 127 else 255)
+        ImageDraw.floodfill(outside, (0, 0), 128)
+        m = Image.fromarray(np.maximum(np.asarray(m), (np.asarray(outside) == 255).astype(np.uint8) * 255))
     m = m.filter(ImageFilter.MedianFilter(5)).filter(ImageFilter.GaussianBlur(0.8))
     p[..., 3] = np.minimum(np.asarray(m), p[..., 3])
     Image.fromarray(p.astype(np.uint8), 'RGBA').save(out)
@@ -192,4 +197,4 @@ if __name__ == '__main__':
         region = next((a.split('=', 1)[1] for a in sys.argv if a.startswith('--region=')), None)
         assemble(sys.argv[2], sys.argv[3], sys.argv[4], [a for a in sys.argv[5:] if not a.startswith('--')], region)
     elif cmd == 'lift':
-        lift(sys.argv[2], sys.argv[3], sys.argv[4], '--noskin' in sys.argv)
+        lift(sys.argv[2], sys.argv[3], sys.argv[4], '--noskin' in sys.argv, '--solid' in sys.argv)
