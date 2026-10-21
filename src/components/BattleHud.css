@@ -34,7 +34,7 @@
 .artillery-hud .turn-announcement>span:last-child:not(.battle-3d-text){font:900 10px 'Nunito',sans-serif;letter-spacing:3px;color:#fff7c8;padding:5px 19px;border-radius:20px;background:#10244cbf;text-shadow:0 2px #081b3f}
 .artillery-hud .turn-label{top:142px;padding:6px 19px;font-size:11px;font-weight:800;letter-spacing:.2px;border:1px solid #9bc3ef88;background:#0f244bd9;box-shadow:0 2px 7px #05132c55;color:#e8f6ff}
 
-.artillery-hud .boost-bar{right:18px;top:191px;gap:6px;padding:8px 8px 9px;border:2px solid #d99b39;border-radius:16px;background:linear-gradient(#142b51ee,#101b35f2);box-shadow:inset 0 1px #eff1a855,inset 0 0 0 3px #08172d,0 5px #050e22;z-index:3}
+.artillery-hud .boost-bar{right:18px;top:191px;gap:6px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;z-index:3}
 .artillery-hud .boost-caption{display:flex;align-items:center;gap:3px;font-size:8px;letter-spacing:.6px;font-weight:900;color:#ffe591;margin-bottom:1px}
 .artillery-hud .boost-caption svg{color:#ffcb42}
 .artillery-hud .boost{--boost-color:#42bfff;width:66px;height:66px;position:relative;display:block;padding:0;overflow:visible;isolation:isolate;border-radius:12px;border:1px solid color-mix(in srgb,var(--boost-color) 65%,#f3e1ae);background:radial-gradient(ellipse at 48% 35%,color-mix(in srgb,var(--boost-color) 33%,#15294c),#101c37 76%);box-shadow:inset 0 2px #e4f4ff59,inset 0 0 0 2px #08172f,inset 0 -4px #050e2980,0 3px #080f26;transition:box-shadow .15s,border-color .15s}
@@ -62,7 +62,7 @@
 .artillery-hud .boost:disabled:not(.selected){opacity:.72;filter:brightness(.75)}
 .artillery-hud .boost.selected{opacity:1;filter:none;border:2px solid #fff39d;background:radial-gradient(#ad7223,#5b3526 74%);box-shadow:inset 0 0 0 2px #be792d,0 0 14px #ffc83c66,0 3px #291829}
 .artillery-hud .boost-ready{position:absolute;left:-5px;top:-5px;width:18px;height:18px;display:grid;place-items:center;border:1px solid #ffec91;border-radius:50%;background:#f8bd33;color:#52280f;font:900 12px 'Nunito',sans-serif;box-shadow:0 2px #301b26;z-index:2}
-@media(min-width:701px){.artillery-hud .boost-bar{right:8px;width:auto;padding-left:5px;padding-right:5px;display:grid;grid-template-columns:repeat(2,58px);gap:5px}.artillery-hud .boost-bar>.boost-caption{grid-column:1/-1}.artillery-hud .boost{width:58px;height:58px}}
+@media(min-width:701px){.artillery-hud .boost-bar{right:10px;width:auto;display:grid;grid-template-columns:50px;gap:4px}.artillery-hud .boost{width:50px;height:50px}}
 /* Enfurecer and Gelo carry their own paintings instead of an atlas cell. */
 .artillery-hud img.boost-own-icon{background:none;object-fit:contain}
 @media(prefers-reduced-motion:reduce){.artillery-hud .boost,.artillery-hud .boost-painted-icon{transition:none}.artillery-hud .boost:hover:not(:disabled) .boost-painted-icon,.artillery-hud .boost:focus-visible .boost-painted-icon,.artillery-hud .boost:active:not(:disabled) .boost-painted-icon{transform:none}}
