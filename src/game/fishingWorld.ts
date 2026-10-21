@@ -21,7 +21,7 @@ import {FISHING_PROPS} from '../../shared/generated/fishingProps';
 import type {FishingPropId} from '../../shared/generated/fishingProps';
 import {ROD_FRAMES,SPLASHES} from '../../shared/generated/fishingFx';
 import type {RodFrame} from '../../shared/generated/fishingFx';
-import {drawScaled,freeAll,freeImage,imageReady,resizedBitmap,screenScale,visibleArea} from './spriteCache';
+import {drawScaled,freeAll,freeImage,freeSurface,imageReady,resizedBitmap,screenScale,visibleArea} from './spriteCache';
 import {plaque,releaseStamps} from './lobbyWorld';
 
 const VIEW_H=864,W=FISHING_WIDTH,H=FISHING_HEIGHT;
@@ -34,6 +34,8 @@ const SKY_X=.12,SKY_Y=.2;
 const GRASS=520,GRASS_SQUASH=.72;
 /** World px of one repeat of the moving water, and how strongly it shows over each painted pond. */
 const WATER=300,WATER_SQUASH=.55,WATER_ALPHA=.38;
+/** How often the ponds' moving surface is repainted (ms): 20 times a second, steps under a pixel. */
+const WATER_FRAME_MS=50;
 const [MIRANTE,JARDIM,CAIS]=FISHING_TERRACES;
 /** Where the baked ground starts (the top balustrade's lamps reach this high). */
 const GROUND_TOP=MIRANTE.y0-140;
@@ -114,12 +116,18 @@ function cloudPuff(){
  const fill=g.createRadialGradient(128,128,12.8,128,128,128);fill.addColorStop(0,'rgba(255,255,255,.95)');fill.addColorStop(.6,'rgba(250,253,255,.7)');fill.addColorStop(1,'rgba(240,250,255,0)');
  g.fillStyle=fill;g.beginPath();g.ellipse(128,128,128,128,0,0,Math.PI*2);g.fill();return puff;
 }
+/** Cloud puffs under the island, as [x, y, size, speed] (world px, px/s). */
+const CLOUD_PUFFS=(()=>{const r=random(5);return Array.from({length:46},()=>{const base=r()*W,speed=4+r()*6,y=CLOUDS_TOP+18+r()*60,s=60+r()*80;return [base,y,s,speed] as const;});})();
+/** The puffs in three bands of close speeds, each band painted once into a strip that wraps every W+300 px. */
+const CLOUD_SPEEDS=[5,7,9],CLOUD_WRAP=W+300,CLOUD_TOP=CLOUDS_TOP-50,CLOUD_HEIGHT=200;
 function shade(hex:string,k:number){const n=parseInt(hex.slice(1),16),f=(v:number)=>Math.round(k>0?v+(255-v)*k:v*(1+k));return `rgb(${f(n>>16&255)},${f(n>>8&255)},${f(n&255)})`;}
 
 export class FishingWorld {
  private sky=new Image();private floor=new Image();private grass=new Image();private water=new Image();private rod=new Image();private autoSeal=new Image();private splash={bait:new Image(),catch:new Image()};
  private art=new Map<FishingPropId,HTMLImageElement>();
  private tiles=new Map<number,HTMLCanvasElement>();private tileScale=0;private assets=false;private casts=new Map<FishingPropId,HTMLCanvasElement>();
+ private clouds:HTMLCanvasElement[]=[];private cloudScale=0;
+ private lakes=new Map<string,{canvas:HTMLCanvasElement;at:number;x:number;y:number;w:number;h:number}>();private sealGlow:HTMLCanvasElement|null=null;
  private built=-1;private flat:Piece[]=[];private floating:Piece[]=[];private standing:Piece[]=[];
  load(){
   if(this.assets)return;this.assets=true;
@@ -132,10 +140,12 @@ export class FishingWorld {
  private skyCopy:ImageBitmap|null=null;private skyPending=false;
  release(){paintedFish.clear();this.skyCopy?.close();this.skyCopy=null;
   if(!this.assets)return;this.assets=false;
-  freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);releaseStamps();
+  freeAll(this.art);freeAll(this.tiles);freeAll(this.casts);this.dropBaked();releaseStamps();
   for(const k of ['sky','floor','grass','water','rod','autoSeal'] as const){freeImage(this[k]);this[k]=new Image();}
   freeImage(this.splash.bait);freeImage(this.splash.catch);this.splash={bait:new Image(),catch:new Image()};
  }
+ /** Cloud strips, lake surfaces and the seal's glow: rebuilt on demand. */
+ private dropBaked(){for(const strip of this.clouds)freeSurface(strip);this.clouds=[];for(const e of this.lakes.values())freeSurface(e.canvas);this.lakes.clear();freeSurface(this.sealGlow);this.sealGlow=null;}
  get isLoaded(){return this.assets;}
  /** True once everything on screen can be painted without a gap. */
  ready(_scale:number){return this.assets&&[this.sky,this.floor,this.grass,this.water,this.rod,this.splash.bait,this.splash.catch].every(imageReady)&&[...this.art.values()].every(imageReady);}
@@ -144,7 +154,7 @@ export class FishingWorld {
   const v=fishingLayoutVersion();if(v===this.built)return;this.built=v;placeStations();
   const all=[...fixedPieces(),...FISHING_ITEMS.filter(i=>i.prop in FISHING_PROPS) as Piece[]];
   this.flat=all.filter(p=>p.layer==='ground');this.floating=all.filter(p=>p.layer==='water');this.standing=all.filter(p=>p.layer==='stand');
-  freeAll(this.tiles);
+  freeAll(this.tiles);this.dropBaked();
  }
  /** Camera that keeps the player a little below the middle (they are tall), never past the island's edges. */
  static camera(focusX:number,focusY:number){return {x:Math.max(0,Math.min(W-view.width,focusX-view.width/2)),y:Math.max(0,Math.min(H-VIEW_H,focusY-VIEW_H*.6))};}
@@ -170,16 +180,16 @@ export class FishingWorld {
   c.save();c.imageSmoothingQuality='low';
   this.drawSky(c,camX,camY);
   const scale=Math.min(1.5,Math.max(1,Math.ceil(screenScale(c)*4)/4));
-  if(scale!==this.tileScale){freeAll(this.tiles);this.tileScale=scale;}
+  if(scale!==this.tileScale){freeAll(this.tiles);for(const e of this.lakes.values())freeSurface(e.canvas);this.lakes.clear();this.tileScale=scale;}
   for(let n=Math.floor(camX/TILE);n*TILE<camX+view.width;n++){const tile=this.tile(n);if(!tile)continue;
    const y0=Math.max(GROUND_TOP,camY),y1=Math.min(H,camY+VIEW_H);if(y1>y0)c.drawImage(tile,0,(y0-GROUND_TOP)*scale,tile.width,(y1-y0)*scale,n*TILE,y0,TILE,y1-y0);}
-  this.live(c,t,camX,camY,view.width,VIEW_H);
+  this.live(c,t,camX,camY,view.width,VIEW_H,true);
   c.restore();
  }
  /** Everything that moves over the floor: falling water, the ponds' surface, floating pieces, then the shadows. */
- private live(c:CanvasRenderingContext2D,t:number,camX:number,camY:number,viewW:number,viewH:number){
+ private live(c:CanvasRenderingContext2D,t:number,camX:number,camY:number,viewW:number,viewH:number,baked=false){
   for(const p of this.flat)if(p.prop==='cascade')this.cascade(c,t,p,camX,camY,viewW,viewH);
-  for(const lake of FISHING_LAKES){const p=pondPlace(lake);if(p.x+p.w>camX&&p.x<camX+viewW&&p.y+p.h>camY&&p.y<camY+viewH)this.surface(c,lake,t);}
+  for(const lake of FISHING_LAKES){const p=pondPlace(lake);if(p.x+p.w>camX&&p.x<camX+viewW&&p.y+p.h>camY&&p.y<camY+viewH){if(baked)this.bakedSurface(c,lake,t);else this.surface(c,lake,t);}}
   for(const p of this.floating){const {w,h}=itemSize(p);if(p.x+w<camX||p.x-w>camX+viewW||p.y<camY-20||p.y-h>camY+viewH)continue;
    // Boats bob; pads and flowers sway a little, each in its own time.
    const phase=(p.x*7+p.y*3)%1000,boat=p.prop==='rowboat';
@@ -275,7 +285,7 @@ export class FishingWorld {
   * A pond's moving surface: the painted water texture in two layers drifting against each other
   * (soft light, so each pond keeps its own color), rings opening here and there and glints.
   */
- private surface(c:CanvasRenderingContext2D,lake:FishingLake,t:number){
+ private surface(c:CanvasRenderingContext2D,lake:FishingLake,t:number,under?:(g:CanvasRenderingContext2D)=>void){
   const {x,y,rx,ry}=lake,r=random(lake.x+3),tw=this.water.naturalWidth;
   // The moving water stays off the walkways that cross it (pier, bridge, island).
   c.save();c.beginPath();c.ellipse(x,y,rx*.97,ry*.93,0,0,Math.PI*2);
@@ -283,7 +293,7 @@ export class FishingWorld {
    const corners=d.shape==='rect'?[[d.u0,d.v0],[d.u1,d.v0],[d.u1,d.v1],[d.u0,d.v1]]
     :Array.from({length:24},(_,i)=>{const a=i/24*Math.PI*2;return [(d.u0+d.u1)/2+Math.cos(a)*(d.u1-d.u0)/2,(d.v0+d.v1)/2+Math.sin(a)*(d.v1-d.v0)/2];});
    corners.forEach(([u,v],i)=>{const q=itemPoint(item,u,v);if(i)c.lineTo(q.x,q.y);else c.moveTo(q.x,q.y);});c.closePath();}
-  c.clip('evenodd');
+  c.clip('evenodd');under?.(c);
   const pattern=tw?c.createPattern(this.water,'repeat'):null;
   // The texture passes cover only the part of the lake on screen.
   const [vx0,vy0,vx1,vy1]=visibleArea(c),fx=Math.max(x-rx,vx0),fy=Math.max(y-ry,vy0),fw=Math.min(x+rx,vx1)-fx,fh=Math.min(y+ry,vy1)-fy;
@@ -301,6 +311,25 @@ export class FishingWorld {
   for(let i=0;i<14;i++){const px=x+(r()-.5)*rx*1.6,py=y+(r()-.5)*ry*1.4,a=Math.max(0,Math.sin(t/(380+i*37)+i*2));if(a<.6)continue;c.fillStyle=`rgba(255,255,240,${(a-.6)*2})`;c.beginPath();c.moveTo(px-5,py);c.lineTo(px,py-1.2);c.lineTo(px+5,py);c.lineTo(px,py+1.2);c.closePath();c.fill();}
   if(lake.fish==='termal')for(let i=0;i<6;i++){const k=(t/3200+i/6)%1,sx=x+(i-2.5)*rx*.28+Math.sin(t/900+i)*10,sy=y-k*90,s=18+k*30;const g=c.createRadialGradient(sx,sy,0,sx,sy,s);g.addColorStop(0,`rgba(255,255,255,${.22*(1-k)})`);g.addColorStop(1,'rgba(255,255,255,0)');c.restore();c.save();c.fillStyle=g;c.fillRect(sx-s,sy-s,s*2,s*2);}
   c.restore();
+ }
+ /**
+  * The pond's surface repainted WATER_FRAME_MS apart into its own canvas (with the ground under it copied in, for the
+  * soft-light passes) and copied every frame: the drift is a few pixels a second, and the clipped soft-light fills
+  * every frame cost as much as the rest of the floor.
+  */
+ private bakedSurface(c:CanvasRenderingContext2D,lake:FishingLake,t:number){
+  const d=this.tileScale,steam=lake.fish==='termal'?140:0;
+  const x=Math.floor((lake.x-lake.rx-4)/4)*4,y=Math.floor((lake.y-lake.ry-4-steam)/4)*4,w=Math.ceil((lake.x+lake.rx+4)/4)*4-x,h=Math.ceil((lake.y+lake.ry+4)/4)*4-y;
+  let e=this.lakes.get(lake.id);
+  if(!e||e.x!==x||e.y!==y||e.w!==w||e.h!==h){if(e)freeSurface(e.canvas);const canvas=document.createElement('canvas');canvas.width=Math.round(w*d);canvas.height=Math.round(h*d);e={canvas,at:-1e9,x,y,w,h};this.lakes.set(lake.id,e);}
+  if(t-e.at>=WATER_FRAME_MS||t<e.at){
+   const g=e.canvas.getContext('2d')!,lake0=e;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,e.canvas.width,e.canvas.height);g.setTransform(d,0,0,d,-x*d,-y*d);g.imageSmoothingQuality='low';
+   this.surface(g,lake,t,g2=>{for(let n=Math.floor(x/TILE);n*TILE<x+w;n++){const tile=this.tile(n);if(!tile)continue;
+    const sx0=Math.max(x,n*TILE),sx1=Math.min(x+w,n*TILE+TILE),sy0=Math.max(y,GROUND_TOP),sy1=Math.min(y+h,H);if(sx1<=sx0||sy1<=sy0)continue;
+    g2.drawImage(tile,(sx0-n*TILE)*d,(sy0-GROUND_TOP)*d,(sx1-sx0)*d,(sy1-sy0)*d,sx0,sy0,sx1-sx0,sy1-sy0);}});
+   lake0.at=t;
+  }
+  c.drawImage(e.canvas,x,y,w,h);
  }
  /** While the player chooses where to fish: every pond glows softly, the one under the pointer brighter. */
  drawPick(c:CanvasRenderingContext2D,t:number,hoverLake:string|null){
@@ -365,11 +394,24 @@ export class FishingWorld {
   drawScaled(c,image,s.x-s.width/2,s.y-s.height+bob,s.width,s.height);
   c.restore();
  }
+ /** One band of cloud puffs baked into a strip CLOUD_WRAP wide (drawn twice where it wraps), at the screen's scale. */
+ private cloudStrip(band:number,scale:number){
+  const k=Math.min(1.5,Math.max(1,Math.ceil(scale*4)/4)),done=this.clouds[band];if(done&&this.cloudScale===k)return done;
+  if(this.cloudScale!==k){for(const strip of this.clouds)freeSurface(strip);this.clouds=[];this.cloudScale=k;}
+  const strip=document.createElement('canvas');strip.width=Math.ceil(CLOUD_WRAP*k);strip.height=Math.ceil(CLOUD_HEIGHT*k);const g=strip.getContext('2d')!;g.scale(k,k);g.translate(0,-CLOUD_TOP);
+  const lo=band?(CLOUD_SPEEDS[band-1]+CLOUD_SPEEDS[band])/2:0,hi=band<CLOUD_SPEEDS.length-1?(CLOUD_SPEEDS[band]+CLOUD_SPEEDS[band+1])/2:99;
+  for(const [base,y,size,speed] of CLOUD_PUFFS)if(speed>=lo&&speed<hi)for(const x of [base+150,base+150-CLOUD_WRAP,base+150+CLOUD_WRAP])g.drawImage(cloudPuff(),x-size,y-size*.45,size*2,size*.9);
+  this.clouds[band]=strip;return strip;
+ }
  drawFront(c:CanvasRenderingContext2D,t:number,hover:string|null,camX:number,camY:number,viewW=view.width,viewH=VIEW_H){
   // Clouds drifting under the island, in front of everything.
-  if(camY+viewH>CLOUDS_TOP){const r=random(5);
-   for(let i=0;i<46;i++){const base=r()*W,speed=4+r()*6,x=((base+t/1000*speed)%(W+300))-150,y=CLOUDS_TOP+18+r()*60,s=60+r()*80;if(x+s<camX||x-s>camX+viewW)continue;
-    c.drawImage(cloudPuff(),x-s,y-s*.45,s*2,s*.9);}}
+  // 46 enlarged puffs every frame were the costliest draw of the Pescaria: three baked strips slide instead.
+  if(camY+viewH>CLOUD_TOP)for(let band=0;band<CLOUD_SPEEDS.length;band++){
+   const strip=this.cloudStrip(band,screenScale(c));if(!strip)continue;
+   const shift=(t/1000*CLOUD_SPEEDS[band])%CLOUD_WRAP;
+   for(const start of [shift-150-CLOUD_WRAP,shift-150]){const x0=Math.max(start,camX),x1=Math.min(start+CLOUD_WRAP,camX+viewW);if(x1<=x0)continue;
+    const k=strip.width/CLOUD_WRAP;c.drawImage(strip,(x0-start)*k,0,(x1-x0)*k,strip.height,x0,CLOUD_TOP,x1-x0,CLOUD_HEIGHT);}
+  }
   for(const s of FISHING_STATIONS){const top=s.y-s.height-16;if(top>camY-40&&top<camY+viewH)plaque(c,s.title,s.x,top,true,hover===s.id);}
  }
  drawOverlay(c:CanvasRenderingContext2D,t:number){
@@ -399,6 +441,13 @@ export class FishingWorld {
   const h=width*s.h/s.w;
   c.drawImage(image,(frame%s.cols)*s.w,Math.floor(frame/s.cols)*s.h,s.w,s.h,x-s.impact[0]*width,y-s.impact[1]*h,width,h);
  }
+ /** The auto seal with its green glow painted once (a shadow blur on every fisher every frame is a blur pass each). */
+ private sealGlowArt(size:number,scale:number){
+  const k=Math.max(1,Math.ceil(scale*2)/2),pad=size*.5,px=Math.ceil((size+pad*2)*k);if(this.sealGlow?.width===px)return this.sealGlow;
+  const out=document.createElement('canvas');out.width=out.height=px;const g=out.getContext('2d')!;g.scale(k,k);g.imageSmoothingQuality='high';
+  g.shadowColor='rgba(120,255,150,.7)';g.shadowBlur=8;g.drawImage(this.autoSeal,pad,pad,size,size);
+  this.sealGlow=out;return out;
+ }
  /**
   * The painted Vara de Bambu in the player's hands with its line and float, the splash where the
   * float lands and where a fish is pulled out, and the fish on a catch. `x,y` are the player's feet,
@@ -407,7 +456,7 @@ export class FishingWorld {
  drawGear(c:CanvasRenderingContext2D,pose:FishingPose,spot:FishingSpot,x:number,y:number,size:number,now:number){
   // Automatic mode: the painted reel seal floats beside the fisher's head, turning slowly (seen by everyone).
   if(pose.auto&&imageReady(this.autoSeal)){const s=36,sx=x-spot.facing*size*.34,sy=y-size*.86+Math.sin(now/420)*2.5;
-   c.save();c.translate(sx,sy);c.rotate(Math.sin(now/900)*.18);c.shadowColor='rgba(120,255,150,.7)';c.shadowBlur=8;drawScaled(c,this.autoSeal,-s/2,-s/2,s,s);c.restore();}
+   const glow=this.sealGlowArt(s,screenScale(c)),pad=s*.5;c.save();c.translate(sx,sy);c.rotate(Math.sin(now/900)*.18);c.drawImage(glow,-s/2-pad,-s/2-pad,s+pad*2,s+pad*2);c.restore();}
   const age=Math.max(0,now-pose.since),f=spot.facing,hx=x+f*size*.16,hy=y-size*.5;
   const frame=this.rodFrame(pose,age,now),fr=ROD_FRAMES[frame],rest=ROD_FRAMES.rest,k=size*ROD_LENGTH/Math.hypot(rest.tip[0]-rest.grip[0],rest.tip[1]-rest.grip[1]);
   const tx=hx+f*k*(fr.tip[0]-fr.grip[0]),ty=hy+k*(fr.tip[1]-fr.grip[1]);

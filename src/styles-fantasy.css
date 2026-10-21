@@ -151,3 +151,6 @@ kbd{color:#e8f1ff;border-color:#8299ba88;background:#0c1e3be0}
  .inventory-modal-layer .game-window.inventory-window .bag-footer .button{padding-inline:7px}.inventory-modal-layer .game-window.inventory-window .bag-footer>div{gap:5px}
  .inventory-modal-layer .game-window.inventory-window .equipment-slots .equipment-slot{width:43px;height:43px}
 }
+/* Ajustes: limite de FPS (30/60/90/120), no verde dos interruptores. */
+.fps-limit{display:flex;gap:4px}.fps-limit>button{min-width:38px;height:26px;padding:0 6px;border:1px solid #6e91b4;border-radius:13px;background:#0c2445;color:#d2e5f8;font-weight:800;font-size:13px}
+.fps-limit>button.on{background:#118c70;border-color:#73e7ad;color:#dcffdc}
