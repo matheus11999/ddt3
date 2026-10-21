@@ -199,7 +199,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    }
   };
   const blur=()=>{keys.clear();cancelCharge();};
-  const focus=(event:FocusEvent)=>{if(ignoresGameKeys(event.target)&&chargeSource.current==='keyboard')blur();};
+  // Clicking a HUD button (POW, +1/+2, Enfurecer, Gelo, abilities) while Space is held activates it and keeps the
+  // charge (user request, 21/10/2026): the button just loses focus so the release still fires. Typing, a dialog or a menu cancels.
+  const focus=(event:FocusEvent)=>{
+   if(chargeSource.current!=='keyboard'||!ignoresGameKeys(event.target))return;
+   if(ignoresMoveKeys(event.target))blur();else (event.target as HTMLElement).blur();
+  };
   const visibility=()=>{if(document.hidden)blur();};
   const timer=setInterval(()=>{
    if(ignoresMoveKeys(document.activeElement))return;
