@@ -41,9 +41,10 @@ for i in used:
     if not ok:
         bad.append(i)
     if '--fix' in sys.argv and (dx or dy):
-        cell = sheet.crop((x0, y0, x0 + w, y0 + h))
-        sheet.paste((0, 0, 0, 0), (x0, y0, x0 + w, y0 + h))
-        sheet.alpha_composite(cell, (x0 + dx, y0 + dy)) if 0 <= x0 + dx and 0 <= y0 + dy else None
+        # moved inside its own cell: a cell on the sheet edge moved outwards used to be wiped and never put back
+        moved = Image.new('RGBA', (w, h), (0, 0, 0, 0))
+        moved.paste(sheet.crop((x0, y0, x0 + w, y0 + h)), (dx, dy))
+        sheet.paste(moved, (x0, y0))
 if '--fix' in sys.argv:
     sheet.save(path)
 plates = sorted({plate_of[i] for i in bad})

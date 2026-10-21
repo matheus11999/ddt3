@@ -154,17 +154,24 @@ def make(sex, extra=()):
     return name
 
 
-def register(base, painted):
+def register(base, painted, keep=None):
     """Moves the painted plate back over the base: best shift (+-24 px) of the two faces (side, front), by the lower face
-    that hats and hair never change. The back has no face: it takes the mean shift of the two."""
+    that hats and hair never change. The back has no face: it takes the mean shift of the two. `keep` (plate-sized bool)
+    marks the pixels the face check may skip when the painted one is hair-coloured: fringe and sideburns are the piece,
+    not a changed face."""
     b = np.asarray(base.convert('L')).astype(float)
     p = np.asarray(painted.convert('L')).astype(float)
+    pc = np.asarray(painted.convert('RGB')).astype(int)
+    hairy = (pc[..., 0] - pc[..., 2] > 40) & (pc[..., 0] < 200) & (pc[..., 1] < 150)
     out = painted.copy()
     shifts = []
 
     def diff(n, dx, dy):
         y0, y1, x0, x1 = 300, 470, n * CELL + 96, n * CELL + 416
-        return ((p[y0 + dy:y1 + dy, x0 + dx:x1 + dx] - b[y0:y1, x0:x1]) ** 2).mean()
+        d = (p[y0 + dy:y1 + dy, x0 + dx:x1 + dx] - b[y0:y1, x0:x1]) ** 2
+        if keep is not None:
+            d = d[~(hairy[y0 + dy:y1 + dy, x0 + dx:x1 + dx] & keep[y0:y1, x0:x1])]
+        return d.mean()
 
     for n in range(2):
         best = min((diff(n, dx, dy), dx, dy) for dy in range(-24, 25, 2) for dx in range(-24, 25, 2))
@@ -181,8 +188,9 @@ def register(base, painted):
     return out
 
 
-def eye_guard(sex):
-    """Plate areas a hat may never paint over: from the brow down, inside the face (eyes, nose, mouth)."""
+def eye_guard(sex, at=0.50):
+    """Plate areas a hat may never paint over: from the brow (`at` of the head height) down, inside the face (eyes,
+    nose, mouth)."""
     m = np.zeros((CELL, CELL * 3), bool)
     for n, (img, k, c) in enumerate(views(sex)):
         if n == 2:
@@ -190,7 +198,7 @@ def eye_guard(sex):
         head = np.asarray(to_plate(img, k, c).split()[3]) > 128
         ys, xs = np.nonzero(head)
         top, bottom = ys.min(), ys.max()
-        brow = top + int((bottom - top) * 0.50)
+        brow = top + int((bottom - top) * at)
         g = head.copy()
         g[:brow] = False
         g = np.asarray(Image.fromarray((g * 255).astype(np.uint8)).filter(ImageFilter.MinFilter(25))) > 0
@@ -202,7 +210,8 @@ def bake(sex, item, painted, kind, base_path=None):
     base_path = base_path or make(sex)
     base = Image.open(base_path).convert('RGB')
     src = Image.open(painted).convert('RGB').resize(base.size, Image.LANCZOS)
-    src = register(base, src)
+    # hair may cover the sides of the face and the brows, never the eyes, nose and mouth
+    src = register(base, src, ~eye_guard(sex, 0.58) if kind == 'hair' else None)
     os.makedirs(OUT, exist_ok=True)
     tmp_b, tmp_p, lifted = f'{OUT}/_base.png', f'{OUT}/_painted.png', f'{OUT}/{item}-{sex}.png'
     base.save(tmp_b)
