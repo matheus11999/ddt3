@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {Crosshair,Gem,Heart,MessageCircle,Monitor,Smartphone,Sparkles,Swords,TrendingUp,Trophy,Wind} from 'lucide-react';
+import {Crosshair,Fish,Flame,Gem,Heart,MessageCircle,Monitor,Smartphone,Sparkles,Swords,TrendingUp,Trophy,Users,Wind,X} from 'lucide-react';
 import {api,type Me,type TopicSummary} from './api';
 import {AuthCard} from './AuthCard';
 import {PlayButton} from './Player';
@@ -11,6 +11,8 @@ const WEAPONS=[['weapon-brick','Quebra-Tijolos'],['weapon-wind','Vento Celeste']
 export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const [stats,setStats]=useState<{accounts:number;topics:number}|null>(null);
  const [topics,setTopics]=useState<TopicSummary[]|null>(null);
+ const [zoom,setZoom]=useState<string|null>(null);
+ useEffect(()=>{if(!zoom)return;const on=(e:KeyboardEvent)=>{if(e.key==='Escape')setZoom(null);};addEventListener('keydown',on);return ()=>removeEventListener('keydown',on);},[zoom]);
  useEffect(()=>{api.stats().then(setStats,()=>{});api.topics(null).then(p=>setTopics(p.topics.slice(0,4)),()=>setTopics([]));},[]);
  useEffect(()=>{if(location.hash)document.getElementById(location.hash.slice(1))?.scrollIntoView();},[]);
  const joinBeta=()=>{const card=document.getElementById('entrar');card?.scrollIntoView({behavior:'smooth',block:'center'});card?.querySelector<HTMLButtonElement>('.auth-switch button')?.click();};
@@ -20,7 +22,6 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <div className="hero-sparks" aria-hidden="true">{Array.from({length:14},(_,i)=><i key={i} style={{'--i':i} as React.CSSProperties}/>)}</div>
    <div className="hero-inner">
     <div className="hero-copy">
-     <span className="beta-ribbon"><Sparkles size={15}/> Beta aberto</span>
      <img className="hero-logo" src="/art/logo.webp" alt="Bomb Masters" width="900" height="534"/>
      <h1 className="hero-title">Mire. Leia o vento. <span>Exploda o terreno.</span></h1>
      <p className="hero-text">Artilharia por turnos com personagens que você monta peça por peça, armas exclusivas e mapas que se desfazem a cada explosão. Direto no navegador.</p>
@@ -33,13 +34,12 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
      <ul className="platforms" aria-label="Plataformas">
       <li><Monitor size={18}/> PC</li>
       <li><Smartphone size={18}/> Celular</li>
-      {stats&&stats.accounts>0&&<li><Heart size={18}/> {stats.accounts.toLocaleString('pt-BR')} no beta</li>}
+      {stats&&stats.accounts>=100&&<li><Heart size={18}/> {stats.accounts.toLocaleString('pt-BR')} no beta</li>}
      </ul>
     </div>
     <div className="hero-side" id="entrar">
      {me?.account
       ?<section className="auth-card welcome-card">
-        <div className="auth-crest"><img src="/art/aura-gold.webp" alt="" aria-hidden="true"/></div>
         <p className="eyebrow">Bem-vindo de volta</p>
         <h2 className="title-3d auth-title">{me.account.username}</h2>
         <p className="welcome-text">Sua conta está pronta. A arena espera.</p>
@@ -64,30 +64,41 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    <header className="section-head">
     <p className="eyebrow">O jogo</p>
     <h2 className="title-3d">Cada disparo conta</h2>
-    <p>Dispute, explore, evolua. Tudo o que você conquista em Bomb Masters vem das suas jogadas.</p>
+    <p>Dispute, explore, evolua. Estas são telas reais do jogo.</p>
    </header>
 
-   <Feature art="/art/battle.webp" tag="Arena PvP" icon={<Swords size={18}/>} title="Mostre sua habilidade no campo de batalha"
-    text="Ajuste o ângulo, sinta a força e leia o vento antes de soltar. O terreno se desfaz a cada explosão e muda o jogo a cada turno. Monte seu grupo e jogue de 1×1 até 4×4."
-    chips={['1×1 até 4×4','Ângulo, força e vento','Terreno destrutível']}/>
+   <Feature shots={['/shots/battle.webp']} tag="Arena PvP" icon={<Swords size={18}/>} title="Mostre sua habilidade no campo de batalha"
+    text="Ajuste o ângulo, sinta a força e leia o vento antes de soltar. O terreno se desfaz a cada explosão e muda o jogo a cada turno."
+    chips={['Ângulo, força e vento','Terreno destrutível','Poderes e POW']} onZoom={setZoom}/>
 
-   <Feature art="/art/expedition.webp" tag="Instâncias" icon={<Sparkles size={18}/>} flip title="Explore instâncias com seus amigos"
+   <Feature shots={['/shots/room.webp','/shots/pvp-hall.webp']} tag="Salas PvP" icon={<Users size={18}/>} flip title="Monte seu grupo e entre na arena"
+    text="Chame os amigos para a sala, escolham as ferramentas e procurem um grupo do mesmo tamanho. De 1×1 até 4×4, com batalhas de guilda."
+    chips={['1×1 até 4×4','Batalha de guildas','Chat da sala']} onZoom={setZoom}/>
+
+   <Feature shots={['/shots/instance.webp','/shots/expedition-room.webp']} tag="Instâncias" icon={<Sparkles size={18}/>} title="Explore instâncias com seus amigos"
     text="Expedições cooperativas para até quatro jogadores, com estágios, hordas e chefes no final. Desça ao Formigueiro e encare a Rainha Formiga."
-    chips={['Até 4 jogadores','Estágios e chefes','Recompensas']}/>
+    chips={['Até 4 jogadores','Estágios e chefes','Recompensas']} onZoom={setZoom}/>
 
-   <Feature art="/art/forge.webp" tag="Arsenal" icon={<Wind size={18}/>} title="Armas exclusivas, cada uma com sua assinatura"
-    text="Cada arma tem projétil, explosão, cratera e golpe especial próprios. Fortaleça no Ferreiro e veja ela mudar de visual nas fases +10, +12 e +15."
-    chips={['Golpe POW próprio','Fortalecimento até +15','Crateras únicas']}>
+   <Feature shots={['/shots/boss.webp','/shots/boss-window.webp']} tag="Chefão Mundial" icon={<Flame size={18}/>} flip title="Todo o servidor contra o Dragão Ancestral"
+    text="Quando o dragão acorda, cada aventureiro ataca a mesma vida gigante. Entre quantas vezes quiser e suba no ranking de dano."
+    chips={['Vida compartilhada','Ranking de dano','Evento ao vivo']} onZoom={setZoom}/>
+
+   <Feature shots={['/shots/hall.webp']} tag="Hall da Fama" icon={<Trophy size={18}/>} title="Seja o melhor do ranking"
+    text="Rankings diários e semanais de PvP, Poder, Nível e Guildas, com recompensas e Lendas eternizadas. Os três melhores do dia ficam no pódio da praça."
+    chips={['Ranking diário e semanal','Lendas','Recompensas']} onZoom={setZoom}/>
+
+   <Feature shots={['/shots/fishing.webp']} tag="Pescaria" icon={<Fish size={18}/>} flip title="Respire entre uma batalha e outra"
+    text="Jardins suspensos com lagos cheios de peixes raros. Complete a coleção, suba seu nível de pescador e dispute o maior peixe da semana."
+    chips={['Peixes raros','Coleção','Maior peixe da semana']} onZoom={setZoom}/>
+
+   <article className="arsenal">
+    <div className="arsenal-copy">
+     <p className="feature-tag"><Wind size={18}/>Arsenal</p>
+     <h3 className="title-3d">Armas exclusivas, cada uma com sua assinatura</h3>
+     <p>Cada arma tem projétil, explosão, cratera e golpe especial próprios. Fortaleça no Ferreiro e veja ela mudar de visual nas fases +10, +12 e +15.</p>
+    </div>
     <ul className="weapon-row">{WEAPONS.map(([id,name])=><li key={id}><img src={`/art/${id}.webp`} alt="" loading="lazy" width="96" height="96"/><span>{name}</span></li>)}</ul>
-   </Feature>
-
-   <Feature art="/art/pets.webp" tag="Evolução" icon={<TrendingUp size={18}/>} flip title="Sinta cada evolução"
-    text="Cada nível, cada aprimoramento no Ferreiro e cada pet que floresce é uma conquista sua. Seu personagem cresce com você, e todo mundo vê."
-    chips={['Pets que evoluem','Aura por nível','Ferreiro e composição']}/>
-
-   <Feature art="/art/hall-of-fame.webp" tag="Hall da Fama" icon={<Trophy size={18}/>} title="Seja o melhor do ranking"
-    text="Rankings diários e semanais com recompensas, Lendas eternizadas no Hall da Fama e os três melhores do dia em pé no pódio da praça para todo mundo ver."
-    chips={['Ranking diário e semanal','Pódio na praça','Recompensas']}/>
+   </article>
   </section>
 
   <section className="fairplay">
@@ -108,16 +119,15 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    </header>
    <div className="more-grid">
     <More art="/art/hero-girl.webp" title="Personalização" text="Rosto, cabelo, chapéu, óculos, roupa e fantasias. Monte um visual que é só seu."/>
-    <More art="/art/fishing.webp" cover title="Pescaria" text="Jardins suspensos, peixes raros, coleção e o seu nível de pescador."/>
+    <More art="/art/verdalia.webp" title="Pets" text="A Verdália nasce broto e floresce com você, com poderes que mudam a batalha."/>
     <More art="/art/guild.webp" title="Guildas" text="Funde a sua, evolua juntos e dispute batalhas de guilda."/>
-    <More art="/art/boss.webp" title="Chefão Mundial" text="Todo o servidor contra o Dragão Ancestral. Quem causa mais dano?"/>
+    <More art="/art/pets.webp" cover title="Sinta cada evolução" text="Nível, Ferreiro, composição e aura: cada conquista aparece no seu personagem."/>
    </div>
   </section>
 
   <section className="beta" id="beta">
    <div className="beta-inner">
     <div className="beta-art" aria-hidden="true">
-     <img className="beta-aura" src="/art/aura-gold.webp" alt=""/>
      <img className="beta-hero" src="/art/heroes-beta.webp" alt="" loading="lazy"/>
     </div>
     <div className="beta-copy">
@@ -148,6 +158,10 @@ export function Home({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
    </div>
    <div className="center"><Link to="/forum" className="btn btn-gold">Ir para o fórum</Link></div>
   </section>
+  {zoom&&<div className="lightbox" role="dialog" aria-modal="true" aria-label="Imagem ampliada" onClick={()=>setZoom(null)}>
+   <img src={zoom} alt=""/>
+   <button className="icon-btn lightbox-close" aria-label="Fechar"><X size={22}/></button>
+  </div>}
  </>;
 }
 
@@ -155,9 +169,12 @@ function Pillar({icon,title,text}:{icon:React.ReactNode;title:string;text:string
  return <div className="pillar"><span className="pillar-icon">{icon}</span><div><b>{title}</b><span>{text}</span></div></div>;
 }
 
-function Feature({art,tag,icon,title,text,chips,flip,children}:{art:string;tag:string;icon:React.ReactNode;title:string;text:string;chips:string[];flip?:boolean;children?:React.ReactNode}){
- return <article className={`feature${flip?' flip':''}`}>
-  <div className="feature-art"><img src={art} alt="" loading="lazy"/></div>
+/** A real in-game screenshot in a framed screen; a second one overlaps the corner. Click to enlarge. */
+function Feature({shots,tag,icon,title,text,chips,flip,onZoom,children}:{shots:string[];tag:string;icon:React.ReactNode;title:string;text:string;chips:string[];flip?:boolean;onZoom:(src:string)=>void;children?:React.ReactNode}){
+ return <article className={`feature${flip?' flip':''}${shots.length>1?' duo':''}`}>
+  <div className="feature-shots">
+   {shots.map((src,i)=><button key={src} className={`screen${i?' screen-small':''}`} onClick={()=>onZoom(src)} aria-label={`Ampliar imagem: ${title}`}><img src={src} alt={`Tela do jogo: ${title}`} loading="lazy" width="1536" height="864"/></button>)}
+  </div>
   <div className="feature-copy">
    <p className="feature-tag">{icon}{tag}</p>
    <h3 className="title-3d">{title}</h3>
