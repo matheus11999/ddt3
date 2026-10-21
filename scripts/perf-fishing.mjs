@@ -1,7 +1,8 @@
 // Pescaria under load (docs/performance.md, "Pescaria"): PLAYERS bots (default 20) walk around and fish in
 // automatic while a browser stands in the Pescaria; prints frame times, the functions with most CPU time and the
 // WebSocket traffic the browser receives. Needs the game running (Vite on 5177).
-// npx tsx scripts/perf-fishing.mjs [pasta]   (PLAYERS=40, MOVING=1 walks the browser player too)
+// npx tsx scripts/perf-fishing.mjs [pasta]   (PLAYERS=40, MOVING=1 walks the browser player too; VW/VH/DPR set the window,
+// SOFTWARE=1 paints the canvas on the CPU so drawing cost shows up in the profile)
 import {chromium,expect} from '@playwright/test';
 import {WebSocket} from 'ws';
 import {writeFile,mkdir} from 'node:fs/promises';
@@ -22,8 +23,8 @@ const fishers=bots.slice(0,Math.min(FISHING_SPOTS.length,Math.floor(count/2)));
 for(const [i,b] of fishers.entries()){const s=FISHING_SPOTS[i];b.send({type:'move',x:s.x,y:s.y});b.send({type:'fish-auto',on:true});}
 setTimeout(()=>{for(const [i,b] of fishers.entries())b.send({type:'fish-cast',spot:FISHING_SPOTS[i].id});},6000);
 const wander=setInterval(()=>{for(const b of bots.slice(fishers.length))b.send({type:'move',x:FISHING_WALK.minX+Math.random()*(FISHING_WALK.maxX-FISHING_WALK.minX),y:FISHING_WALK.minY+Math.random()*(FISHING_WALK.maxY-FISHING_WALK.minY)});},1500);
-const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium'});
-const page=await browser.newPage({viewport:{width:1536,height:864},deviceScaleFactor:1});
+const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium',args:process.env.SOFTWARE?['--disable-gpu','--disable-accelerated-2d-canvas']:[]});
+const page=await browser.newPage({viewport:{width:Number(process.env.VW??1536),height:Number(process.env.VH??864)},deviceScaleFactor:Number(process.env.DPR??1)});
 await page.addInitScript(()=>{const raf=window.requestAnimationFrame.bind(window);window.__frames=[];window.requestAnimationFrame=cb=>raf(t=>{const a=performance.now();cb(t);window.__frames.push(performance.now()-a);});});
 let bytes=0,messages=0;const kinds={};page.on('websocket',ws=>ws.on('framereceived',({payload})=>{bytes+=payload.length;messages++;try{const k=JSON.parse(String(payload)).type;kinds[k]=(kinds[k]??0)+1;}catch{}}));
 const cdp=await page.context().newCDPSession(page);await cdp.send('Profiler.enable');

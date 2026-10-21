@@ -54,15 +54,14 @@ import {LOBBY_SPAWN,LOBBY_WIDTH} from '../../shared/lobby';
 function recentSpeech(chat:ChatLine[],channel:ChatLine['channel'],now:number){const lines=new Map<string,ChatLine>();for(const m of chat)if(m.channel===channel&&m.playerId&&now-m.time<CHAT_BUBBLE_MS&&now>=m.time-1000)lines.set(m.playerId,m);return [...lines].sort((a,b)=>a[1].time-b[1].time);}
 import {chaseLobbyPosition} from './lobbyMotion';
 import {FishingWorld} from './fishingWorld';
+import {ease,frameLimit} from './frameLimit';
 import {fishingPick} from './fishingPick';
 import {FISHING_SPAWN,FISHING_SPOTS,FISHING_WALK,FISHING_WIDTH,SPOT_REACH} from '../../shared/fishing';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
 import type {LobbyAction} from './lobbyWorld';
 const H=864;
-/** Painting faster than 60 frames per second (120/144 Hz monitors) only doubles the work: the animations are timed for 60. */
-const FRAME_MS=1000/60;
-/** Sustained frames slower than this lower the canvas resolution a step, down to 1 pixel per game unit. */
-const SLOW_FRAME_MS=26,SLOW_FRAMES=150;
+/** Sustained frames this much slower than the frame limit (Ajustes, `frameLimit`) lower the canvas resolution a step, down to 1 pixel per game unit. */
+const SLOW_FRAME=1.56,SLOW_FRAMES=150;
 type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number;tilt?:number;tiltAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
@@ -89,14 +88,14 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
    if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
-   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);e.x+=dx*.16;e.y=exactY?y:e.y+dy*.16;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
-  let nextPaint=0,lastPaint=0,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity,shownZone=state.zone,zoneChangedAt=-Infinity;
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);const k=ease(.16,paintDt);e.x+=dx*k;e.y=exactY?y:e.y+dy*k;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+  let nextPaint=0,lastPaint=0,paintDt=1000/60,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity,shownZone=state.zone,zoneChangedAt=-Infinity;
   /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
   const watchSpeed=(t:number)=>{
-   const interval=t-lastPaint;lastPaint=t;
+   const interval=t-lastPaint;lastPaint=t;paintDt=interval>0&&interval<=250?interval:frameLimit.interval();
    if(interval<=0||interval>250){slowFrames=frameTotal=0;return;}
    slowFrames++;frameTotal+=interval;if(slowFrames<SLOW_FRAMES)return;
-   if(frameTotal/slowFrames>SLOW_FRAME_MS&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
+   if(frameTotal/slowFrames>frameLimit.interval()*SLOW_FRAME&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
    slowFrames=frameTotal=0;
   };
   let wasFishing=false;
@@ -121,7 +120,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // area decodes, rather than an empty sky or a frozen first frame drawing the full paintings.
    if(state.zone!==shownZone){shownZone=state.zone;zoneChangedAt=t;}
    if(!state.battle&&t-Math.max(leftBattleAt,zoneChangedAt)<1500&&!zoneReady(el.width/view.width,el.height/H)){frame=requestAnimationFrame(render);return;}
-   nextPaint=Math.max(nextPaint+FRAME_MS,t-FRAME_MS);watchSpeed(t);frameMeter.paint();
+   const frameMs=frameLimit.interval();nextPaint=Math.max(nextPaint+frameMs,t-frameMs);watchSpeed(t);frameMeter.paint();
    if(quality!==getEnvironmentQuality())resizeCanvas();
    c.setTransform(el.width/view.width,0,0,el.height/H,0,0);c.clearRect(0,0,view.width,H);const b=state.battle;
    if(!b){
@@ -131,7 +130,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     // The Pescaria is taller than the view too: there the camera follows up and down as well.
     const target=fishingZone?FishingWorld.camera(focus,seen?.y||me?.y||FISHING_SPAWN.y):{x:LobbyWorld.camera(focus),y:0};
     if(fishingZone!==wasFishing){wasFishing=fishingZone;camX=-1;pendingSpot=null;fishingPick.set(false);}
-    if(camX<0){camX=target.x;camY=target.y;}else{camX+=(target.x-camX)*.12;camY+=(target.y-camY)*.12;}
+    if(camX<0){camX=target.x;camY=target.y;}else{const k=ease(.12,paintDt);camX+=(target.x-camX)*k;camY+=(target.y-camY)*k;}
     c.save();c.translate(-camX,-camY);
     if(fishingZone){fishing.drawBack(c,t,camX,camY);if(fishingPick.get())fishing.drawPick(c,t,hoverLake);}else lobby.drawBack(c,t,camX);
     if((walkDir||walkDirY)&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;pendingSpot=null;fishingPick.set(false);client.send({type:'move',x:Math.max(walk.minX,Math.min(walk.maxX,me.x+walkDir*240)),y:fishingZone?Math.max(walk.minY,Math.min(walk.maxY,me.y+walkDirY*160)):me.y});}
@@ -189,7 +188,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(b.phase==='aiming'&&focus&&!shot){const hw=view.width/(2*camera.zoom),hh=H/(2*camera.zoom),low=b.players.filter(f=>f.hp>0&&!f.left&&!f.hidden&&!f.boss&&Math.abs(f.x-focusX)<hw-30).reduce((y,f)=>Math.max(y,f.y),0);
      if(low)focusY=Math.max(focusY,Math.min(low+40-hh+BATTLE_HUD_COVER/camera.zoom,focus.y-170+hh));}
     const look=sceneView.look;if(look){focusX=look.x;focusY=look.y;}
-    updateCamera(camera,focusX,focusY);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
+    updateCamera(camera,focusX,focusY,paintDt);if(look){camera.x=camera.targetX;camera.y=camera.targetY;}sceneView.camera.x=camera.x;sceneView.camera.y=camera.y;sceneView.camera.zoom=camera.zoom;environment!.drawBack(c,t,camera);c.save();applyCamera(c,camera);
     if(pose&&pose.shake>0)c.translate(Math.sin(t*.091)*pose.shake,Math.cos(t*.077)*pose.shake*.6);
     // The dragon rises from behind the lair's ridge: drawn before the terrain.
     if(dragon&&pose)drawDragonBack(c,dragon,pose,dragonHurtAge,t);

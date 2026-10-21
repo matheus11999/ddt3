@@ -3,6 +3,7 @@ import {getMap} from '../../shared/maps';
 import type {EnvironmentQuality,MapDefinition,MapId} from '../../shared/maps';
 import {terrainTemplate,WORLD} from '../../shared/physics';
 import {freeAll,freeImage,freeSurface} from './spriteCache';
+import {ease} from './frameLimit';
 
 /** W×H is the view; a map's world may be wider (`dimensions.width`) and the camera scrolls across it. */
 const H=WORLD.height,TERRAIN_SCALE=2,MID_OFFSET=60,SOFT_EDGE_GAIN=3;
@@ -57,11 +58,11 @@ export const BATTLE_HUD_COVER=0;
 export interface CameraState {x:number;y:number;zoom:number;targetZoom:number;targetX:number;targetY:number;worldWidth:number;}
 export function createCamera(worldWidth=view.width):CameraState{return {x:view.width/2,y:H/2,zoom:1,targetZoom:1,targetX:view.width/2,targetY:H/2,worldWidth};}
 export function zoomCamera(camera:CameraState,delta:number,map:MapDefinition){camera.targetZoom=Math.max(map.camera.minZoom,Math.min(map.camera.maxZoom,camera.targetZoom+delta));}
-export function updateCamera(camera:CameraState,x:number,y:number){
- camera.zoom+=(camera.targetZoom-camera.zoom)*.09;
+export function updateCamera(camera:CameraState,x:number,y:number,dt=1000/60){
+ camera.zoom+=(camera.targetZoom-camera.zoom)*ease(.09,dt);
  const hw=view.width/(2*camera.zoom),hh=H/(2*camera.zoom);
  const right=camera.worldWidth??view.width;camera.targetX=Math.max(hw,Math.min(right-hw,x));camera.targetY=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,y));
- camera.x+=(camera.targetX-camera.x)*.075;camera.y+=(camera.targetY-camera.y)*.075;
+ const k=ease(.075,dt);camera.x+=(camera.targetX-camera.x)*k;camera.y+=(camera.targetY-camera.y)*k;
  camera.x=Math.max(hw,Math.min(right-hw,camera.x));camera.y=Math.max(hh,Math.min(H-hh+BATTLE_HUD_COVER,camera.y));
 }
 export function applyCamera(c:CanvasRenderingContext2D,camera:CameraState,depth=1){

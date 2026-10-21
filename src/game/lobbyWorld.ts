@@ -463,7 +463,7 @@ function goldText(c:CanvasRenderingContext2D,text:string,x:number,y:number,size:
  * the plaza's costliest fills. Only after the fonts load, so a stamp never keeps the fallback font. */
 const stamps=new Map<string,HTMLCanvasElement>();
 export function releaseStamps(){for(const canvas of stamps.values()){canvas.width=0;canvas.height=0;}stamps.clear();}
-function stamp(c:CanvasRenderingContext2D,key:string,x:number,y:number,box:[number,number,number,number],draw:(g:CanvasRenderingContext2D)=>void){
+export function stamp(c:CanvasRenderingContext2D,key:string,x:number,y:number,box:[number,number,number,number],draw:(g:CanvasRenderingContext2D)=>void){
  if(document.fonts?.status!=='loaded'){c.save();c.translate(x,y);draw(c);c.restore();return;}
  const k=Math.max(1,Math.ceil(screenScale(c)*4)/4),id=`${key}@${k}`,[left,top,width,height]=box;let canvas=stamps.get(id);
  if(!canvas){if(stamps.size>64)releaseStamps();canvas=document.createElement('canvas');canvas.width=Math.ceil(width*k);canvas.height=Math.ceil(height*k);
