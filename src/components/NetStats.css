@@ -7,4 +7,4 @@
 .net-stats small { font-size: 9px; font-weight: 700; opacity: .75; }
 .net-stats i { width: 1px; height: 9px; background: rgba(255, 255, 255, .25); }
 /* On a phone the frame is scaled down: keep the readout at its screen size, like the battle's top bar. */
-html.mobile-landscape .net-stats { top: calc(2px / var(--game-scale)); transform: translateX(-50%) scale(calc(1 / var(--game-scale))); transform-origin: top center; }
+html.mobile-landscape .net-stats { top: calc(2px / var(--touch-scale)); transform: translateX(-50%) scale(calc(1 / var(--touch-scale))); transform-origin: top center; }

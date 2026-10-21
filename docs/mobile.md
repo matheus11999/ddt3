@@ -17,8 +17,8 @@ Toda a tela do jogo é desenhada em 864 de altura e encolhida para caber (`--gam
 `BattleHud.tsx` mostra `touch-controls` só em aparelho de toque (`useMobileOrientation().mobile`); estilo em `BattleTouch.css`.
 
 - **Setas de andar** (esquerda, 58 px): segurar anda como a seta do teclado (o mesmo comando `walk` a cada `WALK_COMMAND_MS`); soltar para na hora. Fora da vez só vira o boneco.
-- **Botão FORÇA** (21/10, matheus achou o primeiro botão feio e mal colocado): no celular ocupa o lugar do mostrador de ângulo (`TouchFireDial` em `CombatGauges.tsx`), com a mesma moldura dourada e rebites; mostra o ângulo em cima, "FORÇA" no meio e um anel laranja que enche com a força enquanto segura; soltar dispara. As setas de ângulo ficam ao lado. A régua do console continua aceitando o toque; os dois usam a mesma carga (`chargeByPointer`).
-- **Poderes** em duas fileiras de 4 sob o minimapa (Enfurecer e Gelo viraram itens do preparo, `docs/consumables.md`); habilidades e voo ao lado das setas; habilidades do pet logo acima delas.
+- **Botão FORÇA** (21/10, matheus achou o primeiro botão feio e mal colocado): no celular ocupa o lugar do mostrador de ângulo (`TouchFireDial` em `CombatGauges.tsx`), como um botão vermelho abaulado em moldura dourada que afunda ao tocar; mostra só "FORÇA" (e a força enquanto segura, sem o ângulo, pedido do matheus) e um anel laranja que enche com a força; soltar dispara. As setas de ângulo ficam ao lado. A régua do console continua aceitando o toque; os dois usam a mesma carga (`chargeByPointer`).
+- **Poderes** numa coluna só na borda direita, sob o minimapa, sem título nem painel azul (21/10, pedido do matheus; também no PC, botões de 52 px) (Enfurecer e Gelo viraram itens do preparo, `docs/consumables.md`); habilidades e voo ao lado das setas; habilidades do pet logo acima delas.
 - Setas de ângulo, PASS e Sair maiores.
 
 ## Praça e Pescaria no celular
@@ -45,3 +45,7 @@ npm run test:mobile:browser
 ```
 
 `scripts/smoke-mobile-landscape.mjs` usa emulação de navegador com toque. Verifica retrato bloqueado, rotação, criação, mochila/loja/ferreiro/arena, controles de combate (setas de andar e botão FOGO por toque) e preservação da sessão. As resoluções de referência são 844×390, 932×430 e 667×375. Capturas ficam em `test-results/`; o teste não substitui avaliação em aparelhos iOS/Android físicos.
+
+## Tamanho do HUD por resolução (21/10)
+
+Pedido do matheus: menos poluição na tela do celular. `--hud-k` (em `MobileOrientation.css`) encolhe o HUD conforme a altura da tela: 1 acima de 460 px, 0,92 até 460, 0,85 até 400 e 0,8 até 360. As regras do celular dividem por `--touch-scale` (= `--game-scale` / `--hud-k`) em vez de `--game-scale`. Na Pescaria, chat, painel da vara e Auto ficam numa linha só embaixo, sem se sobrepor ao menu.
