@@ -43,16 +43,20 @@ const ALLOW_GUESTS=process.env.ALLOW_GUESTS==='true';
  * its character on this server, or the creation screen when it has none; another account's player is never used.
  */
 async function accountSession(req:FastifyRequest,reply:FastifyReply){
- let profile=await store.session(req.cookies.brasa_session);
- const account=await accounts.account(req.cookies[ACCOUNT_COOKIE]);
- if(!account)return {profile,account};
+ // A character that belongs to an account plays only while that account is signed in (accounts.validGameSessions).
+ const current=await accounts.gameSession(req.cookies.brasa_session);
+ let profile=current?await store.getProfile(current.playerId):null;
+ const accountToken=req.cookies[ACCOUNT_COOKIE],account=await accounts.account(accountToken);
+ if(!account)return {profile,account,accountSession:null};
+ const accountSession=accounts.sessionHash(accountToken!);
  // A signed-in account always plays its own character here; with none yet it goes through character creation
  // (the guest already in this browser is never taken over, pedido do matheus 21/10).
  const playerId=await accounts.characterOn(account,SERVER_ID);
  if(playerId){
-  if(profile?.id!==playerId){profile=await store.getProfile(playerId);if(profile)reply.setCookie('brasa_session',await store.createSession(profile.id),gameCookie());}
+  // The game session is reissued under this account session, so the site's logout or a new password ends it too.
+  if(profile?.id!==playerId||current?.accountSession!==accountSession){profile=await store.getProfile(playerId);if(profile)reply.setCookie('brasa_session',await store.createSession(profile.id,accountSession),gameCookie());}
  }else profile=null;
- return {profile,account};
+ return {profile,account,accountSession};
 }
 // Creation screen: is this name valid and free on this server?
 app.get('/api/character-name',{config:{rateLimit:{max:60,timeWindow:'1 minute'}}},async(req,reply)=>{
@@ -67,14 +71,14 @@ app.get('/api/session',async(req,reply)=>{
 });
 app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},async(req,reply)=>{
  const parsed=sessionRequestSchema.safeParse(req.body??{});if(!parsed.success)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
- let {profile,account}=await accountSession(req,reply);
+ let {profile,account,accountSession:linked}=await accountSession(req,reply);
  if(!account&&!ALLOW_GUESTS)return reply.code(401).send({error:'Entre na sua conta no site para jogar.',signIn:true});
  if(profile&&parsed.data.gender&&parsed.data.gender!==profile.gender)return reply.code(409).send({error:'O gênero do personagem é definido na criação e não pode ser alterado.'});
  if(!profile){
   if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
   // The creation screen always sends a name; only bare API clients without an account (tests, load scripts) skip it.
   if(parsed.data.name===undefined&&account)return reply.code(400).send({error:'Escolha o nome do seu personagem.'});
-  let created;try{created=await store.createGuest(parsed.data.gender,parsed.data.name);}catch(e){return reply.code(409).send({error:(e as Error).message});}profile=created.profile;reply.setCookie('brasa_session',created.token,gameCookie());
+  let created;try{created=await store.createGuest(parsed.data.gender,parsed.data.name,linked??undefined);}catch(e){return reply.code(409).send({error:(e as Error).message});}profile=created.profile;reply.setCookie('brasa_session',created.token,gameCookie());
   if(account)await accounts.linkPlayer(account,profile.id,SERVER_ID);
  }
  reply.header('Cache-Control','no-store');return {profile};
@@ -85,6 +89,10 @@ const postgresLive=new PostgresLive(store.pool);await postgresLive.init();
 const live=new LiveState(game,[{backend:new RedisLive(redis),every:500},{backend:postgresLive,every:3000}],e=>app.log.error(e));
 const restored=await live.restore();if(restored.rooms||restored.matches)app.log.info(restored,'Restored rooms and matches');
 const connections=new Map<string,WebSocket>();
+/** The game session each open socket signed in with: checked again every few seconds, so a logout or a new password
+ * on the site also closes the sockets already open (A01). */
+const socketSessions=new Map<WebSocket,string>();
+const SESSION_RECHECK_MS=Number(process.env.SESSION_RECHECK_MS??10_000);
 // Admin panel (/admin) and the maps it publishes; clients reload the map list when told.
 const adminStore=new AdminStore(store.pool);await adminStore.init();
 const reports=new ReportStore(store.pool);await reports.init();game.reports=reports;
@@ -107,12 +115,12 @@ app.server.on('upgrade',async(req,socket,head)=>{
  try{
   const origin=req.headers.origin;const ip=process.env.BEHIND_PROXY==='true'&&typeof req.headers['x-real-ip']==='string'?req.headers['x-real-ip']:req.socket.remoteAddress??'unknown';const now=Date.now();let limit=upgradeLimit.get(ip);if(!limit||now-limit.time>60000){limit={time:now,count:0};upgradeLimit.set(ip,limit);}
   if(req.url!=='/ws'||!origin||!origins.has(origin)||++limit.count>120||connections.size>=Number(process.env.MAX_CONNECTIONS??1000)){socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');socket.destroy();return;}
-  const token=app.parseCookie(req.headers.cookie??'').brasa_session;const profile=await store.session(token);
+  const token=app.parseCookie(req.headers.cookie??'').brasa_session;const signedIn=await accounts.gameSession(token);const profile=signedIn&&await store.getProfile(signedIn.playerId);
   if(!profile){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');socket.destroy();return;}
   // Without guests, the socket also needs the site account that owns this character here.
   if(!ALLOW_GUESTS){const account=await accounts.account(app.parseCookie(req.headers.cookie??'')[ACCOUNT_COOKIE]);if(!account||await accounts.characterOn(account,SERVER_ID)!==profile.id){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');socket.destroy();return;}}
   wss.handleUpgrade(req,socket,head,ws=>{
-   const previous=connections.get(profile.id);connections.set(profile.id,ws);previous?.close(4001,'Conectado em outra aba');
+   const previous=connections.get(profile.id);connections.set(profile.id,ws);socketSessions.set(ws,store.hash(token!));previous?.close(4001,'Conectado em outra aba');
    const send=(event:unknown)=>{if(ws.readyState===WebSocket.OPEN){if(ws.bufferedAmount>512*1024){ws.close(4002,'Conexão lenta');return;}ws.send(JSON.stringify(event));}};
    game.connect(profile,send);let windowStart=Date.now(),count=0,chatAt=0,queue=Promise.resolve(),pending=0,alive=true;
    ws.on('pong',()=>alive=true);
@@ -125,11 +133,15 @@ app.server.on('upgrade',async(req,socket,head)=>{
     if(parsed.data.type==='chat'){if(now-chatAt<800){send({type:'error',message:'Espere um instante para conversar.'});return;}chatAt=now;}
     pending++;queue=queue.then(async()=>{if(connections.get(profile.id)===ws)await game.command(profile.id,parsed.data);}).catch(e=>app.log.error(e)).finally(()=>pending--);
    });
-   ws.on('error',e=>app.log.warn({err:e},'Socket error'));ws.on('close',()=>{clearInterval(heartbeat);if(connections.get(profile.id)===ws){connections.delete(profile.id);game.disconnect(profile.id);}});
+   ws.on('error',e=>app.log.warn({err:e},'Socket error'));ws.on('close',()=>{clearInterval(heartbeat);socketSessions.delete(ws);if(connections.get(profile.id)===ws){connections.delete(profile.id);game.disconnect(profile.id);}});
   });
  }catch(e){app.log.error(e);socket.destroy();}
 });
 const tick=setInterval(()=>game.tick(),50);
+const sessionSweep=setInterval(()=>{void (async()=>{
+ if(!socketSessions.size)return;const valid=await accounts.validGameSessions([...new Set(socketSessions.values())]);
+ for(const [ws,hash] of socketSessions)if(!valid.has(hash)){socketSessions.delete(ws);ws.close(4003,'Sessão encerrada');}
+})().catch(e=>app.log.error(e));},SESSION_RECHECK_MS);
 // Listings whose time ran out go back to their sellers by mail.
 const auctionSweep=setInterval(()=>{void game.auctionSweep().catch(e=>app.log.error(e));},15000);
 // Opens scheduled events and closes the ones whose time ran out.
@@ -137,4 +149,4 @@ const worldBossTick=setInterval(()=>{void worldBoss.tick().catch(e=>app.log.erro
 const saving=setInterval(()=>{void live.save().catch(e=>app.log.error(e));},500);
 const presence=setInterval(()=>{redis.set('brasa:shard:1:online',connections.size,'EX',25).catch(e=>app.log.error(e));for(const [ip,l]of upgradeLimit)if(Date.now()-l.time>60000)upgradeLimit.delete(ip);},10000);
 await app.listen({port:Number(process.env.PORT??4107),host:'0.0.0.0'});
-for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(presence);clearInterval(auctionSweep);clearInterval(worldBossTick);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});
+for(const signal of ['SIGINT','SIGTERM']as const)process.on(signal,async()=>{clearInterval(tick);clearInterval(sessionSweep);clearInterval(presence);clearInterval(auctionSweep);clearInterval(worldBossTick);clearInterval(saving);await live.save(true).catch(e=>app.log.error(e));for(const ws of connections.values())ws.close(1001,'Servidor reiniciando');await app.close();await store.pool.end();redis.disconnect();process.exit(0);});

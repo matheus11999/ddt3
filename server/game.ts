@@ -1,7 +1,7 @@
 import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {powerUpConflict} from '../shared/powerUps';
 import {ICE_FROZEN_TURNS,iceTargets,isFrozen,RAGE_CHARGE} from '../shared/ice';
-import {chargeHoldsTurn} from '../shared/forceBar';
+import {chargeHoldsTurn,forceMatchesHold} from '../shared/forceBar';
 import {addPower,chargeOnDamage,POWER_ATTACK_CHARGE,POWER_MAX,POWER_PASS_CHARGE,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
@@ -85,7 +85,9 @@ export interface HallService {
  legends(board:LegendBoard,key?:string):Promise<HallLegends>;
 }
 const HALL_MIN_MS=150;
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;/** When the turn's player started holding the force bar (shared/forceBar.ts `chargeHoldsTurn`). */chargingSince?:number;/** Who fired this turn: earns POWER_ATTACK_CHARGE once, after the last projectile of the shot lands (shotRage). */shotRage?:string;}
+/** A release the server refused because the bar was never held or shows another force (Game.assertCharged). */
+class ShotRefused extends Error {}
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;/** When the turn's player started holding the force bar (shared/forceBar.ts `chargeHoldsTurn`), on the server's clock. */chargingSince?:number;/** The turn that charge belongs to: a charge never carries into another turn. */chargeTurn?:number;/** Who fired this turn: earns POWER_ATTACK_CHARGE once, after the last projectile of the shot lands (shotRage). */shotRage?:string;}
 
 /** A loading screen in progress: `begin` creates the battle from the rooms as they are when everyone is ready. */
 interface PendingLoad {view:MatchLoading;roomIds:string[];waiting:Set<string>;begin:()=>void;}
@@ -460,6 +462,17 @@ export class Game {
  /** The caller's live fighter; turning in place may skip the aiming check and also works while a shot resolves or the monsters move. */
  private fighter(p:Peer,anyPhase=false){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase==='finished'||!anyPhase&&m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');const f=m.state.players.find(x=>x.id===p.profile.id);if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0||f.left)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
  private turn(p:Peer,holdable=false){const room=this.room(p),m=this.matchForRoom(room.id);if(!m||m.state.phase!=='aiming')throw Error('Aguarde o próximo turno.');if(m.state.turnId!==p.profile.id)throw Error('Aguarde a sua vez.');if(m.state.instance&&Date.now()<m.state.instance.introUntil)throw Error('Aguarde os monstros chegarem.');const f=m.state.players.find(x=>x.id===p.profile.id);if(Date.now()>m.state.deadline&&!(holdable&&this.chargeHeld(m,Date.now())))throw Error('O tempo do turno terminou.');if(!f)throw Error('Você está assistindo a esta partida.');if(f.hp<=0)throw Error('Seu personagem está fora de combate.');if(f.fall&&Date.now()<f.fall.startedAt+f.fall.duration)throw Error('Aguarde seu personagem pousar.');return {m,f};}
+ /**
+  * The force of a shot comes from the server's own clock (A03, auditoria 21/10): the charge must have started this
+  * turn (an `aim` with charging) and the force must be one the bar showed for the time held, within the network
+  * tolerance of forceMatchesHold. A refused release keeps the turn, so the player can charge again.
+  */
+ private assertCharged(m:Match,f:Fighter,power:number){
+  const fail=(message:string)=>{f.charging=false;delete m.chargingSince;delete m.chargeTurn;this.broadcastBattle(m);throw new ShotRefused(message);};
+  if(!f.charging||m.chargingSince===undefined||m.chargeTurn!==m.state.turnNumber)fail('Segure a barra de força para disparar.');
+  if(!forceMatchesHold(power,Date.now()-m.chargingSince!))fail('A força não confere com a barra. Carregue de novo.');
+  delete m.chargingSince;delete m.chargeTurn;
+ }
  /** A charge started before the clock ran out keeps the turn open until the release (capped by CHARGE_HOLD_MS). */
  private chargeHeld(m:Match,now:number){const f=m.state.players.find(x=>x.id===m.state.turnId);return m.state.phase==='aiming'&&!!f?.charging&&chargeHoldsTurn(m.state.deadline,m.chargingSince,now);}
  private seat(p:Peer,team:0|1,slot:number):Seat{return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:{...p.profile.equipment},abilityLoadout:normalizeAbilityLoadout(p.profile.abilityLoadout),ready:false,bot:false,team,slot,connected:true,...(this.memberships.get(p.profile.id)?{guild:this.memberships.get(p.profile.id)!.name}:{})};}
@@ -749,10 +762,11 @@ export class Game {
     case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');if((TOOL_ABILITIES as readonly string[]).includes(c.boost))throw Error('Enfurecer e Gelo agora são itens: prepare-os na sala.');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
-     const {m,f}=this.turn(p,true);if(Date.now()-(p.lastAim??0)<100)return;p.lastAim=Date.now();
+     // Starting or dropping the charge always goes through: the server's clock times the hold (A03).
+     const {m,f}=this.turn(p,true),now=Date.now(),toggles=c.charging!==!!f.charging;if(!toggles&&now-(p.lastAim??0)<100)return;p.lastAim=now;
      // Past the deadline only the held bar moves: the charge can neither start nor be dropped there.
-     const overtime=Date.now()>m.state.deadline;
-     if(!overtime){if(c.charging&&!f.charging)m.chargingSince=Date.now();f.charging=c.charging;}
+     const overtime=now>m.state.deadline;
+     if(!overtime&&toggles){if(c.charging){m.chargingSince=now;m.chargeTurn=m.state.turnNumber;}else{delete m.chargingSince;delete m.chargeTurn;}f.charging=c.charging;}
      adjustAimToTerrain(f,m.terrain);f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,c.angle);f.chargePower=c.power;this.broadcastBattle(m);break;
     }
     case 'walk':{
@@ -767,7 +781,7 @@ export class Game {
      const {m,f}=this.fighter(p,true);if(f.facing===c.direction||Date.now()-(p.lastFace??0)<65)return;p.lastFace=Date.now();
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
-    case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
+    case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');this.assertCharged(m,f,c.power);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
     case 'pass':{const {m,f}=this.turn(p,true);f.delay=(f.delay??0)+PASS_DELAY;addPower(f,POWER_PASS_CHARGE);this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
@@ -945,7 +959,7 @@ export class Game {
     }
    }
    this.pruneInvitations();if(this.roomsDirty)this.broadcastRooms();
-  }catch(e){this.emit(p,{type:'error',message:e instanceof Error?e.message:'Não foi possível concluir a ação.',...((c.type==='customize'||c.type==='ability-loadout')&&c.requestId!==undefined?{requestId:c.requestId}:{})});}
+  }catch(e){this.emit(p,{type:'error',message:e instanceof Error?e.message:'Não foi possível concluir a ação.',...(e instanceof ShotRefused?{retryShot:true}:{}),...((c.type==='customize'||c.type==='ability-loadout')&&c.requestId!==undefined?{requestId:c.requestId}:{})});}
  }
  private leave(p:Peer){
   if(!p.roomId)return;

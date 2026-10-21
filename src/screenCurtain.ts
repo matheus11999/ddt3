@@ -61,7 +61,7 @@ export function startCurtain(){
  if(state.reason)mark(state.reason);
  const check=()=>{
   const s=client.state;
-  if(s.status==='replaced'||s.needsCharacter&&!s.profile){if(state.reason)curtain.hide();return;}
+  if(s.status==='replaced'||s.status==='signed-out'||s.needsCharacter&&!s.profile){if(state.reason)curtain.hide();return;}
   if(!s.profile)return;
   if(s.status!=='online'){if(state.reason!=='reconnect'&&state.reason!=='boot')curtain.show('reconnect');return;}
   // Online: boot and reconnect wait for a welcome that arrived after the cover went up.

@@ -11,6 +11,7 @@ import {destructionProfile} from '../shared/destruction';
 import {CRATER_MASKS,CRATER_STRETCH,craterMask,volley,WORLD} from '../shared/physics';
 import {powBoostConflict,powTridentRule,WEAPON_KITS} from '../shared/weaponKit';
 import {SHOP_OFFER_BY_ID} from '../shared/shop';
+import {chargedFire} from './fixtures/charge';
 
 const wind=CATALOG['wind-shuriken'] as Weapon,thunder=CATALOG['thunder-coil'] as Weapon;
 
@@ -75,7 +76,7 @@ async function fixture(weapon:string){
 async function powShot(weapon:string,boosts:BoostId[]=[]){
  const f=await fixture(weapon);f.shooter.powerCharge=200;
  await f.game.command(f.shooter.id,{type:'power'});for(const boost of boosts)await f.game.command(f.shooter.id,{type:'boost',boost});
- await f.game.command(f.shooter.id,{type:'fire',angle:45,power:40});f.game.tick(f.match.pendingPower!.at);
+ await chargedFire(f.game,f.shooter.id,{angle:45,power:40});f.game.tick(f.match.pendingPower!.at);
  return f.events.filter((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot').at(-1)!.shot;
 }
 

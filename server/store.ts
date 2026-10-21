@@ -165,6 +165,7 @@ export class Store implements ProfileStore {
  CREATE TABLE IF NOT EXISTS fishing_week_records(week char(10) NOT NULL,player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,name varchar(24) NOT NULL,fish varchar(40) NOT NULL,kg real NOT NULL,caught_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(week,player_id));
  CREATE INDEX IF NOT EXISTS fishing_week_top ON fishing_week_records(week,kg DESC,caught_at);
  DELETE FROM sessions WHERE expires_at<now();
+ ALTER TABLE sessions ADD COLUMN IF NOT EXISTS account_session char(64);
  CREATE INDEX IF NOT EXISTS players_name_lower ON players(lower(name));
  `);}
  hash(token:string){return createHash('sha256').update(token).digest('hex');}
@@ -175,7 +176,7 @@ export class Store implements ProfileStore {
   * A new character. With a chosen `name` (the creation screen) it is validated, must be free on this server, and the
   * character starts with the new-character kit (newCharacterEquipment); without one it is a nameless legacy guest.
   */
- async createGuest(gender:CharacterGender='male',name?:string){
+ async createGuest(gender:CharacterGender='male',name?:string,accountSession?:string){
   if(!CHARACTER_GENDERS.includes(gender))throw Error('Escolha um personagem masculino ou feminino.');
   if(name!==undefined){name=name.trim();const invalid=characterNameError(name);if(invalid)throw Error(invalid);}
   const id=randomUUID(),token=randomBytes(32).toString('hex');
@@ -184,11 +185,12 @@ export class Store implements ProfileStore {
   const profile=normalizeProfile({id,name:name??`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set(owned)].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
   const conn=await this.pool.connect();try{await conn.query('BEGIN');
    if(name!==undefined){await conn.query('SELECT pg_advisory_xact_lock(hashtext(lower($1)))',[name]);if((await conn.query('SELECT 1 FROM players WHERE lower(name)=lower($1) LIMIT 1',[name])).rows.length)throw Error('Esse nome já está em uso neste servidor.');}
-await conn.query('INSERT INTO players(id,name,profile) VALUES($1,$2,$3)',[id,profile.name,profile]);await conn.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),id]);await conn.query('COMMIT');}catch(e){await conn.query('ROLLBACK');throw e;}finally{conn.release();}
+await conn.query('INSERT INTO players(id,name,profile) VALUES($1,$2,$3)',[id,profile.name,profile]);await conn.query("INSERT INTO sessions(token_hash,player_id,expires_at,account_session) VALUES($1,$2,now()+interval '30 days',$3)",[this.hash(token),id,accountSession??null]);await conn.query('COMMIT');}catch(e){await conn.query('ROLLBACK');throw e;}finally{conn.release();}
   return {token,profile};
  }
- /** A new 30-day session for an existing player (an account opening the game from the site). */
- async createSession(playerId:string){const token=randomBytes(32).toString('hex');await this.pool.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),playerId]);return token;}
+ /** A new 30-day session for an existing player; an account opening the game passes its own session hash, so the game
+  * session ends with it (server/accounts.ts validGameSessions). */
+ async createSession(playerId:string,accountSession?:string){const token=randomBytes(32).toString('hex');await this.pool.query("INSERT INTO sessions(token_hash,player_id,expires_at,account_session) VALUES($1,$2,now()+interval '30 days',$3)",[this.hash(token),playerId,accountSession??null]);return token;}
  async getProfile(id:string){const r=await this.pool.query('SELECT profile,name FROM players WHERE id=$1',[id]);return r.rows[0]?normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}):null;}
  async saveAbilityLoadout(id:string,slots:AbilityLoadout):Promise<Profile>{
   const parsed=abilityLoadoutSchema.safeParse(slots);if(!parsed.success)throw Error('Escolha até três habilidades diferentes.');

@@ -12,6 +12,7 @@ import {criticalBonusMultiplier} from '../shared/stats';
 import {attributes} from '../shared/catalog';
 import type {Fighter} from '../shared/protocol';
 import type {BoostId} from '../shared/catalog';
+import {chargedFire} from './fixtures/charge';
 
 async function fixture(roll=.99){
  const events:ServerEvent[]=[],store={getProfile:async()=>null,finishMatch:async()=>{}} as unknown as ProfileStore,game=new Game(store,()=>{},()=>roll);
@@ -45,10 +46,10 @@ test('Power activation requires full charge and own living turn; duplicate consu
 test('Power holds all damage and projectiles until cut-in completes then fires exactly once',async()=>{
  const f=await fixture();f.shooter.powerCharge=200;await f.game.command(f.shooter.id,{type:'power'});
  const before=f.match.state.players.map(p=>p.hp),terrain=f.match.terrain.slice();
- await f.game.command(f.shooter.id,{type:'fire',angle:45,power:40});
+ await chargedFire(f.game,f.shooter.id,{angle:45,power:40});
  assert.ok(f.match.state.powerCutIn);assert.equal(f.match.state.phase,'resolving');assert.deepEqual(f.match.state.players.map(p=>p.hp),before);assert.deepEqual(f.match.terrain,terrain);
  assert.equal(f.events.filter(e=>e.type==='shot').length,0);
- await f.game.command(f.shooter.id,{type:'fire',angle:45,power:40});await f.game.command(f.shooter.id,{type:'pass'});
+ await chargedFire(f.game,f.shooter.id,{angle:45,power:40});await f.game.command(f.shooter.id,{type:'pass'});
  const end=f.match.state.powerCutIn!.endsAt;
  f.game.tick(end-1);assert.equal(f.events.filter(e=>e.type==='shot').length,0);
  f.game.tick(end);const shots=f.events.filter(e=>e.type==='shot');assert.equal(shots.length,2); // one event per peer
@@ -67,7 +68,7 @@ test('unused activation expires on pass and timeout, while stored charge persist
 });
 
 test('leaving during Power cut-in cancels the pending shot and cannot damage after finish',async()=>{
- const f=await fixture();f.shooter.powerCharge=200;await f.game.command(f.shooter.id,{type:'power'});await f.game.command(f.shooter.id,{type:'fire',angle:45,power:40});
+ const f=await fixture();f.shooter.powerCharge=200;await f.game.command(f.shooter.id,{type:'power'});await chargedFire(f.game,f.shooter.id,{angle:45,power:40});
  const end=f.match.state.powerCutIn!.endsAt;await f.game.command(f.shooter.id,{type:'leave'});f.game.tick(end);
  assert.equal(f.match.state.phase,'finished');assert.equal(f.match.pendingPower,undefined);assert.equal(f.events.filter(e=>e.type==='shot').length,0);
 });
@@ -79,7 +80,7 @@ test('Power deals greater actual enemy damage and charges both combatants withou
   f.shooter.x=300;f.shooter.y=500;f.shooter.facing=1;f.target.x=365;f.target.y=490;
   f.match.terrain.fill(0);f.match.terrain.fill(1,510*WORLD.cols);
   if(powered){f.shooter.powerCharge=200;await f.game.command(f.shooter.id,{type:'power'});}
-  await f.game.command(f.shooter.id,{type:'fire',angle:25,power:20});
+  await chargedFire(f.game,f.shooter.id,{angle:25,power:20});
   if(powered)f.game.tick(f.match.state.powerCutIn!.endsAt);
   const shot=f.events.find(e=>e.type==='shot');assert.ok(shot&&shot.type==='shot');
   assert.equal(shot.shot.hits.length,0);assert.equal(f.shooter.powerCharge,0);assert.equal(f.target.powerCharge,0);
@@ -97,7 +98,7 @@ test('damage from any source charges the target Power: own shot charges only as 
  // Straight up with little force: the shot falls back on the shooter.
  f.shooter.x=300;f.shooter.y=500;f.shooter.facing=1;f.target.x=1400;f.target.y=500;
  f.match.terrain.fill(0);f.match.terrain.fill(1,510*WORLD.cols);
- await f.game.command(f.shooter.id,{type:'fire',angle:90,power:15});
+ await chargedFire(f.game,f.shooter.id,{angle:90,power:15});
  f.game.tick(f.match.resolveAt+1);
  const taken=f.events.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact').flatMap(e=>e.hits).filter(h=>h.id===f.shooter.id).reduce((sum,h)=>sum+h.damage,0)/2;
  assert.ok(taken>0&&f.shooter.hp>0);assert.equal(f.target.powerCharge??0,0);
@@ -116,7 +117,7 @@ async function flat(roll=.99){
 /** Fires and lets every projectile land (the ticks the server would run), before the turn ends. */
 async function shoot(f:Awaited<ReturnType<typeof fixture>>,angle:number,power:number,boosts:BoostId[]=[]){
  for(const boost of boosts)await f.game.command(f.shooter.id,{type:'boost',boost});
- await f.game.command(f.shooter.id,{type:'fire',angle,power});
+ await chargedFire(f.game,f.shooter.id,{angle,power});
  if(f.match.state.powerCutIn)f.game.tick(f.match.state.powerCutIn.endsAt);
  const shot=f.match.activeShot!;for(const impact of [...f.match.pendingImpacts??[]])f.game.tick(impact.at);
  return shot;
@@ -126,7 +127,7 @@ function extra(f:Awaited<ReturnType<typeof fixture>>,from:Fighter,x:number){cons
 const chargeOf=(hits:{id:string;damage:number}[],id:string)=>Math.min(POWER_MAX,hits.filter(h=>h.id===id).reduce((sum,h)=>sum+damageCharge(h.damage),0));
 
 test('a missed shot earns 20, once, only after the launches end',async()=>{
- const f=await flat();await f.game.command(f.shooter.id,{type:'fire',angle:45,power:30});
+ const f=await flat();await chargedFire(f.game,f.shooter.id,{angle:45,power:30});
  assert.equal(f.shooter.powerCharge,0,'nothing while the projectile flies');
  const shot=f.match.activeShot!;for(const impact of [...f.match.pendingImpacts!])f.game.tick(impact.at);
  assert.deepEqual(shot.hits,[]);assert.equal(f.shooter.powerCharge,POWER_ATTACK_CHARGE);assert.equal(f.target.powerCharge,0);

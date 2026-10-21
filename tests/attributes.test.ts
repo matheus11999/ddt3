@@ -11,6 +11,7 @@ import type {Profile} from '../shared/protocol';
 import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
+import {chargedFire} from './fixtures/charge';
 
 const close=(actual:number,expected:number,digits=6)=>assert.ok(Math.abs(actual-expected)<10**-digits,`${actual} ≈ ${expected}`);
 const neutral:Equipment={...DEFAULT_EQUIPMENT,hat:'hat-none'};
@@ -154,7 +155,7 @@ test('the server orders turns by Delay: a slow shot lets a quick passer play twi
  assert.equal(attributes(fb.equipment,fb.level).delay,base,'same equipment, same base Delay');
  assert.equal(s.turnId,a.id);assert.equal(fa.delay,base);assert.equal(fb.delay,0);
  // A fires after spending 20 s: +400 on top of the base Delay added when the turn opened.
- s.deadline-=20_000;await game.command(a.id,{type:'fire',angle:45,power:5});assert.equal(fa.delay,base+400);
+ s.deadline-=20_000;await chargedFire(game,a.id,{angle:45,power:5});assert.equal(fa.delay,base+400);
  game.tick(m.resolveAt+1);assert.equal(s.turnId,b.id);assert.equal(fa.delay,base+400);assert.equal(fb.delay,base);
  // B passes at once: +100, still below A, so B plays again.
  await game.command(b.id,{type:'pass'});assert.equal(s.turnId,b.id,'consecutive turn earned by Delay');

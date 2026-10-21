@@ -10,6 +10,7 @@ import {damageAtImpact,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {powerUpConflict,powerUpCost,powerUpShot} from '../shared/powerUps';
 import type {Profile,ServerEvent} from '../shared/protocol';
 import {WORLD} from '../shared/physics';
+import {chargedFire} from './fixtures/charge';
 
 const close=(actual:number,expected:number)=>assert.ok(Math.abs(actual-expected)<1e-9,`${actual} ≠ ${expected}`);
 const COSTS=Object.fromEntries(BOOSTS.map(boost=>[boost.id,boost.cost]));
@@ -80,12 +81,12 @@ for(const [boost,delays] of [['extra1',[0,1]],['extra2',[0,1,2]],['trident',[0,0
  test(`server: ${boost} fires ${delays.length} projectiles in one action, charges Vigor and Delay once and leaves attributes untouched`,async()=>{
   const f=await battle(),before={equipment:structuredClone(f.shooter.equipment),stats:attributes(f.shooter.equipment,f.shooter.level)},vigor=f.shooter.stamina,delay=f.shooter.delay!;
   await f.game.command(f.shooter.id,{type:'boost',boost});assert.equal(f.shooter.stamina,vigor-110);assert.equal(f.shooter.delay,delay+BOOSTS.find(b=>b.id===boost)!.delay);
-  await f.game.command(f.shooter.id,{type:'fire',angle:50,power:55});
+  await chargedFire(f.game,f.shooter.id,{angle:50,power:55});
   const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.filter(p=>!p.fragment).map(p=>p.delay),delays.map(n=>n*VOLLEY_CADENCE_MS));
   const shotDelay=WEAPONS.find(weapon=>weapon.id===f.shooter.equipment.weapon)?.shotDelay??0;
   assert.equal(f.shooter.delay,delay+BOOSTS.find(b=>b.id===boost)!.delay+shotDelay,'shot Delay is added once, not per projectile');assert.equal(f.match.state.phase,'resolving');
   assert.deepEqual(f.shooter.equipment,before.equipment);assert.deepEqual(attributes(f.shooter.equipment,f.shooter.level),before.stats);
-  await f.game.command(f.shooter.id,{type:'fire',angle:50,power:55});assert.equal(f.match.activeShot,shot,'no second action while the sequence resolves');
+  await chargedFire(f.game,f.shooter.id,{angle:50,power:55});assert.equal(f.match.activeShot,shot,'no second action while the sequence resolves');
  });
 }
 
@@ -98,7 +99,7 @@ test('server: insufficient Vigor refuses a power-up without consuming anything',
 test('server: a projectile impact processed twice never deals damage twice',async()=>{
  const f=await battle(),target=f.match.state.players.find(player=>player.id!==f.shooter.id)!;
  target.x=f.shooter.x+40;target.y=600;
- await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});await f.game.command(f.shooter.id,{type:'fire',angle:89,power:1});
+ await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});await chargedFire(f.game,f.shooter.id,{angle:89,power:1});
  const pending=[...f.match.pendingImpacts!],apply=(f.game as unknown as {applyImpact(m:unknown,i:unknown):void}).applyImpact.bind(f.game);
  for(const impact of pending)apply(f.match,impact);const hp=target.hp,hits=f.match.activeShot!.hits.length;
  for(const impact of pending)apply(f.match,impact);assert.equal(target.hp,hp);assert.equal(f.match.activeShot!.hits.length,hits);
@@ -122,7 +123,7 @@ test('server: every valid activation adds its Delay once; a refused one adds nei
 test('server: the Tridente fires each volley at the chosen angle −5°, 0°, +5°, facing either way',async()=>{
  for(const facing of [1,-1] as const){
   const f=await battle();Object.assign(f.shooter,{facing,x:768,y:300});
-  await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});await f.game.command(f.shooter.id,{type:'fire',angle:50,power:60});
+  await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});await chargedFire(f.game,f.shooter.id,{angle:50,power:60});
   // Launch direction of each projectile from its first sampled step (wind 0; gravity bends it well under a degree there).
   const angles=f.match.activeShot!.projectiles.filter(p=>!p.fragment).map(p=>{const [x0,y0]=p.points[0],[x1,y1]=p.points[1];assert.equal(Math.sign(x1-x0),facing,'leaves forward');return Math.atan2(y0-y1,(x1-x0)*facing)*180/Math.PI;});
   assert.equal(angles.length,3);for(const [index,expected] of [45,50,55].entries())assert.ok(Math.abs(angles[index]-expected)<1.5,`${facing}: ${angles}`);

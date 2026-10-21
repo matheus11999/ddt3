@@ -10,6 +10,7 @@ import {crater,createTerrain,ground,supportBelow,trajectory,WORLD} from '../shar
 import type {Profile,ServerEvent,Shot} from '../shared/protocol';
 import {recoveredImpacts} from '../src/game/shotPlayback';
 import {HIDDEN_POSITION} from '../shared/abilities';
+import {chargedFire} from './fixtures/charge';
 
 test('a concealed active shot can reconnect after impacts without revealing or dereferencing absent projectiles',()=>{
  const shot:Shot={id:'concealed',shooterId:'hidden-enemy',hidden:true,startedAt:1000,duration:4000,projectiles:[],impacted:[0,1],hits:[{id:'victim',damage:20,x:400,y:300,projectileIndex:0,critical:false,kind:'splash',quality:.5}]};
@@ -27,7 +28,7 @@ test('a real authoritative crater changes supported aim only at contact and clam
   for(let power=5;power<=25;power+=2){const angle=clampAimAngle(weapon,before,20),path=trajectory(m.terrain,{x,y,facing:1},angle,power,0,weapon,[other]),copy=m.terrain.slice();crater(copy,path.x,path.y,weapon.crater,'garden');const expectedY=supportBelow(copy,x,y-3),after=terrainAimOffset(copy,{x,y:expectedY,facing:1});if(expectedY<WORLD.height&&Math.abs(after-before)>=5){input={x,y,angle,power,before,after,expectedY};break;}}
  }
  assert.ok(input,'the map has an asymmetric crater rim which tilts its supported player');Object.assign(actor,{x:input.x,y:input.y,facing:1,aimAngle:input.angle,aimSlope:input.before});
- const beforeTerrain=m.terrain.slice();await game.command(actor.id,{type:'fire',angle:input.angle,power:input.power});const contact=m.pendingImpacts![0].at;
+ const beforeTerrain=m.terrain.slice();await chargedFire(game,actor.id,{angle:input.angle,power:input.power});const contact=m.pendingImpacts![0].at;
  assert.equal(actor.aimSlope,input.before);assert.deepEqual(m.terrain,beforeTerrain);game.tick(contact-.001);assert.equal(actor.aimSlope,input.before);
  game.tick(contact);assert.equal(actor.y,input.expectedY);assert.equal(actor.aimSlope,input.after);assert.equal(actor.aimAngle,clampAimAngle(weapon,input.after,input.angle+input.after-input.before));assert.notDeepEqual(m.terrain,beforeTerrain);
  const limits=weaponAimLimits(weapon,actor.aimSlope),broadcast=events.filter((event):event is Extract<ServerEvent,{type:'battle'}>=>event.type==='battle').at(-1)!.battle!,published=broadcast.players.find(player=>player.id===actor.id)!;
@@ -44,7 +45,7 @@ test('an invisible fighter keeps its real collision, while nearer terrain blocks
   const match=game.matches.get(roomId)!,actor=match.state.players.find(f=>f.id===players[0].id)!,target=match.state.players.find(f=>f.id===players[1].id)!;
   match.state.turnId=actor.id;match.state.wind=0;match.terrain.fill(0);match.terrain.fill(1,600*WORLD.cols);const wallX=wallFirst?450:519;for(let row=0;row<WORLD.rows;row++)match.terrain[row*WORLD.cols+wallX]=1;
   Object.assign(actor,{x:300,y:600,hp:5000,maxHp:5000,facing:1,aimSlope:0});Object.assign(target,{x:wallFirst?650:430,y:600,hp:5000,maxHp:5000,invisibleTurns:3});events.length=0;
-  await game.command(actor.id,{type:'fire',angle:15,power:20});const shot=match.activeShot!,at=match.pendingImpacts![0].at;assert.equal(target.hp,5000);game.tick(at-.001);assert.equal(target.hp,5000);game.tick(at);
+  await chargedFire(game,actor.id,{angle:15,power:20});const shot=match.activeShot!,at=match.pendingImpacts![0].at;assert.equal(target.hp,5000);game.tick(at-.001);assert.equal(target.hp,5000);game.tick(at);
   const impact=events.find((event):event is Extract<ServerEvent,{type:'impact'}>=>event.type==='impact')!,hit=impact.hits.find(hit=>hit.id===target.id);
   if(wallFirst){assert.ok(shot.projectiles[0].impact.x>=wallX);assert.equal(target.hp,5000);assert.equal(hit,undefined);}
   else{assert.ok(shot.projectiles[0].impact.x<wallX);assert.ok(target.hp<5000);assert.ok(hit);assert.ok(hit.kind==='direct'||hit.kind==='graze');assert.equal(hit.hidden,true);assert.equal(hit.x,HIDDEN_POSITION);assert.equal(hit.y,HIDDEN_POSITION);}

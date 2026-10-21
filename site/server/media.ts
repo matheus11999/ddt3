@@ -1,6 +1,6 @@
 import type pg from 'pg';
 import {randomBytes} from 'node:crypto';
-import {mkdir,rename,writeFile} from 'node:fs/promises';
+import {mkdir,rename,unlink,writeFile} from 'node:fs/promises';
 import {join} from 'node:path';
 import {AccountError} from '../../server/accounts';
 import {FORUM_MEDIA,type ForumMedia} from '../src/forumRules';
@@ -31,17 +31,41 @@ export function sniff(b:Buffer):Mime|null{
  return null;
 }
 
-/** JPEG without its APP1 (EXIF/XMP, where GPS lives) and APP13 segments; anything unusual is left as it was. */
+/** Segments that may carry private data: APP1 (EXIF, XMP, GPS), APP3–APP13 and APP15 (IPTC and vendor blocks) and COM.
+ * APP0 (JFIF), APP2 (ICC color profile) and APP14 (Adobe color transform) stay: the picture needs them to look right. */
+const DROPPED=(marker:number)=>marker===0xfe||marker>=0xe1&&marker<=0xef&&marker!==0xe2&&marker!==0xee;
+const STANDALONE=(marker:number)=>marker===0x01||marker>=0xd0&&marker<=0xd7;
+
+/**
+ * The JPEG walked marker by marker to its end, without metadata (A06, auditoria 21/10): fill bytes between markers are
+ * skipped, every scan (progressive files have many) is copied as is, and anything after the end marker is dropped.
+ * A file this cannot read is refused, never saved as it came.
+ */
 export function stripJpegMetadata(b:Buffer):Buffer{
+ const bad=()=>new AccountError('Não foi possível ler esta imagem JPG. Salve-a de novo e envie outra vez.',415);
+ if(b.length<4||b[0]!==0xff||b[1]!==0xd8)throw bad();
  const parts:Buffer[]=[b.subarray(0,2)];let i=2;
- while(i+4<=b.length&&b[i]===0xff){
+ for(;;){
+  if(i>=b.length||b[i]!==0xff)throw bad();
+  while(b[i+1]===0xff)i++; // fill bytes before a marker
+  if(i+1>=b.length)throw bad();
   const marker=b[i+1];
-  if(marker===0xda)break; // start of scan: the rest is image data
-  const len=b.readUInt16BE(i+2);if(len<2||i+2+len>b.length)return b;
-  if(marker!==0xe1&&marker!==0xed)parts.push(b.subarray(i,i+2+len));
+  if(marker===0xd9){parts.push(b.subarray(i,i+2));break;}
+  if(marker===0x00||marker===0xd8)throw bad();
+  if(STANDALONE(marker)){parts.push(b.subarray(i,i+2));i+=2;continue;}
+  if(i+4>b.length)throw bad();
+  const len=b.readUInt16BE(i+2);if(len<2||i+2+len>b.length)throw bad();
+  if(!DROPPED(marker))parts.push(b.subarray(i,i+2+len));
   i+=2+len;
+  if(marker===0xda){
+   // Entropy-coded data runs to the next marker: 0xFF is followed by 0x00 (a stuffed byte) or a restart marker inside it.
+   const start=i;
+   while(i<b.length&&!(b[i]===0xff&&i+1<b.length&&b[i+1]!==0x00&&!(b[i+1]>=0xd0&&b[i+1]<=0xd7)))i++;
+   if(i>=b.length)throw bad();
+   parts.push(b.subarray(start,i));
+  }
  }
- parts.push(b.subarray(i));return Buffer.concat(parts);
+ return Buffer.concat(parts);
 }
 
 export class MediaStore {
@@ -60,12 +84,24 @@ export class MediaStore {
   if(!mime)throw new AccountError('Envie uma imagem (PNG, JPG, GIF, WEBP) ou um vídeo (MP4, WEBM).',415);
   const {kind,ext}=TYPES[mime];
   if(body.length>FORUM_MEDIA.maxBytes[kind])throw new AccountError(kind==='image'?`A imagem pode ter até ${FORUM_MEDIA.maxBytes.image/1048576} MB.`:`O vídeo pode ter até ${FORUM_MEDIA.maxBytes.video/1048576} MB.`,413);
-  const today=await this.pool.query("SELECT count(*)::int AS n FROM forum_media WHERE account_id=$1 AND created_at>now()-interval '1 day'",[accountId]);
-  if(today.rows[0].n>=FORUM_MEDIA.perDay)throw new AccountError('Você chegou ao limite de envios de hoje. Tente amanhã.',429);
   const data=mime==='image/jpeg'?stripJpegMetadata(body):body;
   const id=randomBytes(12).toString('hex'),file=join(this.dir,`${id}.${ext}`);
-  await writeFile(`${file}.part`,data,{flag:'wx'});await rename(`${file}.part`,file);
-  await this.pool.query('INSERT INTO forum_media(id,account_id,kind,ext,size) VALUES($1,$2,$3,$4,$5)',[id,accountId,kind,ext,data.length]);
+  // The day's quota is reserved under a lock per account (A05): two uploads racing for the last slot get one success.
+  // The row and the file are written inside that transaction; a failure removes the file, so nothing is left behind.
+  const c=await this.pool.connect();let wrote=false;
+  try{
+   await c.query('BEGIN');
+   await c.query("SELECT pg_advisory_xact_lock(hashtext('forum_media:'||$1))",[accountId]);
+   const today=await c.query("SELECT count(*)::int AS n,coalesce(sum(size),0)::bigint AS bytes FROM forum_media WHERE account_id=$1 AND created_at>now()-interval '1 day'",[accountId]);
+   if(today.rows[0].n>=FORUM_MEDIA.perDay||Number(today.rows[0].bytes)+data.length>FORUM_MEDIA.perDayBytes)throw new AccountError('Você chegou ao limite de envios de hoje. Tente amanhã.',429);
+   await c.query('INSERT INTO forum_media(id,account_id,kind,ext,size) VALUES($1,$2,$3,$4,$5)',[id,accountId,kind,ext,data.length]);
+   await writeFile(`${file}.part`,data,{flag:'wx'});wrote=true;await rename(`${file}.part`,file);
+   await c.query('COMMIT');
+  }catch(e){
+   await c.query('ROLLBACK').catch(()=>{});
+   if(wrote)await Promise.all([unlink(`${file}.part`).catch(()=>{}),unlink(file).catch(()=>{})]);
+   throw e;
+  }finally{c.release();}
   return {id,kind,url:`/media/${id}.${ext}`};
  }
  /** The author's own, not yet used uploads, in the order given; marks them used. */

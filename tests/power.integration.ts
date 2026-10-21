@@ -19,7 +19,7 @@ try{
   for(let angle=limits.minAngle;angle<=limits.maxAngle;angle+=2)for(let power=10;power<=100;power+=2){const r=trajectory(terrain,fighter,angle,power,battle.wind,weapon,[target]),score=Math.hypot(r.x-target.x,r.y-(target.y-25));if(score<best.score)best={score,angle,power};}
   const powered=(fighter.powerCharge??0)>=200;
   if(powered){const armed=(await actor.request({type:'power'},'battle',e=>e.battle?.players.some(p=>p.id===fighter.id&&p.powerArmed)===true)).battle!;assert.equal(armed.players.find(p=>p.id===fighter.id)!.powerCharge,0);}
-  const mark=actor.send({type:'fire',angle:best.angle,power:best.power});
+  await actor.charge(best.power,best.angle);const mark=actor.send({type:'fire',angle:best.angle,power:best.power});
   if(powered){const cut=(await actor.wait('battle',e=>!!e.battle?.powerCutIn,mark)).battle!;assert.equal(actor.events.filter(e=>e.sequence>mark&&e.event.type==='shot').length,0);assert.deepEqual(cut.players.map(p=>p.hp),battle.players.map(p=>p.hp));}
   const shot=(await actor.wait('shot',()=>true,mark,15000)).shot;assert.equal(shot.powered,powered);assert.deepEqual(shot.hits,[]);
   const contact=await actor.wait('impact',event=>event.shotId===shot.id&&event.hits.some(hit=>hit.id===target.id),mark,shot.duration+10000);assert.ok(contact.hits.some(hit=>hit.id===target.id),'ballistic search must hit the enemy at authoritative impact');

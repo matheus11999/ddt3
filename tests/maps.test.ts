@@ -8,6 +8,7 @@ import {Game} from '../server/game';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
+import {chargedFire} from './fixtures/charge';
 
 test('every map has four balanced, supported mirrored spawns per team',()=>{
  for(const id of MAP_IDS){const map=getMap(id),terrain=createTerrain(id);assert.deepEqual(terrain,createTerrain(id));
@@ -72,7 +73,7 @@ for(const map of MAP_IDS)test(`${map}: two clients receive identical impacts and
  const [a,b]=players;await game.command(a.id,{type:'create',practice:true,name:'Map verification',mode:'1v1',map});const roomId=game.peers.get(a.id)!.roomId!;
  await game.command(b.id,{type:'join',roomId});await game.command(b.id,{type:'ready'});await game.command(a.id,{type:'start'});
  const match=game.matches.get(roomId)!,before=match.terrain.slice(),first=match.state.players.find(f=>f.id===match.state.turnId)!;
- await game.command(first.id,{type:'fire',angle:65,power:20});
+ await chargedFire(game,first.id,{angle:65,power:20});
  const shotA=events.get(a.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;
  const shotB=events.get(b.id)!.find((e):e is Extract<ServerEvent,{type:'shot'}>=>e.type==='shot')!.shot;assert.deepEqual(shotA,shotB);
  assert.deepEqual(match.terrain,before,'fire does not apply future destruction');game.tick(match.resolveAt+1);

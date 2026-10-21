@@ -7,6 +7,7 @@ import type {ProfileStore} from '../server/store';
 import type {Profile,ServerEvent} from '../shared/protocol';
 import {crater,ground,supportBelow,unpackTerrain} from '../shared/physics';
 import {VOLLEY_CADENCE_MS} from '../shared/combat';
+import {chargedFire} from './fixtures/charge';
 
 async function fixture(){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>();
@@ -39,7 +40,7 @@ test('the server rejects walking into a crate without consuming movement vigor',
 
 test('extra volleys use a fixed cadence before the first impact and terrain settles only at impact',async()=>{
  const {game,events,match,shooter}=await fixture();shooter.x=650;shooter.y=ground(match.terrain,650);shooter.hp=shooter.maxHp=10000;const before=match.terrain.slice();
- await game.command(shooter.id,{type:'boost',boost:'extra1'});await game.command(shooter.id,{type:'fire',angle:85,power:20});
+ await game.command(shooter.id,{type:'boost',boost:'extra1'});await chargedFire(game,shooter.id,{angle:85,power:20});
  const shot=events.get(shooter.id)!.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.equal(shot.projectiles.length,2);const [first,second]=shot.projectiles;
  assert.equal(second.delay,VOLLEY_CADENCE_MS);assert.ok(second.delay<first.flightTime);assert.deepEqual(second.points[0],first.points[0]);assert.deepEqual(match.terrain,before);
@@ -52,7 +53,7 @@ test('extra volleys use a fixed cadence before the first impact and terrain sett
 
 test('resolution completion and battle end publish authoritative terrain snapshots',async()=>{
  const {game,events,players,match,shooter}=await fixture();
- await game.command(shooter.id,{type:'fire',angle:65,power:20});game.tick(match.resolveAt+1);
+ await chargedFire(game,shooter.id,{angle:65,power:20});game.tick(match.resolveAt+1);
  for(const player of players){const battle=lastBattle(events.get(player.id)!);assert.equal(battle.phase,'aiming');assert.ok(battle.terrain);assert.deepEqual(unpackTerrain(Buffer.from(battle.terrain,'base64')),match.terrain);}
  await game.command(players[1].id,{type:'leave'});const finished=lastBattle(events.get(players[0].id)!);
  assert.equal(finished.phase,'finished');assert.ok(finished.terrain);assert.deepEqual(unpackTerrain(Buffer.from(finished.terrain,'base64')),match.terrain);

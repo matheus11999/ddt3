@@ -14,6 +14,7 @@ import type {ProfileStore} from '../server/store';
 import {WEAPONS,weaponStats} from '../shared/catalog';
 import {trajectory,WORLD} from '../shared/physics';
 import type {Profile,ServerEvent} from '../shared/protocol';
+import {chargedFire} from './fixtures/charge';
 
 const service=()=>{const a=normalizeProfile({id:randomUUID(),name:'Ária',gender:'male',gold:500}),profiles=new Map([[a.id,a]]);return {pets:new MemoryPetStore(profiles,()=>0),profiles,a};};
 function duel(stage=0,skills:{id:string;level:number}[]=[{id:'verdalia-roots',level:1}]){
@@ -97,7 +98,7 @@ async function arena(){
 const impacts=(events:ServerEvent[])=>events.filter((e):e is Extract<ServerEvent,{type:'impact'}>=>e.type==='impact');
 
 test('after the last projectile, Verdália strikes where the shot landed, as its own damage number',async()=>{
- const f=await arena();await f.game.command(f.shooter.id,{type:'fire',...f.aim});
+ const f=await arena();await chargedFire(f.game,f.shooter.id,{...f.aim});
  const pending=f.match.pendingImpacts!,strike=pending.find(p=>p.petStrike)!;assert.ok(strike);
  assert.ok(pending.every(p=>p===strike||p.at<strike.at),'the plant attacks after every projectile');
  f.game.tick(strike.at-1);const afterShot=f.target.hp;assert.ok(afterShot<5000);
@@ -113,7 +114,7 @@ test('Orbe da Natureza: one green projectile, always critical, and no other powe
  await f.game.command(f.shooter.id,{type:'boost',boost:'extra1'});f.shooter.boosts=[];
  await f.game.command(f.shooter.id,{type:'pet-skill',skill:'verdalia-orb'});
  for(const command of [{type:'boost',boost:'extra2'},{type:'power'},{type:'flight',active:true}] as const){await f.game.command(f.shooter.id,command);assert.match(f.error()!,/impede/);}
- await f.game.command(f.shooter.id,{type:'fire',...f.aim});
+ await chargedFire(f.game,f.shooter.id,{...f.aim});
  const shot=f.match.activeShot!;assert.equal(shot.projectiles.length,1);assert.equal(shot.projectiles[0].pet?.projectile,'verdalia-orb');assert.equal(shot.projectiles[0].pet?.species,'verdalia');
  f.game.tick(f.match.pendingImpacts![0].at);const hit=impacts(f.events)[0].hits.find(h=>h.id===f.target.id)!;assert.equal(hit.critical,true);
  f.game.tick(f.match.resolveAt+1);assert.equal(f.shooter.petEffects?.some(e=>e.kind==='special-shot')??false,false);
@@ -121,7 +122,7 @@ test('Orbe da Natureza: one green projectile, always critical, and no other powe
 test('Verdália strikes where the last projectile landed, the middle one of the last Tridente volley',async()=>{
  const f=await arena();
  await f.game.command(f.shooter.id,{type:'boost',boost:'extra1'});await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});
- await f.game.command(f.shooter.id,{type:'fire',...f.aim});
+ await chargedFire(f.game,f.shooter.id,{...f.aim});
  const projectiles=f.match.activeShot!.projectiles;assert.equal(projectiles.length,6);
  const strike=f.match.pendingImpacts!.find(p=>p.petStrike)!,last=projectiles[4].impact;
  assert.deepEqual(strike.petStrike,{x:last.x,y:last.y});

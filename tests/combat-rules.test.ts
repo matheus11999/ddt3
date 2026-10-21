@@ -9,6 +9,7 @@ import {criticalChance,criticalFromRoll,damageAtImpact,impactExposure,shotModifi
 import {fighterHitBounds,trajectory,unpackTerrain,volley,WORLD} from '../shared/physics';
 import {STRAIGHT_BALL} from './fixtures/weapons';
 import type {Profile,ServerEvent} from '../shared/protocol';
+import {chargedFire} from './fixtures/charge';
 
 async function fixture(roll=.99){
  const profiles=new Map<string,Profile>(),events:ServerEvent[]=[],store={getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore;
@@ -100,7 +101,7 @@ test('one impact damages two nearby enemies independently and excludes a micro-s
  const edge={...structuredClone(f.target),id:randomUUID(),name:'Edge enemy',x:path.x+Math.sqrt(radius*radius-vertical*vertical),slot:2};
  f.match.state.players.push(near,edge);const direct=trajectory(f.match.terrain,f.shooter,f.aim.angle,f.aim.power,0,weapon,[f.target,near,edge]);assert.equal(direct.hitId,f.target.id);
  const expected=damageAtImpact(f.shooter.equipment,near.equipment,{attenuation:impactExposure(near,direct,weapon.blast).attenuation});assert.ok(expected>1);
- await f.game.command(f.shooter.id,{type:'fire',...f.aim});const at=f.match.pendingImpacts![0].at;
+ await chargedFire(f.game,f.shooter.id,{...f.aim});const at=f.match.pendingImpacts![0].at;
  assert.equal(f.target.hp,5000);assert.equal(near.hp,5000);assert.equal(edge.hp,5000);f.game.tick(at);
  const hits=impacts(f.events)[0].hits,primary=hits.find(hit=>hit.id===f.target.id)!,secondary=hits.find(hit=>hit.id===near.id)!;
  assert.equal(primary.kind,'direct');assert.equal(secondary.kind,'splash');assert.ok(primary.damage>secondary.damage);assert.equal(secondary.damage,expected);
@@ -116,7 +117,7 @@ test('scheduled projectiles launch at the volley cadence and a delayed launch se
 
 test('HP, Power and authoritative terrain remain unchanged until contact, including reconnect and duplicate ticks',async()=>{
  const f=await fixture(),before=structuredClone(f.match.state.players),terrain=f.match.terrain.slice();
- await f.game.command(f.shooter.id,{type:'fire',...f.aim});const shot=f.events.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
+ await chargedFire(f.game,f.shooter.id,{...f.aim});const shot=f.events.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;
  assert.deepEqual(shot.hits,[]);assert.deepEqual(shot.impacted,[]);assert.equal(f.target.hp,before[1].hp);assert.equal(f.target.powerCharge,0);assert.deepEqual(f.match.terrain,terrain);
  const contact=shot.startedAt+shot.projectiles[0].delay+shot.projectiles[0].flightTime;f.game.tick(contact-.001);assert.equal(f.target.hp,before[1].hp);assert.equal(impacts(f.events).length,0);
  const resumed:ServerEvent[]=[];f.game.disconnect(f.players[0].id);f.game.connect(f.players[0],event=>resumed.push(structuredClone(event)));
@@ -129,7 +130,7 @@ test('HP, Power and authoritative terrain remain unchanged until contact, includ
 
 test('a lethal hit kills at impact but the result waits for the shot to end, and critical roll is server-controlled',async()=>{
  for(const roll of [.99,0]){const f=await fixture(roll);f.target.hp=1;
-  await f.game.command(f.shooter.id,{type:'fire',...f.aim});assert.equal(f.target.hp,1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.rewards,undefined);
+  await chargedFire(f.game,f.shooter.id,{...f.aim});assert.equal(f.target.hp,1);assert.equal(f.match.state.phase,'resolving');assert.equal(f.match.state.rewards,undefined);
   const at=f.match.pendingImpacts![0].at;f.game.tick(at-.001);assert.equal(f.target.hp,1);f.game.tick(at);assert.equal(f.target.hp,0);assert.equal(f.match.state.phase,'resolving','the shot finishes playing before the result');assert.equal(f.match.state.rewards,undefined);
   f.game.tick(f.match.resolveAt);assert.equal(f.match.state.phase,'finished');assert.equal(f.match.state.winner,0);assert.ok(f.match.state.rewards);
   const hit=impacts(f.events).flatMap(event=>event.hits).find(value=>value.id===f.target.id)!;assert.equal(hit.critical,roll===0);assert.ok(hit.damage>1,'the number shows the real damage, not the HP that was left');
@@ -140,7 +141,7 @@ test('repeated tools require the authoritative vigor budget and cannot mutate st
  const f=await fixture(),vigor=f.shooter.stamina;
  for(const boost of ['extra2','trident'] as const)await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,['extra2','trident']);assert.equal(f.shooter.stamina,vigor-220);
  const before=structuredClone(f.shooter);await f.game.command(f.shooter.id,{type:'boost',boost:'damage20'});assert.deepEqual(f.shooter,before);
- await f.game.command(f.shooter.id,{type:'fire',angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,0,0,1,1,1,2,2,2].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>2*VOLLEY_CADENCE_MS);
+ await chargedFire(f.game,f.shooter.id,{angle:60,power:50});const shot=f.match.activeShot!;assert.deepEqual(shot.projectiles.map(projectile=>projectile.delay),[0,0,0,1,1,1,2,2,2].map(n=>n*VOLLEY_CADENCE_MS));assert.ok(shot.projectiles[0].flightTime>2*VOLLEY_CADENCE_MS);
  const snapshot=structuredClone(f.match.state);await f.game.command(f.shooter.id,{type:'boost',boost:'damage50'});assert.deepEqual(f.match.state,snapshot);
  assert.equal(attributes(f.shooter.equipment).luck,145);
 });

@@ -79,7 +79,7 @@ async function run(){
     const wanted='earth';
     const goal=getMap(map).spawns[1][1];
     const command=aim(battle,replay,goal,wanted),marks=clients.map(c=>c.sequence),turn=battle.turnNumber;
-    shooter.send({type:'fire',...command});
+    await shooter.charge(command.power,command.angle);shooter.send({type:'fire',...command});
     const received=await Promise.all(clients.map((client,index)=>client.wait('shot',()=>true,marks[index])));
     const shot=received[0].shot;shots.push(shot);
     assert.equal(shot.projectiles.length,round===0?9:1,`${map}: legal multishot count`);

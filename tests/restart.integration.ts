@@ -22,7 +22,7 @@ async function run(){
  await client.request({type:'bot'},'room',e=>e.room?.players.length===2);
  const first=await client.request({type:'start'},'battle',e=>!!e.battle);const battleId=first.battle!.id;
  // Spend a turn so there is progress to keep: shoot, then wait for the bot's turn to come and go.
- await client.request({type:'fire',angle:50,power:55},'battle',e=>e.battle?.phase==='aiming'&&e.battle.turnNumber>=2,15000);
+ await client.charge(55,50);await client.request({type:'fire',angle:50,power:55},'battle',e=>e.battle?.phase==='aiming'&&e.battle.turnNumber>=2,15000);
  const mine=await client.wait('battle',e=>e.battle?.phase==='aiming'&&e.battle.turnId===session.profile.id&&e.battle.turnNumber>=3,0,20000);
  const before=mine.battle as Battle;await pause(800);
 

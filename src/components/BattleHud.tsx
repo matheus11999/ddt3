@@ -47,7 +47,7 @@ const ignoresGameKeys=(target:EventTarget|null)=>target instanceof Element&&!!ta
 const ignoresMoveKeys=(target:EventTarget|null)=>target instanceof Element&&!!target.closest('input,textarea,select,[contenteditable="true"],[role="dialog"],[role="menu"]');
 
 export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:number)=>void;blocked:boolean}){
- const {battle,profile,offset,status}=useGame();const touch=useMobileOrientation().mobile;
+ const {battle,profile,offset,status,shotRetry}=useGame();const touch=useMobileOrientation().mobile;
  const b=battle!,me=b.players.find(p=>p.id===profile!.id)!,turn=b.players.find(p=>p.id===b.turnId);
  const opponents=b.players.filter(player=>player.team!==me.team),instance=b.instance,worldBoss=b.worldBoss,monsterTurn=b.turnId===MONSTER_TURN_ID||b.turnId===DRAGON_TURN_ID;
  const introUntil=instance?.introUntil??worldBoss?.introUntil;
@@ -129,24 +129,31 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  useLayoutEffect(()=>{paintedPower.current=power;},[power]);
  // Outside a charge (start, release, last shot) the fill snaps to the whole value the shot used.
  useLayoutEffect(()=>{if(!charging)powerTrack.current?.style.setProperty('--shot-power',`${power}%`);},[power,charging]);
- const cancelCharge=useCallback(()=>{
+ const stopCharge=useCallback(()=>{
   chargeStarted.current=null;chargeSource.current=null;chargingRef.current=false;pointer.current=null;setCharging(false);
  },[]);
+ // The server times the hold itself (shared/forceBar.ts forceMatchesHold): the start and a dropped charge go out at
+ // once instead of waiting for the next aim sync, so its clock starts with the bar.
+ const cancelCharge=useCallback(()=>{
+  const wasCharging=chargingRef.current;stopCharge();
+  if(wasCharging&&live.current.canAct&&!turnSubmitted.current)client.send({type:'aim',angle:live.current.angle,power:paintedPower.current,charging:false});
+ },[stopCharge]);
  const beginCharge=useCallback((source:ChargeSource)=>{
   if(!live.current.canAct||turnSubmitted.current||chargingRef.current)return false;
   chargeStarted.current=performance.now();chargeSource.current=source;chargingRef.current=true;
+  client.send({type:'aim',angle:live.current.angle,power:MIN_POWER,charging:true});
   setPower(MIN_POWER);setFalling(false);setCharging(true);return true;
  },[]);
  const releaseCharge=useCallback((source:ChargeSource)=>{
   if(!chargingRef.current||chargeSource.current!==source)return;
   const value=paintedPower.current;
-  cancelCharge();
+  stopCharge();
   if(!live.current.canAct||turnSubmitted.current)return;
   // A RAF update may already be queued when keyup arrives. Replace it with
   // the committed release value so the frozen meter agrees with the shot.
   turnSubmitted.current=true;setSubmitted('shot');setPower(value);setLastPower(value);setLastWind(live.current.wind);
   client.send({type:'fire',angle:live.current.angle,power:value});
- },[cancelCharge]);
+ },[stopCharge]);
  // The big fire button and the ruler share one pointer charge: press to start, release to fire.
  const chargeByPointer={
   onPointerDown:(event:ReactPointerEvent<HTMLElement>)=>{if(event.button!==0)return;event.preventDefault();if(beginCharge('pointer')){pointer.current=event.pointerId;event.currentTarget.setPointerCapture(event.pointerId);}},
@@ -172,8 +179,10 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[]);
 
  useLayoutEffect(()=>{
-  cancelCharge();turnSubmitted.current=false;setSubmitted(null);
- },[b.id,b.turnId,b.turnNumber,cancelCharge]);
+  stopCharge();turnSubmitted.current=false;setSubmitted(null);
+ },[b.id,b.turnId,b.turnNumber,stopCharge]);
+ // A release the server refused (the bar it timed shows another force): the turn goes on, so the bar may charge again.
+ useEffect(()=>{if(shotRetry&&turnSubmitted.current&&submitted==='shot'){turnSubmitted.current=false;setSubmitted(null);}},[shotRetry]);
  useLayoutEffect(()=>{if(!canAct)cancelCharge();},[canAct,cancelCharge]);
  useEffect(()=>{
   const tick=()=>setSeconds(Math.max(0,Math.ceil((b.deadline-Date.now()-offset)/1000)));
