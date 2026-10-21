@@ -7,6 +7,7 @@ import {AbilitySlots} from './AbilitySlots';
 import {PetSkillBar} from './PetSkillBar';
 import {AngleArrow,AngleGauge,PowerOrb,TouchFireDial,WindGauge} from './CombatGauges';
 import {ActivePortrait,FighterRoster,Minimap} from './BattleTopBar';
+import {SettingsWindow} from './SettingsWindow';
 import {ExpeditionFoes,ExpeditionBanners,ExpeditionObjective} from './ExpeditionBattle';
 import {MONSTER_TURN_ID} from '../../shared/instanceTurn';
 import {DRAGON_TURN_ID} from '../../shared/worldBoss';
@@ -56,14 +57,14 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  const weapon=aimSource(me),aimSlope=me.aimSlope??0;
  const {minAngle,maxAngle}=weaponAimLimits(weapon,aimSlope);
  const [power,setPower]=useState(MIN_POWER),[falling,setFalling]=useState(false),[lastPower,setLastPower]=useState<number|null>(null),[lastWind,setLastWind]=useState<number|null>(null);
- const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false);
+ const [charging,setCharging]=useState(false),[seconds,setSeconds]=useState(30),[exit,setExit]=useState(false),[settings,setSettings]=useState(false);
  const [submitted,setSubmitted]=useState<'shot'|'pass'|null>(null);
  const mine=b.turnId===me.id&&b.phase==='aiming';
  // A fallen fighter keeps watching until the end (and keeps the reward) but plays no more.
  const fallen=me.hp<=0&&b.phase!=='finished'&&!worldBoss;
- const canAct=mine&&!intro&&!blocked&&!exit&&status==='online'&&me.hp>0&&!submitted;
+ const canAct=mine&&!intro&&!blocked&&!exit&&!settings&&status==='online'&&me.hp>0&&!submitted;
  // Turning in place is free and allowed at any time of the match: anyone's turn, a shot in flight, the monsters' turn (the server checks it too).
- const canFace=b.phase!=='finished'&&!blocked&&!exit&&status==='online'&&me.hp>0;
+ const canFace=b.phase!=='finished'&&!blocked&&!exit&&!settings&&status==='online'&&me.hp>0;
  // The angle can be set at any time too (user request, 18/10/2026); off turn it stays local and is sent when the turn starts.
  // Also while the force bar is held (user request, 20/10/2026): the aim sync sends it and the release fires with it.
  const canAim=canFace&&!(mine&&!!submitted);
@@ -280,12 +281,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    </div>
    {mine&&!intro&&<button type="button" disabled={!canAct} className="skip-button" aria-label="Passar turno" onClick={passTurn}><span>PASS</span><kbd>P</kbd></button>}
    </div>
-   {instance?<div className="instance-side"><Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/><ExpeditionObjective battle={b}/></div>
-    :<Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}}/>}
+   {instance?<div className="instance-side"><Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}} onSettings={()=>{cancelCharge();setSettings(true);}}/><ExpeditionObjective battle={b}/></div>
+    :<Minimap battle={b} myTeam={me.team} myId={me.id} onExit={()=>{cancelCharge();setExit(true);}} onSettings={()=>{cancelCharge();setSettings(true);}}/>}
   </div>
   {instance&&<ExpeditionBanners battle={b} intro={intro}/>}
   {worldBoss&&<WorldBossBanner battle={b}/>}
-  {mine&&!intro&&!blocked&&!exit&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
+  {mine&&!intro&&!blocked&&!exit&&!settings&&<div key={`${b.id}-${b.turnNumber}`} className="turn-announcement" role="status"><BattleText>SUA VEZ!</BattleText><span>CAPRICHE NA MIRA</span></div>}
 
   {fallen&&<div className="fallen-banner" role="status"><strong>VOCÊ CAIU</strong><span>{me.left?'Você saiu da partida':'Assista até o fim para receber a recompensa'}</span></div>}
   <aside className="battle-ability-tray" aria-label="Habilidades e voo">
@@ -355,6 +356,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <button type="button" disabled={!canFace} aria-label="Andar para a direita" {...holdWalk(1)}><AngleArrow up/></button>
    </div>
   </div>}
+  {settings&&<SettingsWindow tab="sound" onClose={()=>setSettings(false)}/>}
   {exit&&<div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="battle-exit-title"><div className="confirm-panel"><h2 id="battle-exit-title">Sair da batalha?</h2><p>{worldBoss?'O dano que você já causou continua no ranking.':b.phase==='finished'?'Seu personagem será retirado desta partida.':fallen?'Se sair agora, você não recebe a recompensa do fim da partida.':'Seu personagem será retirado desta partida e você não recebe a recompensa do fim da partida.'}</p><div><button type="button" className="button quiet" autoFocus onClick={()=>setExit(false)}>Continuar</button><button type="button" className="button gold" onClick={()=>client.send({type:'leave'})}>Sair</button></div></div></div>}
   <BattleChat/>
   <PowerCutIn battle={b} offset={offset}/>

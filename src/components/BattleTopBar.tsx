@@ -1,6 +1,6 @@
 import {view} from '../game/viewport';
 import {useEffect,useRef} from 'react';
-import {LogOut} from 'lucide-react';
+import {LogOut,Settings} from 'lucide-react';
 import {getMap} from '../../shared/maps';
 import {WORLD} from '../../shared/physics';
 import type {Battle,Fighter} from '../../shared/protocol';
@@ -57,7 +57,7 @@ export function FighterRoster({players,myTeam,turnId,side}:{players:Fighter[];my
 const MINI_W=216,miniHeight=(worldWidth:number)=>Math.round(MINI_W*WORLD.height/worldWidth);
 
 /** Whole-map overview: live terrain, fighters and the camera's view (top-right). */
-export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;myId:string;onExit:()=>void}){
+export function Minimap({battle,myTeam,myId,onExit,onSettings}:{battle:Battle;myTeam:0|1;myId:string;onExit:()=>void;onSettings?:()=>void}){
  const canvas=useRef<HTMLCanvasElement>(null),live=useRef({battle,myTeam,myId});live.current={battle,myTeam,myId};
  const worldWidth=getMap(battle.map).dimensions.width,MINI_H=miniHeight(worldWidth),cols=worldWidth/WORLD.cell;
  useEffect(()=>{
@@ -104,7 +104,7 @@ export function Minimap({battle,myTeam,myId,onExit}:{battle:Battle;myTeam:0|1;my
   sceneView.look={x:(event.clientX-box.left)/box.width*worldWidth,y:(event.clientY-box.top)/box.height*WORLD.height};
  };
  return <section className="battle-minimap" aria-label="Minimapa">
-  <header><span>{getMap(battle.map).name}</span><small>Turno {battle.turnNumber}</small><button type="button" className="battle-exit" title="Sair da batalha" aria-label="Sair da batalha" onClick={onExit}><LogOut size={14}/></button></header>
+  <header><span>{getMap(battle.map).name}</span><small>Turno {battle.turnNumber}</small>{onSettings&&<button type="button" className="battle-settings" title="Ajustes" aria-label="Ajustes" onClick={onSettings}><Settings size={13}/></button>}<button type="button" className="battle-exit" title="Sair da batalha" aria-label="Sair da batalha" onClick={onExit}><LogOut size={14}/></button></header>
   <canvas ref={canvas} width={MINI_W} height={MINI_H} aria-hidden="true" title="Arraste para ver o mapa"
    onPointerDown={event=>{event.currentTarget.setPointerCapture(event.pointerId);look(event);}}
    onPointerMove={event=>{if(event.currentTarget.hasPointerCapture(event.pointerId))look(event);}}

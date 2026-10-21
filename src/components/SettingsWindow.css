@@ -1,0 +1,18 @@
+/* Ajustes tabs (Geral | Som) and the overall volume slider. */
+.settings-tabs{display:flex;gap:6px;padding:12px 25px 0;border-bottom:1px solid #6e819c55}
+.settings-tabs>button{min-width:92px;height:32px;padding:0 16px;border:1px solid #6e91b4;border-bottom:0;border-radius:10px 10px 0 0;background:#0c2445;color:#a9c2dc;font-weight:800;font-size:13px}
+.settings-tabs>button.on{background:linear-gradient(#2f6aa0,#174172);border-color:#9ac4ea;color:#fff4cf}
+.settings-window label.volume-row{display:flex;gap:14px;margin:0;font-size:inherit}
+.volume-row>span{flex:none}
+.volume-row>b{flex:none;min-width:44px;text-align:right;color:#ffe9a8;font-weight:800}
+.volume-row.muted{opacity:.55}
+.volume-row input[type=range]{flex:1;min-width:0;height:22px;margin:0;padding:0;border:0;background:none;appearance:none;-webkit-appearance:none;cursor:pointer;touch-action:none}
+.volume-row input[type=range]::-webkit-slider-runnable-track{height:8px;border-radius:4px;border:1px solid #6e91b4;background:linear-gradient(90deg,#3fc28f var(--fill),#0c2445 var(--fill))}
+.volume-row input[type=range]::-moz-range-track{height:8px;border-radius:4px;border:1px solid #6e91b4;background:linear-gradient(90deg,#3fc28f var(--fill),#0c2445 var(--fill))}
+.volume-row input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;margin-top:-7px;border-radius:50%;border:2px solid #fff3c4;background:radial-gradient(circle at 35% 30%,#ffe58a,#d89a2d);box-shadow:0 1px 3px #0009}
+.volume-row input[type=range]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;border:2px solid #fff3c4;background:radial-gradient(circle at 35% 30%,#ffe58a,#d89a2d);box-shadow:0 1px 3px #0009}
+.compact-modal-layer .settings-tabs{padding:10px 12px 0}
+/* Gear beside Sair on the battle minimap: same round button, in blue instead of red. */
+.artillery-hud .battle-minimap .battle-settings{position:static;display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0 0 0 4px;border:1px solid #a9d3ff;border-radius:50%;background:linear-gradient(#5aa2ff,#1a4d9a);box-shadow:inset 0 1px #d6ebff,0 1px #0008;color:#fff}
+html.mobile-landscape .artillery-hud .battle-minimap .battle-settings{width:32px;height:32px;margin-left:6px}
+html.mobile-landscape .artillery-hud .battle-minimap .battle-settings svg{width:18px;height:18px}
