@@ -738,7 +738,7 @@ export class Game {
     case 'start':if(this.room(p).kind==='expedition')this.startExpedition(p);else this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
     case 'ability':{const {m,f}=this.turn(p);this.assertPetFree(f,'ability');this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
-    case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
+    case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
     case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{

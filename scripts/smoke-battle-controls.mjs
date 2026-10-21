@@ -93,6 +93,12 @@ try{
  await blurControl();
  await page.keyboard.down('Space');await waitForCharge(page,20);await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('Space');await assertNoFire(before,'window blur cancels a held charge');
 
+ // A tool clicked mid-charge activates and the bar keeps running (user request, 21/10/2026).
+ await blurControl();await page.keyboard.down('Space');await waitForCharge(page,15);const boostsBefore=commands.filter(command=>command.type==='boost').length;
+ await page.locator('[data-boost="damage10"]').click();await expect(meter).toHaveAttribute('data-charging','true');await waitForCharge(page,40);
+ assert.equal(commands.filter(command=>command.type==='boost').length,boostsBefore+1,'the clicked tool is sent while charging');assert.equal(fires().length,before,'clicking a tool never fires');
+ await page.evaluate(()=>window.dispatchEvent(new Event('blur')));await page.keyboard.up('Space');await assertNoFire(before,'window blur still cancels after a tool click');checks.push('a tool clicked mid-charge activates without stopping the bar');
+
  await blurControl();await page.keyboard.down('Space');await waitForCharge(page,20);await page.keyboard.press('b');
  const bag=page.getByRole('dialog',{name:'Mochila'});await expect(bag).toBeVisible();await page.keyboard.up('Space');await assertNoFire(before,'opening a modal cancels rather than releasing a shot');
  const search=bag.getByRole('textbox',{name:'Buscar item'});await search.focus();await search.press('Space');await assertNoFire(before,'Space in a focused text input does not shoot');await bag.getByRole('button',{name:'Fechar',exact:true}).click();
