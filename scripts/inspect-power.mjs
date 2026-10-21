@@ -12,15 +12,21 @@ try{
   const clientPath=code.match(/from "(\/src\/client.ts[^\"]*)"/)[1],catalogPath=code.match(/from "(\/shared\/catalog.ts[^\"]*)"/)[1],reactPath=main.match(/from "([^\"]*\/react\.js[^\"]*)"/)[1],domPath=main.match(/from "([^\"]*\/react-dom_client.js[^\"]*)"/)[1];
   const {client}=await import(clientPath),{DEFAULT_EQUIPMENT}=await import(catalogPath),{BattleHud}=await import('/src/components/BattleHud.tsx'),{Scene}=await import('/src/game/Scene.tsx'),{createTerrain,ground}=await import('/shared/physics.ts');
   const r=(await import(reactPath)).default,d=(await import(domPath)).default,React=r.__esModule?r.default:r,ReactDOM=d.__esModule?d.default:d;
-  const terrain=createTerrain('snow'),players=[{id:'p0',name:'Faísca',team:0,x:385},{id:'p1',name:'Tempestade',team:1,x:1040}].map(p=>({...p,level:42,slot:0,ready:true,bot:false,connected:true,hp:1900,maxHp:2400,stamina:300,maxStamina:300,facing:p.team===0?1:-1,equipment:{...DEFAULT_EQUIPMENT,weapon:'dynamite'},boosts:[],powerCharge:p.team===0?65:30,powerArmed:false,y:ground(terrain,p.x)}));
+  const terrain=createTerrain('snow'),players=[{id:'p0',name:'Faísca',team:0,x:385},{id:'p1',name:'Tempestade',team:1,x:1040}].map(p=>({...p,level:42,slot:0,ready:true,bot:false,connected:true,hp:1900,maxHp:2400,stamina:300,maxStamina:300,facing:p.team===0?1:-1,equipment:{...DEFAULT_EQUIPMENT,weapon:'brick'},boosts:[],powerCharge:p.team===0?130:60,powerArmed:false,y:ground(terrain,p.x)}));
   client.update({profile:{id:'p0'},status:'online',offset:0,battle:{id:'power-visual-fixture',roomId:'fixture',players,turnId:'p0',turnNumber:4,phase:'aiming',winner:null,deadline:Date.now()+30000,map:'snow',wind:1.2}});
   window.powerClient=client;window.commands=[];client.send=command=>{window.commands.push(command);if(command.type==='power'){const b=client.state.battle;client.update({battle:{...b,players:b.players.map(p=>p.id==='p0'?{...p,powerCharge:0,powerArmed:true}:p)}});}};
   ReactDOM.createRoot(document.getElementById('hud')).render(React.createElement(React.Fragment,null,React.createElement(Scene,{angle:45,onArena:()=>{},onForge:()=>{}}),React.createElement(BattleHud,{angle:45,setAngle:()=>{},blocked:false})));
  });
- await page.waitForSelector('.combat-power');await page.waitForTimeout(2200);await expect(page.getByRole('button',{name:'Ativar Power, 65 de 100'})).toHaveAttribute('aria-disabled','true');await page.screenshot({path:output+'/charging.png'});
- await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,players:c.state.battle.players.map(p=>p.id==='p0'?{...p,powerCharge:100}:p)}});});
- const button=page.getByRole('button',{name:'Ativar Power, 100 de 100'});await expect(button).toHaveAttribute('aria-disabled','false');await page.screenshot({path:output+'/ready.png'});await button.click();
- await expect(page.getByRole('button',{name:'Power preparado'})).toHaveAttribute('aria-pressed','true');
+ await page.waitForSelector('.combat-power',{timeout:15000}).catch(e=>{console.log('ERRORS',JSON.stringify(errors));throw e;});await page.waitForTimeout(2200);await expect(page.getByRole('button',{name:'Ativar POW, 65%'})).toHaveAttribute('aria-disabled','true');await page.screenshot({path:output+'/charging.png'});
+ await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,players:c.state.battle.players.map(p=>p.id==='p0'?{...p,powerCharge:200}:p)}});});
+ const button=page.getByRole('button',{name:'Ativar POW, 100%'});await expect(button).toHaveAttribute('aria-disabled','false');await page.screenshot({path:output+'/ready.png'});await button.click();
+ await expect(page.getByRole('button',{name:'POW preparado'})).toHaveAttribute('aria-pressed','true');
+ // 199 of 200 is not full: 99%, still locked, and B asks for nothing.
+ await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,players:c.state.battle.players.map(p=>p.id==='p0'?{...p,powerCharge:199,powerArmed:false}:p)}});});
+ await expect(page.getByRole('button',{name:'Ativar POW, 99%'})).toHaveAttribute('aria-disabled','true');await page.keyboard.press('b');
+ await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,players:c.state.battle.players.map(p=>p.id==='p0'?{...p,powerCharge:200}:p)}});});
+ await page.keyboard.press('b');await expect.poll(()=>page.evaluate(()=>window.commands.filter(c=>c.type==='power').length)).toBe(2);
+ await expect(page.getByRole('button',{name:'POW preparado'})).toHaveAttribute('aria-pressed','true');
  await page.keyboard.down('Space');await page.waitForTimeout(170);await page.keyboard.up('Space');await expect.poll(()=>page.evaluate(()=>window.commands.filter(c=>c.type==='fire').length)).toBe(1);
  await page.evaluate(()=>{const c=window.powerClient;c.update({battle:{...c.state.battle,phase:'resolving',powerCutIn:{id:'cutin-visual',playerId:'p0',endsAt:Date.now()+1400}}});});await expect(page.getByRole('status',{name:'Faísca dispara Power'})).toHaveCount(1);await page.waitForTimeout(400);await page.screenshot({path:output+'/cut-in.png'});
  await page.waitForTimeout(1100);await expect(page.getByRole('status',{name:'Faísca dispara Power'})).toHaveCount(0);
@@ -35,5 +41,5 @@ try{
   if(width===390)await page.screenshot({path:output+'/mobile.png'});
  }
  if(errors.length)throw Error(errors.join('\n'));
- await writeFile(output+'/report.json',JSON.stringify({fixture:true,errors,layouts,checks:['partial disabled','full enabled','activation state','click activation then Space fires once','cut-in only before server deadline','reduced motion']},null,2));console.log('Power visual fixture passed; screenshots in '+output);
+ await writeFile(output+'/report.json',JSON.stringify({fixture:true,errors,layouts,checks:['partial disabled','full enabled','activation state','click activation then Space fires once','199 of 200 stays locked','B activates only when full','cut-in only before server deadline','reduced motion']},null,2));console.log('Power visual fixture passed; screenshots in '+output);
 }finally{await browser.close();}

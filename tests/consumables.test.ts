@@ -23,18 +23,18 @@ async function battle(){
  return {game,match,shooter,target,errors,applyImpact:(i:unknown)=>internals.applyImpact(match,i),nextTurn:()=>internals.nextTurn(match)};
 }
 
-test('Enfurecer adds 50 POW points (DDTank AddDander 100 of 200), costs 120 Vigor and 450 Delay, and stops at a full bar',async()=>{
- const f=await battle();f.shooter.powerCharge=30;const vigor=f.shooter.stamina,delay=f.shooter.delay!;
+test('Enfurecer adds 100 of the 200 POW points (DDTank AddDander 100), costs 120 Vigor and 450 Delay, and stops at a full bar',async()=>{
+ const f=await battle();f.shooter.powerCharge=60;const vigor=f.shooter.stamina,delay=f.shooter.delay!;
  await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});
- assert.equal(f.shooter.powerCharge,30+RAGE_CHARGE);assert.equal(f.shooter.stamina,vigor-120);assert.equal(f.shooter.delay,delay+450);assert.equal(f.shooter.powerArmed,false,'using the POW is its own action');
- f.shooter.stamina=1000;await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.equal(f.shooter.powerCharge,100);
+ assert.equal(RAGE_CHARGE,100);assert.equal(f.shooter.powerCharge,60+RAGE_CHARGE);assert.equal(f.shooter.stamina,vigor-120);assert.equal(f.shooter.delay,delay+450);assert.equal(f.shooter.powerArmed,false,'using the POW is its own action');
+ f.shooter.stamina=1000;await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.equal(f.shooter.powerCharge,200,'the excess is dropped');
  await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.match(f.errors().at(-1)!,/já está cheia/);assert.equal(f.shooter.boosts.filter(id=>id==='rage').length,2);
 });
 
 test('Gelo replaces the shot: no other tool, no POW, no homing; Enfurecer still fits',async()=>{
  assert.match(powerUpConflict(['extra1'],'ice')!,/gelo/i);assert.match(powerUpConflict(['ice'],'damage50')!,/gelo/i);assert.match(powerUpConflict(['ice'],'ice')!,/já foi usado/);
  assert.equal(powerUpConflict(['rage'],'ice'),undefined);assert.equal(powerUpConflict(['ice'],'rage'),undefined);
- const f=await battle();f.shooter.powerCharge=100;f.shooter.stamina=1000;
+ const f=await battle();f.shooter.powerCharge=200;f.shooter.stamina=1000;
  await f.game.command(f.shooter.id,{type:'power'});await f.game.command(f.shooter.id,{type:'boost',boost:'ice'});assert.match(f.errors().at(-1)!,/POW/);assert.deepEqual(f.shooter.boosts,[]);
 });
 

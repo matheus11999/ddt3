@@ -506,3 +506,17 @@ Pedido do matheus: zona de pesca separada da praça, com lagos, Casa de Pesca, p
 - Evidências: `tests/consumables.test.ts`; prévias em `test-results/consumables/` (`node scripts/preview-consumables.mjs`).
 - Pendente: dano em área de pet ainda atinge quem está congelado; ícones e bloco de gelo aguardam a opinião do matheus.
 
+
+## Raiva e POW no padrão do DDTank 4.1 (21/10/2026)
+
+Pedido do matheus: aquisição de raiva e ativação do POW iguais ao código do DDTank 4.1 (`Player.Shoot`, `Skip`, `TakeDamage`, `UseSpecialSkill`; `TurnedLiving.AddDander/SetDander`; `StuntCommand`; `AttackUpSpell`; `LocalPlayer.as`; `DanderBar.as`).
+
+- Escala: raiva inteira de 0 a 200 (`POWER_MAX=200` em `shared/power.ts`); a porcentagem da tela é raiva ÷ 2, sempre arredondada para baixo (199 mostra 99% e continua travado). Começa em 0, fica entre turnos, o excedente acima de 200 é descartado e morto não ganha nada (`addPower`).
+- Ataque: +20 uma vez por sequência de lançamentos, mesmo errando, no momento em que o último projétil do tiro cai (`Match.shotRage`, concedido em `Game.shotRage` depois do último impacto, com reserva no `nextTurn`); +1, +2, Tridente, vários acertos, voo, gelo e o tiro com POW não multiplicam. Como no DDTank, o dano do próprio tiro vem antes: quem morre com o próprio tiro não ganha os 20.
+- Passar: +40, sem os 20 do ataque (`case 'pass'`). Tempo esgotado também dá +40, porque no DDTank o cliente manda o mesmo `SkipNext` quando o relógio zera (`SelfMarkBar.__markComplete`); quem está desconectado ou saiu não ganha (`Game.timeoutRage`).
+- Dano recebido: `floor((floor(dano × 2 / 5) + 5) / 2)` por evento (100 → 22, 300 → 62, 500 → 102), só para quem sobrevive, de qualquer fonte (inimigo, aliado, o próprio tiro, pets, formigas, rainha, dragão). O `dano` é o `damageAmount` do DDTank: o acerto sem a parte do crítico (o acerto mostrado ÷ (1 + bônus crítico), guardado por alvo em `PendingImpact.rage`), depois das reduções e escudos do pet. Não depende da vida máxima. Causar dano não dá mais raiva a quem atira (`chargeFromDamage` saiu).
+- Diferença deliberada: no DDTank `Player.TakeDamage` soma a raiva mesmo quando `Living.TakeDamage` recusa o dano (ex.: congelado). Aqui acerto recusado, quebrar o gelo, dano zero, dano todo no escudo, cura e queda fatal não carregam.
+- Enfurecer: +100 (`RAGE_CHARGE`), limite 200, mesmos custos e restrições.
+- Ativação: só viva, na sua vez, com 200 e sem POW armado; zera a raiva na hora, arma o especial da arma (sem disparar) e não gasta nada de novo no lançamento; pedido repetido ou com 199 não muda nada. Botão do orbe ou tecla **B** (ignorada no chat e em campos de texto; o botão continua no celular).
+- Tela: o orbe enche em 0,3 s, só mostra pronto com 200, armado aparece vazio com o destaque de armado; o servidor decide tudo e a reconexão/reinício devolve raiva e POW armado (salvo com o estado da partida). Partidas salvas antes desta mudança voltam com a carga antiga lida na escala nova (metade da barra), uma vez.
+- Evidências: `tests/power.test.ts` (17 testes: tiro errado, +1/+2/Tridente, vários inimigos, crítico, aliado, próprio tiro, congelado, morte, passar, desconectado, ativação inválida/válida/repetida, POW recomeçando em 20, reinício), `tests/consumables.test.ts` (Enfurecer 100 e limite); `scripts/inspect-power.mjs` (orbe 65%, 99% travado, B só com a barra cheia; fixture corrigido para o Quebra-Tijolos).

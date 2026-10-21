@@ -73,7 +73,7 @@ async function fixture(weapon:string){
  return {game,match,shooter,events};
 }
 async function powShot(weapon:string,boosts:BoostId[]=[]){
- const f=await fixture(weapon);f.shooter.powerCharge=100;
+ const f=await fixture(weapon);f.shooter.powerCharge=200;
  await f.game.command(f.shooter.id,{type:'power'});for(const boost of boosts)await f.game.command(f.shooter.id,{type:'boost',boost});
  await f.game.command(f.shooter.id,{type:'fire',angle:45,power:40});f.game.tick(f.match.pendingPower!.at);
  return f.events.filter((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot').at(-1)!.shot;

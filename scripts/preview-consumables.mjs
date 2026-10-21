@@ -18,7 +18,7 @@ try{
   client.stop();client.send=()=>{};
   const profile=client.state.profile,stats=attributes(profile.equipment),terrain=createTerrain('snow');await preloadEnvironment('snow');
   const fighter={level:profile.level,equipment:profile.equipment,ready:true,bot:false,connected:true,hp:stats.hp,maxHp:stats.hp,stamina:stats.stamina,maxStamina:stats.stamina,boosts:[]};
-  const meX=520,foeX=860,me={...fighter,id:profile.id,name:profile.name,team:0,slot:0,x:meX,y:ground(terrain,meX),facing:1,aimAngle:50,powerCharge:40};
+  const meX=520,foeX=860,me={...fighter,id:profile.id,name:profile.name,team:0,slot:0,x:meX,y:ground(terrain,meX),facing:1,aimAngle:50,powerCharge:80};
   const enemy={...fighter,id:'foe',name:'Pipoca · BOT',bot:true,team:1,slot:0,x:foeX,y:ground(terrain,foeX),facing:-1,frozenTurns:3};
   const now=Date.now();window.__fx={client,me,enemy,now};
   client.update({chat:[],status:'online',offset:0,shot:null,impacts:[],abilityEffects:[],room:null,battle:{id:'consumables-preview',roomId:'fixture',map:'snow',players:[me,enemy],turnId:profile.id,turnNumber:1,wind:0,deadline:now+300000,phase:'aiming',winner:null}});
@@ -27,12 +27,12 @@ try{
  await page.waitForTimeout(2500);
  const set=fn=>page.evaluate(fn);
  // Enfurecer used: icon over the head, POW bar +50, queue shows it.
- await set(()=>{const {client,me}=window.__fx;const b=client.state.battle;client.update({battle:{...b,players:[{...me,boosts:['rage'],powerCharge:90},b.players[1]]}});});
+ await set(()=>{const {client,me}=window.__fx;const b=client.state.battle;client.update({battle:{...b,players:[{...me,boosts:['rage'],powerCharge:180},b.players[1]]}});});
  await page.waitForTimeout(350);await page.screenshot({path:`${out}/rage.png`});
  // Gelo chosen, ice ball in flight toward the enemy.
  await set(()=>{const {client,me,enemy}=window.__fx;const b=client.state.battle,pts=[];const sx=me.x+27,sy=me.y-40,ex=enemy.x,ey=enemy.y-20;for(let i=0;i<=40;i++){const q=i/40;pts.push([sx+(ex-sx)*q,sy+(ey-sy)*q-Math.sin(Math.PI*q)*230]);}
   window.__fx.shot={id:'ice-shot',shooterId:me.id,startedAt:Date.now(),duration:1600+900,hits:[],impacted:[],projectiles:[{kind:'ice',effect:'brick',points:pts,delay:0,flightTime:1600,impact:{x:ex,y:ey,radius:0}}]};
-  client.update({battle:{...b,phase:'resolving',players:[{...me,boosts:['ice'],powerCharge:90},{...enemy,frozenTurns:0}]},shot:window.__fx.shot,shotReceivedAt:performance.now()-900});});
+  client.update({battle:{...b,phase:'resolving',players:[{...me,boosts:['ice'],powerCharge:180},{...enemy,frozenTurns:0}]},shot:window.__fx.shot,shotReceivedAt:performance.now()-900});});
  await page.waitForTimeout(60);await page.screenshot({path:`${out}/ice-flight.png`});
  await set(()=>{const {client}=window.__fx;client.update({shotReceivedAt:performance.now()-1600-150});});
  await page.waitForTimeout(40);await page.screenshot({path:`${out}/ice-impact.png`});
