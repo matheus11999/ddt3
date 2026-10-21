@@ -9,40 +9,46 @@ import type {FishingCatch,FishingDrop} from '../shared/fishing';
  * Store runs them inside its row lock, tests run them directly. The session itself (cast, bite,
  * bar, automatic mode) lives in server/game.ts.
  */
-export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** Caught in automatic mode (shown in the history). */auto?:boolean;/** When (the history's clock and the daily caps' day; tests pass their own). */at?:number;/** The rod's prizes rolled with this catch (rollRodDrops); the daily caps cut them here. */drops?:FishingDrop[];}
+export interface FishSettle {fish?:{id:string;kg:number;points:number;xp:number};/** Caught in automatic mode (shown in the history). */auto?:boolean;/** When (the history's clock and the daily caps' day; tests pass their own). */at?:number;/** The rod's prize rolled with this catch (rollRodDrops, at most one); it replaces the fish unless the daily cap is full. */drops?:FishingDrop[];}
 /** `weekRecord`: the catch is the player's new heaviest fish of the week (the ranking needs updating). */
-export interface FishSettleOutcome {profile:Profile;catch?:FishingCatch;weekRecord?:{week:string;fish:string;kg:number};}
+export interface FishSettleOutcome {profile:Profile;catch?:FishingCatch;/** The rod's prize came up instead of the fish (one reward per cast). */prize?:FishingDrop;/** Fisher EXP the cast gave (the fish's, also when a prize came up instead). */xp?:number;levelUp?:number;weekRecord?:{week:string;fish:string;kg:number};}
 export interface FishBuyOutcome {profile:Profile;spent:number;}
 export interface FishSellOutcome {profile:Profile;sold:number;points:number;}
 
-/** One cast ends: a catch adds Pontos de Pesca, fisher EXP, the collection entry and the rod's prizes (up to the daily caps). */
+/**
+ * One cast ends with one reward (pedido do matheus, 20/10: nunca peixe, Cupom e Ouro juntos): the rod's prize
+ * when one came up and the daily cap still has room, otherwise the fish (Pontos de Pesca, the collection entry,
+ * the Sacola). Fisher EXP comes either way.
+ */
 export function settleFishing(profile:Profile,settle:FishSettle):FishSettleOutcome{
  const f=profile.fishing=normalizeFishing(profile.fishing);
  if(!settle.fish)return {profile};
  const fish=FISH_BY_ID.get(settle.fish.id);if(!fish)throw Error('Peixe desconhecido.');
+ const at=settle.at??Date.now(),day=fishingDay(at);
+ if(f.daily.day!==day)f.daily={day,gold:0,coupons:0,fragments:0};
+ for(const drop of settle.drops??[]){
+  const amount=Math.min(drop.amount,FISHING_DAILY_CAPS[drop.kind]-f.daily[drop.kind]);if(amount<=0)continue;
+  if(drop.kind==='fragments'&&!drop.weapon)continue;
+  f.daily[drop.kind]+=amount;
+  if(drop.kind==='gold')profile.gold+=amount;
+  else if(drop.kind==='coupons')profile.coupons+=amount;
+  else profile.fragments[drop.weapon!]=(profile.fragments[drop.weapon!]??0)+amount;
+  const before=fishingLevel(f.xp);f.xp+=settle.fish.xp;const after=fishingLevel(f.xp);
+  return {profile,prize:{...drop,amount},xp:settle.fish.xp,...(after>before?{levelUp:after}:{})};
+ }
  const before=fishingLevel(f.xp),first=!f.caught[fish.id],record=settle.fish.kg>(f.best[fish.id]??0);
  f.caught[fish.id]=(f.caught[fish.id]??0)+1;f.total++;f.xp+=settle.fish.xp;
  if(record)f.best[fish.id]=settle.fish.kg;
- const at=settle.at??Date.now(),day=fishingDay(at),weekKey=fishingWeek(at);
+ const weekKey=fishingWeek(at);
  // The fish goes into the Sacola to be sold at the Casa de Pesca; with the Sacola full it is sold right away.
  const sold=f.bag.length>=FISH_BAG_MAX,bagId=`${at.toString(36)}-${f.total.toString(36)}`;
  if(sold)f.points+=settle.fish.points;
  else f.bag.unshift({id:bagId,fish:fish.id,kg:settle.fish.kg,value:settle.fish.points,at,...(settle.auto?{auto:true}:{})});
  const weekRecord=f.week?.key!==weekKey||settle.fish.kg>f.week.kg;
  if(weekRecord)f.week={key:weekKey,fish:fish.id,kg:settle.fish.kg};
- if(f.daily.day!==day)f.daily={day,gold:0,coupons:0,fragments:0};
- const drops:FishingDrop[]=[];
- for(const drop of settle.drops??[]){
-  const amount=Math.min(drop.amount,FISHING_DAILY_CAPS[drop.kind]-f.daily[drop.kind]);if(amount<=0)continue;
-  if(drop.kind==='fragments'&&!drop.weapon)continue;
-  f.daily[drop.kind]+=amount;drops.push({...drop,amount});
-  if(drop.kind==='gold')profile.gold+=amount;
-  else if(drop.kind==='coupons')profile.coupons+=amount;
-  else profile.fragments[drop.weapon!]=(profile.fragments[drop.weapon!]??0)+amount;
- }
- f.history=[{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,at,...(settle.auto?{auto:true}:{}),...(drops.length?{drops}:{})},...f.history].slice(0,FISHING_HISTORY);
+ f.history=[{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,at,...(settle.auto?{auto:true}:{})},...f.history].slice(0,FISHING_HISTORY);
  const after=fishingLevel(f.xp);
- return {profile,...(weekRecord?{weekRecord:{week:weekKey,fish:fish.id,kg:settle.fish.kg}}:{}),catch:{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,record:record&&!first,first,...(sold?{sold:true}:{bagId}),...(drops.length?{drops}:{}),...(after>before?{levelUp:after}:{})}};
+ return {profile,...(weekRecord?{weekRecord:{week:weekKey,fish:fish.id,kg:settle.fish.kg}}:{}),catch:{fish:fish.id,kg:settle.fish.kg,points:settle.fish.points,xp:settle.fish.xp,record:record&&!first,first,...(sold?{sold:true}:{bagId}),...(after>before?{levelUp:after}:{})}};
 }
 /** Picks the rod to fish with; only owned ones. */
 export function chooseFishingGear(profile:Profile,rod:string):Profile{

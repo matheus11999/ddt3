@@ -14,7 +14,7 @@ import {ROD_LEVEL,useRodTip} from './FishingRodInfo';
 import {FishingRanking} from './FishingRanking';
 import {weightClass} from './FishingFish';
 import {fishingPick} from '../game/fishingPick';
-import {CatchFx,STARS,Stars,resultShowMs} from './FishingCatchFx';
+import {CatchFx,PRIZE_TIER,STARS,Stars,prizeArt,prizeName,resultShowMs} from './FishingCatchFx';
 import './Fishing.css';
 
 type GearMenu='rod'|null;
@@ -85,7 +85,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
   {fishing?.phase==='bite'&&fishing.challenge&&!auto&&<Challenge view={fishing} press={press} offset={offset}/>}
   {/* O resultado fica na tela pelo tempo da raridade, mesmo com a linha já de volta na água. */}
   {shown&&<Result key={shown.since} view={shown}/>}
-  {shown?.result?.success&&shown.result.catch&&<CatchFx key={`fx-${shown.since}`} view={shown}/>}
+  {shown?.result?.success&&(shown.result.catch||shown.result.prize)&&<CatchFx key={`fx-${shown.since}`} view={shown}/>}
  </div>;
 }
 
@@ -168,6 +168,21 @@ const SHADOW='carpa-lua';
 
 function Result({view}:{view:FishingView}){
  const r=view.result!,c=r.catch,fish=FISH_BY_ID.get(c?.fish??r.fish??'');
+ // Um prêmio por lançamento (pedido do matheus): o prêmio da vara veio no lugar do peixe.
+ if(r.success&&r.prize){const p=r.prize,tier=PRIZE_TIER[p.kind];
+  return <div className={`fishing-result caught prize prize-${p.kind} rarity-${tier}`}>
+   <div className="fishing-result-art">
+    {STARS[tier]>0&&<Stars count={STARS[tier]} burst={tier!=='raro'}/>}
+    <span className="fishing-prize-art">{prizeArt(p.kind,84)}</span>
+   </div>
+   <div className="fishing-result-text">
+    <em className="fishing-rarity">Prêmio da vara</em>
+    <strong>+{p.amount.toLocaleString('pt-BR')} {prizeName(p)}</strong>
+    <div className="fishing-rewards"><span className="xp">+{r.xp??0} EXP</span>{view.auto&&<span className="auto">Automático</span>}</div>
+    <small className="fishing-result-bag">{fish?`Veio no anzol no lugar do(a) ${fish.name}`:'Veio no anzol'}</small>
+    {r.levelUp&&<div className="fishing-tags"><em className="level">Pescador Nv. {r.levelUp}!</em></div>}
+   </div>
+  </div>;}
  if(!r.success||!c)return <div className="fishing-result lost"><strong>O peixe escapou!</strong>{fish&&<span>Era um(a) {fish.name}</span>}</div>;
  const rarity=fishRarity(fish??{difficulty:1});
  return <>
