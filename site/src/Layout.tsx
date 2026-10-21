@@ -1,5 +1,5 @@
 import {useEffect,useState} from 'react';
-import {LogOut,Menu,X} from 'lucide-react';
+import {Home,Images,LogOut,Menu,MessagesSquare,Settings,Users,X} from 'lucide-react';
 import type {Me} from './api';
 import {Avatar} from './Avatar';
 import {Link} from './router';
@@ -11,12 +11,12 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
  useEffect(()=>setOpen(false),[route]);
  // Signed in, the bar is the player's own: no way back to the landing page.
  const signedIn=!!me?.account;
- const links=signedIn?[['/jogador','Início'],['/personagens','Personagens'],['/forum','Fórum'],['/configuracoes','Configurações']] as const:[['/#prints','Telas do jogo'],['/forum','Comunidade']] as const;
+ const links=signedIn?[['/jogador','Início',Home],['/personagens','Personagens',Users],['/forum','Fórum',MessagesSquare],['/configuracoes','Configurações',Settings]] as const:[['/#prints','Telas do jogo',Images],['/forum','Comunidade',MessagesSquare]] as const;
  return <header className={`topbar${scrolled||route!=='/'?' solid':''}${open?' open':''}`}>
   <div className="topbar-inner">
    <Link to={signedIn?'/jogador':'/'} className="brand" aria-label="Bomb Masters, página inicial"><img src="/art/logo.webp" alt="Bomb Masters" width="132" height="78"/></Link>
    <nav className="nav" aria-label="Principal">
-    {links.map(([to,label])=>to.startsWith('/#')?<a key={to} href={to} onClick={()=>setOpen(false)}>{label}</a>:<Link key={to} to={to} className={route===to||route.startsWith(to+'/')?'active':''}>{label}</Link>)}
+    {links.map(([to,label,Icon])=>to.startsWith('/#')?<a key={to} href={to} onClick={()=>setOpen(false)}><Icon size={17}/><span>{label}</span></a>:<Link key={to} to={to} className={route===to||route.startsWith(to+'/')?'active':''}><Icon size={17}/><span>{label}</span></Link>)}
    </nav>
    <div className="topbar-actions">
     {me?.account
