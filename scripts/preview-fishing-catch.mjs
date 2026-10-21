@@ -7,7 +7,7 @@ const base=process.env.BASE??'http://127.0.0.1:5177',dir=process.argv[2]??'test-
 const browser=await chromium.launch({executablePath:process.env.CHROMIUM??'/opt/pw-browsers/chromium'});
 const page=await (await browser.newContext({viewport:{width:1536,height:864}})).newPage();
 await enterGame(page,base);
-await page.locator('.lobby-dock-button.fishing').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
+await page.locator('.fishing-zone-button').click();await page.locator('.fishing-hud').waitFor();await page.waitForTimeout(2500);
 await page.evaluate(async()=>{const url=performance.getEntriesByType('resource').map(e=>e.name).find(n=>/\/src\/client\.ts/.test(n));window.__c=(await import(url)).client;});
 // Um prêmio por lançamento: o peixe, ou o prêmio da vara no lugar dele.
 const cases=[

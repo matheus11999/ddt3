@@ -6,7 +6,7 @@ const base=process.env.BASE_URL??'http://127.0.0.1:5177',output=process.env.OUT?
 const sizes=(process.env.SIZES??'667x375,844x390').split(',').map(s=>{const [width,height]=s.split('x').map(Number);return {width,height};});
 await mkdir(output,{recursive:true});
 const browser=await chromium.launch({headless:true});const report={};
-const DOCK=['Mochila','Loja','Leilão','Ferreiro','Pets','Missões','Correio','Guilda','Hall da Fama','Ajustes','Expedições','Arena'];
+const DOCK=['Mochila','Loja','Leilão','Ferreiro','Pets','Missões','Correio','Guilda','Expedições','Arena'];
 async function smallTargets(page){return page.evaluate(()=>[...document.querySelectorAll('button,[role=button],[role=tab],input,select,a')].filter(el=>{const r=el.getBoundingClientRect();const s=getComputedStyle(el);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none'&&(r.width<36||r.height<36);}).map(el=>{const r=el.getBoundingClientRect();return `${el.getAttribute('aria-label')||el.textContent?.trim().slice(0,24)||el.className} ${Math.round(r.width)}x${Math.round(r.height)}${r.right>innerWidth+1||r.bottom>innerHeight+1||r.left<-1||r.top<-1?' FORA':''}`;}));}
 async function shot(page,size,name){const file=`${output}/${size.width}-${name}.png`;await page.waitForTimeout(500);await page.screenshot({path:file});(report[`${size.width}-${name}`]=await smallTargets(page));}
 async function closeAll(page){for(let i=0;i<3;i++){const close=page.locator('[role=dialog] button[aria-label="Fechar"]:visible').last();if(await close.count()){await close.click({force:true}).catch(()=>{});await page.waitForTimeout(250);}else{await page.keyboard.press('Escape');await page.waitForTimeout(150);}}}

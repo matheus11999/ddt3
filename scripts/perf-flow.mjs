@@ -40,7 +40,7 @@ async function sample(name){
 await enterGame(page,base);await page.waitForTimeout(4000);
 await sample('1-praca');
 await page.keyboard.down('ArrowRight');await sample('2-praca-andando');await page.keyboard.up('ArrowRight');
-await page.locator('.lobby-dock-button.fishing').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
+await page.locator('.fishing-zone-button').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
 await sample('3-pescaria');
 await page.keyboard.down('ArrowRight');await sample('4-pescaria-andando');await page.keyboard.up('ArrowRight');
 await page.locator('.fishing-exit').click();await expect(page.locator('.lobby-dock-button.arena')).toBeVisible();await page.waitForTimeout(2000);
@@ -55,7 +55,7 @@ await page.getByRole('button',{name:'Sair da batalha',exact:true}).click();await
 if(await page.locator('.party-room').isVisible()){await page.getByRole('button',{name:'Sair da sala',exact:true}).click().catch(()=>{});await page.waitForTimeout(1000);}
 await page.keyboard.press('Escape');await page.waitForTimeout(1500);
 await sample('9-praca-depois');
-await page.locator('.lobby-dock-button.fishing').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
+await page.locator('.fishing-zone-button').click();await expect(page.locator('.fishing-hud')).toBeVisible();await page.waitForTimeout(3000);
 await sample('10-pescaria-de-novo');
 await writeFile(`${out}/report.txt`,lines.join('\n'));
 clearInterval(wander);for(const b of bots)b.socket.close();await browser.close();

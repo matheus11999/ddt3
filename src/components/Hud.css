@@ -69,9 +69,11 @@ html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{transform:scale(cal
 .top-right .currency .currency-fishing .fishing-icon { margin: -4px 0; filter: drop-shadow(0 1px 1px #0008); }
 /* Phones: the menu never leaves the screen (docs/mobile.md). */
 @media(max-width:760px){html.mobile-landscape .game-frame>nav.bottom-dock.lobby-dock{gap:5px;padding:0 10px 7px;transform:scale(calc(.72 / var(--game-scale)))}}
-/* Phones keep the plaza chat, smaller and closed by default, above the menu on the left. */
+/* Phones keep the plaza chat small above the menu on the left: always open with the last lines, no collapse arrow. */
 html.mobile-landscape .game-frame>.chat-shell.lobby-chat{left:calc((10px + env(safe-area-inset-left)) / var(--game-scale));bottom:calc((84px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(.62 / var(--game-scale)));transform-origin:bottom left}
-html.mobile-landscape .game-frame>.chat-shell.lobby-chat .chat-collapse{width:40px;height:40px;top:-14px}
+html.mobile-landscape .game-frame>.chat-shell.lobby-chat .chat-collapse{display:none}
+html.mobile-landscape .game-frame>.chat-shell.lobby-chat,html.mobile-landscape .game-frame>.chat-shell.lobby-chat.collapsed{height:140px;grid-template-rows:20px minmax(0,1fr) 30px}
+html.mobile-landscape .lobby-chat.collapsed .chat-messages{display:block}
 html.mobile-landscape .game-frame .top-right .round-button{width:52px;height:52px}
 html.mobile-landscape .game-frame .top-right .round-button svg{width:24px;height:24px}
 /* Event buttons on the right (Chefão Mundial, Pescaria): painted icon with a dark label, stacked under the coins. */
