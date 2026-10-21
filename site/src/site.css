@@ -247,13 +247,13 @@ a.server-row:hover{border-color:var(--gold);background:rgba(255,210,94,.08);tran
 .topic-list.compact .topic-row{padding:12px 16px}
 
 /* Header das páginas internas: mesmo tamanho em todas, cada uma com sua pintura (PageHeader.tsx) */
-.page-header{position:relative;height:clamp(300px,38vh,380px);padding:96px 20px 34px;display:flex;align-items:flex-end;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line)}
+.page-header{position:relative;height:clamp(240px,30vh,290px);padding:86px 20px 22px;display:flex;align-items:flex-end;overflow:hidden;isolation:isolate;border-bottom:1px solid var(--line)}
 .page-header-art{position:absolute;inset:0;z-index:-2}
 .page-header-art img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;animation:heroIn 1.2s ease-out both}
 .page-header::after{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,rgba(14,7,28,.88) 0%,rgba(14,7,28,.55) 40%,rgba(14,7,28,.12) 75%),linear-gradient(180deg,rgba(14,7,28,.55) 0%,transparent 35%,transparent 60%,var(--bg) 100%)}
 .page-header-inner{width:100%;max-width:1180px;margin:0 auto;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap}
 .page-header-copy{min-width:0;max-width:640px}
-.page-header h1{font-size:clamp(2.4rem,5.5vw,3.8rem);margin-bottom:8px;overflow-wrap:anywhere}
+.page-header h1{font-size:clamp(2.2rem,4.6vw,3.2rem);margin-bottom:8px;overflow-wrap:anywhere}
 .page-header-text{color:#ddd2f3;font-size:1.06rem}
 .page-header-text>p{margin:0}
 .page-header-actions{display:flex;align-items:center;gap:12px}
@@ -266,8 +266,8 @@ a.server-row:hover{border-color:var(--gold);background:rgba(255,210,94,.08);tran
 .forum-hero-inner{max-width:1100px;margin:auto}
 .forum-hero h1{font-size:clamp(2.6rem,6vw,4rem);margin-bottom:8px}
 .forum-hero p:not(.eyebrow){color:#ddd2f3;margin:0 0 20px;max-width:560px;font-size:1.06rem}
-.forum-body{max-width:1100px;margin:auto;padding:30px 20px 60px}
-.forum-body.narrow{max-width:860px;padding-top:30px}
+.forum-body{max-width:1100px;margin:auto;padding:18px 20px 60px}
+.forum-body.narrow{max-width:860px;padding-top:18px}
 main>.forum-body.narrow{padding-top:110px}
 .cat-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:22px}
 .cat-tabs button{padding:9px 16px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);cursor:pointer;font-weight:800;color:var(--cream)}
@@ -315,7 +315,7 @@ main>.forum-body.narrow{padding-top:110px}
 .player-meta span:not(.beta-chip){display:inline-flex;align-items:center;gap:6px}
 .player-play{display:grid;justify-items:center;gap:12px;text-align:center}
 .player-play p{margin:0;max-width:320px;color:#d8cdef;font-weight:700}
-.player-grid{max-width:1180px;margin:0 auto;padding:10px 20px 70px;display:grid;grid-template-columns:1fr;gap:20px}
+.player-grid{max-width:1180px;margin:0 auto;padding:18px 20px 70px;display:grid;grid-template-columns:1fr;gap:20px}
 .panel-wide{grid-column:1/-1}
 .where-list{list-style:none;padding:0;margin:0;display:grid;gap:12px}
 .where-list li{display:flex;gap:12px;align-items:flex-start}
