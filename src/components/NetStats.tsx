@@ -1,11 +1,26 @@
-import {useEffect,useState} from 'react';
+import {useEffect,useState,useSyncExternalStore} from 'react';
 import {client} from '../client';
 import {frameMeter} from '../game/frameMeter';
 import {frameLimit} from '../game/frameLimit';
 import './NetStats.css';
 
-/** Small FPS and latency readout pinned to the top centre of the view, in every area. */
+const VISIBLE_KEY='brasa.netStats';
+let visible=(()=>{try{return localStorage.getItem(VISIBLE_KEY)!=='0';}catch{return true;}})();
+const listeners=new Set<()=>void>();
+/** Ajustes → Gráfico "Mostrar FPS e latência", on by default and kept in this browser. */
+export const netStatsVisible={
+ get(){return visible;},
+ set(value:boolean){visible=value;try{localStorage.setItem(VISIBLE_KEY,value?'1':'0');}catch{}listeners.forEach(fn=>fn());},
+ subscribe(fn:()=>void){listeners.add(fn);return()=>{listeners.delete(fn);};},
+};
+
 export function NetStats(){
+ const shown=useSyncExternalStore(netStatsVisible.subscribe,netStatsVisible.get);
+ return shown?<NetStatsReadout/>:null;
+}
+
+/** Small FPS and latency readout pinned to the top centre of the view, in every area. */
+function NetStatsReadout(){
  const [stats,setStats]=useState({fps:0,ping:-1});
  useEffect(()=>{
   // The scene skips painting under opaque menus; then the window's own frame rate (capped like the scene) stands in.

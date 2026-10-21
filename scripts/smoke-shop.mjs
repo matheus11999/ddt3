@@ -17,8 +17,6 @@ async function newClient(label){
 async function createClient(gender){
  const client=await newClient(gender),{page}=client;
  await enterGame(page,base,gender);await page.waitForLoadState('networkidle');const current=await profile(client);assert.equal(current.gender,gender);
- const name=`TEST-SHOP-${gender==='male'?'M':'F'}-${current.id.slice(0,6)}`;
- await page.getByRole('button',{name:'Configurações',exact:true}).click();const settings=page.getByRole('dialog',{name:'Ajustes'});await settings.getByLabel('Nome do aventureiro').fill(name);await settings.getByRole('button',{name:'Salvar nome',exact:true}).click();await expect.poll(async()=>(await profile(client)).name).toBe(name);await settings.getByRole('button',{name:'Fechar',exact:true}).click();
  client.initial=await profile(client);return client;
 }
 async function openShop(client){await client.page.locator('.bottom-dock').getByRole('button',{name:'Loja',exact:true}).click();const shop=client.page.getByRole('dialog',{name:'Loja da Brasa'});await expect(shop).toBeVisible();return shop;}
