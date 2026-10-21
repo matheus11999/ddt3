@@ -42,3 +42,13 @@ Toda a arte nova numa grade só, o dobro da do DDTank (escala inteira; nada de a
 3. Kit feminino.
 4. Ligar no jogo: batalha (GAME), mochila/loja/salas (SHOW), praça/Pescaria (VIRTUAL). Substitui o rig atual e a vista de frente provisória (`src/game/front.ts`).
 5. Apagar os cosméticos antigos e migrar quem os tinha para o kit inicial.
+
+## Peças de cabeça pintadas uma vez (21/10, aprovado pelo matheus)
+
+Medido no molde: a cabeça do combate é a mesma em 30 das 33 células, só movida e girada até 16° (as outras são o choro e o fantasma). Pintar o chapéu em cada célula fazia cada cabeça sair diferente e o encaixe quebrar. Agora:
+
+- Chapéu, cabelo B (sob chapéu) e óculos são pintados **uma vez** numa placa de cabeça 1536 × 512 com a cabeça careca aprovada em três vistas (lado, frente 3/4, costas): `py scripts/rig/headplate.py make <sexo> [--with=<peça>]`, prompts `head-hat`, `head-hairB` em `scripts/rig/rig-prompts.mjs`.
+- `py scripts/rig/headplate.py bake <sexo> <peça> <placa pintada> --hat|--hair|--glasses` alinha a saída do Codex pelo rosto (recusa se o rosto mudou), recorta a peça pela diferença, apaga o que o chapéu pintou sobre olhos e boca, e grava as folhas `game`, `show` e `virtualhead` com a transformação de cada célula de `scripts/rig/headfit-<sexo>.json` (medida dos rostos aprovados por `headplate.py measure`). O jogo continua só empilhando folhas.
+- O rosto continua pintado por célula (expressões). Se o rosto mudar, rode `measure` e `resheet`.
+- Roupa continua por célula; `py scripts/rig/check-cells.py <contexto> <sexo> <folha> [--fix]` confere cada célula contra o molde, corrige deslocamentos pequenos e diz qual placa refazer.
+- Prancha para aprovação: `py scripts/rig/head-sheet.py <sexo> <chapéu>`; referência do kit para o Codex: `py scripts/rig/head-sheet.py kit <sexo>`.
