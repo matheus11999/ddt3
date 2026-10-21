@@ -49,7 +49,6 @@ services:
     build:
       context: .
       dockerfile: infra/Dockerfile.site
-    ports: ["127.0.0.1:8098:4120"]
     environment:
       PORT: 4120
       DATABASE_URL: postgres://brasa:${POSTGRES_PASSWORD:-brasa_local}@postgres:5432/brasa
