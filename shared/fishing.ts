@@ -277,7 +277,7 @@ export const FISHING_SHOP:readonly FishingOffer[]=[
  {id:'pet-food-dew',name:'Adubo de Orvalho',description:'Comida de pet.',cost:40,prize:{kind:'pet-food',food:'pet-food-dew',amount:1}},
  {id:'stone-3',name:'Pedra Nv. 3',description:'Pedra de Fortalecimento, para o Ferreiro.',cost:400,prize:{kind:'stone',level:3,amount:1},level:10},
  // Fragmentos da Vara das Marés (pedido do matheus, 20/10): 50 = a arma na Síntese do Ferreiro.
- {id:'fragment-tide',name:'Fragmento da Vara das Marés',description:'Junte 50 e forje a Vara das Marés na Síntese do Ferreiro.',cost:300,prize:{kind:'fragment',weapon:FISHING_WEAPON,amount:1},level:12},
+ {id:'fragment-tide',name:'Fragmento da Vara das Marés',description:'Junte 50 e resgate a Vara das Marés aqui na Casa de Pesca ou na Síntese do Ferreiro.',cost:300,prize:{kind:'fragment',weapon:FISHING_WEAPON,amount:1},level:12},
  {id:'gold-1000',name:'1000 de Ouro',description:'Moedas Brasa.',cost:450,prize:{kind:'gold',amount:1000},level:15},
  {id:'rod-oak',name:'Vara de Carvalho',description:'Alvo maior na barra e mais peixes raros; às vezes traz Ouro.',cost:800,prize:{kind:'rod',rod:'rod-oak'},level:5},
  {id:'rod-coral',name:'Vara de Coral',description:'Mais Ouro e, raramente, Fragmentos da Vara das Marés.',cost:2500,prize:{kind:'rod',rod:'rod-coral'},level:12},

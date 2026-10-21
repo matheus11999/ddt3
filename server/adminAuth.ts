@@ -12,6 +12,11 @@ const PARAMS={N:16384,r:8,p:1,maxmem:64*1024*1024},KEY_LENGTH=64;
 
 export async function hashPassword(password:string):Promise<string>{
  if(password.length<10)throw new Error('A senha precisa ter pelo menos 10 caracteres.');
+ return hashSecret(password);
+}
+
+/** scrypt hash with no length rule; player accounts (server/accounts.ts) set their own. */
+export async function hashSecret(password:string):Promise<string>{
  const salt=randomBytes(16),hash=await scrypt(password,salt,KEY_LENGTH,PARAMS);
  return `scrypt:${salt.toString('base64url')}:${hash.toString('base64url')}`;
 }

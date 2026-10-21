@@ -8,3 +8,5 @@ dist
 *.key
 test-results
 playwright-report
+site/art-source
+site/dist
