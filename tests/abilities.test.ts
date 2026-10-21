@@ -99,7 +99,7 @@ test('invisibility expires after three subsequent own turns, never on opponents 
 
 test('flight cannot refund spent tools or combine with shot tools, Power or homing and is cancelable before firing',async()=>{
  for(const action of ['boost','power','homing'] as const){const f=await fixture();
-  if(action==='boost')await f.game.command(f.actor.id,{type:'boost',boost:'extra1'});else if(action==='power'){f.actor.powerCharge=100;await f.game.command(f.actor.id,{type:'power'});}else await f.game.command(f.actor.id,{type:'ability',ability:'homing'});
+  if(action==='boost')await f.game.command(f.actor.id,{type:'boost',boost:'extra1'});else if(action==='power'){f.actor.powerCharge=200;await f.game.command(f.actor.id,{type:'power'});}else await f.game.command(f.actor.id,{type:'ability',ability:'homing'});
   const before=structuredClone(f.actor);await f.game.command(f.actor.id,{type:'flight',active:true});assert.deepEqual(f.actor,before);assert.match(f.error()!,/não combina/);
  }
  const f=await fixture();await f.game.command(f.actor.id,{type:'flight',active:true});const before=structuredClone(f.actor);
