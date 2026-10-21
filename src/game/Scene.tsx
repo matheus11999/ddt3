@@ -135,7 +135,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
     if(fishingZone!==wasFishing){wasFishing=fishingZone;camX=-1;pendingSpot=null;fishingPick.set(false);}
     if(camX<0){camX=target.x;camY=target.y;}else{const k=ease(.12,paintDt);camX+=(target.x-camX)*k;camY+=(target.y-camY)*k;}
     c.save();c.translate(-camX,-camY);
-    if(fishingZone){fishing.drawBack(c,t,camX,camY);if(fishingPick.get())fishing.drawPick(c,t,hoverLake);}else lobby.drawBack(c,t,camX);
+    if(fishingZone){fishing.drawBack(c,t,camX,camY);}else lobby.drawBack(c,t,camX);
     if((walkDir||walkDirY)&&me&&!state.room&&!blockedRef.current&&t-lastWalk>150){lastWalk=t;pendingSpot=null;fishingPick.set(false);client.send({type:'move',x:Math.max(walk.minX,Math.min(walk.maxX,me.x+walkDir*240)),y:fishingZone?Math.max(walk.minY,Math.min(walk.maxY,me.y+walkDirY*160)):me.y});}
     // Walking to a spot picked on the water: cast once there.
     const spot=pendingSpot?FISHING_SPOTS.find(s=>s.id===pendingSpot):undefined;
@@ -312,7 +312,8 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      const people=state.players.map(p=>({...p,name:p.name+(p.id===state.profile?.id?' · você':'')}));
      const now=Date.now()+state.offset;
      const drawn=[...fishing.sprites(t,hover,camX,camY),...people.map(p=>({y:p.y,draw:()=>{
-      const spot=p.fishing?FISHING_SPOTS.find(s=>s.id===p.fishing!.spot):undefined;
+      // The fisher stands where they were (within SPOT_REACH of the spot) and faces the float.
+      const at=p.fishing?FISHING_SPOTS.find(s=>s.id===p.fishing!.spot):undefined,spot=at&&{...at,facing:(at.bobX>=p.x?1:-1) as 1|-1};
       const e=avatar(p.id,p.name,p.equipment,p.x,p.y,134,t,spot?.facing,{},false,true);
       if(spot&&p.fishing)fishing.drawGear(c,p.fishing,spot,e.x,e.y,134,now);
      }}))].sort((a,b)=>a.y-b.y);
@@ -361,7 +362,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      // The nearest free spot of that lake to the click: walk there, and after Lançar, cast on arrival.
      const taken=takenSpots(),free=FISHING_SPOTS.filter(s=>s.lake===hit.lake.id&&!taken.has(s.id)),me=state.players.find(p=>p.id===state.profile?.id);
      // Already standing at one of its spots: fish right there.
-     const here=me&&free.find(s=>Math.hypot(s.x-me.x,s.y-me.y)<=SPOT_REACH);
+     const here=me&&free.filter(s=>Math.hypot(s.x-me.x,s.y-me.y)<=SPOT_REACH).sort((a,b)=>Math.hypot(a.x-me.x,a.y-me.y)-Math.hypot(b.x-me.x,b.y-me.y))[0];
      if(picking&&here){client.send({type:'fish-cast',spot:here.id});return;}
      const spot=free.sort((a,b)=>Math.hypot(a.bobX-x,a.bobY-y)-Math.hypot(b.bobX-x,b.bobY-y))[0];
      if(!spot){client.update({error:'Todos os lugares deste lago estão ocupados.'});return;}

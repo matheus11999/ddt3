@@ -192,8 +192,11 @@ export function fishingBlocked(x:number,y:number):boolean{
  * around each pond's rim and out on the walkways over it. `fish` is the pond's fish table.
  */
 export interface FishingSpot {id:string;lake:string;fish:FishTable;x:number;y:number;facing:1|-1;bobX:number;bobY:number;}
-/** How close (px) a player must stand to a spot to fish from it. */
-export const SPOT_REACH=48;
+/**
+ * How close (px) a player must stand to a spot to fish from it. Pedido do matheus (20/10): da lateral do lago
+ * a linha alcança o lugar mais próximo sem o boneco andar (os lugares da margem ficam a ~240 px um do outro).
+ */
+export const SPOT_REACH=180;
 export const FISHING_SPOTS:FishingSpot[]=[];
 function spot(lake:FishingLake,id:string,x:number,y:number,bobX:number,bobY:number):FishingSpot{
  x=Math.round(x);y=Math.round(y);bobX=Math.round(bobX);bobY=Math.round(bobY);
@@ -202,7 +205,7 @@ function spot(lake:FishingLake,id:string,x:number,y:number,bobX:number,bobY:numb
  return {id,lake:lake.id,fish:lake.fish,x,y,facing:bobX>x?1:-1,bobX,bobY};
 }
 function lakeSpots(lake:FishingLake):FishingSpot[]{
- const {block}=pondPlace(lake),n=Math.max(6,Math.min(16,Math.round(Math.PI*(block.rx+block.ry)/240))),list:FishingSpot[]=[];
+ const {block}=pondPlace(lake),n=Math.max(6,Math.min(24,Math.round(Math.PI*(block.rx+block.ry)/170))),list:FishingSpot[]=[];
  for(let i=0;i<n;i++){const a=(15+i*360/n)*Math.PI/180,c=Math.cos(a),s=Math.sin(a);
   list.push(spot(lake,`${lake.id}-${i+1}`,lake.x+(block.rx+18)*c,lake.y+(block.ry+(s<0?6:22))*s,lake.x+lake.rx*.6*c,lake.y+lake.ry*.45*s));}
  // Out on the walkways over the water: the points of each deck that look onto open water.
