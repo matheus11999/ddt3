@@ -1,0 +1,7 @@
+You MUST call the built-in image_gen tool now to create a NEW image (do not reuse or copy any existing file). After image_gen returns, copy exactly the file it just produced (the newest file inside the generated_images folder of THIS session) to D:\APPS\ddt-pow-aura\test-results\codex-pow-aura\lightning.png. Do nothing else, no code.
+
+Art for a 2D hand-painted chibi artillery web game (vivid, volumetric, painterly, not vector, no hard outlines). Original art. It shows that a small character lying on the ground has its special power ready. Elegant and fairly discreet, semi-transparent glow, never thick or heavy. The character is NOT drawn.
+
+Paint crackling GOLDEN LIGHTNING energy: thin forked electric arcs of white-gold light jumping around an empty oval space (where the character is), with small sparks and a faint warm glow, like charged power about to burst. About 300 px wide and 260 px tall. The 6 frames: the arcs jump to new positions each frame.
+
+Layout: landscape image 1536x1024, 3 columns x 2 rows = 6 equal cells of 512x512, PURE FLAT BLACK background (#000000), no gradient, no grid lines, no text. Each cell: the effect centred horizontally, its lowest part 60 px above the cell bottom (it starts from the ground line where the character lies, nothing below that line), same size and position in every cell. The 6 cells are consecutive frames of one smooth loop, frame 6 loops back to frame 1. Read order left to right, top row then bottom row.

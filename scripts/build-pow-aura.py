@@ -3,7 +3,7 @@
 Sources: public/assets/combat/source/pow-ready-<name>.png, a 3x2 grid of looping frames painted on flat black.
 Light is drawn on black: black becomes transparent by brightness and the colour is un-premultiplied, so the painting
 keeps its glow on any background. Every cell keeps its whole canvas so the loop does not shake; `ring` recentres each
-frame on its bright ring and `orb` puts the white-hot core at the same spot (the painter drifts a little per cell).
+frame on its bright ring, `base` moves the sheet so its lowest light sits on the ground line, and `orb` puts the white-hot core at the same spot (the painter drifts a little per cell).
 Run: py scripts/build-pow-aura.py
 """
 from pathlib import Path
@@ -15,7 +15,10 @@ SRC = ROOT / 'public/assets/combat/source'
 OUT = ROOT / 'public/assets/combat'
 COLS, ROWS = 3, 2
 # name: (strip cell size, how each frame is aligned)
-SHEETS = {'aura': (256, 'ring'), 'mantle': (256, 'none'), 'orb': (128, 'orb')}
+SHEETS = {'aura': (256, 'ring'), 'mantle': (256, 'base'), 'orb': (128, 'orb'), 'crown': (128, 'ring'), 'wings': (256, 'base'),
+          'whirl': (256, 'base'), 'sparks': (256, 'base'), 'lightning': (256, 'base')}
+# `base` looks rise from the ground line: the lowest light of the whole sheet lands BASE px above the cell bottom.
+BASE = 60
 ORB_CORE = (320 / 512, .5)
 
 def unblack(img: Image.Image) -> Image.Image:
@@ -41,11 +44,15 @@ for name, (size, mode) in SHEETS.items():
         continue
     sheet = Image.open(source)
     cw, ch = sheet.width // COLS, sheet.height // ROWS
+    cells = [unblack(sheet.crop(((i % COLS) * cw, (i // COLS) * ch, (i % COLS + 1) * cw, (i // COLS + 1) * ch))) for i in range(COLS * ROWS)]
+    # One shift for the whole sheet, so the loop never jumps.
+    lift = ch - BASE - max(int(np.nonzero((np.asarray(cell)[..., 3] > 40).any(axis=1))[0].max()) for cell in cells) if mode == 'base' else 0
     strip = Image.new('RGBA', (size * COLS * ROWS, size))
     for i in range(COLS * ROWS):
         col, row = i % COLS, i // COLS
-        cell = unblack(sheet.crop((col * cw, row * ch, (col + 1) * cw, (row + 1) * ch)))
+        cell = cells[i]
         cx, cy = centre(cell, mode)
+        cy -= lift
         side = min(cw, ch)
         cell = cell.crop((cx - side // 2, cy - side // 2, cx + side // 2, cy + side // 2)).resize((size, size), Image.LANCZOS)
         strip.paste(cell, (i * size, 0))

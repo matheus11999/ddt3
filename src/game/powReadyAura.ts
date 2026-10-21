@@ -6,13 +6,18 @@ import {freeImage} from './spriteCache';
  * moves them. Three looks, POW_READY_STYLE picks the one in the game:
  *  - aura: a thin oval of soft golden light strands around the fighter;
  *  - mantle: golden spirit wisps rising from behind the body;
- *  - orbs: two small light spirits with comet tails circling the fighter, passing behind and in front of it.
+ *  - orbs: two small light spirits with comet tails circling the fighter, passing behind and in front of it;
+ *  - wings, whirl, sparks, lightning: light wings, ribbons spiralling up, rising sparks, golden arcs (rising from the feet);
+ *  - crown: a small halo of light rays floating over the head.
  * Nothing ever shows under the fighter (matheus): every look is cut at the feet.
  */
-export type PowReadyStyle='aura'|'mantle'|'orbs';
+export type PowReadyStyle='aura'|'orbs'|keyof typeof RISING|'crown';
 export const POW_READY_STYLE:PowReadyStyle='mantle';
 const FRAMES=6;
-const ART={aura:{src:'/assets/combat/pow-ready-aura.png',size:256},mantle:{src:'/assets/combat/pow-ready-mantle.png',size:256},orb:{src:'/assets/combat/pow-ready-orb.png',size:128}} as const;
+/** Looks painted rising from the ground line: drawn size around a 112 px fighter, light, frame time and how far above the feet they start (the wings grow from the back). */
+const RISING={mantle:{draw:170,alpha:.72,frameMs:110,lift:0},wings:{draw:170,alpha:.7,frameMs:140,lift:22},whirl:{draw:190,alpha:.8,frameMs:100,lift:0},sparks:{draw:200,alpha:1,frameMs:120,lift:0},lightning:{draw:150,alpha:.8,frameMs:90,lift:0}} as const;
+const strip=(name:string,size=256)=>({src:`/assets/combat/pow-ready-${name}.png`,size});
+const ART={aura:strip('aura'),orb:strip('orb',128),crown:strip('crown',128),mantle:strip('mantle'),wings:strip('wings'),whirl:strip('whirl'),sparks:strip('sparks'),lightning:strip('lightning')} as const;
 type Art=keyof typeof ART;
 const images=new Map<Art,HTMLImageElement>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
@@ -43,10 +48,14 @@ export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,ti
  if(style==='aura'){
   const {grow,beat,frame}=timing(time,since,120),scale=(.86+.14*grow)*(1+beat*.045),w=180*scale,h=150*scale;
   c.globalAlpha*=grow*(.8+beat*.15);c.drawImage(art,frame*size,0,size,size,x-w/2,y-40-h/2,w,h);
+ }else if(style==='crown'){
+  // Floats over the head with a slow bob.
+  const {t,grow,beat,frame}=timing(time,since,150),s=88*(.85+.15*grow);
+  c.globalAlpha*=grow*(.8+beat*.12);c.drawImage(art,frame*size,0,size,size,x-s/2,y-74-s/2+Math.sin(t/520)*2.5,s,s);
  }else{
-  // The painted base sits 60 px above the bottom of a 512 px cell: it lands just under the body so the wisps rise from it.
-  const {grow,beat,frame}=timing(time,since,110),s=170*(.9+.1*grow)*(1+beat*.03),base=s*(1-60/512);
-  c.globalAlpha*=grow*(.72+beat*.12);c.drawImage(art,frame*size,0,size,size,x-s/2,y+6-base,s,s);
+  // The painted base sits 60 px above the bottom of a 512 px cell: it lands just under the body so the light rises from it.
+  const look=RISING[style],{grow,beat,frame}=timing(time,since,look.frameMs),s=look.draw*(.9+.1*grow)*(1+beat*.03),base=s*(1-60/512);
+  c.globalAlpha*=grow*(look.alpha+beat*.12);c.drawImage(art,frame*size,0,size,size,x-s/2,y+6-look.lift-base,s,s);
  }
  c.restore();
 }
