@@ -24,6 +24,8 @@ import {aimSource,weaponAimLimits} from '../../shared/aim';
 import {drawHitboxDebug,HITBOX_DEBUG} from './hitboxDebug';
 import {drawWalkDebug,WALK_DEBUG} from './walkDebug';
 import {drawPowerArmed} from './powerArmedEffect';
+import {powerFull} from '../../shared/power';
+import {drawPowReadyAura,releasePowReadyAura} from './powReadyAura';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
 import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds,releasePetEffects} from './petEffects';
@@ -83,7 +85,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   let residues:TerrainResidues|null=null;
   const boomerangBursts=new Map<string,{projectile:Projectile;at:number;level:number}>();
   // Enfurecer and Gelo: the tool icon over the head when used, and the ice on frozen fighters (consumableEffects.ts).
-  const toolIcons=new Map<string,{id:ItemUse;at:number}>(),seenBoosts=new Map<string,number>(),seenAbilities=new Map<string,Record<string,number>>(),frozenSeen=new Map<string,{since:number;turns:number;thawAt?:number}>();
+  const toolIcons=new Map<string,{id:ItemUse;at:number}>(),seenBoosts=new Map<string,number>(),seenAbilities=new Map<string,Record<string,number>>(),frozenSeen=new Map<string,{since:number;turns:number;thawAt?:number}>(),powReadySince=new Map<string,number>();
   // When each pet projectile landed (its own clock or the server's impact, whichever comes first).
   const petLandings=new Map<string,number>();
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
@@ -103,7 +105,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   };
   let wasFishing=false;
   /** Battle-only paintings and canvases go as soon as the battle ends, not when the garbage collector runs; an expedition's or the dragon's stay while their room is open (the next stage uses them). */
-  const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releaseItemUse();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
+  const releaseBattleArt=(room?:string)=>{releaseWeaponEffects();releaseConsumables();releaseItemUse();releasePowReadyAura();releasePetEffects();releaseCombatBodies();releaseTerrainMarks();if(room!=='expedition')releaseMonsters();if(room!=='world-boss')releaseDragon();};
   const zoneReady=(scale:number,scaleY=scale)=>state.zone==='fishing'?fishing.ready(scale):lobby.ready(scale,scaleY);
   /** Spots someone else is fishing from. */
   const takenSpots=()=>new Set(state.players.filter(p=>p.fishing&&p.id!==state.profile?.id).map(p=>p.fishing!.spot));
@@ -253,7 +255,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       const turns=hp>0?f.frozenTurns??0:0,ice=frozenSeen.get(f.id);
       if(turns>0&&(!ice||ice.thawAt!==undefined))frozenSeen.set(f.id,{since:knownMatch?t:t-1e4,turns});else if(turns>0&&ice)ice.turns=turns;
       else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
-     const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
+     const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;
+     // POW ready (bar full, not used yet): the painted fire oval pulses behind the fighter until it is spent.
+     const powReady=!f.powerArmed&&powerFull(f.powerCharge)&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(!powReady)powReadySince.delete(f.id);else{if(!powReadySince.has(f.id))powReadySince.set(f.id,knownMatch?t:t-1e4);drawPowReadyAura(c,entity?.x??f.x,entity?.y??y,t,powReadySince.get(f.id)!);}
+     if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
      if(limits)drawAimIndicator(c,entity?.x??f.x,entity?.y??y,f.facing,angleRef.current,slope,aimAge,limits,'back');
