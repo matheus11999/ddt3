@@ -59,7 +59,8 @@
     "dev:site": "vite --config site/vite.config.ts --host 127.0.0.1",
     "start:site": "tsx site/server/index.ts",
     "build:site": "vite build --config site/vite.config.ts",
-    "test:site:browser": "node scripts/preview-site.mjs"
+    "test:site:browser": "node scripts/preview-site.mjs",
+    "verify:front": "py scripts/verify-front.py"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",

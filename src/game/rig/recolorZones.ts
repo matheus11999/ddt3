@@ -23,6 +23,7 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'hat-tropical':{label:'A palha do chapéu; a faixa e a flor ficam como estão',hue:.1,tolerance:.045,minSaturation:.3},
  'hat-captain':{label:'O tecido vermelho; a aba, o cordão e o emblema ficam como estão',hue:.99,tolerance:.04,minSaturation:.35},
  'hat-hiphop':{label:'A copa roxa; a aba e a estrela ficam como estão',hue:.77,tolerance:.05,minSaturation:.35},
+ 'hat-starter':{label:'O tecido azul; a aba e o botão ficam como estão',hue:.6,tolerance:.06,minSaturation:.3},
  'hat-swordsman':{label:'A palha; os cordões e a borla ficam como estão',hue:.11,tolerance:.04,minSaturation:.35},
  'hat-idol':{label:'O laço e a tiara inteiros'},
  'hat-surf':{label:'A aba turquesa; a faixa branca e a flor ficam como estão',hue:.5,tolerance:.05,minSaturation:.35},

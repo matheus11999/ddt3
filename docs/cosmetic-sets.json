@@ -268,6 +268,18 @@
     "name": "Rosto Básico",
     "brief": "the plainest default FEMININE face: simple round dark-brown eyes with one white highlight each and short soft upper lashes, thin soft eyebrows, a small relaxed closed-mouth smile, a faint pink blush"
    }
+  },
+  {
+   "id": "starter",
+   "gender": "unisex",
+   "theme": "kit inicial (21/10): boné simples, o mesmo da vista de frente (public/assets/front/hat-starter.png)",
+   "hat": {
+    "id": "hat-starter",
+    "name": "Boné Inicial",
+    "fit": "hat-tight",
+    "profile": "tight",
+    "brief": "a soft simple baseball cap in muted denim blue with a short curved light-tan brim and a small button on top, no logo; the SAME cap as public/assets/front/hat-starter.png seen from the side 3/4 view"
+   }
   }
  ]
 }

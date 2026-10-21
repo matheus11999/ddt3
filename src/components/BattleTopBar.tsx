@@ -21,7 +21,7 @@ export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mi
   {fighter.guild&&<div className="active-portrait-guild">{fighter.guild}</div>}
   <div className="active-portrait-stage">
    {(fighter.equipment.upgrade??0)<5&&<i className="active-portrait-sigil" aria-hidden="true"/>}
-   <div className="active-portrait-avatar"><Avatar key={fighter.id} equipment={fighter.equipment} size={170} pose="idle" weapon showAura auraAnimated facing={1}/></div>
+   <div className="active-portrait-avatar"><Avatar key={fighter.id} view="side" equipment={fighter.equipment} size={170} pose="idle" weapon showAura auraAnimated facing={1}/></div>
    <LevelBadge level={fighter.level} size={34}/>
    <PetMedallion pet={fighter.equipment.pet}/>
   </div>
@@ -47,7 +47,7 @@ export function FighterRoster({players,myTeam,turnId,side}:{players:Fighter[];my
  return <div className={`fighter-roster ${side}`} aria-label={side==='ally'?'Aliados':'Inimigos'}>
   {team.map(player=>{const ratio=Math.max(0,Math.min(1,player.hp/player.maxHp));
    return <div key={player.id} className={`roster-card ${side} ${player.id===turnId?'active-fighter':''} ${player.hp<=0?'defeated-fighter':''}`} data-fighter={player.id} title={`${player.name} · ${player.hp}/${player.maxHp}`} {...playerMenuProps({id:player.id,name:player.name,context:'battle'})}>
-    <div className="roster-face"><Avatar equipment={player.equipment} size={46} portrait animated={false} weapon={false}/></div>
+    <div className="roster-face"><Avatar view="side" equipment={player.equipment} size={46} portrait animated={false} weapon={false}/></div>
     <div className="roster-health" role="meter" aria-label={`Vida de ${player.name}`} aria-valuenow={player.hp} aria-valuemin={0} aria-valuemax={player.maxHp}><i style={{width:`${ratio*100}%`}}/></div>
    </div>;})}
  </div>;

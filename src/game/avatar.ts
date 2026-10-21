@@ -11,9 +11,10 @@ import {FACE_REGISTRATION} from './faces';
 import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 import {rodTip,TIDE_ROD} from './rodCast';
+import {drawFrontAvatar,drawFrontHead,FRONT_HEAD_UNITS,hasFrontView} from './front';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
-export interface AvatarContext {/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
+export interface AvatarContext {/** 'side' keeps the battle view outside battle (battle HUD, loading screen, cut-ins); otherwise menus and the world use the front view when the look has front art (src/game/front.ts). */view?:'side'|'front';/** Walking around the plaza: standing uses the straight idle sheet that matches the walk; previews (bag, rooms, shop) keep the posed painting. */world?:boolean;pose?:AvatarPose;angle?:number;power?:number;slope?:number;poseTime?:number;movementDistance?:number;combat?:boolean;showAura?:boolean;animated?:boolean;auraAnimated?:boolean;weaponOffset?:number;weaponSide?:1|-1;weaponScale?:number;weaponVerticalOffset?:number;groundedShadow?:boolean;face?:import('./faceExpressions').FaceState;seed?:number;}
 export interface AvatarMotion {lastTime:number;walk:number;phase:number;facing:1|-1;previousFacing:1|-1;turn:number;pose:AvatarPose;poseAt:number;lie:number;lean:number;bodyY:number;leftArm:number;rightArm:number;headTilt:number;arm:number;grab:number;chargedAt:number;}
 export function createAvatarMotion(facing:1|-1=1):AvatarMotion{return {lastTime:0,walk:0,phase:0,facing,previousFacing:facing,turn:1,pose:'idle',poseAt:0,lie:0,lean:0,bodyY:0,leftArm:0,rightArm:0,headTilt:0,arm:0,grab:0,chargedAt:-1e9};}
 const sigils=new Map<number,HTMLCanvasElement>();
@@ -213,8 +214,11 @@ function visibleHeadEquipment(eq:Equipment):Equipment {
 /** Lobby identity portrait: the universal head and its actual headwear, never a
  * costume, body, weapon or aura. Uses the same registration and hair occlusion
  * passes as the full avatar, without waiting for any outfit artwork. */
-export function drawAvatarPortrait(c:CanvasRenderingContext2D,equipment:Equipment,x:number,y:number,size:number,facing=1){
- const eq=visibleHeadEquipment(equipment),head=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes);
+export function drawAvatarPortrait(c:CanvasRenderingContext2D,equipment:Equipment,x:number,y:number,size:number,facing=1,view?:'side'|'front'){
+ const eq=visibleHeadEquipment(equipment);
+ // Outside battle the portrait shows the front head (src/game/front.ts), framed on the face.
+ if(view!=='side'&&hasFrontView(eq)){c.save();c.translate(x+size/2,y+size/2);const k=size/(FRONT_HEAD_UNITS*1.25);c.scale((facing<0?-1:1)*k,k);c.translate(-4,FRONT_HEAD_UNITS*.5);drawFrontHead(c,eq);c.restore();return;}
+ const head=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes);
  const hairPath=visual(eq,'hair').asset,hair=hairPath?asset(hairPath):null;
  if(!head||hair&&(!hair.complete||!hair.naturalWidth))return;
  const covered=eq.hat!=='hat-none',tall=eq.hat==='hat-mage',frame=tall?640:covered?560:540,centerX=635,centerY=tall?310:covered?355:370;
@@ -258,6 +262,8 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
    if(foregroundWeapon)paintWeapon();c.restore();};
   paint(m.facing);c.restore();return;
  }
+ // Outside battle the character faces the viewer in 3/4 like the DDTank bag portrait (pedido do matheus, 21/10).
+ if(!context.combat&&context.view!=='side'&&!SIDE_POSES.has(context.pose??'idle')&&hasFrontView(eq)){drawFront(c,eq,x,y,height,time,walking,facing,weapon,motion,context,auraTime);return;}
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat&&!hasCombatFrames(eq.outfit))return;
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
  const {pose,poseTime,stride,aiming,recoil,slope}=animate(m,time,walking,facing,context,rig.outfitPose),walk=m.walk,lie=m.lie,lively=context.seed!==undefined&&context.animated!==false&&(pose==='idle'||pose==='aim'||pose==='prone')?idleHeadTilt(time,context.seed)*(1-walk):0,bounce=((1.2+Math.cos(m.phase*2)*.55)*walk+Math.sin(time/620)*.65*(1-walk))*(1-lie);
@@ -345,6 +351,28 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   }}c.restore();c.restore();
  };
  body(m.facing);c.restore();
+}
+
+/** Poses that only exist in the side view (aiming, throwing, lying down). */
+const SIDE_POSES=new Set<AvatarPose>(['aim','charge','fire','hit','fall','prone']);
+/** The front view: the painted posed figure in previews, the idle and walk sheets in the world (src/game/front.ts). */
+function drawFront(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,height:number,time:number,walking:boolean,facing:number,weapon:boolean,motion:AvatarMotion|undefined,context:AvatarContext,auraTime:number){
+ const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
+ animate(m,time,walking,facing,context);
+ const lively=context.seed!==undefined&&context.animated!==false?idleHeadTilt(time,context.seed)*(1-m.walk):0;
+ const sheetWalk=walking?m.walk>.02:m.walk>.6,kind=sheetWalk?'walk':context.world?'idle':'stand',distance=m.phase*WALK_STEP*4/(Math.PI*2);
+ c.save();c.translate(x,y);c.scale(height/160,height/160);
+ if(context.groundedShadow)drawGroundedShadow(c,30);else ellipse(c,0,-1,30,7,'#162c3c35');
+ if(context.showAura)drawAura(c,eq.upgrade??0,auraTime);
+ c.save();turnPop(c,m.turn);c.scale(m.facing,1);
+ if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon&&!isEmptyItem(eq.weapon)){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
+  // Presentation only, as in the side view: the weapon beside the near hand.
+  c.save();c.scale(context.weaponSide??1,1);c.translate((context.weaponOffset??0)+30,-34+clamp(context.weaponVerticalOffset??0,-15,24));c.rotate(Math.sin(time/600)*.02);
+  const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.scale(weaponScale,weaponScale);
+  c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(item=>item.id===eq.weapon)?.effect??'fire',level,time);c.restore();
+  drawScaled(c,w,-35,-46,82,82);c.restore();
+ }}
+ c.restore();c.restore();
 }
 
 /** Turning around flips the whole figure at once, like DDTank, and sells the

@@ -19,7 +19,7 @@ export function PowerCutIn({battle,offset}:{battle:Battle;offset:number}){
   <div className="power-cut-in-band" aria-hidden="true"><div className="power-cut-in-streaks"/></div>
   <div className="power-cut-in-ring" aria-hidden="true"/>
   <div className="power-cut-in-embers" aria-hidden="true">{EMBERS.map((ember,index)=><i key={index} style={{left:ember.left,animationDelay:ember.delay,width:ember.size,height:ember.size,'--drift':ember.drift} as CSSProperties}/>)}</div>
-  <div className="power-cut-in-character"><Avatar equipment={player.equipment} size={330} pose="fire" weapon/></div>
+  <div className="power-cut-in-character"><Avatar view="side" equipment={player.equipment} size={330} pose="fire" weapon/></div>
   <div className="power-cut-in-title"><span>{player.name}</span><BattleText>POWER!</BattleText><strong>FORÇA TOTAL</strong></div>
  </div>;
 }

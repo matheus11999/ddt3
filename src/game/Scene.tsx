@@ -45,6 +45,7 @@ import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './
 import {drawFrozenBlock,drawIceImpact,drawIceProjectile,drawItemUse,ICE_SHATTER_DURATION,itemGesture,ITEM_USE_DURATION,playConsumableSound,releaseConsumables,releaseItemUse,type ItemUse} from './consumableEffects';
 import {releaseCombatBodies} from './combatBody';
 import {releaseWalkBodies} from './walkBody';
+import {releaseFrontArt} from './front';
 import {scenePaint} from './scenePaint';
 import {BATTLE_HUD_COVER,EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -113,7 +114,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // The plaza's paintings leave memory while a battle runs and come back once it ends
    // (on the result screen, before the players walk out), so the return shows no gap.
    // Only the zone the player is in keeps its paintings in memory.
-   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();releaseWalkBodies();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
+   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();releaseWalkBodies();releaseFrontArt();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
    // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
    if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();environment?.dispose();residues?.dispose();releaseBattleArt(state.room?.kind);releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but

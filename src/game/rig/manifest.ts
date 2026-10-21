@@ -61,6 +61,7 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hat-tropical':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([540,560,510,335],[[650,817],[925,742]],[[540,560],[1030,560],[1030,690],[1050,695],[1050,775],[1020,790],[1020,895],[540,895]])},
  'hat-mage':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([1035,480,495,410],[[1140,822],[1420,803]],[[1035,480],[1530,480],[1530,890],[1035,890],[1035,810],[1090,790],[1090,680],[1035,680]])},
  'hat-captain':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-captain.png',source:[140,300,995,605],pin:{from:[[310,852],[1030,774]],to:HEAD_ANCHORS.hatSeat}}},
+ 'hat-starter':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-starter.png',source:[105,300,1100,660],pin:{from:[[224.6,921.1],[958,816.3]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-hiphop':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-hiphop.png',source:[126,296,1073,623],pin:{from:[[250,872],[960,756]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-swordsman':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:{atlas:'/assets/hat-swordsman.png',source:[96,324,1081,632],pin:{from:[[330,840],[980,720]],to:HEAD_ANCHORS.hatSeat}}},
  // Headband and visor sit on the skull without covering the hair ('band').

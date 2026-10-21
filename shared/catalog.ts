@@ -128,6 +128,8 @@ export const ITEMS: Item[] = [...WEAPONS,
  cosmetic('glasses-idol','Óculos Coração','glasses','idol','#ff5aa5','uncommon',{asset:'/assets/glasses-idol.png'}),
  cosmetic('glasses-surf','Óculos Sol Poente','glasses','surf','#f08a3c','uncommon',{asset:'/assets/glasses-surf.png'}),
  cosmetic('glasses-captain','Óculos do Capitão','glasses','captain','#e3a62b','uncommon',{asset:'/assets/glasses-captain.png'}),
+ // Kit inicial (21/10): side art for battle, front art in public/assets/front/hat-starter.png.
+ {...cosmetic('hat-starter','Boné Inicial','hat','starter','#3d6fd0','common',{asset:'/assets/hat-starter.png'}),description:'Boné jeans simples do kit inicial.'},
  {...cosmetic('hat-hiphop','Boné Aba Reta','hat','hiphop','#8a2be2','uncommon',{asset:'/assets/hat-hiphop.png'}),description:'Boné roxo de aba reta com estrela dourada.'},
  {...cosmetic('hat-swordsman','Chapéu de Palha Errante','hat','swordsman','#d9a441','rare',{asset:'/assets/hat-swordsman.png'}),description:'Chapéu cônico de palha trançada com cordão vermelho e borla.'},
  {...cosmetic('hat-idol','Laço de Palco','hat','idol','#ff4f9a','rare',{asset:'/assets/hat-idol.png'}),description:'Tiara com um grande laço de cetim e uma estrela dourada.'},
@@ -207,13 +209,14 @@ export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby',outfit:'outfit-explorer'}:{...DEFAULT_EQUIPMENT};
 }
 /**
- * What a character created from now on wears and owns (pedido do matheus, 21/10): only the Vento Celeste and the basic
- * face, hair and outfit of its gender, no hat, glasses or costumes. Older characters keep what they have.
+ * What a character created from now on wears and owns (pedido do matheus, 21/10): only the Vento Celeste, the starter
+ * cap and the basic look of its gender (the empty hair, face and outfit slots), so it shows in the front view outside
+ * battle (src/game/front.ts). No glasses or costumes. Older characters keep what they have.
  */
 export const NEW_CHARACTER_WEAPON='wind-shuriken';
 export function newCharacterEquipment(gender:CharacterGender):Equipment {
- const base=starterEquipment(gender);
- return {...DEFAULT_EQUIPMENT,weapon:NEW_CHARACTER_WEAPON,face:base.face,outfit:base.outfit,hair:gender==='female'?'hair-ponytail':'hair-undercut',hat:'hat-none',glasses:'glasses-none',costume:'costume-none',upgrade:0};
+ const basic=unequipForGender(gender);
+ return {...DEFAULT_EQUIPMENT,weapon:NEW_CHARACTER_WEAPON,face:basic.face!,outfit:basic.outfit!,hair:basic.hair!,hat:'hat-starter',glasses:'glasses-none',costume:'costume-none',upgrade:0};
 }
 /** Retired prototypes are rejected by the live catalog; existing ownership is exchanged once. */
 export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
