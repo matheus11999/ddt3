@@ -100,10 +100,10 @@ test('discarding removes a copy with its data, unequips it and keeps one of each
  // The last weapon cannot go (the test fixtures add more weapons, so throw those away first).
  for(const key of p.inventory.filter(key=>key!==p.equipment.weapon&&ITEMS.find(item=>item.id===key)?.slot==='weapon'))p=await store.discard(state.profile.id,key);
  await assert.rejects(store.discard(state.profile.id,p.equipment.weapon),/pelo menos um/);
- // A worn outfit with another owned copy is swapped for that one; the last outfit stays.
+ // Throwing away the worn outfit leaves the basic look of the empty slot; the other copy stays in the bag.
  const outfits=p.inventory.filter(key=>key.startsWith('outfit-'));assert.deepEqual(outfits,['outfit-cartographer','outfit-cartographer~2']);
- p=await store.discard(state.profile.id,p.equipment.outfit);assert.deepEqual(p.inventory.filter(key=>key.startsWith('outfit-')),['outfit-cartographer']);assert.equal(p.equipment.outfit,'outfit-cartographer');
- await assert.rejects(store.discard(state.profile.id,'outfit-cartographer'),/pelo menos um/);
+ p=await store.discard(state.profile.id,p.equipment.outfit);assert.deepEqual(p.inventory.filter(key=>key.startsWith('outfit-')),['outfit-cartographer']);assert.equal(p.equipment.outfit,'outfit-basic-male');
+ p=await store.discard(state.profile.id,'outfit-cartographer');assert.equal(p.inventory.some(key=>key.startsWith('outfit-')),false);assert.equal(p.equipment.outfit,'outfit-basic-male');
  // The copy is gone for good after a fresh read.
  assert.deepEqual(normalizeProfile(structuredClone(state.profile)).inventory,p.inventory);
 });

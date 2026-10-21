@@ -1,0 +1,240 @@
+{
+ "walk": {
+  "outfit-basic-male": {
+   "path": "/assets/front/walk/outfit-basic-male.png",
+   "cell": 512,
+   "frames": [
+    {
+     "neck": [
+      284,
+      216
+     ],
+     "headHeight": 188,
+     "soles": 502
+    },
+    {
+     "neck": [
+      262,
+      212
+     ],
+     "headHeight": 187,
+     "soles": 502
+    },
+    {
+     "neck": [
+      252,
+      222
+     ],
+     "headHeight": 186,
+     "soles": 502
+    },
+    {
+     "neck": [
+      286,
+      220
+     ],
+     "headHeight": 186,
+     "soles": 502
+    },
+    {
+     "neck": [
+      267,
+      215
+     ],
+     "headHeight": 185,
+     "soles": 502
+    },
+    {
+     "neck": [
+      256,
+      216
+     ],
+     "headHeight": 184,
+     "soles": 502
+    }
+   ]
+  },
+  "outfit-basic-female": {
+   "path": "/assets/front/walk/outfit-basic-female.png",
+   "cell": 512,
+   "frames": [
+    {
+     "neck": [
+      291,
+      232
+     ],
+     "headHeight": 206,
+     "soles": 511
+    },
+    {
+     "neck": [
+      290,
+      232
+     ],
+     "headHeight": 206,
+     "soles": 511
+    },
+    {
+     "neck": [
+      290,
+      232
+     ],
+     "headHeight": 206,
+     "soles": 511
+    },
+    {
+     "neck": [
+      292,
+      249
+     ],
+     "headHeight": 205,
+     "soles": 511
+    },
+    {
+     "neck": [
+      295,
+      245
+     ],
+     "headHeight": 203,
+     "soles": 511
+    },
+    {
+     "neck": [
+      297,
+      238
+     ],
+     "headHeight": 202,
+     "soles": 511
+    }
+   ]
+  }
+ },
+ "idle": {
+  "outfit-basic-male": {
+   "path": "/assets/front/idle/outfit-basic-male.png",
+   "cell": 512,
+   "frames": [
+    {
+     "neck": [
+      281,
+      208
+     ],
+     "headHeight": 184,
+     "soles": 507
+    },
+    {
+     "neck": [
+      260,
+      208
+     ],
+     "headHeight": 184,
+     "soles": 507
+    },
+    {
+     "neck": [
+      246,
+      208
+     ],
+     "headHeight": 184,
+     "soles": 507
+    },
+    {
+     "neck": [
+      281,
+      207
+     ],
+     "headHeight": 180,
+     "soles": 507
+    },
+    {
+     "neck": [
+      260,
+      207
+     ],
+     "headHeight": 180,
+     "soles": 507
+    },
+    {
+     "neck": [
+      247,
+      207
+     ],
+     "headHeight": 180,
+     "soles": 507
+    }
+   ]
+  },
+  "outfit-basic-female": {
+   "path": "/assets/front/idle/outfit-basic-female.png",
+   "cell": 512,
+   "frames": [
+    {
+     "neck": [
+      289,
+      218
+     ],
+     "headHeight": 193,
+     "soles": 511
+    },
+    {
+     "neck": [
+      289,
+      218
+     ],
+     "headHeight": 193,
+     "soles": 511
+    },
+    {
+     "neck": [
+      289,
+      218
+     ],
+     "headHeight": 193,
+     "soles": 511
+    },
+    {
+     "neck": [
+      290,
+      219
+     ],
+     "headHeight": 193,
+     "soles": 511
+    },
+    {
+     "neck": [
+      290,
+      219
+     ],
+     "headHeight": 193,
+     "soles": 511
+    },
+    {
+     "neck": [
+      290,
+      219
+     ],
+     "headHeight": 193,
+     "soles": 511
+    }
+   ]
+  }
+ },
+ "stand": {
+  "outfit-basic-male": {
+   "path": "/assets/front/outfit-basic-male.png",
+   "collar": [
+    578,
+    280
+   ],
+   "soles": 1229
+  },
+  "outfit-basic-female": {
+   "path": "/assets/front/outfit-basic-female.png",
+   "collar": [
+    608,
+    252
+   ],
+   "soles": 1211
+  }
+ }
+}

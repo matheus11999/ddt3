@@ -17,7 +17,7 @@ export function SpectatorHud(){
   {createPortal(<div className="spectator-hud" aria-label="Assistindo à partida">
    {[0,1].map(team=><section key={team} className={`spectator-team team-${team}`} aria-label={`Equipe ${team===0?'azul':'rubra'}`}>
     {battle.players.filter(player=>player.team===team).map(player=><div key={player.id} className={`spectator-fighter ${player.id===battle.turnId?'current-turn':''} ${player.hp<=0?'defeated':''}`}>
-     <Avatar equipment={player.equipment} size={45} portrait animated={false} weapon={false}/>
+     <Avatar view="side" equipment={player.equipment} size={45} portrait animated={false} weapon={false}/>
      <div><strong>{player.name}</strong><div className="spectator-health" role="meter" aria-label={`Vida de ${player.name}`} aria-valuemin={0} aria-valuemax={player.maxHp} aria-valuenow={player.hp}><i style={{width:`${Math.max(0,player.hp/player.maxHp)*100}%`}}/><span>{player.hp} / {player.maxHp}</span></div></div>
     </div>)}
    </section>)}

@@ -50,6 +50,8 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hair-hiphop':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-hiphop.png',[179,190,1064,858],[339,60,532,429])},
  'hair-swordsman':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-swordsman.png',[266,146,894,661],[338,62,584,432])},
  'hair-idol':{rig:RIG_VERSION,slot:'hair',fit:'hair-twin',worn:region('/assets/hair-idol.png',[33,170,1202,995],[374.1,93,594.9,492.3])},
+ 'hair-basic-male':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-basic-male.png',[324,199,733,501],[352.6,127.2,586.4,400.8])},
+ 'hair-basic-female':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-basic-female.png',[128,73,1085,1085],[276.6,60,585.9,585.9])},
  'hair-surf':{rig:RIG_VERSION,slot:'hair',fit:'hair-long',worn:region('/assets/hair-surf.png',[196,80,999,1034],[322,92,600,621])},
  'hair-horizon':{rig:RIG_VERSION,slot:'hair',fit:'hair-short',worn:region('/assets/hair-horizon.png',[270,49,753,593],shrink([288,25.8,674,533],.9,[760,250])),covered:region('/assets/hair-horizon.png',[312,739,698,472],[345,195,500,338])},
  'hat-cap':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:hat([35,130,522,332],[[126,442],[485,330]])},
@@ -59,6 +61,7 @@ export const COSMETIC_MANIFEST:Readonly<Record<string,CosmeticManifest>>={
  'hat-tropical':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([540,560,510,335],[[650,817],[925,742]],[[540,560],[1030,560],[1030,690],[1050,695],[1050,775],[1020,790],[1020,895],[540,895]])},
  'hat-mage':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:hat([1035,480,495,410],[[1140,822],[1420,803]],[[1035,480],[1530,480],[1530,890],[1035,890],[1035,810],[1090,790],[1090,680],[1035,680]])},
  'hat-captain':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-captain.png',source:[140,300,995,605],pin:{from:[[310,852],[1030,774]],to:HEAD_ANCHORS.hatSeat}}},
+ 'hat-starter':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-starter.png',source:[105,300,1100,660],pin:{from:[[224.6,921.1],[958,816.3]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-hiphop':{rig:RIG_VERSION,slot:'hat',fit:'hat-tight',profile:'tight',worn:{atlas:'/assets/hat-hiphop.png',source:[126,296,1073,623],pin:{from:[[250,872],[960,756]],to:HEAD_ANCHORS.hatSeat}}},
  'hat-swordsman':{rig:RIG_VERSION,slot:'hat',fit:'hat-wide',profile:'wide',worn:{atlas:'/assets/hat-swordsman.png',source:[96,324,1081,632],pin:{from:[[330,840],[980,720]],to:HEAD_ANCHORS.hatSeat}}},
  // Headband and visor sit on the skull without covering the hair ('band').

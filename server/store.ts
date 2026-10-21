@@ -81,7 +81,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if((raw.contentVersion??0)<14&&raw.compositionStones)for(const stone of COMPOSITION_STONES)if(stone.stat==='luck')compositionStones[stone.id]=Math.max(compositionStones[stone.id],STARTER_COMPOSITION_STONES[stone.id]);
  const equipment={...defaults};
  for(const slot of Object.keys(SLOT_NAMES) as Slot[]){
-  const saved=raw.equipment?.[slot],replaced=saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
+  const saved=raw.equipment?.[slot],replaced=saved==='hair-none'?unequip.hair:saved?(Object.hasOwn(replacements,saved)?replacements[saved]:saved):undefined;
   // Content 17: the Bolha Clássica comes in the starter kit and replaces an empty bubble slot once.
   if(slot==='bubble'&&(raw.contentVersion??0)<17&&(!replaced||isEmptyItem(replaced))){equipment.bubble=defaults.bubble;if(!inventory.includes(defaults.bubble))inventory.push(defaults.bubble);continue;}
   // Content 16: women wearing the Cartógrafo move to the feminine starter outfit.
@@ -148,8 +148,9 @@ export function removeCopy(profile:Profile,item:string):{upgrade?:number;composi
  if(equipment.copies&&!Object.keys(equipment.copies).length)delete equipment.copies;
  return kept;
 }
-/** Item types the character always wears something of: the last owned one cannot be discarded. */
-const ALWAYS_WORN=new Set(['weapon','outfit','face']);
+/** Item types the character always wears something of: the last owned one cannot be discarded.
+ * Hair, face and outfit fall back to the basic look of an empty slot (shared/catalog.ts basicLook). */
+const ALWAYS_WORN=new Set(['weapon']);
 
 export class Store implements ProfileStore {
  /** Hall da Fama: records PvP results with each battle and serves the lobby podium. */

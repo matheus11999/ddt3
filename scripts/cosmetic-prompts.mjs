@@ -19,7 +19,7 @@ const root=resolve('test-results/codex-cosmetics',set.id);
 // Approved art of the game, attached to every prompt of its kind as the style reference.
 const APPROVED={
  stand:['public/assets/outfits/cartographer-atlas.png','public/assets/outfits/captain-atlas.png','public/assets/outfits/hiphop-atlas.png','public/assets/outfits/swordsman-atlas.png'],
- hair:['public/assets/hair-horizon.png'],
+ hair:['public/assets/hair-horizon.png','public/assets/hair-surf.png','public/assets/hair-wavy.png'],
  hat:['public/assets/headwear-worn-atlas.png','public/assets/hat-captain.png','public/assets/hat-hiphop.png','public/assets/hat-swordsman.png'],
  glasses:['public/assets/glasses-navigator.png','public/assets/glasses-captain.png','public/assets/glasses-hiphop.png'],
  face:['public/assets/faces/face-captain.png'],

@@ -1,4 +1,94 @@
 {
+ "outfit-basic-female": {
+  "path": "/assets/outfits/walk/outfit-basic-female.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -117.32
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.15
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -120.65
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -114.29
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.81
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -119.07
+    ]
+   }
+  ]
+ },
+ "outfit-basic-male": {
+  "path": "/assets/outfits/walk/outfit-basic-male.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -117.22
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -116.22
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.9
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.54
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -115.21
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.22
+    ]
+   }
+  ]
+ },
  "outfit-captain": {
   "path": "/assets/outfits/walk/outfit-captain.png",
   "standing": [

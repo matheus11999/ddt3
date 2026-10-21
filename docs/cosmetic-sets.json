@@ -220,6 +220,66 @@
     "name": "Sorriso de Verão",
     "brief": "a FEMININE relaxed sunny face: gentle half-closed happy eyes with long lashes, soft eyebrows, a sweet closed-mouth smile, a few light freckles on the cheeks"
    }
+  },
+  {
+   "id": "basic-male",
+   "gender": "male",
+   "theme": "visual padrão do slot vazio (sem atributos, não é item): simples, poucos detalhes",
+   "outfit": {
+    "id": "outfit-basic-male",
+    "name": "Roupa Básica",
+    "colorName": "a bermuda",
+    "brief": "the plain default starter clothes of the game, with very few details: a plain white short-sleeve cotton t-shirt with a soft round collar, simple knee-length khaki-brown shorts with a thin dark-brown belt, white ankle socks and plain brown sneakers; clean and modest, no prints, no logos, no accessories, no pockets showing; relaxed friendly pose with one hand on the hip and the other raised in a small wave",
+    "walkParts": "plain white short-sleeve t-shirt, khaki-brown knee-length shorts with thin belt, white socks and plain brown sneakers",
+    "details": "plain white short-sleeve t-shirt with a soft round collar (no print); khaki-brown knee-length shorts; thin dark-brown belt; white ankle socks; plain brown sneakers"
+   },
+   "hair": {
+    "id": "hair-basic-male",
+    "name": "Cabelo Básico",
+    "fit": "hair-short",
+    "brief": "a simple short neat boy haircut in natural chestnut brown, a soft short fringe above the eyebrows, few strands, tidy and plain"
+   },
+   "face": {
+    "id": "face-basic-male",
+    "name": "Rosto Básico",
+    "brief": "the plainest default face: simple round dark-brown eyes with one white highlight each, small calm eyebrows, a small relaxed closed-mouth smile, no blush, no special expression"
+   }
+  },
+  {
+   "id": "basic-female",
+   "gender": "female",
+   "theme": "visual padrão do slot vazio (sem atributos, não é item): simples, poucos detalhes",
+   "outfit": {
+    "id": "outfit-basic-female",
+    "name": "Roupa Básica",
+    "colorName": "a saia",
+    "brief": "the plain default starter clothes of the game, with very few details: a plain white short-sleeve cotton blouse with a small rounded collar, a simple pastel-pink A-line skirt above the knee, white ankle socks and plain pink-brown flat shoes; clean and modest, no prints, no logos, no accessories; cute relaxed pose with one hand on the waist and the other raised in a small wave",
+    "walkParts": "plain white short-sleeve blouse, pastel-pink A-line skirt that sways with the step, white socks and plain flat shoes",
+    "details": "plain white short-sleeve blouse with a small rounded collar (no print); pastel-pink A-line skirt above the knee; white ankle socks; plain pink-brown flat shoes"
+   },
+   "hair": {
+    "id": "hair-basic-female",
+    "name": "Cabelo Básico",
+    "fit": "hair-long",
+    "brief": "a simple, cute feminine medium-length straight hairstyle in natural chestnut brown: smooth hair falling to the shoulders BEHIND the head and neck, a soft side-swept fringe above the eyebrows, the near side coming down over the ear area like the approved hairs and then falling behind the shoulder, the far side hidden behind the face (nothing hangs in front of the far cheek or the chin), few strands, glossy painted volume; SAME SIZE as the approved hairs attached: the hair hugs the skull, total width at most 1.4x the head, nothing puffing out sideways"
+   },
+   "face": {
+    "id": "face-basic-female",
+    "name": "Rosto Básico",
+    "brief": "the plainest default FEMININE face: simple round dark-brown eyes with one white highlight each and short soft upper lashes, thin soft eyebrows, a small relaxed closed-mouth smile, a faint pink blush"
+   }
+  },
+  {
+   "id": "starter",
+   "gender": "unisex",
+   "theme": "kit inicial (21/10): boné simples, o mesmo da vista de frente (public/assets/front/hat-starter.png)",
+   "hat": {
+    "id": "hat-starter",
+    "name": "Boné Inicial",
+    "fit": "hat-tight",
+    "profile": "tight",
+    "brief": "a soft simple baseball cap in muted denim blue with a short curved light-tan brim and a small button on top, no logo; the SAME cap as public/assets/front/hat-starter.png seen from the side 3/4 view"
+   }
   }
  ]
 }

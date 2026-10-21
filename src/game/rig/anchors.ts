@@ -60,7 +60,7 @@ export const EAR_CONTACT={earGap:8,misses:1,sideburn:.2,sideburnBox:[522,425,38,
 export const HAT_SEAT_GAP=8;
 export const FIT_ZONES:Readonly<Record<FitClass,FitZone>>={
  'hair-short':{maxWidth:1.45,maxAboveCrown:.30,maxBottom:640,keepoutTolerance:60},
- 'hair-long':{maxWidth:1.55,maxAboveCrown:.30,maxBottom:820,keepoutTolerance:60},
+ 'hair-long':{maxWidth:1.45,maxAboveCrown:.30,maxBottom:820,keepoutTolerance:60},
  /** Twin tails hang on both sides of the head, so they may be twice as wide as it. */
  'hair-twin':{maxWidth:2.0,maxAboveCrown:.30,maxBottom:900,keepoutTolerance:60},
  'hat-tight':{maxWidth:1.40,maxAboveCrown:.60,maxBottom:470,keepoutTolerance:null},

@@ -9,7 +9,7 @@ import {createServer} from 'vite';
 const ids=process.argv.slice(2);
 const output=process.env.OUTPUT_DIR??'test-results/cosmetic-set';
 await mkdir(output,{recursive:true});
-const server=await createServer({server:{host:'127.0.0.1',port:0},logLevel:'error'});
+const server=await createServer({server:{host:'127.0.0.1',port:0,strictPort:false},logLevel:'error'});
 await server.listen();
 const browser=await chromium.launch({headless:true,...(process.env.BROWSER_EXECUTABLE?{executablePath:process.env.BROWSER_EXECUTABLE}:{})});
 try{
@@ -25,6 +25,9 @@ try{
   await new Promise(resolve=>{const img=new Image();img.onload=resolve;img.onerror=resolve;img.src='/assets/headwear-worn-atlas.png';});
   await new Promise(resolve=>setTimeout(resolve,600));
   const set=Object.fromEntries(ids.map(id=>[CATALOG[id].slot,id])),full={...DEFAULT_EQUIPMENT,face:'face-brave',hat:'hat-none',glasses:'glasses-none',...set};
+  // Front-view art (src/game/front.ts) loads on first use: one warm-up pass of every kind, then wait for it.
+  {const F=await import('/src/game/front.ts'),scratch=document.createElement('canvas').getContext('2d'),looks=[full,{...full,hat:'hat-none'}].filter(F.hasFrontView);
+   for(let tries=0;tries<50&&!looks.every(eq=>['stand','idle','walk'].every(kind=>F.drawFrontAvatar(scratch,eq,kind)));tries++)await new Promise(resolve=>setTimeout(resolve,100));}
   const sheet=document.createElement('canvas');sheet.width=1400;sheet.height=1120;const c=sheet.getContext('2d');
   const bg=c.createLinearGradient(0,0,0,sheet.height);bg.addColorStop(0,'#2d4f7c');bg.addColorStop(1,'#1b2c47');c.fillStyle=bg;c.fillRect(0,0,sheet.width,sheet.height);
   const title=(text,x,y)=>{c.fillStyle='#ffe6a6';c.font='bold 20px Georgia';c.fillText(text,x,y);};

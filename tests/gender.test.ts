@@ -9,15 +9,15 @@ import {SHOP_OFFERS} from '../shared/shop';
 import {normalizeProfile,Store} from '../server/store';
 
 test('gendered appearance, including the navigator glasses, rejects the opposite character gender',()=>{
- const male=['face-brave','face-taunt','face-fierce','face-captain','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain','outfit-hiphop','outfit-swordsman','hat-hiphop','hat-swordsman','hair-hiphop','hair-swordsman','glasses-hiphop'];
- const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy','outfit-explorer','outfit-idol','outfit-surf','face-idol','face-surf','hair-idol','hair-surf','hat-idol','hat-surf','glasses-idol','glasses-surf'];
+ const male=['face-brave','face-taunt','face-fierce','face-captain','hat-cap','hat-thunder','hat-tide','hat-captain','hair-undercut','hair-horizon','hair-captain','glasses-navigator','glasses-captain','outfit-captain','outfit-hiphop','outfit-swordsman','hat-hiphop','hat-swordsman','hair-hiphop','hair-swordsman','glasses-hiphop','outfit-basic-male','hair-basic-male','face-basic-male'];
+ const female=['face-smile','face-serene','face-wink','hat-mage','hat-ruby','hat-tropical','hair-ponytail','hair-wavy','outfit-explorer','outfit-idol','outfit-surf','face-idol','face-surf','hair-idol','hair-surf','hat-idol','hat-surf','glasses-idol','glasses-surf','outfit-basic-female','hair-basic-female','face-basic-female'];
  for(const [gender,ids] of [['male',male],['female',female]] as const)for(const id of ids){assert.equal(itemGender(id),gender);assert.equal(canEquipItem(id,gender),true);assert.equal(canEquipItem(CATALOG[id],gender==='male'?'female':'male'),false);}
  for(const item of ITEMS){
-  if(item.id.endsWith('-none')||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!['outfit-captain','outfit-hiphop','outfit-swordsman','outfit-explorer','outfit-idol','outfit-surf'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop','glasses-idol','glasses-surf'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
+  if(item.id.endsWith('-none')||item.id==='hat-starter'||['weapon','outfit','wristband','bracelet','costume','ring','necklace','bubble'].includes(item.slot)&&!item.basic&&!['outfit-captain','outfit-hiphop','outfit-swordsman','outfit-explorer','outfit-idol','outfit-surf'].includes(item.id)||item.slot==='glasses'&&!['glasses-navigator','glasses-captain','glasses-hiphop','glasses-idol','glasses-surf'].includes(item.id)){assert.equal(itemGender(item),'unisex');assert.ok(CHARACTER_GENDERS.every(gender=>canEquipItem(item,gender)));}
   else assert.notEqual(itemGender(item),'unisex');
  }
  // The Cartógrafo da Aurora is the starter outfit of both genders; the Capitão Escarlate is a male shop outfit.
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-idol','outfit-surf','outfit-captain','outfit-hiphop','outfit-swordsman']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit'&&!item.basic).map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-idol','outfit-surf','outfit-captain','outfit-hiphop','outfit-swordsman']);
  for(const offer of SHOP_OFFERS)assert.equal(offer.gender,itemGender(offer.id),'store categories derive from equipment compatibility');
  for(const id of ['missing','constructor','__proto__'])assert.equal(canEquipItem(id,'male'),false);
  assert.equal(canEquipItem('ember','other' as CharacterGender),false);
@@ -31,7 +31,8 @@ test('male and female starter equipment and removal fallbacks are compatible ind
   assert.ok(Object.values(unequipForGender(gender)).every(id=>canEquipItem(id,gender)));
   const first=starterEquipment(gender);first.weapon='volt';assert.equal(starterEquipment(gender).weapon,'ember');
  }
- assert.equal(unequipForGender('female').face,'face-smile');assert.equal(unequipForGender('female').outfit,'outfit-explorer');assert.equal(unequipForGender('male').outfit,'outfit-cartographer');
+ // Empty hair, face and outfit slots show the basic look of the character's gender.
+ for(const gender of CHARACTER_GENDERS)for(const slot of ['hair','face','outfit'] as const)assert.equal(unequipForGender(gender)[slot],`${slot}-basic-${gender}`);
 });
 
 test('legacy gender inference preserves property and resources while repairing only incompatible equipped slots',()=>{
@@ -45,7 +46,7 @@ test('legacy gender inference preserves property and resources while repairing o
 
 test('explicit stored gender never follows incompatible equipment and sparse old profiles get only required compatible fallbacks',()=>{
  const explicit=normalizeProfile({id:randomUUID(),name:'Fixed gender',gender:'male',contentVersion:10,inventory:['ember','outfit-dancer','face-smile','hat-mage','hair-ponytail'],equipment:starterEquipment('female'),stones:{'1':0}});
- assert.equal(explicit.gender,'male');assert.ok(SLOTS.every(slot=>canEquipItem(explicit.equipment[slot],'male')));assert.equal(explicit.equipment.outfit,'outfit-cartographer');assert.equal(explicit.equipment.face,'face-brave');assert.equal(explicit.equipment.hair,'hair-none');
+ assert.equal(explicit.gender,'male');assert.ok(SLOTS.every(slot=>canEquipItem(explicit.equipment[slot],'male')));assert.equal(explicit.equipment.outfit,'outfit-cartographer');assert.equal(explicit.equipment.face,'face-basic-male');assert.equal(explicit.equipment.hair,'hair-basic-male');
  for(const id of ['outfit-cartographer','face-smile','hat-mage','hair-ponytail'])assert.ok(explicit.inventory.includes(id));assert.ok(!explicit.inventory.includes('outfit-dancer'));
  assert.ok(!explicit.inventory.includes('hat-thunder')&&!explicit.inventory.includes('face-fierce'),'migration does not grant the whole compatible catalog');
  const female=normalizeProfile({id:randomUUID(),name:'Very old',equipment:{outfit:'outfit-dancer'},inventory:[],contentVersion:0});

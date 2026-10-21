@@ -84,10 +84,10 @@ test('content migration grants new starter layers once and never refills a remov
  assert.equal(saved.inventory.includes('hair-wavy'),false);
 });
 
-test('the old version-six outfit grant now only keeps the Cartógrafo, without restoring removed cosmetics or spent materials',()=>{
+test('the old version-six outfit grant restores nothing: without an outfit the character wears the basic look',()=>{
  const old=normalizeProfile({id:'outfit-migration',name:'Teste'});
  const migrated=normalizeProfile({...old,contentVersion:5,inventory:old.inventory.filter(id=>!['outfit-cartographer','hair-wavy'].includes(id)),stones:{'1':0,'2':0,'3':0,'4':0,'5':0}});
- assert.ok(migrated.inventory.includes('outfit-cartographer'));assert.equal(migrated.equipment.outfit,'outfit-cartographer');
+ assert.equal(migrated.inventory.includes('outfit-cartographer'),false);assert.equal(migrated.equipment.outfit,'outfit-basic-male');
  for(const retired of Object.keys(RETIRED_OUTFIT_REPLACEMENTS))assert.equal(migrated.inventory.includes(retired),false);
  assert.equal(migrated.inventory.includes('hair-wavy'),false);assert.equal(migrated.stones['1'],0);
  const saved=normalizeProfile(migrated);
@@ -103,7 +103,7 @@ test('retired cosmetic items disappear while current equipment uses the fifteen 
 });
 
 test('retired outfits migrate to a current owned costume without changing other equipment or resources',()=>{
- assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit').map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-idol','outfit-surf','outfit-captain','outfit-hiphop','outfit-swordsman']);
+ assert.deepEqual(ITEMS.filter(item=>item.slot==='outfit'&&!item.basic).map(item=>item.id),['outfit-cartographer','outfit-explorer','outfit-idol','outfit-surf','outfit-captain','outfit-hiphop','outfit-swordsman']);
  for(const retired of ['outfit-ranger','outfit-azure','outfit-royal']){
   assert.equal(CATALOG[retired],undefined);
   const before=normalizeProfile({id:'retired-outfit',name:'Teste'});
@@ -143,8 +143,8 @@ test('new shop cosmetics never auto-grant through legacy migrations and owned pu
  for(const version of [1,4,8,9]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(ids.every(id=>!profile.inventory.includes(id)));}
  const owned=normalizeProfile({id:'shop-purchase',name:'Teste',inventory:['ember',...ids],contentVersion:9});assert.ok(ids.every(id=>owned.inventory.includes(id)));
  assert.ok(owned.inventory.every(id=>!isEmptyItem(id)),'empty-slot sentinels are never inventory possessions');
- // The Cartógrafo is the starter outfit for everyone, so it is always owned and worn.
- for(const version of [1,4,8,9,14]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(profile.inventory.includes('outfit-cartographer'));assert.equal(profile.equipment.outfit,'outfit-cartographer');}
+ // Without an owned outfit the character wears the basic look of the empty slot, which is never a possession.
+ for(const version of [1,4,8,9,14]){const profile=normalizeProfile({id:'shop-migration',name:'Teste',inventory:['ember'],contentVersion:version});assert.ok(profile.equipment.outfit==='outfit-basic-male'||profile.inventory.includes(profile.equipment.outfit));assert.ok(!profile.inventory.includes('outfit-basic-male'));}
 });
 
 test('retired prototypes leave catalog and shop while painted equipment remains available',()=>{

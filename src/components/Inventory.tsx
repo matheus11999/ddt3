@@ -99,12 +99,10 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
   return actions;
  }
  function confirmDiscard(){if(!discarding||locked)return;discardSent.current=state.discardResult??{};setDiscardPending(true);client.discard(discarding);audio.play('click');}
- /** Double click, drag to the bag or Remover: the slot goes back to its empty item (or the starter face/outfit). */
+ /** Double click, drag to the bag or Remover: the slot goes back to its empty item (hair, face and outfit show their basic look). */
  function canRemove(slot:Slot){const fallback=unequip[slot];return !locked&&!!fallback&&equipment[slot]!==fallback&&(isEmptyItem(fallback)||p.inventory.includes(fallback));}
  function removeFromSlot(slot:Slot){
   if(canRemove(slot)){equipItem(unequip[slot]!,slot);return;}
-  // Face and outfit always show something: the starter ones are what the character falls back to.
-  if(!locked&&!isEmptyItem(equipment[slot])&&equipment[slot]===unequip[slot])setFeedback(slot==='outfit'?'Esta é a roupa inicial: o personagem sempre fica vestido.':'Este é o rosto inicial: o personagem sempre tem um rosto.');
  }
  function filterBySlot(slot:Slot){if(hold.current.triggered){hold.current.triggered=false;return;}setSelected(equippedCopy(equipment,slot));setActiveSlot(slot);setCategory(slotFamily(slot));setTab(slot==='weapon'?'weapons':'style');setPage(0);setQuery('');setTooltip(null);}
  function showTip(id:string,anchor:HTMLElement,mode:Tip['mode']){if(dragging||mode!=='touch'&&Date.now()<touchUntil.current)return;setTooltip({id,anchor,mode});}

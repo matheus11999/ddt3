@@ -10,6 +10,8 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'hair-ponytail':{label:'O cabelo inteiro'},
  'hair-horizon':{label:'O cabelo inteiro'},
  'hair-captain':{label:'O cabelo inteiro'},
+ 'hair-basic-male':{label:'O cabelo inteiro'},
+ 'hair-basic-female':{label:'O cabelo inteiro'},
  'hair-idol':{label:'O cabelo inteiro'},
  'hair-surf':{label:'O cabelo inteiro'},
  'hair-hiphop':{label:'O cabelo inteiro'},
@@ -21,6 +23,7 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'hat-tropical':{label:'A palha do chapéu; a faixa e a flor ficam como estão',hue:.1,tolerance:.045,minSaturation:.3},
  'hat-captain':{label:'O tecido vermelho; a aba, o cordão e o emblema ficam como estão',hue:.99,tolerance:.04,minSaturation:.35},
  'hat-hiphop':{label:'A copa roxa; a aba e a estrela ficam como estão',hue:.77,tolerance:.05,minSaturation:.35},
+ 'hat-starter':{label:'O tecido azul; a aba e o botão ficam como estão',hue:.6,tolerance:.06,minSaturation:.3},
  'hat-swordsman':{label:'A palha; os cordões e a borla ficam como estão',hue:.11,tolerance:.04,minSaturation:.35},
  'hat-idol':{label:'O laço e a tiara inteiros'},
  'hat-surf':{label:'A aba turquesa; a faixa branca e a flor ficam como estão',hue:.5,tolerance:.05,minSaturation:.35},
@@ -38,6 +41,8 @@ export const RECOLOR_ZONES:Readonly<Record<string,RecolorZone>>={
  'outfit-explorer':{label:'O casaco curto azul; o dourado, a blusa e a saia ficam como estão',hue:.6,tolerance:.05,minSaturation:.3},
  'outfit-idol':{label:'O rosa do vestido; o branco, o dourado e as botas ficam como estão',hue:.95,tolerance:.05,minSaturation:.35},
  'outfit-surf':{label:'A blusa turquesa; o short, a canga e as sandálias ficam como estão',hue:.5,tolerance:.05,minSaturation:.35},
+ 'outfit-basic-male':{label:'A bermuda cáqui; a camiseta, as meias e os tênis ficam como estão',hue:.08,tolerance:.03,minSaturation:.25},
+ 'outfit-basic-female':{label:'A saia rosa; a blusa, as meias e os sapatos ficam como estão',hue:.98,tolerance:.04,minSaturation:.3},
  'outfit-cartographer':{label:'O casaco azul; o dourado fica como está',hue:.63,tolerance:.06,minSaturation:.25}
 };
 /** Share of a piece's painted pixels that may change: too little reads as "nothing happened", too much

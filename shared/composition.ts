@@ -18,7 +18,7 @@ export const COMPOSITION_STONE_BY_ID = Object.fromEntries(COMPOSITION_STONES.map
 export const STARTER_COMPOSITION_STONES:Record<string,number> = Object.fromEntries(COMPOSITION_STONES.map(stone=>[stone.id,4-stone.tier]));
 /** Necklaces are never improved at the forge (matheus, 19/10). */
 export function canCompose(item:Item|undefined):boolean {
- return !!item&&['weapon','hat','outfit','wristband','bracelet','ring'].includes(item.slot)&&item.visual?.variant!=='none';
+ return !!item&&['weapon','hat','outfit','wristband','bracelet','ring'].includes(item.slot)&&item.visual?.variant!=='none'&&!item.basic;
 }
 /** Weapons never carry Armadura (matheus, 20/10), so the Ametista de Aço never goes on one. */
 export function canComposeStat(item:Item|undefined,stat:CompositionStat):boolean {return canCompose(item)&&!(stat==='armor'&&item!.slot==='weapon');}

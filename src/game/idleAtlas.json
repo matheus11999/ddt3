@@ -1,4 +1,94 @@
 {
+ "outfit-basic-female": {
+  "path": "/assets/outfits/idle/outfit-basic-female.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -118.81
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.3
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -119.81
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.81
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.81
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -120.33
+    ]
+   }
+  ]
+ },
+ "outfit-basic-male": {
+  "path": "/assets/outfits/idle/outfit-basic-male.png",
+  "standing": [
+   0.62,
+   -112.06
+  ],
+  "frames": [
+   {
+    "head": [
+     0.62,
+     -119.42
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -118.59
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -121.09
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -119.08
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -117.59
+    ]
+   },
+   {
+    "head": [
+     0.62,
+     -120.59
+    ]
+   }
+  ]
+ },
  "outfit-captain": {
   "path": "/assets/outfits/idle/outfit-captain.png",
   "standing": [

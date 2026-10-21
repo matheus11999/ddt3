@@ -45,6 +45,8 @@ import {drawAbilityEffect,drawFlightProjectile,ABILITY_EFFECT_DURATION} from './
 import {drawFrozenBlock,drawIceImpact,drawIceProjectile,drawItemUse,ICE_SHATTER_DURATION,itemGesture,ITEM_USE_DURATION,playConsumableSound,releaseConsumables,releaseItemUse,type ItemUse} from './consumableEffects';
 import {releaseCombatBodies} from './combatBody';
 import {releaseWalkBodies} from './walkBody';
+import {releaseFrontArt} from './front';
+import {releaseRigArt} from './character/rig';
 import {scenePaint} from './scenePaint';
 import {BATTLE_HUD_COVER,EnvironmentRenderer,applyCamera,createCamera,updateCamera,preloadEnvironment,releaseEnvironment,getEnvironmentQuality} from './environment';
 import {fallPosition} from '../../shared/fall';
@@ -66,7 +68,7 @@ const H=864;
 const SLOW_FRAME=1.56,SLOW_FRAMES=150;
 /** ...and never above ~28 FPS: a sharper picture matters more than a few frames (21/10, matheus). */
 const SLOW_FLOOR_MS=36;
-type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number;tilt?:number;tiltAt?:number};
+type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number;tilt?:number;tiltAt?:number;/** Walking away from the viewer (up the plaza): the rig draws the back (DDTank's naturalWalkBack). */back?:boolean};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
  const blockedRef=useRef(blocked);blockedRef.current=blocked;
@@ -90,9 +92,11 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   const petLandings=new Map<string,number>();
   const label=(text:string,x:number,y:number,color='#fff9dd',size=15)=>{c.font=`600 ${size}px "Trebuchet MS",sans-serif`;c.textAlign='center';c.lineWidth=3;c.strokeStyle='#253c46d9';c.strokeText(text,x,y);c.fillStyle=color;c.fillText(text,x,y);};
   const avatar=(id:string,name:string,eq:Equipment,x:number,y:number,size:number,t:number,facing?:number,context:AvatarContext={},exactY=false,plaza=false)=>{let e=entities.get(id);if(!e){e={x,y,lastX:x,facing:1,motion:createAvatarMotion()};entities.set(id,e);}const dx=x-e.x,dy=y-e.y,oldX=e.x,oldY=e.y;let moving:boolean;
-   if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;}
+   if(plaza){const next=chaseLobbyPosition(e,{x,y},e.at===undefined?16:Math.min(100,t-e.at));e.at=t;e.x=next.x;e.y=next.y;moving=Math.hypot(e.x-oldX,e.y-oldY)>.05;
+    // Up the screen shows the back, down the screen the front; sideways keeps the last one (8 directions = front/back x mirror).
+    const vy=e.y-oldY,vx=e.x-oldX;if(moving&&Math.abs(vy)>Math.abs(vx)*.35)e.back=vy<0;}
    else if(state.battle&&context.combat){const dt=e.at===undefined?16:Math.min(100,t-e.at);e.at=t;const next=chaseBattlePosition(e,{x,y},dt);e.x=next.x;e.y=exactY?y:next.y;if(Math.abs(e.x-oldX)>.01)e.movedAt=t;moving=e.movedAt!==undefined&&t-e.movedAt<CRAWL_LINGER_MS;}
-   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);const k=ease(.16,paintDt);e.x+=dx*k;e.y=exactY?y:e.y+dy*k;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
+   else{moving=Math.abs(dx)>.8||(!state.battle&&Math.abs(dy)>.8);const k=ease(.16,paintDt);e.x+=dx*k;e.y=exactY?y:e.y+dy*k;}if(Math.abs(dx)>1.5&&Math.abs(dx)>Math.abs(dy)*.4)e.facing=dx>0?1:-1;const seed=hashSeed(id);drawAvatar(c,eq,e.x,e.y,size,t,moving,facing??e.facing,context.combat===true,e.motion,{...context,world:plaza||context.world,back:plaza?e.back:context.back,seed,face:context.face??(blinking(t,seed)?'blink':undefined),movementDistance:Math.hypot(e.x-oldX,e.y-oldY)*160/size});drawPet(c,eq.pet,e.x,e.y,size,(facing??e.facing)<0?-1:1,t,moving?'walk':'idle',context.combat===true,state.battle&&context.combat&&!exactY?(px,start)=>ground(terrain,px,start):undefined,id);if(!context.combat&&name)label(name,e.x,e.y-size*1.15-12,id===state.profile?.id?'#fff3a7':'#fff',14);return e;};
   let nextPaint=0,lastPaint=0,paintDt=1000/60,slowFrames=0,frameTotal=0,leftBattleAt=-Infinity,shownZone=state.zone,zoneChangedAt=-Infinity;
   /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
   const watchSpeed=(t:number)=>{
@@ -113,7 +117,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
    // The plaza's paintings leave memory while a battle runs and come back once it ends
    // (on the result screen, before the players walk out), so the return shows no gap.
    // Only the zone the player is in keeps its paintings in memory.
-   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();releaseWalkBodies();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
+   if(state.loading||state.battle&&state.battle.phase!=='finished'){lobby.release();fishing.release();releaseWalkBodies();releaseFrontArt();releaseRigArt();}else if(state.zone==='fishing'){lobby.release();fishing.load();}else{fishing.release();lobby.load();}
    // Leaving a battle (to the room or the plaza): its ambience, art and canvases go at once.
    if(!state.battle&&matchId){leftBattleAt=t;stopEnvironmentAudio();environment?.dispose();residues?.dispose();releaseBattleArt(state.room?.kind);releaseEnvironment(state.room?.map);preloadedMap=state.room?.map??'';environment=null;residues=null;matchId='';terrainSource='';shotId='';}
    // Opaque menus and room panels cover the plaza. Keep receiving state, but
