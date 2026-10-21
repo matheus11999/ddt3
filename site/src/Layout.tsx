@@ -4,6 +4,12 @@ import type {Me} from './api';
 import {Avatar} from './Avatar';
 import {Link} from './router';
 
+export const DISCORD_URL='https://discord.gg/NHXMXnKVe';
+/** Discord's mark, drawn inline (no external request). */
+function DiscordIcon({size=20}:{size?:number}){
+ return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.32 4.37A19.8 19.8 0 0 0 15.4 2.8a13.7 13.7 0 0 0-.63 1.3 18.4 18.4 0 0 0-5.53 0 12.6 12.6 0 0 0-.64-1.3 19.7 19.7 0 0 0-4.93 1.53C.54 9.04-.31 13.6.11 18.1a19.9 19.9 0 0 0 6.04 3.05c.49-.66.92-1.36 1.29-2.1a12.9 12.9 0 0 1-2.03-.97c.17-.12.34-.26.5-.39a14.2 14.2 0 0 0 12.18 0l.5.39c-.65.39-1.33.71-2.04.98.37.73.8 1.43 1.29 2.09a19.8 19.8 0 0 0 6.05-3.05c.5-5.2-.84-9.72-3.57-13.73ZM8.02 15.33c-1.18 0-2.16-1.09-2.16-2.42 0-1.33.95-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.33-.95 2.42-2.16 2.42Zm7.97 0c-1.18 0-2.16-1.09-2.16-2.42 0-1.33.95-2.42 2.16-2.42 1.21 0 2.18 1.1 2.16 2.42 0 1.33-.95 2.42-2.16 2.42Z"/></svg>;
+}
+
 export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=>void}){
  const [open,setOpen]=useState(false);
  const [scrolled,setScrolled]=useState(false);
@@ -26,6 +32,7 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
     {links.map(([to,label,Icon])=>to.startsWith('/#')?<a key={to} href={to} onClick={()=>setOpen(false)}><Icon size={17}/><span>{label}</span></a>:<Link key={to} to={to} className={route===to||route.startsWith(to+'/')?'active':''}><Icon size={17}/><span>{label}</span></Link>)}
    </nav>
    <div className="topbar-actions">
+    <a className="discord-btn" href={DISCORD_URL} target="_blank" rel="noopener noreferrer" title="Entrar no Discord" aria-label="Discord do Bomb Masters"><DiscordIcon/><span>Discord</span></a>
     {me?.account
      ?<><Link to="/configuracoes" className="me-chip" title="Configurações"><Avatar id={me.account.avatar} size={34}/><span>{me.account.username}</span></Link><button className="icon-btn" onClick={onLogout} title="Sair" aria-label="Sair"><LogOut size={18}/></button></>
      :<><Link to="/jogador?entrar" className="btn btn-ghost btn-sm">Entrar</Link><Link to="/jogador?cadastro" className="btn btn-gold btn-sm">Criar conta</Link></>}
@@ -59,6 +66,7 @@ export function Footer({me}:{me:Me|null}){
    <nav className="footer-col" aria-label="Comunidade">
     <h3>Comunidade</h3>
     <Link to="/forum">Fórum</Link>
+    <a href={DISCORD_URL} target="_blank" rel="noopener noreferrer">Discord</a>
     <Link to="/forum?categoria=sugestoes">Sugestões</Link>
     <Link to="/forum?categoria=duvidas">Dúvidas</Link>
     <Link to="/forum?categoria=bugs">Bugs do beta</Link>
