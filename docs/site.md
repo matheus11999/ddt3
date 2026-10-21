@@ -12,12 +12,15 @@ Pedido do matheus em 20/10/2026: site do jogo com o novo nome **Bomb Masters**, 
 ## Contas (uma conta para site e jogo)
 
 - Tabelas `accounts` (usuário 3–16 letras/números/_, e-mail, senha scrypt, `player_id`) e `account_sessions`, criadas por `server/accounts.ts`, usado pelo site e pelo servidor do jogo.
-- O site entra com o cookie `bm_account`. No jogo, `/api/session` (`server/index.ts`, `accountSession`) troca a conta pela sessão do jogo (`brasa_session`):
-  - conta com personagem: abre esse personagem;
-  - conta sem personagem: adota o convidado que já existe neste navegador (se nenhuma conta for dona dele) ou pede o gênero e cria o personagem com o nome do usuário;
-  - personagem de outra conta nunca é usado.
+- O site entra com o cookie `bm_account`. Cada servidor do jogo (variável `SERVER_ID`, padrão `s1`) troca a conta pela sessão do jogo (`brasa_session`) em `/api/session` (`server/index.ts`, `accountSession`):
+  - **um personagem por servidor** (`account_characters`; lista de servidores em `game_servers`: nome, endereço, status online/manutenção/em breve). Servidor novo = linha em `game_servers` + jogo rodando com o seu `SERVER_ID`;
+  - conta com personagem neste servidor: abre esse personagem;
+  - conta sem personagem neste servidor: adota o convidado que já existe neste navegador (se nenhuma conta for dona dele) ou pede o gênero e cria o personagem com o nome do usuário;
+  - personagem de outra conta nunca é usado. Os personagens ligados antes dos servidores (coluna antiga `accounts.player_id`) viraram do Servidor 1 (`s1`).
 - Convidados sem conta continuam podendo jogar direto pelo jogo.
 - Sair no site apaga os dois cookies.
+- Logado, o topo é do jogador (Início, Fórum, Configurações, avatar), sem link para a landing; `/` leva para `/jogador`. JOGAR (botão de madeira dourada do jogo) abre a escolha de servidor.
+- Configurações (`/configuracoes`): avatar (6 pintados em `site/public/avatars/`, recortados por `site/art-source/avatars.mjs`) e troca de senha (pede a atual e encerra as outras sessões).
 
 ## Fórum
 

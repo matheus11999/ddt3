@@ -3,6 +3,8 @@ import {ArrowLeft,Heart,MessageCircle,Pin,Plus,Send,Trash2} from 'lucide-react';
 import {api,type Me,type TopicDetail,type TopicPage as Page,type TopicSummary} from './api';
 import {FORUM_CATEGORIES,FORUM_LIMITS} from './forumRules';
 import {Link,navigate} from './router';
+import {Avatar} from './Avatar';
+import type {AvatarId} from './api';
 
 const categoryName=(id:string)=>FORUM_CATEGORIES.find(c=>c.id===id)?.name??id;
 function ago(iso:string){
@@ -10,18 +12,19 @@ function ago(iso:string){
  if(s<60)return 'agora';if(s<3600)return `há ${Math.floor(s/60)} min`;if(s<86400)return `há ${Math.floor(s/3600)} h`;if(s<86400*7)return `há ${Math.floor(s/86400)} d`;
  return new Date(iso).toLocaleDateString('pt-BR');
 }
-function Author({name,level}:{name:string;level:number|null}){
- return <span className="author"><span className="avatar" aria-hidden="true">{name[0]?.toUpperCase()}</span><b>{name}</b>{level!=null&&<span className="lv">Nv. {level}</span>}</span>;
+function Author({name,avatar,level}:{name:string;avatar:AvatarId;level:number|null}){
+ return <span className="author"><Avatar id={avatar} size={22}/><b>{name}</b>{level!=null&&<span className="lv">Nv. {level}</span>}</span>;
 }
 
+/** One topic: author avatar, title, category and who/when on one line, counts on the right. */
 export function TopicRow({topic}:{topic:TopicSummary}){
- return <Link to={`/forum/${topic.id}`} className={`topic-row${topic.pinned?' pinned':''}`}>
-  <span className={`cat cat-${topic.category}`}>{categoryName(topic.category)}</span>
+ return <Link to={`/forum/${topic.id}`} className={`topic-row cat-line-${topic.category}${topic.pinned?' pinned':''}`}>
+  <Avatar id={topic.authorAvatar} size={44} className="topic-avatar"/>
   <span className="topic-main">
    <span className="topic-title">{topic.pinned&&<Pin size={14}/>}{topic.title}</span>
-   <span className="topic-sub"><Author name={topic.author} level={topic.authorLevel}/> · {ago(topic.lastActivityAt)}</span>
+   <span className="topic-sub"><span className={`cat cat-${topic.category}`}>{categoryName(topic.category)}</span><span>por <b>{topic.author}</b></span><span>· {ago(topic.lastActivityAt)}</span></span>
   </span>
-  <span className="topic-counts"><span title="Respostas"><MessageCircle size={16}/>{topic.replies}</span><span title="Curtidas" className={topic.liked?'liked':''}><Heart size={16}/>{topic.likes}</span></span>
+  <span className="topic-counts"><span title="Respostas"><MessageCircle size={16}/><b>{topic.replies}</b></span><span title="Curtidas" className={topic.liked?'liked':''}><Heart size={16}/><b>{topic.likes}</b></span></span>
  </Link>;
 }
 
@@ -104,7 +107,7 @@ export function TopicPage({id,me}:{id:number;me:Me|null}){
  return <div className="forum-body narrow topic-page">
   <Link to={`/forum?categoria=${topic.category}`} className="more-link"><ArrowLeft size={16}/> {categoryName(topic.category)}</Link>
   <article className="post post-topic">
-   <header><span className={`cat cat-${topic.category}`}>{categoryName(topic.category)}</span><h1 className="title-3d">{topic.title}</h1><p className="post-meta"><Author name={topic.author} level={topic.authorLevel}/> · {ago(topic.createdAt)}</p></header>
+   <header><span className={`cat cat-${topic.category}`}>{categoryName(topic.category)}</span><h1 className="title-3d">{topic.title}</h1><p className="post-meta"><Author name={topic.author} avatar={topic.authorAvatar} level={topic.authorLevel}/> · {ago(topic.createdAt)}</p></header>
    <div className="post-body">{topic.body}</div>
    <footer className="post-actions">
     <button className={`like${topic.liked?' liked':''}`} onClick={()=>like('topics',topic.id)} aria-pressed={topic.liked}><Heart size={18}/> {topic.likes}</button>
@@ -114,7 +117,7 @@ export function TopicPage({id,me}:{id:number;me:Me|null}){
   </article>
   <div className="replies">
    {replies.map(r=><article key={r.id} className="post">
-    <p className="post-meta"><Author name={r.author} level={r.authorLevel}/> · {ago(r.createdAt)}</p>
+    <p className="post-meta"><Author name={r.author} avatar={r.authorAvatar} level={r.authorLevel}/> · {ago(r.createdAt)}</p>
     <div className="post-body">{r.body}</div>
     <footer className="post-actions">
      <button className={`like${r.liked?' liked':''}`} onClick={()=>like('replies',r.id)} aria-pressed={r.liked}><Heart size={16}/> {r.likes}</button>
