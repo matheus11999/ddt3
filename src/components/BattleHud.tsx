@@ -20,7 +20,7 @@ import {powerUpConflict} from '../../shared/powerUps';
 import {WALK_COMMAND_MS} from '../../shared/physics';
 import {petSkill} from '../../shared/petSkills';
 import {powerFull} from '../../shared/power';
-import {FORCE_BAR_MAX,forceBarFill,forceBarValue} from '../../shared/forceBar';
+import {FORCE_BAR_MAX,forceBarFill,forceBarValue,releaseForce} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
 import {aimSource,clampAimAngle,weaponAimLimits} from '../../shared/aim';
@@ -145,8 +145,9 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
   setPower(MIN_POWER);setFalling(false);setCharging(true);return true;
  },[]);
  const releaseCharge=useCallback((source:ChargeSource)=>{
-  if(!chargingRef.current||chargeSource.current!==source)return;
-  const value=paintedPower.current;
+  if(!chargingRef.current||chargeSource.current!==source||chargeStarted.current===null)return;
+  // The shot is the fill where it stands now (releaseForce), not the whole number behind it: the bar never snaps back.
+  const value=releaseForce(performance.now()-chargeStarted.current);
   stopCharge();
   if(!live.current.canAct||turnSubmitted.current)return;
   // A RAF update may already be queued when keyup arrives. Replace it with
@@ -336,10 +337,10 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
     <div className="angle-buttons"><button type="button" disabled={!canAim} aria-label="Aumentar ângulo" {...holdAngle(1)}><AngleArrow up/></button><button type="button" disabled={!canAim} aria-label="Diminuir ângulo" {...holdAngle(-1)}><AngleArrow up={false}/></button></div>
    </div>
    <div className="power-controls">
-    <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{power}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
-    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={power} aria-valuetext={`${power} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} {...chargeByPointer} ref={powerTrack} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
+    <div className="power-label"><span>Força</span><div className="power-readout"><output data-testid="shot-power" aria-label="Força atual">{Math.floor(power)}</output><small>/ 100</small></div><span className="last-power-label">Último <output data-testid="last-shot-power">{lastPower??'—'}</output></span></div>
+    <div role="meter" aria-label="Força do disparo" aria-valuemin={MIN_POWER} aria-valuemax={MAX_POWER} aria-valuenow={Math.floor(power)} aria-valuetext={`${Math.floor(power)} de 100`} aria-disabled={!canAct} aria-describedby="charge-instructions" data-charging={charging} {...chargeByPointer} ref={powerTrack} className={`power-track ${charging?'charging':''} ${power===MAX_POWER?'at-cap':''}`}>
      <i className="power-fill" aria-hidden="true"/><span className="power-segments" aria-hidden="true"/><span className="power-gloss" aria-hidden="true"/>
-     {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{lastPower}</b></span>}
+     {lastPower!==null&&<span className="last-power-marker" aria-hidden="true" style={{left:`${lastPower}%`}}><b>{Math.floor(lastPower)}</b></span>}
      {/* The scale and its numbers sit inside the bar, over the fill. */}
      <div className="power-ruler" aria-hidden="true">
       {POWER_GRADUATIONS}

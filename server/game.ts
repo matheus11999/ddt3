@@ -467,10 +467,10 @@ export class Game {
   * turn (an `aim` with charging) and the force must be one the bar showed for the time held, within the network
   * tolerance of forceMatchesHold. A refused release keeps the turn, so the player can charge again.
   */
- private assertCharged(m:Match,f:Fighter,power:number){
+ private assertCharged(m:Match,f:Fighter,power:number,at:number){
   const fail=(message:string)=>{f.charging=false;delete m.chargingSince;delete m.chargeTurn;this.broadcastBattle(m);throw new ShotRefused(message);};
   if(!f.charging||m.chargingSince===undefined||m.chargeTurn!==m.state.turnNumber)fail('Segure a barra de força para disparar.');
-  if(!forceMatchesHold(power,Date.now()-m.chargingSince!))fail('A força não confere com a barra. Carregue de novo.');
+  if(!forceMatchesHold(power,at-m.chargingSince!))fail('A força não confere com a barra. Carregue de novo.');
   delete m.chargingSince;delete m.chargeTurn;
  }
  /** A charge started before the clock ran out keeps the turn open until the release (capped by CHARGE_HOLD_MS). */
@@ -555,7 +555,8 @@ export class Game {
   const equipment=structuredClone(seat.equipment);
   return {id,name:seat.name,level:seat.level,gender:'male',wins:0,matches:0,online:true,bot:true,equipment,upgrades:{[equippedCopy(equipment,'weapon')]:equipment.upgrade??0},compositions:{},itemColors:{}};
  }
- async command(id:string,c:Command){
+ /** `at`: when the command arrived (the socket's own clock), so a busy queue never shortens a timed hold. */
+ async command(id:string,c:Command,at=Date.now()){
   const p=this.peers.get(id);if(!p||!p.connected)return;
   try{
    if(this.isSpectator(p)&&SPECTATOR_BLOCKED_COMMANDS.has(c.type))throw Error('Você está assistindo. Apenas participantes podem usar esta ação.');
@@ -763,7 +764,7 @@ export class Game {
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');if((TOOL_ABILITIES as readonly string[]).includes(c.boost))throw Error('Enfurecer e Gelo agora são itens: prepare-os na sala.');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
      // Starting or dropping the charge always goes through: the server's clock times the hold (A03).
-     const {m,f}=this.turn(p,true),now=Date.now(),toggles=c.charging!==!!f.charging;if(!toggles&&now-(p.lastAim??0)<100)return;p.lastAim=now;
+     const {m,f}=this.turn(p,true),now=at,toggles=c.charging!==!!f.charging;if(!toggles&&now-(p.lastAim??0)<100)return;p.lastAim=now;
      // Past the deadline only the held bar moves: the charge can neither start nor be dropped there.
      const overtime=now>m.state.deadline;
      if(!overtime&&toggles){if(c.charging){m.chargingSince=now;m.chargeTurn=m.state.turnNumber;}else{delete m.chargingSince;delete m.chargeTurn;}f.charging=c.charging;}
@@ -781,7 +782,7 @@ export class Game {
      const {m,f}=this.fighter(p,true);if(f.facing===c.direction||Date.now()-(p.lastFace??0)<65)return;p.lastFace=Date.now();
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
-    case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');this.assertCharged(m,f,c.power);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
+    case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');this.assertCharged(m,f,c.power,at);adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
     case 'pass':{const {m,f}=this.turn(p,true);f.delay=(f.delay??0)+PASS_DELAY;addPower(f,POWER_PASS_CHARGE);this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
