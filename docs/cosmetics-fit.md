@@ -17,7 +17,7 @@ O rosto já segue um contrato universal (`face-authoring-rules.md`). O rig v1 es
 | Classe | Largura máx. (× cabeça) | Acima do crânio | Outros limites |
 | --- | --- | --- | --- |
 | `hair-short` | 1,45 | 0,30 | Até y=640; sem cobrir olhos/boca |
-| `hair-long` | 1,55 | 0,30 | Até y=820 (atrás do corpo); sem cobrir olhos/boca |
+| `hair-long` | 1,45 (21/10: 1,55 deixou passar cabelo grande demais) | 0,30 | Até y=820 (atrás do corpo); sem cobrir olhos/boca |
 | `hat-tight` | 1,40 | 0,60 | Até y=470 (19/10: chapéu assentado na testa, como no DDTank; a visibilidade dos óculos continua medida) |
 | `hat-wide` | 1,75 | 0,90 | Até y=495 |
 | `hat-band` | 1,20 | 0,30 | Até y=420; sem cobrir olhos/boca |
