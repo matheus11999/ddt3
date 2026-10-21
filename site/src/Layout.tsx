@@ -12,7 +12,6 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
  return <header className={`topbar${scrolled||route!=='/'?' solid':''}${open?' open':''}`}>
   <div className="topbar-inner">
    <Link to="/" className="brand" aria-label="Bomb Masters, página inicial"><img src="/art/logo.webp" alt="Bomb Masters" width="132" height="78"/></Link>
-   <span className="beta-chip">Beta</span>
    <nav className="nav" aria-label="Principal">
     {links.map(([to,label])=>to.startsWith('/#')?<a key={to} href={to} onClick={()=>setOpen(false)}>{label}</a>:<Link key={to} to={to} className={route.startsWith(to)?'active':''}>{label}</Link>)}
    </nav>

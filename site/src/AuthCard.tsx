@@ -21,7 +21,6 @@ export function AuthCard({initial='login',onSignedIn}:{initial?:'login'|'registe
  };
  const register=mode==='register';
  return <section className="auth-card" aria-labelledby="auth-title">
-  <div className="auth-crest"><img src="/art/aura-gold.webp" alt="" aria-hidden="true"/></div>
   <p className="eyebrow">{register?'Junte-se ao beta':'Sua aventura continua'}</p>
   <h2 id="auth-title" className="title-3d auth-title">{register?'Criar conta':'Entrar'}</h2>
   <form onSubmit={submit} noValidate>

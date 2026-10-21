@@ -31,6 +31,12 @@ Pedido do matheus em 20/10/2026: site do jogo com o novo nome **Bomb Masters**, 
 - `heroes-beta` e `hall-of-fame` foram gerados pelo Codex com as artes do jogo como referência; prompts em `site/art-source/prompts.json` (`node site/art-source/run.mjs [id]`). Os PNG originais ficam fora do git.
 - Prévia: `node scripts/preview-site.mjs [url]` (cadastro, página do jogador, fórum e Jogar) grava `test-results/site/*.png`.
 
+## Telas do jogo (21/10, pedido do matheus)
+
+- As features mostram prints reais em `site/public/shots/` (batalha PvP, salas PvP, expedição e instância, Chefão Mundial, Hall da Fama, Pescaria); clicar amplia.
+- Tirados de uma cópia do jogo com banco de teste e dados simulados (nomes de jogadores, níveis, ranking do Chefão e maior peixe da semana), usando os scripts de prévia (`preview-arena`, `preview-battle-hud`, `smoke-expedition`, `shot-fishing`, `preview-hall.ts`, `smoke-world-boss`). Nunca rodar esses scripts no banco de verdade.
+- Sem selo BETA ao lado da logo e sem círculos girando (matheus rejeitou). Fundo do hero (`hero-bg2`) e do céu (`sky-bg`) gerados pelo Codex e ampliados para 2560 px.
+
 ## O que ainda é Brasa Arena
 
 O nome e a logo **dentro do jogo** (título da aba, telas de carregamento, textos) continuam Brasa Arena; trocar é uma decisão separada.
