@@ -8,6 +8,7 @@ import {LiveState} from '../server/liveState';
 import type {LiveBackend} from '../server/liveState';
 import {normalizeProfile} from '../server/store';
 import type {ProfileStore} from '../server/store';
+import {chargedFire} from './fixtures/charge';
 
 class MemoryStore implements ProfileStore {
  async saveAbilityLoadout():Promise<never>{throw Error('unused');}
@@ -68,7 +69,7 @@ test('a running match comes back after a restart and the player rejoins it',asyn
 test('a shot in flight is never saved: the copy stays at the start of the turn',async()=>{
  const s=await duel(),backend=new MemoryBackend('redis'),live=new LiveState(s.game,[{backend,every:0}]);
  await live.save(true);const turn=s.match.state.turnNumber,saved=backend.fields.get(`m:${s.match.key}`);
- await s.game.command(s.match.state.turnId,{type:'fire',angle:45,power:60});
+ await chargedFire(s.game,s.match.state.turnId,{angle:45,power:60});
  assert.equal(s.match.state.phase,'resolving');
  await live.save(true);
  assert.equal(backend.fields.get(`m:${s.match.key}`),saved);assert.equal((JSON.parse(saved!) as {state:Battle}).state.turnNumber,turn);

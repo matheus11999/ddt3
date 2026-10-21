@@ -14,23 +14,30 @@ export class AdminStore {
  constructor(private pool:pg.Pool){}
  async init(){await this.pool.query(`
   CREATE TABLE IF NOT EXISTS admin_sessions(token_hash char(64) PRIMARY KEY,username varchar(64) NOT NULL,ip varchar(64),created_at timestamptz NOT NULL DEFAULT now(),expires_at timestamptz NOT NULL);
+  ALTER TABLE admin_sessions ADD COLUMN IF NOT EXISTS credential char(64);
   CREATE TABLE IF NOT EXISTS admin_audit(id bigserial PRIMARY KEY,at timestamptz NOT NULL DEFAULT now(),username varchar(64),ip varchar(64),action varchar(40) NOT NULL,detail jsonb);
   CREATE TABLE IF NOT EXISTS game_maps(id varchar(32) PRIMARY KEY,kind varchar(12) NOT NULL,base varchar(32) NOT NULL,draft_revision bigint,published_revision bigint,created_at timestamptz NOT NULL DEFAULT now(),updated_at timestamptz NOT NULL DEFAULT now(),updated_by varchar(64));
   CREATE TABLE IF NOT EXISTS game_map_revisions(id bigserial PRIMARY KEY,map_id varchar(32) NOT NULL REFERENCES game_maps(id) ON DELETE CASCADE,data jsonb NOT NULL,terrain bytea,preview bytea,note varchar(200),created_at timestamptz NOT NULL DEFAULT now(),created_by varchar(64) NOT NULL);
   CREATE INDEX IF NOT EXISTS game_map_revisions_map ON game_map_revisions(map_id,id DESC);
  `);}
 
- async createSession(username:string,ip:string){
+ /** `credential` is adminAuth.credentialVersion of the account that signed in. */
+ async createSession(username:string,ip:string,credential:string){
   const token=newSessionToken();
   await this.pool.query(`DELETE FROM admin_sessions WHERE expires_at<now()`);
-  await this.pool.query(`INSERT INTO admin_sessions(token_hash,username,ip,expires_at) VALUES($1,$2,$3,now()+interval '${ADMIN_SESSION_HOURS} hours')`,[tokenHash(token),username,ip.slice(0,64)]);
+  await this.pool.query(`INSERT INTO admin_sessions(token_hash,username,ip,expires_at,credential) VALUES($1,$2,$3,now()+interval '${ADMIN_SESSION_HOURS} hours',$4)`,[tokenHash(token),username,ip.slice(0,64),credential]);
   return token;
  }
- async session(token:string|undefined):Promise<string|null>{
-  if(!token||!/^[0-9a-f]{64}$/.test(token))return null;
-  const r=await this.pool.query('SELECT username FROM admin_sessions WHERE token_hash=$1 AND expires_at>now()',[tokenHash(token)]);
+ /** The user of a live session opened under the credentials in force (`credential`); null when the panel is off. */
+ async session(token:string|undefined,credential:string|null):Promise<string|null>{
+  if(!credential||!token||!/^[0-9a-f]{64}$/.test(token))return null;
+  const r=await this.pool.query('SELECT username FROM admin_sessions WHERE token_hash=$1 AND expires_at>now() AND credential=$2',[tokenHash(token),credential]);
   return r.rows[0]?.username??null;
  }
+ /** Drops the sessions of older credentials (or all of them when the panel is off): run at start and on every check. */
+ async endStaleSessions(credential:string|null){await this.pool.query('DELETE FROM admin_sessions WHERE credential IS DISTINCT FROM $1',[credential]);}
+ /** Every admin session ends (revoke all). */
+ async endAllSessions(){await this.pool.query('DELETE FROM admin_sessions');}
  async endSession(token:string|undefined){if(token&&/^[0-9a-f]{64}$/.test(token))await this.pool.query('DELETE FROM admin_sessions WHERE token_hash=$1',[tokenHash(token)]);}
  /** Every session of the user ends, e.g. after the password changes. */
  async endSessionsOf(username:string){await this.pool.query('DELETE FROM admin_sessions WHERE username=$1',[username]);}

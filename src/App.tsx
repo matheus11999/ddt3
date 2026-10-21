@@ -80,5 +80,6 @@ export default function App(){
   {state.error&&createPortal(<div className="toast viewport-notice" role="alert">{state.error}<button aria-label="Fechar aviso" onClick={()=>client.update({error:null})}>×</button></div>,document.body)}
   {/* Connecting and reconnecting show on the loading cover; only another tab taking over is a notice. */}
   {state.profile&&state.status==='replaced'&&createPortal(<div className="connection-notice viewport-notice"><WifiOff size={18}/>Este aventureiro entrou em outra aba.<button onClick={()=>location.reload()}>Voltar aqui</button></div>,document.body)}
+  {state.profile&&state.status==='signed-out'&&createPortal(<div className="connection-notice viewport-notice"><WifiOff size={18}/>Sua sessão foi encerrada. Entre na sua conta de novo.<button onClick={()=>location.reload()}>Entrar</button></div>,document.body)}
  </div><IncomingRoomInvites/><PlayerActions/><MobileOrientationGate visible={orientation.portrait}/><ScreenCurtain/></main>;
 }

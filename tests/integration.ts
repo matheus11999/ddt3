@@ -8,6 +8,7 @@ import {SMITH_POSITION} from '../shared/catalog';
 import type {CharacterGender} from '../shared/catalog';
 import {crater,unpackTerrain} from '../shared/physics';
 import {impactDig} from '../shared/physics';
+import {holdFor} from './fixtures/charge';
 /** The dig a client replays for an impact: the mask under the body for a hit, the weapon's fixed shape (as src/game/terrainPlayback.ts). */
 const replayDig=(t:Uint8Array,impact:Parameters<typeof impactDig>[0]&{roughness?:number;shape?:import('../shared/catalog').CraterShape},map:import('../shared/maps').MapId)=>{const dig=impactDig(impact);return crater(t,dig.x,dig.y,dig.radius,map,impact.roughness,dig.stretch,impact.shape);};
 
@@ -56,6 +57,8 @@ export class TestClient {
   });
  }
  send(command:Command|Record<string,unknown>){const mark=this.sequence;this.socket.send(JSON.stringify(command));return mark;}
+ /** Holds the force bar as the HUD does until it shows `power` (the server times the hold, A03). */
+ async charge(power:number,angle=45){this.send({type:'aim',angle,power:1,charging:true});await pause(holdFor(power));}
  async request<T extends ServerEvent['type']>(command:Command|Record<string,unknown>,type:T,predicate:(event:EventOf<T>)=>boolean=()=>true,timeout=10000){
   await pause(80);const mark=this.send(command);return this.wait(type,predicate,mark,timeout);
  }
@@ -154,7 +157,7 @@ async function run(){
   await shooter.request({type:'boost',boost:'trident'},'battle',event=>event.battle?.players.find(player=>player.id===shooter.profile.id)?.boosts.includes('trident')??false);
   assert.match((await shooter.request({type:'boost',boost:'trident'},'error')).message,/tridente já/);
   assert.match((await shooter.request({type:'boost',boost:'damage20'},'error')).message,/Vigor insuficiente/);checks.push('vigor costs unique trident and overspend rejection');
-  const shot=await shooter.request({type:'fire',angle:45,power:25},'shot');assert.equal(shot.shot.projectiles.length,9);assert.ok(shot.shot.projectiles.every(projectile=>projectile.points.length>1&&projectile.impact.radius>0));
+  await shooter.charge(25);const shot=await shooter.request({type:'fire',angle:45,power:25},'shot');assert.equal(shot.shot.projectiles.length,9);assert.ok(shot.shot.projectiles.every(projectile=>projectile.points.length>1&&projectile.impact.radius>0));
   checks.push('nine authoritative projectiles from +2 and trident');
   const index=clients.indexOf(shooter);await shooter.close();const reconnected=new TestClient(shooter.session);clients[index]=reconnected;
   const welcome=await reconnected.wait('welcome');assert.equal(welcome.battle?.id,battle.id);assert.ok(welcome.battle?.terrain);assert.equal(welcome.battle?.activeShot?.id,shot.shot.id);

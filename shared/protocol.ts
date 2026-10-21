@@ -216,5 +216,5 @@ export type ServerEvent =
  | {type:'pet-result';result:PetResult}
  | {type:'pet-effect';battleId:string;at:number;applications:PetApplication[]}
  | HallEvent
- | {type:'error';message:string;requestId?:string}
+ | {type:'error';message:string;requestId?:string;/** The release was refused (shared/forceBar.ts forceMatchesHold): the turn goes on and the bar can charge again. */retryShot?:boolean}
  | {type:'pong';time:number;serverTime:number};

@@ -43,6 +43,15 @@ export class AccountStore {
  ALTER TABLE accounts ADD COLUMN IF NOT EXISTS avatar varchar(16) NOT NULL DEFAULT 'explorer';
  CREATE TABLE IF NOT EXISTS game_servers(id varchar(16) PRIMARY KEY,name varchar(40) NOT NULL,url text NOT NULL,status varchar(12) NOT NULL DEFAULT 'online',sort int NOT NULL DEFAULT 0,created_at timestamptz NOT NULL DEFAULT now());
  CREATE TABLE IF NOT EXISTS account_characters(account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,server_id varchar(16) NOT NULL REFERENCES game_servers(id),player_id uuid NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(account_id,server_id));
+ -- A game session opened by an account lives only as long as that account session (logout, new password, expiry).
+ ALTER TABLE IF EXISTS sessions ADD COLUMN IF NOT EXISTS account_session char(64);
+ DO $$BEGIN
+  IF to_regclass('sessions') IS NOT NULL AND NOT EXISTS(SELECT 1 FROM pg_constraint WHERE conname='sessions_account_session_fkey') THEN
+   DELETE FROM sessions s WHERE s.account_session IS NOT NULL AND NOT EXISTS(SELECT 1 FROM account_sessions a WHERE a.token_hash=s.account_session);
+   ALTER TABLE sessions ADD CONSTRAINT sessions_account_session_fkey FOREIGN KEY(account_session) REFERENCES account_sessions(token_hash) ON DELETE CASCADE;
+  END IF;
+  IF to_regclass('sessions') IS NOT NULL THEN CREATE INDEX IF NOT EXISTS sessions_account_session ON sessions(account_session); END IF;
+ END$$;
  `);
   // The first server exists from the start; characters linked before servers existed belong to it.
   await this.pool.query("INSERT INTO game_servers(id,name,url,sort) VALUES($1,$2,$3,0) ON CONFLICT (id) DO NOTHING",[FIRST_SERVER,process.env.FIRST_SERVER_NAME??'Servidor 1',process.env.GAME_URL??'http://localhost:8097']);
@@ -73,7 +82,9 @@ export class AccountStore {
   const r=await this.pool.query('SELECT password_hash FROM accounts WHERE id=$1',[account.id]);
   if(!r.rows[0]||!await verifyPassword(current,r.rows[0].password_hash))throw new AccountError('A senha atual está errada.',403);
   await this.pool.query('UPDATE accounts SET password_hash=$2 WHERE id=$1',[account.id,await hashSecret(next)]);
+  // The other account sessions end, and with them (ON DELETE CASCADE) every game session they opened.
   await this.pool.query('DELETE FROM account_sessions WHERE account_id=$1 AND token_hash<>$2',[account.id,hashToken(keepToken)]);
+  await this.pool.query('DELETE FROM sessions WHERE account_session IS NULL AND player_id IN (SELECT player_id FROM account_characters WHERE account_id=$1 UNION SELECT player_id FROM accounts WHERE id=$1 AND player_id IS NOT NULL)',[account.id]);
  }
  async setAvatar(account:Account,avatar:string){
   if(!(AVATARS as readonly string[]).includes(avatar))throw new AccountError('Escolha um dos avatares.');
@@ -95,11 +106,34 @@ export class AccountStore {
   await this.pool.query(`INSERT INTO account_sessions VALUES($1,$2,now()+interval '${ACCOUNT_DAYS} days')`,[hashToken(token),accountId]);
   return token;
  }
+ /** Logout ends the account session and, by cascade, the game sessions it opened on every server. */
  async logout(token:string|undefined){if(token&&/^[0-9a-f]{64}$/.test(token))await this.pool.query('DELETE FROM account_sessions WHERE token_hash=$1',[hashToken(token)]);}
  async account(token:string|undefined):Promise<Account|null>{
   if(!token||!/^[0-9a-f]{64}$/.test(token))return null;
   const r=await this.pool.query('SELECT a.* FROM account_sessions s JOIN accounts a ON a.id=s.account_id WHERE s.token_hash=$1 AND s.expires_at>now()',[hashToken(token)]);
   return r.rows[0]?row(r.rows[0]):null;
+ }
+ /** The stored hash of an account cookie, which links the game sessions it opens. */
+ sessionHash(token:string){return hashToken(token);}
+ /**
+  * Which of these game session hashes still let their player in (A01, auditoria 21/10): a guest's own session, or a
+  * session opened by a live session of the account that owns the character. A character that belongs to an account
+  * never plays from a bare game cookie, so logging out or changing the password locks every copy of it out.
+  */
+ async validGameSessions(hashes:string[]):Promise<Map<string,{playerId:string;accountSession:string|null}>>{
+  const valid=new Map<string,{playerId:string;accountSession:string|null}>();if(!hashes.length)return valid;
+  const r=await this.pool.query(`SELECT s.token_hash,s.player_id,s.account_session FROM sessions s
+   LEFT JOIN account_sessions a ON a.token_hash=s.account_session AND a.expires_at>now()
+   WHERE s.token_hash=ANY($1) AND s.expires_at>now() AND CASE WHEN s.account_session IS NULL
+    THEN NOT EXISTS(SELECT 1 FROM account_characters c WHERE c.player_id=s.player_id) AND NOT EXISTS(SELECT 1 FROM accounts x WHERE x.player_id=s.player_id)
+    ELSE a.token_hash IS NOT NULL AND (EXISTS(SELECT 1 FROM account_characters c WHERE c.player_id=s.player_id AND c.account_id=a.account_id) OR EXISTS(SELECT 1 FROM accounts x WHERE x.id=a.account_id AND x.player_id=s.player_id)) END`,[hashes]);
+  for(const x of r.rows)valid.set(x.token_hash,{playerId:x.player_id,accountSession:x.account_session});
+  return valid;
+ }
+ /** The player a game cookie may play, by the rule of validGameSessions. */
+ async gameSession(token:string|undefined){
+  if(!token||!/^[0-9a-f]{64}$/.test(token))return null;
+  return (await this.validGameSessions([hashToken(token)])).get(hashToken(token))??null;
  }
  /** True when some account already owns this player (on any server). */
  async owned(playerId:string){return (await this.pool.query('SELECT 1 FROM account_characters WHERE player_id=$1 UNION SELECT 1 FROM accounts WHERE player_id=$1',[playerId])).rows.length>0;}

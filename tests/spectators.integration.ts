@@ -23,7 +23,7 @@ try{
  checks.push('closed defaults, host-only capacity, waiting observer and fighter slots remain separate at start');
 
  stage='visible shot';const shooter=clients.find(client=>client.profile.id===battle.turnId)!,shotMark=observer.sequence;
- await shooter.request({type:'fire',angle:65,power:20},'shot');const shot=(await observer.wait('shot',()=>true,shotMark)).shot;assert.ok(shot.projectiles.length);
+ await shooter.charge(20,65);await shooter.request({type:'fire',angle:65,power:20},'shot');const shot=(await observer.wait('shot',()=>true,shotMark)).shot;assert.ok(shot.projectiles.length);
  const lateMark=late.sequence;await late.request({type:'spectate',roomId:room.id},'room',event=>event.room?.spectators?.some(value=>value.id===late.profile.id)===true);
  const hydration=(await late.wait('battle',event=>event.battle?.id===battle.id,lateMark)).battle!;assert.equal(hydration.activeShot!.id,shot.id);assert.deepEqual(hydration.activeShot!.projectiles,shot.projectiles);assert.ok(hydration.terrain);
  await observer.close();clients[2]=new TestClient(sessions[2]);const resumed=await clients[2].wait('welcome');assert.equal(resumed.room?.id,room.id);assert.ok(resumed.room!.spectators!.some(value=>value.id===observer.profile.id&&value.connected));assert.equal(resumed.battle?.id,battle.id);
@@ -37,7 +37,7 @@ try{
  await invisible.request({type:'ability',ability:'invisibility'},'battle',event=>event.battle?.players.some(player=>player.id===invisible.profile.id&&(player.invisibleTurns??0)>0)===true);
  const effect=await late.wait('ability-effect',event=>event.playerId===invisible.profile.id&&event.ability==='invisibility',hiddenMark);assert.equal(effect.hidden,true);assert.equal(effect.x,HIDDEN_POSITION);
  const hiddenBattle=(await late.wait('battle',event=>event.battle?.players.some(player=>player.id===invisible.profile.id&&player.hidden)===true,hiddenMark)).battle!;assert.equal(hiddenBattle.players.find(player=>player.id===invisible.profile.id)!.y,HIDDEN_POSITION);
- const secondShot=late.sequence;await invisible.request({type:'fire',angle:65,power:20},'shot');const concealed=(await late.wait('shot',event=>event.shot.shooterId===invisible.profile.id,secondShot)).shot;assert.equal(concealed.hidden,true);assert.deepEqual(concealed.projectiles,[]);
+ const secondShot=late.sequence;await invisible.charge(20,65);await invisible.request({type:'fire',angle:65,power:20},'shot');const concealed=(await late.wait('shot',event=>event.shot.shooterId===invisible.profile.id,secondShot)).shot;assert.equal(concealed.hidden,true);assert.deepEqual(concealed.projectiles,[]);
  await clients[2].close();clients[2]=new TestClient(sessions[2]);const concealedReconnect=await clients[2].wait('welcome');assert.equal(concealedReconnect.battle!.players.find(player=>player.id===invisible.profile.id)!.x,HIDDEN_POSITION);assert.equal(concealedReconnect.battle!.activeShot!.hidden,true);assert.deepEqual(concealedReconnect.battle!.activeShot!.projectiles,[]);
  await late.request({type:'leave'},'room',event=>event.room===null);const reentry=late.sequence;await late.request({type:'spectate',roomId:room.id},'room',event=>event.room?.id===room.id);await late.wait('battle',event=>event.battle?.id===battle.id,reentry);
  battle=(await late.wait('battle',event=>event.battle?.id===battle.id&&event.battle.phase==='aiming'&&event.battle.turnNumber>battle.turnNumber,secondShot,concealed.duration+5000)).battle!;

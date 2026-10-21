@@ -12,6 +12,7 @@ import type {Profile,ServerEvent} from '../shared/protocol';
 import {createTerrain,flightLanding,ground,terrainWidth,trajectory,volley,WORLD} from '../shared/physics';
 import {getMap} from '../shared/maps';
 import {createFall} from '../shared/fall';
+import {chargedFire} from './fixtures/charge';
 
 async function fixture(count=2){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),store={getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore;
@@ -47,7 +48,7 @@ test('homing consumes once when armed, expires without firing and cannot be chan
  const f=await fixture();await f.game.command(f.actor.id,{type:'ability',ability:'homing'});assert.equal(f.actor.abilities!.homing,0);assert.equal(f.actor.homingArmed,true);
  await f.game.command(f.actor.id,{type:'ability',ability:'homing'});assert.match(f.error()!,/já foi usada/);
  await f.game.command(f.actor.id,{type:'pass'});assert.equal(f.actor.homingArmed,false);assert.equal(f.actor.abilities!.homing,0);
- await f.game.command(f.enemy.id,{type:'fire',angle:45,power:25});const before=structuredClone(f.enemy);
+ await chargedFire(f.game,f.enemy.id,{angle:45,power:25});const before=structuredClone(f.enemy);
  await f.game.command(f.enemy.id,{type:'ability',ability:'invisibility'});assert.deepEqual(f.enemy,before);assert.match(f.error(f.enemy.id)!,/próximo turno/);
 });
 
@@ -85,7 +86,7 @@ test('invisibility redacts snapshots, aims, effects, shot origins and reconnect 
  await f.game.command(f.actor.id,{type:'aim',angle:50,power:60,charging:true});const aimed=f.latest(f.enemy.id).players.find(player=>player.id===f.actor.id)!;assert.equal(aimed.aimAngle,undefined);assert.equal(aimed.chargePower,undefined);assert.equal(aimed.charging,undefined);
  f.actor.hp-=700;await f.game.command(f.actor.id,{type:'ability',ability:'heal'});
  const effects=f.events.get(f.enemy.id)!.filter((event):event is Extract<ServerEvent,{type:'ability-effect'}>=>event.type==='ability-effect');assert.ok(effects.length>=2);for(const effect of effects){assert.equal(effect.hidden,true);assert.equal(effect.x,HIDDEN_POSITION);assert.equal(effect.y,HIDDEN_POSITION);}
- await f.game.command(f.actor.id,{type:'fire',angle:60,power:35});
+ await chargedFire(f.game,f.actor.id,{angle:60,power:35});
  const shot=f.events.get(f.enemy.id)!.find((event):event is Extract<ServerEvent,{type:'shot'}>=>event.type==='shot')!.shot;assert.equal(shot.hidden,true);assert.deepEqual(shot.projectiles,[]);
  const actual=f.match.activeShot!;assert.ok(actual.projectiles.length);const resumed:ServerEvent[]=[];f.game.disconnect(f.enemy.id);f.game.connect(f.players.find(player=>player.id===f.enemy.id)!,event=>resumed.push(structuredClone(event)));
  const welcome=resumed.find((event):event is Extract<ServerEvent,{type:'welcome'}>=>event.type==='welcome')!;assert.equal(welcome.battle!.players.find(player=>player.id===f.actor.id)!.x,HIDDEN_POSITION);assert.equal(welcome.battle!.activeShot!.hidden,true);assert.deepEqual(welcome.battle!.activeShot!.projectiles,[]);
@@ -124,7 +125,7 @@ test('flight opens the whole 5–90° aim envelope and cancelling it restores th
 test('flight teleports only at authoritative contact to clear supported ground, deals no damage and consumes the turn',async()=>{
  const f=await fixture(),beforeTerrain=f.match.terrain.slice(),beforeHP=f.match.state.players.map(player=>player.hp),origin=f.actor.x;f.enemy.x=1100;
  f.actor.fall=createFall(500,600,Date.now()-1000);
- await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
+ await f.game.command(f.actor.id,{type:'flight',active:true});await chargedFire(f.game,f.actor.id,{angle:45,power:25});
  const shot=f.match.activeShot!,impact=f.match.pendingImpacts![0];assert.equal(shot.projectiles[0].kind,'flight');assert.equal(shot.projectiles[0].impact.radius,0);assert.equal(f.actor.x,origin);
  f.game.tick(impact.at-.001);assert.equal(f.actor.x,origin);f.game.tick(impact.at);assert.notEqual(f.actor.x,origin);assert.equal(f.actor.y,600);assert.equal(f.actor.fall,undefined);assert.deepEqual(f.match.terrain,beforeTerrain);assert.deepEqual(f.match.state.players.map(player=>player.hp),beforeHP);assert.deepEqual(f.match.state.terrainMarks,undefined);
  assert.equal(f.events.get(f.actor.id)!.filter(event=>event.type==='ability-effect'&&event.ability==='flight').length,1);
@@ -146,7 +147,7 @@ test('flight puts the fighter exactly where the plane touched and lets it fall f
 
 test('flight that falls into the void kills the shooter',async()=>{
  const f=await fixture();f.match.terrain.fill(0);f.match.terrain.fill(1,600*WORLD.cols,600*WORLD.cols+360);
- await f.game.command(f.actor.id,{type:'flight',active:true});await f.game.command(f.actor.id,{type:'fire',angle:45,power:25});
+ await f.game.command(f.actor.id,{type:'flight',active:true});await chargedFire(f.game,f.actor.id,{angle:45,power:25});
  const impact=f.match.pendingImpacts![0];impact.mark.x=900;impact.mark.y=300;f.match.activeShot!.projectiles[0].points=[[880,310],[900,300]];
  f.game.tick(impact.at);assert.equal(f.actor.x,900);assert.equal(f.actor.hp,0);assert.ok(f.actor.fall?.void);assert.ok(f.match.activeShot?.hits.some(hit=>hit.id===f.actor.id&&hit.kind==='fall'));
 });

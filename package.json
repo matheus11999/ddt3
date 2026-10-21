@@ -10,6 +10,7 @@
     "start": "tsx server/index.ts",
     "test": "tsx --test --import ./tests/fixtures/weapons.ts --import ./tests/fixtures/maps.ts tests/*.test.ts",
     "test:integration": "tsx tests/integration.ts",
+    "test:security:integration": "tsx tests/security.integration.ts",
     "test:restart:integration": "tsx tests/restart.integration.ts",
     "test:worldboss:integration": "tsx tests/worldBoss.integration.ts",
     "test:load": "tsx tests/load.ts",
@@ -81,7 +82,7 @@
     "@types/react-dom": "^19.2.0",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.0.4",
-    "sharp": "^0.34.4",
+    "sharp": "^0.35.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vite": "^7.1.9"

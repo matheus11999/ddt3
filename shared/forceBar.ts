@@ -33,3 +33,20 @@ export const CHARGE_HOLD_MS=FORCE_BAR_CYCLE_MS+1000;
 export function chargeHoldsTurn(deadline:number,chargingSince:number|undefined,now:number){
  return chargingSince!==undefined&&chargingSince<=deadline&&now<chargingSince+CHARGE_HOLD_MS;
 }
+
+/** How far the server's clock may disagree with the client's bar (A03, auditoria 21/10/2026). The charge start and the
+ * release travel the same socket, so only the difference of their delays matters: the release may count up to
+ * FORCE_EARLY_MS less hold than the bar showed (the start came in late) or up to FORCE_LATE_MS more (the release came
+ * in late). Anything beyond is a shot the bar never showed. */
+export const FORCE_EARLY_MS=400;
+export const FORCE_LATE_MS=2000;
+
+/** Whether `power` is a whole value the bar shows at some moment within the tolerance around `heldMs`, the hold
+ * measured by the server between the charge start and the release. */
+export function forceMatchesHold(power:number,heldMs:number,early=FORCE_EARLY_MS,late=FORCE_LATE_MS){
+ if(!Number.isInteger(power)||power<1||power>FORCE_BAR_MAX||!Number.isFinite(heldMs)||heldMs<0)return false;
+ // The holds that show `power`: once rising and, below the top, once falling (100 stays two updates).
+ const windows:[number,number][]=power===FORCE_BAR_MAX?[[(FORCE_BAR_MAX-1)*FORCE_BAR_STEP_MS,(FORCE_BAR_MAX+1)*FORCE_BAR_STEP_MS]]:
+  [[(power-1)*FORCE_BAR_STEP_MS,power*FORCE_BAR_STEP_MS],[(2*FORCE_BAR_MAX-power)*FORCE_BAR_STEP_MS,(2*FORCE_BAR_MAX-power+1)*FORCE_BAR_STEP_MS]];
+ return windows.some(([from,to])=>heldMs>=from-early&&heldMs<to+late);
+}

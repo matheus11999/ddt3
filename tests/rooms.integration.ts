@@ -73,7 +73,7 @@ async function run(){
   checks.push('eight real clients start with identical snapshots and four distinct spawns per team');
 
   const shooter=clients.find(client=>client.profile.id===battle.turnId)!;await shooter.request({type:'boost',boost:'trident'},'battle',event=>!!event.battle?.players.find(p=>p.id===shooter.profile.id)?.boosts.includes('trident'));
-  const shotMarks=clients.map(client=>client.sequence);shooter.send({type:'fire',angle:65,power:25});
+  const shotMarks=clients.map(client=>client.sequence);await shooter.charge(25,65);shooter.send({type:'fire',angle:65,power:25});
   const shots=await Promise.all(clients.map((client,i)=>client.wait('shot',()=>true,shotMarks[i]))),shot=shots[0].shot;
   assert.equal(shot.projectiles.length,3);for(const event of shots)assert.deepEqual(event.shot,shot);
   await clients[4].close();clients[4]=new TestClient(sessions[4]);const welcome=await clients[4].wait('welcome');assert.equal(welcome.battle?.phase,'resolving');assert.equal(welcome.battle?.players.length,8);assert.equal(welcome.battle?.terrain,terrain);shotMarks[4]=clients[4].sequence;

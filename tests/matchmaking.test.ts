@@ -8,6 +8,7 @@ import type {Equipment} from '../shared/catalog';
 import {MAP_IDS,baseMapId,getMap} from '../shared/maps';
 import {commandSchema} from '../shared/protocol';
 import type {Profile,ServerEvent} from '../shared/protocol';
+import {chargedFire} from './fixtures/charge';
 
 function fixture(count=10){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),finishCalls:string[][]=[];
@@ -142,7 +143,7 @@ test('both source parties reconnect to the shared battle, receive shots and use 
  await f.game.command(f.players[0].id,{type:'queue'});await f.game.command(f.players[1].id,{type:'queue'});const m=[...f.game.matches.values()][0];
  f.game.disconnect(f.players[1].id);const resumed:ServerEvent[]=[];f.game.connect(f.players[1],e=>resumed.push(structuredClone(e)));
  const welcome=resumed.find((e):e is Extract<ServerEvent,{type:'welcome'}>=>e.type==='welcome')!;assert.equal(welcome.room!.id,rb.id);assert.equal(welcome.battle!.roomId,ra.id);assert.equal(welcome.battle!.id,m.state.id);assert.ok(welcome.battle!.terrain);
- await f.game.command(m.state.turnId,{type:'pass'});await f.game.command(m.state.turnId,{type:'fire',angle:45,power:35});
+ await f.game.command(m.state.turnId,{type:'pass'});await chargedFire(f.game,m.state.turnId,{angle:45,power:35});
  assert.ok(resumed.some(e=>e.type==='shot'));assert.ok(f.events.get(f.players[0].id)!.some(e=>e.type==='shot'));
 });
 

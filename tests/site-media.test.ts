@@ -25,3 +25,18 @@ test('only server-made media names are served', () => {
  assert.ok(MEDIA_FILE.test('0123456789abcdef01234567.png'));
  for(const bad of ['../../etc/passwd','0123456789abcdef01234567.svg','0123456789abcdef01234567.html','0123456789abcdef01234567.png/..','x.png','0123456789ABCDEF01234567.png'])assert.ok(!MEDIA_FILE.test(bad),bad);
 });
+
+test('a valid JPEG with fill bytes still loses its EXIF and stays viewable; an unreadable one is refused (A06)', async () => {
+ const {default:sharp}=await import('sharp');
+ const clean=await sharp({create:{width:1,height:1,channels:3,background:{r:200,g:40,b:10}}}).jpeg().toBuffer();
+ const exif=Buffer.concat([Buffer.from('Exif\0\0'),Buffer.from('SENTINELA-GPS-AUDITORIA')]);
+ const app1=Buffer.concat([Buffer.from([0xff,0xe1]),Buffer.from([(exif.length+2)>>8,(exif.length+2)&255]),exif]);
+ // SOI, a fill byte (0xFF before a marker is allowed), the EXIF block, then the rest of the file and junk after EOI.
+ const tricky=Buffer.concat([clean.subarray(0,2),Buffer.from([0xff]),app1,clean.subarray(2),Buffer.from('depois-do-fim')]);
+ assert.ok((await sharp(tricky).metadata()).width===1);
+ const out=stripJpegMetadata(tricky);
+ assert.ok(!out.includes(Buffer.from('SENTINELA')));assert.ok(!out.includes(Buffer.from('Exif')));assert.ok(!out.includes(Buffer.from('depois-do-fim')));
+ const {data,info}=await sharp(out).raw().toBuffer({resolveWithObject:true});assert.equal(info.width,1);assert.ok(data[0]>150);
+ for(const bad of [Buffer.from([0xff,0xd8,0x12,0x34]),tricky.subarray(0,tricky.length-40),Buffer.concat([clean.subarray(0,2),Buffer.from([0xff,0xe1,0x00,0x50,0x45])])])
+  assert.throws(()=>stripJpegMetadata(bad),/Não foi possível ler/);
+});
