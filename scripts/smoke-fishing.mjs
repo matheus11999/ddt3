@@ -12,10 +12,10 @@ const shot=(page,name)=>page.screenshot({path:`${dir}/${name}.png`});
 const open=async()=>{const context=await browser.newContext({viewport:{width:1536,height:864}});const page=await context.newPage();let me=null,at=null;
  page.on('websocket',ws=>ws.on('framereceived',({payload})=>{try{const e=JSON.parse(String(payload));if(e.type==='welcome')me=e.profile.id;const p=(e.type==='lobby'||e.type==='welcome'||e.type==='lobby-moves')&&(e.players??e.moves)?.find(q=>q.id===me);if(p)at={x:p.x,y:p.y};}catch{}}));
  page.at=()=>at;await enterGame(page,base);return page;};
-/** Walks to a world point a screen at a time, clicking only the open middle of the view (clear of the HUD). */
+/** Walks to a world point a screen at a time, clicking only the open middle of the view (clear of the HUD and of the weekly ranking on the right, whose height grows with its entries). */
 const walkTo=async(page,x,y)=>{for(let n=0;n<8;n++){const p=page.at();if(Math.hypot(p.x-x,p.y-y)<10)return;const cam=camera(p.x,p.y);
  // A click on water would walk to a fishing spot: aim for the nearest floor instead.
- const w=fishingFree(cam.x+Math.max(440,Math.min(1480,x-cam.x)),cam.y+Math.max(250,Math.min(640,y-cam.y)));
+ const w=fishingFree(cam.x+Math.max(440,Math.min(1200,x-cam.x)),cam.y+Math.max(250,Math.min(640,y-cam.y)));
  await page.locator('.world-canvas').click({position:{x:w.x-cam.x,y:w.y-cam.y}});
  const start=Date.now();let last={...p};while(Date.now()-start<15000){await page.waitForTimeout(500);const q=page.at();if(Math.hypot(q.x-last.x,q.y-last.y)<.5)break;last={...q};}}};
 const camera=(x,y)=>({x:Math.max(0,Math.min(FISHING_WIDTH-1536,x-768)),y:Math.max(0,Math.min(FISHING_HEIGHT-864,y-864*.6))});

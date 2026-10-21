@@ -33,6 +33,10 @@ export interface State {/** Praça Celeste or the Pescaria; `players` are the wa
 const ZONE_KEY='brasa-zone:';
 function rememberZone(id:string|undefined,zone:Zone){if(!id)return;try{localStorage.setItem(ZONE_KEY+id,zone);}catch{/* storage off */}}
 function savedZone(id:string):Zone|null{try{return localStorage.getItem(ZONE_KEY+id) as Zone|null;}catch{return null;}}
+/** Where I stood in the Pescaria, to come back to the same place after a reload or a server restart. */
+const SPOT_KEY='brasa-fishing-at:';
+function rememberSpot(id:string,x:number,y:number){try{localStorage.setItem(SPOT_KEY+id,JSON.stringify({x:Math.round(x),y:Math.round(y)}));}catch{/* storage off */}}
+function savedSpot(id:string):{x:number;y:number}|undefined{try{const v=JSON.parse(localStorage.getItem(SPOT_KEY+id)??'null');return v&&Number.isFinite(v.x)&&Number.isFinite(v.y)?{x:v.x,y:v.y}:undefined;}catch{return undefined;}}
 
 class Client {
  state:State={zone:'plaza',fishing:null,fishBuy:null,fishSold:null,fishShopOpen:false,fishShopTab:'buy',fishBagOpen:false,fishAutoSummary:null,loading:null,loadingDropped:null,petsOpen:false,pets:null,petResult:null,petPending:false,petEffects:[],hallOpen:false,hallBoard:null,hallProfile:null,hallGuild:null,hallLegends:null,hallChanged:null,worldBoss:null,worldBossOpen:false,worldBossRanking:null,guildOpen:false,guildTab:'home',guild:null,guildList:null,guildMessage:null,guildPending:false,auctionOpen:false,auctionPage:null,auctionMine:{listings:[],notices:[],unseen:0},auctionResult:null,auctionPending:false,chatTarget:null,mailOpen:false,mails:[],mailUnread:0,mailLoaded:false,mailClaim:null,mailPending:false,playerPanel:null,playerInfo:null,reportResult:null,ranking:[],fishRanking:null,onlinePlayers:[],onlineTotal:0,invitePlayers:[],inviteListRoomId:null,roomInvitations:[],inviteResults:[],abilityLoadoutDraft:null,abilityLoadoutPending:false,abilityEffects:[],impacts:[],customizationEquipment:null,customizationPending:false,status:'connecting',welcomeAt:0,needsCharacter:false,creatingCharacter:false,profile:null,players:[],rooms:[],room:null,battle:null,chat:[],online:0,arenaOnline:0,channel:1,latency:0,offset:0,shot:null,shotReceivedAt:0,shotBaseline:{},error:null,colorResult:null,discardResult:null,forgeResult:null,compositionResult:null,synthesisResult:null,shopResult:null};
@@ -145,7 +149,7 @@ class Client {
  private receive(e:ServerEvent){switch(e.type){
   case 'welcome':{const offset=e.serverTime-Date.now(),shot=e.battle?.activeShot??null;this.update({welcomeAt:performance.now(),loading:null,abilityEffects:[],profile:e.profile,players:e.players,rooms:e.rooms,arenaOnline:e.arenaOnline??0,ranking:e.ranking??[],fishRanking:e.fishRanking??null,worldBoss:e.worldBoss??null,room:e.room,battle:e.battle,channel:e.channel,zone:e.zone??'plaza',fishing:null,offset,shot,shotReceivedAt:shot?shotClock(shot,offset):0,shotBaseline:{},impacts:shot?recoveredImpacts(shot):[]});
    // Atualizar a página ou reiniciar o servidor devolve à Pescaria quem estava nela (pedido do matheus).
-   if((e.zone??'plaza')==='plaza'&&!e.room&&!e.battle&&savedZone(e.profile.id)==='fishing')this.send({type:'zone',zone:'fishing'});
+   if((e.zone??'plaza')==='plaza'&&!e.room&&!e.battle&&savedZone(e.profile.id)==='fishing'){const at=savedSpot(e.profile.id);this.send({type:'zone',zone:'fishing',...(at?{at}:{})});}
    if(!this.inviteHandled){this.inviteHandled=true;const invite=readRoomInvite(location.href);if(invite.cleanUrl!==location.href)history.replaceState(history.state,'',invite.cleanUrl);if(invite.roomId&&!e.room&&!e.battle)this.send({type:'join',roomId:invite.roomId});else if(invite.roomId&&e.room?.id!==invite.roomId)this.update({error:'Saia da sua sala atual antes de aceitar outro convite.'});}
    break;}
   case 'profile':this.update({profile:e.profile});if(e.requestId&&this.customizationQueue.matches(e.requestId)){clearTimeout(this.customizationTimer);this.customizationQueue.acknowledge(e.requestId);}if(e.requestId&&this.abilityLoadoutQueue.matches(e.requestId)){clearTimeout(this.loadoutTimer);this.abilityLoadoutQueue.acknowledge(e.requestId);}break;
@@ -156,8 +160,8 @@ class Client {
   case 'composition-result':this.update({compositionResult:e.result});break;
   case 'synthesis-result':this.update({synthesisResult:e.result});break;
   case 'lobby':this.update({players:e.players,online:e.online});break;
-  case 'lobby-moves':{const moves=new Map(e.moves.map(m=>[m.id,m]));this.update({players:this.state.players.map(p=>{const m=moves.get(p.id);if(!m)return p;const {fishing:_,...rest}=p;return m.fishing?{...rest,x:m.x,y:m.y,fishing:m.fishing}:{...rest,x:m.x,y:m.y};})});break;}
-  case 'zone':this.update({zone:e.zone,players:e.players,fishing:null,fishShopOpen:false,fishBagOpen:false});rememberZone(this.state.profile?.id,e.zone);break;
+  case 'lobby-moves':{const moves=new Map(e.moves.map(m=>[m.id,m]));const me=this.state.profile&&this.state.zone==='fishing'?moves.get(this.state.profile.id):undefined;if(me)rememberSpot(this.state.profile!.id,me.x,me.y);this.update({players:this.state.players.map(p=>{const m=moves.get(p.id);if(!m)return p;const {fishing:_,...rest}=p;return m.fishing?{...rest,x:m.x,y:m.y,fishing:m.fishing}:{...rest,x:m.x,y:m.y};})});break;}
+  case 'zone':{this.update({zone:e.zone,players:e.players,fishing:null,fishShopOpen:false,fishBagOpen:false});const id=this.state.profile?.id;rememberZone(id,e.zone);const me=id&&e.zone==='fishing'?e.players.find(p=>p.id===id):undefined;if(me)rememberSpot(id!,me.x,me.y);break;}
   case 'fishing':this.update({fishing:e.fishing});break;
   case 'fish-auto-summary':this.update({fishAutoSummary:e.summary});break;
   case 'fish-sell-result':this.update({fishSold:{sold:e.sold,points:e.points,at:Date.now()}});break;
