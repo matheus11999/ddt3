@@ -54,7 +54,7 @@ import {LOBBY_SPAWN,LOBBY_WIDTH} from '../../shared/lobby';
 function recentSpeech(chat:ChatLine[],channel:ChatLine['channel'],now:number){const lines=new Map<string,ChatLine>();for(const m of chat)if(m.channel===channel&&m.playerId&&now-m.time<CHAT_BUBBLE_MS&&now>=m.time-1000)lines.set(m.playerId,m);return [...lines].sort((a,b)=>a[1].time-b[1].time);}
 import {chaseLobbyPosition} from './lobbyMotion';
 import {FishingWorld} from './fishingWorld';
-import {ease,frameLimit} from './frameLimit';
+import {ease,frameLimit,nativeResolution} from './frameLimit';
 import {fishingPick} from './fishingPick';
 import {FISHING_SPAWN,FISHING_SPOTS,FISHING_WALK,FISHING_WIDTH,SPOT_REACH} from '../../shared/fishing';
 import {chaseBattlePosition,CRAWL_LINGER_MS} from './battleMotion';
@@ -62,6 +62,8 @@ import type {LobbyAction} from './lobbyWorld';
 const H=864;
 /** Sustained frames this much slower than the frame limit (Ajustes, `frameLimit`) lower the canvas resolution a step, down to 1 pixel per game unit. */
 const SLOW_FRAME=1.56,SLOW_FRAMES=150;
+/** ...and never above ~28 FPS: a sharper picture matters more than a few frames (21/10, matheus). */
+const SLOW_FLOOR_MS=36;
 type Entity={x:number;y:number;lastX:number;movedAt?:number;facing:number;motion:AvatarMotion;at?:number;teleportedAt?:number;aimOffset?:number;aimChangedAt?:number;tilt?:number;tiltAt?:number};
 export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(action:LobbyAction)=>void;blocked?:boolean}){
  const onLobbyRef=useRef(onLobby);onLobbyRef.current=onLobby;
@@ -93,9 +95,10 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
   /** A long run of slow frames means the canvas is too big for this machine: drop its resolution a step. */
   const watchSpeed=(t:number)=>{
    const interval=t-lastPaint;lastPaint=t;paintDt=interval>0&&interval<=250?interval:frameLimit.interval();
+   if(nativeResolution.get()){if(densityCap<2){densityCap=2;resizeCanvas();}slowFrames=frameTotal=0;return;}
    if(interval<=0||interval>250){slowFrames=frameTotal=0;return;}
    slowFrames++;frameTotal+=interval;if(slowFrames<SLOW_FRAMES)return;
-   if(frameTotal/slowFrames>frameLimit.interval()*SLOW_FRAME&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
+   if(frameTotal/slowFrames>Math.max(frameLimit.interval()*SLOW_FRAME,SLOW_FLOOR_MS)&&densityCap>1&&density>1){densityCap=Math.max(1,Math.min(densityCap,density)-.25);resizeCanvas();console.info(`[brasa] quadros lentos: resolução do cenário reduzida para ${densityCap}x`);}
    slowFrames=frameTotal=0;
   };
   let wasFishing=false;

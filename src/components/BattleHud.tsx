@@ -18,6 +18,7 @@ import {BOOSTS,WEAPONS} from '../../shared/catalog';
 import {powerUpConflict} from '../../shared/powerUps';
 import {WALK_COMMAND_MS} from '../../shared/physics';
 import {petSkill} from '../../shared/petSkills';
+import {powerFull} from '../../shared/power';
 import {FORCE_BAR_MAX,forceBarFill,forceBarValue} from '../../shared/forceBar';
 import type {BoostId} from '../../shared/catalog';
 import type {AbilityId} from '../../shared/abilities';
@@ -65,11 +66,13 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  // POW × Tridente follows the weapon's rule (shared/weaponKit.ts); the server enforces it too.
  const powBlocks=(id:BoostId)=>!!me.powerArmed&&!!powBoostConflict(me.equipment.weapon,id),powerBlocked=me.boosts.some(id=>powBoostConflict(me.equipment.weapon,id));
  // Enfurecer is pointless on a full bar; Gelo replaces the shot, so neither POW nor homing can ride on it (the server refuses the same).
- const toolBlocks=(id:BoostId)=>id==='rage'?!!me.powerArmed||(me.powerCharge??0)>=100:id==='ice'?!!me.powerArmed||!!me.homingArmed:false;
+ const toolBlocks=(id:BoostId)=>id==='rage'?!!me.powerArmed||powerFull(me.powerCharge):id==='ice'?!!me.powerArmed||!!me.homingArmed:false;
  const flightBlocked=!canAct||!me.flightArmed&&(me.boosts.length>0||!!me.powerArmed||!!me.homingArmed);
  const chargeStarted=useRef<number|null>(null),chargeSource=useRef<ChargeSource|null>(null),chargingRef=useRef(false);
  const powerTrack=useRef<HTMLDivElement>(null),paintedPower=useRef(MIN_POWER),turnSubmitted=useRef(false),pointer=useRef<number|null>(null);
  const live=useRef({canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind});live.current={canAct,canFace,canAim,angle,minAngle,maxAngle,me,wind:b.wind};
+ // B activates the POW like the orb (DDTank); only asked for when the orb itself would accept the click.
+ const powerKeyReady=useRef(false);
  const terrainAim=useRef<{battleId:string;slope:number}|null>(null);
  useLayoutEffect(()=>{
   const previous=terrainAim.current,newBattle=previous?.battleId!==b.id;
@@ -131,7 +134,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
  },[cancelCharge]);
  const useBoost=useCallback((id:BoostId)=>{
   const boost=BOOSTS.find(item=>item.id===id)!,fighter=live.current.me;
-  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||(id==='rage'&&(fighter.powerArmed||(fighter.powerCharge??0)>=100))||(id==='ice'&&(fighter.powerArmed||fighter.homingArmed))||fighter.stamina<boost.cost)return;
+  if(!live.current.canAct||turnSubmitted.current||fighter.flightArmed||powerUpConflict(fighter.boosts,id)||(fighter.powerArmed&&powBoostConflict(fighter.equipment.weapon,id))||(id==='rage'&&(fighter.powerArmed||powerFull(fighter.powerCharge)))||(id==='ice'&&(fighter.powerArmed||fighter.homingArmed))||fighter.stamina<boost.cost)return;
   client.send({type:'boost',boost:id});
  },[]);
 
@@ -190,6 +193,7 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    if(key===' ')beginCharge('keyboard');
    const boost=BOOSTS.find(item=>item.key===key);if(boost)useBoost(boost.id);
    if(key==='p')passTurn();
+   if(key==='b'&&powerKeyReady.current)client.send({type:'power'});
   };
   const up=(event:KeyboardEvent)=>{
    keys.delete(event.key.toLowerCase());
@@ -199,7 +203,12 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
    }
   };
   const blur=()=>{keys.clear();cancelCharge();};
-  const focus=(event:FocusEvent)=>{if(ignoresGameKeys(event.target)&&chargeSource.current==='keyboard')blur();};
+  // Clicking a HUD button (POW, +1/+2, Enfurecer, Gelo, abilities) while Space is held activates it and keeps the
+  // charge (user request, 21/10/2026): the button just loses focus so the release still fires. Typing, a dialog or a menu cancels.
+  const focus=(event:FocusEvent)=>{
+   if(chargeSource.current!=='keyboard'||!ignoresGameKeys(event.target))return;
+   if(ignoresMoveKeys(event.target))blur();else (event.target as HTMLElement).blur();
+  };
   const visibility=()=>{if(document.hidden)blur();};
   const timer=setInterval(()=>{
    if(ignoresMoveKeys(document.activeElement))return;
@@ -217,7 +226,8 @@ export function BattleHud({angle,setAngle,blocked}:{angle:number;setAngle:(v:num
 
  const chargeHint=charging?(power===MAX_POWER?'FORÇA MÁXIMA · SOLTE PARA DISPARAR':falling?'A FORÇA ESTÁ CAINDO · SOLTE PARA DISPARAR':'SOLTE PARA DISPARAR'):submitted?'AGUARDANDO O PRÓXIMO TURNO':canAct?(me.flightArmed?'VOO ATIVO · MIRE E CARREGUE':'SEGURE ESPAÇO PARA CARREGAR'):'AGUARDE SUA VEZ';
  // Why the POW orb can't be used right now; the orb says it when clicked instead of ignoring the click.
- const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':(me.powerCharge??0)<100?'Acerte e receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':me.boosts.includes('ice')?'O POW não combina com o gelo':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
+ const powerOrbBlock=me.powerArmed?'POW pronto: dispare!':!powerFull(me.powerCharge)?'Ataque, passe ou receba dano para encher o POW':!mine||monsterTurn?'Ative o POW na sua vez':me.flightArmed?'Cancele o voo para usar o POW':me.boosts.includes('ice')?'O POW não combina com o gelo':powerBlocked?'O POW desta arma não combina com +1, +2 ou Tridente':!canAct?'Aguarde':undefined;
+ powerKeyReady.current=!powerOrbBlock;
  // Pet skills the turn player activated this turn, shown in the same row as the turn's powers.
  const turnPetSkills=turn?.pet?turn.pet.skills.filter(slot=>slot.usedTurn===turn.pet!.turns).map(slot=>{const def=petSkill(slot.id);return {id:slot.id,name:def?.name??slot.id,icon:def?.visual?.icon};}):[];
  const activeAbilities:AbilityId[]=[...(me.homingArmed?['homing' as const]:[]),...((me.invisibleTurns??0)>0?['invisibility' as const]:[])];

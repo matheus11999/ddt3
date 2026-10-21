@@ -6,7 +6,7 @@ Pedido do matheus em 20/10/2026, a partir do pacote de referência `output/ddtan
 
 | Ferramenta | Tecla | Vigor | Delay | Efeito | Fonte |
 | --- | --- | ---: | ---: | --- | --- |
-| Enfurecer | 9 | 120 | 450 | +50 pontos na barra de POW na hora (0–100), pode repetir; recusado com a barra cheia ou o POW já armado | 10018, `AttackUpSpell` → `AddDander(100)` numa escala de 200 |
+| Enfurecer | 9 | 120 | 450 | +100 pontos de raiva na hora (escala 0–200, metade da barra), pode repetir; recusado com a barra cheia ou o POW já armado | 10018, `AttackUpSpell` → `AddDander(100)` |
 | Gelo | 0 | 150 | 700 | o disparo vira uma bomba de gelo: um projétil, sem dano, sem cratera, sem marca; congela os inimigos que tocar | 10015, `FrostSpell` → `SetBall(1)`, Ball1 `Radii 60`, `IceFronzeEffect(2)` |
 
 - Enfurecer não é o bônus de dano +50% e não muda a força do lançamento. Usar o POW continua sendo outro clique.

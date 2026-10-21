@@ -45,7 +45,7 @@ test('Love Boomerang keeps its original stat and angle identity, distinct phase 
 
 test('server refuses both orders of combining Love Boomerang POW and Tridente',async()=>{
  for(const powerFirst of [true,false]){
-  const f=await fixture();f.shooter.equipment.weapon='love-boomerang';f.shooter.powerCharge=100;
+  const f=await fixture();f.shooter.equipment.weapon='love-boomerang';f.shooter.powerCharge=200;
   if(powerFirst){await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,true);await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.deepEqual(f.shooter.boosts,[]);}
   else{await f.game.command(f.shooter.id,{type:'boost',boost:'trident'});assert.deepEqual(f.shooter.boosts,['trident']);await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,false);}
   assert.match(lastError(f.events)!.message,/não combina Power com Tridente/);
@@ -98,9 +98,9 @@ for(const [rule,boost,message] of [['exclusivo','trident',/não combina Power co
   const f=await fixture(),saved=WEAPON_KITS.brick.powTrident;
   try{
    WEAPON_KITS.brick.powTrident=rule;f.shooter.equipment.weapon='brick';
-   f.shooter.powerCharge=100;await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,true);
+   f.shooter.powerCharge=200;await f.game.command(f.shooter.id,{type:'power'});assert.equal(f.shooter.powerArmed,true);
    await f.game.command(f.shooter.id,{type:'boost',boost});assert.deepEqual(f.shooter.boosts,[]);assert.match(lastError(f.events)!.message,message);
-   const g=await fixture();g.shooter.equipment.weapon='brick';await g.game.command(g.shooter.id,{type:'boost',boost});g.shooter.powerCharge=100;
+   const g=await fixture();g.shooter.equipment.weapon='brick';await g.game.command(g.shooter.id,{type:'boost',boost});g.shooter.powerCharge=200;
    await g.game.command(g.shooter.id,{type:'power'});assert.equal(g.shooter.powerArmed,false);assert.match(lastError(g.events)!.message,message);
   }finally{WEAPON_KITS.brick.powTrident=saved;}
  });

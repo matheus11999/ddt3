@@ -54,7 +54,7 @@ export function FishingHud({blocked}:{blocked:boolean}){
  const pick=(id:string)=>{client.send({type:'fish-gear',rod:id});setGear(null);audio.play('click');};
  const autoOn=fishing?auto:autoPref;
  return <div className="fishing-hud">
-  <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/> Sair da Pescaria</button>
+  <button className="fishing-exit wood-button" onClick={()=>{client.goTo('plaza');audio.play('click');}} title="Voltar para a Praça Celeste"><DoorOpen size={20}/>SAIR</button>
   {/* Trocas de Pontos de Pesca de qualquer lugar da zona (pedido do matheus). */}
   <button className="fishing-trade" onClick={()=>{client.openFishShop();audio.play('click');}} title="Trocar Pontos de Pesca por itens"><span className="fishing-trade-art"/><span>Trocas</span></button>
   <button className="fishing-trade fishing-history-button" onClick={()=>{setHistory(true);audio.play('click');}} title="Últimas capturas"><span className="fishing-trade-art"><ScrollText size={30} strokeWidth={2.2}/></span><span>Histórico</span></button>
@@ -67,7 +67,6 @@ export function FishingHud({blocked}:{blocked:boolean}){
   </section>
   <section className="fishing-bar-panel" aria-label="Pescar">
    {autoNote&&<em key={autoNote.at} className={`fishing-auto-note ${autoNote.on?'on':''}`}>{autoNote.on?'Pesca automática ligada':'Pesca automática desligada'}</em>}
-   {autoOn&&<span className="fishing-auto-badge" title="Pescando no automático: o peixe demora mais e rende cerca de 25% de quem pesca à mão">AUTOMÁTICO</span>}
    {/* A vara equipada fica dentro do próprio círculo de Lançar (pedido do matheus); o selo de setas troca a vara. */}
    <div className={`fishing-cast ${autoOn?'auto-on':''}`}>
     {busy?<button className="fishing-main reel" onClick={reel} title="Recolher a linha"><span className="fishing-cast-rod"><FishingIcon id={rod.id} size={86}/></span><span className="fishing-cast-label">Recolher</span></button>
@@ -79,9 +78,9 @@ export function FishingHud({blocked}:{blocked:boolean}){
   </section>
   {picking?<p className="fishing-tip picking">{hoverLake?`${hoverLake}: clique para ir até a margem e lançar.`:'Clique num lago para pescar nele.'}</p>
    :!fishing&&!gear&&<p className="fishing-tip">Aperte Lançar e escolha um lago.</p>}
-  {fishing?.phase==='waiting'&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>{auto?'Pescando no automático':'Esperando o peixe morder'}</p>}
-  {/* No automático o minigame não aparece (pedido do matheus): só o aviso de que está puxando. */}
-  {fishing?.phase==='bite'&&auto&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>Fisgou! Puxando no automático</p>}
+  {/* No automático não há selo nem aviso de texto (pedido do matheus, 20/10): só a chave Auto acesa. */}
+  {fishing?.phase==='waiting'&&!auto&&<p className="fishing-tip waiting"><span className="fishing-dots"><i/><i/><i/></span>Esperando o peixe morder</p>}
+  {/* No automático o minigame não aparece (pedido do matheus). */}
   {fishing?.phase==='bite'&&fishing.challenge&&!auto&&<Challenge view={fishing} press={press} offset={offset}/>}
   {/* O resultado fica na tela pelo tempo da raridade, mesmo com a linha já de volta na água. */}
   {shown&&<Result key={shown.since} view={shown}/>}

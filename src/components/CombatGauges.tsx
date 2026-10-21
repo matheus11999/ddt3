@@ -1,5 +1,6 @@
 import {useEffect,useRef,useState} from 'react';
 import type {CSSProperties} from 'react';
+import {POWER_MAX,powerFull,powerPercent} from '../../shared/power';
 
 const polar=(cx:number,cy:number,facing:1|-1,degree:number,radius:number)=>({x:cx+facing*Math.cos(degree*Math.PI/180)*radius,y:cy-Math.sin(degree*Math.PI/180)*radius});
 const arcPath=(cx:number,cy:number,facing:1|-1,start:number,end:number,radius:number)=>{
@@ -57,7 +58,8 @@ export function AngleArrow({up}:{up:boolean}){
  * liquid keeps the previous level for one frame and then drains visibly.
  * While it can't be used (`blocked`) a click shows why instead of doing nothing. */
 export function PowerOrb({charge,armed,blocked,onActivate}:{charge:number;armed:boolean;blocked?:string;onActivate:()=>void}){
- const level=Math.max(0,Math.min(100,armed?0:charge)),full=!armed&&level>=100,ready=full&&!blocked;
+ // Raiva is 0–200 on the server; the orb shows the percentage and is full only at the real 200.
+ const level=armed?0:powerPercent(charge),full=!armed&&powerFull(charge),ready=full&&!blocked;
  const [draining,setDraining]=useState(false),wasArmed=useRef(armed);
  const [notice,setNotice]=useState<{text:string;key:number}|null>(null);
  useEffect(()=>{
@@ -67,7 +69,7 @@ export function PowerOrb({charge,armed,blocked,onActivate}:{charge:number;armed:
  },[armed]);
  useEffect(()=>{if(!notice)return;const timer=setTimeout(()=>setNotice(null),1800);return()=>clearTimeout(timer);},[notice]);
  useEffect(()=>{if(!blocked)setNotice(null);},[blocked]);
- return <button type="button" className={`combat-power ${full?'power-full':''} ${ready?'power-ready':''} ${armed?'power-armed':''} ${draining?'power-draining':''}`} style={{'--power-level':`${level}%`} as CSSProperties} aria-disabled={!!blocked} aria-label={armed?'Power preparado':`Ativar Power, ${Math.floor(level)} de 100`} aria-pressed={armed} title="Acumule ao acertar e receber dano. Com 100, ative na sua vez para fortalecer o próximo tiro. A carga é gasta na ativação; passar ou deixar o tempo acabar perde o tiro fortalecido." onClick={event=>{if(event.detail>0)event.currentTarget.blur();if(blocked){setNotice(current=>({text:blocked,key:(current?.key??0)+1}));return;}onActivate();}}>
+ return <button type="button" className={`combat-power ${full?'power-full':''} ${ready?'power-ready':''} ${armed?'power-armed':''} ${draining?'power-draining':''}`} style={{'--power-level':`${level}%`} as CSSProperties} aria-disabled={!!blocked} aria-label={armed?'POW preparado':`Ativar POW, ${level}%`} aria-pressed={armed} title={`Enche ao atacar (+10%), passar a vez (+20%) e receber dano. Cheia, ative na sua vez (clique ou B) para o especial da arma no próximo tiro. A carga é gasta na ativação; passar ou deixar o tempo acabar perde o especial. (${POWER_MAX} pontos = 100%)`} onClick={event=>{if(event.detail>0)event.currentTarget.blur();if(blocked){setNotice(current=>({text:blocked,key:(current?.key??0)+1}));return;}onActivate();}}>
   <span className="combat-power-rays" aria-hidden="true"/>
   <span className="combat-power-flames" aria-hidden="true"/>
   <span className="combat-power-glass" aria-hidden="true">
@@ -75,7 +77,7 @@ export function PowerOrb({charge,armed,blocked,onActivate}:{charge:number;armed:
    <span className="combat-power-bubbles"><i/><i/><i/><i/></span>
   </span>
   <span className="combat-power-burst" aria-hidden="true"/>
-  <span className="combat-power-core"><strong>POW</strong>{!full&&!armed&&<small data-testid="power-charge">{Math.floor(level)}%</small>}</span>
+  <span className="combat-power-core"><strong>POW</strong>{!full&&!armed&&<small data-testid="power-charge">{level}%</small>}</span>
   {notice&&<span key={notice.key} className="combat-power-notice" role="status">{notice.text}</span>}
  </button>;
 }

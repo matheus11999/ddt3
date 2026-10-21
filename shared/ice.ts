@@ -10,7 +10,8 @@ import {fighterHitBounds} from './physics';
  * Ball3, no crater, no damage). Every enemy within ICE_RADIUS of where it lands is frozen (IceFronzeEffect(2)):
  * their next 2 turns are skipped, they take no damage while frozen, and the first attack only breaks the ice.
  */
-export const RAGE_CHARGE=50;
+/** Enfurecer (AttackUpSpell Property2): 100 of the 200 raiva points, half the bar. */
+export const RAGE_CHARGE=100;
 export const ICE_RADIUS=60;
 /** Own turns a frozen fighter loses before the ice thaws by itself. */
 export const ICE_SKIPPED_TURNS=2;

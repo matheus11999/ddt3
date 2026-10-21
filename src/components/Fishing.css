@@ -7,7 +7,8 @@
 .fishing-icon{display:block}
 
 /* top: below the FPS and latency readout (NetStats). */
-.fishing-exit{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font:900 15px Nunito,sans-serif}
+/* Centrado por `translate` (o hover do wood-button troca o `transform`, e o botão pulava para o lado e piscava). */
+.fishing-exit{position:absolute;top:24px;left:50%;translate:-50% 0;display:flex;align-items:center;gap:7px;height:40px;padding:0 20px;border-radius:12px;font:900 16px Nunito,sans-serif;letter-spacing:1px}
 
 /* Painel do pescador e bandeja de vara/isca: pintura do Codex (vidro azul com ouro, opção B,
    `scripts/build-fishing-ui.py`); nível, Pontos, EXP e nomes são escritos pelo jogo por cima. */
@@ -141,8 +142,6 @@ html.mobile-landscape .fishing-trade{top:210px;transform:scale(.85);transform-or
 .fishing-auto:hover{transform:scale(1.06)}
 .fishing-auto.on .fishing-switch>i.on{animation:fishing-auto-glow 1.4s ease-in-out infinite}
 @keyframes fishing-auto-glow{50%{filter:drop-shadow(0 0 7px #8fff9a) brightness(1.08)}}
-.fishing-auto-badge{position:absolute;left:236px;top:-6px;z-index:2;padding:2px 9px 3px;border:1.5px solid #c8ffd0;border-radius:10px;background:linear-gradient(#5fe37f,#1f9a4a);font:400 12px/1.1 'Lilita One',Nunito,sans-serif;letter-spacing:.6px;color:#fff;-webkit-text-stroke:.4px #0b4a22;text-shadow:0 1px #0b4a22;box-shadow:0 0 12px #8fff9aaa,0 2px 4px #0008;pointer-events:none;animation:fishing-badge 1.4s ease-in-out infinite}
-@keyframes fishing-badge{50%{transform:translateY(-2px);box-shadow:0 0 18px #8fff9a,0 2px 4px #0008}}
 .fishing-auto-note{position:absolute;left:150px;bottom:calc(100% + 66px);padding:5px 14px;border:1.5px solid #f0bf60;border-radius:12px;background:linear-gradient(#1d4f8f,#0d2a52);font:400 16px/1.1 'Lilita One',Nunito,sans-serif;font-style:normal;white-space:nowrap;color:#ffd77a;-webkit-text-stroke:.5px #0b1a33;text-shadow:0 1px #0b1a33;box-shadow:0 4px 10px #0008;pointer-events:none;animation:fishing-note 1.8s ease-out forwards}
 .fishing-auto-note.on{border-color:#a8ffb2;background:linear-gradient(#2fbf5a,#13702f);color:#fff}
 @keyframes fishing-note{0%{opacity:0;transform:translateY(8px) scale(.9)}12%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-6px)}}
@@ -222,7 +221,6 @@ html.mobile-landscape .fishing-history-button{top:270px}
 .fishing-orb>em{position:absolute;right:-6px;top:-2px;padding:0 5px;border:1.5px solid #f0bf60;border-radius:8px;background:#0d2a52;font:400 12px/16px 'Lilita One',Nunito,sans-serif;font-style:normal;color:#fff}
 .fishing-orb>span{position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);padding:0 7px 1px;border:1.5px solid #f0bf60;border-radius:9px;background:linear-gradient(#1d4f8f,#0d2a52);font:400 12px/1.2 'Lilita One',Nunito,sans-serif;color:#ffe2a0;white-space:nowrap}
 .fishing-auto{position:relative;width:86px;height:41px;margin-bottom:22px;padding:0;cursor:pointer}
-.fishing-auto-badge{left:auto;right:0;top:-34px}
 .fishing-gear-menu{left:0;width:300px}
 .fishing-gear-menu.prizes{width:340px}
 /* Troca de vara em cards de item. */

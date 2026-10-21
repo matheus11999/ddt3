@@ -16,3 +16,14 @@ export const frameLimit={
 };
 /** Fraction to move toward a target this frame, for an easing tuned as `k` per frame at 60 FPS, `dt` ms after the last. */
 export function ease(k:number,dt:number){return 1-(1-k)**(Math.max(0,Math.min(100,dt))/(1000/60));}
+
+const NATIVE_KEY='brasa.nativeResolution';
+let native=(()=>{try{return localStorage.getItem(NATIVE_KEY)==='1';}catch{return false;}})();
+/**
+ * Ajustes "Resolução nativa sempre": the scene never lowers its resolution on slow frames (21/10, matheus asked whether
+ * the game keeps each player's native resolution; the automatic drop blurs the characters on a slow machine).
+ */
+export const nativeResolution={
+ get(){return native;},
+ set(value:boolean){native=value;try{localStorage.setItem(NATIVE_KEY,value?'1':'0');}catch{}},
+};

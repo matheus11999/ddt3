@@ -2,7 +2,7 @@ import {boostsForShot,powBoostConflict} from '../shared/weaponKit';
 import {powerUpConflict} from '../shared/powerUps';
 import {ICE_FROZEN_TURNS,iceTargets,isFrozen,RAGE_CHARGE} from '../shared/ice';
 import {chargeHoldsTurn} from '../shared/forceBar';
-import {chargeFromDamage,POWER_MAX,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER} from '../shared/power';
+import {addPower,chargeOnDamage,POWER_ATTACK_CHARGE,POWER_MAX,POWER_PASS_CHARGE,POWER_CUT_IN_MS,POWER_DAMAGE_MULTIPLIER,POWER_BLAST_MULTIPLIER} from '../shared/power';
 import {CARD_PRIZES,REWARD_CARD_COUNT,REWARD_PICK_MS,REWARD_RESULT_MS,REWARD_RETURN_MS} from '../shared/rewards';
 import type {CardPrize,MatchBonuses} from '../shared/rewards';
 import {randomInt,randomUUID} from 'node:crypto';
@@ -23,7 +23,7 @@ import {getMap,canonicalMap,MAP_DEFAULT,pinMap,pvpRotation} from '../shared/maps
 import {destructionProfile,powCraterRadius} from '../shared/destruction';
 import {keepVisibleMarks} from '../shared/terrainMarks';
 import {nextByDelay,startDelayTurn,timeDelay,TURN_SECONDS} from '../shared/turnDelay';
-import {clampHp,PASS_DELAY} from '../shared/stats';
+import {clampHp,criticalBonusMultiplier,PASS_DELAY} from '../shared/stats';
 import {criticalFromRoll,damageAtImpact,impactExposure,shotModifiers,SPLASH_RADIUS_SCALE,TURN_GAP_MS,VOLLEY_CADENCE_MS} from '../shared/combat';
 import {initialSlots,modeForSlots,MAX_PARTY_SIZE} from '../shared/rooms';
 import {ABILITIES,HEAL_AMOUNT,HIDDEN_POSITION,homingTargets,initialAbilities,INVISIBILITY_TURNS,normalizeAbilityLoadout} from '../shared/abilities';
@@ -56,7 +56,7 @@ import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,p
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
 export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;/** Praça Celeste or the Pescaria (undefined = the plaza). */zone?:Zone;/** Casting at a spot of the Pescaria. */fishing?:FishingSession;/** Automatic fishing stays on between casts (AFK). */fishAuto?:boolean;/** Manual bars in a row that ran out without a single press: the line stops recasting at FISHING_IGNORED_STOP. */fishIgnored?:number;/** The running automatic session's tally (AutoFishingSummary), sent when automatic mode is switched off. */fishAutoRun?:AutoFishingSummary;/** Moved or changed fishing pose since the last `lobby-moves`. */lobbyDirty?:boolean;}
-interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;/** Gelo's ice ball: freezes, never digs or hurts. */ice?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
+interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;/** Gelo's ice ball: freezes, never digs or hurts. */ice?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};/** Raiva base of each hit, by target: the hit without its critical part (DDTank damageAmount, never the shown total). */rage?:Record<string,number>;}
 /** Index of the pet's after-shot attack in the impact events (never a real projectile). */
 const PET_STRIKE_INDEX=1000;
 /** How long the pet's area attack plays before the turn may move on. */
@@ -85,7 +85,7 @@ export interface HallService {
  legends(board:LegendBoard,key?:string):Promise<HallLegends>;
 }
 const HALL_MIN_MS=150;
-interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;/** When the turn's player started holding the force bar (shared/forceBar.ts `chargeHoldsTurn`). */chargingSince?:number;}
+interface Match {key:string;roomIds:string[];practiceParty?:boolean;invisibilityActivated?:Map<string,number>;pendingPower?:{playerId:string;angle:number;power:number;at:number};state:Battle;terrain:Uint8Array;resolveAt:number;botAt:number;createdAt:number;rewardDeck?:CardPrize[];savingRewards?:boolean;retryRewardsAt?:number;activeShot?:Shot;pendingImpacts?:PendingImpact[];instance?:ExpeditionRun;worldBoss?:WorldBossRun;/** Practice (bots or a practice room): pets earn nothing unless PET_CONFIG.battles.practice. */practice?:boolean;/** Turn whose pet end-of-turn effects already ran. */petTurnEnded?:number;/** GvG battle: the guild of team 0 and of team 1; the winners add Riqueza to theirs. */gvg?:[number,number];/** When the last blow landed: the official end the Hall da Fama files the battle under. */finishedAt?:number;/** When the turn's player started holding the force bar (shared/forceBar.ts `chargeHoldsTurn`). */chargingSince?:number;/** Who fired this turn: earns POWER_ATTACK_CHARGE once, after the last projectile of the shot lands (shotRage). */shotRage?:string;}
 
 /** A loading screen in progress: `begin` creates the battle from the rooms as they are when everyone is ready. */
 interface PendingLoad {view:MatchLoading;roomIds:string[];waiting:Set<string>;begin:()=>void;}
@@ -260,7 +260,8 @@ export class Game {
  // ── Pets in battle (shared/petSkills.ts does the rules; here they meet the match) ──
  private petContext(m:Match):PetEngineContext{
   return {fighters:m.state.players,mode:m.instance?'pve':'pvp',roll:this.petRoll,attackOf:f=>attributes(this.combatEquipment(f as Fighter),f.level).attack,
-   onDamage:(target,amount,source)=>{const t=target as Fighter,s=source as Fighter;if(t.hp<=0)t.powerArmed=false;if(amount>0){if(t.team!==s.team&&s.hp>0)s.powerCharge=chargeFromDamage(s.powerCharge??0,amount,t.maxHp);t.powerCharge=chargeFromDamage(t.powerCharge??0,amount,t.maxHp,true);}}};
+   // Only the fighter who takes the damage gains raiva (DDTank Player.TakeDamage); dealing it earns nothing.
+   onDamage:(target,amount)=>{const t=target as Fighter;if(t.hp<=0)t.powerArmed=false;else chargeOnDamage(t,amount);}};
  }
  /** The fighter's equipment with this battle's pet attribute changes, for one calculation. */
  private combatEquipment(f:Fighter){const buffs=petStatBuffs(f);return buffs?{...f.equipment,battleBuffs:buffs}:f.equipment;}
@@ -741,7 +742,7 @@ export class Game {
     case 'start':if(this.room(p).kind==='expedition')this.startExpedition(p);else this.start(p);break;
     case 'practice-start':this.practiceStart(p);break;
     case 'ability':{const {m,f}=this.turn(p);this.assertPetFree(f,'ability');this.useAbility(m,f,c.ability);this.broadcastBattle(m);break;}
-    case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.charging=false;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
+    case 'flight':{const {m,f}=this.turn(p);if(c.active)this.assertPetFree(f,'flight');if(c.active&&(f.boosts.length||f.powerArmed||f.homingArmed))throw Error('Voo não combina com ferramentas, Power ou mira assistida.');f.flightArmed=c.active;f.aimAngle=clampAimAngle(aimSource(f),f.aimSlope??0,f.aimAngle??45);this.broadcastBattle(m);break;}
     case 'power':{const {m,f}=this.turn(p);this.assertPetFree(f,'power');this.armPower(f);this.broadcastBattle(m);break;}
     case 'boost':{const {m,f}=this.turn(p);this.assertPetFree(f,'boost');this.boost(f,c.boost);this.broadcastBattle(m);break;}
     case 'aim':{
@@ -764,7 +765,7 @@ export class Game {
      f.facing=c.direction;adjustAimToTerrain(f,m.terrain);this.broadcastBattle(m);break;
     }
     case 'fire':{const {m,f}=this.turn(p,true);this.assertPetFree(f,'fire');adjustAimToTerrain(f,m.terrain);this.fire(m,f,clampAimAngle(aimSource(f),f.aimSlope??0,c.angle),c.power);break;}
-    case 'pass':{const {m,f}=this.turn(p,true);f.delay=(f.delay??0)+PASS_DELAY;this.nextTurn(m);break;}
+    case 'pass':{const {m,f}=this.turn(p,true);f.delay=(f.delay??0)+PASS_DELAY;addPower(f,POWER_PASS_CHARGE);this.nextTurn(m);break;}
     case 'reward-pick':{
      const r=this.room(p),m=this.matchForRoom(r.id),rewards=m?.state.rewards;
      if(!m||m.state.phase!=='finished'||!rewards||rewards.phase!=='picking'||Date.now()>=rewards.deadline)throw Error('A escolha de cartas terminou.');
@@ -1120,7 +1121,7 @@ export class Game {
    const monster=s.players.find(f=>f.id===bite.id),target=s.players.find(f=>f.id===bite.targetId);if(!monster||monster.hp<=0||!target||target.hp<=0||!monster.monster)return;
    const guarded=incomingPetDamage(target,monsterDamage(MONSTERS[monster.monster].attack,this.combatEquipment(target),1,monster.level)),damage=Math.min(target.hp,guarded.damage),alive=target.hp>0;target.hp-=damage;if(target.hp<=0)target.powerArmed=false;
    this.petHits(m,monster,`bite:${turnId}`,[{id:target.id,damage,x:target.x,y:target.y,projectileIndex:index,critical:false,kind:'direct',quality:1,dealt:damage,died:alive&&target.hp<=0,...(guarded.absorbed?{shield:guarded.absorbed}:{})}]);
-   target.powerCharge=chargeFromDamage(target.powerCharge??0,damage,target.maxHp,true);
+   chargeOnDamage(target,damage);
    const hit:ShotHit={id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
    for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`bite:${turnId}`,projectileIndex:index,at:bite.at,hits:this.visibleHits(m,[hit],peer.profile.id)});
    this.broadcastBattle(m);
@@ -1174,12 +1175,12 @@ export class Game {
   if(id==='rage'&&(f.powerArmed||(f.powerCharge??0)>=POWER_MAX))throw Error('Sua barra de POW já está cheia.');
   if(f.stamina<b.cost)throw Error('Vigor insuficiente.');f.stamina-=b.cost;f.delay=(f.delay??0)+b.delay;f.boosts.push(id);
   // Enfurecer fills the bar at once (shared/ice.ts); using the POW is still its own click.
-  if(id==='rage')f.powerCharge=Math.min(POWER_MAX,(f.powerCharge??0)+RAGE_CHARGE);
+  if(id==='rage')addPower(f,RAGE_CHARGE);
  }
  private armPower(f:Fighter){
   if(f.flightArmed)throw Error('Cancele o voo antes de usar Power.');
   if(f.powerArmed)throw Error('Power já está preparado para este tiro.');
-  if((f.powerCharge??0)<POWER_MAX)throw Error('Acumule 100 de Power para ativar.');
+  if((f.powerCharge??0)<POWER_MAX)throw Error('Encha a barra de POW para ativar.');
   if(f.boosts.includes('ice'))throw Error('O POW não combina com o gelo.');
   const conflict=f.boosts.map(id=>powBoostConflict(f.equipment.weapon,id)).find(Boolean);if(conflict)throw Error(conflict);
   f.powerCharge=0;f.powerArmed=true;
@@ -1201,6 +1202,8 @@ export class Game {
  private fire(m:Match,f:Fighter,angle:number,power:number){
   // Delay for the seconds used this turn and for the shot itself (DDTank PrepareShoot + ball/weapon Delay).
   f.delay=(f.delay??0)+timeDelay(Date.now()-(m.state.deadline-TURN_SECONDS*1000))+(WEAPONS.find(weapon=>weapon.id===f.equipment.weapon)?.shotDelay??0);
+  // Every launch sequence earns the attack raiva once (Player.Shoot), whatever it is: normal, POW, flight or ice.
+  m.shotRage=f.id;
   if(f.flightArmed){this.fireFlight(m,f,angle,power);return;}
   if(f.boosts.includes('ice')){this.fireIce(m,f,angle,power);return;}
   if(f.powerArmed){
@@ -1253,7 +1256,7 @@ export class Game {
    // The destruction profile is fixed here, from the weapon and level of this shot: its mask and painting never follow later equipment changes.
    const profile=fragment?undefined:destructionProfile(w.id,f.equipment.upgrade,powered);
    const rough=weaponRoughness(w),shape=fragment?undefined:profile?.mask??(powered&&w.powCraterShape?w.powCraterShape:w.craterShape),impact={x:result.x,y:result.y,radius,roughness:rough,...(shape?{shape}:{}),...(profile?{profile:profile.id}:{}),...terrainMaterial(m.state.map,result.x,result.y),...(dig?{dig}:{})},hole=dig??impact;
-   const hits:ShotHit[]=[];
+   const hits:ShotHit[]=[],rage:Record<string,number>={};
    for(const target of simulated.state.players){
     if(target.hp<=0)continue;const exposure=impactExposure(target,result,blast);if(exposure.attenuation<=0)continue;
     const critical=special?.critical||criticalFromRoll(attributes(offense,f.level).luck,this.criticalRoll());let damage=damageAtImpact(offense,this.combatEquipment(target),{attackerLevel:f.level,attenuation:exposure.attenuation,shotMultiplier:modifiers.projectileMultiplier*damageScale,boostMultiplier:modifiers.damageMultiplier*powDamage*petShot,critical});
@@ -1261,12 +1264,13 @@ export class Game {
     // Pet damage reduction and shields (the simulated copy spends the shield for the later projectiles; applyImpact repeats it on the real one).
     const guarded=incomingPetDamage(target,damage);damage=guarded.damage;
     if(damage<=0&&!guarded.absorbed)continue;
+    if(damage>0)rage[target.id]=critical?Math.floor(damage/(1+criticalBonusMultiplier(attributes(offense,f.level).luck))):damage;
     hits.push({id:target.id,damage,x:target.x,y:target.y-85,projectileIndex:index,critical,kind:exposure.kind,quality:exposure.quality,...(guarded.absorbed?{shield:guarded.absorbed}:{})});
    }
    // A fighter killed here is gone for the projectiles still in the air: they fly through it to the ground or the next target.
    for(const hit of hits){const target=simulated.state.players.find(player=>player.id===hit.id)!;target.hp=Math.max(0,target.hp-hit.damage);}
    crater(simulated.terrain,hole.x,hole.y,hole.radius,m.state.map,rough,1,shape);this.settle(simulated);
-   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(shape?{shape}:{}),...(profile?{profile:profile.id}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
+   pending.push({at:startedAt+delay+result.flightTime,projectileIndex:index,hits,rage,fragment,mark:{id:`${shot.id}:${index}`,x:hole.x,y:hole.y,radius:hole.radius,roughness:rough,...(shape?{shape}:{}),...(profile?{profile:profile.id}:{}),...(impact.destructible===false?{scorch:true}:{}),effect:w.effect,level:f.equipment.upgrade}});
    return impact;
   };
   const results=volley(simulated.terrain,shooter,angles,power,m.state.wind,w,simulated.state.players.filter(player=>player.id!==f.id),(result,index)=>{
@@ -1322,10 +1326,10 @@ export class Game {
    if(isFrozen(target)&&(planned.damage>0||planned.shield)){target.frozenTurns=0;continue;}
    if(planned.shield)drainShield(target,planned.shield);if(planned.damage<=0&&!planned.shield)continue;
    // The dragon's life is the event's: the damage waits for the end of the turn to reach Postgres (shown at once here).
-   if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);if(shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,planned.damage,2400);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
+   if(target.boss){const run=m.worldBoss,wb=m.state.worldBoss;if(run&&wb&&!wb.over){run.pending+=planned.damage;wb.attemptDamage+=planned.damage;target.hp=Math.max(0,target.hp-planned.damage);}hits.push({...planned,x:target.x-60,y:target.y-target.hitHeight!-40});continue;}
    const alive=target.hp>0,absorbed=Math.min(target.hp,planned.damage);target.hp-=absorbed;if(target.hp<=0)target.powerArmed=false;
-   // Any damage taken charges the target's Power (own shot, ally or enemy, matheus 20/10); only enemy damage charges the shooter.
-   if(absorbed>0){if(target.team!==shooter.team&&shooter.hp>0)shooter.powerCharge=chargeFromDamage(shooter.powerCharge??0,absorbed,target.maxHp);target.powerCharge=chargeFromDamage(target.powerCharge??0,absorbed,target.maxHp,true);}
+   // Damage taken charges a survivor's raiva, whoever shot (own, ally or enemy); the shooter gains nothing for hitting.
+   if(absorbed>0)chargeOnDamage(target,impact.rage?.[target.id]??absorbed);
    hits.push({...planned,x:target.x,y:target.y-85});landed.push({...planned,dealt:absorbed,died:alive&&target.hp<=0});
   }
   this.petHits(m,shooter,shot.id,landed);
@@ -1363,7 +1367,17 @@ export class Game {
   if(at!==undefined){this.animateFall(target,fromY,at);if(target.fall)m.resolveAt=Math.max(m.resolveAt,target.fall.startedAt+target.fall.duration+TURN_GAP_MS);}
   adjustAimToTerrain(target,m.terrain);
  }}
+ /** The attack raiva of this turn's launches (Player.Shoot AddDander(20)): once, only for a shooter still alive. */
+ private shotRage(m:Match){
+  const id=m.shotRage;if(!id)return;delete m.shotRage;
+  const f=m.state.players.find(player=>player.id===id);if(f&&!f.monster&&!f.boss)addPower(f,POWER_ATTACK_CHARGE);
+ }
+ /** The turn timer ran out: the DDTank client sends the same skip as the pass button, so a connected player earns its raiva. */
+ private timeoutRage(m:Match){
+  const f=m.state.players.find(player=>player.id===m.state.turnId);if(f&&!f.monster&&!f.boss&&!f.left&&f.connected!==false)addPower(f,POWER_PASS_CHARGE);
+ }
  private nextTurn(m:Match){
+  this.shotRage(m);
   this.petTurnEnd(m);
   if(this.checkWin(m))return;
   if(m.instance){this.nextInstanceTurn(m);return;}
@@ -1506,10 +1520,10 @@ export class Game {
    if(m.state.worldBoss?.closesAt!==undefined&&now>=m.state.worldBoss.closesAt){this.closeWorldBoss(m);continue;}
    while(m.state.phase==='resolving'&&m.instance?.events.length&&m.instance.events[0].at<=now)m.instance.events.shift()!.run();
    while(m.state.phase==='resolving'&&m.worldBoss?.events.length&&m.worldBoss.events[0].at<=now)m.worldBoss.events.shift()!.run();
-   while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);}
+   while(m.state.phase==='resolving'&&m.pendingImpacts?.length&&m.pendingImpacts[0].at<=now){const impact=m.pendingImpacts.shift()!;this.applyImpact(m,impact);if(!m.pendingImpacts.some(next=>!next.petStrike))this.shotRage(m);}
    if(m.state.phase==='resolving'&&now>=m.resolveAt)this.nextTurn(m);
    else if(m.state.phase==='aiming'){
-    if(now>=m.state.deadline&&!this.chargeHeld(m,now))this.nextTurn(m);
+    if(now>=m.state.deadline&&!this.chargeHeld(m,now)){this.timeoutRage(m);this.nextTurn(m);}
     else{const f=m.state.players.find(p=>p.id===m.state.turnId);if(f?.bot&&now>=m.botAt){m.botAt=Infinity;this.bot(m,f);}}
    }
   }
@@ -1565,7 +1579,7 @@ export class Game {
   const act:DragonAct={id:randomUUID(),action,startedAt:now,targetId:hero.id,targetX,targetY:ground(m.terrain,targetX,0),hits:hidden&&action!=='firesweep'||!hero.hp?[]:[{at,targetId:hero.id,damage,x:hero.x,y:hero.y-85}]};
   for(const [index,hit] of act.hits.entries())run.events.push({at:hit.at,run:()=>{
    if(hero.hp<=0||hero.left||wb.over)return;const dealt=Math.min(hero.hp,hit.damage);hero.hp-=dealt;if(hero.hp<=0)hero.powerArmed=false;
-   hero.powerCharge=chargeFromDamage(hero.powerCharge??0,dealt,hero.maxHp,true);
+   chargeOnDamage(hero,dealt);
    const shown:ShotHit={id:hero.id,damage:dealt,x:hero.x,y:hero.y-85,projectileIndex:index,critical:false,kind:'direct',quality:1};
    for(const peer of this.matchPeers(m))this.emit(peer,{type:'impact',shotId:`dragon:${act.id}`,projectileIndex:index,at:hit.at,hits:[shown]});
    if(!this.checkWin(m))this.broadcastBattle(m);

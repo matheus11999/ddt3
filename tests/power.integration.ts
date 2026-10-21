@@ -17,7 +17,7 @@ try{
   const terrain=unpackTerrain(Buffer.from(battle.terrain!,'base64')),weapon=weaponStats(WEAPONS.find(w=>w.id===fighter.equipment.weapon)!,fighter.equipment.upgrade);
   let best={score:Infinity,angle:45,power:60};const limits=weaponAimLimits(weapon,fighter.aimSlope??0);
   for(let angle=limits.minAngle;angle<=limits.maxAngle;angle+=2)for(let power=10;power<=100;power+=2){const r=trajectory(terrain,fighter,angle,power,battle.wind,weapon,[target]),score=Math.hypot(r.x-target.x,r.y-(target.y-25));if(score<best.score)best={score,angle,power};}
-  const powered=(fighter.powerCharge??0)>=100;
+  const powered=(fighter.powerCharge??0)>=200;
   if(powered){const armed=(await actor.request({type:'power'},'battle',e=>e.battle?.players.some(p=>p.id===fighter.id&&p.powerArmed)===true)).battle!;assert.equal(armed.players.find(p=>p.id===fighter.id)!.powerCharge,0);}
   const mark=actor.send({type:'fire',angle:best.angle,power:best.power});
   if(powered){const cut=(await actor.wait('battle',e=>!!e.battle?.powerCutIn,mark)).battle!;assert.equal(actor.events.filter(e=>e.sequence>mark&&e.event.type==='shot').length,0);assert.deepEqual(cut.players.map(p=>p.hp),battle.players.map(p=>p.hp));}
