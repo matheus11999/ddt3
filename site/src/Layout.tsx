@@ -30,6 +30,10 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
 
 export function Footer(){
  return <footer className="footer">
+  <div className="footer-beta">
+   <img src="/art/beta-reward.webp" alt="" aria-hidden="true" loading="lazy"/>
+   <div><b>Recompensa da beta</b><span>Jogue durante a beta e ganhe cosméticos exclusivos que nunca mais voltam. Eles chegam no Correio do jogo quando a beta terminar.</span></div>
+  </div>
   <div className="footer-inner">
    <img src="/art/logo.webp" alt="" width="120" height="71" loading="lazy"/>
    <p>Bomb Masters está em <b>beta</b>. Viu algo pra melhorar? Conta no <Link to="/forum?categoria=sugestoes">fórum de sugestões</Link>.</p>
