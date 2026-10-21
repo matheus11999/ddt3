@@ -79,7 +79,9 @@ export function Chat({overlay=false}:{overlay?:boolean}={}){const {chat,room,cha
  useEffect(()=>{const focus=()=>{setChannel('private');requestAnimationFrame(()=>input.current?.focus());};window.addEventListener('brasa-chat-focus',focus);return()=>window.removeEventListener('brasa-chat-focus',focus);},[]);
  const [writing,setWriting]=useState(false);
  useEffect(()=>{if(!overlay)return;const down=(e:KeyboardEvent)=>{if(e.key!=='Enter'||e.repeat||typingIn(e.target)||!input.current?.offsetParent)return;e.preventDefault();input.current.focus();};window.addEventListener('keydown',down);return()=>window.removeEventListener('keydown',down);},[overlay]);
- const close=()=>{if(overlay)input.current?.blur();};
+ // A tap outside closes it too (the line can lose focus without a blur, e.g. Privado with no player turns it off).
+ useEffect(()=>{if(!overlay||!writing)return;const down=(e:PointerEvent)=>{if(!input.current?.closest('.chat-shell')?.contains(e.target as Node))setWriting(false);};window.addEventListener('pointerdown',down);return()=>window.removeEventListener('pointerdown',down);},[overlay,writing]);
+ const close=()=>{if(overlay){input.current?.blur();setWriting(false);}};
  const privateTo=channel==='private'?chatTarget:null,me=profile?.id;
  const unread=(tab:ChatTab)=>{const m=last(tab);return tab!==channel&&tab!=='private'&&!!m&&m.id!==seen[tab]&&m.playerId!==me;};
  const enabled=(tab:ChatTab)=>tab==='room'?!!room:tab==='guild'?inGuild:true;
