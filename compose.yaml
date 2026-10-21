@@ -7,6 +7,7 @@ services:
     ports: ["127.0.0.1:8097:8080"]
     depends_on:
       server: {condition: service_healthy}
+      site: {condition: service_healthy}
     restart: unless-stopped
     security_opt: ["no-new-privileges:true"]
     cap_drop: ["ALL"]
@@ -24,7 +25,7 @@ services:
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       # Bomb Masters server this game runs (one character per account per server, docs/site.md).
       SERVER_ID: ${SERVER_ID:-s1}
-      GAME_URL: ${GAME_URL:-http://localhost:8097}
+      GAME_URL: ${GAME_URL:-/game}
       MAX_CONNECTIONS: 1000
       BEHIND_PROXY: 'true'
       # Admin panel (/admin): set both in .env; the hash comes from `npm run admin:password`.
@@ -52,8 +53,8 @@ services:
     environment:
       PORT: 4120
       DATABASE_URL: postgres://brasa:${POSTGRES_PASSWORD:-brasa_local}@postgres:5432/brasa
-      GAME_URL: ${GAME_URL:-http://localhost:8097}
-      ALLOWED_ORIGINS: ${SITE_ORIGINS:-http://localhost:8098,http://127.0.0.1:8098}
+      GAME_URL: ${GAME_URL:-/game}
+      ALLOWED_ORIGINS: ${SITE_ORIGINS:-http://localhost:8097,http://127.0.0.1:8097,http://localhost:8098,http://127.0.0.1:8098}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       COOKIE_DOMAIN: ${COOKIE_DOMAIN:-}
       # 'true' only when a reverse proxy sits in front of the site (real visitor address for the login limit).

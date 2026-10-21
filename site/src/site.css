@@ -1,5 +1,5 @@
-@font-face{font-family:'Lilita One';src:url('/fonts/lilita-one-400.woff2') format('woff2');font-weight:400;font-display:swap}
-@font-face{font-family:'Nunito';src:url('/fonts/nunito-400-900.woff2') format('woff2');font-weight:400 900;font-display:swap}
+@font-face{font-family:'Lilita One';src:url('/site-fonts/lilita-one-400.woff2') format('woff2');font-weight:400;font-display:swap}
+@font-face{font-family:'Nunito';src:url('/site-fonts/nunito-400-900.woff2') format('woff2');font-weight:400 900;font-display:swap}
 
 :root{
  --bg:#120a1f;--bg-2:#1a1030;--panel:#211538;--panel-2:#2b1c47;--line:rgba(255,201,90,.22);--line-strong:rgba(255,201,90,.55);

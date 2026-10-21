@@ -140,7 +140,7 @@ app.get('/*',async(req,reply)=>{
  if(file!==DIST&&!file.startsWith(DIST+sep))return reply.code(404).send();
  const info=await stat(file).catch(()=>null);
  if(!info?.isFile()){if(extname(path))return reply.code(404).send();file=join(DIST,'index.html');}
- reply.header('Cache-Control',file.includes(`${join(DIST,'assets')}`)?'public, max-age=31536000, immutable':file.endsWith('.html')?'no-cache':'public, max-age=3600');
+ reply.header('Cache-Control',file.includes(`${join(DIST,'s')}${sep}`)?'public, max-age=31536000, immutable':file.endsWith('.html')?'no-cache':'public, max-age=3600');
  return reply.type(TYPES[extname(file)]??'application/octet-stream').send(createReadStream(file));
 });
 

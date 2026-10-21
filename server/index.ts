@@ -34,6 +34,11 @@ const gameCookie=()=>({path:'/',httpOnly:true,sameSite:'strict' as const,secure:
 /** This game server's id among the Bomb Masters servers (docs/site.md); one character per account here. */
 const SERVER_ID=process.env.SERVER_ID??FIRST_SERVER;
 /**
+ * The game only opens for a Bomb Masters account signed in on the site (pedido do matheus, 21/10): no guests and no
+ * account creation inside the game. ALLOW_GUESTS=true brings guests back for local tests and load scripts only.
+ */
+const ALLOW_GUESTS=process.env.ALLOW_GUESTS==='true';
+/**
  * The game session for this browser. A Bomb Masters account signed in on the site (docs/site.md) decides the player:
  * its character on this server, or the creation screen when it has none; another account's player is never used.
  */
@@ -55,10 +60,15 @@ app.get('/api/character-name',{config:{rateLimit:{max:60,timeWindow:'1 minute'}}
  const invalid=characterNameError(name);if(invalid)return {ok:false,error:invalid};
  return await store.nameTaken(name)?{ok:false,error:'Esse nome já está em uso neste servidor.'}:{ok:true};
 });
-app.get('/api/session',async(req,reply)=>{const {profile}=await accountSession(req,reply);reply.header('Cache-Control','no-store');return {profile};});
+app.get('/api/session',async(req,reply)=>{
+ const {profile,account}=await accountSession(req,reply);reply.header('Cache-Control','no-store');
+ if(!account&&!ALLOW_GUESTS)return {profile:null,signIn:true};
+ return {profile};
+});
 app.post('/api/session', {config:{rateLimit:{max:120,timeWindow:'1 minute'}}},async(req,reply)=>{
  const parsed=sessionRequestSchema.safeParse(req.body??{});if(!parsed.success)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
  let {profile,account}=await accountSession(req,reply);
+ if(!account&&!ALLOW_GUESTS)return reply.code(401).send({error:'Entre na sua conta no site para jogar.',signIn:true});
  if(profile&&parsed.data.gender&&parsed.data.gender!==profile.gender)return reply.code(409).send({error:'O gênero do personagem é definido na criação e não pode ser alterado.'});
  if(!profile){
   if(!parsed.data.gender)return reply.code(400).send({error:'Escolha um personagem masculino ou feminino.'});
@@ -99,6 +109,8 @@ app.server.on('upgrade',async(req,socket,head)=>{
   if(req.url!=='/ws'||!origin||!origins.has(origin)||++limit.count>120||connections.size>=Number(process.env.MAX_CONNECTIONS??1000)){socket.write('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n');socket.destroy();return;}
   const token=app.parseCookie(req.headers.cookie??'').brasa_session;const profile=await store.session(token);
   if(!profile){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');socket.destroy();return;}
+  // Without guests, the socket also needs the site account that owns this character here.
+  if(!ALLOW_GUESTS){const account=await accounts.account(app.parseCookie(req.headers.cookie??'')[ACCOUNT_COOKIE]);if(!account||await accounts.characterOn(account,SERVER_ID)!==profile.id){socket.write('HTTP/1.1 401 Unauthorized\r\nConnection: close\r\n\r\n');socket.destroy();return;}}
   wss.handleUpgrade(req,socket,head,ws=>{
    const previous=connections.get(profile.id);connections.set(profile.id,ws);previous?.close(4001,'Conectado em outra aba');
    const send=(event:unknown)=>{if(ws.readyState===WebSocket.OPEN){if(ws.bufferedAmount>512*1024){ws.close(4002,'Conexão lenta');return;}ws.send(JSON.stringify(event));}};

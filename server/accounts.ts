@@ -45,7 +45,9 @@ export class AccountStore {
  CREATE TABLE IF NOT EXISTS account_characters(account_id uuid NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,server_id varchar(16) NOT NULL REFERENCES game_servers(id),player_id uuid NOT NULL UNIQUE REFERENCES players(id) ON DELETE CASCADE,created_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(account_id,server_id));
  `);
   // The first server exists from the start; characters linked before servers existed belong to it.
-  await this.pool.query("INSERT INTO game_servers(id,name,url,sort) VALUES($1,$2,$3,0) ON CONFLICT (id) DO NOTHING",[FIRST_SERVER,process.env.FIRST_SERVER_NAME??'Servidor 1',process.env.GAME_URL??'http://localhost:8097']);
+  await this.pool.query("INSERT INTO game_servers(id,name,url,sort) VALUES($1,$2,$3,0) ON CONFLICT (id) DO NOTHING",[FIRST_SERVER,process.env.FIRST_SERVER_NAME??'Servidor 1',process.env.GAME_URL??'/game']);
+  // The first server's address follows GAME_URL (the game moved under the site at /game, 21/10).
+  if(process.env.GAME_URL&&(process.env.SERVER_ID??FIRST_SERVER)===FIRST_SERVER)await this.pool.query('UPDATE game_servers SET url=$2 WHERE id=$1 AND url<>$2',[FIRST_SERVER,process.env.GAME_URL]);
   await this.pool.query("INSERT INTO account_characters(account_id,server_id,player_id) SELECT id,$1,player_id FROM accounts WHERE player_id IS NOT NULL ON CONFLICT DO NOTHING",[FIRST_SERVER]);
  }
  async register(username:string,email:string,password:string){
@@ -106,7 +108,7 @@ export class AccountStore {
  /** Links a player that no account owns yet as the account's character on this server (it keeps the name chosen at creation). */
  async linkPlayer(account:Account,playerId:string,serverId:string){
   if(await this.owned(playerId))return false;
-  await this.pool.query('INSERT INTO game_servers(id,name,url,sort) VALUES($1,$1,$2,99) ON CONFLICT (id) DO NOTHING',[serverId,process.env.GAME_URL??'http://localhost:8097']);
+  await this.pool.query('INSERT INTO game_servers(id,name,url,sort) VALUES($1,$1,$2,99) ON CONFLICT (id) DO NOTHING',[serverId,process.env.GAME_URL??'/game']);
   const r=await this.pool.query('INSERT INTO account_characters(account_id,server_id,player_id) VALUES($1,$2,$3) ON CONFLICT DO NOTHING',[account.id,serverId,playerId]);
   if(!r.rowCount)return false;
   return true;
