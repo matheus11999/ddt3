@@ -101,6 +101,10 @@ function kitSteps(sex){
  return out;
 }
 const STEPS={...kitSteps('m'),...kitSteps('f')};
+// matheus (21/10): the girl's back walk had the feet facing the viewer. Repaint the back cells with the feet from behind.
+for(const [n,cells] of [[2,'cells 2 to 6 (all except the top-left one)'],[3,'both cells']])STEPS[`virtual-outfit-${n}-f-back`]=step(`virtual-f-${n}`,[`${plates}/ref-virtual-f-${n}.png`,`${sheets}/show-kit-f.png`],[
+ 'IMAGE 1 is a plaza sheet of the game: gray mannequin bodies with flat GREEN heads, on magenta. IMAGE 3 is the approved girl of this kit (source of truth for the clothes).',
+ `In EVERY cell paint ONLY the body over the GRAY mannequin, filling it exactly: the basic starter clothes of IMAGE 3 (${KITS.f.clothes}), bare legs in light skin, relaxed hands. In ${cells} the girl WALKS AWAY from the viewer, seen from the BACK: we see the back of the blouse and skirt, the BACKS of the legs and the HEELS of the shoes; the toes point away from the viewer (into the picture), never toward us. Upright walking, never sitting. Ignore IMAGE 2's clothes: only its pose. Leave the green heads exactly as they are.`]);
 
 function codexBin(){
  if(process.env.CODEX_BIN)return process.env.CODEX_BIN;
