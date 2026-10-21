@@ -6,7 +6,7 @@ import {chromium} from '@playwright/test';
 import {createServer} from 'vite';
 import {mkdir} from 'node:fs/promises';
 
-const out=process.env.OUT??'test-results/pow-aura',DEFAULT_STYLES='aura,mantle,orbs,wings,whirl,sparks,lightning,crown,phoenix,dragon,spirit,petals,crystals,stars';await mkdir(out,{recursive:true});
+const out=process.env.OUT??'test-results/pow-aura',DEFAULT_STYLES='gold,soft,ember,aura,mantle,orbs,wings,whirl,sparks,lightning,crown,phoenix,dragon,spirit,petals,crystals,stars';await mkdir(out,{recursive:true});
 const server=await createServer({logLevel:'error',server:{port:5291,strictPort:false,host:'127.0.0.1'}});await server.listen();
 const base=server.resolvedUrls.local[0].replace(/\/$/,'');
 const browser=await chromium.launch({headless:true,...(process.env.CHROME_PATH?{executablePath:process.env.CHROME_PATH}:process.platform==='win32'?{channel:'msedge'}:{})});
@@ -27,9 +27,9 @@ await page.evaluate(async()=>{
    c.fillStyle='#fff';c.font='bold 18px sans-serif';c.fillText(style,14,top+28);
    for(let k=0;k<6;k++){
     const x=110+k*196,t=k*170,facing=k%2?-1:1;
-    aura.drawPowReadyAura(c,x,y,t,-1e4,'back',style);
+    aura.drawPowReadyAura(c,x,y,t,-1e4,'back',style,facing);
     drawAvatar(c,DEFAULT_EQUIPMENT,x,y,112,t,false,facing,true,createAvatarMotion(facing),{combat:true,pose:'prone'});
-    aura.drawPowReadyAura(c,x,y,t,-1e4,'front',style);
+    aura.drawPowReadyAura(c,x,y,t,-1e4,'front',style,facing);
    }
   }});
  };

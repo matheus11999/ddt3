@@ -4,6 +4,7 @@ import {freeImage} from './spriteCache';
  * POW ready (bar full, not yet used), as in DDTank (matheus, 21/10/2026). Paintings by Codex on black, cut by
  * scripts/build-pow-aura.py into strips of FRAMES looping frames with real alpha; the game only plays the strips and
  * moves them. Three looks, POW_READY_STYLE picks the one in the game:
+ *  - gold, soft, ember: auras painted hugging the lying fighter's own silhouette (golden energy, warm holy glow, embers);
  *  - aura: a thin oval of soft golden light strands around the fighter;
  *  - mantle: golden spirit wisps rising from behind the body;
  *  - orbs: two small light spirits with comet tails circling the fighter, passing behind and in front of it;
@@ -13,8 +14,11 @@ import {freeImage} from './spriteCache';
  *  - crown, stars: a small halo of light rays or three stars orbiting over the head.
  * Nothing ever shows under the fighter (matheus): every look is cut at the feet.
  */
-export type PowReadyStyle='aura'|'orbs'|keyof typeof RISING|keyof typeof OVERHEAD;
-export const POW_READY_STYLE:PowReadyStyle='mantle';
+export type PowReadyStyle=keyof typeof BODY|'aura'|'orbs'|keyof typeof RISING|keyof typeof OVERHEAD;
+export const POW_READY_STYLE:PowReadyStyle='gold';
+/** Auras painted around the template silhouette (2.6x the 112 px fighter, feet at y=452 of 512): strip art and light. */
+const BODY={gold:{art:'aura-gold',alpha:.85},soft:{art:'aura-soft',alpha:.85},ember:{art:'aura-ember',alpha:.85}} as const;
+const BODY_DRAW=512/2.6,BODY_FEET=452/512;
 const FRAMES=6;
 /** Looks painted rising from the ground line: drawn size around a 112 px fighter, light, frame time and how far above the feet they start (the wings grow from the back). */
 const RISING={mantle:{draw:170,alpha:.72,frameMs:110,lift:0},wings:{draw:170,alpha:.7,frameMs:140,lift:22},whirl:{draw:190,alpha:.8,frameMs:100,lift:0},sparks:{draw:200,alpha:1,frameMs:120,lift:0},lightning:{draw:150,alpha:.8,frameMs:90,lift:0},
@@ -23,12 +27,13 @@ const RISING={mantle:{draw:170,alpha:.72,frameMs:110,lift:0},wings:{draw:170,alp
 const OVERHEAD={crown:{draw:88,height:74,frameMs:150},stars:{draw:104,height:76,frameMs:120}} as const;
 const strip=(name:string,size=256)=>({src:`/assets/combat/pow-ready-${name}.png`,size});
 const ART={aura:strip('aura'),orb:strip('orb',128),crown:strip('crown',128),mantle:strip('mantle'),wings:strip('wings'),whirl:strip('whirl'),sparks:strip('sparks'),lightning:strip('lightning'),
- phoenix:strip('phoenix'),dragon:strip('dragon'),spirit:strip('spirit'),petals:strip('petals'),crystals:strip('crystals'),stars:strip('stars',128)} as const;
+ phoenix:strip('phoenix'),dragon:strip('dragon'),spirit:strip('spirit'),petals:strip('petals'),crystals:strip('crystals'),stars:strip('stars',128),
+ 'aura-gold':strip('aura-gold'),'aura-soft':strip('aura-soft'),'aura-ember':strip('aura-ember')} as const;
 type Art=keyof typeof ART;
 const images=new Map<Art,HTMLImageElement>();
 const motionPreference=typeof window!=='undefined'&&window.matchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
 function sheet(key:Art){let image=images.get(key);if(!image){if(typeof Image==='undefined')return undefined;image=new Image();image.decoding='async';image.src=ART[key].src;images.set(key,image);}return image.complete&&image.naturalWidth?image:undefined;}
-const artFor=(style:PowReadyStyle):Art=>style==='orbs'?'orb':style;
+const artFor=(style:PowReadyStyle):Art=>style==='orbs'?'orb':style in BODY?BODY[style as keyof typeof BODY].art:style as Art;
 
 /** Warms the strip of the look in use (the loading screen awaits it). */
 export function preloadPowReadyAura(style:PowReadyStyle=POW_READY_STYLE):HTMLImageElement[]{sheet(artFor(style));return [...images.values()];}
@@ -46,12 +51,17 @@ function clipAboveFeet(c:CanvasRenderingContext2D,x:number,y:number){c.beginPath
  * Draws the look around the fighter standing at (x, y). `layer` back goes before the avatar and front after it;
  * only the orbs use the front layer (the half of the orbit that passes in front of the body).
  */
-export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,time:number,since:number,layer:'back'|'front'='back',style:PowReadyStyle=POW_READY_STYLE){
+export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,time:number,since:number,layer:'back'|'front'='back',style:PowReadyStyle=POW_READY_STYLE,facing:1|-1=1){
  if(style==='orbs'){drawOrbs(c,x,y,time,since,layer);return;}
  if(layer==='front')return;
- const art=sheet(style);if(!art)return;const {size}=ART[style];
+ const key=artFor(style),art=sheet(key);if(!art)return;const {size}=ART[key];
  c.save();clipAboveFeet(c,x,y);
- if(style==='aura'){
+ if(style==='gold'||style==='soft'||style==='ember'){
+  // Painted facing right around the body; turned with the fighter.
+  const {grow,beat,frame}=timing(time,since,120),s=BODY_DRAW*(.94+.06*grow);
+  c.translate(x,y);c.scale(facing,1);c.globalAlpha*=grow*(BODY[style].alpha+beat*.12);
+  c.drawImage(art,frame*size,0,size,size,-s/2,-s*BODY_FEET,s,s);
+ }else if(style==='aura'){
   const {grow,beat,frame}=timing(time,since,120),scale=(.86+.14*grow)*(1+beat*.045),w=180*scale,h=150*scale;
   c.globalAlpha*=grow*(.8+beat*.15);c.drawImage(art,frame*size,0,size,size,x-w/2,y-40-h/2,w,h);
  }else if(style==='crown'||style==='stars'){

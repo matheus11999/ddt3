@@ -25,7 +25,7 @@ import {drawHitboxDebug,HITBOX_DEBUG} from './hitboxDebug';
 import {drawWalkDebug,WALK_DEBUG} from './walkDebug';
 import {drawPowerArmed} from './powerArmedEffect';
 import {powerFull} from '../../shared/power';
-import {drawPowReadyAura,releasePowReadyAura} from './powReadyAura';
+import {drawPowReadyAura,POW_READY_STYLE,releasePowReadyAura} from './powReadyAura';
 import {drawTombstone,TOMBSTONE_DELAY} from './tombstone';
 import {drawPet} from './petSprite';
 import {drawPetApplication,drawPetProjectile,drawPetProjectileImpact,playPetShotSound,preloadPetSounds,releasePetEffects} from './petEffects';
@@ -257,7 +257,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
       else if(turns<=0&&ice&&ice.thawAt===undefined){ice.thawAt=t;if(hp>0)playConsumableSound('impact');}else if(ice?.thawAt!==undefined&&t-ice.thawAt>ICE_SHATTER_DURATION)frozenSeen.delete(f.id);}
      const armedFx=!!f.powerArmed&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;
      // POW ready (bar full, not used yet): the painted effect plays around the fighter until it is spent (powReadyAura.ts).
-     const powReady=!f.powerArmed&&powerFull(f.powerCharge)&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(!powReady)powReadySince.delete(f.id);else{if(!powReadySince.has(f.id))powReadySince.set(f.id,knownMatch?t:t-1e4);drawPowReadyAura(c,entity?.x??f.x,entity?.y??y,t,powReadySince.get(f.id)!);}
+     const powReady=!f.powerArmed&&powerFull(f.powerCharge)&&hp>0&&!f.hidden&&(f.invisibleTurns??0)<=0;if(!powReady)powReadySince.delete(f.id);else{if(!powReadySince.has(f.id))powReadySince.set(f.id,knownMatch?t:t-1e4);drawPowReadyAura(c,entity?.x??f.x,entity?.y??y,t,powReadySince.get(f.id)!,'back',POW_READY_STYLE,f.facing);}
      if(armedFx)drawPowerArmed(c,entity?.x??f.x,entity?.y??y,t,'back',quality==='high'?'high':'low');
      const aiming=f.id===state.profile?.id&&f.hp>0&&!falling&&b.phase!=='finished',aimAge=entity?.aimChangedAt===undefined?-1:t-entity.aimChangedAt,limits=aiming?weaponAimLimits(aimSource(f),f.aimSlope??0):undefined;
      // The red arc rides the body, behind the avatar, as DDTank's TakeAimAsset.
@@ -269,7 +269,7 @@ export function Scene({angle,onLobby,blocked=false}:{angle:number;onLobby:(actio
      c.save();if((f.invisibleTurns??0)>0)c.globalAlpha*=.35;if(scorch>0)c.filter=scorchFilter(scorch);
      if(gesture>0){const gx=entity?.x??f.x,gy=entity?.y??y;c.translate(gx,gy);c.scale(1+gesture*.012,1-gesture*.025);c.translate(-gx,-gy);}
      const e=avatar(f.id,f.name,f.equipment,f.x,y,112,t,f.facing,{combat:true,pose,angle:f.id===state.profile?.id?angleRef.current:f.aimAngle??45,power:f.chargePower??0,slope:falling?0:slope,poseTime:pose==='hit'||pose==='fire'?poseTime:undefined,face},falling||lift>0||entity?.motion.pose==='fall');
-     c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(powReady)drawPowReadyAura(c,e.x,e.y,t,powReadySince.get(f.id)!,'front');if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');
+     c.restore();if(scorch>0&&(f.invisibleTurns??0)<=0)drawScorchSmoke(c,e.x,e.y,scorchAge,scorch);if(powReady)drawPowReadyAura(c,e.x,e.y,t,powReadySince.get(f.id)!,'front',POW_READY_STYLE,f.facing);if(armedFx)drawPowerArmed(c,e.x,e.y,t,'front',quality==='high'?'high':'low');
      {const ice=frozenSeen.get(f.id);if(ice&&!f.hidden)drawFrozenBlock(c,e.x,e.y,ice,t);const icon=toolIcons.get(f.id);if(icon){if(t-icon.at>=ITEM_USE_DURATION)toolIcons.delete(f.id);else if(!f.hidden){drawItemUse(c,icon.id,e.x,e.y,t-icon.at,'body');itemIcons.push({id:icon.id,x:e.x,y:e.y,age:t-icon.at});}}}
      if(hp>0)plates.push({fighter:f,x:e.x,y:e.y,ally:f.team===myTeam,active:b.turnId===f.id&&b.phase==='aiming'});
      if(e.aimOffset!==undefined&&e.aimOffset!==(f.aimSlope??0))e.aimChangedAt=t;e.aimOffset=f.aimSlope??0;
