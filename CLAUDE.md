@@ -78,7 +78,7 @@ Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas.
 - Cosméticos: `npm run verify:cosmetics` (relatório em `test-results/cosmetics/`). Armas: `npm run verify:weapons` (relatório, prancha e prompts em `test-results/weapons/`). Rostos: `node scripts/verify-faces.mjs`. Mapas: `npm run build:map -- --map=<id>` (relatório em `test-results/maps-kit/<id>/`) e `node scripts/inspect-maps.mjs`.
 - Prévias com dados falsos: `node scripts/preview-shop.mjs` e `node scripts/preview-arena.mjs`. O lobby (`node scripts/shot-lobby.mjs`) precisa do jogo rodando. Na nuvem use `CHROME_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome` se o Playwright não achar o navegador.
 - Rodar o jogo na nuvem: PostgreSQL 16 na porta 5447 (usuário/senha `brasa`/`brasa_local`), Redis na 6397, `npx tsx server/index.ts` e Vite na 5177. Alguns smoke tests (ex.: compra legada da loja) precisam de Docker e só passam na máquina local.
-- Celular joga só em paisagem; teste também no layout de celular.
+- Celular joga só em paisagem; teste também no layout de celular (`npm run test:mobile:browser`, fotos de todas as telas com `node scripts/tour-mobile.mjs`). No celular as regras `html.mobile-landscape` medem em pixels reais (desfazem `--game-scale`); combate tem setas de andar e botão FOGO de segurar (`BattleTouch.css`, 21/10, `docs/mobile.md`).
 
 ## Pendências para continuar
 

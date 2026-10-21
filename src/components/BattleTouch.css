@@ -1,0 +1,27 @@
+/* Phone battle controls (docs/mobile.md): sizes are real screen pixels, so every rule undoes the game scale. */
+.artillery-hud .touch-controls{display:contents}
+html.mobile-landscape .artillery-hud .touch-walk{position:absolute;z-index:6;left:calc((12px + env(safe-area-inset-left)) / var(--game-scale));bottom:calc((100px + env(safe-area-inset-bottom)) / var(--game-scale));display:flex;gap:8px;transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom left}
+.artillery-hud .touch-walk>button{display:grid;place-items:center;width:58px;height:58px;min-width:0;padding:0;border:2px solid #d99b39;border-radius:16px;background:linear-gradient(#233f54e0,#132b40ee);box-shadow:inset 0 1px #e3d6ad55,0 3px #061729,0 4px 8px #0006;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.artillery-hud .touch-walk>button .angle-arrow{width:32px;height:28px;overflow:visible;filter:drop-shadow(0 2px 0 #0a0d18)}
+.artillery-hud .touch-walk>button:first-child .angle-arrow{transform:rotate(-90deg)}
+.artillery-hud .touch-walk>button:last-child .angle-arrow{transform:rotate(90deg)}
+.artillery-hud .touch-walk>button:active:not(:disabled){transform:translateY(2px) scale(.95);filter:brightness(1.2)}
+.artillery-hud .touch-walk>button:disabled{filter:saturate(.3) brightness(.75)}
+html.mobile-landscape .artillery-hud .touch-fire{position:absolute;z-index:6;right:calc((14px + env(safe-area-inset-right)) / var(--game-scale));bottom:calc((104px + env(safe-area-inset-bottom)) / var(--game-scale));transform:scale(calc(1 / var(--game-scale)));transform-origin:bottom right}
+.artillery-hud .touch-fire{display:flex;flex-direction:column;align-items:center;justify-content:center;width:80px;height:80px;min-width:0;padding:0;border:3px solid #ffd77a;border-radius:50%;background:radial-gradient(circle at 50% 30%,#ffb35a,#e8541d 58%,#9b2408);box-shadow:inset 0 3px #fff2c288,inset 0 -5px #5c140488,0 0 0 3px #5a2a0a,0 5px 10px #000a;color:#fff;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:transform .08s,filter .12s}
+.artillery-hud .touch-fire>strong{font:400 24px/1 'Lilita One',sans-serif;-webkit-text-stroke:2px #5a1604;paint-order:stroke fill;text-shadow:0 2px #3a0c02}
+.artillery-hud .touch-fire>small{margin-top:3px;font:900 9px/1 Nunito,sans-serif;letter-spacing:1px;text-shadow:0 1px 1px #5a1604}
+.artillery-hud .touch-fire.charging{transform:scale(1.06);filter:brightness(1.12) drop-shadow(0 0 10px #ffcf5a)}
+.artillery-hud .touch-fire.charging>strong{font-size:30px}
+.artillery-hud .touch-fire:disabled{filter:saturate(.25) brightness(.7)}
+.artillery-hud.fighter-fallen .touch-controls>*,.artillery-hud.battle-finished .touch-controls>*{display:none}
+/* Abilities sit right of the walk arrows; the ten tools fill two rows under the minimap, away from the middle of the field. */
+html.mobile-landscape .artillery-hud .battle-ability-tray{left:calc((152px + env(safe-area-inset-left)) / var(--game-scale))}
+html.mobile-landscape .artillery-hud .boost-bar{top:calc((86px + env(safe-area-inset-top)) / var(--game-scale));bottom:auto;right:calc((12px + env(safe-area-inset-right)) / var(--game-scale));display:grid;grid-template-columns:repeat(5,39px);gap:5px;padding:6px;transform-origin:top right}
+@media(max-width:760px){html.mobile-landscape .artillery-hud .boost-bar{grid-template-columns:repeat(5,36px);gap:4px;padding:5px}html.mobile-landscape .artillery-hud .boost{width:36px;height:36px;min-width:36px}}
+/* Small buttons grow to a finger-sized target. */
+html.mobile-landscape .artillery-hud .angle-buttons>button{width:32px;height:30px}
+html.mobile-landscape .artillery-hud .angle-arrow{width:28px;height:24px}
+html.mobile-landscape .artillery-hud .battle-center-status .skip-button{min-width:84px;min-height:32px;font-size:14px}
+html.mobile-landscape .artillery-hud .battle-exit{width:32px;height:32px}
+html.mobile-landscape .artillery-hud .battle-exit svg{width:18px;height:18px}
