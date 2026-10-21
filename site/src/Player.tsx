@@ -66,20 +66,6 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
   </section>
 
   <div className="player-grid">
-   <section className="beta-reward-card">
-    <img className="beta-reward-chest" src="/art/beta-reward.webp" alt="" aria-hidden="true"/>
-    <div className="beta-reward-copy">
-     <span className="beta-badge"><Gem size={15}/> Recompensa da beta</span>
-     <h2 className="title-3d">Cosméticos exclusivos te esperando</h2>
-     <p>Por jogar a beta você garante itens que <b>nunca mais voltam</b>. Eles chegam no <b>Correio do jogo</b> quando a beta terminar, em todos os seus personagens.</p>
-     <ul className="beta-reward-list">
-      <li><Check size={16}/> Visual exclusivo de quem chegou primeiro</li>
-      <li><Check size={16}/> Entregue no Correio, sem fazer nada</li>
-      <li><Check size={16}/> Para quem jogar durante a beta</li>
-     </ul>
-    </div>
-   </section>
-
    <section className="panel panel-wide forum-panel">
     <div className="panel-head">
      <h2 className="panel-title"><MessageSquarePlus size={20}/> Comunidade</h2>

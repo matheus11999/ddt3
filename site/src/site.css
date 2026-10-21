@@ -328,6 +328,12 @@ a.server-row:hover{border-color:var(--gold);background:rgba(255,210,94,.08);tran
 .beta-reward-list svg{flex:none;color:#7fe08a}
 
 /* Rodapé */
+.footer-beta{position:relative;max-width:900px;margin:0 auto 28px;display:flex;align-items:center;gap:18px;padding:12px 22px 12px 12px;border-radius:18px;background:linear-gradient(110deg,rgba(255,200,80,.16),rgba(140,60,220,.16));box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+.footer-beta::before{content:'';position:absolute;inset:0;border-radius:inherit;padding:1.5px;background:linear-gradient(110deg,#ffd25e,#ff6fb1 45%,#8b5cff);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none}
+.footer-beta img{width:96px;height:auto;flex:none;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5))}
+.footer-beta div{display:grid;gap:2px;text-align:left}
+.footer-beta b{font-family:'Lilita One',sans-serif;font-weight:400;font-size:1.2rem;color:var(--gold)}
+.footer-beta span{font-size:.92rem;color:#d8cdef}
 .footer{border-top:1px solid var(--line);background:#0d0718;padding:40px 20px}
 .footer-inner{max-width:900px;margin:auto;text-align:center;display:grid;justify-items:center;gap:8px}
 .footer img{width:120px;height:auto;opacity:.95}
@@ -371,6 +377,7 @@ a.server-row:hover{border-color:var(--gold);background:rgba(255,210,94,.08);tran
  .server-row{grid-template-columns:auto 1fr auto}
  .server-char{grid-column:2}
  .composer-row.two,.account-info{grid-template-columns:1fr}
+ .footer-beta{flex-direction:column;text-align:center}.footer-beta div{text-align:center}
  .beta-reward-card{grid-template-columns:1fr;padding:22px;text-align:center}
  .beta-reward-list li{text-align:left}
  .avatar-grid{grid-template-columns:repeat(3,1fr)}
