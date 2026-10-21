@@ -13,13 +13,16 @@ export function ScreenCurtain(){
  if(!view.reason)return null;
  const failed=view.reason==='boot'&&!state.profile&&state.status==='offline';
  const words=failed?state.error??'Não foi possível entrar.':state.profile&&state.status==='connecting'&&view.reason==='boot'?'Conectando…':view.reason==='zone'&&view.to==='fishing'?'Indo para a Pescaria…':WORDS[view.reason];
- const percent=Math.round(view.progress*100);
+ const percent=Math.round(view.progress*100),waiting=view.reason==='reconnect'&&state.status!=='online';
  return createPortal(<div className={`screen-curtain${view.leaving?' is-leaving':''}`} role="status" aria-live="polite">
-  <div className="screen-curtain-glow"/>
-  <div className="screen-curtain-title" data-text="BRASA"><span>BRASA</span></div>
-  <div className="screen-curtain-subtitle">ARENA</div>
-  <div className="screen-curtain-bar"><i style={{width:`${view.reason==='reconnect'&&state.status!=='online'?0:percent}%`}}/>{view.reason==='reconnect'&&state.status!=='online'&&<b className="is-waiting"/>}</div>
-  <p>{words}</p>
+  <div className="screen-curtain-art"/>
+  <div className="screen-curtain-shade"/>
+  <img className="screen-curtain-logo" src="/assets/ui/loading/logo.webp" alt="Bomb Masters" width="900" height="534" draggable={false}/>
+  <div className={`screen-curtain-bar${waiting?' is-waiting':''}`}>
+   <div className="screen-curtain-track"><i style={{width:`${waiting?0:percent}%`}}/>{waiting&&<b/>}</div>
+   {!waiting&&<img className="screen-curtain-spark" src="/assets/ui/loading/spark.png" alt="" style={{left:`calc(4px + (100% - 8px) * ${percent/100})`}} draggable={false}/>}
+  </div>
+  <p>{words}{!waiting&&!failed&&<span>{percent}%</span>}</p>
   {failed&&<button className="button gold" onClick={()=>client.retryNow()}>Tentar novamente</button>}
  </div>,document.body);
 }

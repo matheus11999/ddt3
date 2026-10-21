@@ -131,7 +131,7 @@ app.server.on('upgrade',async(req,socket,head)=>{
     let data:unknown;try{data=JSON.parse(raw.toString());}catch{send({type:'error',message:'Comando inválido.'});return;}
     const parsed=commandSchema.safeParse(data);if(!parsed.success){send({type:'error',message:'Comando inválido.'});return;}
     if(parsed.data.type==='chat'){if(now-chatAt<800){send({type:'error',message:'Espere um instante para conversar.'});return;}chatAt=now;}
-    pending++;queue=queue.then(async()=>{if(connections.get(profile.id)===ws)await game.command(profile.id,parsed.data);}).catch(e=>app.log.error(e)).finally(()=>pending--);
+    pending++;queue=queue.then(async()=>{if(connections.get(profile.id)===ws)await game.command(profile.id,parsed.data,now);}).catch(e=>app.log.error(e)).finally(()=>pending--);
    });
    ws.on('error',e=>app.log.warn({err:e},'Socket error'));ws.on('close',()=>{clearInterval(heartbeat);socketSessions.delete(ws);if(connections.get(profile.id)===ws){connections.delete(profile.id);game.disconnect(profile.id);}});
   });
