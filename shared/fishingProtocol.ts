@@ -3,7 +3,8 @@ import {MAX_FISHING_BUY,MAX_FISH_SELL} from './fishing';
 /** Pescaria commands (the client only asks; server/fishing.ts and server/game.ts decide). */
 export const fishingCommandSchemas=[
  // Walk through the gate between Praça Celeste and the Pescaria.
- z.object({type:z.literal('zone'),zone:z.enum(['plaza','fishing'])}).strict(),
+ // `at`: where the player stood in the Pescaria before a reload or a server restart (the server keeps it only on walkable floor).
+ z.object({type:z.literal('zone'),zone:z.enum(['plaza','fishing']),at:z.object({x:z.number().finite(),y:z.number().finite()}).strict().optional()}).strict(),
  z.object({type:z.literal('fish-cast'),spot:z.string().regex(/^[a-z0-9-]{1,40}$/)}).strict(),
  // A press on the bar, stamped with the client's estimate of server time.
  z.object({type:z.literal('fish-press'),at:z.number().finite()}).strict(),

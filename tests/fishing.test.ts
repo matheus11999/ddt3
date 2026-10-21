@@ -147,6 +147,16 @@ test('switching automatic off sends the run summary: time, fish by kind and priz
  assert.equal(saved.since,s.since);assert.equal(saved.casts,2);assert.deepEqual(saved.fish,s.fish);
 });
 
+test('coming back to the Pescaria after a reload keeps the place where the player stood, on walkable floor',async()=>{
+ const f=fixture(),peer=f.game.peers.get(f.a.id)!,spot=FISHING_SPOTS[4];
+ await f.game.command(f.a.id,{type:'zone',zone:'fishing',at:{x:spot.x,y:spot.y}});
+ assert.deepEqual({x:peer.x,y:peer.y},{x:spot.x,y:spot.y});assert.equal(peer.targetX,spot.x);
+ await f.game.command(f.a.id,{type:'zone',zone:'plaza'});
+ // A place on the water (or outside the map) becomes the nearest floor.
+ const lake=FISHING_LAKES[0];await f.game.command(f.a.id,{type:'zone',zone:'fishing',at:{x:lake.x,y:lake.y}});
+ assert.ok(!fishingBlocked(peer.x,peer.y));assert.ok(!inLake(lake,peer.x,peer.y));
+});
+
 test('automatic casts add up in their session of the profile, newest session first',()=>{
  const p=normalizeProfile({id:randomUUID(),name:'Pescador'});
  settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},auto:true,run:100,at:1000});

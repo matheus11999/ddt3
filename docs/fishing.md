@@ -90,7 +90,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 - Prêmios ficam num círculo menor ao lado; a bandeja antiga (`gear-tray.webp`, com a minhoca) saiu do console.
 - Cartão do pescador 30% menor.
 - Trocas compactas: 4 por linha, ícone pequeno, nome e custo; a quantidade só aparece depois de clicar em Trocar.
-- Atualizar a página ou reiniciar o servidor devolve à Pescaria quem estava nela (zona lembrada no navegador, `brasa-zone:<id>`); botão de sair ao lado de Configurações.
+- Atualizar a página ou reiniciar o servidor devolve à Pescaria quem estava nela (zona lembrada no navegador, `brasa-zone:<id>`), no mesmo lugar onde estava (21/10, pedido do matheus: a posição fica em `brasa-fishing-at:<id>` e vai no comando `zone` como `at`; o servidor só aceita chão livre, `fishingFree`); botão de sair ao lado de Configurações.
 
 ## Mapa menor (20/10, pedido do matheus: "travando", um lago só, sem a Casa de Pesca)
 

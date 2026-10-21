@@ -139,13 +139,15 @@ export class Game {
  }
  // ── Pescaria (shared/fishing.ts has the numbers, server/fishing.ts the profile changes) ──
  /** Walks through the gate: the plaza and the Pescaria each list only their own walkers. */
- private changeZone(p:Peer,zone:Zone){
+ private changeZone(p:Peer,zone:Zone,at?:{x:number;y:number}){
   if(p.roomId)throw Error('Saia da sala antes de ir para outro lugar.');
   if((p.zone??'plaza')===zone)return;
   // Nothing of the Pescaria follows the player out: the line, and automatic mode (the HUD comes back in manual).
   this.stopFishing(p,false);delete p.fishing;this.endAutoRun(p);delete p.fishAuto;
   const spawn=zone==='fishing'?FISHING_SPAWN:LOBBY_SPAWN;
   p.zone=zone==='plaza'?undefined:zone;p.x=p.targetX=spawn.x-40+Math.random()*80;p.y=p.targetY=spawn.y;
+  // Back in the Pescaria after a reload or a restart: where the player stood, on the nearest walkable floor.
+  if(zone==='fishing'&&at){const free=fishingFree(at.x,at.y);p.x=p.targetX=free.x;p.y=p.targetY=free.y;}
   this.emit(p,{type:'zone',zone,players:this.lobby(p.channel,zone)});this.sendLobby(p.channel);
  }
  /** Automatic mode switched off (or the player left the Pescaria): the run's summary window. */
@@ -566,7 +568,7 @@ export class Game {
      // Walking away from the spot reels the line in.
      if(p.fishing&&Math.hypot(target.x-p.fishing.spot.x,target.y-p.fishing.spot.y)>SPOT_REACH)this.stopFishing(p);
      p.targetX=target.x;p.targetY=target.y;}return;
-    case 'zone':this.changeZone(p,c.zone);return;
+    case 'zone':this.changeZone(p,c.zone,c.at);return;
     case 'fish-cast':delete p.fishIgnored;this.castLine(p,c.spot);return;
     case 'fish-press':this.pressBar(p,c.at);return;
     case 'fish-stop':this.stopFishing(p);return;
