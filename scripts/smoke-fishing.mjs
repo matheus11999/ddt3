@@ -31,7 +31,7 @@ await friend.locator('.lobby-dock-button.fishing').click();await expect(friend.l
 await friend.locator('.fishing-auto').click();await climb(friend);if(process.env.DEBUG)await shot(friend,'00-amigo');
 const friendSpot=spotFor(-150);
 await friend.locator('.fishing-main').click();await friend.locator('.world-canvas').click({position:onLake(-150)});
-if(process.env.DEBUG){await friend.waitForTimeout(6000);await shot(friend,'00b-amigo');}await expect(friend.locator('.fishing-tip')).toContainText('automático',{timeout:30000});
+if(process.env.DEBUG){await friend.waitForTimeout(6000);await shot(friend,'00b-amigo');}await expect(friend.locator('.fishing-auto.on')).toBeVisible({timeout:30000});await expect(friend.locator('.fishing-main.reel')).toBeVisible({timeout:30000});
 
 const page=await open(),canvas=page.locator('.world-canvas');
 await page.waitForTimeout(1500);await shot(page,'01-praca-botao');
@@ -74,8 +74,8 @@ await expect(page.locator('.fishing-rank')).toBeVisible();await expect(page.loca
 await page.locator('.fishing-rank header button').click();await expect(page.locator('.fishing-rank-tab')).toBeVisible();await shot(page,'07e-ranking-oculto');
 await page.locator('.fishing-rank-tab').click();await expect(page.locator('.fishing-rank')).toBeVisible();
 // The Auto switch: lit, with the AUTOMÁTICO seal and a short notice; then off again.
-await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
-await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toHaveCount(0);
+await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto.on')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
+await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto.on')).toHaveCount(0);
 // Desligar o automático abre o resumo da pescaria (tempo e itens).
 await expect(page.locator('.fishing-auto-summary')).toBeVisible();await shot(page,'07d-resumo-auto');await page.locator('.fishing-summary-ok').click();await expect(page.locator('.fishing-auto-summary')).toHaveCount(0);
 // No Casa de Pesca building since 20/10: the map has only the airship to click.
