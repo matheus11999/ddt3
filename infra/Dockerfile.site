@@ -1,0 +1,18 @@
+# Bomb Masters site (docs/site.md): the page and its API in one container, on the game's Postgres.
+FROM node:24-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY site ./site
+RUN npx vite build --config site/vite.config.ts
+FROM node:24-alpine
+WORKDIR /app
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev && npm install --no-save tsx@4.23.15
+COPY server/accounts.ts server/adminAuth.ts ./server/
+COPY site/server ./site/server
+COPY site/src/forumRules.ts ./site/src/forumRules.ts
+COPY --from=build /app/site/dist ./site/dist
+USER node
+EXPOSE 4120
+CMD ["node","--import","tsx","site/server/index.ts"]
