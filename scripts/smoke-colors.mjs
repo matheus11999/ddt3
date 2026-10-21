@@ -15,7 +15,7 @@ try{
  await page.goto(base,{waitUntil:'domcontentloaded'});
  const creation=page.locator('.character-creation');await expect(creation).toBeVisible();
  await creation.getByRole('button',{name:'Personagem masculino',exact:true}).click();
- await creation.getByRole('button',{name:'Criar personagem',exact:true}).click();
+ await creation.getByLabel('Nome do personagem').fill(`Teste${Math.random().toString(36).slice(2,9)}`);await expect(creation.getByRole('button',{name:'Entrar no jogo',exact:true})).toBeEnabled({timeout:10000});await creation.getByRole('button',{name:'Entrar no jogo',exact:true}).click();
  await expect(page.locator('.bottom-dock')).toBeVisible({timeout:15000});
  const start=await profile();assert.equal(start.colorTickets,3);
  await page.locator('.bottom-dock').getByRole('button',{name:/Mochila/}).click();

@@ -15,11 +15,11 @@ async function close(name){const modal=page.getByRole('dialog',{name,exact:true}
 async function animationFrames(){await page.evaluate(()=>new Promise(resolve=>{let frames=0;function draw(){if(++frames>=12)resolve();else requestAnimationFrame(draw);}requestAnimationFrame(draw);}));}
 try{
  await page.goto(base,{waitUntil:'networkidle'});await expect(gate()).toBeVisible();assert.equal(await profile(),null);
- await page.locator('.character-creation').getByRole('button',{name:'Criar personagem',exact:true}).click({force:true});assert.equal(await profile(),null,'portrait gate blocks creation input');
+ await page.locator('.character-creation').getByRole('button',{name:'Entrar no jogo',exact:true}).click({force:true});assert.equal(await profile(),null,'portrait gate blocks creation input');
  await page.screenshot({path:`${output}/portrait.png`});
  await page.setViewportSize({width:844,height:390});await expect(gate()).toHaveCount(0);await expect(page.locator('html')).toHaveClass(/mobile-landscape/);
- const creation=page.locator('.character-creation');await visibleControl(creation.getByRole('button',{name:'Criar personagem',exact:true}));await page.screenshot({path:`${output}/creation.png`});
- await creation.getByRole('button',{name:'Criar personagem',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();const original=await profile();
+ const creation=page.locator('.character-creation');await visibleControl(creation.getByRole('button',{name:'Entrar no jogo',exact:true}));await page.screenshot({path:`${output}/creation.png`});
+ await creation.getByLabel('Nome do personagem').fill(`Teste${Math.random().toString(36).slice(2,9)}`);await expect(creation.getByRole('button',{name:'Entrar no jogo',exact:true})).toBeEnabled({timeout:10000});await creation.getByRole('button',{name:'Entrar no jogo',exact:true}).click();await expect(page.locator('.bottom-dock')).toBeVisible();const original=await profile();
  checks.push('touch portrait blocks creation; rotating reveals a usable creation screen without reload');
  for(const size of [{width:844,height:390},{width:932,height:430},{width:667,height:375}]){
   await page.setViewportSize(size);await expect(gate()).toHaveCount(0);await page.locator('.bottom-dock').getByRole('button',{name:'Mochila',exact:true}).click();
