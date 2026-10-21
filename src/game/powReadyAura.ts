@@ -22,7 +22,8 @@ export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,ti
  const t=motionPreference?.matches?0:time,grow=Math.min(1,Math.max(0,(time-since)/260));
  const beat=Math.sin(t/300),scale=(.86+.14*grow)*(1+beat*.045),frame=Math.floor(t/FRAME_MS)%FRAMES;
  const w=WIDTH*scale,h=HEIGHT*scale,cx=x,cy=y-40;
- c.save();c.globalAlpha*=grow*(.8+beat*.15);
+ // Never under the fighter (matheus): the oval is cut at the feet, so only the part around the body shows.
+ c.save();c.beginPath();c.rect(cx-w,cy-h,w*2,y-2-(cy-h));c.clip();c.globalAlpha*=grow*(.8+beat*.15);
  c.drawImage(art,frame*SIZE,0,SIZE,SIZE,cx-w/2,cy-h/2,w,h);
  c.restore();
 }
