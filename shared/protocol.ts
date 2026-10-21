@@ -25,7 +25,7 @@ import type {PetsState,PetResult} from './petProtocol';
 import type {BattlePetState,PetApplication,PetEffect} from './petSkills';
 import {hallCommandSchemas} from './hall';
 import {fishingCommandSchemas} from './fishingProtocol';
-import type {FishRanking,FishingPose,FishingProfile,FishingView,Zone} from './fishing';
+import type {AutoFishingSummary,FishRanking,FishingPose,FishingProfile,FishingView,Zone} from './fishing';
 import {FISHING_WALK} from './fishing';
 import type {HallEvent} from './hall';
 import type {GuildState,GuildSummary} from './guilds';
@@ -175,6 +175,7 @@ export type ServerEvent =
  | {type:'fishing';fishing:FishingView|null}
  | {type:'fish-buy-result';offer:string;quantity:number;spent:number}
  | {type:'fish-sell-result';sold:number;points:number}
+ | {type:'fish-auto-summary';summary:AutoFishingSummary}
  | {type:'rooms';rooms:Room[]}
  | {type:'arena-population';count:number}
  | {type:'ranking';ranking:RankingEntry[]}

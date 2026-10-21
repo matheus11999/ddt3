@@ -9,7 +9,7 @@ import {randomInt,randomUUID} from 'node:crypto';
 import {LOBBY_SPAWN,LOBBY_WALK_SPEED,lobbyFree,lobbyStep} from '../shared/lobby';
 import {AUTO_BASE_MS,FISHING_IGNORED_STOP,AUTO_PER_HIT_MS,AUTO_QUALITY,STARTER_ROD,rollRodDrops,FISHING_SPAWN,FISHING_SPOTS,HOOK_LEAD_MS,PRESS_GRACE_MS,RESULT_MS,ROD_BY_ID,SPOT_REACH,autoChance,autoReward,biteWaitMs,catchPoints,catchXp,effectiveRod,fishChallenge,fishWeight,fishingFree,fishingLevel,fishingWeek,fishRarity,fishingStep,gradePress,normalizeFishing,pickFish,FISH_RANKING_SIZE} from '../shared/fishing';
 import type {FishRanking} from '../shared/fishing';
-import type {Fish,FishChallenge,FishingPhase,FishingPose,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
+import type {AutoFishingSummary,Fish,FishChallenge,FishingPhase,FishingPose,FishingSpot,FishingView,PressGrade,Zone} from '../shared/fishing';
 import {attributes,battleEquipment,BOOSTS,CATALOG,SLOTS,equippedCopy,targetSlotForItem,DEFAULT_EQUIPMENT,isEmptyItem,SMITH_POSITION,WEAPONS,weaponFragmentCount,weaponStats} from '../shared/catalog';
 import type {BoostId,Weapon} from '../shared/catalog';
 import {LOADING_SECONDS} from '../shared/protocol';
@@ -54,7 +54,7 @@ import type {PetApplication,PetBlockedAction,PetEngineContext,PetTrigger} from '
 import {DRAGON_ACTIONS,DRAGON_BODY,DRAGON_FIGHTER_ID,DRAGON_TURN_ID,dragonRage,pickDragonAction,sweepReachAt,WORLD_BOSS_MAP} from '../shared/worldBoss';
 import type {DragonAct,DragonAction,WorldBossEndReason,WorldBossStatus} from '../shared/worldBoss';
 import type {WorldBossDamage,WorldBossRealm} from './worldBoss';
-export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;/** Praça Celeste or the Pescaria (undefined = the plaza). */zone?:Zone;/** Casting at a spot of the Pescaria. */fishing?:FishingSession;/** Automatic fishing stays on between casts (AFK). */fishAuto?:boolean;/** Manual bars in a row that ran out without a single press: the line stops recasting at FISHING_IGNORED_STOP. */fishIgnored?:number;/** Moved or changed fishing pose since the last `lobby-moves`. */lobbyDirty?:boolean;}
+export interface Peer {/** Brought back from a saved state after a restart: waits for its player with the saved profile until they reconnect. */restored?:boolean;profile:Profile;send:(event:ServerEvent)=>void;connected:boolean;roomId:string|null;arenaOpen:boolean;channel:number;x:number;y:number;targetX:number;targetY:number;lastSeen:number;lastWalk:number;lastAim?:number;lastFace?:number;/** The client shows the loading screen and reports its progress before a battle. */loadingScreen?:boolean;/** Praça Celeste or the Pescaria (undefined = the plaza). */zone?:Zone;/** Casting at a spot of the Pescaria. */fishing?:FishingSession;/** Automatic fishing stays on between casts (AFK). */fishAuto?:boolean;/** Manual bars in a row that ran out without a single press: the line stops recasting at FISHING_IGNORED_STOP. */fishIgnored?:number;/** The running automatic session's tally (AutoFishingSummary), sent when automatic mode is switched off. */fishAutoRun?:AutoFishingSummary;/** Moved or changed fishing pose since the last `lobby-moves`. */lobbyDirty?:boolean;}
 interface PendingImpact {at:number;projectileIndex:number;hits:ShotHit[];mark:TerrainMark;flight?:boolean;/** Gelo's ice ball: freezes, never digs or hurts. */ice?:boolean;fragment?:boolean;/** The pet's attack after the shot (no projectile): the shot-end trigger at this point. */petStrike?:{x:number;y:number};}
 /** Index of the pet's after-shot attack in the impact events (never a real projectile). */
 const PET_STRIKE_INDEX=1000;
@@ -142,10 +142,15 @@ export class Game {
   if(p.roomId)throw Error('Saia da sala antes de ir para outro lugar.');
   if((p.zone??'plaza')===zone)return;
   // Nothing of the Pescaria follows the player out: the line, and automatic mode (the HUD comes back in manual).
-  this.stopFishing(p,false);delete p.fishing;delete p.fishAuto;
+  this.stopFishing(p,false);delete p.fishing;this.endAutoRun(p);delete p.fishAuto;
   const spawn=zone==='fishing'?FISHING_SPAWN:LOBBY_SPAWN;
   p.zone=zone==='plaza'?undefined:zone;p.x=p.targetX=spawn.x-40+Math.random()*80;p.y=p.targetY=spawn.y;
   this.emit(p,{type:'zone',zone,players:this.lobby(p.channel,zone)});this.sendLobby(p.channel);
+ }
+ /** Automatic mode switched off (or the player left the Pescaria): the run's summary window. */
+ private endAutoRun(p:Peer){
+  const run=p.fishAutoRun;delete p.fishAutoRun;if(!run||!p.connected)return;
+  this.emit(p,{type:'fish-auto-summary',summary:{...run,fish:{...run.fish},until:Date.now()}});
  }
  private fishingView(f:FishingSession,auto:boolean):FishingView{
   return {spot:f.spot.id,phase:f.phase,auto,since:f.since,...(f.challenge&&f.phase==='bite'?{challenge:{...f.challenge,start:f.start,press:f.press,misses:f.misses,grades:[...f.grades]}}:{}),...(f.result?{result:f.result}:{})};
@@ -210,12 +215,17 @@ export class Game {
  /** Saves the end of a cast (catch, points, EXP, the rod's prizes) and shows the result. */
  private async settleFish(p:Peer,f:FishingSession,success:boolean,quality:number,silent=false,auto=false){
   if(f.settling)return;f.settling=true;
-  const fish=f.fish;let caught;
+  const fish=f.fish;let caught,prize,prizeXp=0,prizeLevel:number|undefined;
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
    const drops=fish&&success?rollRodDrops(ROD_BY_ID.get(f.rod)??ROD_BY_ID.get(STARTER_ROD)!,auto,this.fishRoll):[];
    const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish,kg):{points:catchPoints(fish,kg,quality),xp:catchXp(fish,kg)})}}:{})});
-   p.profile=outcome.profile;caught=outcome.catch;this.emit(p,{type:'profile',profile:p.profile});
+   p.profile=outcome.profile;caught=outcome.catch;prize=outcome.prize;prizeXp=outcome.xp??0;prizeLevel=outcome.levelUp;this.emit(p,{type:'profile',profile:p.profile});
+   const run=auto?p.fishAutoRun:undefined;
+   if(run){run.casts++;
+    if(prize){run[prize.kind]+=prize.amount;run.xp+=outcome.xp??0;}
+    else if(caught){run.fish[caught.fish]=(run.fish[caught.fish]??0)+1;run.points+=caught.points;run.xp+=caught.xp;if(!run.best||caught.kg>run.best.kg)run.best={fish:caught.fish,kg:caught.kg};}
+    else run.missed++;}
    // A new heaviest fish of the week for this player: the ranking changes when it makes the top or the player is on it.
    const r=outcome.weekRecord,board=this.fishRanking;
    if(r&&(r.week!==board.week||board.entries.length<FISH_RANKING_SIZE||r.kg>board.entries[board.entries.length-1].kg||board.entries.some(e=>e.id===p.profile.id)))void this.refreshFishRanking();
@@ -224,11 +234,11 @@ export class Game {
     for(const peer of this.peers.values())if(peer.connected&&peer.channel===p.channel)this.emit(peer,{type:'chat',message:line});};
    if(caught&&fish&&fishRarity(fish).announce){const r=fishRarity(fish);announce(`${p.profile.name} pescou ${fish.name} (${r.name}, ${caught.kg.toLocaleString('pt-BR',{minimumFractionDigits:2})} kg)!`);}
    // Cupons e Fragmentos são raros: também vão para o chat Mundo.
-   for(const d of caught?.drops??[])if(d.kind!=='gold')announce(`${p.profile.name} pescou ${d.amount} ${d.kind==='coupons'?(d.amount===1?'Cupom':'Cupons'):d.amount===1?'Fragmento da Vara das Marés':'Fragmentos da Vara das Marés'}!`);
+   for(const d of prize?[prize]:[])if(d.kind!=='gold')announce(`${p.profile.name} pescou ${d.amount} ${d.kind==='coupons'?(d.amount===1?'Cupom':'Cupons'):d.amount===1?'Fragmento da Vara das Marés':'Fragmentos da Vara das Marés'}!`);
   }catch(e){this.report(e);success=false;}
   finally{f.settling=false;}
   if(silent||p.fishing!==f)return;
-  f.phase='result';f.since=Date.now();f.result={success:!!caught,...(caught?{catch:caught}:{}),...(fish?{fish:fish.id}:{})};
+  f.phase='result';f.since=Date.now();f.result={success:!!(caught||prize),...(caught?{catch:caught}:{}),...(prize?{prize,xp:prizeXp,...(prizeLevel?{levelUp:prizeLevel}:{})}:{}),...(fish?{fish:fish.id}:{})};
   this.emitFishing(p);this.sendLobby(p.channel);
  }
  private requirePets(){if(!this.pets)throw Error('Os pets estão indisponíveis no momento.');return this.pets;}
@@ -403,7 +413,7 @@ export class Game {
   this.roomsDirty=true;
  }
  lobby(channel:number,zone:Zone='plaza'):LobbyPlayer[]{return [...this.peers.values()].filter(p=>p.connected&&!p.roomId&&p.channel===channel&&(p.zone??'plaza')===zone).map(p=>{const fishing=this.fishingPose(p);return {id:p.profile.id,name:p.profile.name,level:p.profile.level,equipment:p.profile.equipment,x:p.x,y:p.y,...(fishing?{fishing}:{})};});}
- private fishingPose(p:Peer):FishingPose|null{return p.fishing?{spot:p.fishing.spot.id,phase:p.fishing.phase,since:p.fishing.since,...(p.fishAuto?{auto:true}:{}),...(p.fishing.result?{success:p.fishing.result.success,...(p.fishing.result.success&&p.fishing.fish?{fish:p.fishing.fish.id}:{})}:{})}:null;}
+ private fishingPose(p:Peer):FishingPose|null{return p.fishing?{spot:p.fishing.spot.id,phase:p.fishing.phase,since:p.fishing.since,...(p.fishAuto?{auto:true}:{}),...(p.fishing.result?{success:p.fishing.result.success,...(p.fishing.result.catch?{fish:p.fishing.result.catch.fish}:{})}:{})}:null;}
  /**
   * The walking tick sends only who moved or changed fishing pose, to the walkers of the same channel and zone: the full
   * list (outfits included) every 100 ms grew with the square of the players in a crowded Pescaria (docs/performance.md).
@@ -558,6 +568,8 @@ export class Game {
     case 'fish-press':this.pressBar(p,c.at);return;
     case 'fish-stop':this.stopFishing(p);return;
     case 'fish-auto':{
+     if(c.on&&!p.fishAuto)p.fishAutoRun={since:Date.now(),until:0,casts:0,missed:0,fish:{},points:0,xp:0,gold:0,coupons:0,fragments:0};
+     if(!c.on)this.endAutoRun(p);
      p.fishAuto=c.on;delete p.fishIgnored;const f=p.fishing;
      if(f&&c.on&&f.phase==='idle')this.castLine(p,f.spot.id);
      // Switching on in the middle of a bar lets the automatic mode finish it.

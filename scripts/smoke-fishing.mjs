@@ -76,6 +76,8 @@ await page.locator('.fishing-rank-tab').click();await expect(page.locator('.fish
 // The Auto switch: lit, with the AUTOMÁTICO seal and a short notice; then off again.
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toBeVisible();await page.waitForTimeout(300);await shot(page,'07c-auto-ligado');
 await page.locator('.fishing-auto').click();await expect(page.locator('.fishing-auto-badge')).toHaveCount(0);
+// Desligar o automático abre o resumo da pescaria (tempo e itens).
+await expect(page.locator('.fishing-auto-summary')).toBeVisible();await shot(page,'07d-resumo-auto');await page.locator('.fishing-summary-ok').click();await expect(page.locator('.fishing-auto-summary')).toHaveCount(0);
 // No Casa de Pesca building since 20/10: the map has only the airship to click.
 await expect(FISHING_STATIONS.some(s=>s.id==='casa')).toBe(false);
 // The Trocas button opens the same window from anywhere.
