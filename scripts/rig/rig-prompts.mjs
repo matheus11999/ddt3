@@ -101,6 +101,18 @@ function kitSteps(sex){
  return out;
 }
 const STEPS={...kitSteps('m'),...kitSteps('f')};
+// Head pieces painted ONCE (scripts/rig/headplate.py, matheus 21/10): one plate with the bald head in the three views;
+// headplate.py bake puts the piece in every cell of every context. `platePath` points outside the plates folder.
+const HEAD='test-results/rig/head',VIEWS='IMAGE 1 is the head plate of the game: the SAME bald chibi head in three views on magenta: LEFT cell the SIDE view (facing right), MIDDLE cell the 3/4 FRONT view (looking to the left of the picture, the right ear showing), RIGHT cell seen from the BACK (no face). Use case: precise-object-edit.';
+const SAME3='It is ONE object seen from three angles: identical design, colors, materials and size in the three views, each one turned like its head. Keep the faces, ears, head sizes and positions and the magenta background pixel-identical; never move or redraw a head.';
+for(const sex of ['m','f']){
+ const K=KITS[sex],x=sex==='m'?'':'-f';
+ STEPS[`head-hat${x}`]={plate:`head-${sex}`,platePath:`${HEAD}/head-${sex}.png`,refs:['public/assets/front/hat-starter.png'],text:[VIEWS,
+  `Paint ON each bald head ${CAP}. The cap sits ON the head: the crown wraps the top and back of the skull, the band rests just above the eyebrows, the brim points forward over the forehead and NEVER covers the eyes; on the back view we see the back of the crown with the adjustable strap and the brim pointing away. IMAGE 2 is the cap approved before in one view (same idea, paint it better and in volume).`,SAME3]};
+ STEPS[`head-hairB${x}`]={plate:`head-${sex}+hat-starter`,platePath:`${HEAD}/head-${sex}+hat-starter.png`,refs:[`public/assets/rig/${sex}/show/hair-basic-${sex==='m'?'male':'female'}-A.png`],text:[
+  VIEWS.replace('bald chibi head','chibi head wearing the starter cap'),
+  `Paint ${K.hairB}, in each view (on the back view the hair below the cap down to the nape). IMAGE 2 is the approved hairstyle without the cap. Keep the cap pixel-identical.`,SAME3.replace('a head','a head or the cap')]};
+}
 // matheus (21/10): the girl's back walk had the feet facing the viewer. Repaint the back cells with the feet from behind.
 for(const [n,cells] of [[2,'cells 2 to 6 (all except the top-left one)'],[3,'both cells']])STEPS[`virtual-outfit-${n}-f-back`]=step(`virtual-f-${n}`,[`${plates}/ref-virtual-f-${n}.png`,`${sheets}/show-kit-f.png`],[
  'IMAGE 1 is a plaza sheet of the game: gray mannequin bodies with flat GREEN heads, on magenta. IMAGE 3 is the approved girl of this kit (source of truth for the clothes).',
@@ -114,7 +126,7 @@ function codexBin(){
 }
 function generate(key){
  const dir=join(root,key),file=join(dir,`${key}.png`),s=STEPS[key];
- const args=['exec','--skip-git-repo-check','-s','workspace-write','-C',dir,'--add-dir',join(homedir(),'.codex','generated_images'),'-c','model_reasoning_effort="low"','-i',resolve(`${plates}/${s.plate}.png`)];
+ const args=['exec','--skip-git-repo-check','-s','workspace-write','-C',dir,'--add-dir',join(homedir(),'.codex','generated_images'),'-c','model_reasoning_effort="low"','-i',resolve(s.platePath??`${plates}/${s.plate}.png`)];
  for(const ref of s.refs)if(existsSync(ref))args.push('-i',resolve(ref));
  args.push('-');
  return new Promise(done=>{const child=spawn(codexBin(),args,{stdio:['pipe','pipe','pipe']});let out='';
@@ -124,7 +136,7 @@ function generate(key){
 const keys=Object.keys(STEPS).filter(key=>!only||only.includes(key));
 for(const key of keys){
  const dir=join(root,key),file=join(dir,`${key}.png`);mkdirSync(dir,{recursive:true});
- writeFileSync(join(dir,'prompt.txt'),[`Use your image generation tool to create exactly ONE image (an edit of IMAGE 1), then copy the resulting PNG to this exact path: ${file} . Do not edit any other files. When done, print the final file path.`,'',KEEP,POSE,...STEPS[key].text,STYLE_LOCK].join('\n\n'));
+ writeFileSync(join(dir,'prompt.txt'),[`Use your image generation tool to create exactly ONE image (an edit of IMAGE 1), then copy the resulting PNG to this exact path: ${file} . Do not edit any other files. When done, print the final file path.`,'',KEEP,...(STEPS[key].platePath?[]:[POSE]),...STEPS[key].text,STYLE_LOCK].join('\n\n'));
 }
 console.log(`Prompts em ${root}: ${keys.join(', ')}`);
 if(run)await Promise.all(keys.map(generate));
