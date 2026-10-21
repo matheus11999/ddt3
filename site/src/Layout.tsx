@@ -1,5 +1,5 @@
 import {useEffect,useLayoutEffect,useRef,useState} from 'react';
-import {Home,Images,LogOut,Menu,MessagesSquare,Settings,Users,X} from 'lucide-react';
+import {Home,Images,LogOut,Menu,MessagesSquare,Monitor,Settings,Smartphone,Users,X} from 'lucide-react';
 import type {Me} from './api';
 import {Avatar} from './Avatar';
 import {Link} from './router';
@@ -35,16 +35,45 @@ export function Topbar({me,route,onLogout}:{me:Me|null;route:string;onLogout:()=
  </header>;
 }
 
-export function Footer(){
+/** Rodapé em colunas: marca, o jogo, comunidade e conta, com a faixa da recompensa da beta em cima. */
+export function Footer({me}:{me:Me|null}){
+ const signedIn=!!me?.account;
+ const year=new Date().getFullYear();
  return <footer className="footer">
   <div className="footer-beta">
    <img src="/art/beta-reward.webp" alt="" aria-hidden="true" loading="lazy"/>
    <div><b>Recompensa da beta</b><span>Jogue durante a beta e ganhe cosméticos exclusivos que nunca mais voltam. Eles chegam no Correio do jogo quando a beta terminar.</span></div>
   </div>
-  <div className="footer-inner">
-   <img src="/art/logo.webp" alt="" width="120" height="71" loading="lazy"/>
-   <p>Bomb Masters está em <b>beta</b>. Viu algo pra melhorar? Conta no <Link to="/forum?categoria=sugestoes">fórum de sugestões</Link>.</p>
-   <p className="footer-small">© {new Date().getFullYear()} Bomb Masters. PC e celular, direto no navegador.</p>
+  <div className="footer-grid">
+   <div className="footer-brand">
+    <img src="/art/logo.webp" alt="Bomb Masters" width="150" height="89" loading="lazy"/>
+    <p>A mesma essência, só que melhor. Artilharia por turnos no navegador, sem pay to win.</p>
+    <ul className="footer-platforms"><li><Monitor size={15}/> PC</li><li><Smartphone size={15}/> Celular</li><li className="footer-beta-chip">Beta aberta</li></ul>
+   </div>
+   <nav className="footer-col" aria-label="O jogo">
+    <h3>O jogo</h3>
+    {signedIn?<Link to="/jogador">Jogar agora</Link>:<Link to="/jogador?cadastro">Criar conta</Link>}
+    <a href="/#prints">Telas do jogo</a>
+    {signedIn&&<Link to="/personagens">Meus personagens</Link>}
+   </nav>
+   <nav className="footer-col" aria-label="Comunidade">
+    <h3>Comunidade</h3>
+    <Link to="/forum">Fórum</Link>
+    <Link to="/forum?categoria=sugestoes">Sugestões</Link>
+    <Link to="/forum?categoria=duvidas">Dúvidas</Link>
+    <Link to="/forum?categoria=bugs">Bugs do beta</Link>
+    <Link to="/forum?categoria=guildas">Guildas</Link>
+   </nav>
+   <nav className="footer-col" aria-label="Conta">
+    <h3>Conta</h3>
+    {signedIn
+     ?<><Link to="/jogador">Minha página</Link><Link to="/configuracoes">Configurações</Link></>
+     :<><Link to="/jogador?entrar">Entrar</Link><Link to="/jogador?cadastro">Cadastrar</Link></>}
+   </nav>
+  </div>
+  <div className="footer-bottom">
+   <span>© {year} Bomb Masters. Todos os direitos reservados.</span>
+   <span>Em beta: tudo pode mudar. Viu algo pra melhorar? <Link to="/forum?categoria=sugestoes">Conta pra gente</Link>.</span>
   </div>
  </footer>;
 }

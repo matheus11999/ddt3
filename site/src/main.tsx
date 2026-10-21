@@ -29,7 +29,7 @@ function App(){
  return <>
   <Topbar me={me} route={route} onLogout={logout}/>
   <main id="conteudo">{page}</main>
-  <Footer/>
+  <Footer me={me}/>
  </>;
 }
 
