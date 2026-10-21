@@ -12,3 +12,4 @@ dump.rdb
 /tmp/
 site/art-source/*.png
 site/art-source/*.log
+site/uploads/

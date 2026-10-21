@@ -6,6 +6,7 @@ import {AuthCard} from './AuthCard';
 import {TopicRow} from './Forum';
 import {Link} from './router';
 import {Avatar} from './Avatar';
+import {PageHeader} from './PageHeader';
 
 const STATUS:Record<ServerCharacter['server']['status'],string>={online:'Online',maintenance:'Em manutenção',soon:'Em breve'};
 
@@ -53,17 +54,9 @@ export function PlayerPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  const {account}=me;
  const since=new Date(account.createdAt).toLocaleDateString('pt-BR',{day:'2-digit',month:'long',year:'numeric'});
  return <div className="player-page">
-  <section className="player-hero">
-   <div className="player-hero-art" aria-hidden="true"><img src="/art/hero-4.webp" alt=""/></div>
-   <div className="player-hero-inner">
-    <div>
-     <p className="eyebrow">Olá de novo</p>
-     <h1 className="title-3d player-name">{account.username}</h1>
-     <p className="player-meta"><span className="beta-chip">Membro do beta</span><span><CalendarDays size={16}/> Desde {since}</span></p>
-    </div>
-    <div className="player-play"><PlayButton me={me} big/></div>
-   </div>
-  </section>
+  <PageHeader art="player" eyebrow="Olá de novo" title={account.username} text={<p className="player-meta"><span className="beta-chip">Membro do beta</span><span><CalendarDays size={16}/> Desde {since}</span></p>}>
+   <PlayButton me={me} big/>
+  </PageHeader>
 
   <div className="player-grid">
    <section className="panel panel-wide forum-panel">
@@ -92,10 +85,11 @@ function SignInPage({onSignedIn}:{onSignedIn:()=>void}){
 export function CharactersPage({me,onSignedIn}:{me:Me|null;onSignedIn:()=>void}){
  if(!me)return <div className="page-loading" aria-busy="true"/>;
  if(!me.account)return <SignInPage onSignedIn={onSignedIn}/>;
- return <div className="forum-body narrow characters-page">
-  <h1 className="title-3d settings-title">Meus personagens</h1>
-  <p className="muted">Cada servidor tem o seu personagem. Onde você ainda não joga, ele nasce no primeiro acesso.</p>
-  <ul className="server-list cards">{me.servers.map(s=><ServerRow key={s.server.id} item={s}/>)}</ul>
+ return <div className="characters-page">
+  <PageHeader art="characters" eyebrow="Sua conta" title="Meus personagens" text="Cada servidor tem o seu personagem. Onde você ainda não joga, ele nasce no primeiro acesso.">
+   <PlayButton me={me}/>
+  </PageHeader>
+  <div className="forum-body narrow"><ul className="server-list cards">{me.servers.map(s=><ServerRow key={s.server.id} item={s}/>)}</ul></div>
  </div>;
 }
 
@@ -113,8 +107,9 @@ export function SettingsPage({me,onChanged}:{me:Me|null;onChanged:()=>void}){
   setPwBusy(true);try{await api.password(pw.current,pw.next);setPw({current:'',next:'',again:''});setPwMsg({ok:true,text:'Senha trocada. As outras sessões foram encerradas.'});}
   catch(err){setPwMsg({ok:false,text:(err as Error).message});}finally{setPwBusy(false);}
  };
- return <div className="forum-body narrow settings-page">
-  <h1 className="title-3d settings-title">Configurações</h1>
+ return <div>
+  <PageHeader art="settings" eyebrow="Sua conta" title="Configurações" text="Troque o seu avatar e a sua senha."/>
+  <div className="forum-body narrow settings-page">
   <section className="panel">
    <h2 className="panel-title">Avatar</h2>
    <p className="muted">É a imagem que aparece no topo do site e nos seus tópicos do fórum.</p>
@@ -139,5 +134,6 @@ export function SettingsPage({me,onChanged}:{me:Me|null;onChanged:()=>void}){
    <h2 className="panel-title">Conta</h2>
    <dl className="account-info"><div><dt>Usuário</dt><dd>{me.account.username}</dd></div><div><dt>E-mail</dt><dd>{me.account.email}</dd></div></dl>
   </section>
+ </div>
  </div>;
 }

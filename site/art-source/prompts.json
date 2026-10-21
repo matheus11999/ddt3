@@ -97,5 +97,45 @@
    "D:/APPS/ddt-site/public/assets/ui/coupon.png"
   ],
   "prompt": "Use your image generation tool at 1536x1024. Create ONE reward illustration on a flat solid pure magenta #FF00FF background (no shadow on the background) so it can be cut out. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, giant expressive heads, small bodies, saturated pigments, glossy tactile materials, crisp clean outlines, rich lighting. Maximum resolution, maximum detail and sharpness, no blur, no noise. No text, letters, numbers, logos, watermarks or UI anywhere. Never flat vector, never 3D render, never photorealistic. Subject: an ornate open treasure chest of purple lacquered wood with gold trim and a big glowing star emblem on the lid, overflowing with exclusive cosmetic items for chibi characters: a golden crown hat with gems, star-shaped sunglasses, a sparkling cape, a winged hair ribbon, a glowing pet egg, scattered gold coins and gems; golden light and sparkles burst out of the chest. Centered, whole object inside the frame with margin. Copy the final PNG to D:/APPS/ddt-site/site/art-source/beta-reward.png"
+ },
+ {
+  "id": "banner-forum",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/creation-scene.png",
+   "D:/APPS/ddt-site/site/art-source/hero-d.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 landscape. Create ONE website page-header background for my game Bomb Masters. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, rich light, maximum detail and sharpness. The image will be cropped to a wide banner (keep everything important in the middle horizontal band between y=25% and y=75%). The LEFT 45 percent must be calmer and darker so a big title can sit on it; the bottom edge fades into very dark violet #120a1f. No characters' faces close-up, no text, letters, numbers, logos, watermarks or UI. Never flat vector, 3D render or photo. Scene: a cozy fantasy tavern hall at night on a floating sky island: wooden beams, warm lanterns, a big notice board covered with pinned parchment notes and quest papers (blank, no writing), round tables with mugs, a fireplace, tiny chibi adventurers chatting in silhouette far in the background, big arched window showing a starry violet sky and floating islands. Copy the final PNG to D:/APPS/ddt-site/site/art-source/banner-forum.png"
+ },
+ {
+  "id": "banner-topic",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/creation-scene.png",
+   "D:/APPS/ddt-site/site/art-source/hero-d.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 landscape. Create ONE website page-header background for my game Bomb Masters. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, rich light, maximum detail and sharpness. The image will be cropped to a wide banner (keep everything important in the middle horizontal band between y=25% and y=75%). The LEFT 45 percent must be calmer and darker so a big title can sit on it; the bottom edge fades into very dark violet #120a1f. No characters' faces close-up, no text, letters, numbers, logos, watermarks or UI. Never flat vector, 3D render or photo. Scene: a close view of a carved wooden message board in a lantern-lit fantasy hall, with pinned blank parchment notes, ribbons, a quill and inkwell on a shelf, warm candle light and soft bokeh, violet night window on the right. Copy the final PNG to D:/APPS/ddt-site/site/art-source/banner-topic.png"
+ },
+ {
+  "id": "banner-player",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/creation-scene.png",
+   "D:/APPS/ddt-site/site/art-source/hero-d.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 landscape. Create ONE website page-header background for my game Bomb Masters. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, rich light, maximum detail and sharpness. The image will be cropped to a wide banner (keep everything important in the middle horizontal band between y=25% and y=75%). The LEFT 45 percent must be calmer and darker so a big title can sit on it; the bottom edge fades into very dark violet #120a1f. No characters' faces close-up, no text, letters, numbers, logos, watermarks or UI. Never flat vector, 3D render or photo. Scene: a grand floating sky plaza at golden hour seen from a balcony: banners, fountains, airships and colorful balloons over a gradient sky, a bright gate of an arena in the distance on the right, sparkles and light rays. Copy the final PNG to D:/APPS/ddt-site/site/art-source/banner-player.png"
+ },
+ {
+  "id": "banner-characters",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/creation-scene.png",
+   "D:/APPS/ddt-site/site/art-source/hero-d.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 landscape. Create ONE website page-header background for my game Bomb Masters. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, rich light, maximum detail and sharpness. The image will be cropped to a wide banner (keep everything important in the middle horizontal band between y=25% and y=75%). The LEFT 45 percent must be calmer and darker so a big title can sit on it; the bottom edge fades into very dark violet #120a1f. No characters' faces close-up, no text, letters, numbers, logos, watermarks or UI. Never flat vector, 3D render or photo. Scene: a fantasy dressing hall gallery: rows of glowing magic pedestals with wardrobes, mannequins in colorful adventurer outfits, hats and goggles on shelves, golden lamps and violet curtains, sky windows showing floating islands; no people. Copy the final PNG to D:/APPS/ddt-site/site/art-source/banner-characters.png"
+ },
+ {
+  "id": "banner-settings",
+  "refs": [
+   "D:/APPS/ddt-site/site/art-source/creation-scene.png",
+   "D:/APPS/ddt-site/site/art-source/hero-d.png"
+  ],
+  "prompt": "Use your image generation tool at 1536x1024 landscape. Create ONE website page-header background for my game Bomb Masters. Match the attached OWN game artwork exactly: same hand-painted DDTank-level chibi fantasy style, saturated pigments, glossy materials, crisp outlines, rich light, maximum detail and sharpness. The image will be cropped to a wide banner (keep everything important in the middle horizontal band between y=25% and y=75%). The LEFT 45 percent must be calmer and darker so a big title can sit on it; the bottom edge fades into very dark violet #120a1f. No characters' faces close-up, no text, letters, numbers, logos, watermarks or UI. Never flat vector, 3D render or photo. Scene: a cozy wizard workshop on a floating island at dusk: brass gears and clockwork machines, potion shelves, scrolls, glowing blue crystals, a small brass telescope by an arched window with a violet sky; warm lamp light. Copy the final PNG to D:/APPS/ddt-site/site/art-source/banner-settings.png"
  }
 ]

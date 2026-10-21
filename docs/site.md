@@ -56,3 +56,11 @@ O nome e a logo **dentro do jogo** (título da aba, telas de carregamento, texto
 - Site: hero `hero-4` (mapa Sonho Nevado, Codex com GPT-6 Astra médio: `CODEX_MODEL=gpt-6-astra CODEX_EFFORT=medium node site/art-source/run.mjs <id>`), Telas do jogo em carrossel (troca sozinho a cada 5 s, pausa com o mouse em cima, miniaturas embaixo).
 - Página do jogador: só o JOGAR, o card da recompensa da beta (baú `beta-reward.webp`) e a comunidade. Personagens por servidor ficaram em `/personagens` (Personagens no topo).
 - Campos preenchidos pelo navegador mantêm o fundo escuro (`:-webkit-autofill`).
+
+## Headers, anexos do fórum e segurança (21/10)
+
+- Toda página interna usa `PageHeader` (`site/src/PageHeader.tsx`): mesma altura, pintura própria do Codex em `site/public/art/banner-<página>.webp` (fórum, tópico, jogador, personagens, configurações), todas recortadas em 2560×900 por `node site/art-source/banners.mjs <ids>`.
+- Fórum: **Criar tópico abre uma janela** (modal) com categoria, título, mensagem e até 4 imagens ou vídeos; respostas também aceitam anexos (resposta só com imagem vale).
+- Anexos (`site/server/media.ts`): PNG, JPG, GIF, WEBP (até 5 MB) e MP4, WEBM (até 30 MB), 40 por conta por dia; o tipo é decidido pelos bytes do arquivo (SVG, HTML e o resto são recusados), o JPEG perde o EXIF/GPS, o nome é aleatório, o arquivo fica no volume `site-uploads` (`UPLOAD_DIR`) e só aparece quando o próprio autor o anexa (uma vez). `/media/<id>.<ext>` serve com o tipo certo, `nosniff` e CSP `sandbox`.
+- Login do site: 5 senhas erradas bloqueiam aquele usuário por 15 min, 20 por endereço (mesma regra do `/admin`); a troca de senha tem o mesmo limite. Testes: `tests/site-media.test.ts`.
+- Revisado em 21/10: rotas do `/admin` exigem sessão (só `/api/maps` é público, por ser lido pelo jogo), login do admin com scrypt, bloqueio e auditoria; nada no site ou no jogo usa `innerHTML`.
