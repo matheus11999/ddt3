@@ -1,11 +1,11 @@
 import {freeImage} from './spriteCache';
 
 /**
- * POW ready (bar full, not yet used): an oval of golden energy spikes around the fighter that flickers and pulses, as in
+ * POW ready (bar full, not yet used): a thin oval of soft golden light strands around the fighter that flickers and pulses, as in
  * DDTank (matheus, 21/10/2026). Painted by Codex on black and cut by scripts/build-pow-aura.py into a strip of
  * FRAMES flicker frames of SIZE px with real alpha; the game only plays the strip and breathes its scale and light.
  */
-const SRC='/assets/combat/pow-ready-aura.png',FRAMES=6,SIZE=256,FRAME_MS=95;
+const SRC='/assets/combat/pow-ready-aura.png',FRAMES=6,SIZE=256,FRAME_MS=120;
 /** Drawn size around a 112 px combat fighter: wider than tall, so the oval holds the head and the body lying behind it. */
 const WIDTH=180,HEIGHT=150;
 let image:HTMLImageElement|undefined;
@@ -22,7 +22,7 @@ export function drawPowReadyAura(c:CanvasRenderingContext2D,x:number,y:number,ti
  const t=motionPreference?.matches?0:time,grow=Math.min(1,Math.max(0,(time-since)/260));
  const beat=Math.sin(t/300),scale=(.86+.14*grow)*(1+beat*.045),frame=Math.floor(t/FRAME_MS)%FRAMES;
  const w=WIDTH*scale,h=HEIGHT*scale,cx=x,cy=y-40;
- c.save();c.globalAlpha*=grow*(.82+beat*.18);
+ c.save();c.globalAlpha*=grow*(.8+beat*.15);
  c.drawImage(art,frame*SIZE,0,SIZE,SIZE,cx-w/2,cy-h/2,w,h);
  c.restore();
 }
