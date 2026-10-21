@@ -6,7 +6,8 @@
 .fishing-hud kbd{padding:0 5px;border-radius:5px;background:#0003;font:800 11px Nunito,sans-serif}
 .fishing-icon{display:block}
 
-.fishing-exit{position:absolute;top:16px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font:900 15px Nunito,sans-serif}
+/* top: below the FPS and latency readout (NetStats). */
+.fishing-exit{position:absolute;top:24px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:12px;font:900 15px Nunito,sans-serif}
 
 /* Painel do pescador e bandeja de vara/isca: pintura do Codex (vidro azul com ouro, opção B,
    `scripts/build-fishing-ui.py`); nível, Pontos, EXP e nomes são escritos pelo jogo por cima. */
