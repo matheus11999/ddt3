@@ -72,3 +72,12 @@ html.mobile-landscape .game-frame>.chat-shell.lobby-chat{left:calc((10px + env(s
 html.mobile-landscape .game-frame>.chat-shell.lobby-chat .chat-collapse{width:40px;height:40px;top:-14px}
 html.mobile-landscape .game-frame .top-right .round-button{width:52px;height:52px}
 html.mobile-landscape .game-frame .top-right .round-button svg{width:24px;height:24px}
+/* Event buttons on the right (Chefão Mundial, Pescaria): painted icon with a dark label, stacked under the coins. */
+.game-frame>.lobby-event-buttons{position:absolute;top:96px;right:26px;z-index:4;display:flex;flex-direction:column;align-items:center;gap:10px}
+.lobby-event-buttons>.world-boss-button,html.mobile-landscape .lobby-event-buttons>.world-boss-button{position:relative;top:auto;right:auto;transform:none}
+.lobby-event-button{width:92px;height:104px;padding:0;display:flex;flex-direction:column;align-items:center;gap:2px}
+.lobby-event-button img{width:84px;height:84px;object-fit:contain;filter:drop-shadow(0 3px 3px #000a) drop-shadow(0 0 1px #2a0c04);transition:transform .2s}
+.lobby-event-button:hover:not(:disabled) img{transform:scale(1.06)}
+.lobby-event-button:disabled{filter:saturate(.4) brightness(.8)}
+.fishing-zone-button>.world-boss-button-time{background:linear-gradient(#1d4f8f,#0d2a52)}
+html.mobile-landscape .game-frame>.lobby-event-buttons{top:calc((52px + env(safe-area-inset-top)) / var(--game-scale));right:calc((10px + env(safe-area-inset-right)) / var(--game-scale));transform:scale(calc(.62 / var(--game-scale)));transform-origin:top right}

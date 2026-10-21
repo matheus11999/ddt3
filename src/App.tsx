@@ -51,7 +51,7 @@ export default function App(){
  const openInventory=useCallback(()=>{setPanel('inventory');audio.play('click');},[]);
  const openForge=useCallback((item?:string)=>{if(client.state.room||client.state.zone==='fishing'){client.update({error:client.state.zone==='fishing'?'O ferreiro fica na Praça Celeste.':'Volte à rua para visitar o ferreiro.'});return;}setForgeItem(typeof item==='string'?item:undefined);setPanel(null);setHeadingToForge(true);client.send({type:'move',...SMITH_POSITION});audio.play('click');},[]);
  const openShop=useCallback(()=>{setPanel('shop');audio.play('click');},[]);
- const lobbyAction=useCallback((action:LobbyAction)=>{if(action==='arena'||action==='practice')openArena();else if(action==='shop')openShop();else if(action==='storage')openInventory();else openForge();},[openArena,openShop,openInventory,openForge]);
+ const lobbyAction=useCallback((action:LobbyAction)=>{if(action==='hall'){client.openHall();audio.play('click');}else if(action==='arena'||action==='practice')openArena();else if(action==='shop')openShop();else if(action==='storage')openInventory();else openForge();},[openArena,openShop,openInventory,openForge]);
  useEffect(()=>{if(!headingToForge)return;const me=state.players.find(p=>p.id===state.profile?.id);if(me&&Math.hypot(me.x-SMITH_POSITION.x,me.y-SMITH_POSITION.y)<125){setHeadingToForge(false);setPanel('forge');}},[headingToForge,state.players,state.profile?.id]);
  useEffect(()=>{if(state.room)setPanel(v=>v==='arena'||v==='expeditions'?null:v);},[state.room]);
  useEffect(()=>{if(state.battle){setPanel(null);client.closeMail();client.closeAuction();client.closeGuild();client.closeWorldBoss();client.closeHall();client.closePets();}},[state.battle?.id]);

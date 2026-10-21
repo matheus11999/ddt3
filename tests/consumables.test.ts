@@ -8,6 +8,8 @@ import {ICE_FROZEN_TURNS,iceTargets,RAGE_CHARGE} from '../shared/ice';
 import {powerUpConflict} from '../shared/powerUps';
 import type {Profile,ServerEvent,Shot} from '../shared/protocol';
 import {WORLD} from '../shared/physics';
+import {initialAbilities} from '../shared/abilities';
+import type {AbilityLoadout} from '../shared/abilities';
 
 async function battle(){
  const profiles=new Map<string,Profile>(),events=new Map<string,ServerEvent[]>(),store={getProfile:async(id:string)=>profiles.get(id)??null,finishMatch:async()=>{}} as unknown as ProfileStore;
@@ -20,27 +22,30 @@ async function battle(){
  const shooter=match.state.players.find(player=>player.id===match.state.turnId)!,target=match.state.players.find(player=>player.id!==shooter.id)!;
  const errors=()=>events.get(shooter.id)!.filter((event):event is Extract<ServerEvent,{type:'error'}>=>event.type==='error').map(event=>event.message);
  const internals=game as unknown as {applyImpact(m:unknown,i:unknown):void;nextTurn(m:unknown):void};
+ // Enfurecer and Gelo are room items (21/10/2026): the shooter prepared both.
+ const loadout:AbilityLoadout=['rage','ice','heal'];shooter.abilityLoadout=loadout;shooter.abilities=initialAbilities(loadout);
  return {game,match,shooter,target,errors,applyImpact:(i:unknown)=>internals.applyImpact(match,i),nextTurn:()=>internals.nextTurn(match)};
 }
 
-test('Enfurecer adds 100 of the 200 POW points (DDTank AddDander 100), costs 120 Vigor and 450 Delay, and stops at a full bar',async()=>{
+test('Enfurecer is a room item: adds 100 of the 200 POW points (DDTank AddDander 100), 450 Delay, no Vigor, one use per match',async()=>{
  const f=await battle();f.shooter.powerCharge=60;const vigor=f.shooter.stamina,delay=f.shooter.delay!;
- await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});
- assert.equal(RAGE_CHARGE,100);assert.equal(f.shooter.powerCharge,60+RAGE_CHARGE);assert.equal(f.shooter.stamina,vigor-120);assert.equal(f.shooter.delay,delay+450);assert.equal(f.shooter.powerArmed,false,'using the POW is its own action');
- f.shooter.stamina=1000;await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.equal(f.shooter.powerCharge,200,'the excess is dropped');
- await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.match(f.errors().at(-1)!,/já está cheia/);assert.equal(f.shooter.boosts.filter(id=>id==='rage').length,2);
+ await f.game.command(f.shooter.id,{type:'boost',boost:'rage'});assert.match(f.errors().at(-1)!,/itens/);assert.equal(f.shooter.powerCharge,60,'the tool bar no longer has it');
+ await f.game.command(f.shooter.id,{type:'ability',ability:'rage'});
+ assert.equal(RAGE_CHARGE,100);assert.equal(f.shooter.powerCharge,60+RAGE_CHARGE);assert.equal(f.shooter.stamina,vigor);assert.equal(f.shooter.delay,delay+450);assert.equal(f.shooter.powerArmed,false,'using the POW is its own action');assert.equal(f.shooter.abilities!.rage,0);
+ await f.game.command(f.shooter.id,{type:'ability',ability:'rage'});assert.match(f.errors().at(-1)!,/já foi usada/);
+ const full=await battle();full.shooter.powerCharge=200;await full.game.command(full.shooter.id,{type:'ability',ability:'rage'});assert.match(full.errors().at(-1)!,/já está cheia/);assert.equal(full.shooter.abilities!.rage,1,'a refused use is not spent');
 });
 
 test('Gelo replaces the shot: no other tool, no POW, no homing; Enfurecer still fits',async()=>{
  assert.match(powerUpConflict(['extra1'],'ice')!,/gelo/i);assert.match(powerUpConflict(['ice'],'damage50')!,/gelo/i);assert.match(powerUpConflict(['ice'],'ice')!,/já foi usado/);
  assert.equal(powerUpConflict(['rage'],'ice'),undefined);assert.equal(powerUpConflict(['ice'],'rage'),undefined);
  const f=await battle();f.shooter.powerCharge=200;f.shooter.stamina=1000;
- await f.game.command(f.shooter.id,{type:'power'});await f.game.command(f.shooter.id,{type:'boost',boost:'ice'});assert.match(f.errors().at(-1)!,/POW/);assert.deepEqual(f.shooter.boosts,[]);
+ await f.game.command(f.shooter.id,{type:'power'});await f.game.command(f.shooter.id,{type:'ability',ability:'ice'});assert.match(f.errors().at(-1)!,/POW/);assert.deepEqual(f.shooter.boosts,[]);
 });
 
 test('ice ball: one projectile, no crater, no damage; enemies it touches freeze, allies do not',async()=>{
  const f=await battle();f.shooter.stamina=1000;const terrain=Uint8Array.from(f.match.terrain);
- await f.game.command(f.shooter.id,{type:'boost',boost:'ice'});await f.game.command(f.shooter.id,{type:'fire',angle:60,power:40});
+ await f.game.command(f.shooter.id,{type:'ability',ability:'ice'});await f.game.command(f.shooter.id,{type:'fire',angle:60,power:40});
  const shot=f.match.activeShot!;assert.equal(shot.projectiles.length,1);assert.equal(shot.projectiles[0].kind,'ice');
  const impact=f.match.pendingImpacts![0];Object.assign(f.target,{x:impact.mark.x,y:impact.mark.y+30});
  f.applyImpact(impact);

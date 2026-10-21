@@ -1,4 +1,5 @@
-export const ABILITY_IDS=['heal','homing','invisibility'] as const;
+/** Enfurecer and Gelo are battle items too (21/10/2026, matheus): chosen in the room like the abilities, limited uses per match. */
+export const ABILITY_IDS=['heal','homing','invisibility','rage','ice'] as const;
 export type AbilityId=typeof ABILITY_IDS[number];
 export type AbilityLoadout=[AbilityId|null,AbilityId|null,AbilityId|null];
 export const DEFAULT_ABILITY_LOADOUT=['heal','homing','invisibility'] as const;
@@ -21,9 +22,13 @@ export const HIDDEN_POSITION=-10000;
 export const ABILITIES:readonly {id:AbilityId;name:string;detail:string;uses:number;cost:number;/** Delay added when used (turn order, shared/turnDelay.ts). */delay:number}[]=[
  {id:'heal',name:'Cura',detail:'Recupera até 300 de vida. Uma vez por partida.',uses:1,cost:0,delay:150},
  {id:'homing',name:'Mira assistida',detail:'Ímã: todo projétil do tiro que passar a até 220 de um inimigo trava nele e curva até o alvo. Uma vez por partida.',uses:1,cost:0,delay:100},
- {id:'invisibility',name:'Invisibilidade',detail:'Oculta sua posição dos inimigos por três turnos próprios completos. Uma vez por partida.',uses:1,cost:0,delay:150}
+ {id:'invisibility',name:'Invisibilidade',detail:'Oculta sua posição dos inimigos por três turnos próprios completos. Uma vez por partida.',uses:1,cost:0,delay:150},
+ {id:'rage',name:'Enfurecer',detail:'Enche 50% da barra de POW na hora. Uma vez por partida.',uses:1,cost:0,delay:450},
+ {id:'ice',name:'Gelo',detail:'O disparo vira uma bomba de gelo: congela os inimigos atingidos por 2 turnos, sem dano. Uma vez por partida.',uses:1,cost:0,delay:700}
 ];
-export function initialAbilities(loadout?:unknown):Record<AbilityId,number>{const slots=normalizeAbilityLoadout(loadout);return {heal:slots.includes('heal')?1:0,homing:slots.includes('homing')?1:0,invisibility:slots.includes('invisibility')?1:0};}
+export function initialAbilities(loadout?:unknown):Record<AbilityId,number>{const slots=normalizeAbilityLoadout(loadout);return Object.fromEntries(ABILITIES.map(ability=>[ability.id,slots.includes(ability.id)?ability.uses:0])) as Record<AbilityId,number>;}
+/** Abilities that are really the old bar tools: they arm the same boost on the server (Enfurecer, Gelo). */
+export const TOOL_ABILITIES:readonly AbilityId[]=['rage','ice'];
 export interface AbilityEffect {playerId:string;ability:AbilityId|'flight';x:number;y:number;amount?:number;at:number;hidden?:boolean;}
 
 /** Enemies the homing magnet may lock onto. Invisible enemies are included on purpose:

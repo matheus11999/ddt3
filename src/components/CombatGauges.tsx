@@ -104,3 +104,27 @@ export function WindGauge({wind,last}:{wind:number;last:number|null}){
   {last!==null&&<div className="wind-last" data-testid="last-wind"><small>ÚLTIMO</small><b>{Math.abs(last).toFixed(1)}</b><WindArrow wind={last}/></div>}
  </div>;
 }
+
+/** Phones: the hold-to-fire button takes the angle dial's place (matheus, 21/10/2026). Same gold bezel and rivets as
+ * the dial; a ring fills with the force while it is held. It also defines the gold the angle arrows use. */
+export function TouchFireDial({angle,power,charging,ready}:{angle:number;power:number;charging:boolean;ready:boolean}){
+ const ring=2*Math.PI*44,fill=charging?Math.max(0,Math.min(100,power))/100:0;
+ return <svg viewBox="0 0 120 120" aria-hidden="true" className="touch-fire-dial">
+  <defs>
+   <linearGradient id="angle-gauge-gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#fff3b8"/><stop offset=".28" stopColor="#f2c25a"/><stop offset=".62" stopColor="#c27a22"/><stop offset="1" stopColor="#6e3a0c"/></linearGradient>
+   <radialGradient id="touch-fire-face" cx="50%" cy="30%" r="72%"><stop offset="0" stopColor="#2f6a98"/><stop offset=".55" stopColor="#123557"/><stop offset="1" stopColor="#06162b"/></radialGradient>
+   <linearGradient id="touch-fire-charge" x1="0" y1="1" x2="1" y2="0"><stop offset="0" stopColor="#ffe27a"/><stop offset=".6" stopColor="#ff9a2a"/><stop offset="1" stopColor="#e2261b"/></linearGradient>
+  </defs>
+  <circle className="angle-gauge-shadow" cx="60" cy="62" r="58"/>
+  <circle className="angle-gauge-bezel" cx="60" cy="60" r="57" fill="url(#angle-gauge-gold)"/>
+  <circle className="angle-gauge-bevel" cx="60" cy="60" r="54.5"/>
+  {[30,90,150,210,270,330].map(degree=>{const p=polar(60,60,1,degree,55.6);return <g key={degree} className="angle-gauge-rivet"><circle cx={p.x} cy={p.y} r="1.9"/><circle cx={p.x-.5} cy={p.y-.6} r=".7"/></g>;})}
+  <circle className="angle-gauge-face" cx="60" cy="60" r="52" fill="url(#touch-fire-face)"/>
+  <circle className="touch-fire-track" cx="60" cy="60" r="44"/>
+  <circle className="touch-fire-charge" cx="60" cy="60" r="44" stroke="url(#touch-fire-charge)" strokeDasharray={`${ring*fill} ${ring}`} transform="rotate(-90 60 60)"/>
+  <ellipse className="angle-gauge-glass" cx="52" cy="30" rx="30" ry="15"/>
+  <text className="touch-fire-angle" x="60" y="37">{angle}°</text>
+  <text className={`touch-fire-main ${charging?'is-power':''}`} x="60" y={charging?75:69}>{charging?power:'FORÇA'}</text>
+  <text className="touch-fire-hint" x="60" y="90">{charging?'SOLTE':ready?'SEGURE':'AGUARDE'}</text>
+ </svg>;
+}
