@@ -45,7 +45,7 @@ Andar para longe recolhe a linha; trocar vara/isca pode a qualquer hora, menos n
 
 - Raridade vem da dificuldade do peixe (`fishRarity`, `FISH_RARITIES`): 1 Comum (cinza), 2 Normal (verde), 3 Raro (azul), 4 Épico (roxo), 5 Lendário (dourado).
 - Resultado da pesca com selo e borda na cor da raridade; Raro ganha brilho, Épico brilho com faixa de luz e faíscas, Lendário tudo isso maior e um clarão dourado nas bordas da tela. Épico e Lendário são anunciados no chat Mundo do canal ("Fulano pescou Koi Celeste (Épico, 3,4 kg)!").
-- Botão Histórico (ao lado de Trocas) abre as últimas 30 capturas (`FishingProfile.history`, `FISHING_HISTORY`), com raridade, kg, pontos, EXP, selo Auto e há quanto tempo. A Sacola pinta cada peixe na cor da raridade.
+- Botão Histórico (ao lado de Trocas) abre as últimas 30 capturas (`FishingProfile.history`, `FISHING_HISTORY`), com raridade, kg, pontos, EXP e há quanto tempo, sem barra de rolagem visível. Cada sessão automática vira uma linha só ("Pescaria automática", tempo, peixes, prêmios, há quanto tempo) com o botão **Ver**, que abre o mesmo resumo de quando o Auto é desligado (21/10, pedido do matheus); as sessões ficam no perfil (`FishingProfile.autoRuns`, últimas `FISHING_AUTO_RUNS`=10), somadas a cada lançamento no servidor (`FishSettle.run`), então valem mesmo se a conexão cair. Prévia: `node scripts/preview-fishing-history.mjs`. A Sacola pinta cada peixe na cor da raridade.
 - Prévia: `npx tsx scripts/preview-fishing-rarity.mjs` (jogo rodando).
 
 ## Nível de pescador

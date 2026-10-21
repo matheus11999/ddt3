@@ -221,7 +221,7 @@ export class Game {
   try{
    const kg=fish&&success?fishWeight(fish,this.fishRoll(),quality):0;
    const drops=fish&&success?rollRodDrops(ROD_BY_ID.get(f.rod)??ROD_BY_ID.get(STARTER_ROD)!,auto,this.fishRoll):[];
-   const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish,kg):{points:catchPoints(fish,kg,quality),xp:catchXp(fish,kg)})}}:{})});
+   const outcome=await this.store.fishSettle!(p.profile.id,{...(drops.length?{drops}:{}),...(auto?{auto:true,...(p.fishAutoRun?{run:p.fishAutoRun.since}:{})}:{}),...(fish&&success?{fish:{id:fish.id,kg,...(auto?autoReward(fish,kg):{points:catchPoints(fish,kg,quality),xp:catchXp(fish,kg)})}}:{})});
    p.profile=outcome.profile;caught=outcome.catch;prize=outcome.prize;prizeXp=outcome.xp??0;prizeLevel=outcome.levelUp;this.emit(p,{type:'profile',profile:p.profile});
    const run=auto?p.fishAutoRun:undefined;
    if(run){run.casts++;
