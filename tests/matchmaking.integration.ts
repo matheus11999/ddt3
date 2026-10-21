@@ -88,7 +88,7 @@ async function run(){
 
   // Reach the normal turn limit over the real protocol; no client can force winner, HP or rewards.
   let battle=lastBattle!;
-  for(let turn=0;turn<85&&battle.phase!=='finished';turn++){
+  for(let turn=0;turn<170&&battle.phase!=='finished';turn++){
    const current=clients.find(client=>client.profile.id===battle.turnId)!;
    const before=battle.turnNumber,mark=current.send({type:'pass'});
    battle=(await current.wait('battle',e=>!!e.battle&&(e.battle.phase==='finished'||e.battle.turnNumber>before),mark)).battle!;
@@ -108,7 +108,7 @@ async function run(){
    const response=await fetch(`${BASE_URL}/api/session`,{headers:{Cookie:client.session.cookie},signal:AbortSignal.timeout(10000)});assert.equal(response.status,200);
    const {profile}=await response.json();assert.ok(profile.matches>=1);assert.ok(finishingIds.includes(profile.id));
   }
-  checks.push('80-turn finish, eight automatic exclusive rewards persisted, automatic restoration of both original parties and reconnect to the same waiting room');
+  checks.push('160-turn finish (4x4 cap), eight automatic exclusive rewards persisted, automatic restoration of both original parties and reconnect to the same waiting room');
   await leaveAll();
   const report={ok:true,baseUrl:BASE_URL,checks,mapsObserved:maps,concurrentClients:clients.length,durationMs:Math.round(performance.now()-started),testPlayerIds:[...owned]};
   await mkdir('test-results',{recursive:true});await writeFile('test-results/matchmaking-integration.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
