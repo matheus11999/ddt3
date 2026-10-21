@@ -1,9 +1,10 @@
 import {SHOP_OFFER_BY_ID,MAX_SHOP_ITEMS,CONSUMABLE_OFFER_BY_ID,isConsumableOffer} from '../shared/shop';
+import {characterNameError} from '../shared/characterName';
 import {canColorEyes,COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKETS,STARTER_COLOR_TICKETS,equippedColors,isColorSlot,normalizeBodyColors,normalizeItemColors} from '../shared/colors';
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,newCharacterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,canComposeStat,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -164,15 +165,26 @@ export class Store implements ProfileStore {
  CREATE TABLE IF NOT EXISTS fishing_week_records(week char(10) NOT NULL,player_id uuid NOT NULL REFERENCES players(id) ON DELETE CASCADE,name varchar(24) NOT NULL,fish varchar(40) NOT NULL,kg real NOT NULL,caught_at timestamptz NOT NULL DEFAULT now(),PRIMARY KEY(week,player_id));
  CREATE INDEX IF NOT EXISTS fishing_week_top ON fishing_week_records(week,kg DESC,caught_at);
  DELETE FROM sessions WHERE expires_at<now();
+ CREATE INDEX IF NOT EXISTS players_name_lower ON players(lower(name));
  `);}
  hash(token:string){return createHash('sha256').update(token).digest('hex');}
  async session(token:string|undefined):Promise<Profile|null>{if(!token||!/^[0-9a-f]{64}$/.test(token))return null;const r=await this.pool.query('SELECT p.profile,p.name FROM sessions s JOIN players p ON p.id=s.player_id WHERE token_hash=$1 AND expires_at>now()',[this.hash(token)]);return r.rows[0]?normalizeProfile({...r.rows[0].profile,name:r.rows[0].name}):null;}
+ /** True when a character already uses this name (any case). */
+ async nameTaken(name:string){return (await this.pool.query('SELECT 1 FROM players WHERE lower(name)=lower($1) LIMIT 1',[name.trim()])).rows.length>0;}
+ /**
+  * A new character. With a chosen `name` (the creation screen) it is validated, must be free on this server, and the
+  * character starts with the new-character kit (newCharacterEquipment); without one it is a nameless legacy guest.
+  */
  async createGuest(gender:CharacterGender='male',name?:string){
   if(!CHARACTER_GENDERS.includes(gender))throw Error('Escolha um personagem masculino ou feminino.');
+  if(name!==undefined){name=name.trim();const invalid=characterNameError(name);if(invalid)throw Error(invalid);}
   const id=randomUUID(),token=randomBytes(32).toString('hex');
-  const equipment=starterEquipment(gender);
-  const profile=normalizeProfile({id,name:name??`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set([...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES])].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
-  const conn=await this.pool.connect();try{await conn.query('BEGIN');await conn.query('INSERT INTO players(id,name,profile) VALUES($1,$2,$3)',[id,profile.name,profile]);await conn.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),id]);await conn.query('COMMIT');}catch(e){await conn.query('ROLLBACK');throw e;}finally{conn.release();}
+  const equipment=name!==undefined?newCharacterEquipment(gender):starterEquipment(gender);
+  const owned=name!==undefined?Object.values(equipment):[...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES];
+  const profile=normalizeProfile({id,name:name??`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set(owned)].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
+  const conn=await this.pool.connect();try{await conn.query('BEGIN');
+   if(name!==undefined){await conn.query('SELECT pg_advisory_xact_lock(hashtext(lower($1)))',[name]);if((await conn.query('SELECT 1 FROM players WHERE lower(name)=lower($1) LIMIT 1',[name])).rows.length)throw Error('Esse nome já está em uso neste servidor.');}
+await conn.query('INSERT INTO players(id,name,profile) VALUES($1,$2,$3)',[id,profile.name,profile]);await conn.query("INSERT INTO sessions VALUES($1,$2,now()+interval '30 days')",[this.hash(token),id]);await conn.query('COMMIT');}catch(e){await conn.query('ROLLBACK');throw e;}finally{conn.release();}
   return {token,profile};
  }
  /** A new 30-day session for an existing player (an account opening the game from the site). */

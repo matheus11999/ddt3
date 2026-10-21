@@ -201,6 +201,15 @@ export function battleEquipment(eq:Equipment):Equipment {
 export function starterEquipment(gender:CharacterGender):Equipment {
  return gender==='female'?{...DEFAULT_EQUIPMENT,face:'face-smile',hair:'hair-ponytail',hat:'hat-ruby',outfit:'outfit-explorer'}:{...DEFAULT_EQUIPMENT};
 }
+/**
+ * What a character created from now on wears and owns (pedido do matheus, 21/10): only the Vento Celeste and the basic
+ * face, hair and outfit of its gender, no hat, glasses or costumes. Older characters keep what they have.
+ */
+export const NEW_CHARACTER_WEAPON='wind-shuriken';
+export function newCharacterEquipment(gender:CharacterGender):Equipment {
+ const base=starterEquipment(gender);
+ return {...DEFAULT_EQUIPMENT,weapon:NEW_CHARACTER_WEAPON,face:base.face,outfit:base.outfit,hair:gender==='female'?'hair-ponytail':'hair-undercut',hat:'hat-none',glasses:'glasses-none',costume:'costume-none',upgrade:0};
+}
 /** Retired prototypes are rejected by the live catalog; existing ownership is exchanged once. */
 export const RETIRED_COSMETIC_REPLACEMENTS:Readonly<Record<string,string>>={
  'hat-pilot':'hat-cap','hat-knight':'hat-tide',
