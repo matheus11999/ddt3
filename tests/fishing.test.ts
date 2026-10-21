@@ -108,26 +108,39 @@ test('baits are gone: leftover Iscas Brilhantes come back as Pontos de Pesca',()
  assert.equal(f.points,10+7*6);assert.equal('bait' in f,false);assert.equal('baits' in f,false);
 });
 
-test('rods bring their own prizes: gold, Cupons and fragments, a quarter in automatic, never past the daily caps',()=>{
+test('one reward per cast: the rarest rod prize comes instead of the fish, half in automatic, never past the daily caps',()=>{
  assert.deepEqual(rollRodDrops(ROD_BY_ID.get('rod-bamboo')!,false,()=>0),[]);
  const royal=ROD_BY_ID.get('rod-royal')!;
- assert.deepEqual(rollRodDrops(royal,false,()=>0).map(d=>d.kind),['gold','coupons','fragments']);
+ // Nunca peixe, Cupom e Ouro juntos (pedido do matheus): no máximo um prêmio, o mais raro.
+ assert.deepEqual(rollRodDrops(royal,false,()=>0),[{kind:'coupons',amount:1}]);
  // A roll just under the manual chance lands by hand but not in automatic.
  const fragment=royal.drops!.find(d=>d.kind==='fragment')!.chance,justUnder=()=>fragment*.9;
  assert.ok(rollRodDrops(royal,false,justUnder).some(d=>d.kind==='fragments'));
  assert.ok(!rollRodDrops(royal,true,justUnder).some(d=>d.kind==='fragments'));
  const p=normalizeProfile({id:randomUUID(),name:'Pescador',gold:0}),coupons=p.coupons,day=Date.UTC(2026,9,20,15);
  const catchWith=(drops:Parameters<typeof settleFishing>[1]['drops'],at=day)=>settleFishing(p,{fish:{id:'lambari-dourado',kg:.3,points:2,xp:20},drops,at});
- const first=catchWith([{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
- assert.deepEqual(first.catch!.drops,[{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
- assert.equal(p.gold,150);assert.equal(p.coupons,coupons+1);assert.equal(p.fragments[FISHING_WEAPON],1);
- assert.deepEqual(p.fishing.history[0].drops,first.catch!.drops);
- for(let i=0;i<20;i++)catchWith([{kind:'gold',amount:150},{kind:'coupons',amount:1},{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);
+ const first=catchWith([{kind:'coupons',amount:1}]);
+ assert.deepEqual(first.prize,{kind:'coupons',amount:1});assert.equal(first.catch,undefined);assert.equal(first.xp,20);
+ assert.equal(p.coupons,coupons+1);assert.equal(p.fishing.bag.length,0);assert.equal(p.fishing.total,0);assert.equal(p.fishing.xp,20);
+ for(let i=0;i<20;i++){catchWith([{kind:'coupons',amount:1}]);catchWith([{kind:'gold',amount:150}]);catchWith([{kind:'fragments',amount:1,weapon:FISHING_WEAPON}]);}
  assert.equal(p.gold,FISHING_DAILY_CAPS.gold);assert.equal(p.coupons,coupons+FISHING_DAILY_CAPS.coupons);assert.equal(p.fragments[FISHING_WEAPON],FISHING_DAILY_CAPS.fragments);
- assert.equal(catchWith([{kind:'coupons',amount:1}]).catch!.drops,undefined);
+ // Cap full: the fish comes up instead.
+ const capped=catchWith([{kind:'coupons',amount:1}]);assert.equal(capped.prize,undefined);assert.equal(capped.catch!.fish,'lambari-dourado');
  // The next Brasília day starts over.
  const tomorrow=day+24*3600_000;assert.notEqual(fishingDay(tomorrow),fishingDay(day));
- assert.deepEqual(catchWith([{kind:'coupons',amount:1}],tomorrow).catch!.drops,[{kind:'coupons',amount:1}]);
+ assert.deepEqual(catchWith([{kind:'coupons',amount:1}],tomorrow).prize,{kind:'coupons',amount:1});
+});
+
+test('switching automatic off sends the run summary: time, fish by kind and prizes',async()=>{
+ const f=fixture(),spot=FISHING_SPOTS[4],peer=f.game.peers.get(f.a.id)!;f.game.fishRoll=()=>.5;
+ await f.game.command(f.a.id,{type:'zone',zone:'fishing'});peer.x=spot.x;peer.y=spot.y;
+ await f.game.command(f.a.id,{type:'fish-auto',on:true});
+ await f.game.command(f.a.id,{type:'fish-cast',spot:spot.id});
+ for(let round=0;round<2;round++){f.game.tick(peer.fishing!.biteAt);f.game.tick(peer.fishing!.resolveAt);await flush();f.game.tick(peer.fishing!.since+RESULT_MS);}
+ await f.game.command(f.a.id,{type:'fish-auto',on:false});
+ const s=last(f.events.get(f.a.id)!,'fish-auto-summary')!.summary;
+ assert.equal(s.casts,2);assert.equal(Object.values(s.fish).reduce((a,b)=>a+b,0)+s.missed+(s.gold||s.coupons||s.fragments?1:0)>=2,true);
+ assert.ok(s.until>=s.since);assert.equal(peer.fishAutoRun,undefined);
 });
 
 test('the fisher level gates every rod in the Casa de Pesca and never helps the rod prizes',()=>{

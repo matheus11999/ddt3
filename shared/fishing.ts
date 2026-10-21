@@ -46,16 +46,19 @@ export const FISHING_DAILY_CAPS={gold:2000,coupons:5,fragments:10} as const;
 export type FishingDropKind=keyof typeof FISHING_DAILY_CAPS;
 /** A prize that came up with a fish (what was actually given, after the daily cap). */
 export interface FishingDrop {kind:FishingDropKind;amount:number;/** Fragments: the weapon they belong to. */weapon?:string;}
-/** Rolls the rod's prizes for one catch; `roll` is the server's [0,1) generator. */
+const DROP_ORDER={coupons:0,fragment:1,gold:2} as const;
+/**
+ * Rolls the rod's prize for one catch: at most one (pedido do matheus, 20/10), the rarest that comes up
+ * (Cupom, then Fragmento, then Ouro). `roll` is the server's [0,1) generator.
+ */
 export function rollRodDrops(rod:FishingRod,auto:boolean,roll:()=>number):FishingDrop[]{
- const out:FishingDrop[]=[];
- for(const d of rod.drops??[]){
+ for(const d of [...rod.drops??[]].sort((a,b)=>DROP_ORDER[a.kind]-DROP_ORDER[b.kind])){
   if(roll()>=d.chance*(auto?AUTO_EFFICIENCY:1))continue;
-  if(d.kind==='gold')out.push({kind:'gold',amount:d.min+Math.floor(roll()*(d.max-d.min+1))});
-  else if(d.kind==='coupons')out.push({kind:'coupons',amount:d.amount});
-  else out.push({kind:'fragments',amount:d.amount,weapon:d.weapon});
+  if(d.kind==='gold')return [{kind:'gold',amount:d.min+Math.floor(roll()*(d.max-d.min+1))}];
+  if(d.kind==='coupons')return [{kind:'coupons',amount:d.amount}];
+  return [{kind:'fragments',amount:d.amount,weapon:d.weapon}];
  }
- return out;
+ return [];
 }
 const DAY=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'});
 /** The Brasília calendar day of a time, as the daily caps count it. */
@@ -288,8 +291,10 @@ export const MAX_FISHING_BUY=20;
 // ── What the client sees ──
 export type FishingPhase='idle'|'waiting'|'bite'|'result';
 /** `points`: what the fish is worth when sold at the Casa de Pesca; `sold`: the Sacola was full, so it was sold on the spot. */
-export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;sold?:boolean;/** Its place in the Sacola. */bagId?:string;/** Rod prizes that came up with the fish. */drops?:FishingDrop[];/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
+export interface FishingCatch {fish:string;kg:number;points:number;xp:number;record:boolean;first:boolean;sold?:boolean;/** Its place in the Sacola. */bagId?:string;/** Rod prizes that came up with the fish (old catches; now a prize replaces the fish). */drops?:FishingDrop[];/** Fisher level reached with this catch, when it went up. */levelUp?:number;}
+/** What one run of automatic fishing brought (shown when it is switched off): time, each fish by kind, the prizes. */
+export interface AutoFishingSummary {since:number;until:number;casts:number;missed:number;fish:Record<string,number>;points:number;xp:number;gold:number;coupons:number;fragments:number;best?:{fish:string;kg:number};}
 /** My own fishing session: the bar runs from `start` (server time); `press`/`hits`/`misses` count the presses so far. */
-export interface FishingView {spot:string;phase:FishingPhase;auto:boolean;since:number;challenge?:FishChallenge&{start:number;press:number;misses:number;grades:PressGrade[]};result?:{success:boolean;catch?:FishingCatch;fish?:string};}
+export interface FishingView {spot:string;phase:FishingPhase;auto:boolean;since:number;challenge?:FishChallenge&{start:number;press:number;misses:number;grades:PressGrade[]};result?:{success:boolean;catch?:FishingCatch;fish?:string;/** The rod's prize came up instead of the fish. */prize?:FishingDrop;xp?:number;levelUp?:number};}
 /** What other players see of someone fishing (rod out, float, the fish coming out of the water). */
 export interface FishingPose {spot:string;phase:FishingPhase;since:number;success?:boolean;fish?:string;/** Fishing in automatic mode: everyone sees the seal over this fisher. */auto?:boolean;}
