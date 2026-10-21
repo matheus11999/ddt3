@@ -76,8 +76,8 @@ main{min-height:70vh}
 .hero{position:relative;min-height:100svh;display:flex;align-items:center;overflow:hidden;isolation:isolate;padding:110px 0 80px}
 .hero-art{position:absolute;inset:0;z-index:-2;-webkit-mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%);mask-image:linear-gradient(180deg,#000 0%,#000 60%,transparent 100%)}
 .hero-art img{width:100%;height:100%;object-fit:cover;object-position:50% 45%;animation:heroIn 1.4s ease-out both}
-.hero::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(100deg,rgba(18,10,31,.95) 0%,rgba(40,16,70,.72) 30%,rgba(90,30,120,.18) 55%,rgba(18,10,31,.2) 80%,rgba(18,10,31,.55) 100%),linear-gradient(180deg,rgba(18,10,31,.6) 0%,transparent 20%,transparent 72%,#120a1f 100%)}
-.hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;background:radial-gradient(ellipse 40% 50% at 18% 60%,rgba(170,80,255,.28),transparent 70%),radial-gradient(ellipse 35% 45% at 70% 70%,rgba(255,140,40,.22),transparent 70%);mix-blend-mode:screen}
+.hero::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(18,10,31,.6) 0%,transparent 20%,transparent 62%,var(--bg) 100%),linear-gradient(100deg,rgba(18,10,31,.95) 0%,rgba(40,16,70,.72) 30%,rgba(90,30,120,.18) 55%,rgba(18,10,31,.2) 80%,rgba(18,10,31,.55) 100%)}
+.hero-glow{position:absolute;inset:0;z-index:-1;pointer-events:none;-webkit-mask-image:linear-gradient(180deg,#000 55%,transparent 92%);mask-image:linear-gradient(180deg,#000 55%,transparent 92%);background:radial-gradient(ellipse 40% 50% at 18% 60%,rgba(170,80,255,.28),transparent 70%),radial-gradient(ellipse 35% 45% at 70% 70%,rgba(255,140,40,.22),transparent 70%);mix-blend-mode:screen}
 .beta-badge{display:inline-flex;align-items:center;gap:8px;padding:8px 16px;border-radius:999px;font-weight:900;font-size:.82rem;letter-spacing:.16em;text-transform:uppercase;color:#fff;background:linear-gradient(90deg,#8b3dff,#ff4fa3 55%,#ffb347);box-shadow:0 0 0 1px rgba(255,255,255,.25) inset,0 8px 24px rgba(200,70,255,.4)}
 .hero-perk{display:flex;align-items:center;gap:8px;margin:-12px 0 24px;font-weight:800;color:var(--gold)}
 @keyframes heroIn{from{opacity:0;transform:scale(1.04)}to{opacity:1;transform:none}}
@@ -138,7 +138,8 @@ main{min-height:70vh}
 .section-head h2{font-size:clamp(2rem,4.2vw,3.1rem);margin-bottom:12px}
 .section-head p:not(.eyebrow){color:#cfc3e6;font-size:1.06rem;margin:0}
 /* Telas do jogo */
-.prints{position:relative;padding:90px 20px 100px;background:radial-gradient(ellipse at 50% 0,rgba(140,70,200,.25),transparent 60%),linear-gradient(180deg,#120a1f,#190d2c 50%,#120a1f)}
+/* Starts on the exact page color the hero ends on, so there is no seam between them. */
+.prints{position:relative;padding:90px 20px 100px;background:radial-gradient(ellipse 60% 45% at 50% 40%,rgba(140,70,200,.18),transparent 70%),linear-gradient(180deg,var(--bg) 0%,#190d2c 55%,var(--bg) 100%)}
 .carousel{max-width:1180px;margin:auto}
 .carousel-stage{position:relative;aspect-ratio:16/9;border-radius:22px;overflow:hidden;background:#0b0616;box-shadow:0 0 0 2px rgba(255,210,94,.55),0 0 0 8px rgba(30,16,52,.9),0 0 0 9px rgba(255,210,94,.2),0 30px 70px rgba(0,0,0,.6)}
 .carousel-slide{position:absolute;inset:0;padding:0;border:0;cursor:zoom-in;opacity:0;transform:scale(1.03);transition:opacity .7s ease,transform 1.2s ease;pointer-events:none}
