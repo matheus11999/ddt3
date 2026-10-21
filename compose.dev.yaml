@@ -4,6 +4,7 @@ services:
       dockerfile: infra/Dockerfile.dev
     environment:
       DEV_PROXY_TARGET: http://server:4107
+      SITE_PROXY_TARGET: http://site:4120
       DEV_POLLING: 'true'
     volumes:
       - ./src:/app/src:ro

@@ -7,5 +7,5 @@ export default defineConfig({
  root:fileURLToPath(new URL('.',import.meta.url)),
  plugins:[react()],
  server:{port:5178,strictPort:true,proxy:{'/api':backend}},
- build:{outDir:'dist',emptyOutDir:true,sourcemap:false},
+ build:{outDir:'dist',emptyOutDir:true,sourcemap:false,assetsDir:'s'},
 });

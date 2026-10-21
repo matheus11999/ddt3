@@ -1,0 +1,9 @@
+You MUST call the built-in image_gen tool now to create a NEW image (do not reuse or copy any existing file). After image_gen returns, copy exactly the file it just produced (the newest file inside the generated_images folder of THIS session) to D:\APPS\ddt-pow-aura\test-results\codex-pow-aura\sheet2.png. Do nothing else, no code.
+
+The attached image ref.png is a screenshot of a power-ready aura around a chibi character in a 2D artillery web game. Paint an ORIGINAL aura with the same look and feel (do not trace or copy it): a golden energy aura, not a ring of orange fire.
+Look: an upright oval burst of bright golden-yellow energy around a character's head and body. Many sharp pointed spikes/rays radiate outward all around the oval (like a crown of light spikes, a bit longer at the top and sides, shorter at the bottom), with a white-hot glowing inner edge, pale lemon yellow to rich gold, very little orange. The inside of the oval is a soft translucent golden glow that fades toward the centre (the character will be drawn on top, so the centre is mostly dark/empty, faint glow only). Luminous, soft bloom, painted for additive blending.
+The character is NOT drawn.
+
+Layout: landscape image 1536x1024, 3 columns x 2 rows = 6 equal cells of 512x512, PURE FLAT BLACK background (#000000) everywhere, no gradient, no grid lines, no text.
+Each cell: one aura centred in its cell, about 360 px wide and 400 px tall, at least 40 px of black margin to the cell edges, same size and same position in every cell.
+The 6 cells are consecutive frames of one looping pulse/flicker: the spikes shift and grow/shrink slightly frame to frame, frame 6 loops back to frame 1. Read order left to right, top row then bottom row.
