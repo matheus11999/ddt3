@@ -62,8 +62,8 @@ export function monsterDamage(attack:number,defender:Equipment,scale=1,monsterLe
  return Number.isFinite(raw)?Math.max(1,Math.round(raw)):0;
 }
 
-/** PvP turn cap: 20 turns per fighter, never under 80 (a 4×4 used to end in a draw after 10 turns each). */
-export function pvpTurnLimit(fighters:number){return Math.max(80,20*fighters);}
+/** PvP turn cap: 1000 turns in all, whatever the size (matheus 21/10: practically no limit). */
+export const PVP_TURN_LIMIT=1000;
 /** At the turn cap the side with more life left wins (share of its total life); only an exact tie is a draw. */
 export function turnLimitWinner<T extends number>(players:readonly {team:T;hp:number;maxHp:number}[]):T|null{
  const share=new Map<T,{hp:number;max:number}>();

@@ -1,10 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import {pvpTurnLimit,turnLimitWinner} from '../shared/combat';
+import {PVP_TURN_LIMIT,turnLimitWinner} from '../shared/combat';
 
-test('PvP turn cap grows with the number of fighters', () => {
- assert.equal(pvpTurnLimit(2),80);assert.equal(pvpTurnLimit(4),80);assert.equal(pvpTurnLimit(6),120);assert.equal(pvpTurnLimit(8),160);
-});
+test('PvP turn cap is 1000 turns in all', () => {assert.equal(PVP_TURN_LIMIT,1000);});
 
 test('at the turn cap the side with more life left wins, only an exact tie draws', () => {
  const f=(team:0|1,hp:number,maxHp=1000)=>({team,hp,maxHp});
