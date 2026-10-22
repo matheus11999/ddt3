@@ -66,42 +66,6 @@ def key_out(a):
     return Image.fromarray(a.astype(np.uint8))
 
 
-# ---------- combate (GAME): 13x3 células de 456x380 ----------
-CW, CH = 456, 380
-gmold = green(f'{T}/game-m.png')
-side = {n: L(f'{K}/camadas/{n}.png') for n in ('cabeca-lado', 'cabelo-lado', 'bone-lado')}
-face = Image.new('RGBA', (CW * 13, CH * 3)); hair = face.copy(); hat = face.copy()
-for i in range(39):
-    r, c = divmod(i, 13)
-    box = core_box(gmold[r * CH:(r + 1) * CH, c * CW:(c + 1) * CW])
-    if not box:
-        continue
-    f, h, t = place([side['cabeca-lado'], side['cabelo-lado'], side['bone-lado']], side['cabeca-lado'], box, (CW, CH))
-    face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH))
-save(face, 'game', 'face-basic-male'); save(hair, 'game', 'hair-basic-male-A'); save(hat, 'game', 'hat-starter')
-# corpo: as pranchas pintadas em 4x (lotes de 6), recortadas célula a célula e repetidas como no molde
-meta = json.load(open(f'{K}/combate-lotes/lotes.json'))
-S, (BW, BH) = meta['scale'], meta['cell']
-src = {}
-for b, ids in enumerate(meta['batches']):
-    sheet = L(f'{K}/combate-lote{b + 1}/combate-lote{b + 1}.png')
-    for k, i in enumerate(ids):
-        x, y = (k % 3) * BW + (BW - 114 * S) // 2, (k // 3) * BH + (BH - 95 * S) // 2
-        src[i] = key_out(sheet.crop((x, y, x + 114 * S, y + 95 * S)))
-small = np.asarray(Image.open('output/ddtank-molds/combate-1482x285.png').convert('RGBA'))
-same = {}
-for i in range(39):
-    r, c = divmod(i, 13)
-    same.setdefault(small[r * 95:(r + 1) * 95, c * 114:(c + 1) * 114].tobytes(), []).append(i)
-body = Image.new('RGBA', (CW * 13, CH * 3))
-for group in same.values():
-    p = next((i for i in group if i in src), None)
-    for i in group:
-        if p is not None:
-            r, c = divmod(i, 13)
-            body.paste(src[p], (c * CW, r * CH))
-save(body, 'game', 'outfit-basic-male')
-
 # ---------- mochila (SHOW): 1000x1368, pintada para a esquerda como no DDTank ----------
 # A pintura (1000x1248 = 250x312 x4) completa o resto da célula de 342 embaixo, como o make-molds do rig.
 # O jogo espelha a mochila (o DDTank pinta virado para a esquerda) e põe os pés em x=402 (FEET.show em rig.ts):
@@ -137,6 +101,44 @@ if os.path.exists(f'{K}/bone-mochila/alinhada.png'):
     C[~m, 3] = 0
     cap_front = Image.fromarray(C.astype(np.uint8))
     save(show_cell(cap_front), 'show', 'hat-starter')
+
+# ---------- combate (GAME): 13x3 células de 456x380 ----------
+CW, CH = 456, 380
+gmold = green(f'{T}/game-m.png')
+# Uma cabeça só em todo lugar (matheus 22/10: "no combate o que muda é apenas o corpo"): a mesma cabeça 3/4 da mochila,
+# então cada cabelo e chapéu pintado uma vez serve na mochila, no combate e na praça.
+head_layers = [lay['cabeca-frente'], lay['cabelo-frente'], cap_front or Image.new('RGBA', lay['cabeca-frente'].size)]
+face = Image.new('RGBA', (CW * 13, CH * 3)); hair = face.copy(); hat = face.copy()
+for i in range(39):
+    r, c = divmod(i, 13)
+    box = core_box(gmold[r * CH:(r + 1) * CH, c * CW:(c + 1) * CW])
+    if not box:
+        continue
+    f, h, t = place(head_layers, head_layers[0], box, (CW, CH))
+    face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH))
+save(face, 'game', 'face-basic-male'); save(hair, 'game', 'hair-basic-male-A'); save(hat, 'game', 'hat-starter')
+# corpo: as pranchas pintadas em 4x (lotes de 6), recortadas célula a célula e repetidas como no molde
+meta = json.load(open(f'{K}/combate-lotes/lotes.json'))
+S, (BW, BH) = meta['scale'], meta['cell']
+src = {}
+for b, ids in enumerate(meta['batches']):
+    sheet = L(f'{K}/combate-lote{b + 1}/combate-lote{b + 1}.png')
+    for k, i in enumerate(ids):
+        x, y = (k % 3) * BW + (BW - 114 * S) // 2, (k // 3) * BH + (BH - 95 * S) // 2
+        src[i] = key_out(sheet.crop((x, y, x + 114 * S, y + 95 * S)))
+small = np.asarray(Image.open('output/ddtank-molds/combate-1482x285.png').convert('RGBA'))
+same = {}
+for i in range(39):
+    r, c = divmod(i, 13)
+    same.setdefault(small[r * 95:(r + 1) * 95, c * 114:(c + 1) * 114].tobytes(), []).append(i)
+body = Image.new('RGBA', (CW * 13, CH * 3))
+for group in same.values():
+    p = next((i for i in group if i in src), None)
+    for i in group:
+        if p is not None:
+            r, c = divmod(i, 13)
+            body.paste(src[p], (c * CW, r * CH))
+save(body, 'game', 'outfit-basic-male')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
 vmold = green(f'{T}/virtualhead-m.png')
