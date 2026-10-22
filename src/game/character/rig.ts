@@ -56,10 +56,10 @@ const ready=(image:HTMLImageElement)=>image.complete&&image.naturalWidth>0;
 const sheet=(sex:Sex,context:string,id:string)=>asset(`/assets/rig/${sex}/${context}/${id}.png`);
 const composed=new Map<string,HTMLCanvasElement>();
 /** Stacks the sheets of a list of pieces into one canvas (body color applied to faces and outfits), cached per look. */
-function stack(sex:Sex,context:string,ids:string[],skin:string|undefined):HTMLCanvasElement|null {
- const key=[sex,context,skin??'',...ids].join('|'),known=composed.get(key);if(known)return known;
+function stack(sex:Sex,context:string,ids:string[],skin:string|undefined,hatOver?:string):HTMLCanvasElement|null {
+ const key=[sex,context,skin??'',hatOver??'',...ids].join('|'),known=composed.get(key);if(known)return known;
  // Under a hat the hair is cut by the hat's clip sheet (scripts/rig/hatclip.py): the hat, above it and above its band.
- const hat=ids.find(id=>id.startsWith('hat-')),clip=hat?sheet(sex,context,`${hat}-clip`):null;
+ const hat=hatOver??ids.find(id=>id.startsWith('hat-')),clip=hat?sheet(sex,context,`${hat}-clip`):null;
  const images=ids.map(id=>sheet(sex,context,id));if(!images.every(ready)||clip&&!ready(clip))return null;
  const out=document.createElement('canvas');out.width=images[0].naturalWidth;out.height=images[0].naturalHeight;const c=out.getContext('2d')!;
  const layer=(image:HTMLImageElement)=>{const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);return t;};
@@ -71,13 +71,33 @@ function stack(sex:Sex,context:string,ids:string[],skin:string|undefined):HTMLCa
  return out;
 }
 
-/** Combat cell at the character origin (feet), facing right, in avatar units. False while the art loads. */
-export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
+/** Head motion drawn in code over the combat cells (matheus 22/10: idle moves only the head; a hit shakes it). */
+export type HeadMotion={tilt:number;dx:number;dy:number};
+const pivots=new Map<string,[number,number]>();
+/** The neck of a combat cell: bottom middle of the face layer there, measured once per look and cell. */
+function neckOf(layer:HTMLCanvasElement,key:string,x0:number,y0:number,w:number,h:number):[number,number] {
+ const known=pivots.get(key);if(known)return known;
+ const data=layer.getContext('2d')!.getImageData(x0,y0,w,h).data;let l=w,r=0,b=0;
+ for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2)if(data[(y*w+x)*4+3]>40){if(x<l)l=x;if(x>r)r=x;if(y>b)b=y;}
+ const neck:[number,number]=r>l?[(l+r)/2,b]:[w/2,h/2];pivots.set(key,neck);return neck;
+}
+/** Combat cell at the character origin (feet), facing right, in avatar units. False while the art loads. The head
+ * (face, hair, hat, glasses) is drawn apart from the outfit so `head` can tilt and nudge it about the neck. */
+export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number,head?:HeadMotion):boolean {
  const ids=pieces(eq,'game');if(!ids)return false;const sex=sexOf(eq);
- // Weapon and face follow the lower sequence, every other piece the upper one (GameCharacter's faceDown/faceUp).
- const lower=stack(sex,'game',ids.slice(0,1),eq.skin),upper=stack(sex,'game',ids.slice(1),eq.skin);if(!lower||!upper)return false;
+ const hat=ids.find(id=>id.startsWith('hat-')),under=ids.filter(id=>id.startsWith('face-')||id.startsWith('hair-'));
+ const outfit=ids.filter(id=>id.startsWith('outfit-')),over=ids.filter(id=>id.startsWith('hat-')||id.startsWith('glasses-'));
+ const headUnder=stack(sex,'game',under,eq.skin,hat),body=stack(sex,'game',outfit,eq.skin),headOver=over.length?stack(sex,'game',over,eq.skin):null;
+ if(!headUnder||!body||over.length&&!headOver)return false;
+ // Face and hair share the face's (lower) cell; the outfit follows the upper sequence (GameCharacter's faceDown/faceUp).
  const f=gameFrame(action,tick),[w,h]=GAME.cell,k=RIG_UNITS.game,[ox,oy]=FEET.game;
- for(const [layer,frame] of [[lower,f.lower],[upper,f.upper]] as const){const r=cellRect(frame,GAME.columns,GAME.rows,GAME.cell);drawCell(c,layer,r.x,r.y,w,h,-ox*k,-oy*k,w*k,h*k);}
+ const hr=cellRect(f.lower,GAME.columns,GAME.rows,GAME.cell),br=cellRect(f.upper,GAME.columns,GAME.rows,GAME.cell);
+ const [nx,ny]=neckOf(headUnder,[sex,eq.face,f.lower].join('|'),hr.x,hr.y,w,h);
+ const paintHead=(layer:HTMLCanvasElement)=>{c.save();
+  if(head){const px=(nx-ox)*k,py=(ny-oy)*k;c.translate(px+head.dx,py+head.dy);c.rotate(head.tilt);c.translate(-px,-py);}
+  drawCell(c,layer,hr.x,hr.y,w,h,-ox*k,-oy*k,w*k,h*k);c.restore();};
+ // DDTank order: face and hair, the outfit (the fists rest on the chin), then hat and glasses.
+ paintHead(headUnder);drawCell(c,body,br.x,br.y,w,h,-ox*k,-oy*k,w*k,h*k);if(headOver)paintHead(headOver);
  return true;
 }
 /** Bag/shop/room figure with its feet at (0,0), facing right, in avatar units. False while the art loads. */
@@ -125,4 +145,4 @@ export function drawRigPortrait(c:CanvasRenderingContext2D,eq:Equipment,x:number
  return true;
 }
 /** Rig sheets are for the area on screen: let go when it changes (spriteCache rules, docs/performance.md). */
-export function releaseRigArt(){freeAll(composed);heads.clear();}
+export function releaseRigArt(){freeAll(composed);heads.clear();pivots.clear();}
