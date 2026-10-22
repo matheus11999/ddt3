@@ -22,9 +22,9 @@ try{
   const bare={...DEFAULT_EQUIPMENT,face:basic.face,hair:basic.hair,outfit:basic.outfit,hat:'hat-none',glasses:'glasses-none',costume:'costume-none'};
   const looks=[bare,{...bare,hat:'hat-starter',weapon:'thunder-coil',upgrade:0}];
   const scratch=document.createElement('canvas').getContext('2d');
-  for(let i=0;i<80&&!looks.every(eq=>R.drawRigGame(scratch,eq,'STAND',0)&&R.drawRigShow(scratch,eq,'STATIC',0)&&R.drawRigVirtual(scratch,eq,'naturalStandFront',0));i++)await new Promise(r=>setTimeout(r,100));
+  for(let i=0;i<80&&R.RIG_ENABLED&&!looks.every(eq=>R.drawRigGame(scratch,eq,'STAND',0)&&R.drawRigShow(scratch,eq,'STATIC',0)&&R.drawRigVirtual(scratch,eq,'naturalStandFront',0));i++)await new Promise(r=>setTimeout(r,100));
   // weapons load lazily and decode on the next draw: draw a few times in combat with pauses
-  for(let i=0;i<3;i++){for(const eq of looks)A.drawAvatar(scratch,eq,0,0,112,0,false,1,true,undefined,{combat:true});await new Promise(r=>setTimeout(r,800));}
+  for(let i=0;i<4;i++){for(const eq of looks){A.drawAvatar(scratch,eq,0,0,112,0,false,1,true,undefined,{combat:true});A.drawAvatar(scratch,eq,0,0,230,0,false,1,false,undefined,{animated:false});A.drawAvatar(scratch,eq,0,0,134,0,true,1,false,undefined,{world:true});}await new Promise(r=>setTimeout(r,800));}
   const W=1800,H=1400,sheet=document.createElement('canvas');sheet.width=W;sheet.height=H;const c=sheet.getContext('2d');
   c.fillStyle='#2b3a52';c.fillRect(0,0,W,H);
   const title=(t,x,y)=>{c.fillStyle='#ffe6a6';c.font='bold 20px Georgia';c.fillText(t,x,y);};

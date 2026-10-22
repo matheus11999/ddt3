@@ -148,6 +148,8 @@ def region_mask(context, sex, region):
     m = Image.fromarray((sel * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(grow))
     if region == 'aroundhead':  # long hair falls to the shoulders: let it go down a little more below the head
         m = Image.fromarray(np.maximum(np.asarray(m), np.roll(np.asarray(m), 80, axis=0)))
+    if region == 'body':  # shoes are painted a little bigger than the mold's feet: never cut the soles flat (matheus 22/10)
+        m = Image.fromarray(np.maximum(np.asarray(m), np.roll(np.asarray(m), 24, axis=0)))
     return m
 
 
