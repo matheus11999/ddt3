@@ -258,13 +258,38 @@ for n, lot in enumerate(pm['lots']):
         vbody.paste(fit_to_mold(cell, vmold_body[lot['row'] * 700:(lot['row'] + 1) * 700, col * 480:(col + 1) * 480]), (col * 480, lot['row'] * 700))
 # Andar de frente (também o dos lados, espelhado) repintado numa prancha só, 4x2 com os 7 quadros (matheus 22/10:
 # as duas pranchas antigas não combinavam entre si); substitui a linha de frente.
-v2 = f'{K}/praca-frente-v2/praca-frente-v2.png'
-if os.path.exists(v2):
-    sheet = L(v2)
+v3 = f'{K}/praca-frente-v3/praca-frente-v3.png'
+if os.path.exists(v3):
+    # Pintado com a cabeça de verdade no molde (matheus 22/10: o pescoço sob a cabeça verde saía manchado): o pescoço
+    # liga no queixo real. Aqui sai a cabeça (a mesma que o jogo desenha por cima), um pouco folgada para os lados e
+    # para cima, nunca abaixo do queixo, para o pescoço continuar inteiro debaixo dele.
+    from scipy import ndimage
+    sheet = L(v3)
+    hd = Image.open('public/assets/rig/m/virtualhead/face-basic-male.png').convert('RGBA').crop((0, 0, 480, 700))
+    hh = Image.open('public/assets/rig/m/virtualhead/hair-basic-male-A.png').convert('RGBA').crop((0, 0, 480, 700))
+    hd.alpha_composite(hh)
+    hmask = np.asarray(hd.transpose(Image.FLIP_LEFT_RIGHT))[..., 3] > 30
+    chin = np.full(480, -1)
+    for x in np.nonzero(hmask.any(0))[0]:
+        chin[x] = np.nonzero(hmask[:, x])[0].max()
+    offs = [0, 0, -1, 2, 0, -1, 2]
     for col in range(7):
         x, y = (col % 4) * 480, (col // 4) * 700
-        cell = key_out(sheet.crop((x, y, x + 480, y + 700)))
+        cell = np.asarray(key_out(sheet.crop((x, y, x + 480, y + 700)))).copy()
+        m = np.roll(hmask, offs[col] * 4, axis=0)
+        grown = ndimage.binary_dilation(m, iterations=10)
+        ys = np.arange(700)[:, None]
+        below = ys > (np.roll(chin, 0)[None, :] + offs[col] * 4)
+        grown &= ~(below & (chin[None, :] >= 0)) | m
+        grown &= ~(chin[None, :] < 0) | (ys < (chin[chin >= 0].min() if (chin >= 0).any() else 0))
+        cell[grown, 3] = 0
+        r_, g_, b_ = (cell[..., i].astype(int) for i in range(3))
+        cell[(r_ > g_ + 35) & (b_ > g_ + 15) & (r_ < 235), 3] = 0  # franja magenta
+        lab, n = ndimage.label(cell[..., 3] > 30)
+        if n:  # pontinhos soltos (resto do contorno da cabeça pintada)
+            sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+            cell[np.isin(lab, 1 + np.nonzero(sz < sz.max() * .02)[0]), 3] = 0
         vbody.paste(Image.new('RGBA', (480, 700)), (col * 480, 0))
-        vbody.paste(clean_neck(fit_to_mold(cell, vmold_body[0:700, col * 480:(col + 1) * 480])), (col * 480, 0))
+        vbody.paste(Image.fromarray(cell), (col * 480, 0))
 save(vbody, 'virtual', 'outfit-basic-male')
 print('ok')
