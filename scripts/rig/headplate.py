@@ -21,6 +21,7 @@ BACK view bottom right 512x512 (plaza walking away). Expression plates for the f
         lifts the piece off the base plate (registered first by the face, refused if the face changed), applies the
         hard rules (a hat never covers the eyes) and writes the sheets of the three contexts
   py scripts/rig/headplate.py resheet <sex> <item>  re-places an already lifted piece (after a new measure)
+  py scripts/rig/headplate.py cleanhat <sex> <item> keeps a hat baked before the hat-area rule inside its outline
 Pieces lifted: test-results/rig/head/<item>-<sex>.png (plate-sized). Sheets: public/assets/rig/<sex>/{game,show,virtualhead}/.
 """
 import json
@@ -401,8 +402,93 @@ def bake(sex, item, painted, kind, base_path=None):
         a = np.asarray(piece.split()[3]).copy()
         a[eye_guard(sex)] = 0
         piece.putalpha(Image.fromarray(a))
+        piece = clean_hat_plate(piece)
     piece.save(lifted)
     write_sheets(sex, item, piece)
+
+
+# ---------------------------------------------------------------- hat area
+def _components(mask):
+    """4-connected components of a mask, each as an (n, 2) array of (y, x)."""
+    from collections import deque
+    h, w = mask.shape
+    seen = np.zeros(mask.shape, bool)
+    for sy, sx in zip(*np.nonzero(mask)):
+        if seen[sy, sx]:
+            continue
+        seen[sy, sx] = True
+        pts, q = [], deque([(sy, sx)])
+        while q:
+            y, x = q.popleft()
+            pts.append((y, x))
+            for yy, xx in ((y + 1, x), (y - 1, x), (y, x + 1), (y, x - 1)):
+                if 0 <= yy < h and 0 <= xx < w and mask[yy, xx] and not seen[yy, xx]:
+                    seen[yy, xx] = True
+                    q.append((yy, xx))
+        yield np.array(pts)
+
+
+def _grow(mask, size):
+    return np.asarray(Image.fromarray((mask * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(size))) > 0
+
+
+def hat_area(cell, back=False):
+    """Keeps a hat inside its own outline (matheus 22/10: forehead skin under the brim and skin in the back strap).
+    The painted hat is a closed shape with a dark outline; what the lift brings along from the head under it (the
+    forehead under the brim, the nape under the rim) lies OUTSIDE that outline and touches the transparent area. Each
+    pass closes the outline a bit less and drops the patches between the outline and the outside, never a big part
+    (the brim itself). Seen from behind there is no brim: a patch of skin enclosed low in the hat is the strap
+    opening and must show the hair. Tiny loose bits go last. RGBA array in, RGBA array out."""
+    out = cell.copy()
+    for grow, th in ((9, 110), (5, 110), (3, 110), (3, 80)):
+        c = out.astype(int)
+        a = c[..., 3]
+        solid = a > 40
+        if not solid.any():
+            return out
+        lum = .3 * c[..., 0] + .59 * c[..., 1] + .11 * c[..., 2]
+        line = _grow(solid & (lum < th), grow)
+        outside = _grow(~solid, 3)
+        total, low = solid.sum(), np.nonzero(solid)[0].mean()
+        kill = np.zeros(solid.shape, bool)
+        for pts in _components(solid & ~line):
+            ys, xs = pts[:, 0], pts[:, 1]
+            if len(pts) > .08 * total:
+                continue
+            r, g, b = c[ys, xs, :3].mean(0)
+            hole = back and r > b + 60 and r > 170 and ys.mean() > low and len(pts) > .004 * total
+            if (outside[ys, xs].any() and len(pts) > 20) or hole:
+                kill[ys, xs] = True
+        kill = _grow(kill, grow + 2) & ~(line & ~kill & (lum < th))
+        out[..., 3] = np.where(kill, 0, out[..., 3])
+    solid = out[..., 3] > 40
+    total = solid.sum()
+    for pts in _components(solid):
+        if len(pts) < .002 * total:
+            out[pts[:, 0], pts[:, 1], 3] = 0
+    return out
+
+
+def clean_hat_plate(piece):
+    """hat_area on each view of a lifted plate."""
+    a = np.array(piece.convert('RGBA'))
+    for view, (box, _, _) in VIEWS.items():
+        x0, y0, x1, y1 = box
+        a[y0:y1, x0:x1] = hat_area(a[y0:y1, x0:x1], view == 'back')
+    return Image.fromarray(a)
+
+
+def clean_hat_sheets(sex, item):
+    """hat_area on the published sheets, cell by cell (for a hat baked before the rule)."""
+    (gw, gh), _, _ = GAME
+    for context, (cw, ch) in (('game', (gw, gh)), ('show', SHOW), ('virtualhead', VHEAD)):
+        path = f'public/assets/rig/{sex}/{context}/{item}.png'
+        a = np.array(Image.open(path).convert('RGBA'))
+        for y in range(0, a.shape[0], ch):
+            for x in range(0, a.shape[1], cw):
+                a[y:y + ch, x:x + cw] = hat_area(a[y:y + ch, x:x + cw], context == 'virtualhead' and x // cw == 2)
+        Image.fromarray(a).save(path, optimize=True)
+        print(path)
 
 
 if __name__ == '__main__':
@@ -418,5 +504,7 @@ if __name__ == '__main__':
     elif cmd == 'bake':
         kind = 'hat' if '--hat' in sys.argv else 'glasses' if '--glasses' in sys.argv else 'hair'
         bake(sex, sys.argv[3], sys.argv[4], kind, opt('base'))
+    elif cmd == 'cleanhat':
+        clean_hat_sheets(sex, sys.argv[3])
     elif cmd == 'resheet':
         write_sheets(sex, sys.argv[3], rgba(f'{OUT}/{sys.argv[3]}-{sex}.png'))

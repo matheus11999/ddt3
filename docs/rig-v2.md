@@ -53,3 +53,8 @@ Medido no molde: a cabeça do combate é a mesma em 30 das 33 células, só movi
 - Combate: deitado parado, andando e mirando; ajoelhado só para carregar e arremessar (`GAME_ACTION` em `src/game/avatar.ts`). Praça: as células de frente são pintadas viradas para a esquerda e o jogo as espelha; frente/costas × espelho = 8 direções.
 - Nenhum boneco tem sombra cinza no chão (matheus 22/10).
 - Prompts `kit3-*` em `scripts/rig/rig-prompts.mjs`. Prancha para aprovação com o desenho do próprio jogo: `node scripts/rig/preview-rig.mjs m` (mochila, praça nas 8 direções, combate em cada pose) e `py scripts/rig/head-sheet.py <sexo> <chapéu>`.
+
+### Área do boné e arma no combate (22/10)
+
+- **Área do chapéu** (ideia do matheus: "uma área definida e recortar por ela"): o `bake --hat` guarda o chapéu dentro do próprio contorno (`hat_area` em `scripts/rig/headplate.py`). O que o recorte traz da cabeça de baixo (testa sob a aba, nuca sob a borda) fica fora do contorno escuro e encosta no transparente: sai em passes que fecham o contorno cada vez menos, sem nunca tirar uma parte grande (a aba). Vista de trás: pele cercada na parte baixa é a abertura da tira e passa a mostrar o cabelo. Chapéu antigo: `py scripts/rig/headplate.py cleanhat <sexo> <item>` limpa as folhas publicadas.
+- **Arma no combate**: o boneco do rig agora leva a arma nas costas em todas as poses, como no DDTank (`RIG_WEAPON` em `src/game/avatar.ts`), e deita acompanhando a inclinação do chão (ajoelhado, só 35% da inclinação).

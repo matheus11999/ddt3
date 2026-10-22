@@ -258,7 +258,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  }
  // Rig v2 (docs/rig-v2.md): looks painted for the DDTank-style composers draw from their sheets in every context.
  {const rigContext:RigContext=context.combat||context.view==='side'?'game':context.world?'virtual':'show';
-  if(hasRig(eq,rigContext)){drawRig(c,eq,rigContext,x,y,height,time,walking,facing,motion,context,auraTime);return;}}
+  if(hasRig(eq,rigContext)){drawRig(c,eq,rigContext,x,y,height,time,walking,facing,motion,context,auraTime,weapon);return;}}
  // Outside battle the character faces the viewer in 3/4 like the DDTank bag portrait (pedido do matheus, 21/10).
  if(!context.combat&&context.view!=='side'&&!SIDE_POSES.has(context.pose??'idle')&&hasFrontView(eq)){drawFront(c,eq,x,y,height,time,walking,facing,weapon,motion,context,auraTime);return;}
  const rig=avatarRig(eq);if(!rig||context.combat&&!rig.combat&&!hasCombatFrames(eq.outfit))return;
@@ -355,14 +355,21 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
 const GAME_ACTION:Record<AvatarPose,string>={idle:'STAND',walk:'WALK',aim:'STAND',charge:'SHOWTHROWS',fire:'THROWS',hit:'SHAKE',fall:'SHAKE',prone:'STAND',victory:'STAND',defeat:'CRY'};
 const TICK_MS=40;
 /** Rig v2 figure: the composed sheets of the context, mirrored for facing; nothing else is drawn on top. */
-function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:number,y:number,height:number,time:number,walking:boolean,facing:number,motion:AvatarMotion|undefined,ctx:AvatarContext,auraTime:number){
+/** Rig v2 back mount for the lying DDTank fighter, in avatar units from the feet (facing right): the weapon lies across the back, under the head. */
+export const RIG_WEAPON={mount:[-38,-42] as [number,number],scale:1.05};
+function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:number,y:number,height:number,time:number,walking:boolean,facing:number,motion:AvatarMotion|undefined,ctx:AvatarContext,auraTime:number,weapon=true){
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||ctx.pose==='walk');}
- const {pose,poseTime}=animate(m,time,walking,facing,ctx),moving=walking?m.walk>.02:m.walk>.6;
- c.save();c.translate(x,y);c.scale(height/160,height/160);
+ const {pose,poseTime,recoil,slope}=animate(m,time,walking,facing,ctx),moving=walking?m.walk>.02:m.walk>.6;
+ // In battle the fighter lies along the ground like DDTank; kneeling to charge and throw it stays mostly upright.
+ const tilt=context==='game'&&ctx.combat?slope*(pose==='charge'||pose==='fire'?.35:1):0;
+ c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);
  if(!ctx.combat&&ctx.showAura)drawAura(c,eq.upgrade??0,auraTime);
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
  const clock=Math.floor(time/TICK_MS),since=Math.floor(Math.max(0,poseTime)/TICK_MS);
- if(context==='game'){const action=GAME_ACTION[pose]??'STAND';drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
+ if(context==='game'){const action=GAME_ACTION[pose]??'STAND';
+  // The weapon rides on the back behind the body in every pose, as in DDTank (it was missing: matheus 22/10).
+  if(weapon&&ctx.combat&&!isEmptyItem(eq.weapon)){const angle=(ctx.angle??45)+(facing<0?-1:1)*tilt*180/Math.PI;c.save();c.translate(...RIG_WEAPON.mount);c.scale(RIG_WEAPON.scale,RIG_WEAPON.scale);c.translate(-27*160/112,40*160/112);drawCombatWeapon(c,eq,time,angle,recoil,pose==='charge',ctx.power??0);c.restore();}
+  drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
  else if(context==='virtual')drawRigVirtual(c,eq,ctx.back?(moving?'naturalWalkBack':'naturalStandBack'):(moving?'naturalWalkFront':'naturalStandFront'),clock);
  else drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock);
  c.restore();c.restore();
