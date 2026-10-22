@@ -168,6 +168,30 @@ if hairB_front and hairB_back:
     save(vhairB, 'virtualhead', 'hair-basic-male-B')
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
+def fit_to_mold(cell, mold):
+    """Cada prancha da praça saiu numa escala (matheus 22/10: o andar de lado ficou esquisito, os quadros 4-6 maiores):
+    o corpo pintado vai para a altura do boneco cinza do molde, pés na base dele, centrado nele; sobras soltas saem."""
+    from scipy import ndimage
+    a = np.asarray(cell).copy()
+    m = a[..., 3] > 40
+    lab, n = ndimage.label(m)
+    if n:  # contorno pontilhado que sobra da cabeça verde: fica só a maior peça (o corpo)
+        sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1)); keep = np.isin(lab, 1 + np.nonzero(sz >= sz.max() * .15)[0])
+        a[~keep, 3] = 0
+    img = Image.fromarray(a)
+    pb = img.split()[3].point(lambda v: 255 if v > 40 else 0).getbbox()
+    ys, xs = np.nonzero(mold)
+    if not pb or not len(ys):
+        return img
+    s = (ys.max() - ys.min() + 1) / (pb[3] - pb[1])
+    body = img.crop(pb).resize((round((pb[2] - pb[0]) * s), round((pb[3] - pb[1]) * s)), Image.LANCZOS)
+    out = Image.new('RGBA', img.size)
+    out.paste(body, (round((xs.min() + xs.max()) / 2 - body.width / 2), ys.max() + 1 - body.height), body)
+    return out
+
+
+_vm = np.asarray(Image.open(f'{T}/virtual-m.png').convert('RGB')).astype(int)
+vmold_body = (np.abs(_vm - 150).sum(-1) < 30)  # o boneco cinza (150,150,150) de make-molds.py
 pm = json.load(open(f'{K}/praca-lotes/lotes.json'))
 vbody = Image.new('RGBA', (3360, 1400))
 for n, lot in enumerate(pm['lots']):
@@ -176,6 +200,7 @@ for n, lot in enumerate(pm['lots']):
         continue
     sheet = L(path)
     for k, col in enumerate(lot['cols']):
-        vbody.paste(key_out(sheet.crop((k * 480, 0, k * 480 + 480, 700))), (col * 480, lot['row'] * 700))
+        cell = key_out(sheet.crop((k * 480, 0, k * 480 + 480, 700)))
+        vbody.paste(fit_to_mold(cell, vmold_body[lot['row'] * 700:(lot['row'] + 1) * 700, col * 480:(col + 1) * 480]), (col * 480, lot['row'] * 700))
 save(vbody, 'virtual', 'outfit-basic-male')
 print('ok')
