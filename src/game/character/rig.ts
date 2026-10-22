@@ -21,7 +21,8 @@ const INDEX=index as unknown as Record<Sex,Partial<Record<'game'|'show'|'virtual
  * as tall as the old front view (matheus, 22/10: the first rig v2 figures were too small); the bag figure 18% taller again (matheus, 22/10). */
 export const RIG_UNITS={game:.5,show:.18,virtual:.34};
 /** Where the feet are in a cell (sheet pixels): the drawing origin. */
-const FEET={game:GAME.origin as number[],show:[500,1220],virtual:[256,670]};
+// The bag figure is painted left of the cell middle: its feet origin sits under the figure so it is centered (matheus 22/10).
+const FEET={game:GAME.origin as number[],show:[402,1220],virtual:[256,670]};
 
 const sexOf=(eq:Equipment):Sex=>CATALOG[eq.outfit]?.gender==='female'||CATALOG[eq.face]?.gender==='female'?'f':'m';
 const has=(sex:Sex,context:keyof (typeof INDEX)['m'],id:string)=>INDEX[sex]?.[context]?.includes(id)??false;
