@@ -152,7 +152,23 @@ save(body, 'game', 'outfit-basic-male')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
 vmold = green(f'{T}/virtualhead-m.png')
-front = [L(f'{K}/camadas-mochila/cabeca-frente.png'), L(f'{K}/camadas-mochila/cabelo-frente.png'), cap_front or empty, hairB_front or empty]
+
+
+def chin_trim(img):
+    # a cabeça da mochila foi cortada um pouco abaixo do queixo e trouxe pescoço/sombra laranja: só esse laranja sai,
+    # nos 15% de baixo da cabeça
+    a = np.asarray(img).copy()
+    al = a[..., 3] > 40
+    rows = np.nonzero(al.any(1))[0]
+    lo = rows.max() - int((rows.max() - rows.min()) * .15)
+    r, g, b = (a[..., i].astype(int) for i in range(3))
+    orange = (r > 190) & (g < 175) & (b < 120) & (r - b > 110)
+    sel = np.zeros(al.shape, bool); sel[lo:] = True
+    a[sel & orange, 3] = 0
+    return Image.fromarray(a)
+
+
+front = [chin_trim(L(f'{K}/camadas-mochila/cabeca-frente.png')), L(f'{K}/camadas-mochila/cabelo-frente.png'), cap_front or empty, hairB_front or empty]
 hairB_back = diff_layer(f'{K}/cabeloB-costas/alinhada.png', f'{K}/costas-careca/costas-careca.png', 10**6) if os.path.exists(f'{K}/cabeloB-costas/alinhada.png') else None
 back = [L(f'{K}/camadas/cabeca-costas.png'), L(f'{K}/camadas/cabelo-costas.png'), L(f'{K}/camadas/bone-costas.png'), hairB_back or Image.new('RGBA', (1254, 1254))]
 vface = Image.new('RGBA', (1440, 700)); vhair = vface.copy(); vhat = vface.copy(); vhairB = vface.copy()
@@ -168,6 +184,26 @@ if hairB_front and hairB_back:
     save(vhairB, 'virtualhead', 'hair-basic-male-B')
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
+def clean_neck(cell):
+    """O pescoço foi pintado sobre o toquinho verde do molde e saiu laranja/esverdeado, com franja magenta (matheus 22/10:
+    "erro na conexão do corpo com a roupa"). No topo do corpo: franja magenta sai; o que não é camiseta branca nem
+    contorno escuro vira pele lisa."""
+    a = np.asarray(cell).astype(int).copy()
+    m = a[..., 3] > 40
+    rows = np.nonzero(m.any(1))[0]
+    if not len(rows):
+        return cell
+    top = rows.min(); band = np.zeros(m.shape, bool); band[top:top + max(8, int((rows.max() - top) * .14))] = True
+    r, g, b = a[..., 0], a[..., 1], a[..., 2]
+    magenta = (r > g + 40) & (b > g + 20)
+    a[magenta & (r < 200), 3] = 0  # franja magenta do fundo, em qualquer lugar
+    white = (r > 185) & (g > 175) & (b > 170) & (np.abs(r - b) < 40)
+    dark = r + g + b < 260
+    neck = band & m & ~magenta & ~white & ~dark
+    a[neck, :3] = (247, 198, 160)
+    return Image.fromarray(a.astype(np.uint8))
+
+
 def fit_to_mold(cell, mold):
     """Cada prancha da praça saiu numa escala (matheus 22/10: o andar de lado ficou esquisito, os quadros 4-6 maiores):
     o corpo pintado vai para a altura do boneco cinza do molde, pés na base dele, centrado nele; sobras soltas saem."""
@@ -186,7 +222,9 @@ def fit_to_mold(cell, mold):
     s = (ys.max() - ys.min() + 1) / (pb[3] - pb[1])
     body = img.crop(pb).resize((round((pb[2] - pb[0]) * s), round((pb[3] - pb[1]) * s)), Image.LANCZOS)
     out = Image.new('RGBA', img.size)
-    out.paste(body, (round((xs.min() + xs.max()) / 2 - body.width / 2), ys.max() + 1 - body.height), body)
+    # sobe um pouco: o pescoço entra por baixo do queixo (a cabeça é desenhada por cima do corpo na praça)
+    lift = round(body.height * .03)
+    out.paste(body, (round((xs.min() + xs.max()) / 2 - body.width / 2), ys.max() + 1 - body.height - lift), body)
     return out
 
 
@@ -211,6 +249,6 @@ if os.path.exists(v2):
         x, y = (col % 4) * 480, (col // 4) * 700
         cell = key_out(sheet.crop((x, y, x + 480, y + 700)))
         vbody.paste(Image.new('RGBA', (480, 700)), (col * 480, 0))
-        vbody.paste(fit_to_mold(cell, vmold_body[0:700, col * 480:(col + 1) * 480]), (col * 480, 0))
+        vbody.paste(clean_neck(fit_to_mold(cell, vmold_body[0:700, col * 480:(col + 1) * 480])), (col * 480, 0))
 save(vbody, 'virtual', 'outfit-basic-male')
 print('ok')

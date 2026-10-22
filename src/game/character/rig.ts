@@ -151,7 +151,8 @@ export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:st
  // The front cells are painted turned to the left (DDTank's naturalWalkFront), the back ones walking away to the right:
  // mirror the front so 'facing right' walks right in both (8 directions = front/back x mirror, matheus 22/10).
  c.save();if(!back)c.scale(-1,1);
- if(back){paintBody();paintHead();}else{paintHead();paintBody();}
+ // The head always over the body: the neck tucks under the chin (matheus 22/10, the seam showed with the body on top).
+ paintBody();paintHead();
  c.restore();
  return true;
 }
