@@ -126,6 +126,12 @@ def key(img):
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
     magenta = (r > 160) & (b > 160) & (g < 120)
     green = (g > 170) & (r < 130) & (b < 130)
+    # the painter blends the green head into the collar: next to the green, a green-dominant pixel is spill (gone)
+    # and the rest loses its green cast, so no green fringe is left at the neck (a green outfit elsewhere is kept)
+    near = np.asarray(Image.fromarray((green * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(9))) > 0
+    rb = np.maximum(r, b)
+    green |= near & (g > rb + 30)
+    a[..., 1] = np.where(near, np.minimum(g, rb + 10), g)
     alpha = (~(magenta | green) * 255).astype(np.uint8)
     alpha = np.asarray(Image.fromarray(alpha).filter(ImageFilter.MinFilter(3)).filter(ImageFilter.GaussianBlur(0.7)))
     return Image.fromarray(np.dstack([a.astype(np.uint8), alpha]), 'RGBA')
@@ -151,7 +157,8 @@ def assemble(context, sex, out, plate_files, region=None):
     sheet = Image.new('RGBA', (w * cols, h * rows), (0, 0, 0, 0))
     for plate, path in zip(plates, plate_files):
         src = Image.open(path).resize(size, Image.LANCZOS)
-        lifted = src.mode == 'RGBA' and src.split()[3].getextrema()[0] < 255  # already cut out by `lift`
+        # already cut out by `lift` (fully clear background); a Codex PNG may be RGBA with a few pixels at alpha ~216
+        lifted = src.mode == 'RGBA' and (np.asarray(src.split()[3]) < 8).mean() > 0.01
         img = src if lifted else key(src)
         for idx, px, py in plate:
             cw, ch = round(w * k), round(h * k)

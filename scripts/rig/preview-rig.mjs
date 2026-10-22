@@ -15,7 +15,8 @@ try{
  const page=await browser.newPage({viewport:{width:1800,height:1400}});
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(server.resolvedUrls.local[0]+'game',{waitUntil:'domcontentloaded'});
- const image=await page.evaluate(async sex=>{
+ // the first run makes Vite optimize the deps and reload the page mid-evaluate: try again on the reloaded page
+ const render=()=>page.evaluate(async sex=>{
   const A=await import('/src/game/avatar.ts'),R=await import('/src/game/character/rig.ts'),{DEFAULT_EQUIPMENT,unequipForGender}=await import('/shared/catalog.ts');
   const basic=unequipForGender(sex==='f'?'female':'male');
   const bare={...DEFAULT_EQUIPMENT,face:basic.face,hair:basic.hair,outfit:basic.outfit,hat:'hat-none',glasses:'glasses-none',costume:'costume-none'};
@@ -40,6 +41,8 @@ try{
   });
   return sheet.toDataURL('image/png');
  },sex);
+ let image;
+ for(let attempt=0;;attempt++){try{image=await render();break;}catch(error){if(attempt>=3||!/context was destroyed|navigation/i.test(error.message))throw error;await page.waitForLoadState('load');}}
  await mkdir('test-results/rig',{recursive:true});
  const file=`test-results/rig/preview-${sex}.png`;await writeFile(file,Buffer.from(image.split(',')[1],'base64'));
  console.log(JSON.stringify({file,errors}));
