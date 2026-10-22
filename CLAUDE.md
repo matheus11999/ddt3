@@ -20,6 +20,7 @@ Leia e siga `AGENTS.md`: ele vale para todos os agentes, inclusive o Claude. Est
 
 - **Cosméticos: siga `docs/cosmetics-pipeline.md`** (padrão aprovado pelo matheus em 19/10, vale para toda IA; resumo também no `AGENTS.md`). Prévias (mochila, salas, loja) usam a pintura com pose; o lobby usa as folhas de andar e parada.
 
+- **Codex por MCP** (22/10, `docs/codex-mcp.md`): no PC do usuário use as ferramentas `codex` (conversa nova, devolve `thread_id` e as imagens geradas) e `codex_reply` (continua a mesma conversa) em vez de montar `codex exec` na mão; uma tarefa de Codex por vez no PC.
 - Não há gerador de imagens nas sessões de nuvem. O usuário gera a arte no ChatGPT/Codex a partir de prompts que nós escrevemos em `docs/*-prompts.md` (um arquivo por área: `lobby-art-prompts.md`, `shop-art-prompts.md`, `forge-art-prompts.md`, `backpack-art-prompts.md`, `pvp-arena-art-prompts.md`, `cosmetics-art-briefs.md` etc.).
 - **A IA pinta a forma; o jogo desenha texto e números.** Nada de texto dentro da imagem gerada (placas, níveis, números de dano, VIP).
 - Cosméticos novos: escolha temas variados (`docs/cosmetic-sets.json`, pedido do matheus em 19/10) e gere com `node scripts/cosmetic-prompts.mjs --set=<id> --run`; os prompts anexam as peças aprovadas e travam o estilo.

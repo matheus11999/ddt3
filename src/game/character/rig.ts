@@ -28,21 +28,26 @@ const sexOf=(eq:Equipment):Sex=>CATALOG[eq.outfit]?.gender==='female'||CATALOG[e
 const has=(sex:Sex,context:keyof (typeof INDEX)['m'],id:string)=>INDEX[sex]?.[context]?.includes(id)??false;
 function visibleHat(eq:Equipment){return eq.visibility?.hat===false?'hat-none':eq.hat;}
 function visibleGlasses(eq:Equipment){return eq.visibility?.glasses===false?'glasses-none':eq.glasses;}
-/** One hair for every hat (matheus 22/10): the hair sheet is A; under a hat the game cuts it with the hat's clip sheet. */
-const hairKey=(eq:Equipment)=>`${eq.hair}-A`;
+/** Hair sheet A without a hat. Under a hat, the hair's B sheet (painted once per hair, pressed flat on the bald head, like
+ * DDTank's variant B; matheus 22/10 after the code cut left edges and bald spots); a hair without B is still A cut by the
+ * hat's clip sheet. */
+function hairKey(eq:Equipment,context:'game'|'show'|'virtualhead'):string {
+ return visibleHat(eq)!=='hat-none'&&has(sexOf(eq),context,`${eq.hair}-B`)?`${eq.hair}-B`:`${eq.hair}-A`;
+}
 
 /** The layers of a context in DDTank's painting order, or null when some visible piece has no rig art there. */
 function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null {
  const sex=sexOf(eq),hat=visibleHat(eq),glasses=visibleGlasses(eq);
  if(eq.costume!=='costume-none'&&eq.visibility?.costume!==false)return null;
- const list=[eq.face,hairKey(eq),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
+ const list=[eq.face,hairKey(eq,context),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
  return list.every(id=>has(sex,context,id))?list:null;
 }
-/** Rig v2 is switched off (matheus 22/10: back to the front-view flow that painted the posed bag figure). The sheets and
- * tools stay; true brings every look with rig art back to the composers. */
-export const RIG_ENABLED=false;
+/** Rig v2 per sex. Off for both on 22/10 (matheus rejected the first rig art); back on for the male kit repainted on the
+ * DDTank molds by the Codex MCP (kit v5, docs/codex-mcp.md). The female sheets are still the rejected ones. */
+const RIG_SEXES:readonly Sex[]=['m'];
+export const RIG_ENABLED=RIG_SEXES.length>0;
 export function hasRig(eq:Equipment,context:RigContext):boolean {
- if(!RIG_ENABLED)return false;
+ if(!RIG_SEXES.includes(sexOf(eq)))return false;
  if(context==='virtual')return !!pieces(eq,'virtualhead')&&has(sexOf(eq),'virtual',eq.outfit);
  return !!pieces(eq,context);
 }
@@ -60,7 +65,7 @@ function stack(sex:Sex,context:string,ids:string[],skin:string|undefined):HTMLCa
  const layer=(image:HTMLImageElement)=>{const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);return t;};
  ids.forEach((id,i)=>{const image=images[i];
   if(skin&&(id.startsWith('face-')||id.startsWith('outfit-'))){const t=layer(image);tintSkin(t,skin,true);c.drawImage(t,0,0);}
-  else if(clip&&id.startsWith('hair-')){const t=layer(image),tc=t.getContext('2d')!;tc.globalCompositeOperation='destination-out';tc.drawImage(clip,0,0);c.drawImage(t,0,0);}
+  else if(clip&&id.startsWith('hair-')&&!id.endsWith('-B')){const t=layer(image),tc=t.getContext('2d')!;tc.globalCompositeOperation='destination-out';tc.drawImage(clip,0,0);c.drawImage(t,0,0);}
   else c.drawImage(image,0,0);});
  composed.set(key,out);if(composed.size>48){const oldest=composed.keys().next().value!;composed.delete(oldest);}
  return out;
