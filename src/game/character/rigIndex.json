@@ -2,27 +2,39 @@
  "m": {
   "game": [
    "face-basic-male",
+   "face-star-male",
    "hair-basic-male-A",
    "hair-basic-male-B",
+   "hair-star-male-A",
+   "hair-star-male-B",
    "hat-starter",
    "hat-starter-clip",
-   "outfit-basic-male"
+   "outfit-basic-male",
+   "outfit-star-male"
   ],
   "show": [
    "face-basic-male",
+   "face-star-male",
    "hair-basic-male-A",
    "hair-basic-male-B",
+   "hair-star-male-A",
+   "hair-star-male-B",
    "hat-starter",
    "hat-starter-clip",
-   "outfit-basic-male"
+   "outfit-basic-male",
+   "outfit-star-male"
   ],
   "virtual": [
-   "outfit-basic-male"
+   "outfit-basic-male",
+   "outfit-star-male"
   ],
   "virtualhead": [
    "face-basic-male",
+   "face-star-male",
    "hair-basic-male-A",
    "hair-basic-male-B",
+   "hair-star-male-A",
+   "hair-star-male-B",
    "hat-starter",
    "hat-starter-clip"
   ]

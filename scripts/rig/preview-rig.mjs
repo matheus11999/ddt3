@@ -6,7 +6,7 @@ import {createServer} from 'vite';
 // Bag (Avatar component size), plaza walking in the 8 directions at the plaza size, combat poses at the battle size
 // (lying to walk and aim, kneeling to charge and throw), with and without the hat.
 // Usage: node scripts/rig/preview-rig.mjs [m|f]   -> test-results/rig/preview-<sex>.png
-const sex=process.argv[2]??'m';
+const sex=process.argv[2]??'m',look=process.argv[3];
 const server=await createServer({server:{host:'127.0.0.1',port:0,strictPort:false},logLevel:'error'});
 await server.listen();
 const executablePath=process.env.BROWSER_EXECUTABLE??process.env.CHROME_PATH;
@@ -16,10 +16,10 @@ try{
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(server.resolvedUrls.local[0]+'game',{waitUntil:'domcontentloaded'});
  // the first run makes Vite optimize the deps and reload the page mid-evaluate: try again on the reloaded page
- const render=()=>page.evaluate(async sex=>{
+ const render=()=>page.evaluate(async ([sex,look])=>{
   const A=await import('/src/game/avatar.ts'),R=await import('/src/game/character/rig.ts'),{DEFAULT_EQUIPMENT,unequipForGender}=await import('/shared/catalog.ts');
   const basic=unequipForGender(sex==='f'?'female':'male');
-  const bare={...DEFAULT_EQUIPMENT,face:basic.face,hair:basic.hair,outfit:basic.outfit,hat:'hat-none',glasses:'glasses-none',costume:'costume-none'};
+  const bare={...DEFAULT_EQUIPMENT,face:look?`face-${look}`:basic.face,hair:look?`hair-${look}`:basic.hair,outfit:look?`outfit-${look}`:basic.outfit,hat:'hat-none',glasses:'glasses-none',costume:'costume-none'};
   const looks=[bare,{...bare,hat:'hat-starter',weapon:'thunder-coil',upgrade:0}];
   const scratch=document.createElement('canvas').getContext('2d');
   for(let i=0;i<80&&R.RIG_ENABLED&&!looks.every(eq=>R.drawRigGame(scratch,eq,'STAND',0)&&R.drawRigShow(scratch,eq,'STATIC',0)&&R.drawRigVirtual(scratch,eq,'naturalStandFront',0));i++)await new Promise(r=>setTimeout(r,100));
@@ -42,10 +42,10 @@ try{
    poses.forEach(([label,pose],i)=>{note(label,40+i*170,y0+430);draw(eq,90+i*170,y0+620,112,{combat:true,walking:pose==='walk',pose,angle:45,power:60},pose==='fire'?220:1200);});
   });
   return sheet.toDataURL('image/png');
- },sex);
+ },[sex,look]);
  let image;
  for(let attempt=0;;attempt++){try{image=await render();break;}catch(error){if(attempt>=3||!/context was destroyed|navigation/i.test(error.message))throw error;await page.waitForLoadState('load');}}
  await mkdir('test-results/rig',{recursive:true});
- const file=`test-results/rig/preview-${sex}.png`;await writeFile(file,Buffer.from(image.split(',')[1],'base64'));
+ const file=`test-results/rig/preview-${sex}${look?`-${look}`:""}.png`;await writeFile(file,Buffer.from(image.split(',')[1],'base64'));
  console.log(JSON.stringify({file,errors}));
 }finally{await browser.close();await server.close();}

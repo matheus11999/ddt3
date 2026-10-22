@@ -4,7 +4,7 @@ import {canColorEyes,COLOR_SLOTS,isBodyColorPart,isPaletteColor,MAX_COLOR_TICKET
 import type {MatchBonuses} from '../shared/rewards';
 import pg from 'pg';
 import {createHash,randomBytes,randomInt,randomUUID} from 'node:crypto';
-import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,newCharacterEquipment,STARTER_COSTUMES,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
+import {ARMOR_SLOTS,isArmorSlot,canStrengthen,canEquipItem,CATALOG,copyBase,equippedCompositions,equippedCopy,isCopyKey,nextCopyKey,heldInSiblingSlot,slotAccepts,CHARACTER_GENDERS,CONTENT_VERSION,isEmptyItem,ITEMS,LEGACY_DYE_COLORS,MAX_UPGRADE,normalizeVisibility,RETIRED_COSMETIC_REPLACEMENTS,RETIRED_OUTFIT_REPLACEMENTS,SLOT_NAMES,starterEquipment,newCharacterEquipment,STARTER_COSTUMES,STARTER_EXTRA_ITEMS,STARTER_STONES,STONES,unequipForGender,upgradeChance,WEAPONS,slotsForItem} from '../shared/catalog';
 import type {CharacterGender,Equipment,Slot} from '../shared/catalog';
 import {canCompose,canComposeStat,COMPOSITION_STONES,COMPOSITION_STONE_BY_ID,normalizeCompositions,STARTER_COMPOSITION_STONES} from '../shared/composition';
 import {abilityLoadoutSchema,equipmentVisibilitySchema,stoneSelectionSchema} from '../shared/protocol';
@@ -61,6 +61,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if((raw.contentVersion??0)<16&&gender==='female'&&!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
  // Content 17: everyone owns the Bolha Clássica (starter kit).
  if((raw.contentVersion??0)<17&&!inventory.includes(defaults.bubble))inventory.push(defaults.bubble);
+ if((raw.contentVersion??0)<18)for(const extra of STARTER_EXTRA_ITEMS[gender])if(!inventory.includes(extra))inventory.push(extra);
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
  const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');
@@ -182,7 +183,7 @@ export class Store implements ProfileStore {
   if(name!==undefined){name=name.trim();const invalid=characterNameError(name);if(invalid)throw Error(invalid);}
   const id=randomUUID(),token=randomBytes(32).toString('hex');
   const equipment=name!==undefined?newCharacterEquipment(gender):starterEquipment(gender);
-  const owned=name!==undefined?Object.values(equipment):[...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES];
+  const owned=name!==undefined?[...Object.values(equipment),...STARTER_EXTRA_ITEMS[gender]]:[...Object.values(equipment),...Object.values(unequipForGender(gender)),...STARTER_COSTUMES];
   const profile=normalizeProfile({id,name:name??`Aventureiro${randomBytes(2).readUInt16BE()%10000}`,gender,level:1,xp:0,gold:500,wins:0,matches:0,equipment,inventory:[...new Set(owned)].filter((id):id is string=>typeof id==='string'&&Object.hasOwn(CATALOG,id)&&!isEmptyItem(id)),contentVersion:CONTENT_VERSION,compositionStones:{...STARTER_COMPOSITION_STONES},equippedOnce:false});
   const conn=await this.pool.connect();try{await conn.query('BEGIN');
    if(name!==undefined){await conn.query('SELECT pg_advisory_xact_lock(hashtext(lower($1)))',[name]);if((await conn.query('SELECT 1 FROM players WHERE lower(name)=lower($1) LIMIT 1',[name])).rows.length)throw Error('Esse nome já está em uso neste servidor.');}

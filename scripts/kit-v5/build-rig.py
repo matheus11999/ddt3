@@ -13,7 +13,8 @@ from PIL import Image
 
 SEX = os.environ.get('SEX', 'm')
 G = 'male' if SEX == 'm' else 'female'
-K = 'output/kit-v5-mcp' if SEX == 'm' else 'output/kit-v5f'
+K = os.environ.get('KIT') or ('output/kit-v5-mcp' if SEX == 'm' else 'output/kit-v5f')
+LOOK = os.environ.get('LOOK', f'basic-{G}')  # id dos itens: face-<LOOK>, hair-<LOOK>, outfit-<LOOK>
 MOLDS = 'output/ddtank-molds' if SEX == 'm' else 'output/ddtank-molds-f'
 T = 'docs/templates/rig'
 OUT = f'{K}/rig'
@@ -120,9 +121,9 @@ lay['roupa-frente'] = Image.fromarray(ra)
 face4 = Image.new('RGBA', (4000, 1368))
 for k in range(4):
     face4.paste(show_cell(face_neck), (k * 1000, 0))
-save(face4, 'show', f'face-basic-{G}')
-save(show_cell(lay['cabelo-frente']), 'show', f'hair-basic-{G}-A')
-save(show_cell(lay['roupa-frente']), 'show', f'outfit-basic-{G}')
+save(face4, 'show', f'face-{LOOK}')
+save(show_cell(lay['cabelo-frente']), 'show', f'hair-{LOOK}-A')
+save(show_cell(lay['roupa-frente']), 'show', f'outfit-{LOOK}')
 def diff_layer(full, base, below=776):
     """A peça que uma edição acrescentou (boné, cabelo B): a edição alinhada menos a base alinhada (align.py)."""
     from scipy import ndimage
@@ -145,7 +146,7 @@ hairB_front = diff_layer(f'{K}/cabeloB-frente/alinhada.png', f'{K}/mochila-carec
 if cap_front:
     save(show_cell(cap_front), 'show', 'hat-starter')
 if hairB_front:
-    save(show_cell(hairB_front), 'show', f'hair-basic-{G}-B')
+    save(show_cell(hairB_front), 'show', f'hair-{LOOK}-B')
 
 # ---------- combate (GAME): 13x3 células de 456x380 ----------
 CW, CH = 456, 380
@@ -162,9 +163,9 @@ for i in range(39):
         continue
     f, h, t, hb = place(head_layers, head_layers[0], box, (CW, CH))
     face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH)); hairB.paste(hb, (c * CW, r * CH))
-save(face, 'game', f'face-basic-{G}'); save(hair, 'game', f'hair-basic-{G}-A'); save(hat, 'game', 'hat-starter')
+save(face, 'game', f'face-{LOOK}'); save(hair, 'game', f'hair-{LOOK}-A'); save(hat, 'game', 'hat-starter')
 if hairB_front:
-    save(hairB, 'game', f'hair-basic-{G}-B')
+    save(hairB, 'game', f'hair-{LOOK}-B')
 # corpo: as pranchas pintadas em 4x (lotes de 6), recortadas célula a célula e repetidas como no molde
 meta = json.load(open(f'{K}/combate-lotes/lotes.json'))
 S, (BW, BH) = meta['scale'], meta['cell']
@@ -205,7 +206,7 @@ if os.path.exists(jm):
     for dst, src_i in ((28, 19), (29, 20)):
         r, c = divmod(src_i, 13); cell = body.crop((c * CW, r * CH, c * CW + CW, r * CH + CH))
         r, c = divmod(dst, 13); body.paste(Image.new('RGBA', (CW, CH)), (c * CW, r * CH)); body.paste(cell, (c * CW, r * CH))
-save(body, 'game', f'outfit-basic-{G}')
+save(body, 'game', f'outfit-{LOOK}')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
 vmold = green(f'{T}/virtualhead-{SEX}.png')
@@ -238,9 +239,9 @@ for cell, layers in ((0, front), (1, front), (2, back)):
     placed = place(use, base, box, (480, 700))
     vface.paste(placed[0], (cell * 480, 0)); vhair.paste(placed[1], (cell * 480, 0))
     vhat.paste(placed[2], (cell * 480, 0)); vhairB.paste(placed[3], (cell * 480, 0))
-save(vface, 'virtualhead', f'face-basic-{G}'); save(vhair, 'virtualhead', f'hair-basic-{G}-A')
+save(vface, 'virtualhead', f'face-{LOOK}'); save(vhair, 'virtualhead', f'hair-{LOOK}-A')
 if hairB_front and hairB_back:
-    save(vhairB, 'virtualhead', f'hair-basic-{G}-B')
+    save(vhairB, 'virtualhead', f'hair-{LOOK}-B')
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
 def clean_neck(cell):
@@ -325,8 +326,8 @@ for vname, vrow, hcell, vflip in (('frente', 0, 0, True), ('costas', 1, 2, False
       # para cima, nunca abaixo do queixo, para o pescoço continuar inteiro debaixo dele.
       from scipy import ndimage
       sheet = L(v3)
-      hd = Image.open(f'public/assets/rig/{SEX}/virtualhead/face-basic-{G}.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
-      hh = Image.open(f'public/assets/rig/{SEX}/virtualhead/hair-basic-{G}-A.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
+      hd = Image.open(f'public/assets/rig/{SEX}/virtualhead/face-{LOOK}.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
+      hh = Image.open(f'public/assets/rig/{SEX}/virtualhead/hair-{LOOK}-A.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
       hd.alpha_composite(hh)
       hmask = np.asarray(hd.transpose(Image.FLIP_LEFT_RIGHT) if vflip else hd)[..., 3] > 30
       chin = np.full(480, -1)
@@ -357,5 +358,5 @@ for vname, vrow, hcell, vflip in (('frente', 0, 0, True), ('costas', 1, 2, False
               cell[np.isin(lab, 1 + np.nonzero(sz < sz.max() * .02)[0]), 3] = 0
           vbody.paste(Image.new('RGBA', (480, 700)), (col * 480, vrow * 700))
           vbody.paste(Image.fromarray(cell), (col * 480, vrow * 700))
-save(vbody, 'virtual', f'outfit-basic-{G}')
+save(vbody, 'virtual', f'outfit-{LOOK}')
 print('ok')

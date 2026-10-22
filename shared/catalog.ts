@@ -176,6 +176,12 @@ ITEMS.push(
  basicLook('outfit','male','#c9a36b','/assets/outfits/basic-male-atlas.png'),basicLook('outfit','female','#f2a7bf','/assets/outfits/basic-female-atlas.png'),
  basicLook('hair','male','#7a4a2a','/assets/hair-basic-male.png'),basicLook('hair','female','#7a4a2a','/assets/hair-basic-female.png'),
  basicLook('face','male','#c99a78','/assets/faces/face-basic-male.png'),basicLook('face','female','#e0a49a','/assets/faces/face-basic-female.png'));
+/** Second male starter look (matheus 22/10): three separate pieces painted only for the rig v2 sheets (public/assets/rig/m). */
+export const STARTER_EXTRA_ITEMS:Readonly<Record<CharacterGender,readonly string[]>>={male:['hair-star-male','face-star-male','outfit-star-male'],female:[]};
+ITEMS.push(
+ {...cosmetic('hair-star-male','Cabelo Espetado','hair','star-male','#2a2a33'),gender:'male',description:'Cabelo preto espetado do kit inicial.'},
+ {...cosmetic('face-star-male','Rosto Sorridente','face','star-male','#c99a78'),gender:'male',description:'Olhos azul-acinzentados e sorriso aberto.'},
+ {...cosmetic('outfit-star-male','Roupa Estrela','outfit','star-male','#5aa7e8'),gender:'male',description:'Camiseta azul com estrela, bermuda jeans e tênis vermelho.'});
 const GENDERED_ITEMS:Readonly<Record<string,CharacterGender>>={
  'face-brave':'male','face-taunt':'male','face-fierce':'male','face-captain':'male',
  'face-smile':'female','face-serene':'female','face-wink':'female',
@@ -231,8 +237,8 @@ export const RETIRED_OUTFIT_REPLACEMENTS:Readonly<Record<string,string>>={
 export const SLOT_NAMES:Record<Slot,string> = {weapon:'Arma',hat:'Chapéu',face:'Rosto',outfit:'Roupa',hair:'Cabelo',glasses:'Óculos',wristband:'Pulseira',wristband2:'Pulseira',bracelet:'Bracelete',bracelet2:'Bracelete',costume:'Fantasia',ring:'Anel',ring2:'Anel',necklace:'Colar',bubble:'Bolha'};
 export const UNEQUIP:Partial<Record<Slot,string>>={weapon:'weapon-none',hat:'hat-none',hair:'hair-basic-male',glasses:'glasses-none',face:'face-basic-male',outfit:'outfit-basic-male',wristband:'wristband-none',wristband2:'wristband-none',bracelet:'bracelet-none',bracelet2:'bracelet-none',costume:'costume-none',ring:'ring-none',ring2:'ring-none',necklace:'necklace-none',bubble:'bubble-none'};
 export function unequipForGender(gender:CharacterGender):Partial<Record<Slot,string>> {return gender==='female'?{...UNEQUIP,hair:'hair-basic-female',face:'face-basic-female',outfit:'outfit-basic-female'}:{...UNEQUIP};}
-/** 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
-export const CONTENT_VERSION=17;
+/** 18: male characters get the second starter look (STARTER_EXTRA_ITEMS). 16: female characters get the Exploradora da Aurora (feminine starter outfit) and wear it instead of the Cartógrafo. */
+export const CONTENT_VERSION=18;
 export const MAX_UPGRADE = MAX_STRENGTHEN;
 export const MAX_FORGE_STONES = 20;
 /** Where players stand to use the forge: beside the smith in Praça Celeste. */
