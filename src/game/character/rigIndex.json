@@ -3,15 +3,15 @@
   "game": [
    "face-basic-male",
    "hair-basic-male-A",
-   "hair-basic-male-B",
    "hat-starter",
+   "hat-starter-clip",
    "outfit-basic-male"
   ],
   "show": [
    "face-basic-male",
    "hair-basic-male-A",
-   "hair-basic-male-B",
    "hat-starter",
+   "hat-starter-clip",
    "outfit-basic-male"
   ],
   "virtual": [
@@ -20,23 +20,23 @@
   "virtualhead": [
    "face-basic-male",
    "hair-basic-male-A",
-   "hair-basic-male-B",
-   "hat-starter"
+   "hat-starter",
+   "hat-starter-clip"
   ]
  },
  "f": {
   "game": [
    "face-basic-female",
    "hair-basic-female-A",
-   "hair-basic-female-B",
    "hat-starter",
+   "hat-starter-clip",
    "outfit-basic-female"
   ],
   "show": [
    "face-basic-female",
    "hair-basic-female-A",
-   "hair-basic-female-B",
    "hat-starter",
+   "hat-starter-clip",
    "outfit-basic-female"
   ],
   "virtual": [
@@ -45,8 +45,8 @@
   "virtualhead": [
    "face-basic-female",
    "hair-basic-female-A",
-   "hair-basic-female-B",
-   "hat-starter"
+   "hat-starter",
+   "hat-starter-clip"
   ]
  }
 }

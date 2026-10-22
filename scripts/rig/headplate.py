@@ -416,6 +416,8 @@ def bake(sex, item, painted, kind, base_path=None):
         piece = clean_hat_plate(piece)
     piece.save(lifted)
     write_sheets(sex, item, piece)
+    if kind == 'hat':  # the hair under it is cut by this (one hair for every hat)
+        subprocess.run([sys.executable, 'scripts/rig/hatclip.py', sex, item], check=True)
 
 
 # ---------------------------------------------------------------- hat area
@@ -517,5 +519,6 @@ if __name__ == '__main__':
         bake(sex, sys.argv[3], sys.argv[4], kind, opt('base'))
     elif cmd == 'cleanhat':
         clean_hat_sheets(sex, sys.argv[3])
+        subprocess.run([sys.executable, 'scripts/rig/hatclip.py', sex, sys.argv[3]], check=True)
     elif cmd == 'resheet':
         write_sheets(sex, sys.argv[3], rgba(f'{OUT}/{sys.argv[3]}-{sex}.png'))

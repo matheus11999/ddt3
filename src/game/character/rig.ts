@@ -12,7 +12,7 @@ import type {RigContext} from './composer';
  * cut per frame. A look uses rig v2 only when every visible piece has rig art for that context; otherwise the old
  * renderer draws it (until the old cosmetics are removed).
  *
- * Sheets live in public/assets/rig/<sex>/<context>/<item>.png (hair: <item>-A and <item>-B, B under a hat), listed in
+ * Sheets live in public/assets/rig/<sex>/<context>/<item>.png (hair: <item>-A, cut under a hat by <hat>-clip), listed in
  * rigIndex.json by scripts/rig/publish.py. Sizes in avatar units (the 160-unit figure): GAME_UNIT etc. below.
  */
 type Sex='m'|'f';
@@ -28,8 +28,8 @@ const sexOf=(eq:Equipment):Sex=>CATALOG[eq.outfit]?.gender==='female'||CATALOG[e
 const has=(sex:Sex,context:keyof (typeof INDEX)['m'],id:string)=>INDEX[sex]?.[context]?.includes(id)??false;
 function visibleHat(eq:Equipment){return eq.visibility?.hat===false?'hat-none':eq.hat;}
 function visibleGlasses(eq:Equipment){return eq.visibility?.glasses===false?'glasses-none':eq.glasses;}
-/** Hair variant: B is painted to sit under a hat (DDTank's Property1), A without one. */
-const hairKey=(eq:Equipment)=>`${eq.hair}-${visibleHat(eq)==='hat-none'?'A':'B'}`;
+/** One hair for every hat (matheus 22/10): the hair sheet is A; under a hat the game cuts it with the hat's clip sheet. */
+const hairKey=(eq:Equipment)=>`${eq.hair}-A`;
 
 /** The layers of a context in DDTank's painting order, or null when some visible piece has no rig art there. */
 function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null {
@@ -49,9 +49,15 @@ const composed=new Map<string,HTMLCanvasElement>();
 /** Stacks the sheets of a list of pieces into one canvas (body color applied to faces and outfits), cached per look. */
 function stack(sex:Sex,context:string,ids:string[],skin:string|undefined):HTMLCanvasElement|null {
  const key=[sex,context,skin??'',...ids].join('|'),known=composed.get(key);if(known)return known;
- const images=ids.map(id=>sheet(sex,context,id));if(!images.every(ready))return null;
+ // Under a hat the hair is cut by the hat's clip sheet (scripts/rig/hatclip.py): the hat, above it and above its band.
+ const hat=ids.find(id=>id.startsWith('hat-')),clip=hat?sheet(sex,context,`${hat}-clip`):null;
+ const images=ids.map(id=>sheet(sex,context,id));if(!images.every(ready)||clip&&!ready(clip))return null;
  const out=document.createElement('canvas');out.width=images[0].naturalWidth;out.height=images[0].naturalHeight;const c=out.getContext('2d')!;
- ids.forEach((id,i)=>{const image=images[i];if(skin&&(id.startsWith('face-')||id.startsWith('outfit-'))){const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);tintSkin(t,skin,true);c.drawImage(t,0,0);}else c.drawImage(image,0,0);});
+ const layer=(image:HTMLImageElement)=>{const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);return t;};
+ ids.forEach((id,i)=>{const image=images[i];
+  if(skin&&(id.startsWith('face-')||id.startsWith('outfit-'))){const t=layer(image);tintSkin(t,skin,true);c.drawImage(t,0,0);}
+  else if(clip&&id.startsWith('hair-')){const t=layer(image),tc=t.getContext('2d')!;tc.globalCompositeOperation='destination-out';tc.drawImage(clip,0,0);c.drawImage(t,0,0);}
+  else c.drawImage(image,0,0);});
  composed.set(key,out);if(composed.size>48){const oldest=composed.keys().next().value!;composed.delete(oldest);}
  return out;
 }
