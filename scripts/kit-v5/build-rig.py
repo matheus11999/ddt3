@@ -85,38 +85,48 @@ for k in range(4):
 save(face4, 'show', 'face-basic-male')
 save(show_cell(lay['cabelo-frente']), 'show', 'hair-basic-male-A')
 save(show_cell(lay['roupa-frente']), 'show', 'outfit-basic-male')
-# boné da mochila: a edição "careca + boné", alinhada pelo corpo, menos a careca alinhada (scripts align.py)
-cap_front = None
-if os.path.exists(f'{K}/bone-mochila/alinhada.png'):
+def diff_layer(full, base, below=776):
+    """A peça que uma edição acrescentou (boné, cabelo B): a edição alinhada menos a base alinhada (align.py)."""
     from scipy import ndimage
-    C = np.asarray(L(f'{K}/bone-mochila/alinhada.png')).astype(int)
-    B = np.asarray(L(f'{K}/mochila-careca/alinhada.png')).astype(int)
+    C = np.asarray(L(full)).astype(int)
+    B = np.asarray(L(base)).astype(int)
     d = np.abs(C[..., :3] - B[..., :3]).sum(-1)
-    m = (C[..., 3] > 20) & ((B[..., 3] < 20) | (d > 60)) & (np.mgrid[:C.shape[0], :C.shape[1]][0] < 776)
+    m = (C[..., 3] > 20) & ((B[..., 3] < 20) | (d > 60)) & (np.mgrid[:C.shape[0], :C.shape[1]][0] < below)
     m = ndimage.binary_opening(m, iterations=3)
     m = ndimage.binary_fill_holes(ndimage.binary_closing(m, iterations=4)) & (C[..., 3] > 20)
     lab, n = ndimage.label(m)
     if n:
         sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1)); m &= np.isin(lab, 1 + np.nonzero(sz >= sz.max() * .05)[0])
     C[~m, 3] = 0
-    cap_front = Image.fromarray(C.astype(np.uint8))
+    return Image.fromarray(C.astype(np.uint8))
+
+
+# boné e cabelo B (sob chapéu) da mochila: edições da careca, alinhadas pelo corpo
+cap_front = diff_layer(f'{K}/bone-mochila/alinhada.png', f'{K}/mochila-careca/alinhada.png') if os.path.exists(f'{K}/bone-mochila/alinhada.png') else None
+hairB_front = diff_layer(f'{K}/cabeloB-frente/alinhada.png', f'{K}/mochila-careca/alinhada.png') if os.path.exists(f'{K}/cabeloB-frente/alinhada.png') else None
+if cap_front:
     save(show_cell(cap_front), 'show', 'hat-starter')
+if hairB_front:
+    save(show_cell(hairB_front), 'show', 'hair-basic-male-B')
 
 # ---------- combate (GAME): 13x3 células de 456x380 ----------
 CW, CH = 456, 380
 gmold = green(f'{T}/game-m.png')
 # Uma cabeça só em todo lugar (matheus 22/10: "no combate o que muda é apenas o corpo"): a mesma cabeça 3/4 da mochila,
 # então cada cabelo e chapéu pintado uma vez serve na mochila, no combate e na praça.
-head_layers = [lay['cabeca-frente'], lay['cabelo-frente'], cap_front or Image.new('RGBA', lay['cabeca-frente'].size)]
-face = Image.new('RGBA', (CW * 13, CH * 3)); hair = face.copy(); hat = face.copy()
+empty = Image.new('RGBA', lay['cabeca-frente'].size)
+head_layers = [lay['cabeca-frente'], lay['cabelo-frente'], cap_front or empty, hairB_front or empty]
+face = Image.new('RGBA', (CW * 13, CH * 3)); hair = face.copy(); hat = face.copy(); hairB = face.copy()
 for i in range(39):
     r, c = divmod(i, 13)
     box = core_box(gmold[r * CH:(r + 1) * CH, c * CW:(c + 1) * CW])
     if not box:
         continue
-    f, h, t = place(head_layers, head_layers[0], box, (CW, CH))
-    face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH))
+    f, h, t, hb = place(head_layers, head_layers[0], box, (CW, CH))
+    face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH)); hairB.paste(hb, (c * CW, r * CH))
 save(face, 'game', 'face-basic-male'); save(hair, 'game', 'hair-basic-male-A'); save(hat, 'game', 'hat-starter')
+if hairB_front:
+    save(hairB, 'game', 'hair-basic-male-B')
 # corpo: as pranchas pintadas em 4x (lotes de 6), recortadas célula a célula e repetidas como no molde
 meta = json.load(open(f'{K}/combate-lotes/lotes.json'))
 S, (BW, BH) = meta['scale'], meta['cell']
@@ -142,18 +152,20 @@ save(body, 'game', 'outfit-basic-male')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
 vmold = green(f'{T}/virtualhead-m.png')
-front = [L(f'{K}/camadas-mochila/cabeca-frente.png'), L(f'{K}/camadas-mochila/cabelo-frente.png')] + ([cap_front] if cap_front else [])
-back = [L(f'{K}/camadas/cabeca-costas.png'), L(f'{K}/camadas/cabelo-costas.png'), L(f'{K}/camadas/bone-costas.png')]
-vface = Image.new('RGBA', (1440, 700)); vhair = vface.copy(); vhat = vface.copy()
+front = [L(f'{K}/camadas-mochila/cabeca-frente.png'), L(f'{K}/camadas-mochila/cabelo-frente.png'), cap_front or empty, hairB_front or empty]
+hairB_back = diff_layer(f'{K}/cabeloB-costas/alinhada.png', f'{K}/costas-careca/costas-careca.png', 10**6) if os.path.exists(f'{K}/cabeloB-costas/alinhada.png') else None
+back = [L(f'{K}/camadas/cabeca-costas.png'), L(f'{K}/camadas/cabelo-costas.png'), L(f'{K}/camadas/bone-costas.png'), hairB_back or Image.new('RGBA', (1254, 1254))]
+vface = Image.new('RGBA', (1440, 700)); vhair = vface.copy(); vhat = vface.copy(); vhairB = vface.copy()
 for cell, layers in ((0, front), (1, front), (2, back)):
     box = core_box(vmold[:, cell * 480:(cell + 1) * 480])
     # a cabeça de frente do molde está virada para a esquerda: a nossa (virada para a direita) entra espelhada
     use = [l.transpose(Image.FLIP_LEFT_RIGHT) for l in layers] if cell < 2 else layers
     placed = place(use, use[0], box, (480, 700))
     vface.paste(placed[0], (cell * 480, 0)); vhair.paste(placed[1], (cell * 480, 0))
-    if len(placed) > 2:
-        vhat.paste(placed[2], (cell * 480, 0))
+    vhat.paste(placed[2], (cell * 480, 0)); vhairB.paste(placed[3], (cell * 480, 0))
 save(vface, 'virtualhead', 'face-basic-male'); save(vhair, 'virtualhead', 'hair-basic-male-A')
+if hairB_front and hairB_back:
+    save(vhairB, 'virtualhead', 'hair-basic-male-B')
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
 pm = json.load(open(f'{K}/praca-lotes/lotes.json'))
