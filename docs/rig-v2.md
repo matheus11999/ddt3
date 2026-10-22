@@ -43,12 +43,13 @@ Toda a arte nova numa grade só, o dobro da do DDTank (escala inteira; nada de a
 4. Ligar no jogo: batalha (GAME), mochila/loja/salas (SHOW), praça/Pescaria (VIRTUAL). Substitui o rig atual e a vista de frente provisória (`src/game/front.ts`).
 5. Apagar os cosméticos antigos e migrar quem os tinha para o kit inicial.
 
-## Peças de cabeça pintadas uma vez (21/10, aprovado pelo matheus)
+## Peças de cabeça pintadas uma vez (21-22/10, aprovado pelo matheus)
 
-Medido no molde: a cabeça do combate é a mesma em 30 das 33 células, só movida e girada até 16° (as outras são o choro e o fantasma). Pintar o chapéu em cada célula fazia cada cabeça sair diferente e o encaixe quebrar. Agora:
+Medido no molde: a cabeça do combate é a mesma em 30 das 33 células, só movida e girada (as outras são o choro, igual com lágrimas, e o fantasma, menor). Pintar a cabeça em cada célula fazia cada cabeça sair diferente e o encaixe quebrar. Desde 22/10:
 
-- Chapéu, cabelo B (sob chapéu) e óculos são pintados **uma vez** numa placa de cabeça 1536 × 512 com a cabeça careca aprovada em três vistas (lado, frente 3/4, costas): `py scripts/rig/headplate.py make <sexo> [--with=<peça>]`, prompts `head-hat`, `head-hairB` em `scripts/rig/rig-prompts.mjs`.
-- `py scripts/rig/headplate.py bake <sexo> <peça> <placa pintada> --hat|--hair|--glasses` alinha a saída do Codex pelo rosto (recusa se o rosto mudou), recorta a peça pela diferença, apaga o que o chapéu pintou sobre olhos e boca, e grava as folhas `game`, `show` e `virtualhead` com a transformação de cada célula de `scripts/rig/headfit-<sexo>.json` (medida dos rostos aprovados por `headplate.py measure`). O jogo continua só empilhando folhas.
-- O rosto continua pintado por célula (expressões). Se o rosto mudar, rode `measure` e `resheet`.
-- Roupa continua por célula; `py scripts/rig/check-cells.py <contexto> <sexo> <folha> [--fix]` confere cada célula contra o molde, corrige deslocamentos pequenos e diz qual placa refazer.
-- Prancha para aprovação: `py scripts/rig/head-sheet.py <sexo> <chapéu>`; referência do kit para o Codex: `py scripts/rig/head-sheet.py kit <sexo>`.
+- **Grade 4× o DDTank** (era 2×; o matheus achou baixa resolução): combate 456 × 380, mochila 1000 × 1368, praça 480 × 700. O boneco da mochila e o da praça têm a altura do boneco de frente antigo.
+- **Cabeça inteira pintada uma vez**: rosto, cabelo A, cabelo B (sob chapéu), chapéu e óculos numa placa de cabeça 1536 × 1024 (frente 3/4 grande à esquerda, lado em cima à direita, costas embaixo à direita). O rosto tem ainda a placa de expressões de lado (fechado, riso, dor, choro, surpresa, fantasma) e a de piscar de frente. `scripts/rig/headplate.py` (`make`, `face`, `bake`) recoloca cada placa sobre o molde (recusa rosto que não preenche a cabeça ou que mudou), recorta a peça e grava as folhas de combate, mochila e praça com a transformação de cada célula (`scripts/rig/headfit-<sexo>.json`, medida do molde por `measure`). O jogo continua só empilhando folhas.
+- **Corpo por célula** (roupa): `scripts/rig/check-cells.py <contexto> <sexo> <folha> [--fix]` confere cada célula contra o molde e diz qual placa refazer. A praça usa placas só de frente (1 a 3) ou só de costas (4 a 6): misturadas, o Codex trocava frente e costas.
+- Combate: deitado parado, andando e mirando; ajoelhado só para carregar e arremessar (`GAME_ACTION` em `src/game/avatar.ts`). Praça: as células de frente são pintadas viradas para a esquerda e o jogo as espelha; frente/costas × espelho = 8 direções.
+- Nenhum boneco tem sombra cinza no chão (matheus 22/10).
+- Prompts `kit3-*` em `scripts/rig/rig-prompts.mjs`. Prancha para aprovação com o desenho do próprio jogo: `node scripts/rig/preview-rig.mjs m` (mochila, praça nas 8 direções, combate em cada pose) e `py scripts/rig/head-sheet.py <sexo> <chapéu>`.

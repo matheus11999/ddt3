@@ -2,7 +2,7 @@
 
 Codex paints best on a few big cells, the game needs every cell of its grid exactly in place. A plate is up to 3x2
 cells of a context, each grid cell scaled by an integer-free but FIXED factor into a 512x512 plate cell (SHOW: one cell
-in a 1024x1400 plate). Assembling divides by the same factor and puts each cell back in its grid position, so nothing
+in a 1024x1400 plate; VIRTUAL: 3 cells of 512x1024, front and back never on the same plate). Assembling divides by the same factor and puts each cell back in its grid position, so nothing
 is fitted by bounding box: what the painter moved, moves.
 
   py scripts/rig/plates.py make <context> <sex> [--base=<sheet.png>] [--ref]   writes test-results/rig/plates/<context>-<sex>-<n>.png
@@ -13,8 +13,8 @@ is fitted by bounding box: what the painter moved, moves.
       piece's part of the mold (the head for faces, hair and hats, the body for outfits), dropping the untouched mold.
   py scripts/rig/plates.py lift <base-sheet.png> <painted-sheet.png> <out.png> [--noskin] [--solid]
       the piece painted ON a base (hair over a face): every pixel that changed or lies outside the base.
-Contexts: game (13x3 of 228x190, 33 used cells), show (500x684), showface (4 x 500x684), virtual (7x2 of 240x350),
-virtualhead (3 x 240x350).
+Contexts (4x the DDTank grid): game (13x3 of 456x380, 33 used cells), show (1000x1368), showface (4 x 1000x1368),
+virtual (7x2 of 480x700), virtualhead (3 x 480x700).
 """
 import json
 import os
@@ -23,12 +23,12 @@ import sys
 import numpy as np
 from PIL import Image, ImageFilter
 
-GRIDS = {
-    'game': ((228, 190), 13, 3, [i for i in range(39) if i % 13 < 11]),
-    'show': ((500, 684), 1, 1, [0]),
-    'showface': ((500, 684), 4, 1, [0, 1, 2, 3]),
-    'virtual': ((240, 350), 7, 2, list(range(14))),
-    'virtualhead': ((240, 350), 3, 1, [0, 1, 2]),
+GRIDS = {  # 4x the DDTank grid since 22/10
+    'game': ((456, 380), 13, 3, [i for i in range(39) if i % 13 < 11]),
+    'show': ((1000, 1368), 1, 1, [0]),
+    'showface': ((1000, 1368), 4, 1, [0, 1, 2, 3]),
+    'virtual': ((480, 700), 7, 2, list(range(14))),
+    'virtualhead': ((480, 700), 3, 1, [0, 1, 2]),
 }
 PLATE_CELL = 512
 OUT = 'test-results/rig/plates'
@@ -37,12 +37,25 @@ OUT = 'test-results/rig/plates'
 def layout(context):
     (w, h), cols, rows, used = GRIDS[context]
     if context in ('show', 'showface'):
-        k = 2.0  # one 500x684 cell -> 1000x1368 inside a 1024x1400 plate
+        k = 1.0  # one 1000x1368 cell inside a 1024x1400 plate
         return [[(i, 0, 0)] for i in used], k, (1024, 1400)
+    if context == 'virtual':
+        # 3 tall cells per plate (512x1024 each), never front and back on the same plate: Codex mixed them up (22/10)
+        k = min(PLATE_CELL / w, 2 * PLATE_CELL / h)
+        groups = [[0, 1, 2], [3, 4, 5], [6], [7, 8, 9], [10, 11, 12], [13]]
+        return [[(idx, n, 0) for n, idx in enumerate(g)] for g in groups], k, (PLATE_CELL * 3, PLATE_CELL * 2)
     k = min(PLATE_CELL / w, PLATE_CELL / h)
     per = 6
     groups = [used[i:i + per] for i in range(0, len(used), per)]
     return [[(idx, n % 3, n // 3) for n, idx in enumerate(g)] for g in groups], k, (PLATE_CELL * 3, PLATE_CELL * 2)
+
+
+def place(context, px, py, cw, ch, size):
+    """Top-left corner of a scaled grid cell inside its plate cell (centered)."""
+    if context in ('show', 'showface'):
+        return (size[0] - cw) // 2, (size[1] - ch) // 2
+    tall = 2 if context == 'virtual' else 1
+    return px * PLATE_CELL + (PLATE_CELL - cw) // 2, py * PLATE_CELL * tall + (PLATE_CELL * tall - ch) // 2
 
 
 def cell_of(sheet, context, index):
@@ -63,8 +76,7 @@ def make(context, sex, base=None, ref=False):
         out = Image.new('RGB', size, (255, 0, 255))
         for idx, px, py in plate:
             c = cell_of(mold, context, idx).resize((round(w * k), round(h * k)), Image.LANCZOS)
-            ox = px * PLATE_CELL + (PLATE_CELL - c.width) // 2 if context not in ('show', 'showface') else (size[0] - c.width) // 2
-            oy = py * PLATE_CELL + (PLATE_CELL - c.height) // 2 if context not in ('show', 'showface') else (size[1] - c.height) // 2
+            ox, oy = place(context, px, py, c.width, c.height, size)
             bg = Image.new('RGBA', c.size, (255, 0, 255, 255))
             bg.alpha_composite(c)
             out.paste(bg.convert('RGB'), (ox, oy))
@@ -94,12 +106,12 @@ def reference(context, sex):
         im = Image.open(p).convert('RGBA')
         if context == 'show' and im.width > 250:
             im = im.crop((0, 0, 250, im.height))
-        native = (w * cols // 2, h * rows // 2)
+        native = (w * cols // 4, h * rows // 4)
         if im.size != native:  # older revision smaller than the cell: pad at the bottom, never scale
             pad = Image.new('RGBA', native, (0, 0, 0, 0))
             pad.alpha_composite(im)
             im = pad
-        im = im.resize((im.width * 2, im.height * 2), Image.LANCZOS)
+        im = im.resize((im.width * 4, im.height * 4), Image.LANCZOS)
         sheet.alpha_composite(im)
     os.makedirs(OUT, exist_ok=True)
     tmp = f'{OUT}/_ref-{context}-{sex}.png'
@@ -126,10 +138,10 @@ def region_mask(context, sex, region):
     m = np.asarray(Image.open(f'docs/templates/rig/{context}-{sex}.png').convert('RGB')).astype(int)
     r, g, b = m[..., 0], m[..., 1], m[..., 2]
     sel = (g > 200) & (r < 60) if region != 'body' else (abs(r - g) < 12) & (abs(g - b) < 12) & (r < 200)
-    grow = 9 if region != 'aroundhead' else 81  # hats and hair go past the skull, never down the body
+    grow = 17 if region != 'aroundhead' else 161  # hats and hair go past the skull, never down the body
     m = Image.fromarray((sel * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(grow))
     if region == 'aroundhead':  # long hair falls to the shoulders: let it go down a little more below the head
-        m = Image.fromarray(np.maximum(np.asarray(m), np.roll(np.asarray(m), 40, axis=0)))
+        m = Image.fromarray(np.maximum(np.asarray(m), np.roll(np.asarray(m), 80, axis=0)))
     return m
 
 
@@ -143,8 +155,7 @@ def assemble(context, sex, out, plate_files, region=None):
         img = src if lifted else key(src)
         for idx, px, py in plate:
             cw, ch = round(w * k), round(h * k)
-            ox = px * PLATE_CELL + (PLATE_CELL - cw) // 2 if context not in ('show', 'showface') else (size[0] - cw) // 2
-            oy = py * PLATE_CELL + (PLATE_CELL - ch) // 2 if context not in ('show', 'showface') else (size[1] - ch) // 2
+            ox, oy = place(context, px, py, cw, ch, size)
             c = img.crop((ox, oy, ox + cw, oy + ch)).resize((w, h), Image.LANCZOS)
             sheet.alpha_composite(c, (idx % cols * w, idx // cols * h))
     allowed = region_mask(context, sex, region)

@@ -232,13 +232,6 @@ export function drawAvatarPortrait(c:CanvasRenderingContext2D,equipment:Equipmen
  drawHeadLayers(c,eq,0,'idle',true);c.restore();
 }
 
-/** Soft room-card contact shadow, independent of the rotating light aura. */
-function drawGroundedShadow(c:CanvasRenderingContext2D,width:number){
- c.save();c.translate(0,-1);c.scale(width,6);
- const shade=c.createRadialGradient(0,0,0,0,0,1);
- shade.addColorStop(0,'#29344259');shade.addColorStop(.45,'#29344230');shade.addColorStop(1,'#29344200');
- c.fillStyle=shade;c.beginPath();c.arc(0,0,1,0,Math.PI*2);c.fill();c.restore();
-}
 
 /** A layered 2D cutout rig. Every item shares the head/chest/hand transforms in all poses. */
 export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,height:number,time:number,walking=false,facing=1,weapon=true,motion?:AvatarMotion,context:AvatarContext={}){
@@ -252,7 +245,6 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
   const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||context.pose==='walk');}
   const {pose,poseTime,recoil,slope}=animate(m,time,walking,facing,context);
   c.save();c.translate(x,y);c.scale(height/160,height/160);
-  if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);
   if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
   const paint=(direction:number)=>{c.save();turnPop(c,m.turn);c.scale(direction,1);
    // Menu cards keep the miniature weapon legible beside a costume. Combat
@@ -277,7 +269,7 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
  // Every body lying in combat follows the ground: the painted frames too, not only the old cut-out rig (19/10/2026).
  // Kneeling to charge and throw, the body stays mostly upright on a steep slope instead of tipping over with it.
  const tilt=context.combat&&(rig.combat||hasCombatFrames(eq.outfit))?slope*(pose==='charge'||pose==='fire'?.35:1):0;
- c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);if(context.groundedShadow&&!context.combat)drawGroundedShadow(c,30);else if(!context.combat)ellipse(c,-lie*3,-1,30+lie*25,7-lie*2,'#162c3c35'); // No contact shadow in combat: it read as a dark smear on slopes and in craters.
+ c.save();c.translate(x,y);c.rotate(tilt);c.scale(height/160,height/160);// No ground shadow under the character anywhere (matheus 22/10).
  if(context.showAura&&!context.combat)drawAura(c,eq.upgrade??0,auraTime);
  const body=(direction:number)=>{
   c.save();turnPop(c,m.turn);c.scale(direction,1);
@@ -359,14 +351,15 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
 }
 
 /** DDTank actions for our poses (combat). Ticks run at DDTank's 25 Hz. */
-const GAME_ACTION:Record<AvatarPose,string>={idle:'STAND',walk:'WALK',aim:'SHOWTHROWS',charge:'SHOWTHROWS',fire:'THROWS',hit:'SHAKE',fall:'SHAKE',prone:'STAND',victory:'STAND',defeat:'CRY'};
+// Lying to walk and aim, kneeling only to charge and throw (docs/combat-frames.md; matheus 22/10: it knelt the whole turn).
+const GAME_ACTION:Record<AvatarPose,string>={idle:'STAND',walk:'WALK',aim:'STAND',charge:'SHOWTHROWS',fire:'THROWS',hit:'SHAKE',fall:'SHAKE',prone:'STAND',victory:'STAND',defeat:'CRY'};
 const TICK_MS=40;
 /** Rig v2 figure: the composed sheets of the context, mirrored for facing; nothing else is drawn on top. */
 function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:number,y:number,height:number,time:number,walking:boolean,facing:number,motion:AvatarMotion|undefined,ctx:AvatarContext,auraTime:number){
  const m=motion??createAvatarMotion(facing<0?-1:1);if(!motion){m.phase=time/105;m.walk=Number(walking||ctx.pose==='walk');}
  const {pose,poseTime}=animate(m,time,walking,facing,ctx),moving=walking?m.walk>.02:m.walk>.6;
  c.save();c.translate(x,y);c.scale(height/160,height/160);
- if(!ctx.combat){if(ctx.groundedShadow)drawGroundedShadow(c,30);else ellipse(c,0,-1,30,7,'#162c3c35');if(ctx.showAura)drawAura(c,eq.upgrade??0,auraTime);}
+ if(!ctx.combat&&ctx.showAura)drawAura(c,eq.upgrade??0,auraTime);
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
  const clock=Math.floor(time/TICK_MS),since=Math.floor(Math.max(0,poseTime)/TICK_MS);
  if(context==='game'){const action=GAME_ACTION[pose]??'STAND';drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
@@ -383,7 +376,6 @@ function drawFront(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,hei
  const lively=context.seed!==undefined&&context.animated!==false?idleHeadTilt(time,context.seed)*(1-m.walk):0;
  const sheetWalk=walking?m.walk>.02:m.walk>.6,kind=sheetWalk?'walk':context.world?'idle':'stand',distance=m.phase*WALK_STEP*4/(Math.PI*2);
  c.save();c.translate(x,y);c.scale(height/160,height/160);
- if(context.groundedShadow)drawGroundedShadow(c,30);else ellipse(c,0,-1,30,7,'#162c3c35');
  if(context.showAura)drawAura(c,eq.upgrade??0,auraTime);
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
  if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon&&!isEmptyItem(eq.weapon)){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){

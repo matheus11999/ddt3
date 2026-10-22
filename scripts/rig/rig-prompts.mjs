@@ -101,17 +101,43 @@ function kitSteps(sex){
  return out;
 }
 const STEPS={...kitSteps('m'),...kitSteps('f')};
-// Head pieces painted ONCE (scripts/rig/headplate.py, matheus 21/10): one plate with the bald head in the three views;
-// headplate.py bake puts the piece in every cell of every context. `platePath` points outside the plates folder.
-const HEAD='test-results/rig/head',VIEWS='IMAGE 1 is the head plate of the game: the SAME bald chibi head in three views on magenta: LEFT cell the SIDE view (facing right), MIDDLE cell the 3/4 FRONT view (looking to the left of the picture, the right ear showing), RIGHT cell seen from the BACK (no face). Use case: precise-object-edit.';
-const SAME3='It is ONE object seen from three angles: identical design, colors, materials and size in the three views, each one turned like its head. Keep the faces, ears, head sizes and positions and the magenta background pixel-identical; never move or redraw a head.';
-for(const sex of ['m','f']){
- const K=KITS[sex],x=sex==='m'?'':'-f';
- STEPS[`head-hat${x}`]={plate:`head-${sex}`,platePath:`${HEAD}/head-${sex}.png`,refs:['public/assets/front/hat-starter.png'],text:[VIEWS,
-  `Paint ON each bald head ${CAP}. The cap sits ON the head: the crown wraps the top and back of the skull, the band rests just above the eyebrows, the brim points forward over the forehead and NEVER covers the eyes; on the back view we see the back of the crown with the adjustable strap and the brim pointing away. IMAGE 2 is the cap approved before in one view (same idea, paint it better and in volume).`,SAME3]};
- STEPS[`head-hairB${x}`]={plate:`head-${sex}+hat-starter`,platePath:`${HEAD}/head-${sex}+hat-starter.png`,refs:[`public/assets/rig/${sex}/show/hair-basic-${sex==='m'?'male':'female'}-A.png`],text:[
-  VIEWS.replace('bald chibi head','chibi head wearing the starter cap'),
-  `Paint ${K.hairB}, in each view (on the back view the hair below the cap down to the nape). IMAGE 2 is the approved hairstyle without the cap. Keep the cap pixel-identical.`,SAME3.replace('a head','a head or the cap')]};
+// Kit v3 (matheus 22/10): the whole head painted ONCE per view (scripts/rig/headplate.py) at 4x the DDTank grid, bodies
+// per cell, plaza plates never mixing front and back. Style and design source: the front-view kit matheus approved
+// (public/assets/front/*, the bag screenshot of 22/10). `platePath` points outside the plates folder.
+const HEAD='test-results/rig/head';
+const LAYOUT='IMAGE 1 is the head plate of the game on magenta: the LEFT big square holds the 3/4 FRONT view (the head turned a little to the LEFT of the picture, the right ear showing), the TOP RIGHT square the SIDE view used in battle (the head facing RIGHT), the BOTTOM RIGHT square the same head seen from the BACK.';
+const SAME3='It is ONE object seen from three angles: identical design, colors, materials and proportions in the three views, each one turned like its head. Never move, resize or redraw a head; keep the magenta background flat.';
+const FRONT_REFS=['public/assets/front/face-basic-male.png','docs/templates/rig/ref-face-side-m.png'];
+for(const sex of ['m']){
+ const K=KITS[sex],kit=`${sheets}/show-kit-${sex}.png`;
+ STEPS['kit3-face-views']={plate:'mold-views',platePath:`${HEAD}/mold-views-${sex}.png`,refs:FRONT_REFS,text:[LAYOUT,'IMAGE 2 is the approved face of this boy in the front view, IMAGE 3 the same boy in the battle side view.',
+  `Paint the head over each flat GREEN shape and replace ALL of the green: the painted head is exactly as big as the green shape and its outline runs along the edge of the green (skull to the top edge, the ear in the ear bump, the chin at the bottom), nothing painted outside it. It is ${K.face}. FRONT square: the face of IMAGE 2 (same eyes, brows, nose, smile, ear), high resolution. SIDE square: the same boy in the battle view of IMAGE 3, facing right. BACK square: the back of the same bald head (no face, the ears seen from behind, the nape). Bald: no hair at all.`,SAME3]};
+ STEPS['kit3-face-side']={plate:'mold-side',platePath:`${HEAD}/mold-side-${sex}.png`,refs:[`${HEAD}/face-basic-male-views-${sex}.png`,'docs/templates/rig/ref-face-side-m.png'],text:[
+  'IMAGE 1 is a plate of 6 flat GREEN head shapes on magenta, all the same side view facing RIGHT. IMAGE 2 is the approved bald boy head of this kit (TOP RIGHT square: this same side view).',
+  `Paint over each GREEN shape the SAME bald boy head as IMAGE 2's side view (same size and outline as the green, replace all of it), each with a different battle expression: TOP ROW left to right 1) eyes calmly CLOSED, 2) big happy LAUGH, eyes closed in happy arcs and the mouth open, 3) pain GRIMACE, eyes squeezed shut and clenched teeth; BOTTOM ROW 4) CRYING hard: eyes squeezed, mouth open, two big streams of light-blue cartoon tears spraying out sideways from the eyes (only the tears may go outside the green), 5) surprised: eyes wide and a small round open mouth, 6) GHOST: the same head pale white-blue and a little translucent, sad droopy eyes. Bald, no hair. Same painting style as IMAGE 2.`]};
+ STEPS['kit3-face-blink']={plate:'mold-blink',platePath:`${HEAD}/mold-blink-${sex}.png`,refs:[`${HEAD}/face-basic-male-views-${sex}.png`],text:[
+  'IMAGE 1 is a plate of 2 flat GREEN head shapes on magenta, both the 3/4 FRONT view. IMAGE 2 is the approved bald boy head of this kit (LEFT big square: this same front view).',
+  "Paint over each GREEN shape the SAME bald boy head as IMAGE 2's front view (same size and outline as the green, replace all of it, identical face), LEFT with the eyes CLOSED (a calm blink, curved closed lids with lashes), RIGHT with the eyes HALF-CLOSED (the middle of a blink). Everything else identical to IMAGE 2. Bald, no hair."]};
+ STEPS['kit3-hairA']={plate:'head',platePath:`${HEAD}/head-${sex}.png`,refs:['public/assets/front/hair-basic-male.png',...FRONT_REFS.slice(1)],text:[LAYOUT,
+  `Use case: precise-object-edit. Paint ON each bald head ${K.hairA}: IMAGE 2 is this hairstyle approved in the front view (copy its shape, volume, locks and color); on the back view the back of the same hairstyle covering the whole back of the skull down to the nape. Hair never covers the eyes, never hangs behind the head past the ear. Keep the faces and ears pixel-identical.`,SAME3]};
+ STEPS['kit3-hat']={plate:'head',platePath:`${HEAD}/head-${sex}.png`,refs:['public/assets/front/hat-starter.png','docs/previews/rig3/head-hat.png'],text:[LAYOUT,
+  `Use case: precise-object-edit. Paint ON each bald head ${CAP}. The cap sits ON the head: the crown wraps the top and back of the skull, the band rests just above the eyebrows, the brim points forward over the forehead and NEVER covers the eyes; on the back view the back of the crown with the adjustable strap and the brim pointing away. IMAGE 2 and IMAGE 3 show this cap approved before: same design, painted in high resolution. Keep the faces and ears pixel-identical.`,SAME3]};
+ STEPS['kit3-hairB']={plate:'head+hat',platePath:`${HEAD}/head-${sex}+hat-starter.png`,refs:[`${HEAD}/head-${sex}+hair-basic-male-A.png`],text:[LAYOUT.replace('bald ',''),
+  `Use case: precise-object-edit. The head wears the starter cap. Paint ${K.hairB}, in each view (on the back view the hair below the cap down to the nape). IMAGE 2 is the approved hairstyle without the cap on the same plate. Keep the cap, the faces and the ears pixel-identical.`,SAME3]};
+ STEPS['kit3-show-outfit']={plate:`show-${sex}-1`,refs:[`${plates}/ref-show-${sex}-1.png`,K.outfitRef],text:[
+  'IMAGE 1 is the bag-preview cell of the game: a gray mannequin body with a flat GREEN head shape on magenta.',
+  `Paint ONLY the body over the GRAY mannequin, filling it exactly (same silhouette, same arms and legs, same feet), in HIGH RESOLUTION: the basic starter clothes of IMAGE 3 (${K.clothes}), exactly the same clothes, colors and painting as IMAGE 3; bare arms and legs in light skin #FCD0AC. Leave the green head exactly as it is and paint nothing on it.`,HANDS]};
+ for(let n=1;n<=6;n++)STEPS[`kit3-game-outfit-${n}`]=step(`game-${sex}-${n}`,[`${plates}/ref-game-${sex}-${n}.png`,kit],[
+  `IMAGE 1 is a combat sheet of the game: 6 cells, each a gray mannequin body with a flat GREEN head shape, on magenta. IMAGE 3 is the approved ${K.who} of this kit (source of truth for the clothes).`,
+  `In EVERY cell paint ONLY the body over the GRAY mannequin, filling it exactly (same silhouette and pose as the gray shape and as the same cell of IMAGE 2: lying on the belly, crawling, kneeling, throwing): the basic starter clothes of IMAGE 3 (${K.clothes}), bare arms and legs in light skin, small round fists like DDTank, in high resolution with the same painting as IMAGE 3. Leave the green heads exactly as they are and paint nothing on them.`]);
+ for(const [n,dir] of [[1,'front'],[2,'front'],[3,'front'],[4,'back'],[5,'back'],[6,'back']]){
+  const front=dir==='front';
+  STEPS[`kit3-virtual-outfit-${n}`]=step(`virtual-${sex}-${n}`,[`${plates}/ref-virtual-${sex}-${n}.png`,kit],[
+   `IMAGE 1 is a plaza sheet of the game: tall cells, each a gray mannequin body with a flat GREEN head, on magenta. IMAGE 3 is the approved ${K.who} of this kit (source of truth for the clothes).`,
+   front?`EVERY cell on this sheet is seen from the FRONT, walking TOWARD the viewer and a little to the left: we see the FRONT of the t-shirt and the belt BUCKLE, the knees, and the TOES of the shoes pointing toward us.`
+    :`EVERY cell on this sheet is seen from the BACK, walking AWAY from the viewer and a little to the right: we see the BACK of the t-shirt, the back of the shorts with the back pockets and NO buckle, the backs of the knees and the HEELS of the shoes; the toes point away from us. Never a front view.`,
+   `In EVERY cell paint ONLY the body over the GRAY mannequin, filling it exactly (same silhouette and pose as the gray shape and the same cell of IMAGE 2, upright standing or walking, never sitting): the basic starter clothes of IMAGE 3 (${K.clothes}), bare arms and legs in light skin, relaxed chibi hands, high resolution, the same painting as IMAGE 3. Ignore IMAGE 2's clothes: only its pose. Leave the green heads exactly as they are.`]);
+ }
 }
 // matheus (21/10): the girl's back walk had the feet facing the viewer. Repaint the back cells with the feet from behind.
 for(const [n,cells] of [[2,'cells 2 to 6 (all except the top-left one)'],[3,'both cells']])STEPS[`virtual-outfit-${n}-f-back`]=step(`virtual-f-${n}`,[`${plates}/ref-virtual-f-${n}.png`,`${sheets}/show-kit-f.png`],[

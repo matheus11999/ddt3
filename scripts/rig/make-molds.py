@@ -1,6 +1,6 @@
 """Rig v2 (docs/rig-v2.md): builds the MOLDS every piece is painted on, from the geometry of the DDTank 4.1 study
 (D:/APPS/ddt/output/ddtank-character-system). Only silhouettes are taken (flat gray body, flat green head, magenta
-background), never the original paint. Everything at 2x the DDTank grid; cells keep their transparent margins.
+background), never the original paint. Everything at 4x the DDTank grid; cells keep their transparent margins.
 
   docs/templates/rig/game-<m|f>.png     2964x570, 13x3 cells of 228x190 (combat, GAME)
   docs/templates/rig/show-<m|f>.png     500x684  (bag, shop, rooms, SHOW: body + head, frame 0)
@@ -15,7 +15,7 @@ import numpy as np
 from PIL import Image, ImageFilter
 
 REF = (sys.argv[1] if len(sys.argv) > 1 else 'D:/APPS/ddt/output/ddtank-character-system') + '/assets/original/image'
-K = 2
+K = 4  # 4x the DDTank grid since 22/10 (2x looked low resolution to matheus)
 MAGENTA, GRAY, GREEN, OUTLINE = (255, 0, 255), (150, 150, 150), (0, 255, 0), (70, 70, 70)
 
 
