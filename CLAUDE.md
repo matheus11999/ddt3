@@ -40,7 +40,7 @@ Leia e siga `AGENTS.md`: ele vale para todos os agentes, inclusive o Claude. Est
 Regra geral: ele quer arte **pintada, nível DDTank**, com volume e cores vivas. Rejeita o que parece "simples", "infantil", vetorial ou "cara de IA". Ao mesmo tempo, em efeitos ele costuma rejeitar versões carregadas e ficar com a primeira versão simples e discreta. Mostre uma prévia antes de mudança visual grande e ofereça poucas alternativas lado a lado.
 
 - **Aprovado**
-  - Atrás de personagens, usar a aura/selo pintado do próprio jogo (`public/assets/ui/aura-*-sigil.png`), não círculos novos.
+  - Atrás de personagens, só a aura de aprimoramento (+5/+9/+12, `public/assets/ui/aura-*-sigil.png`); o selo base cinza-azulado saiu de todas as telas (22/10: "não quero esse círculo cinza em nenhum lugar"). Nunca círculos novos.
   - Texto com aparência 3D estilo DDTank quando for destaque (ex.: SUCESSO!/FALHOU do Ferreiro em SVG extrudado com Lilita One).
   - Asas pintadas de `level-badge-backdrops.png` no `UpgradeTag`.
   - Nível na sala PvP como número com brilho na cor da faixa + estrelas (`LevelNumber`); escudo VIP pintado (`VipBadge`, `vip-badges.webp`).

@@ -241,7 +241,6 @@ function GuildShop({guild,onClose,toast}:{guild:GuildView;onClose:()=>void;toast
      <div className="shop-identity"><small>{guild.name}</small><h2>{p.name}</h2></div>
     </header>
     <div className="shop-stage">
-     <i className="wood-sigil shop-sigil" aria-hidden="true"/>
      <Avatar equipment={p.equipment} size={290} animated={false}/>
      <div className="shop-preview-caption"><span>Só para membros</span></div>
     </div>

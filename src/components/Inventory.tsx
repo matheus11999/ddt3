@@ -143,7 +143,6 @@ export function Inventory({onClose,onForge}:{onClose:()=>void;onForge:(item?:str
     <div className="bag-stage">
      <div className="equipment-slots left">{LEFT_SLOTS.map(renderSlot)}</div>
      <div className="dressing-room" onDragOver={e=>{if(!locked&&e.dataTransfer.types.includes(ITEM_DRAG)){e.preventDefault();e.dataTransfer.dropEffect='copy';}}} onDrop={e=>{e.preventDefault();if(e.target===e.currentTarget||!(e.target as HTMLElement).closest('[data-slot]'))equipItem(e.dataTransfer.getData(ITEM_DRAG));setDragging(null);}}>
-      {preview.upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}
       <Avatar equipment={preview} size={340} animated={false} auraAnimated showAura weapon={false}/>
       <button className="avatar-body-color" aria-label="Cor do corpo e dos olhos" title="Cor do corpo e dos olhos" disabled={locked} onClick={()=>{setStudio({kind:'body',part:'skin'});setTooltip(null);audio.play('click');}}><PersonStanding size={18}/><Palette size={11} className="avatar-body-color-badge" aria-hidden="true"/></button>
       <button ref={optionsButton} className="avatar-options-toggle" aria-label="Exibição do personagem" aria-expanded={displayOptions} aria-controls="avatar-display-options" title="Exibição do personagem" onClick={()=>{setDisplayOptions(value=>!value);setTooltip(null);}}><Settings size={18}/></button>
