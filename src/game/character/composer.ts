@@ -27,8 +27,9 @@ export function cellRect(index:number,columns:number,rows:number,[w,h]:readonly 
 export function gameFrame(action:string,tick:number){
  const def=GAME_ACTIONS[action]??GAME_ACTIONS.STAND,seq=def.frames[0];
  const i=def.repeat?Math.min(tick%(seq.length+1),seq.length-1):Math.min(tick,seq.length-1);
- // STAND: weapon and face follow frames[0], the pieces above (hair, outfit, effect, hat, glasses) frames[1].
- return {lower:seq[i],upper:action==='STAND'&&def.frames[1]?def.frames[1][i]:seq[i],done:!def.repeat&&tick>=seq.length-1};
+ // STAND: weapon and face follow frames[0], the pieces above (hair, outfit, effect, hat, glasses) stay on the first cell of
+ // frames[1]: idle animates only the head, the hands don't shake (matheus 22/10; DDTank swings them through cells 6-9).
+ return {lower:seq[i],upper:action==='STAND'&&def.frames[1]?def.frames[1][0]:seq[i],done:!def.repeat&&tick>=seq.length-1};
 }
 export function showFrame(action:string,tick:number){
  if(action==='STATIC')return 0;
