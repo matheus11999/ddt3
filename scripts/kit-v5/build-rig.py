@@ -202,5 +202,9 @@ for n, lot in enumerate(pm['lots']):
     for k, col in enumerate(lot['cols']):
         cell = key_out(sheet.crop((k * 480, 0, k * 480 + 480, 700)))
         vbody.paste(fit_to_mold(cell, vmold_body[lot['row'] * 700:(lot['row'] + 1) * 700, col * 480:(col + 1) * 480]), (col * 480, lot['row'] * 700))
+# Andar de frente (também o dos lados, espelhado): os quadros 4-6 saíram duas vezes com passos maiores e o corpo mais
+# virado que os 1-3 (matheus 22/10: "a movimentação lateral ainda tá feia"); o ciclo repete os 1-3, que combinam.
+for col in (4, 5, 6):
+    vbody.paste(vbody.crop(((col - 3) * 480, 0, (col - 2) * 480, 700)), (col * 480, 0))
 save(vbody, 'virtual', 'outfit-basic-male')
 print('ok')
