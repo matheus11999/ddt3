@@ -30,6 +30,8 @@ export function gameFrame(action:string,tick:number){
  // STAND: weapon and face follow frames[0], the pieces above (hair, outfit, effect, hat, glasses) stay on the first cell of
  // frames[1], the face on its first cell: idle stands still (matheus 22/10: no hand shake; DDTank swings cells 6-9 and
  // our face cells are the same head, so moving them only slid the head over the fists).
+ // SHAKE (hit) swings the hands through the same cells 6-9: also still, the hit is the head's jolt drawn in code (rig.ts).
+ if(action==='SHAKE'){const stand=GAME_ACTIONS.STAND.frames;return {lower:stand[0][0],upper:(stand[1]??stand[0])[0],done:!def.repeat&&tick>=seq.length-1};}
  return {lower:action==='STAND'?seq[0]:seq[i],upper:action==='STAND'&&def.frames[1]?def.frames[1][0]:seq[i],done:!def.repeat&&tick>=seq.length-1};
 }
 export function showFrame(action:string,tick:number){
