@@ -13,19 +13,19 @@ import numpy as np
 from PIL import Image
 
 CELLS = {'game': (456, 380), 'show': (1000, 1368), 'virtualhead': (480, 700)}
-LIP = 0  # o cabelo aparece só um pouco abaixo da borda (fração da altura do boné): a borda tem contorno
+LIP = .10  # de frente e de lado; de costas 0 (a nuca aparece logo abaixo da borda): de frente, as pontas da franja logo abaixo da aba somem.
 
 
 HUG = .03  # fora do boné o cabelo fica colado no crânio: no máximo isso (fração da largura da cabeça) para fora
 
 
-def clip_cell(cap, head):
+def clip_cell(cap, head, lip_share=LIP):
     out = np.zeros_like(cap)
     cols = np.nonzero(cap.any(0))[0]
     if not len(cols):
         return out
     rows = np.nonzero(cap.any(1))[0]
-    lip = max(1, int((rows.max() - rows.min()) * LIP))
+    lip = max(1, int((rows.max() - rows.min()) * lip_share))
     ys = np.arange(cap.shape[0])[:, None]
     under = np.zeros_like(cap)
     for x in cols:
@@ -50,26 +50,20 @@ if __name__ == '__main__':
     sex, hat = sys.argv[1:3]
     for context, (w, h) in CELLS.items():
         path = f'public/assets/rig/{sex}/{context}/{hat}.png'
-        # a pintura do boné trouxe pele da cabeça de baixo (abertura de trás, faixa sob a borda): sai do boné
-        img = np.asarray(Image.open(path).convert('RGBA')).copy()
+        from scipy import ndimage
+        # sempre a partir da folha montada (build-rig.py): a pele que veio com o boné só sai onde o cabelo tem de aparecer
+        img = np.asarray(Image.open(f'output/kit-v5-mcp/rig/{context}/{hat}.png').convert('RGBA')).copy()
         r, g, b = (img[..., i].astype(int) for i in range(3))
         skin = (r > 200) & (g > 140) & (g < 225) & (b > 100) & (b < 200) & (r - b > 40)
-        img[skin, 3] = 0
-        # borda clara que sobra em volta do recorte (serrilhado da pele): sai, e o resto da borda suaviza
-        from scipy import ndimage
-        solid = img[..., 3] > 40
-        rim = solid & ~ndimage.binary_erosion(solid, iterations=2)
-        light = (r + g + b > 560) & ~((r > 200) & (g > 200) & (b > 200) & (abs(r - b) < 25))  # o painel branco fica
-        img[rim & (light | skin), 3] = 0
-        Image.fromarray(img).save(path)
-        a = img[..., 3] > 40
+        a = (img[..., 3] > 40) & ~skin  # o boné de verdade, para medir bordas e aberturas
         face = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/face-basic-{"male" if sex == "m" else "female"}.png').convert('RGBA'))[..., 3] > 128
         hair = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/hair-basic-{"male" if sex == "m" else "female"}-A.png').convert('RGBA'))[..., 3] > 40
         out = np.zeros(a.shape, bool)
         for y0 in range(0, a.shape[0], h):
             for x0 in range(0, a.shape[1], w):
                 fy, fx = min(y0, face.shape[0] - h), min(x0, face.shape[1] - w)  # mochila: rosto tem 4 células, o boné 1
-                cut = clip_cell(a[y0:y0 + h, x0:x0 + w], face[fy:fy + h, fx:fx + w])
+                back = context == 'virtualhead' and x0 == 2 * w
+                cut = clip_cell(a[y0:y0 + h, x0:x0 + w], face[fy:fy + h, fx:fx + w], 0 if back else LIP)
                 # sobras de cabelo cortado (fiapos da franja sob a aba): pedaços pequenos também somem
                 left = hair[y0:y0 + h, x0:x0 + w] & ~cut
                 lab, n = ndimage.label(left)
@@ -77,6 +71,14 @@ if __name__ == '__main__':
                     sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
                     cut |= np.isin(lab, 1 + np.nonzero(sz < max(60, sz.max() * .08))[0])
                 out[y0:y0 + h, x0:x0 + w] = cut
+        # pele do boné: sai só onde o cabelo continua à mostra (abertura de trás, nuca); sob a aba fica (sombra na testa)
+        # pele que veio com o boné sai toda (testa, abertura, nuca), e o serrilhado claro da borda junto
+        img[skin, 3] = 0
+        solid = img[..., 3] > 40
+        rim = solid & ~ndimage.binary_erosion(solid, iterations=2)
+        light = (r + g + b > 560) & ~((r > 200) & (g > 200) & (b > 200) & (abs(r - b) < 25))
+        img[rim & light, 3] = 0
+        Image.fromarray(img).save(path)
         img = np.zeros(a.shape + (4,), np.uint8); img[out] = (0, 0, 0, 255)
         Image.fromarray(img).save(f'public/assets/rig/{sex}/{context}/{hat}-clip.png')
         print(context, out.mean().round(3))
