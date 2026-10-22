@@ -28,8 +28,9 @@ export function gameFrame(action:string,tick:number){
  const def=GAME_ACTIONS[action]??GAME_ACTIONS.STAND,seq=def.frames[0];
  const i=def.repeat?Math.min(tick%(seq.length+1),seq.length-1):Math.min(tick,seq.length-1);
  // STAND: weapon and face follow frames[0], the pieces above (hair, outfit, effect, hat, glasses) stay on the first cell of
- // frames[1]: idle animates only the head, the hands don't shake (matheus 22/10; DDTank swings them through cells 6-9).
- return {lower:seq[i],upper:action==='STAND'&&def.frames[1]?def.frames[1][0]:seq[i],done:!def.repeat&&tick>=seq.length-1};
+ // frames[1], the face on its first cell: idle stands still (matheus 22/10: no hand shake; DDTank swings cells 6-9 and
+ // our face cells are the same head, so moving them only slid the head over the fists).
+ return {lower:action==='STAND'?seq[0]:seq[i],upper:action==='STAND'&&def.frames[1]?def.frames[1][0]:seq[i],done:!def.repeat&&tick>=seq.length-1};
 }
 export function showFrame(action:string,tick:number){
  if(action==='STATIC')return 0;

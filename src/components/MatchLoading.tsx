@@ -53,7 +53,7 @@ const AVATAR_SIZE=[0,330,250,230,230];
 function Team({players,side,me}:{players:LoadingPlayer[];side:'left'|'right';me?:string}){
  const size=AVATAR_SIZE[Math.min(4,players.length)];
  return <div className={`match-loading-team ${side}`} data-count={players.length} style={{'--avatar':size+'px'} as CSSProperties}>{players.map(player=><div key={player.id} className={`loading-fighter ${player.id===me?'is-me':''} ${player.progress>=100?'is-ready':''}`}>
-  <div className="loading-fighter-art"><Avatar view="side" equipment={player.equipment} size={size} animated={false} facing={side==='left'?1:-1}/></div>
+  <div className="loading-fighter-art"><Avatar equipment={player.equipment} size={size} animated={false} facing={side==='left'?1:-1}/></div>
   <div className="loading-fighter-name"><LevelNumber level={player.level} size={24}/><b>{player.name}</b></div>
   {player.guild&&<small>{player.guild}</small>}
   <div className="loading-progress" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={player.progress} aria-label={`Carregamento de ${player.name}`}><i style={{width:`${player.progress}%`}}/><span>{player.progress}%</span></div>

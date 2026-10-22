@@ -373,7 +373,7 @@ function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:nu
   if(weapon&&ctx.combat&&!isEmptyItem(eq.weapon)){const angle=(ctx.angle??45)+(facing<0?-1:1)*tilt*180/Math.PI;c.save();c.translate(...RIG_WEAPON.mount);c.scale(RIG_WEAPON.scale,RIG_WEAPON.scale);c.translate(-27*160/112,40*160/112);drawCombatWeapon(c,eq,time,angle,recoil,pose==='charge',ctx.power??0);c.restore();}
   drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
  else if(context==='virtual')drawRigVirtual(c,eq,ctx.back?(moving?'naturalWalkBack':'naturalStandBack'):(moving?'naturalWalkFront':'naturalStandFront'),clock);
- else drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock);
+ else if(drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock)&&weapon)drawPresentedWeapon(c,eq,ctx,time);
  c.restore();c.restore();
 }
 /** Poses that only exist in the side view (aiming, throwing, lying down). */
@@ -387,14 +387,16 @@ function drawFront(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,hei
  c.save();c.translate(x,y);c.scale(height/160,height/160);
  if(context.showAura)drawAura(c,eq.upgrade??0,auraTime);
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
- if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon&&!isEmptyItem(eq.weapon)){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
-  // Presentation only, as in the side view: the weapon beside the near hand.
-  c.save();c.scale(context.weaponSide??1,1);c.translate((context.weaponOffset??0)+30,-34+clamp(context.weaponVerticalOffset??0,-15,24));c.rotate(Math.sin(time/600)*.02);
-  const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.scale(weaponScale,weaponScale);
-  c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(item=>item.id===eq.weapon)?.effect??'fire',level,time);c.restore();
-  drawScaled(c,w,-35,-46,82,82);c.restore();
- }}
+ if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon)drawPresentedWeapon(c,eq,context,time);
  c.restore();c.restore();
+}
+/** Presentation only (bag, rooms, loading), as in the side view: the weapon beside the near hand. */
+function drawPresentedWeapon(c:CanvasRenderingContext2D,eq:Equipment,context:AvatarContext,time:number){
+ if(isEmptyItem(eq.weapon))return;const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(!w.complete||!w.naturalWidth)return;
+ c.save();c.scale(context.weaponSide??1,1);c.translate((context.weaponOffset??0)+30,-34+clamp(context.weaponVerticalOffset??0,-15,24));c.rotate(Math.sin(time/600)*.02);
+ const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.scale(weaponScale,weaponScale);
+ c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(item=>item.id===eq.weapon)?.effect??'fire',level,time);c.restore();
+ drawScaled(c,w,-35,-46,82,82);c.restore();
 }
 
 /** Turning around flips the whole figure at once, like DDTank, and sells the
