@@ -2,7 +2,9 @@
 # cabeça de 120x150 (frente/costas) por cima com o deslocamento por coluna. Só silhuetas chapadas, nada da pintura original.
 import numpy as np
 from PIL import Image
-V = 'output/ddtank-character-system/assets/original/image/virtual/M'
+import sys
+SEX = sys.argv[1] if len(sys.argv) > 1 else 'm'
+V = 'output/ddtank-character-system/assets/original/image/virtual/' + SEX.upper()
 L = lambda p: np.array(Image.open(f'{V}/{p}').convert('RGBA')).astype(int)
 GREEN, GRAY, SKIN, MAG = (0, 255, 0, 255), (128, 128, 128, 255), (252, 208, 172, 255), (255, 0, 255, 255)
 OFF = [0, 0, -1, 2, 0, -1, 2]
@@ -20,5 +22,5 @@ for row, hcol in ((0, 0), (1, 2)):  # cabeça de frente na linha 0, de costas na
         sub = out[max(0, y0):y0 + 150, col * 120:(col + 1) * 120]
         m = h[:sub.shape[0]]
         sub[m] = GREEN
-Image.fromarray(out).resize((840 * 2, 350 * 2), Image.NEAREST).save('output/ddtank-molds/praca-1680x700.png')
+Image.fromarray(out).resize((840 * 2, 350 * 2), Image.NEAREST).save('output/ddtank-molds' + ('' if SEX == 'm' else '-f') + '/praca-1680x700.png')
 print(face.shape, body.sum(), skin.sum())

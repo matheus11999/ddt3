@@ -45,7 +45,7 @@ function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null 
 }
 /** Rig v2 per sex. Off for both on 22/10 (matheus rejected the first rig art); back on for the male kit repainted on the
  * DDTank molds by the Codex MCP (kit v5, docs/codex-mcp.md). The female sheets are still the rejected ones. */
-const RIG_SEXES:readonly Sex[]=['m'];
+const RIG_SEXES:readonly Sex[]=['m','f'];
 export const RIG_ENABLED=RIG_SEXES.length>0;
 export function hasRig(eq:Equipment,context:RigContext):boolean {
  if(!RIG_SEXES.includes(sexOf(eq)))return false;

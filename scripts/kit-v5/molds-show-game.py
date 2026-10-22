@@ -5,8 +5,10 @@ import glob, os
 import numpy as np
 from PIL import Image
 
+import sys
+SEX = sys.argv[1] if len(sys.argv) > 1 else 'm'
 SRC = 'output/ddtank-character-system/assets/original/image'
-OUT = 'output/ddtank-molds'
+OUT = 'output/ddtank-molds' + ('' if SEX == 'm' else '-f')
 GREEN, GRAY, SKIN, MAG = (0, 255, 0, 255), (128, 128, 128, 255), (252, 208, 172, 255), (255, 0, 255, 255)
 
 def load(p):
@@ -48,21 +50,21 @@ def mold(face, cloth, size, scale, skin=None):
 
 os.makedirs(OUT, exist_ok=True)
 # Mochila/loja (SHOW): 250x312, rosto com 4 quadros de piscar; o molde usa o quadro 0.
-face = load('equip/m/face/default/1/show.png')[:, :250]
-cloth = load('equip/m/cloth/default/1/show.png')
-mold(face, cloth, (250, 312), 4, load('equip/m/cloth/default/2/show.png')).save(f'{OUT}/mochila-1000x1248.png')
+face = load(f'equip/{SEX}/face/default/1/show.png')[:, :250]
+cloth = load(f'equip/{SEX}/cloth/default/1/show.png')
+mold(face, cloth, (250, 312), 4, load(f'equip/{SEX}/cloth/default/2/show.png')).save(f'{OUT}/mochila-1000x1248.png')
 # Combate (GAME): 1482x285 = 13x3 quadros de 114x95.
-face = load('equip/m/face/default/1/game.png'); cloth = load('equip/m/cloth/default/1/game.png'); skin = load('equip/m/cloth/default/2/game.png')
+face = load(f'equip/{SEX}/face/default/1/game.png'); cloth = load(f'equip/{SEX}/cloth/default/1/game.png'); skin = load(f'equip/{SEX}/cloth/default/2/game.png')
 mold(face, cloth, (1482, 285), 1, skin).save(f'{OUT}/combate-1482x285.png')
 for row in range(3):
     f = face[row * 95:(row + 1) * 95]; c = cloth[row * 95:(row + 1) * 95]
     mold(f, c, (1482, 95), 2, skin[row * 95:(row + 1) * 95]).save(f'{OUT}/combate-linha{row + 1}-2x.png')
 # Praça (VIRTUAL): corpo 840x350 = 7x2 quadros de 120x175 (linha 0 frente, linha 1 costas).
-body = glob.glob(f'{SRC}/virtual/M/cloth/default/1.png')
+body = glob.glob(f'{SRC}/virtual/{SEX.upper()}/cloth/default/1.png')
 if body:
     c = np.array(Image.open(body[0]).convert('RGBA')).astype(int)
     mold(None, c, (840, 350), 2).save(f'{OUT}/praca-corpo-1680x700.png')
-head = glob.glob(f'{SRC}/virtual/M/face/default/1.png')
+head = glob.glob(f'{SRC}/virtual/{SEX.upper()}/face/default/1.png')
 if head:
     h = np.array(Image.open(head[0]).convert('RGBA')).astype(int)
     mold(h, None, (h.shape[1], h.shape[0]), 4).save(f'{OUT}/praca-cabeca-4x.png')

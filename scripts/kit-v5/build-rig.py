@@ -11,7 +11,10 @@ import os
 import numpy as np
 from PIL import Image
 
-K = 'output/kit-v5-mcp'
+SEX = os.environ.get('SEX', 'm')
+G = 'male' if SEX == 'm' else 'female'
+K = 'output/kit-v5-mcp' if SEX == 'm' else 'output/kit-v5f'
+MOLDS = 'output/ddtank-molds' if SEX == 'm' else 'output/ddtank-molds-f'
 T = 'docs/templates/rig'
 OUT = f'{K}/rig'
 L = lambda p: Image.open(p).convert('RGBA')
@@ -117,9 +120,9 @@ lay['roupa-frente'] = Image.fromarray(ra)
 face4 = Image.new('RGBA', (4000, 1368))
 for k in range(4):
     face4.paste(show_cell(face_neck), (k * 1000, 0))
-save(face4, 'show', 'face-basic-male')
-save(show_cell(lay['cabelo-frente']), 'show', 'hair-basic-male-A')
-save(show_cell(lay['roupa-frente']), 'show', 'outfit-basic-male')
+save(face4, 'show', f'face-basic-{G}')
+save(show_cell(lay['cabelo-frente']), 'show', f'hair-basic-{G}-A')
+save(show_cell(lay['roupa-frente']), 'show', f'outfit-basic-{G}')
 def diff_layer(full, base, below=776):
     """A peça que uma edição acrescentou (boné, cabelo B): a edição alinhada menos a base alinhada (align.py)."""
     from scipy import ndimage
@@ -142,11 +145,11 @@ hairB_front = diff_layer(f'{K}/cabeloB-frente/alinhada.png', f'{K}/mochila-carec
 if cap_front:
     save(show_cell(cap_front), 'show', 'hat-starter')
 if hairB_front:
-    save(show_cell(hairB_front), 'show', 'hair-basic-male-B')
+    save(show_cell(hairB_front), 'show', f'hair-basic-{G}-B')
 
 # ---------- combate (GAME): 13x3 células de 456x380 ----------
 CW, CH = 456, 380
-gmold = green(f'{T}/game-m.png')
+gmold = green(f'{T}/game-{SEX}.png')
 # Uma cabeça só em todo lugar (matheus 22/10: "no combate o que muda é apenas o corpo"): a mesma cabeça 3/4 da mochila,
 # então cada cabelo e chapéu pintado uma vez serve na mochila, no combate e na praça.
 empty = Image.new('RGBA', lay['cabeca-frente'].size)
@@ -159,9 +162,9 @@ for i in range(39):
         continue
     f, h, t, hb = place(head_layers, head_layers[0], box, (CW, CH))
     face.paste(f, (c * CW, r * CH)); hair.paste(h, (c * CW, r * CH)); hat.paste(t, (c * CW, r * CH)); hairB.paste(hb, (c * CW, r * CH))
-save(face, 'game', 'face-basic-male'); save(hair, 'game', 'hair-basic-male-A'); save(hat, 'game', 'hat-starter')
+save(face, 'game', f'face-basic-{G}'); save(hair, 'game', f'hair-basic-{G}-A'); save(hat, 'game', 'hat-starter')
 if hairB_front:
-    save(hairB, 'game', 'hair-basic-male-B')
+    save(hairB, 'game', f'hair-basic-{G}-B')
 # corpo: as pranchas pintadas em 4x (lotes de 6), recortadas célula a célula e repetidas como no molde
 meta = json.load(open(f'{K}/combate-lotes/lotes.json'))
 S, (BW, BH) = meta['scale'], meta['cell']
@@ -171,7 +174,7 @@ for b, ids in enumerate(meta['batches']):
     for k, i in enumerate(ids):
         x, y = (k % 3) * BW + (BW - 114 * S) // 2, (k // 3) * BH + (BH - 95 * S) // 2
         src[i] = key_out(sheet.crop((x, y, x + 114 * S, y + 95 * S)))
-small = np.asarray(Image.open('output/ddtank-molds/combate-1482x285.png').convert('RGBA'))
+small = np.asarray(Image.open(f'{MOLDS}/combate-1482x285.png').convert('RGBA'))
 same = {}
 for i in range(39):
     r, c = divmod(i, 13)
@@ -202,10 +205,10 @@ if os.path.exists(jm):
     for dst, src_i in ((28, 19), (29, 20)):
         r, c = divmod(src_i, 13); cell = body.crop((c * CW, r * CH, c * CW + CW, r * CH + CH))
         r, c = divmod(dst, 13); body.paste(Image.new('RGBA', (CW, CH)), (c * CW, r * CH)); body.paste(cell, (c * CW, r * CH))
-save(body, 'game', 'outfit-basic-male')
+save(body, 'game', f'outfit-basic-{G}')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
-vmold = green(f'{T}/virtualhead-m.png')
+vmold = green(f'{T}/virtualhead-{SEX}.png')
 
 
 def chin_trim(img):
@@ -235,9 +238,9 @@ for cell, layers in ((0, front), (1, front), (2, back)):
     placed = place(use, base, box, (480, 700))
     vface.paste(placed[0], (cell * 480, 0)); vhair.paste(placed[1], (cell * 480, 0))
     vhat.paste(placed[2], (cell * 480, 0)); vhairB.paste(placed[3], (cell * 480, 0))
-save(vface, 'virtualhead', 'face-basic-male'); save(vhair, 'virtualhead', 'hair-basic-male-A')
+save(vface, 'virtualhead', f'face-basic-{G}'); save(vhair, 'virtualhead', f'hair-basic-{G}-A')
 if hairB_front and hairB_back:
-    save(vhairB, 'virtualhead', 'hair-basic-male-B')
+    save(vhairB, 'virtualhead', f'hair-basic-{G}-B')
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
 def clean_neck(cell):
@@ -300,7 +303,7 @@ def fit_to_mold(cell, mold):
     return out
 
 
-_vm = np.asarray(Image.open(f'{T}/virtual-m.png').convert('RGB')).astype(int)
+_vm = np.asarray(Image.open(f'{T}/virtual-{SEX}.png').convert('RGB')).astype(int)
 vmold_body = (np.abs(_vm - 150).sum(-1) < 30)  # o boneco cinza (150,150,150) de make-molds.py
 pm = json.load(open(f'{K}/praca-lotes/lotes.json'))
 vbody = Image.new('RGBA', (3360, 1400))
@@ -314,44 +317,45 @@ for n, lot in enumerate(pm['lots']):
         vbody.paste(fit_to_mold(cell, vmold_body[lot['row'] * 700:(lot['row'] + 1) * 700, col * 480:(col + 1) * 480]), (col * 480, lot['row'] * 700))
 # Andar de frente (também o dos lados, espelhado) repintado numa prancha só, 4x2 com os 7 quadros (matheus 22/10:
 # as duas pranchas antigas não combinavam entre si); substitui a linha de frente.
-v3 = f'{K}/praca-frente-v3/praca-frente-v3.png'
-if os.path.exists(v3):
-    # Pintado com a cabeça de verdade no molde (matheus 22/10: o pescoço sob a cabeça verde saía manchado): o pescoço
-    # liga no queixo real. Aqui sai a cabeça (a mesma que o jogo desenha por cima), um pouco folgada para os lados e
-    # para cima, nunca abaixo do queixo, para o pescoço continuar inteiro debaixo dele.
-    from scipy import ndimage
-    sheet = L(v3)
-    hd = Image.open('public/assets/rig/m/virtualhead/face-basic-male.png').convert('RGBA').crop((0, 0, 480, 700))
-    hh = Image.open('public/assets/rig/m/virtualhead/hair-basic-male-A.png').convert('RGBA').crop((0, 0, 480, 700))
-    hd.alpha_composite(hh)
-    hmask = np.asarray(hd.transpose(Image.FLIP_LEFT_RIGHT))[..., 3] > 30
-    chin = np.full(480, -1)
-    for x in np.nonzero(hmask.any(0))[0]:
-        chin[x] = np.nonzero(hmask[:, x])[0].max()
-    offs = [0, 0, -1, 2, 0, -1, 2]
-    for col in range(7):
-        x, y = (col % 4) * 480, (col // 4) * 700
-        cell = np.asarray(key_out(sheet.crop((x, y, x + 480, y + 700)))).copy()
-        m = np.roll(hmask, offs[col] * 4, axis=0)
-        grown = ndimage.binary_dilation(m, iterations=10)
-        ys = np.arange(700)[:, None]
-        below = ys > (np.roll(chin, 0)[None, :] + offs[col] * 4)
-        grown &= ~(below & (chin[None, :] >= 0)) | m
-        grown &= ~(chin[None, :] < 0) | (ys < (chin[chin >= 0].min() if (chin >= 0).any() else 0))
-        cell[grown, 3] = 0
-        # o pescoço agora é da cabeça: a roupa fica só da gola para baixo
-        r_, g_, b_ = (cell[..., i].astype(int) for i in range(3))
-        whiteshirt = (cell[..., 3] > 40) & (r_ > 185) & (g_ > 175) & (b_ > 170) & (np.abs(r_ - b_) < 40)
-        if whiteshirt.any():
-            collar = np.nonzero(whiteshirt.any(1))[0].min()
-            cell[:collar, :, 3] = 0
-        r_, g_, b_ = (cell[..., i].astype(int) for i in range(3))
-        cell[(r_ > g_ + 35) & (b_ > g_ + 15) & (r_ < 235), 3] = 0  # franja magenta
-        lab, n = ndimage.label(cell[..., 3] > 30)
-        if n:  # pontinhos soltos (resto do contorno da cabeça pintada)
-            sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
-            cell[np.isin(lab, 1 + np.nonzero(sz < sz.max() * .02)[0]), 3] = 0
-        vbody.paste(Image.new('RGBA', (480, 700)), (col * 480, 0))
-        vbody.paste(Image.fromarray(cell), (col * 480, 0))
-save(vbody, 'virtual', 'outfit-basic-male')
+for vname, vrow, hcell, vflip in (('frente', 0, 0, True), ('costas', 1, 2, False)):
+  v3 = f'{K}/praca-{vname}-v3/praca-{vname}-v3.png'
+  if os.path.exists(v3):
+      # Pintado com a cabeça de verdade no molde (matheus 22/10: o pescoço sob a cabeça verde saía manchado): o pescoço
+      # liga no queixo real. Aqui sai a cabeça (a mesma que o jogo desenha por cima), um pouco folgada para os lados e
+      # para cima, nunca abaixo do queixo, para o pescoço continuar inteiro debaixo dele.
+      from scipy import ndimage
+      sheet = L(v3)
+      hd = Image.open(f'public/assets/rig/{SEX}/virtualhead/face-basic-{G}.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
+      hh = Image.open(f'public/assets/rig/{SEX}/virtualhead/hair-basic-{G}-A.png').convert('RGBA').crop((hcell * 480, 0, hcell * 480 + 480, 700))
+      hd.alpha_composite(hh)
+      hmask = np.asarray(hd.transpose(Image.FLIP_LEFT_RIGHT) if vflip else hd)[..., 3] > 30
+      chin = np.full(480, -1)
+      for x in np.nonzero(hmask.any(0))[0]:
+          chin[x] = np.nonzero(hmask[:, x])[0].max()
+      offs = [0, 0, -1, 2, 0, -1, 2]
+      for col in range(7):
+          x, y = (col % 4) * 480, (col // 4) * 700
+          cell = np.asarray(key_out(sheet.crop((x, y, x + 480, y + 700)))).copy()
+          m = np.roll(hmask, offs[col] * 4, axis=0)
+          grown = ndimage.binary_dilation(m, iterations=10)
+          ys = np.arange(700)[:, None]
+          below = ys > (np.roll(chin, 0)[None, :] + offs[col] * 4)
+          grown &= ~(below & (chin[None, :] >= 0)) | m
+          grown &= ~(chin[None, :] < 0) | (ys < (chin[chin >= 0].min() if (chin >= 0).any() else 0))
+          cell[grown, 3] = 0
+          # o pescoço agora é da cabeça: a roupa fica só da gola para baixo
+          r_, g_, b_ = (cell[..., i].astype(int) for i in range(3))
+          whiteshirt = (cell[..., 3] > 40) & (r_ > 185) & (g_ > 175) & (b_ > 170) & (np.abs(r_ - b_) < 40)
+          if whiteshirt.any():
+              collar = np.nonzero(whiteshirt.any(1))[0].min()
+              cell[:collar, :, 3] = 0
+          r_, g_, b_ = (cell[..., i].astype(int) for i in range(3))
+          cell[(r_ > g_ + 35) & (b_ > g_ + 15) & (r_ < 235), 3] = 0  # franja magenta
+          lab, n = ndimage.label(cell[..., 3] > 30)
+          if n:  # pontinhos soltos (resto do contorno da cabeça pintada)
+              sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+              cell[np.isin(lab, 1 + np.nonzero(sz < sz.max() * .02)[0]), 3] = 0
+          vbody.paste(Image.new('RGBA', (480, 700)), (col * 480, vrow * 700))
+          vbody.paste(Image.fromarray(cell), (col * 480, vrow * 700))
+save(vbody, 'virtual', f'outfit-basic-{G}')
 print('ok')

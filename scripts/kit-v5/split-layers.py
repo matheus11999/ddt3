@@ -1,5 +1,6 @@
 # Separa o boneco aprovado em camadas: cabeça careca, cabelo e roupa (com o pescoço).
 # Entrada: o mestre (com cabelo) e o mestre careca, pintados no mesmo lugar.
+import os
 import sys
 import numpy as np
 from PIL import Image
@@ -30,7 +31,7 @@ save((B[..., 3] > 0) & (yy < neck + 4), B, 'cabeca-frente')
 save((B[..., 3] > 0) & (yy >= neck - 8), B, 'roupa-frente')
 # Cabelo: onde o mestre difere da careca, só na altura da cabeça.
 diff = np.abs(M[..., :3] - B[..., :3]).sum(-1)
-hair = (M[..., 3] > 20) & ((B[..., 3] < 20) | (diff > 60)) & (yy < neck)
+hair = (M[..., 3] > 20) & ((B[..., 3] < 20) | (diff > 60)) & (yy < neck + int(os.environ.get('HAIR_BELOW', '0')))
 # contornos finos (o contorno do crânio careca e do queixo) saem; buracos dentro do cabelo fecham
 hair = ndimage.binary_opening(hair, iterations=3)
 hair = ndimage.binary_fill_holes(ndimage.binary_closing(hair, iterations=4)) & (M[..., 3] > 20)

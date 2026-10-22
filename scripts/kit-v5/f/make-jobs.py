@@ -1,0 +1,29 @@
+# Jobs do kit feminino v5 (mesmo fluxo do masculino, docs/kit-v5-licoes.md). Uso: py make-jobs.py <fase>
+import json, os, sys
+K = 'output/kit-v5f'; M = 'output/ddtank-molds-f'
+OUTFIT = 'plain white short-sleeve t-shirt with a round collar, khaki-brown pleated knee-length skirt with a thin dark-brown belt, white ankle socks, plain brown sneakers'
+STYLE = 'Clean dark outlines, soft cel shading with a little painted volume, bright clean colors (DDTank style). No text.'
+def job(id, refs, size, bg, prompt):
+    d = f'{K}/{id}'; os.makedirs(d, exist_ok=True)
+    open(f'{d}/refs.txt', 'w').write('\n'.join(refs) + '\n')
+    json.dump({'background': bg, 'size': size}, open(f'{d}/job.json', 'w'))
+    open(f'{d}/prompt.txt', 'w', encoding='utf8').write(prompt)
+mestre = f'{K}/00-mestre/00-mestre.png'
+fase = sys.argv[1]
+if fase == 'A':
+    job('mochila-mestre', [f'{M}/mochila-1000x1248.png', mestre], [1000, 1248], 'alpha', f'''IMAGE 1 is the MOLD of the bag/shop character preview (1000x1248): flat lime-green = the HEAD area, flat gray = the BODY and clothes area, flat beige = visible SKIN, magenta = empty. IMAGE 2 is the APPROVED girl character (source of truth for face, hair, outfit, colors and style).
+
+Paint the character of IMAGE 2 EXACTLY over the mold of IMAGE 1, same canvas 1000x1248, every part where the mold puts it and the same size: the HEAD (face, ears and her bob hair) fills the green area (hair may go a little outside), the body and clothes over the gray area ({OUTFIT}; the skirt ends at the knees and the legs below are skin), skin where the mold is beige. Keep the mold's pose, arms, hands and feet positions. The neck connects the head to the collar. Keep IMAGE 2's face. {STYLE} NO shadow on the ground, no circle. Fully transparent background (no magenta, green or gray left).''')
+if fase == 'B':
+    mm = f'{K}/mochila-mestre/mochila-mestre.png'
+    job('mochila-careca', [mm], [1000, 1248], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the APPROVED character and the edit target. Remove ONLY the hair: she becomes BALD, showing the smooth round skull with the same skin color, shading and dark outline, the ears complete, the forehead continuing up to the top of the skull. Everything else stays pixel-identical to IMAGE 1: same canvas, position and size, same face, eyes, eyebrows, ears, body, outfit, pose and colors. Fully transparent background.''')
+    job('costas-com-cabelo', [mm], [1254, 1254], 'alpha', f'''IMAGE 1 is the APPROVED girl character (3/4 front view). Paint the SAME character seen from directly BEHIND (back view), standing in the same idle pose, canvas 1254x1254, character centered, same head/body proportions as IMAGE 1, feet near the bottom. We see the back of her head with the same chestnut bob hair, both ears from behind, the back of the white t-shirt, the back of the pleated khaki skirt with the belt, socks and the heels of the brown sneakers. No face. {STYLE} Fully transparent background.''')
+if fase == 'C':
+    ca = f'{K}/mochila-careca/mochila-careca.png'; mm = f'{K}/mochila-mestre/mochila-mestre.png'
+    job('cabeloB-frente', [ca, mm], [1000, 1248], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the edit target: the approved girl, bald. IMAGE 2 is the same girl with her normal chestnut bob. Paint on IMAGE 1 the SAME bob hair as IMAGE 2 but as it looks pressed FLAT under a hat: the top of the hair hugs the skull tightly with NO volume (never sticking out past the skull outline on top), the short side-swept bangs just above the eyebrows, the sides and back still falling to the jaw like IMAGE 2. Same color, shine and painting style. Everything else stays pixel-identical to IMAGE 1. Fully transparent background.''')
+    job('bone-mochila', [ca, 'output/kit-v5-mcp/bone-mochila/bone-mochila.png'], [1000, 1248], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the edit target: the approved bald girl. IMAGE 2 shows the approved cap worn by another character. Add ONLY the SAME cap (crimson red crown, white front panel, curved dark-navy brim, small red button on top, no logo) WORN on IMAGE 1's head like IMAGE 2: band just above the eyebrows, the crown wrapping the top and back of the skull, seen slightly from above, turned with the head. Everything else stays pixel-identical to IMAGE 1. Fully transparent background.''')
+    job('costas-careca', [f'{K}/costas-com-cabelo/costas-com-cabelo.png'], [1254, 1254], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the approved back view and the edit target. Remove ONLY the hair: the back of the head becomes BALD, a smooth round skull in the same skin color with soft shading and the same dark outline, both ears complete, the nape visible. Everything else stays pixel-identical to IMAGE 1. Fully transparent background.''')
+if fase == 'D':
+    cc = f'{K}/costas-careca/costas-careca.png'; cb = f'{K}/costas-com-cabelo/costas-com-cabelo.png'
+    job('bone-costas-na-cabeca', [cc, 'output/kit-v5-mcp/bone-costas-na-cabeca/bone-costas-na-cabeca.png'], [1254, 1254], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the edit target: the approved bald girl seen from behind. IMAGE 2 shows the approved cap seen from behind on another character. Add ONLY the SAME cap (crimson red crown, small adjustable strap opening above the nape, small red button on top) WORN on IMAGE 1's head seen from BEHIND exactly like IMAGE 2. Everything else stays pixel-identical to IMAGE 1. Fully transparent background.''')
+    job('cabeloB-costas', [cc, cb], [1254, 1254], 'alpha', '''Use case: precise image EDIT. IMAGE 1 is the edit target: the approved girl seen from behind, bald. IMAGE 2 is the same view with her normal chestnut bob. Paint on IMAGE 1 the SAME bob as IMAGE 2 but pressed FLAT under a hat: the top hugs the skull tightly with NO volume, the back still falls to the jaw line like IMAGE 2. Same color and style. Everything else stays pixel-identical to IMAGE 1. Fully transparent background.''')

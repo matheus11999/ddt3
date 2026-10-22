@@ -31,6 +31,7 @@
   "game": [
    "face-basic-female",
    "hair-basic-female-A",
+   "hair-basic-female-B",
    "hat-starter",
    "hat-starter-clip",
    "outfit-basic-female"
@@ -38,6 +39,7 @@
   "show": [
    "face-basic-female",
    "hair-basic-female-A",
+   "hair-basic-female-B",
    "hat-starter",
    "hat-starter-clip",
    "outfit-basic-female"
@@ -48,6 +50,7 @@
   "virtualhead": [
    "face-basic-female",
    "hair-basic-female-A",
+   "hair-basic-female-B",
    "hat-starter",
    "hat-starter-clip"
   ]
