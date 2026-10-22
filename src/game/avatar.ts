@@ -12,7 +12,8 @@ import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 import {rodTip,TIDE_ROD} from './rodCast';
 import {drawFrontAvatar,drawFrontHead,FRONT_HEAD_UNITS,hasFrontView} from './front';
-import {drawRigGame,drawRigPortrait,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
+import {blinking,drawRigGame,drawRigPortrait,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
+import type {HeadMotion} from './character/rig';
 import type {RigContext} from './character/composer';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
@@ -357,6 +358,16 @@ export function drawAvatar(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:nu
 const GAME_ACTION:Record<AvatarPose,string>={idle:'STAND',walk:'WALK',aim:'STAND',charge:'SHOWTHROWS',fire:'THROWS',hit:'SHAKE',fall:'SHAKE',prone:'STAND',victory:'STAND',defeat:'CRY'};
 const TICK_MS=40;
 /** Rig v2 figure: the composed sheets of the context, mirrored for facing; nothing else is drawn on top. */
+const STILL_POSES=new Set<AvatarPose>(['idle','aim','prone','victory']);
+/** The rig head's own motion in battle (matheus 22/10): idle, only the head breathes and leans a little; hit, it jolts
+ * back and shakes, settling in about half a second. Avatar units and radians about the neck. */
+function rigHeadMotion(pose:AvatarPose,time:number,poseTime:number,animated:boolean):HeadMotion|undefined {
+ if(!animated)return undefined;
+ if(pose==='hit'||pose==='fall'){const t=Math.max(0,poseTime),fade=Math.exp(-t/260);
+  return {tilt:-.16*fade+Math.sin(t/38)*.05*fade,dx:Math.sin(t/32)*3.2*fade-1.5*fade,dy:-1.2*fade};}
+ if(STILL_POSES.has(pose))return {tilt:Math.sin(time/1100)*.035,dx:0,dy:Math.sin(time/550)*.7};
+ return undefined;
+}
 /** Rig v2 back mount for the lying DDTank fighter, in avatar units from the feet (facing right): the weapon lies across the back, under the head. */
 export const RIG_WEAPON={mount:[-38,-42] as [number,number],scale:1.05};
 function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:number,y:number,height:number,time:number,walking:boolean,facing:number,motion:AvatarMotion|undefined,ctx:AvatarContext,auraTime:number,weapon=true){
@@ -371,9 +382,11 @@ function drawRig(c:CanvasRenderingContext2D,eq:Equipment,context:RigContext,x:nu
  if(context==='game'){const action=GAME_ACTION[pose]??'STAND';
   // The weapon rides on the back behind the body in every pose, as in DDTank (it was missing: matheus 22/10).
   if(weapon&&ctx.combat&&!isEmptyItem(eq.weapon)){const angle=(ctx.angle??45)+(facing<0?-1:1)*tilt*180/Math.PI;c.save();c.translate(...RIG_WEAPON.mount);c.scale(RIG_WEAPON.scale,RIG_WEAPON.scale);c.translate(-27*160/112,40*160/112);drawCombatWeapon(c,eq,time,angle,recoil,pose==='charge',ctx.power??0);c.restore();}
-  drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since);}
+  // Universal blink (rigEyes.json): idle heads blink now and then; a hit squeezes the eyes shut for a moment.
+  const live=ctx.animated!==false,shut=live&&((pose==='hit'||pose==='fall')?poseTime<320:STILL_POSES.has(pose)&&blinking(time,ctx.seed??0));
+  drawRigGame(c,eq,action,action==='STAND'||action==='WALK'?clock:since,rigHeadMotion(pose,time,poseTime,live),shut);}
  else if(context==='virtual')drawRigVirtual(c,eq,ctx.back?(moving?'naturalWalkBack':'naturalStandBack'):(moving?'naturalWalkFront':'naturalStandFront'),clock);
- else drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock);
+ else if(drawRigShow(c,eq,ctx.animated===false?'STATIC':'NORMAL_STANDBY',clock)&&weapon)drawPresentedWeapon(c,eq,ctx,time);
  c.restore();c.restore();
 }
 /** Poses that only exist in the side view (aiming, throwing, lying down). */
@@ -387,14 +400,16 @@ function drawFront(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,hei
  c.save();c.translate(x,y);c.scale(height/160,height/160);
  if(context.showAura)drawAura(c,eq.upgrade??0,auraTime);
  c.save();turnPop(c,m.turn);c.scale(m.facing,1);
- if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon&&!isEmptyItem(eq.weapon)){const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(w.complete&&w.naturalWidth){
-  // Presentation only, as in the side view: the weapon beside the near hand.
-  c.save();c.scale(context.weaponSide??1,1);c.translate((context.weaponOffset??0)+30,-34+clamp(context.weaponVerticalOffset??0,-15,24));c.rotate(Math.sin(time/600)*.02);
-  const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.scale(weaponScale,weaponScale);
-  c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(item=>item.id===eq.weapon)?.effect??'fire',level,time);c.restore();
-  drawScaled(c,w,-35,-46,82,82);c.restore();
- }}
+ if(drawFrontAvatar(c,eq,kind,distance,lively)&&weapon)drawPresentedWeapon(c,eq,context,time);
  c.restore();c.restore();
+}
+/** Presentation only (bag, rooms, loading), as in the side view: the weapon beside the near hand. */
+function drawPresentedWeapon(c:CanvasRenderingContext2D,eq:Equipment,context:AvatarContext,time:number){
+ if(isEmptyItem(eq.weapon))return;const level=eq.upgrade??0,w=asset(weaponAssetPath(eq.weapon,level));if(!w.complete||!w.naturalWidth)return;
+ c.save();c.scale(context.weaponSide??1,1);c.translate((context.weaponOffset??0)+30,-34+clamp(context.weaponVerticalOffset??0,-15,24));c.rotate(Math.sin(time/600)*.02);
+ const weaponScale=clamp(context.weaponScale??1,.4,1.2);c.scale(weaponScale,weaponScale);
+ c.save();c.translate(5,-5);drawWeaponEnergy(c,WEAPONS.find(item=>item.id===eq.weapon)?.effect??'fire',level,time);c.restore();
+ drawScaled(c,w,-35,-46,82,82);c.restore();
 }
 
 /** Turning around flips the whole figure at once, like DDTank, and sells the

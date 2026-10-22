@@ -31,7 +31,8 @@ O que funcionou no kit masculino v5 (scripts em `scripts/kit-v5/`, rodados a par
 3. **Camadas por edição**: pedir ao Codex a mesma imagem sem o cabelo (ou com o boné), alinhar pelo corpo (`align.py`, o Codex mexe um pouco a escala) e tirar a diferença (`split-layers.py`). Pintar cabelo ou chapéu sozinhos nunca encaixa.
 4. **Combate e praça** em pranchas 3x2 ou faixas ampliadas 4x das poses únicas do molde (`batches-game.py`, `batches-virtual.py`), o Codex pinta só o corpo e mantém a cabeça verde.
 5. **Cabeça por célula pelo crânio careca**: caixa do crânio na caixa verde do molde, queixo na base dela (`build-rig.py`); cabelo e chapéu seguem a mesma transformação. Pela largura do cabelo a cabeça sai pequena e solta.
-6. Publicar com `scripts/rig/publish.py`, clipe do chapéu com `scripts/rig/hatclip.py`, conferir com `node scripts/rig/preview-rig.mjs m` (desenho do próprio jogo).
+6. Cabelo com chapéu: cada cabelo tem a folha B (o mesmo cabelo baixinho, pintado por edição da careca); o jogo usa a B sob qualquer chapéu sem cortar nada (`rig.ts`). Rosto novo: `py scripts/kit-v5/eyes.py <sexo> <rosto>` mede os olhos para o piscar universal (`rigEyes.json`).
+7. Publicar com `scripts/rig/publish.py`, clipe do chapéu com `scripts/rig/hatclip.py`, conferir com `node scripts/rig/preview-rig.mjs m` (desenho do próprio jogo).
 
 ## Conversa livre: `codex` e `codex_reply`
 

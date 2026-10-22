@@ -27,6 +27,8 @@ const PROJECT_RULES = [
   '- The attached images are the source of truth for layout, scale, camera and style. Follow the templates/molds exactly; approved pieces are style references, never designs to copy unless the brief says so.',
   '- No text, letters, numbers, logos or watermarks anywhere in the image: the game draws all text.',
   '- Paint exactly what the brief asks and nothing else: no extra props, frames, guides, labels or shadows unless asked.',
+  '- Character pieces are separate layers: never paint hair, hat, glasses, face or outfit together unless the brief asks for it. The neck belongs to the head and continues under the collar; no ground shadow or circle under the character.',
+  '- In a sprite sheet every cell is the same character at the same size, angle and painting; on a mold, keep green head areas and magenta untouched and paint only over the gray/beige shapes, never wider.',
 ].join('\n');
 const BACKGROUNDS = {
   alpha: 'BACKGROUND: fully transparent (real PNG alpha). If your tool returns an opaque background, remove it cleanly before saving.',
