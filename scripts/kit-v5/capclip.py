@@ -13,7 +13,7 @@ import numpy as np
 from PIL import Image
 
 CELLS = {'game': (456, 380), 'show': (1000, 1368), 'virtualhead': (480, 700)}
-LIP = .04  # o cabelo aparece só um pouco abaixo da borda (fração da altura do boné): a borda tem contorno
+LIP = 0  # o cabelo aparece só um pouco abaixo da borda (fração da altura do boné): a borda tem contorno
 
 
 HUG = .03  # fora do boné o cabelo fica colado no crânio: no máximo isso (fração da largura da cabeça) para fora
@@ -41,20 +41,42 @@ def clip_cell(cap, head):
         n = cols[np.argmin(np.abs(cols - x))]
         rim[x] = np.nonzero(cap[:, n])[0].max() + lip
     outside = ~np.isin(np.arange(cap.shape[1]), cols)[None, :] & ((ys < rows.min()) | (~hug & (ys < rim[None, :])))
-    return under | outside | cap
+    # aberturas do boné (a da tira, atrás): mostram o cabelo, nunca a pele (matheus 22/10)
+    holes = ndimage.binary_fill_holes(cap) & ~cap
+    return (under | outside | cap) & ~holes
 
 
 if __name__ == '__main__':
     sex, hat = sys.argv[1:3]
     for context, (w, h) in CELLS.items():
         path = f'public/assets/rig/{sex}/{context}/{hat}.png'
-        a = np.asarray(Image.open(path).convert('RGBA'))[..., 3] > 40
+        # a pintura do boné trouxe pele da cabeça de baixo (abertura de trás, faixa sob a borda): sai do boné
+        img = np.asarray(Image.open(path).convert('RGBA')).copy()
+        r, g, b = (img[..., i].astype(int) for i in range(3))
+        skin = (r > 200) & (g > 140) & (g < 225) & (b > 100) & (b < 200) & (r - b > 40)
+        img[skin, 3] = 0
+        # borda clara que sobra em volta do recorte (serrilhado da pele): sai, e o resto da borda suaviza
+        from scipy import ndimage
+        solid = img[..., 3] > 40
+        rim = solid & ~ndimage.binary_erosion(solid, iterations=2)
+        light = (r + g + b > 560) & ~((r > 200) & (g > 200) & (b > 200) & (abs(r - b) < 25))  # o painel branco fica
+        img[rim & (light | skin), 3] = 0
+        Image.fromarray(img).save(path)
+        a = img[..., 3] > 40
         face = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/face-basic-{"male" if sex == "m" else "female"}.png').convert('RGBA'))[..., 3] > 128
+        hair = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/hair-basic-{"male" if sex == "m" else "female"}-A.png').convert('RGBA'))[..., 3] > 40
         out = np.zeros(a.shape, bool)
         for y0 in range(0, a.shape[0], h):
             for x0 in range(0, a.shape[1], w):
                 fy, fx = min(y0, face.shape[0] - h), min(x0, face.shape[1] - w)  # mochila: rosto tem 4 células, o boné 1
-                out[y0:y0 + h, x0:x0 + w] = clip_cell(a[y0:y0 + h, x0:x0 + w], face[fy:fy + h, fx:fx + w])
+                cut = clip_cell(a[y0:y0 + h, x0:x0 + w], face[fy:fy + h, fx:fx + w])
+                # sobras de cabelo cortado (fiapos da franja sob a aba): pedaços pequenos também somem
+                left = hair[y0:y0 + h, x0:x0 + w] & ~cut
+                lab, n = ndimage.label(left)
+                if n:
+                    sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+                    cut |= np.isin(lab, 1 + np.nonzero(sz < max(60, sz.max() * .08))[0])
+                out[y0:y0 + h, x0:x0 + w] = cut
         img = np.zeros(a.shape + (4,), np.uint8); img[out] = (0, 0, 0, 255)
         Image.fromarray(img).save(f'public/assets/rig/{sex}/{context}/{hat}-clip.png')
         print(context, out.mean().round(3))
