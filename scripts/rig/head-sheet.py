@@ -10,7 +10,7 @@ if sys.argv[1] == 'kit':  # Codex reference: the bag figure without and with the
     sex = sys.argv[2]
     s = 'male' if sex == 'm' else 'female'
     out = Image.new('RGBA', (2000, 1368), (255, 0, 255, 255))
-    for n, items in enumerate(([f'face-basic-{s}', f'hair-basic-{s}-A', f'outfit-basic-{s}'], [f'face-basic-{s}', f'hair-basic-{s}-B', f'outfit-basic-{s}', 'hat-starter'])):
+    for n, items in enumerate(([f'face-basic-{s}', f'hair-basic-{s}-A', f'outfit-basic-{s}'], [f'face-basic-{s}', f'hair-basic-{s}-A', f'outfit-basic-{s}', 'hat-starter'])):
         for it in items:
             out.alpha_composite(Image.open(f'public/assets/rig/{sex}/show/{it}.png').convert('RGBA').crop((0, 0, 1000, 1368)), (n * 1000, 0))
     os.makedirs('test-results/rig/sheets', exist_ok=True)
@@ -19,7 +19,7 @@ if sys.argv[1] == 'kit':  # Codex reference: the bag figure without and with the
     sys.exit(0)
 sex, hat = sys.argv[1], sys.argv[2]
 face = 'face-basic-male' if sex == 'm' else 'face-basic-female'
-hair = sys.argv[3] if len(sys.argv) > 3 else face.replace('face', 'hair') + '-B'
+hair = sys.argv[3] if len(sys.argv) > 3 else face.replace('face', 'hair') + '-A'
 outfit = sys.argv[4] if len(sys.argv) > 4 else face.replace('face', 'outfit')
 BG = (226, 220, 232, 255)
 

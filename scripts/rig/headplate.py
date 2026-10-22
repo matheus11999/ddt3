@@ -248,6 +248,11 @@ def face(sex, item, views, side, blink, side_normal=None):
         painted = key(Image.open(side_normal).convert('RGB').resize(PLATE, Image.LANCZOS))
         side_faces['normal'] = fit_to_mold(painted, mask, [(0, 0, 512, 512)]).crop((0, 0, 512, 512))
         side_faces['normal'].save(f'{OUT}/{item}-side-normal-{sex}.png')
+        # the plate the hair and hats are painted on shows this face too, so their side view fits it
+        box = VIEWS['side'][0]
+        plates['views'].paste(Image.new('RGBA', side_faces['normal'].size, (0, 0, 0, 0)), box[:2])
+        plates['views'].paste(side_faces['normal'], box[:2])
+        plates['views'].save(f'{OUT}/{item}-views-{sex}.png')
     for n, name in enumerate(EXPRESSIONS):
         side_faces[name] = plates['side'].crop((n % 3 * 512, n // 3 * 512, n % 3 * 512 + 512, n // 3 * 512 + 512))
     front_faces = {'normal': view_of(plates['views'], 'front')}
@@ -411,6 +416,8 @@ def bake(sex, item, painted, kind, base_path=None):
         piece = clean_hat_plate(piece)
     piece.save(lifted)
     write_sheets(sex, item, piece)
+    if kind == 'hat':  # the hair under it is cut by this (one hair for every hat)
+        subprocess.run([sys.executable, 'scripts/rig/hatclip.py', sex, item], check=True)
 
 
 # ---------------------------------------------------------------- hat area
@@ -512,5 +519,6 @@ if __name__ == '__main__':
         bake(sex, sys.argv[3], sys.argv[4], kind, opt('base'))
     elif cmd == 'cleanhat':
         clean_hat_sheets(sex, sys.argv[3])
+        subprocess.run([sys.executable, 'scripts/rig/hatclip.py', sex, sys.argv[3]], check=True)
     elif cmd == 'resheet':
         write_sheets(sex, sys.argv[3], rgba(f'{OUT}/{sys.argv[3]}-{sex}.png'))
