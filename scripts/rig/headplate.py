@@ -15,6 +15,7 @@ BACK view bottom right 512x512 (plaza walking away). Expression plates for the f
         the plate to paint on: with no face baked yet (or --mold) the GREEN head silhouettes of the mold; otherwise the
         baked face, plus the baked pieces of --with (hair B is painted on the face WITH the hat)
   py scripts/rig/headplate.py face <sex> <face-id> <views.png> <side-expressions.png> <front-blink.png>
+        [--side-normal=<side plate>]: the battle face from the TOP-LEFT cell of another side plate (3/4, kit3-face-side34)
         keys out the three painted face plates (each moved back onto the mold silhouettes first) and writes the face
         sheets of the three contexts
   py scripts/rig/headplate.py bake <sex> <item> <painted.png> --hat|--hair|--glasses [--base=<plate.png>]
@@ -229,7 +230,7 @@ def fit_to_mold(painted, mask, cells):
     return out
 
 
-def face(sex, item, views, side, blink):
+def face(sex, item, views, side, blink, side_normal=None):
     os.makedirs(OUT, exist_ok=True)
     plates = {}
     for kind, path, cells in (('views', views, [v[0] for v in VIEWS.values()]),
@@ -242,6 +243,11 @@ def face(sex, item, views, side, blink):
         plates[kind].save(f'{OUT}/{item}-{kind}-{sex}.png')
     heads = mold_heads(sex)
     side_faces = {'normal': view_of(plates['views'], 'side')}
+    if side_normal:  # the battle face turned a little toward the viewer (matheus 22/10): TOP-LEFT cell of a side plate
+        _, mask = mold_plate(sex, 'side')
+        painted = key(Image.open(side_normal).convert('RGB').resize(PLATE, Image.LANCZOS))
+        side_faces['normal'] = fit_to_mold(painted, mask, [(0, 0, 512, 512)]).crop((0, 0, 512, 512))
+        side_faces['normal'].save(f'{OUT}/{item}-side-normal-{sex}.png')
     for n, name in enumerate(EXPRESSIONS):
         side_faces[name] = plates['side'].crop((n % 3 * 512, n // 3 * 512, n % 3 * 512 + 512, n // 3 * 512 + 512))
     front_faces = {'normal': view_of(plates['views'], 'front')}
@@ -500,7 +506,7 @@ if __name__ == '__main__':
     elif cmd == 'make':
         make(sex, tuple(filter(None, (opt('with') or '').split(','))), opt('mold'))
     elif cmd == 'face':
-        face(sex, *sys.argv[3:7])
+        face(sex, *sys.argv[3:7], opt('side-normal'))
     elif cmd == 'bake':
         kind = 'hat' if '--hat' in sys.argv else 'glasses' if '--glasses' in sys.argv else 'hair'
         bake(sex, sys.argv[3], sys.argv[4], kind, opt('base'))

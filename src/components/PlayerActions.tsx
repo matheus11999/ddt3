@@ -72,7 +72,6 @@ function PlayerSheet({info,tip,setTip,onReport}:{info:PlayerInfo;tip:Tip|null;se
   <div className="bag-stage">
    <div className="equipment-slots left">{LEFT_SLOTS.map(slot)}</div>
    <div className="dressing-room">
-    {upgrade<5&&<i className="bag-sigil" aria-hidden="true"/>}
     <header className="player-info-plate"><div><LevelNumber level={info.level} size={36}/><h2>{info.name}</h2></div><small>{title}</small></header>
     <Avatar equipment={equipment} size={340} animated={false} auraAnimated showAura weapon={false}/>
     {onReport&&<button className="player-info-report" onClick={onReport} aria-label={`Denunciar ${info.name}`} title="Denunciar"><Flag size={16}/></button>}

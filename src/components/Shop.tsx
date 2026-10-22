@@ -96,7 +96,6 @@ export function Shop({onClose}:{onClose:()=>void}){
      <div className="shop-identity"><small>Provador</small><h2>{p.name}</h2></div>
     </header>
     <div className="shop-stage">
-     <i className="wood-sigil shop-sigil" aria-hidden="true"/>
      <Avatar equipment={draft} size={290} weapon={CATALOG[trying??'']?.slot==='weapon'} animated={false}/>
      <button className="shop-restore" onClick={restore} disabled={!trying} aria-label="Restaurar visual" title="Restaurar visual"><RotateCcw size={18}/></button>
      {trying&&<div className="shop-preview-caption"><span>{CATALOG[trying].name}</span></div>}

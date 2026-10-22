@@ -169,23 +169,6 @@
   margin: 0;
   overflow: visible;
 }
-/* Mesmo selo pintado da aura do jogo (aura-*-sigil). Abaixo de +5 mostra o selo
-   base; a partir de +5 o próprio Avatar desenha o selo verde/roxo/dourado. */
-.bag-window .bag-sigil {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: min(300px, 100%);
-  aspect-ratio: 1;
-  translate: -50% -54%;
-  background: url('/assets/ui/aura-blue-sigil.png') center / contain no-repeat;
-  filter: drop-shadow(0 0 1px #7a4a1c) drop-shadow(0 0 6px #ffb45a99);
-  opacity: .9;
-  animation: bag-sigil-spin 40s linear infinite;
-  pointer-events: none;
-}
-@keyframes bag-sigil-spin { to { rotate: 360deg; } }
-@media (prefers-reduced-motion: reduce) { .bag-window .bag-sigil { animation: none; } }
 .bag-window .dressing-room > canvas {
   position: relative;
   z-index: 1;
@@ -809,7 +792,6 @@
 }
 @media (max-height: 800px) {
   .bag-window .bag-stage > .equipment-slots { grid-template-columns: 62px 62px; grid-auto-rows: 62px; gap: 16px 8px; }
-  .bag-window .bag-sigil { width: min(240px, 100%); }
   .bag-window .equipment-slots .item-card[data-card][data-card-variant],
   .bag-window .bag-stage-foot > .equipment-slots.lower .item-card[data-card][data-card-variant],
   .bag-window .bag-stage-foot > .equipment-slots.lower [data-slot="weapon"].item-card[data-card][data-card-variant] { width: 62px; height: 62px; }
@@ -851,7 +833,6 @@ html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower .item
 html.mobile-landscape .bag-window .equipment-slots .item-card .item-art { width: 38px !important; height: 38px !important; }
 html.mobile-landscape .bag-window .bag-slot-placeholder { width: 20px; height: 20px; }
 html.mobile-landscape .bag-window .equipment-slot > .equipment-slot-label { font-size: 7px; line-height: 10px; bottom: -10px; }
-html.mobile-landscape .bag-window .bag-sigil { width: 180px; }
 html.mobile-landscape .bag-window .dressing-room > canvas { height: 190px !important; }
 html.mobile-landscape .bag-window .bag-stage-foot { min-height: 56px; }
 html.mobile-landscape .bag-window .bag-stage-foot > .equipment-slots.lower { gap: 6px; }

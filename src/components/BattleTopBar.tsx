@@ -13,14 +13,13 @@ import {Avatar} from './Avatar';
 import {LevelBadge} from './LevelBadge';
 import {playerMenuProps} from './PlayerActions';
 
-/** Full-body preview of the fighter whose turn it is, over the game's own aura seal
- * (top-left): the base sigil below +5, the Avatar's upgrade aura from +5, as in the backpack. */
+/** Full-body preview of the fighter whose turn it is
+ * (top-left), with the Avatar's upgrade aura from +5; no ring below +5 (matheus 22/10: no gray circle anywhere). */
 export function ActivePortrait({fighter,mine,resolving,ally}:{fighter:Fighter;mine:boolean;resolving:boolean;ally:boolean}){
  return <section className={`active-portrait ${ally?'ally':'enemy'}`} aria-label={`Jogador da vez: ${fighter.name}`} data-fighter={fighter.id} {...playerMenuProps({id:fighter.id,name:fighter.name,context:'battle'})}>
   <div className="active-portrait-name">{fighter.name}</div>
   {fighter.guild&&<div className="active-portrait-guild">{fighter.guild}</div>}
   <div className="active-portrait-stage">
-   {(fighter.equipment.upgrade??0)<5&&<i className="active-portrait-sigil" aria-hidden="true"/>}
    <div className="active-portrait-avatar"><Avatar key={fighter.id} view="side" equipment={fighter.equipment} size={170} pose="idle" weapon showAura auraAnimated facing={1}/></div>
    <LevelBadge level={fighter.level} size={34}/>
    <PetMedallion pet={fighter.equipment.pet}/>

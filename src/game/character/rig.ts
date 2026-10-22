@@ -18,8 +18,8 @@ import type {RigContext} from './composer';
 type Sex='m'|'f';
 const INDEX=index as unknown as Record<Sex,Partial<Record<'game'|'show'|'virtual'|'virtualhead',string[]>>>;
 /** Avatar units per sheet pixel in each context (sheets at 4x the DDTank grid). The bag figure and the plaza figure are
- * as tall as the old front view (matheus, 22/10: the first rig v2 figures were too small). */
-export const RIG_UNITS={game:.5,show:.153,virtual:.34};
+ * as tall as the old front view (matheus, 22/10: the first rig v2 figures were too small); the bag figure 18% taller again (matheus, 22/10). */
+export const RIG_UNITS={game:.5,show:.18,virtual:.34};
 /** Where the feet are in a cell (sheet pixels): the drawing origin. */
 const FEET={game:GAME.origin as number[],show:[500,1220],virtual:[256,670]};
 
