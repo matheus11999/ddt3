@@ -38,7 +38,6 @@ export function PlayerCard({seat,slot,open,hostId,mine,canManage}:{seat:Seat|und
      {seat.guild&&<span className="pr-card-guild" title={`Guilda ${seat.guild}`}><Shield size={12} aria-hidden="true"/>{seat.guild}</span>}
     </div>
     <div className="pr-card-insignia"><LevelNumber level={seat.level} size={44}/><VipBadge level={seat.vipLevel??0} size={54}/></div>
-    {(seat.equipment.upgrade??0)<5&&<i className="wood-sigil pr-card-sigil" aria-hidden="true"/>}
     <SeatSpeech playerId={seat.id}/>
     <div className="party-player-portrait pr-card-portrait"><Avatar equipment={seat.equipment} size={240} animated={false} auraAnimated showAura centerBody weaponSide={-1} weaponScale={0.72} weaponOffset={20} weaponVerticalOffset={12} groundedShadow/></div>
    </div>

@@ -25,8 +25,7 @@
 .match-loading-team.right .loading-fighter{--team:#ff6a3d;animation-name:loading-fighter-in-right}
 .loading-fighter:nth-child(2){animation-delay:.06s}.loading-fighter:nth-child(3){animation-delay:.12s}.loading-fighter:nth-child(4){animation-delay:.18s}
 .loading-fighter-art{position:relative;width:var(--avatar);height:var(--avatar);display:flex;align-items:flex-end;justify-content:center}
-.loading-fighter-art::before{content:'';position:absolute;left:50%;bottom:4%;width:88%;aspect-ratio:1;transform:translateX(-50%);background:url(/assets/ui/aura-blue-sigil.png) center/contain no-repeat;opacity:.85}
-.match-loading-team.right .loading-fighter-art::before{background-image:url(/assets/ui/aura-purple-sigil.png)}
+/* No sigil ring behind fighters (matheus 22/10). */
 .loading-fighter-art canvas{position:relative}
 .loading-fighter-name{display:flex;align-items:center;justify-content:center;gap:6px;max-width:100%;margin-top:-6px}
 .loading-fighter-name b{font-size:19px;font-weight:900;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-text-stroke:3px #0b1220;paint-order:stroke fill;text-shadow:0 2px 3px #000c}
