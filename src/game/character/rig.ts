@@ -17,10 +17,11 @@ import type {RigContext} from './composer';
  */
 type Sex='m'|'f';
 const INDEX=index as unknown as Record<Sex,Partial<Record<'game'|'show'|'virtual'|'virtualhead',string[]>>>;
-/** Avatar units per sheet pixel in each context, so the three figures are about as tall as the old one. */
-export const RIG_UNITS={game:1,show:.26,virtual:.56};
+/** Avatar units per sheet pixel in each context (sheets at 4x the DDTank grid). The bag figure and the plaza figure are
+ * as tall as the old front view (matheus, 22/10: the first rig v2 figures were too small). */
+export const RIG_UNITS={game:.5,show:.153,virtual:.34};
 /** Where the feet are in a cell (sheet pixels): the drawing origin. */
-const FEET={game:GAME.origin as number[],show:[250,610],virtual:[128,335]};
+const FEET={game:GAME.origin as number[],show:[500,1220],virtual:[256,670]};
 
 const sexOf=(eq:Equipment):Sex=>CATALOG[eq.outfit]?.gender==='female'||CATALOG[eq.face]?.gender==='female'?'f':'m';
 const has=(sex:Sex,context:keyof (typeof INDEX)['m'],id:string)=>INDEX[sex]?.[context]?.includes(id)??false;
@@ -81,7 +82,11 @@ export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:st
  const frame=virtualFrame(action,tick),[w,h]=VIRTUAL.cell,k=RIG_UNITS.virtual,[ox,oy]=FEET.virtual,back=frame>=8,blink=frame===7;
  const col=blink?0:back?frame-8:frame,row=back?1:0,headCell=back?2:blink?1:0,dy=(VIRTUAL.headOffsets[col]??0)*k;
  const paintBody=()=>drawCell(c,body,col*w,row*h,w,h,-ox*k,-oy*k,w*k,h*k),paintHead=()=>drawCell(c,head,headCell*w,0,w,h,-ox*k,-oy*k+dy,w*k,h*k);
+ // The front cells are painted turned to the left (DDTank's naturalWalkFront), the back ones walking away to the right:
+ // mirror the front so 'facing right' walks right in both (8 directions = front/back x mirror, matheus 22/10).
+ c.save();if(!back)c.scale(-1,1);
  if(back){paintBody();paintHead();}else{paintHead();paintBody();}
+ c.restore();
  return true;
 }
 /** Rig sheets are for the area on screen: let go when it changes (spriteCache rules, docs/performance.md). */

@@ -1,16 +1,16 @@
 {
- "_comment": "Rig v2 (docs/rig-v2.md): contracts of the three character composers, 2x the DDTank 4.1 grid. Action sequences (frame indices per tick, repeats included) come from the DDTank 4.1 client study (manifest.json of D:/APPS/ddt/output/ddtank-character-system); never drop repeated indices.",
- "scale": 2,
+ "_comment": "Rig v2 (docs/rig-v2.md): contracts of the three character composers, 4x the DDTank 4.1 grid (2x until 22/10: matheus found it low resolution). Action sequences (frame indices per tick, repeats included) come from the DDTank 4.1 client study (manifest.json of D:/APPS/ddt/output/ddtank-character-system); never drop repeated indices.",
+ "scale": 4,
  "game": {
   "cell": [
-   228,
-   190
+   456,
+   380
   ],
   "columns": 13,
   "rows": 3,
   "origin": [
-   124,
-   166
+   248,
+   332
   ],
   "order": [
    "weapon",
@@ -807,8 +807,8 @@
  },
  "show": {
   "cell": [
-   500,
-   684
+   1000,
+   1368
   ],
   "faceCells": 4,
   "order": [
@@ -3059,8 +3059,8 @@
  },
  "virtual": {
   "cell": [
-   240,
-   350
+   480,
+   700
   ],
   "columns": 7,
   "rows": 2,
@@ -3068,11 +3068,11 @@
   "headOffsets": [
    0,
    0,
-   -2,
-   4,
+   -4,
+   8,
    0,
-   -2,
-   4
+   -4,
+   8
   ],
   "frontOrder": [
    "head",

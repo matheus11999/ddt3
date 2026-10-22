@@ -1,6 +1,6 @@
 """Rig v2: per-cell check of a body sheet (outfit) against the mold, so a bad cell is caught and redone alone.
 
-Each painted cell is moved (up to +-8 px) to sit best on the gray mannequin of the mold, then scored by how much of
+Each painted cell is moved (up to +-12 px) to sit best on the gray mannequin of the mold, then scored by how much of
 the mannequin it covers and how much it spills outside. Cells under the bar are listed with the plate that holds them
 (plates.py layout) so only that plate goes back to Codex.
   py scripts/rig/check-cells.py <game|virtual|show> <sex> <sheet.png> [--fix]   (--fix writes the moved cells back)
@@ -27,8 +27,8 @@ for i in used:
     if b.sum() == 0:
         continue
     best = (-1, 0, 0, 0, 0)
-    for dy in range(-8, 9):
-        for dx in range(-8, 9):
+    for dy in range(-12, 13, 2):
+        for dx in range(-12, 13, 2):
             s = np.roll(np.roll(a, dy, 0), dx, 1)
             cover = (s & b).sum() / b.sum()
             spill = (s & ~b).sum() / max(1, s.sum())
