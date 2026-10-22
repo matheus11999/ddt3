@@ -12,7 +12,7 @@ import {idleHeadTilt} from './faceExpressions';
 import {HEAD_SCALE} from './rig/anchors';
 import {rodTip,TIDE_ROD} from './rodCast';
 import {drawFrontAvatar,drawFrontHead,FRONT_HEAD_UNITS,hasFrontView} from './front';
-import {drawRigGame,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
+import {drawRigGame,drawRigPortrait,drawRigShow,drawRigVirtual,hasRig} from './character/rig';
 import type {RigContext} from './character/composer';
 
 export type AvatarPose='idle'|'walk'|'aim'|'charge'|'fire'|'hit'|'fall'|'prone'|'victory'|'defeat';
@@ -218,6 +218,8 @@ function visibleHeadEquipment(eq:Equipment):Equipment {
  * passes as the full avatar, without waiting for any outfit artwork. */
 export function drawAvatarPortrait(c:CanvasRenderingContext2D,equipment:Equipment,x:number,y:number,size:number,facing=1,view?:'side'|'front'){
  const eq=visibleHeadEquipment(equipment);
+ // Rig v2 looks show their own painted head (the battle head in the battle HUD), never the old cut-out one (matheus 22/10).
+ if(hasRig(eq,view==='side'?'game':'virtual')){drawRigPortrait(c,eq,x,y,size,facing,view);return;}
  // Outside battle the portrait shows the front head (src/game/front.ts), framed on the face.
  if(view!=='side'&&hasFrontView(eq)){c.save();c.translate(x+size/2,y+size/2);const k=size/(FRONT_HEAD_UNITS*1.25);c.scale((facing<0?-1:1)*k,k);c.translate(-4,FRONT_HEAD_UNITS*.5);drawFrontHead(c,eq);c.restore();return;}
  const head=getFacePortrait(CATALOG[eq.face]?.slot==='face'?eq.face:'face-brave',eq.skin,eq.eyes);

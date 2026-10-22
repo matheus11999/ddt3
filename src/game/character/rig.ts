@@ -38,7 +38,11 @@ function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null 
  const list=[eq.face,hairKey(eq),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
  return list.every(id=>has(sex,context,id))?list:null;
 }
+/** Rig v2 is switched off (matheus 22/10: back to the front-view flow that painted the posed bag figure). The sheets and
+ * tools stay; true brings every look with rig art back to the composers. */
+export const RIG_ENABLED=false;
 export function hasRig(eq:Equipment,context:RigContext):boolean {
+ if(!RIG_ENABLED)return false;
  if(context==='virtual')return !!pieces(eq,'virtualhead')&&has(sexOf(eq),'virtual',eq.outfit);
  return !!pieces(eq,context);
 }
@@ -96,5 +100,24 @@ export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:st
  c.restore();
  return true;
 }
+const heads=new Map<string,[number,number,number,number]>();
+/** Where the head is in a cell of a stacked head sheet (its opaque box), measured once per look. */
+function headBox(layer:HTMLCanvasElement,key:string,x0:number,w:number,h:number):[number,number,number,number] {
+ const known=heads.get(key);if(known)return known;
+ const data=layer.getContext('2d')!.getImageData(x0,0,w,h).data;let l=w,t=h,r=0,b=0;
+ for(let y=0;y<h;y+=2)for(let x=0;x<w;x+=2)if(data[(y*w+x)*4+3]>40){if(x<l)l=x;if(x>r)r=x;if(y<t)t=y;if(y>b)b=y;}
+ const box:[number,number,number,number]=r>l?[x0+l,t,r-l+2,b-t+2]:[x0,0,w,h];heads.set(key,box);return box;
+}
+/** HUD and list portrait: the rig head alone (face, hair, hat, glasses), framed square in (x, y, size). 'side' is the
+ * battle head (combat cell 0, turned 3/4 like DDTank), otherwise the front head of the plaza. False while it loads. */
+export function drawRigPortrait(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,size:number,facing:number,view?:'side'|'front'):boolean {
+ const context=view==='side'?'game':'virtualhead',ids=pieces(eq,context);if(!ids)return false;
+ const sex=sexOf(eq),list=ids.filter(id=>!id.startsWith('outfit-')),layer=stack(sex,context,list,eq.skin);if(!layer)return false;
+ const [w,h]=context==='game'?GAME.cell:VIRTUAL.cell,[bx,by,bw,bh]=headBox(layer,[sex,context,...list].join('|'),0,w,h);
+ // The battle head faces right; the plaza front head is painted turned left (mirrored like the plaza figure).
+ const flip=(context==='game'?1:-1)*(facing<0?-1:1),k=size*.96/Math.max(bw,bh);
+ c.save();c.translate(x+size/2,y+size/2);c.scale(flip*k,k);c.drawImage(layer,bx,by,bw,bh,-bw/2,-bh/2,bw,bh);c.restore();
+ return true;
+}
 /** Rig sheets are for the area on screen: let go when it changes (spriteCache rules, docs/performance.md). */
-export function releaseRigArt(){freeAll(composed);}
+export function releaseRigArt(){freeAll(composed);heads.clear();}
