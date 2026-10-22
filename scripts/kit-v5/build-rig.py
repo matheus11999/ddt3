@@ -183,6 +183,25 @@ for group in same.values():
         if p is not None:
             r, c = divmod(i, 13)
             body.paste(src[p], (c * CW, r * CH))
+# Poses ajoelhadas repintadas (matheus 22/10: os tênis apareciam lado a lado na frente, como sentado): um joelho no chão
+# com a perna deitada para trás; substituem as células 19-23 e 26-36.
+jm = f'{K}/combate-lotes/joelho.json'
+if os.path.exists(jm):
+    jmeta = json.load(open(jm))
+    for b, ids in enumerate(jmeta['batches']):
+        path = f'{K}/combate-joelho{b + 1}/combate-joelho{b + 1}.png'
+        if not os.path.exists(path):
+            continue
+        sheet = L(path)
+        for k, i in enumerate(ids):
+            x, y = (k % 3) * BW + (BW - 114 * S) // 2, (k // 3) * BH + (BH - 95 * S) // 2
+            r, c = divmod(i, 13)
+            body.paste(Image.new('RGBA', (CW, CH)), (c * CW, r * CH))
+            body.paste(key_out(sheet.crop((x, y, x + 114 * S, y + 95 * S))), (c * CW, r * CH))
+    # as repetições do molde (28-29 = 19-20) seguem a célula repintada
+    for dst, src_i in ((28, 19), (29, 20)):
+        r, c = divmod(src_i, 13); cell = body.crop((c * CW, r * CH, c * CW + CW, r * CH + CH))
+        r, c = divmod(dst, 13); body.paste(Image.new('RGBA', (CW, CH)), (c * CW, r * CH)); body.paste(cell, (c * CW, r * CH))
 save(body, 'game', 'outfit-basic-male')
 
 # ---------- praça (VIRTUAL): cabeça 3 células de 480x700 (frente, olhos fechados, costas); corpo 7x2 ----------
