@@ -185,23 +185,39 @@ if hairB_front and hairB_back:
 if cap_front:
     save(vhat, 'virtualhead', 'hat-starter')
 def clean_neck(cell):
-    """O pescoço foi pintado sobre o toquinho verde do molde e saiu laranja/esverdeado, com franja magenta (matheus 22/10:
-    "erro na conexão do corpo com a roupa"). No topo do corpo: franja magenta sai; o que não é camiseta branca nem
-    contorno escuro vira pele lisa."""
+    """O pescoço foi pintado sobre o toquinho verde do molde e saiu manchado (laranja, verde, contorno solto; matheus 22/10).
+    Tudo acima da gola sai e o pescoço é redesenhado limpo: pele com sombra do queixo e contorno escuro dos lados,
+    da gola até um pouco acima (a cabeça, desenhada por cima, cobre o resto)."""
+    from PIL import ImageDraw
     a = np.asarray(cell).astype(int).copy()
-    m = a[..., 3] > 40
-    rows = np.nonzero(m.any(1))[0]
-    if not len(rows):
-        return cell
-    top = rows.min(); band = np.zeros(m.shape, bool); band[top:top + max(8, int((rows.max() - top) * .14))] = True
     r, g, b = a[..., 0], a[..., 1], a[..., 2]
-    magenta = (r > g + 40) & (b > g + 20)
-    a[magenta & (r < 200), 3] = 0  # franja magenta do fundo, em qualquer lugar
-    white = (r > 185) & (g > 175) & (b > 170) & (np.abs(r - b) < 40)
-    dark = r + g + b < 260
-    neck = band & m & ~magenta & ~white & ~dark
-    a[neck, :3] = (247, 198, 160)
-    return Image.fromarray(a.astype(np.uint8))
+    a[(r > g + 40) & (b > g + 20) & (r < 200), 3] = 0  # franja magenta do fundo
+    m = a[..., 3] > 40
+    white = m & (r > 185) & (g > 175) & (b > 170) & (np.abs(r - b) < 40)
+    if not white.any():
+        return Image.fromarray(a.astype(np.uint8))
+    rows = np.nonzero(white.any(1))[0]
+    collar = rows.min()
+    xs = np.nonzero(white[collar:collar + 12].any(0))[0]
+    cx = (xs.min() + xs.max()) / 2
+    shirt_w = xs.max() - xs.min()
+    a[:collar + 2, :, 3] = 0  # tudo acima da gola
+    # dentro da gola a pintura ficou laranja (o verde do molde por baixo): vira a sombra da pele
+    band = np.zeros(m.shape, bool); band[collar:collar + max(10, int(shirt_w * .25))] = True
+    orange = band & m & (r > 190) & (g < 175) & (b < 130) & (r - b > 90)
+    a[orange, :3] = (205, 150, 115)
+    img = Image.fromarray(a.astype(np.uint8))
+    neck = Image.new('RGBA', img.size)
+    d = ImageDraw.Draw(neck)
+    hw = max(6, shirt_w * .16)
+    top = collar - max(8, shirt_w * .16)
+    d.rectangle((cx - hw, top, cx + hw, collar + 6), fill=(247, 198, 160, 255))
+    for k in range(int(collar - top) + 7):  # sombra do queixo descendo até a gola
+        y = top + k; f = 0.80 + 0.2 * min(1, k / max(1, (collar - top) * .6))
+        d.line((cx - hw, y, cx + hw, y), fill=(int(247 * f), int(198 * f), int(160 * f), 255))
+    # sem contorno dos lados: o queixo é meio translúcido na borda e as linhas apareciam através do rosto
+    neck.alpha_composite(img)  # a camiseta (gola) por cima do pescoço
+    return neck
 
 
 def fit_to_mold(cell, mold):
