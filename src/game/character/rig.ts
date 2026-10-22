@@ -4,6 +4,7 @@ import {asset} from '../appearance';
 import {tintSkin} from '../recolor';
 import {drawCell,freeAll} from '../spriteCache';
 import index from './rigIndex.json';
+import eyesIndex from './rigEyes.json';
 import {cellRect,gameFrame,GAME,SHOW,showFrame,VIRTUAL,virtualFrame} from './composer';
 import type {RigContext} from './composer';
 
@@ -71,6 +72,31 @@ function stack(sex:Sex,context:string,ids:string[],skin:string|undefined,hatOver
  return out;
 }
 
+type Eye={box:[number,number,number,number];skin:[number,number,number]};
+const EYES=eyesIndex as unknown as Record<string,Record<string,Record<string,(Eye[]|null)[]>>>;
+const skinAt=new Map<string,string>();
+/** Universal blink (matheus 22/10: one eye effect for every face): the eyes of each face cell are measured offline
+ * (scripts/kit-v5/eyes.py -> rigEyes.json); closing one paints its box with the skin right under it, taken from the
+ * stacked (tinted) face so any body color matches, and draws the lid across. Cell pixels, scaled by k from (sx, sy). */
+function closeEyes(c:CanvasRenderingContext2D,layer:HTMLCanvasElement,sex:Sex,context:string,face:string,cell:number,cellX:number,cellY:number,sx:number,sy:number,k:number){
+ const eyes=EYES[sex]?.[context]?.[face]?.[cell];if(!eyes)return;
+ for(const {box:[x,y,w,h],skin} of eyes){
+  const key=[sex,context,face,cell,x,y,layer.width].join('|');let fill=skinAt.get(key);
+  if(!fill){
+   // the cheek right under the eye: the brightest of a few points across it (one may land on an outline or shadow)
+   const row=layer.getContext('2d')!.getImageData(cellX+Math.round(x),cellY+Math.min(layer.height-cellY-1,Math.round(y+h+Math.max(2,h/5))),Math.max(1,Math.round(w)),1).data;
+   let best=-1,rgb=skin as number[];
+   for(let i=Math.floor(w*.15);i<w*.85;i+=Math.max(1,Math.floor(w/8))){const o=i*4;if(row[o+3]>200){const l=row[o]+row[o+1]+row[o+2];if(l>best){best=l;rgb=[row[o],row[o+1],row[o+2]];}}}
+   fill=`rgb(${rgb[0]},${rgb[1]},${rgb[2]})`;skinAt.set(key,fill);}
+  const cx=sx+(x+w/2)*k,cy=sy+(y+h*.55)*k,rx=w*.5*k,ry=h*.42*k;
+  c.save();c.fillStyle=fill;c.beginPath();c.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);c.fill();
+  // the lid: a soft dark curve with a thicker middle, like a painted closed eye
+  c.strokeStyle='rgba(58,32,24,.92)';c.lineCap='round';c.lineWidth=Math.max(1,h*.11*k);
+  c.beginPath();c.moveTo(cx-rx*.92,cy-ry*.05);c.quadraticCurveTo(cx,cy+ry*.55,cx+rx*.92,cy-ry*.05);c.stroke();c.restore();
+ }
+}
+/** Blink timing for idle heads: a short close every few seconds, not in sync between players (seeded by the look). */
+export function blinking(time:number,seed=0):boolean {const p=(time+seed*997)%3600;return p<130;}
 /** Head motion drawn in code over the combat cells (matheus 22/10: idle moves only the head; a hit shakes it). */
 export type HeadMotion={tilt:number;dx:number;dy:number};
 const pivots=new Map<string,[number,number]>();
@@ -83,7 +109,7 @@ function neckOf(layer:HTMLCanvasElement,key:string,x0:number,y0:number,w:number,
 }
 /** Combat cell at the character origin (feet), facing right, in avatar units. False while the art loads. The head
  * (face, hair, hat, glasses) is drawn apart from the outfit so `head` can tilt and nudge it about the neck. */
-export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number,head?:HeadMotion):boolean {
+export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number,head?:HeadMotion,blink=false):boolean {
  const ids=pieces(eq,'game');if(!ids)return false;const sex=sexOf(eq);
  const hat=ids.find(id=>id.startsWith('hat-')),under=ids.filter(id=>id.startsWith('face-')||id.startsWith('hair-'));
  const outfit=ids.filter(id=>id.startsWith('outfit-')),over=ids.filter(id=>id.startsWith('hat-')||id.startsWith('glasses-'));
@@ -95,7 +121,8 @@ export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:strin
  const [nx,ny]=neckOf(headUnder,[sex,eq.face,f.lower].join('|'),hr.x,hr.y,w,h);
  const paintHead=(layer:HTMLCanvasElement)=>{c.save();
   if(head){const px=(nx-ox)*k,py=(ny-oy)*k;c.translate(px+head.dx,py+head.dy);c.rotate(head.tilt);c.translate(-px,-py);}
-  drawCell(c,layer,hr.x,hr.y,w,h,-ox*k,-oy*k,w*k,h*k);c.restore();};
+  drawCell(c,layer,hr.x,hr.y,w,h,-ox*k,-oy*k,w*k,h*k);
+  if(blink&&layer===headUnder)closeEyes(c,headUnder,sex,'game',eq.face,f.lower,hr.x,hr.y,-ox*k,-oy*k,k);c.restore();};
  // DDTank order: face and hair, the outfit (the fists rest on the chin), then hat and glasses.
  paintHead(headUnder);drawCell(c,body,br.x,br.y,w,h,-ox*k,-oy*k,w*k,h*k);if(headOver)paintHead(headOver);
  return true;
@@ -107,7 +134,9 @@ export function drawRigShow(c:CanvasRenderingContext2D,eq:Equipment,action:strin
  const [w,h]=SHOW.cell,k=RIG_UNITS.show,[ox,oy]=FEET.show,cell=showFrame(action,tick);
  // The figure is painted facing left (DDTank's bag); mirror it so 'facing right' means right like everywhere else.
  c.save();c.scale(-1,1);
- drawCell(c,face,Math.min(cell,Math.floor(face.width/w)-1)*w,0,w,h,-ox*k,-oy*k,w*k,h*k);
+ // NORMAL_STANDBY closes the eyes on cells 1-3: drawn from cell 0 with the universal blink, so every face blinks.
+ drawCell(c,face,0,0,w,h,-ox*k,-oy*k,w*k,h*k);
+ if(cell>0)closeEyes(c,face,sex,'show',eq.face,0,0,0,-ox*k,-oy*k,k);
  drawCell(c,rest,0,0,w,h,-ox*k,-oy*k,w*k,h*k);c.restore();
  return true;
 }
@@ -116,8 +145,9 @@ export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:st
  const ids=pieces(eq,'virtualhead');if(!ids||!has(sexOf(eq),'virtual',eq.outfit))return false;const sex=sexOf(eq);
  const head=stack(sex,'virtualhead',ids,eq.skin),body=stack(sex,'virtual',[eq.outfit],eq.skin);if(!head||!body)return false;
  const frame=virtualFrame(action,tick),[w,h]=VIRTUAL.cell,k=RIG_UNITS.virtual,[ox,oy]=FEET.virtual,back=frame>=8,blink=frame===7;
- const col=blink?0:back?frame-8:frame,row=back?1:0,headCell=back?2:blink?1:0,dy=(VIRTUAL.headOffsets[col]??0)*k;
- const paintBody=()=>drawCell(c,body,col*w,row*h,w,h,-ox*k,-oy*k,w*k,h*k),paintHead=()=>drawCell(c,head,headCell*w,0,w,h,-ox*k,-oy*k+dy,w*k,h*k);
+ const col=blink?0:back?frame-8:frame,row=back?1:0,headCell=back?2:0,dy=(VIRTUAL.headOffsets[col]??0)*k;
+ const paintBody=()=>drawCell(c,body,col*w,row*h,w,h,-ox*k,-oy*k,w*k,h*k),paintHead=()=>{drawCell(c,head,headCell*w,0,w,h,-ox*k,-oy*k+dy,w*k,h*k);
+  if(blink)closeEyes(c,head,sex,'virtualhead',eq.face,0,0,0,-ox*k,-oy*k+dy,k);};
  // The front cells are painted turned to the left (DDTank's naturalWalkFront), the back ones walking away to the right:
  // mirror the front so 'facing right' walks right in both (8 directions = front/back x mirror, matheus 22/10).
  c.save();if(!back)c.scale(-1,1);
@@ -145,4 +175,4 @@ export function drawRigPortrait(c:CanvasRenderingContext2D,eq:Equipment,x:number
  return true;
 }
 /** Rig sheets are for the area on screen: let go when it changes (spriteCache rules, docs/performance.md). */
-export function releaseRigArt(){freeAll(composed);heads.clear();pivots.clear();}
+export function releaseRigArt(){freeAll(composed);heads.clear();pivots.clear();skinAt.clear();}
