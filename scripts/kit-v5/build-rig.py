@@ -78,34 +78,43 @@ lay = {n: L(f'{K}/camadas-mochila/{n}.png') for n in ('cabeca-frente', 'cabelo-f
 
 
 def face_with_neck(bald_path, head_only):
-    """Como no DDTank (matheus 22/10, a emenda queixo/pescoço rasgava): o pescoço é da cabeça, pintado junto com o queixo,
-    descendo até um pouco abaixo da gola; a roupa é desenhada por cima e a gola cobre a ponta. Vem da pintura careca
-    aprovada: a cabeça já recortada mais a pele contínua logo abaixo do queixo."""
-    from scipy import ndimage
-    B = np.asarray(L(bald_path)).astype(int)
-    H = np.asarray(head_only)
-    r, g, b = B[..., 0], B[..., 1], B[..., 2]
-    skin = (B[..., 3] > 40) & (r > 170) & (g > 110) & (b > 70) & (r - b > 35) & (r - b < 190) & ~((r > 225) & (g > 215) & (b > 205))
-    rows = np.nonzero((H[..., 3] > 40).any(1))[0]
-    chin = rows.max()
-    cols = np.nonzero(H[chin - 6:chin + 1, :, 3].max(0) > 40)[0]
-    region = np.zeros(skin.shape, bool)
-    reach = int((chin - rows.min()) * .28)  # até um pouco abaixo da gola
-    region[chin - 10:chin + reach, max(0, cols.min() - 20):cols.max() + 20] = True
-    neck = skin & region
-    lab, n = ndimage.label(neck)
-    if n:  # só a pele ligada ao queixo
-        touching = set(np.unique(lab[chin - 10:chin + 3][lab[chin - 10:chin + 3] > 0]))
-        neck = np.isin(lab, list(touching))
-    neck = ndimage.binary_closing(neck, iterations=2) & (B[..., 3] > 40)
-    out = H.copy()
-    add = neck & (H[..., 3] < 200)
-    out[add] = B[add]
-    # contorno escuro dos lados do pescoço (o que a pintura tinha ali)
-    edge = ndimage.binary_dilation(neck, iterations=3) & ~neck & region & (B[..., 3] > 40) & (r + g + b < 260)
-    edge &= np.arange(B.shape[0])[:, None] > chin
-    out[edge & (H[..., 3] < 200)] = B[edge & (H[..., 3] < 200)]
-    return Image.fromarray(out.astype(np.uint8))
+    """O pescoço é da cabeça (como no DDTank; matheus 22/10). Desenhado igual para todo rosto: uma coluna de pele com a
+    cor do próprio rosto, centrada sob o queixo, com sombra do queixo, descendo bem abaixo de qualquer gola; o rosto
+    fica por cima e a roupa cobre a ponta. Assim qualquer rosto encaixa em qualquer roupa."""
+    from PIL import ImageDraw
+    H = np.asarray(head_only).astype(int)
+    al = H[..., 3] > 200
+    rows = np.nonzero(al.any(1))[0]; top, chin = rows.min(), rows.max()
+    hx = np.nonzero(al.any(0))[0]; hw = hx.max() - hx.min()
+    # centro do queixo: mediana dos meios das linhas logo acima da ponta (a ponta pode ter um resto de pescoço torto)
+    mids = [np.nonzero(al[y])[0] for y in range(chin - int((chin - top) * .16), chin - int((chin - top) * .08))]
+    cx = float(np.median([(m.min() + m.max()) / 2 for m in mids if len(m)]))
+    r, g, b = H[..., 0], H[..., 1], H[..., 2]
+    skin = al & (r > 190) & (g > 130) & (b > 90) & (r - b > 40)
+    # cor da pele logo acima da ponta do queixo, no meio (a do próprio rosto, já com a sombra de baixo)
+    yy0 = chin - int((chin - top) * .09)
+    sample = H[yy0:yy0 + 6, int(cx) - 6:int(cx) + 6].reshape(-1, 4)
+    sample = sample[(sample[:, 3] > 200) & (sample[:, :3].sum(1) > 450)]
+    tone = sample[:, :3].mean(0) * .96 if len(sample) else np.array([235, 185, 145])
+    w = hw * .085
+    y0, y1 = chin - int((chin - top) * .12), chin + int((chin - top) * .45)
+    neck = Image.new('RGBA', head_only.size)
+    d = ImageDraw.Draw(neck)
+    sh = max(1, (chin - top) * .07)
+    for y in range(y0, y1):
+        k = min(1, max(0, (y - chin) / sh))
+        f = .9 + .1 * k  # sombra do queixo logo abaixo dele
+        ww = w * (1 + .06 * max(0, (y - chin) / max(1, y1 - chin)))  # alarga um pouco para baixo
+        for x in range(int(cx - ww), int(cx + ww) + 1):  # volume: um pouco mais escuro nos lados
+            e = abs(x - cx) / max(1, ww)
+            fx = f * (1 - .14 * e * e)
+            d.point((x, y), fill=tuple(min(255, int(v * fx)) for v in tone) + (255,))
+    # contorno dos lados só abaixo do queixo (por cima do queixo translúcido ele aparecia através do rosto)
+    lw = max(3, round(hw * .012)); line = (70, 36, 24, 255)
+    d.line((cx - w, chin + 3, cx - w * 1.06, y1), fill=line, width=lw)
+    d.line((cx + w, chin + 3, cx + w * 1.06, y1), fill=line, width=lw)
+    neck.alpha_composite(head_only)
+    return neck
 
 
 face_neck = face_with_neck(f'{K}/mochila-careca/alinhada.png', lay['cabeca-frente'])
@@ -113,17 +122,46 @@ face_neck.save(f'{K}/camadas-mochila/cabeca-pescoco.png')
 feet = np.asarray(lay['roupa-frente'])[..., 3] > 128
 rows = np.nonzero(feet.any(1))[0]; fx = np.nonzero(feet[rows.max() - 40:rows.max()].any(0))[0]
 SHIFT = 402 - (1000 - (fx.min() + fx.max()) / 2)
-def show_cell(img):
-    cell = Image.new('RGBA', (1000, 1368)); cell.paste(img.transpose(Image.FLIP_LEFT_RIGHT), (round(SHIFT), 0)); return cell
+NECK_X = 400  # na célula da mochila (já espelhada) o queixo de todo rosto e a gola de toda roupa ficam nesta coluna
+def chin_center(head):
+    al = np.asarray(head)[..., 3] > 200
+    rows = np.nonzero(al.any(1))[0]; top, chin = rows.min(), rows.max()
+    mids = [np.nonzero(al[y])[0] for y in range(chin - int((chin - top) * .16), chin - int((chin - top) * .08))]
+    return float(np.median([(m.min() + m.max()) / 2 for m in mids if len(m)]))
+def collar_center(outfit):
+    al = np.asarray(outfit)[..., 3] > 200
+    rows = np.nonzero(al.any(1))[0]; band = al[rows.min():rows.min() + 25]
+    xs = np.nonzero(band.any(0))[0]; return (xs.min() + xs.max()) / 2
+HEAD_CX = chin_center(lay['cabeca-frente'])
+def show_cell(img, cx=None):
+    # Mistura de kits (matheus 22/10, rosto de um kit com a roupa de outro): cabeça e roupa alinhadas pela coluna do pescoço
+    shift = NECK_X - (1000 - (HEAD_CX if cx is None else cx))
+    cell = Image.new('RGBA', (1000, 1368)); cell.paste(img.transpose(Image.FLIP_LEFT_RIGHT), (round(shift), 0)); return cell
 # a roupa não pinta por cima do queixo (ordem do DDTank: rosto, cabelo, roupa)
 ra = np.asarray(lay['roupa-frente']).copy(); ra[np.asarray(lay['cabeca-frente'])[..., 3] > 0, 3] = 0
+# A roupa não tem pescoço (ele é da cabeça): acima da gola sai a pele e o contorno, para qualquer rosto encaixar.
+def strip_neck(a):
+    r_, g_, b_ = (a[..., i].astype(int) for i in range(3))
+    op = a[..., 3] > 40
+    skin = op & (r_ > 190) & (g_ > 130) & (b_ > 90) & (r_ - b_ > 40) & (r_ - b_ < 140)
+    dark = op & (r_ + g_ + b_ < 260)
+    rows = np.nonzero(op.any(1))[0]
+    if not len(rows): return a
+    top = rows.min(); h = rows.max() - top
+    for y in range(top, top + int(h * .2)):
+        cloth = op[y] & ~skin[y] & ~dark[y]
+        if cloth.sum() > max(6, op[y].sum() * .45):
+            break  # chegou na gola
+        a[y, skin[y] | dark[y], 3] = 0
+    return a
+ra = strip_neck(ra)
 lay['roupa-frente'] = Image.fromarray(ra)
 face4 = Image.new('RGBA', (4000, 1368))
 for k in range(4):
     face4.paste(show_cell(face_neck), (k * 1000, 0))
 save(face4, 'show', f'face-{LOOK}')
 save(show_cell(lay['cabelo-frente']), 'show', f'hair-{LOOK}-A')
-save(show_cell(lay['roupa-frente']), 'show', f'outfit-{LOOK}')
+save(show_cell(lay['roupa-frente'], collar_center(lay['roupa-frente'])), 'show', f'outfit-{LOOK}')
 def diff_layer(full, base, below=776):
     """A peça que uma edição acrescentou (boné, cabelo B): a edição alinhada menos a base alinhada (align.py)."""
     from scipy import ndimage
