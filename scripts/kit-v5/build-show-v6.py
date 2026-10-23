@@ -78,8 +78,12 @@ def cell(img):
     return c
 
 
+RAW = f'output/base-v6/layers/{SEX}'
+
+
 def save(img, name):
-    os.makedirs(OUT, exist_ok=True)
+    os.makedirs(OUT, exist_ok=True); os.makedirs(RAW, exist_ok=True)
+    img.save(f'{RAW}/{name}.png')  # sem espelho nem deslocamento: as folhas de combate e praça partem destas
     cell(img).save(f'{OUT}/{name}.png')
 
 

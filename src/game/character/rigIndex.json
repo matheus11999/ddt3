@@ -1,6 +1,8 @@
 {
  "m": {
   "game": [
+   "base-m",
+   "base-m-head",
    "face-basic-male",
    "face-star-male",
    "hair-basic-male-A",
@@ -26,10 +28,12 @@
    "outfit-star-male"
   ],
   "virtual": [
+   "base-m",
    "outfit-basic-male",
    "outfit-star-male"
   ],
   "virtualhead": [
+   "base-m-head",
    "face-basic-male",
    "face-star-male",
    "hair-basic-male-A",
@@ -42,6 +46,8 @@
  },
  "f": {
   "game": [
+   "base-f",
+   "base-f-head",
    "face-basic-female",
    "hair-basic-female-A",
    "hair-basic-female-B",
@@ -59,9 +65,11 @@
    "outfit-basic-female"
   ],
   "virtual": [
+   "base-f",
    "outfit-basic-female"
   ],
   "virtualhead": [
+   "base-f-head",
    "face-basic-female",
    "hair-basic-female-A",
    "hair-basic-female-B",
