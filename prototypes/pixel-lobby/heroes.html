@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><title>Heróis (prévia)</title>
+<style>body{margin:0;background:#f6e7c6}canvas{image-rendering:pixelated;width:1440px;height:540px}</style></head>
+<body><canvas id="c" width="720" height="270"></canvas>
+<script type="module">
+import { HEROES, drawHero } from './heroes.js';
+const g = document.getElementById('c').getContext('2d');
+g.imageSmoothingEnabled = false;
+HEROES.forEach((h, i) => { drawHero(g, h, 40 + i * 80, 100, 1, 1); drawHero(g, h, 50 + i * 115, 260, 1.6, 1); });
+</script></body></html>
