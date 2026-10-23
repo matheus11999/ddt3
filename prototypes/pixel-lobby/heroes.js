@@ -3,93 +3,12 @@
 // sombra embaixo e à direita, o brilho no alto e o contorno escuro em volta,
 // como numa pixel art feita à mão. Rosto (olhos, boca) é pintado pixel a pixel.
 
-import { mk, hex, ellipse, R } from './pixel.js';
+import { ellipse, R } from './pixel.js';
+import { mix, el, poly, rr, line, all, clip, part, render } from './shapes.js';
 
 const SW = 72, SH = 86; // tamanho do herói na escala 1 (pés em y = 82)
 
 const SKIN = '#f6c79a';
-
-function mix(a, b, t) {
-  const A = hex(a), B = hex(b);
-  return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * t)).join(',')})`;
-}
-const shadeOf = c => mix(c, '#3a1630', 0.32);
-const lightOf = c => mix(c, '#fff6dc', 0.38);
-const lineOf = c => mix(c, '#1a0c08', 0.72);
-
-// ---- formas
-const el = (cx, cy, rx, ry, rot = 0) => g => { g.beginPath(); g.ellipse(cx, cy, rx, ry, rot, 0, Math.PI * 2); g.fill(); };
-const poly = pts => g => { g.beginPath(); pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); g.fill(); };
-const rr = (x, y, w, h, r) => g => { g.beginPath(); g.roundRect(x, y, w, h, r); g.fill(); };
-const line = (x1, y1, x2, y2, w) => g => { g.lineWidth = w; g.lineCap = 'round'; g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke(); };
-const all = (...fs) => g => fs.forEach(f => f(g));
-const clip = (x, y, w, h, f) => g => { g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip(); f(g); g.restore(); };
-
-function part(color, draw, o = {}) {
-  return { c: color, d: o.shade ?? shadeOf(color), l: o.light === false ? null : lightOf(color), o: lineOf(color), line: o.line ?? true, draw, flat: o.flat };
-}
-
-function maskOf(w, h, k, draw) {
-  const [c, g] = mk(w, h);
-  g.setTransform(k, 0, 0, k, 0, 0);
-  g.fillStyle = '#fff'; g.strokeStyle = '#fff';
-  draw(g);
-  const d = g.getImageData(0, 0, w, h).data;
-  const m = new Uint8Array(w * h);
-  for (let i = 0; i < m.length; i++) m[i] = d[i * 4 + 3] > 120 ? 1 : 0;
-  return m;
-}
-
-function render(parts, k, details) {
-  const w = Math.round(SW * k), h = Math.round(SH * k);
-  const lab = new Int16Array(w * h).fill(-1);
-  parts.forEach((p, i) => {
-    const m = maskOf(w, h, k, p.draw);
-    for (let j = 0; j < m.length; j++) if (m[j]) lab[j] = i;
-  });
-  const at = (x, y) => (x < 0 || y < 0 || x >= w || y >= h ? -1 : lab[y * w + x]);
-  const [c, g] = mk(w, h);
-  const img = g.createImageData(w, h);
-  const put = (x, y, col) => {
-    const [r, gg, b] = col.startsWith('#') ? hex(col) : col.match(/\d+/g).map(Number);
-    const o = (y * w + x) * 4;
-    img.data[o] = r; img.data[o + 1] = gg; img.data[o + 2] = b; img.data[o + 3] = 255;
-  };
-  const s = Math.max(2, Math.round(2.2 * k));
-  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-    const L = at(x, y);
-    if (L < 0) {
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const n = at(x + dx, y + dy);
-        if (n >= 0) { put(x, y, '#1e100a'); break; }
-      }
-      continue;
-    }
-    const p = parts[L];
-    let col = p.c;
-    if (!p.flat) {
-      if (at(x + s, y + s) !== L || at(x, y + s) !== L && at(x + s, y) !== L) col = p.d;
-      else if (p.l && (at(x - 1, y - 1) !== L || at(x, y - 1) !== L)) col = p.l;
-    }
-    if (p.line) {
-      for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const n = at(x + dx, y + dy);
-        if (n >= 0 && n < L && parts[n].c !== p.c) { col = p.o; break; }
-      }
-    }
-    put(x, y, col);
-  }
-  g.putImageData(img, 0, 0);
-  if (details) {
-    // pinta detalhes no sistema de coordenadas da escala 1
-    const px = (x, y, ww, hh, col) => {
-      g.fillStyle = col;
-      g.fillRect(Math.round(x * k), Math.round(y * k), Math.max(1, Math.round(ww * k)), Math.max(1, Math.round(hh * k)));
-    };
-    details(px, k, g);
-  }
-  return c;
-}
 
 // ---- rosto padrão
 function face(px, o) {
@@ -114,6 +33,11 @@ function face(px, o) {
   else if (mouth === 'grin') { px(33, y + 10, 6, 2, '#6a2a1a'); px(34, y + 10, 4, 1, '#ffffff'); }
   else if (mouth === 'open') { px(34, y + 10, 4, 3, '#6a2a1a'); px(35, y + 11, 2, 1, '#e86a6a'); }
   else px(34, y + 10, 4, 1, '#6a2a1a');
+}
+
+// mechas de brilho no cabelo
+function shine(px, pts, col) {
+  for (const [x, y] of pts) { px(x, y, 2, 1, col); px(x + 2, y + 1, 1, 1, col); }
 }
 
 // ---- partes comuns do corpo
@@ -202,6 +126,14 @@ export const HEROES = [
     id: 'teco', name: 'Teco', title: 'Garoto da Vila', weapon: 'Saco de Bombas', color: '#e8d6a6',
     stats: [3, 3, 3, 3], skill: 'Bolsa Furada', desc: 'A bomba se abre no ar e solta três bombinhas.',
     parts: () => [...W.sack(), ...body({ shirt: '#f4f0e4', pants: '#a88456', legs: SKIN, shoes: '#7a4a2a' }), ...head(), spikyHair('#7a4422')],
+    extra: px => {
+      px(32, 48, 8, 1, '#d6ccb4'); px(34, 49, 4, 1, '#d6ccb4');
+      px(26, 61, 20, 1, '#6a4a2a'); px(35, 61, 3, 2, '#e0b040'); px(29, 64, 3, 1, '#8a6a40'); px(36, 64, 1, 5, '#8a6a40');
+      px(30, 77, 3, 1, '#c89a6a'); px(40, 77, 3, 1, '#c89a6a');
+      shine(px, [[26, 15], [32, 11], [41, 12], [47, 16], [21, 22]], '#b0763c');
+      px(12, 70, 3, 1, '#a8844a'); px(15, 76, 3, 1, '#a8844a'); px(9, 74, 2, 1, '#a8844a');
+      px(8, 56, 2, 1, '#ffa090'); px(15, 55, 2, 1, '#ffa090');
+    },
     face: { iris: '#6a3a1a', mouth: 'smile' },
   },
   {
@@ -213,6 +145,12 @@ export const HEROES = [
       ...head(), spikyHair('#e85a2a', { len: 1.1 }),
       part('#2a2a3a', all(rr(18, 18, 36, 5, 2), poly([[52, 18], [62, 24], [58, 28], [52, 22]]))),
     ],
+    extra: px => {
+      px(36, 49, 1, 13, '#f0d8c8'); px(30, 48, 4, 2, '#8a1e18'); px(38, 48, 4, 2, '#8a1e18');
+      px(26, 61, 20, 2, '#1e1a20'); px(35, 61, 3, 2, '#c8c8d0'); px(29, 70, 4, 3, '#4c4656'); px(39, 71, 3, 2, '#4c4656');
+      shine(px, [[25, 13], [35, 9], [44, 11], [50, 15]], '#ffa060');
+      px(24, 20, 1, 1, '#ffffff'); px(31, 19, 1, 1, '#ffffff'); px(41, 19, 1, 1, '#ffffff'); px(48, 20, 1, 1, '#ffffff');
+    },
     face: { iris: '#a8321a', mouth: 'grin', brow: '#8a2a10' },
   },
   {
@@ -227,6 +165,13 @@ export const HEROES = [
       part('#c9963a', all(el(29, 20, 5.2, 5), el(43, 20, 5.2, 5))),
       part('#7fd8ff', all(el(29, 20, 3.2, 3), el(43, 20, 3.2, 3)), { shade: '#3a8ac8' }),
     ],
+    extra: px => {
+      px(26, 63, 20, 2, '#3a2414'); px(27, 18, 1, 1, '#ffffff'); px(41, 18, 1, 1, '#ffffff');
+      px(28, 21, 1, 1, '#dff8ff'); px(42, 21, 1, 1, '#dff8ff');
+      px(40, 49, 3, 1, '#ff7a6a'); px(48, 53, 3, 1, '#ff7a6a');
+      px(33, 54, 28, 1, '#ffe0a0'); px(64, 52, 1, 10, '#a8804a');
+      shine(px, [[27, 14], [38, 12], [46, 15]], '#b07a40');
+    },
     face: { iris: '#2a6ab0', mouth: 'smile' },
   },
   {
@@ -240,6 +185,13 @@ export const HEROES = [
       part('#e8407a', all(clip(0, 0, SW, 28, el(36, 27, 19, 15)), poly([[17, 22], [19, 40], [24, 27], [30, 24], [36, 31], [41, 24], [48, 29], [53, 38], [55, 22], [36, 13]]))),
       part('#ffd84a', all(el(17, 29, 3, 3), el(55, 29, 3, 3), poly([[30, 15], [33, 9], [36, 13], [39, 9], [42, 15]]))),
     ],
+    extra: (px, dot) => {
+      px(21, 71, 30, 1, '#ff9ab8'); px(26, 60, 20, 2, '#ffd84a'); px(35, 60, 2, 2, '#ffffff');
+      px(23, 51, 4, 2, '#e85a74'); px(45, 51, 4, 2, '#e85a74');
+      px(30, 64, 1, 6, '#b0203a'); px(41, 64, 1, 6, '#b0203a');
+      shine(px, [[27, 15], [36, 13], [44, 16], [10, 40], [61, 40], [12, 50], [59, 50]], '#ff90c4');
+      dot(55, 18, '#ffffff'); dot(56, 19, '#ffffff');
+    },
     face: { iris: '#b0307a', mouth: 'smile', lash: true, brow: '#a02a5a' },
   },
   {
@@ -254,6 +206,12 @@ export const HEROES = [
       part('#5aa0e8', g => { g.beginPath(); g.ellipse(36, 29, 22, 21, 0, 0, Math.PI * 2); g.ellipse(36, 35, 16.5, 16, 0, 0, Math.PI * 2); g.save(); g.clip('evenodd'); g.fillRect(0, 0, SW, 46); g.restore(); }),
       part('#ffffff', all(el(30, 9, 5, 3.5), el(37, 7, 6, 4.5), el(43, 9, 4.5, 3))),
     ],
+    extra: px => {
+      px(26, 60, 20, 2, '#2a4a8a'); px(35, 53, 3, 3, '#ffe066'); px(36, 52, 1, 5, '#ffe066'); px(34, 54, 5, 1, '#ffe066');
+      px(31, 66, 1, 8, '#c8d0e8'); px(40, 66, 1, 8, '#c8d0e8');
+      shine(px, [[29, 18], [40, 18], [20, 30], [52, 30]], '#ffffff');
+      px(29, 6, 3, 1, '#ffffff');
+    },
     face: { iris: '#2a7ac8', mouth: 'open', lash: true, brow: '#9aa8c8' },
   },
   {
@@ -270,6 +228,13 @@ export const HEROES = [
       part('#f6c83a', poly([[12, 22], [36, 17], [60, 22], [60, 24.5], [36, 19.5], [12, 24.5]])),
       part('#fff7e0', all(el(36, 10, 3.2, 3), line(31, 15, 41, 12, 1.6), line(31, 12, 41, 15, 1.6)), { flat: true }),
     ],
+    extra: px => {
+      px(30, 49, 2, 11, '#f6c83a'); px(40, 49, 2, 11, '#f6c83a');
+      px(26, 62, 20, 2, '#3a2214'); px(34, 62, 4, 2, '#f6c83a');
+      for (const [x, y] of [[27, 46], [31, 49], [36, 51], [41, 49], [45, 46], [25, 41], [47, 41]]) px(x, y, 1, 1, '#5a3a24');
+      px(31, 42, 4, 1, '#3a2214'); px(37, 42, 4, 1, '#3a2214');
+      px(22, 11, 3, 1, '#3a4a7a'); px(26, 8, 4, 1, '#3a4a7a');
+    },
     face: { iris: '#2a4a6a', mouth: 'flat', brow: '#2a1a10' },
   },
 ];
@@ -280,7 +245,7 @@ export function heroCanvas(h, k = 1, blink = false) {
   const key = `${h.id}|${k}|${blink}`;
   let c = cache.get(key);
   if (!c) {
-    c = render(h.parts(), k, px => face(px, { ...h.face, blink }));
+    c = render(h.parts(), SW, SH, k, (px, dot) => { face(px, { ...h.face, blink }); h.extra?.(px, dot); });
     cache.set(key, c);
   }
   return c;

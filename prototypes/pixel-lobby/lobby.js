@@ -4,6 +4,7 @@
 
 import { rng, mk, R, dither, drawMap, ellipse, PAL, text, measure, wrap, IP, ICONS, icon, gear } from './pixel.js';
 import { HEROES, drawHero } from './heroes.js';
+import { drawIcon } from './icons.js';
 
 const W = 720, H = 540;
 const cv = document.getElementById('screen');
@@ -191,7 +192,9 @@ function panel(g, x, y, w, h, fill = PAL.cream) {
   R(g, x + 1, y + 1, w - 2, h - 2, CREAM.a);
   R(g, x + 1, y + 1, w - 2, 1, CREAM.b);
   R(g, x + 2, y + 2, w - 4, h - 4, CREAM.c);
-  R(g, x + 3, y + 3, w - 6, h - 6, fill);
+  if (fill === PAL.cream) dither(g, x + 3, y + 3, w - 6, h - 6, ['#fbf0d6', PAL.cream, '#efdbb2']);
+  else R(g, x + 3, y + 3, w - 6, h - 6, fill);
+  R(g, x + 3, y + 3, w - 6, 1, 'rgba(255,255,255,0.5)');
   // cantos arredondados
   for (const [cx, cy] of [[x, y], [x + w - 1, y], [x, y + h - 1], [x + w - 1, y + h - 1]]) R(g, cx, cy, 1, 1, '#2a160c');
 }
@@ -393,6 +396,12 @@ function buildArena(w, h) {
   island(g, 58, 214, 62, 70, r);
   island(g, 198, 214, 62, 70, r);
   bush(g, r, 16, 214, 6); bush(g, r, 238, 214, 6);
+  // raios de sol diagonais pontilhados
+  g.fillStyle = 'rgba(255,252,220,0.16)';
+  for (let y = 0; y < 200; y++) for (let x = 0; x < w; x++) {
+    const band = (x + y * 0.55) % 70;
+    if (band < 16 && ((x + y) & 1) && x > 100) g.fillRect(x, y, 1, 1);
+  }
   waterfalls = [{ x: 44, y: 98, h: 50 }, { x: 236, y: 92, h: 58 }, { x: 122, y: 218, h: 60 }, { x: 132, y: 218, h: 60 }];
   return c;
 }
@@ -420,7 +429,7 @@ function buildStatic() {
     const [sc, sg] = mk(11, 11);
     drawMap(sg, ['.kkkkkkkkk.', 'kNNNNNNNNNk', 'kNWNNNNNNnk', 'kNNNNNNNNnk', 'kNNNNNNNNnk', 'kNNNNNNNNnk', '.kNNNNNNnk.', '.kNNNNNNnk.', '..knNNNnk..', '...knnnk...', '....kkk....'], IP, 0, 0);
     g.drawImage(sc, 22, 13, 33, 33);
-    icon(g, 'swords', 28, 18, 2);
+    drawIcon(g, 'swords', 26, 17, 1.25);
   }
   text(g, 'SALA DE BATALHA', 62, 22, { scale: 2, color: PAL.gold, color2: '#f09a20', outline: PAL.k, shadow: PAL.woodDD });
 
@@ -466,6 +475,34 @@ function buildStatic() {
 
 // ---------------------------------------------------------------- desenho por quadro
 
+// faixa de brilho que atravessa um botão ou letreiro de tempos em tempos
+function sweep(g, x, y, w, h, period, offset = 0) {
+  const t = (now + offset) % period;
+  if (t > 0.7) return;
+  const pos = x - h + ((w + h * 2) * t) / 0.7;
+  g.save(); g.beginPath(); g.rect(x, y, w, h); g.clip();
+  for (let yy = 0; yy < h; yy++) {
+    const xx = Math.round(pos + (h - yy) * 0.6);
+    R(g, xx, y + yy, 4, 1, 'rgba(255,255,255,0.55)');
+    R(g, xx + 6, y + yy, 1, 1, 'rgba(255,255,255,0.4)');
+  }
+  g.restore();
+}
+
+// estrelinha de quatro pontas que pisca
+function sparkle(g, x, y, phase, color = '#ffffff') {
+  const f = (Math.sin(now * 3 + phase) + 1) / 2;
+  const a = Math.round(f * 3);
+  if (a === 0) return;
+  R(g, x, y, 1, 1, color);
+  if (a > 1) { R(g, x - a + 1, y, a * 2 - 1, 1, color); R(g, x, y - a + 1, 1, a * 2 - 1, color); }
+  if (a > 2) { R(g, x - 1, y - 1, 3, 3, color); }
+}
+
+const embers = Array.from({ length: 14 }, (_, i) => ({ side: i % 2, seed: i * 1.7 }));
+const motes = Array.from({ length: 18 }, (_, i) => ({ x: (i * 53) % 254, y: (i * 37) % 200, v: 3 + (i % 5) }));
+const TWINKLES = [[30, 40], [70, 22], [150, 30], [226, 52], [110, 64], [190, 18], [16, 120], [244, 130]];
+
 const clouds = Array.from({ length: 7 }, (_, i) => ({ x: i * 52, y: 8 + (i * 23) % 70, s: 0.7 + (i % 3) * 0.35 }));
 
 function cloud(g, x, y, s = 1) {
@@ -506,8 +543,8 @@ function drawTopBar(g) {
   }
   const tops = [
     { id: 'top-gear', x: 584, draw: (x, y) => gear(g, x + 19, y + 19, 9, '#e0e4ec', '#7a808c'), tip: 'Ajustes', fn: () => openSettings() },
-    { id: 'top-friends', x: 628, draw: (x, y) => icon(g, 'friends', x + 9, y + 11, 2), tip: 'Amigos', fn: () => toast('Lista de amigos (protótipo)') },
-    { id: 'top-exit', x: 672, red: true, draw: (x, y) => icon(g, 'exit', x + 9, y + 10, 2), tip: 'Sair da sala', fn: () => toast('Sair da sala (protótipo)') },
+    { id: 'top-friends', x: 628, draw: (x, y) => drawIcon(g, 'friends', x + 8, y + 8, 1.2), tip: 'Amigos', fn: () => toast('Lista de amigos (protótipo)') },
+    { id: 'top-exit', x: 672, red: true, draw: (x, y) => drawIcon(g, 'exit', x + 8, y + 8, 1.2), tip: 'Sair da sala', fn: () => toast('Sair da sala (protótipo)') },
   ];
   for (const b of tops) {
     const st = woodButton(g, b.id, b.x, 12, 40, 40, {
@@ -518,6 +555,13 @@ function drawTopBar(g) {
   }
   torch(g, 1, 64);
   torch(g, W - 12, 64);
+  for (const e of embers) {
+    const t = (now * 0.6 + e.seed) % 1.6;
+    const bx = e.side ? W - 7 : 6;
+    const ex = bx + Math.round(Math.sin(now * 2 + e.seed * 3) * 3), ey = 62 - Math.round(t * 26);
+    if (t < 1.4) R(g, ex, ey, 1, 1, t < 0.6 ? '#ffe080' : t < 1 ? '#ff9a3a' : '#c0402a');
+  }
+  sweep(g, 60, 18, 184, 26, 5, 1.2);
 }
 
 const SLOT_POS = [[14, 66], [141, 66], [14, 248], [141, 248]];
@@ -533,7 +577,7 @@ function drawSlots(g) {
       R(g, x + 6, y + 20, w - 12, h - 26, PAL.k);
       R(g, x + 7, y + 21, w - 14, h - 28, st.hover ? '#3e2c22' : '#2e2018');
       g.globalAlpha = 0.18;
-      icon(g, 'swords', x + 26, y + 34, 7, IP);
+      drawIcon(g, 'swords', x + 26, y + 34, 3.5);
       g.globalAlpha = 1;
       const cx = x + 61, cy = y + 84;
       const ring = st.hover ? PAL.gold : '#e9d3a5';
@@ -561,7 +605,7 @@ function drawSlots(g) {
     // fundo e herói
     dither(g, x + 3, y + 19, w - 6, 118, [PAL.cream, '#f0dcae', '#e6c896']);
     g.globalAlpha = 0.25;
-    icon(g, 'swords', x + 76, y + 104, 3, IP);
+    drawIcon(g, 'swords', x + 80, y + 104, 1.6);
     g.globalAlpha = 1;
     drawHero(g, hero, x + 58, y + 132, 1.2, now, { phase: i * 0.7 });
     // medalhas
@@ -655,6 +699,11 @@ function drawArena(g) {
     ellipse(g, ex, ey, 4 + s, 3 + Math.floor(s * 0.7), 'rgba(255,200,90,0.75)');
     ellipse(g, ex, ey, 2 + Math.floor(s / 2), 1 + Math.floor(s / 3), '#ffffff');
   }
+  for (const [i, [tx, ty]] of TWINKLES.entries()) sparkle(g, x0 + tx, y0 + ty, i * 1.9);
+  for (const m of motes) {
+    const mx = x0 + Math.round((m.x + now * m.v) % 254), my = y0 + 80 + Math.round((m.y + Math.sin(now + m.x) * 6) % 140);
+    R(g, mx, my, 1, 1, 'rgba(255,250,210,0.7)');
+  }
   g.restore();
   // logotipo BATALHA PvP
   const lx = x0 + 127;
@@ -665,8 +714,9 @@ function drawArena(g) {
     R(g, bx, y0 + 22, 12, 34, PAL.k); R(g, bx + 1, y0 + 22, 10, 33, PAL.blue); R(g, bx + 1, y0 + 22, 3, 33, PAL.blueL);
     R(g, bx + 1, y0 + 52, 4, 6, PAL.blue); R(g, bx + 7, y0 + 52, 4, 6, PAL.blue);
   }
-  icon(g, 'swords', lx - 10, y0 + 2, 2);
+  drawIcon(g, 'swords', lx - 12, y0 + 1, 1.2);
   text(g, 'BATALHA', lx, y0 + 26, { align: 'center', scale: 2, color: PAL.gold, color2: '#f09a20', outline: PAL.k, shadow: PAL.woodDD });
+  sweep(g, lx - 64, y0 + 22, 128, 46, 4.2, 2);
   text(g, 'PVP', lx, y0 + 46, { align: 'center', scale: 2, color: '#ff7a3a', color2: PAL.red, outline: PAL.k, shadow: PAL.woodDD });
   // faixa de baixo
   const by = y0 + 228;
@@ -747,7 +797,7 @@ function drawRight(g) {
     const x = 546 + i * 40, y = 146;
     const st = region(`my-${i}`, x, y, 34, 34, { tip: `${t.name}: ${t.desc}` });
     slotBox(g, x, y, 34, { hover: st.hover });
-    icon(g, t.icon, x + 7, y + 7, 2);
+    drawIcon(g, t.icon, x + 7, y + 7);
     R(g, x + 1, y + 1, 9, 9, PAL.k); R(g, x + 2, y + 2, 7, 7, '#2a3a6a');
     text(g, String(i + 1), x + 6, y + 3, { font: 3, align: 'center', color: PAL.white });
   });
@@ -759,7 +809,7 @@ function drawRight(g) {
     const x = 546 + (i % 5) * 31, y = 212 + Math.floor(i / 5) * 31;
     const st = region(`other-${i}`, x, y, 28, 28, { tip: `${t.name}: ${t.desc} Arraste para um slot livre.`, drag: t });
     itemBox(g, x, y, 28, st.hover);
-    if (!(drag && drag.item === t)) icon(g, t.icon, x + 4, y + 4, 2);
+    if (!(drag && drag.item === t)) drawIcon(g, t.icon, x + 4, y + 4);
   });
   state.extra.forEach((t, i) => {
     const x = 550 + i * 38, y = 276;
@@ -772,7 +822,7 @@ function drawRight(g) {
       },
       onClick: () => { if (state.extra[i]) { state.extra[i] = null; beep(440, 0.04); } },
     });
-    if (t) { itemBox(g, x, y, 30, st.hover); icon(g, t.icon, x + 5, y + 5, 2); }
+    if (t) { itemBox(g, x, y, 30, st.hover); drawIcon(g, t.icon, x + 5, y + 5); }
     else dashedSlot(g, x, y, 30, st.hover);
   });
 
@@ -784,7 +834,7 @@ function drawRight(g) {
     const st = region(`spec-${i}`, x, y, 48, 26, { tip: 'Vaga de espectador trancada', onClick: () => { beep(300); toast('Vagas de espectador trancadas'); } });
     dashedSlot(g, x, y, 48, false);
     R(g, x + 1, y + 1, 46, 24, st.hover ? '#f6e2b4' : '#efdcb4');
-    icon(g, 'lock', x + 19, y + 8);
+    drawIcon(g, 'lock', x + 15, y + 4, 0.9);
   }
 
   // convidar e ajustes
@@ -798,15 +848,17 @@ function drawRight(g) {
       later(1.2, () => { if (state.slots[i].kind === 'empty') addBot(i); });
     },
   });
-  icon(g, 'friends', 566, 401 + cb.down);
+  drawIcon(g, 'friends', 562, 398 + cb.down, 0.85);
   text(g, 'Convidar', 612, 402 + cb.down, { align: 'center', color: PAL.woodDD, scale: 1 });
   const gb = woodButton(g, 'room-gear', 674, 394, 32, 26, { tip: 'Ajustes da sala', onClick: () => { beep(); openSettings(); } });
   gear(g, 690, 406 + gb.down, 7, '#e0e4ec', '#7a808c');
 
   // iniciar
   const ib = bigButton(g, 'start', 538, 426, 168, 44, { tip: 'Iniciar batalha', onClick: startBattle });
-  icon(g, 'swords', 548, 435 + ib.down, 2);
+  drawIcon(g, 'swords', 546, 433 + ib.down, 1.4);
   text(g, 'INICIAR BATALHA', 632, 441 + ib.down, { align: 'center', scale: 1, color: '#5a2806', shadow: '#ffeaa0' });
+  sweep(g, 539, 427 + ib.down, 166, 36, 3.5);
+  sparkle(g, 700, 432, 0.5); sparkle(g, 544, 460, 2.1);
 
   // atalhos
   const shortcuts = [
@@ -818,7 +870,7 @@ function drawRight(g) {
     const st = woodButton(g, `sc-${sct.id}`, x, y, 39, 44, {
       tip: sct.tip, onClick: () => { beep(); if (sct.id === 'mail') state.unreadMail = false; toast(`${sct.tip} (protótipo)`); },
     });
-    icon(g, sct.icon, x + 9, y + (sct.icon === 'mail' ? 15 : 11) + st.down, 2);
+    drawIcon(g, sct.icon, x + 7, y + 9 + st.down, 1.25);
     if (sct.id === 'mail' && state.unreadMail) { ellipse(g, x + 34, y + 5, 5, 5, PAL.k); ellipse(g, x + 34, y + 5, 4, 4, PAL.red); R(g, x + 32, y + 3, 2, 1, '#ff9a8a'); }
   });
 }
@@ -958,7 +1010,7 @@ const CURSOR = ['k..........', 'kk.........', 'kWk........', 'kWWk.......', 'kWW
 
 function drawCursor(g) {
   if (mouse.x < 0) return;
-  if (drag) icon(g, drag.item.icon, Math.round(mouse.x) - 10, Math.round(mouse.y) - 10, 2);
+  if (drag) drawIcon(g, drag.item.icon, mouse.x - 10, mouse.y - 10);
   const clickable = hoverId && regions.find(r => r.id === hoverId)?.onClick;
   drawMap(g, CURSOR, { k: PAL.k, W: clickable ? PAL.gold : PAL.white }, Math.round(mouse.x), Math.round(mouse.y));
 }
