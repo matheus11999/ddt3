@@ -61,7 +61,7 @@ export function normalizeProfile(raw:StoredProfile):Profile {
  if((raw.contentVersion??0)<16&&gender==='female'&&!inventory.includes(defaults.outfit))inventory.push(defaults.outfit);
  // Content 17: everyone owns the Bolha Clássica (starter kit).
  if((raw.contentVersion??0)<17&&!inventory.includes(defaults.bubble))inventory.push(defaults.bubble);
- if((raw.contentVersion??0)<18)for(const extra of STARTER_EXTRA_ITEMS[gender])if(!inventory.includes(extra))inventory.push(extra);
+ if((raw.contentVersion??0)<20)for(const extra of STARTER_EXTRA_ITEMS[gender])if(!inventory.includes(extra))inventory.push(extra);
  if((raw.contentVersion??0)<12)for(const id of STARTER_COSTUMES)if(!inventory.includes(id))inventory.push(id);
  if(Array.isArray(raw.inventory))for(const key of raw.inventory)if(typeof key==='string'&&isCopyKey(key)&&inventory.includes(copyBase(key))&&!inventory.includes(key))inventory.push(key);
  const weaponCopies=inventory.filter(key=>isCopyKey(key)&&CATALOG[copyBase(key)]?.slot==='weapon');

@@ -182,6 +182,8 @@ for i in range(39):
     gbase.paste(Image.fromarray(body.astype(np.uint8)), at)
     for l, _ in LOOKS:
         dp = f'{B6}/veste-{l}-combate{b}/veste-{l}-combate{b}.png'
+        if not os.path.exists(dp):  # conjunto novo (look-jobs-v6.py)
+            dp = f'output/base-v6/looks/{l}/combate{b}/combate{b}.png'
         if os.path.exists(dp):
             dr = key_out(sheet(dp).crop((x, y, x + CW, y + CH)))
             o = diff_cloth(dr, base_cell, hm, max(4, (box[3] - box[1]) // 4))
@@ -237,6 +239,8 @@ for row, name, flip in ((0, 'frente', True), (1, 'costas', False)):
         vbody.paste(Image.fromarray(body.astype(np.uint8)), (col * VW, row * VH))
         for l, _ in LOOKS:
             dp = f'{B6}/veste-{l}-praca-{name}/veste-{l}-praca-{name}.png'
+            if not os.path.exists(dp):
+                dp = f'output/base-v6/looks/{l}/praca-{name}/praca-{name}.png'
             if os.path.exists(dp):
                 o = diff_cloth(key_out(L(dp).crop((x, y, x + VW, y + VH))), base_cell, hm, max(4, (box[3] - box[1]) // 4))
                 vout[l].paste(Image.fromarray(o.astype(np.uint8)), (col * VW, row * VH))

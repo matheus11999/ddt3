@@ -42,14 +42,15 @@ function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null 
  if(eq.costume!=='costume-none'&&eq.visibility?.costume!==false)return null;
  const list=[eq.face,hairKey(eq,context),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
  if(!list.every(id=>has(sex,context,id)))return null;
- return [...baseIds(sex,context),...list];
+ return [...baseIds(sex,context,eq.outfit),...list];
 }
 /** Single skin base (matheus 22/10, "era assim que eu queria desde o início"): bald head with no features, neck and body
  * painted as one piece per context; face (eyes, brows, mouth), hair and outfit only lie over it. `base-<sex>-head` is the
- * head part where heads are drawn apart (combat, plaza), `base-<sex>` the body (the whole figure in the bag). */
-function baseIds(sex:Sex,context:string):string[] {
- const head=`base-${sex}-head`,body=`base-${sex}`;
- if(context==='show')return has(sex,'show',body)?[body]:[];
+ * head part where heads are drawn apart (combat, plaza), `base-<sex>` the body (the whole figure in the bag). An outfit can
+ * bring its own bag pose (matheus 23/10): `base-<sex>~<look>` is the same bald head on that outfit's body pose. */
+function baseIds(sex:Sex,context:string,outfit:string):string[] {
+ const head=`base-${sex}-head`,body=`base-${sex}`,posed=`${body}~${outfit.replace(/^outfit-/,'')}`;
+ if(context==='show')return has(sex,'show',posed)?[posed]:has(sex,'show',body)?[body]:[];
  if(context==='game')return [head,body].filter(id=>has(sex,'game',id));
  if(context==='virtualhead')return has(sex,'virtualhead',head)?[head]:[];
  return [];

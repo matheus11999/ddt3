@@ -28,3 +28,9 @@ Lições do kit inicial masculino. Toda IA que gerar cosmético segue isto; o fl
 
 - Prévia com o desenho do próprio jogo: `node scripts/rig/preview-rig.mjs m` (mochila, praça 8 direções, combate) e ampliar pescoço, aba do chapéu e pés.
 - Restos de molde: franja magenta, contorno pontilhado da cabeça verde, laranja/verde no pescoço. O `build-rig.py` limpa os casos conhecidos; olhar ampliado mesmo assim.
+
+## Base de pele única (v6, 22-23/10, aprovado)
+
+- Uma base careca por contexto (cabeça, pescoço e corpo numa peça); rosto, cabelo e roupa são só camadas por cima. Scripts: `base-sheets-v6.py`, `build-show-v6.py`, `build-gv-v6.py`; conjunto novo: `look-jobs-v6.py` + `prep-look-v6.py`.
+- **Combate e praça: o molde é sempre o mesmo** (regra do matheus em 23/10). Toda roupa nova é uma edição das pranchas de base de `output/base-v6/<sexo>/combate1-5` e `praca-*`: mesmas poses, mesmo tamanho, mesma cabeça. Nunca pintar combate do zero nem mudar pose ali.
+- A pose diferente só existe na mochila (`base-<sexo>~<look>`, a mesma cabeça careca em outra pose do corpo).

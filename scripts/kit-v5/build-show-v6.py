@@ -90,14 +90,31 @@ def save(img, name):
 save(base, f'base-{SEX}')
 head_in = ndimage.binary_erosion(al & (np.arange(B.shape[0])[:, None] < by1 - 4), iterations=10)
 
+def skull_box(A):
+    """Só a parte de cima da cabeça (55% da altura): numa pose com a mão erguida, a mão fica abaixo dela."""
+    al = A[..., 3] > 200; top = int(np.nonzero(al.any(1))[0].min()); bot = top + int((by1 - by0) * .55)
+    xs = np.nonzero(al[top:bot].any(0))[0]
+    return xs.min(), top, xs.max(), top + (xs.max() - xs.min()) * .55  # altura pela largura: a escala vem do crânio
+
+
 for kit, look in KITS:
     careca = L(f'{kit}/mochila-careca/alinhada.png'); C = np.asarray(careca).astype(int)
     cn = neck_row(C)
-    hb = head_box(C, cn)
+    posed = os.path.exists(f'{kit}/pose/pose.png')
+    if posed:  # cabeça encaixada pelo crânio: caixa do crânio da careca na do crânio da base
+        SB = skull_box(C); careca = fit(careca, SB, skull_box(B)); C = np.asarray(careca).astype(int)
+    hb = head_box(C, cn) if not posed else (bx0, by0, bx1, by1)
     # ---- rosto: só o que difere da pele (olhos, sobrancelhas, boca), dentro do rosto da base
     head = fit(careca, hb, (bx0, by0, bx1, by1)); H = np.asarray(head).astype(int)
+    hin = head_in
+    if posed and os.path.exists(f'{kit}/rosto/rosto.png'):
+        # rosto pintado direto na cabeça careca da pose (o Codex redesenha a careca com outro queixo): diferença exata
+        R = np.asarray(L(f'{kit}/rosto/rosto.png')).astype(int)
+        H = np.asarray(fit(L(f'{kit}/rosto/rosto.png'), skull_box(R), skull_box(B))).astype(int)
+    elif posed:
+        hin = ndimage.binary_erosion(head_in, iterations=22)  # só o miolo do rosto (sem o contorno e a orelha da careca)
     diff = np.abs(H[..., :3] - B[..., :3]).sum(-1)
-    feat = head_in & (H[..., 3] > 200) & ((~skinish(H)) | (diff > 90))
+    feat = hin & (H[..., 3] > 200) & ((~skinish(H)) | (diff > 90))
     feat = ndimage.binary_opening(feat, iterations=1)
     lab, n = ndimage.label(feat)
     if n:
@@ -113,28 +130,42 @@ for kit, look in KITS:
             bpath = f'{kit}/cabeloB-frente/alinhada.png'
             if not os.path.exists(bpath):
                 continue
-            Bm = np.asarray(L(bpath)).astype(int)
+            Bm = np.asarray(fit(L(bpath), SB, skull_box(B)) if posed else L(bpath)).astype(int)
             d = np.abs(Bm[..., :3] - C[..., :3]).sum(-1)
             m = (Bm[..., 3] > 20) & ((C[..., 3] < 20) | (d > 60)) & (np.arange(C.shape[0])[:, None] < cn + (220 if SEX == 'f' else 40))
             m = ndimage.binary_opening(m, iterations=5)
             Bm2 = Bm.copy(); Bm2[~m, 3] = 0
             hair = Image.fromarray(Bm2.astype(np.uint8))
         else:
-            hair = L(src)
+            hair = fit(L(src), SB, skull_box(B)) if posed else L(src)
         h = np.asarray(fit(hair, hb, (bx0, by0, bx1, by1))).copy()
-        h[skinish(h) & (h[..., 3] > 0), 3] = 0
+        sk = skinish(h) & (h[..., 3] > 0)
+        if posed:  # cabelo claro tem tons de pele: tirar só o que é igual à pele da base ali
+            sk &= np.abs(h[..., :3].astype(int) - B[..., :3]).sum(-1) < 60
+        h[sk, 3] = 0
         lab, n = ndimage.label(h[..., 3] > 30)
         if n:
             sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1)); h[np.isin(lab, 1 + np.nonzero(sz < sz.max() * .05)[0]), 3] = 0
         save(Image.fromarray(h), f'hair-{look}-{v}')
     # ---- roupa: a base vestida pelo Codex (output/base-v6/veste-<look>) menos a base: só o que mudou (o tecido)
     from subprocess import run
-    vest = f'output/base-v6/veste-{look}/veste-{look}.png'
-    tmp = f'output/base-v6/veste-{look}/alinhada.png'
-    run(['py', 'output/kit-v5-mcp/align.py', BASE, vest, tmp, str(bn)], check=True, capture_output=True)
+    # a roupa pode trazer a própria pose (kit com pose/ e veste/, look-jobs-v6.py): a base dela é a careca nessa pose
+    PB = f'{kit}/pose/alinhada.png' if posed else BASE
+    vest = f'{kit}/veste/veste.png' if posed else f'output/base-v6/veste-{look}/veste-{look}.png'
+    tmp = vest.replace('.png', '-alinhada.png')
+    if posed:
+        # o corpo mudou de pose: alinhar pela cabeça careca (caixa do crânio), nunca pelo corpo
+        def by_head(src, dst):
+            im = L(src); A = np.asarray(im).astype(int)
+            fit(im, skull_box(A), skull_box(B)).save(dst)
+        by_head(f'{kit}/pose/pose.png', PB); by_head(vest, tmp)
+        save(L(PB), f'base-{SEX}~{look}')
+    else:
+        run(['py', 'output/kit-v5-mcp/align.py', BASE, vest, tmp, str(bn)], check=True, capture_output=True)
+    P = np.asarray(L(PB)).astype(int)
     M = np.asarray(L(tmp)).astype(int)
-    d = np.abs(M[..., :3] - B[..., :3]).sum(-1)
-    m = (M[..., 3] > 30) & ((B[..., 3] < 30) | (d > 45))
+    d = np.abs(M[..., :3] - P[..., :3]).sum(-1)
+    m = (M[..., 3] > 30) & ((P[..., 3] < 30) | (d > 45))
     m[:bn - 6] = False
     m = ndimage.binary_opening(m, iterations=2)
     m = ndimage.binary_fill_holes(ndimage.binary_closing(m, iterations=3)) & (M[..., 3] > 30)
