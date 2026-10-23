@@ -96,23 +96,30 @@ def face_with_neck(bald_path, head_only):
     sample = H[yy0:yy0 + 6, int(cx) - 6:int(cx) + 6].reshape(-1, 4)
     sample = sample[(sample[:, 3] > 200) & (sample[:, :3].sum(1) > 450)]
     tone = sample[:, :3].mean(0) * .96 if len(sample) else np.array([235, 185, 145])
-    w = hw * .085
-    y0, y1 = chin - int((chin - top) * .12), chin + int((chin - top) * .45)
+    # Pescoço pintado pelo Codex sobre esta cabeça (KIT/pescoco, matheus 22/10: o desenhado em código ficou feio),
+    # alinhado pela caixa da cabeça; dele só entra o que fica abaixo do queixo.
     neck = Image.new('RGBA', head_only.size)
-    d = ImageDraw.Draw(neck)
-    sh = max(1, (chin - top) * .07)
-    for y in range(y0, y1):
-        k = min(1, max(0, (y - chin) / sh))
-        f = .9 + .1 * k  # sombra do queixo logo abaixo dele
-        ww = w * (1 + .06 * max(0, (y - chin) / max(1, y1 - chin)))  # alarga um pouco para baixo
-        for x in range(int(cx - ww), int(cx + ww) + 1):  # volume: um pouco mais escuro nos lados
-            e = abs(x - cx) / max(1, ww)
-            fx = f * (1 - .14 * e * e)
-            d.point((x, y), fill=tuple(min(255, int(v * fx)) for v in tone) + (255,))
-    # contorno dos lados só abaixo do queixo (por cima do queixo translúcido ele aparecia através do rosto)
-    lw = max(3, round(hw * .012)); line = (70, 36, 24, 255)
-    d.line((cx - w, chin + 3, cx - w * 1.06, y1), fill=line, width=lw)
-    d.line((cx + w, chin + 3, cx + w * 1.06, y1), fill=line, width=lw)
+    pp = f'{K}/pescoco/pescoco.png'
+    if os.path.exists(pp):
+        # o pescoço da pintura: de baixo para cima, até onde a largura cresce (o queixo); colado com o topo no nosso queixo
+        P = np.asarray(L(pp)).astype(int)
+        pal = P[..., 3] > 200
+        prow = np.nonzero(pal.any(1))[0]; pbot = prow.max()
+        widths = pal.sum(1)
+        nw = np.median(widths[pbot - 20:pbot - 4])
+        y = pbot - 4
+        while y > prow.min() and widths[y] < nw * 1.5:
+            y -= 1
+        pjaw = y  # primeira linha (de baixo para cima) com o queixo
+        sc = (chin - top) / max(1, pjaw - prow.min())
+        cols = np.nonzero(pal[pjaw + 4:pbot].any(0))[0]
+        pcx = (cols.min() + cols.max()) / 2
+        crop = P[pjaw - 6:pbot + 1, int(cols.min()) - 6:int(cols.max()) + 7].copy()
+        img = Image.fromarray(crop.astype(np.uint8))
+        img = img.resize((max(1, round(img.width * sc)), max(1, round(img.height * sc))), Image.BICUBIC)
+        neck.paste(img, (round(cx - (pcx - cols.min() + 6) * sc), round(chin - 6 * sc - int((chin - top) * .02))), img)
+        S = np.asarray(neck).copy()
+        neck = Image.fromarray(S.astype(np.uint8))
     neck.alpha_composite(head_only)
     return neck
 
