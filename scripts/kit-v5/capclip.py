@@ -7,6 +7,7 @@ trás ou pela frente da copa). Embaixo da borda o cabelo aparece: costeleta, lat
 
   py scripts/kit-v5/capclip.py <sexo> <chapéu>     reescreve public/assets/rig/<sexo>/<contexto>/<chapéu>-clip.png
 """
+import os
 import sys
 
 import numpy as np
@@ -56,7 +57,9 @@ if __name__ == '__main__':
         r, g, b = (img[..., i].astype(int) for i in range(3))
         skin = (r > 200) & (g > 140) & (g < 225) & (b > 100) & (b < 200) & (r - b > 40)
         a = (img[..., 3] > 40) & ~skin  # o boné de verdade, para medir bordas e aberturas
-        face = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/face-basic-{"male" if sex == "m" else "female"}.png').convert('RGBA'))[..., 3] > 128
+        fb = f'public/assets/rig/{sex}/{context}/base-{sex}{"-head" if context != "show" else ""}.png'
+        fb = fb if os.path.exists(fb) else f'public/assets/rig/{sex}/{context}/face-basic-{"male" if sex == "m" else "female"}.png'
+        face = np.asarray(Image.open(fb).convert('RGBA'))[..., 3] > 128  # a cabeça (base de pele, quando existe)
         hair = np.asarray(Image.open(f'public/assets/rig/{sex}/{context}/hair-basic-{"male" if sex == "m" else "female"}-A.png').convert('RGBA'))[..., 3] > 40
         out = np.zeros(a.shape, bool)
         for y0 in range(0, a.shape[0], h):

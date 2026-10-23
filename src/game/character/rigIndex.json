@@ -13,6 +13,7 @@
    "outfit-star-male"
   ],
   "show": [
+   "base-m",
    "face-basic-male",
    "face-star-male",
    "hair-basic-male-A",
@@ -49,6 +50,7 @@
    "outfit-basic-female"
   ],
   "show": [
+   "base-f",
    "face-basic-female",
    "hair-basic-female-A",
    "hair-basic-female-B",

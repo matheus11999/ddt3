@@ -41,8 +41,20 @@ function pieces(eq:Equipment,context:'game'|'show'|'virtualhead'):string[]|null 
  const sex=sexOf(eq),hat=visibleHat(eq),glasses=visibleGlasses(eq);
  if(eq.costume!=='costume-none'&&eq.visibility?.costume!==false)return null;
  const list=[eq.face,hairKey(eq,context),...(context==='virtualhead'?[]:[eq.outfit]),...(hat!=='hat-none'?[hat]:[]),...(glasses!=='glasses-none'?[glasses]:[])];
- return list.every(id=>has(sex,context,id))?list:null;
+ if(!list.every(id=>has(sex,context,id)))return null;
+ return [...baseIds(sex,context),...list];
 }
+/** Single skin base (matheus 22/10, "era assim que eu queria desde o início"): bald head with no features, neck and body
+ * painted as one piece per context; face (eyes, brows, mouth), hair and outfit only lie over it. `base-<sex>-head` is the
+ * head part where heads are drawn apart (combat, plaza), `base-<sex>` the body (the whole figure in the bag). */
+function baseIds(sex:Sex,context:string):string[] {
+ const head=`base-${sex}-head`,body=`base-${sex}`;
+ if(context==='show')return has(sex,'show',body)?[body]:[];
+ if(context==='game')return [head,body].filter(id=>has(sex,'game',id));
+ if(context==='virtualhead')return has(sex,'virtualhead',head)?[head]:[];
+ return [];
+}
+const isBase=(id:string)=>id.startsWith('base-');
 /** Rig v2 per sex. Off for both on 22/10 (matheus rejected the first rig art); back on for the male kit repainted on the
  * DDTank molds by the Codex MCP (kit v5, docs/codex-mcp.md). The female sheets are still the rejected ones. */
 const RIG_SEXES:readonly Sex[]=['m','f'];
@@ -65,7 +77,7 @@ function stack(sex:Sex,context:string,ids:string[],skin:string|undefined,hatOver
  const out=document.createElement('canvas');out.width=images[0].naturalWidth;out.height=images[0].naturalHeight;const c=out.getContext('2d')!;
  const layer=(image:HTMLImageElement)=>{const t=document.createElement('canvas');t.width=image.naturalWidth;t.height=image.naturalHeight;t.getContext('2d')!.drawImage(image,0,0);return t;};
  ids.forEach((id,i)=>{const image=images[i];
-  if(skin&&(id.startsWith('face-')||id.startsWith('outfit-'))){const t=layer(image);tintSkin(t,skin,true);c.drawImage(t,0,0);}
+  if(skin&&(id.startsWith('face-')||id.startsWith('outfit-')||isBase(id))){const t=layer(image);tintSkin(t,skin,true);c.drawImage(t,0,0);}
   else if(clip&&id.startsWith('hair-')&&!id.endsWith('-B')){const t=layer(image),tc=t.getContext('2d')!;tc.globalCompositeOperation='destination-out';tc.drawImage(clip,0,0);c.drawImage(t,0,0);}
   else c.drawImage(image,0,0);});
  composed.set(key,out);if(composed.size>48){const oldest=composed.keys().next().value!;composed.delete(oldest);}
@@ -79,6 +91,7 @@ const skinAt=new Map<string,string>();
  * (scripts/kit-v5/eyes.py -> rigEyes.json); closing one paints its box with the skin right under it, taken from the
  * stacked (tinted) face so any body color matches, and draws the lid across. Cell pixels, scaled by k from (sx, sy). */
 function closeEyes(c:CanvasRenderingContext2D,layer:HTMLCanvasElement,sex:Sex,context:string,face:string,cell:number,cellX:number,cellY:number,sx:number,sy:number,k:number){
+ // with a skin base the face sheet has no skin: the lid colour comes from the stacked head (base + face)
  const eyes=EYES[sex]?.[context]?.[face]?.[cell];if(!eyes)return;
  for(const {box:[x,y,w,h],skin} of eyes){
   const key=[sex,context,face,cell,x,y,layer.width].join('|');let fill=skinAt.get(key);
@@ -111,8 +124,8 @@ function neckOf(layer:HTMLCanvasElement,key:string,x0:number,y0:number,w:number,
  * (face, hair, hat, glasses) is drawn apart from the outfit so `head` can tilt and nudge it about the neck. */
 export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number,head?:HeadMotion,blink=false):boolean {
  const ids=pieces(eq,'game');if(!ids)return false;const sex=sexOf(eq);
- const hat=ids.find(id=>id.startsWith('hat-')),under=ids.filter(id=>id.startsWith('face-')||id.startsWith('hair-'));
- const outfit=ids.filter(id=>id.startsWith('outfit-')),over=ids.filter(id=>id.startsWith('hat-')||id.startsWith('glasses-'));
+ const hat=ids.find(id=>id.startsWith('hat-')),under=ids.filter(id=>id.endsWith('-head')&&isBase(id)||id.startsWith('face-')||id.startsWith('hair-'));
+ const outfit=ids.filter(id=>isBase(id)&&!id.endsWith('-head')||id.startsWith('outfit-')),over=ids.filter(id=>id.startsWith('hat-')||id.startsWith('glasses-'));
  const headUnder=stack(sex,'game',under,eq.skin,hat),body=stack(sex,'game',outfit,eq.skin),headOver=over.length?stack(sex,'game',over,eq.skin):null;
  if(!headUnder||!body||over.length&&!headOver)return false;
  // Face and hair share the face's (lower) cell; the outfit follows the upper sequence (GameCharacter's faceDown/faceUp).
@@ -130,11 +143,13 @@ export function drawRigGame(c:CanvasRenderingContext2D,eq:Equipment,action:strin
 /** Bag/shop/room figure with its feet at (0,0), facing right, in avatar units. False while the art loads. */
 export function drawRigShow(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
  const ids=pieces(eq,'show');if(!ids)return false;const sex=sexOf(eq);
- const face=stack(sex,'show',ids.slice(0,1),eq.skin),rest=stack(sex,'show',ids.slice(1),eq.skin);if(!face||!rest)return false;
+ const nb=ids.filter(isBase).length;
+ const face=stack(sex,'show',ids.slice(0,nb+1),eq.skin),rest=stack(sex,'show',ids.slice(nb+1),eq.skin);if(!face||!rest)return false;
  const [w,h]=SHOW.cell,k=RIG_UNITS.show,[ox,oy]=FEET.show,cell=showFrame(action,tick);
  // The figure is painted facing left (DDTank's bag); mirror it so 'facing right' means right like everywhere else.
  c.save();c.scale(-1,1);
  // NORMAL_STANDBY closes the eyes on cells 1-3: drawn from cell 0 with the universal blink, so every face blinks.
+ // base and face stacked in one layer (cell 0); the face sheet's own blink cells are not used
  drawCell(c,face,0,0,w,h,-ox*k,-oy*k,w*k,h*k);
  if(cell>0)closeEyes(c,face,sex,'show',eq.face,0,0,0,-ox*k,-oy*k,k);
  drawCell(c,rest,0,0,w,h,-ox*k,-oy*k,w*k,h*k);c.restore();
@@ -143,7 +158,8 @@ export function drawRigShow(c:CanvasRenderingContext2D,eq:Equipment,action:strin
 /** Plaza/Pescaria figure with its feet at (0,0), in avatar units. `back` walks away from the viewer. */
 export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:string,tick:number):boolean {
  const ids=pieces(eq,'virtualhead');if(!ids||!has(sexOf(eq),'virtual',eq.outfit))return false;const sex=sexOf(eq);
- const head=stack(sex,'virtualhead',ids,eq.skin),body=stack(sex,'virtual',[eq.outfit],eq.skin);if(!head||!body)return false;
+ const bodyIds=[...(has(sex,'virtual',`base-${sex}`)?[`base-${sex}`]:[]),eq.outfit];
+ const head=stack(sex,'virtualhead',ids,eq.skin),body=stack(sex,'virtual',bodyIds,eq.skin);if(!head||!body)return false;
  const frame=virtualFrame(action,tick),[w,h]=VIRTUAL.cell,k=RIG_UNITS.virtual,[ox,oy]=FEET.virtual,back=frame>=8,blink=frame===7;
  const col=blink?0:back?frame-8:frame,row=back?1:0,headCell=back?2:0,dy=(VIRTUAL.headOffsets[col]??0)*k;
  const paintBody=()=>drawCell(c,body,col*w,row*h,w,h,-ox*k,-oy*k,w*k,h*k),paintHead=()=>{drawCell(c,head,headCell*w,0,w,h,-ox*k,-oy*k+dy,w*k,h*k);
@@ -153,7 +169,8 @@ export function drawRigVirtual(c:CanvasRenderingContext2D,eq:Equipment,action:st
  c.save();if(!back)c.scale(-1,1);
  // The neck belongs to the head (DDTank, matheus 22/10): front, the head first and the outfit's collar over its neck;
  // back, the body first and the head over it.
- if(back){paintBody();paintHead();}else{paintHead();paintBody();}
+ // With a skin base the neck is the base's (one piece with the body): the head goes over it, front and back.
+ if(back||has(sex,'virtual',`base-${sex}`)){paintBody();paintHead();}else{paintHead();paintBody();}
  c.restore();
  return true;
 }
@@ -169,7 +186,7 @@ function headBox(layer:HTMLCanvasElement,key:string,x0:number,w:number,h:number)
  * battle head (combat cell 0, turned 3/4 like DDTank), otherwise the front head of the plaza. False while it loads. */
 export function drawRigPortrait(c:CanvasRenderingContext2D,eq:Equipment,x:number,y:number,size:number,facing:number,view?:'side'|'front'):boolean {
  const context=view==='side'?'game':'virtualhead',ids=pieces(eq,context);if(!ids)return false;
- const sex=sexOf(eq),list=ids.filter(id=>!id.startsWith('outfit-')),layer=stack(sex,context,list,eq.skin);if(!layer)return false;
+ const sex=sexOf(eq),list=ids.filter(id=>!id.startsWith('outfit-')&&!(isBase(id)&&!id.endsWith('-head'))),layer=stack(sex,context,list,eq.skin);if(!layer)return false;
  const [w,h]=context==='game'?GAME.cell:VIRTUAL.cell,[bx,by,bw,bh]=headBox(layer,[sex,context,...list].join('|'),0,w,h);
  // The battle head faces right; the plaza front head is painted turned left (mirrored like the plaza figure).
  const flip=(context==='game'?1:-1)*(facing<0?-1:1),k=size*.96/Math.max(bw,bh);
