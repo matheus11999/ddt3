@@ -124,6 +124,35 @@ def face_with_neck(bald_path, head_only):
     return neck
 
 
+def drop_loose(img, keep_share=.06):
+    """Pedaços soltos (mecha caída abaixo da nuca, resto do pescoço antigo no queixo) saem: fica só o que é grande."""
+    from scipy import ndimage
+    a = np.asarray(img).copy()
+    lab, n = ndimage.label(a[..., 3] > 30)
+    if n:
+        sz = ndimage.sum(np.ones_like(lab), lab, range(1, n + 1))
+        a[np.isin(lab, 1 + np.nonzero(sz < sz.max() * keep_share)[0]), 3] = 0
+    return Image.fromarray(a)
+
+
+def trim_jaw(img):
+    """O queixo só afina para baixo: da altura da boca para baixo, cada linha fica dentro do trecho da linha de cima
+    (restos do pescoço antigo e da nuca que saem para os lados somem). O pescoço vem depois, do face_with_neck."""
+    a = np.asarray(img).copy(); al = a[..., 3] > 200
+    rows = np.nonzero(al.any(1))[0]; top, chin = rows.min(), rows.max()
+    start = chin - int((chin - top) * .14)
+    xs = np.nonzero(al[start])[0]; lo, hi = xs.min(), xs.max()
+    for y in range(start + 1, a.shape[0]):
+        a[y, :max(0, lo), 3] = 0; a[y, hi + 1:, 3] = 0
+        xs = np.nonzero(a[y, :, 3] > 200)[0]
+        if not len(xs):
+            a[y:, :, 3] = 0; break
+        lo, hi = max(lo, xs.min()), min(hi, xs.max())
+    return Image.fromarray(a)
+
+
+lay['cabeca-frente'] = drop_loose(trim_jaw(lay['cabeca-frente']))
+lay['cabelo-frente'] = drop_loose(lay['cabelo-frente'])
 face_neck = face_with_neck(f'{K}/mochila-careca/alinhada.png', lay['cabeca-frente'])
 face_neck.save(f'{K}/camadas-mochila/cabeca-pescoco.png')
 feet = np.asarray(lay['roupa-frente'])[..., 3] > 128
